@@ -146,10 +146,10 @@ final class CreateDashboardLogTables extends AbstractMigration
                 'default' => 24,
                 'comment' => 'Hours between displays, 0 = show once',
             ])
-            ->addColumn('read_at', 'datetime', ['null' => true])
-            ->addColumn('deactivated_at', 'datetime', ['null' => true])
-            ->addIndex(['deactivated_at', 'last_shown', 'show_interval'], ['name' => 'idx_active_notifications'])
-            ->addIndex(['type', 'read_at'], ['name' => 'idx_type_read'])
+            ->addColumn('dismissed_at', 'datetime', ['null' => true, 'comment' => 'When user closed/dismissed the notification'])
+            ->addColumn('deactivated_at', 'datetime', ['null' => true, 'comment' => 'When user permanently disabled this notification'])
+            ->addIndex(['deactivated_at', 'dismissed_at', 'show_interval'], ['name' => 'idx_active_notifications'])
+            ->addIndex(['type', 'dismissed_at'], ['name' => 'idx_type_dismissed'])
             ->addIndex(['identifier'], ['name' => 'idx_identifier'])
             ->addIndex(['created_at'], ['name' => 'idx_created_at'])
             ->create();

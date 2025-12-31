@@ -309,9 +309,8 @@ class NotificationManagerTest extends TestCase
                 'title' => 'Test Warning',
                 'message' => 'This is a warning',
                 'created_at' => '2024-01-01 12:00:00',
-                'last_shown' => null,
+                'dismissed_at' => null,
                 'show_interval' => 24,
-                'read_at' => null,
             ],
             [
                 'id' => 2,
@@ -319,18 +318,14 @@ class NotificationManagerTest extends TestCase
                 'title' => 'Test Error',
                 'message' => 'This is an error',
                 'created_at' => '2024-01-01 13:00:00',
-                'last_shown' => null,
+                'dismissed_at' => null,
                 'show_interval' => 0,
-                'read_at' => null,
             ],
         ];
 
-        $this->mockDb->expects($this->exactly(2))
+        $this->mockDb->expects($this->once())
             ->method('runQuery')
-            ->willReturnOnConsecutiveCalls(
-                $expectedNotifications,
-                1 // updateLastShown
-            )
+            ->willReturn($expectedNotifications)
         ;
 
         $notifications = $this->notificationManager->getActiveNotifications();
@@ -370,7 +365,7 @@ class NotificationManagerTest extends TestCase
         $this->mockDb->expects($this->once())
             ->method('runQuery')
             ->with(
-                $this->stringContains('UPDATE dashboard_notifications SET read_at'),
+                $this->stringContains('UPDATE dashboard_notifications SET dismissed_at'),
                 [123]
             )
         ;

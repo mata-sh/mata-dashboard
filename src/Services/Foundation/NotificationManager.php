@@ -74,7 +74,7 @@ final class NotificationManager
         }
 
         $sql = 'INSERT INTO dashboard_notifications
-                (`identifier`, `type`, `title`, `message`, `created_at`, `updated_at`, `last_shown`, `show_interval`, `read_at`, `deactivated_at`)
+                (`identifier`, `type`, `title`, `message`, `created_at`, `updated_at`, `last_shown`, `show_interval`, `dismissed_at`, `deactivated_at`)
                 VALUES (?, ?, ?, ?, NOW(), NOW(), NULL, ?, NULL, ?)';
 
         try {
@@ -124,7 +124,7 @@ final class NotificationManager
         }
         // Create new notification
         $sql = 'INSERT INTO dashboard_notifications
-                    (identifier, type, title, message, created_at, updated_at, last_shown, show_interval, read_at, deactivated_at)
+                    (identifier, type, title, message, created_at, updated_at, last_shown, show_interval, dismissed_at, deactivated_at)
                     VALUES (?, ?, ?, ?, NOW(), NOW(), NULL, ?, NULL, ?)';
 
         try {
@@ -161,7 +161,7 @@ final class NotificationManager
     ): bool {
         $sql = 'UPDATE dashboard_notifications
                 SET type = ?, title = ?, message = ?, updated_at = NOW(),
-                    show_interval = ?, deactivated_at = ?, read_at = NULL
+                    show_interval = ?, deactivated_at = ?, dismissed_at = NULL
                 WHERE identifier = ? AND deactivated_at IS NULL';
 
         try {
@@ -261,13 +261,13 @@ final class NotificationManager
         $notifications = [];
 
         if (!$this->db instanceof NullDatabase) {
-            $sql = "SELECT id, type, title, message, created_at, last_shown, show_interval, read_at
+            $sql = "SELECT id, type, title, message, created_at, dismissed_at, show_interval
                     FROM dashboard_notifications
                     WHERE deactivated_at IS NULL
                     AND (
-                        last_shown IS NULL
+                        dismissed_at IS NULL
                         OR show_interval = 0
-                        OR DATE_ADD(last_shown, INTERVAL show_interval HOUR) <= NOW()
+                        OR DATE_ADD(dismissed_at, INTERVAL show_interval HOUR) <= NOW()
                     )
                     ORDER BY
                         CASE type
@@ -281,7 +281,6 @@ final class NotificationManager
             try {
                 $result = $this->db->runQuery($sql);
                 if (is_array($result)) {
-                    $this->updateLastShown(array_column($result, 'id'));
                     $notifications = $result;
                 }
             } catch (Exception $e) {
@@ -293,7 +292,7 @@ final class NotificationManager
     }
 
     /**
-     * Mark notification as read.
+     * Mark notification as dismissed (user closed it).
      *
      * @param int $notificationId Notification ID
      *
@@ -301,14 +300,14 @@ final class NotificationManager
      */
     public function markAsRead(int $notificationId): bool
     {
-        $sql = 'UPDATE dashboard_notifications SET read_at = NOW() WHERE id = ?';
+        $sql = 'UPDATE dashboard_notifications SET dismissed_at = NOW() WHERE id = ?';
 
         try {
             $this->db->runQuery($sql, [$notificationId]);
 
             return true;
         } catch (Exception $e) {
-            $this->logger->error('Failed to mark notification as read: ' . $e->getMessage());
+            $this->logger->error('Failed to mark notification as dismissed: ' . $e->getMessage());
 
             return false;
         }
@@ -361,7 +360,7 @@ final class NotificationManager
     }
 
     /**
-     * Get count of unread active notifications by type.
+     * Get count of undismissed active notifications by type.
      *
      * @return array<string,int> Count of notifications by type
      */
@@ -369,7 +368,7 @@ final class NotificationManager
     {
         $sql = 'SELECT type, COUNT(*) as count
                 FROM dashboard_notifications
-                WHERE deactivated_at IS NULL AND read_at IS NULL
+                WHERE deactivated_at IS NULL AND dismissed_at IS NULL
                 GROUP BY type';
 
         try {
@@ -393,6 +392,9 @@ final class NotificationManager
     /**
      * Check if a notification with similar content already exists.
      *
+     * Prevents creating duplicate notifications as long as an active one exists.
+     * The existing notification will re-show based on dismissed_at + show_interval logic.
+     *
      * @param string $type    Notification type
      * @param string $title   Notification title
      * @param string $message Notification message
@@ -404,7 +406,7 @@ final class NotificationManager
         $sql = 'SELECT id FROM dashboard_notifications
                 WHERE type = ? AND title = ? AND message = ?
                 AND deactivated_at IS NULL
-                AND created_at > DATE_SUB(NOW(), INTERVAL 1 HOUR)';
+                LIMIT 1';
 
         try {
             $result = $this->db->runQuery($sql, [$type, $title, $message]);
@@ -414,29 +416,6 @@ final class NotificationManager
             $this->logger->error('Failed to check for duplicate notification: ' . $e->getMessage());
 
             return false;
-        }
-    }
-
-    /**
-     * Update last_shown timestamp for notifications.
-     *
-     * @param array<int> $notificationIds Array of notification IDs
-     */
-    private function updateLastShown(array $notificationIds): void
-    {
-        if (empty($notificationIds)) {
-            return;
-        }
-
-        $placeholders = implode(',', array_fill(0, count($notificationIds), '?'));
-        $sql = "UPDATE dashboard_notifications 
-                SET last_shown = NOW() 
-                WHERE id IN ({$placeholders})";
-
-        try {
-            $this->db->runQuery($sql, $notificationIds);
-        } catch (Exception $e) {
-            $this->logger->error('Failed to update last_shown: ' . $e->getMessage());
         }
     }
 
