@@ -1,0 +1,31 @@
+<div class="app-container">
+  <span class="app-ping {{ app.ping|raw }}" data-tippy-content="{{ app.ping_latency|raw }}"></span>
+  <span class="app-title">
+    <span data-tippy-content="Cache Updated: {{ app.cache_age }} s ago (TTL: {{ app.cache_ttl }} s)">{{ app.name }}</span>
+    <a class="app-url-btn" href="{{ app.url }}" target="_blank" data-tippy-content="{{ app.url }}">{{ icons.link|raw }}</a>
+    {# <!--  <a class="app-refresh-btn htmx-indicator"  
+           hx-get="/watch/refresh/app" 
+           hx-target="#app-status-{{ app.id }}" hx-swap="innerHTML"
+           data-tippy-content="Refresh {{ app.name }}">
+            {{ icons.refresh_ccw|raw }}
+        </a>  --> #}
+    <a class="app-readme-btn" hx-get="/watch/modal/{{ app.server }}/{{ app.key }}/readme" hx-target="#modal-container" hx-trigger="click" hx-toggle="modal">{{ icons.info|raw }}</a>
+  </span>
+  {# <!--  <span class="app-libs {{ APP_ENV }}" data-tippy-content="{{ APP_PATH }}">
+        <span class="libs-helper">2.0.9.2</span>
+        <span class="libis-security">2.0.6.0</span>        
+    </span>  --> #}
+  <span class="app-env {{ app.env }}" data-tippy-content="{{ app.path }}">{{ app.env }}</span>
+  <span id="app-status-{{ app.id }}" class="app-status {{ config.errors_alarms_enabled }}" data-tippy-content="{{ app.status_tooltip|raw }}" hx-get="/watch/modal/{{ app.server }}/{{ app.key }}/errorlog" hx-target="#modal-container" hx-trigger="click" hx-toggle="modal">
+    <span class="app-status-count {{ app.status_type }}">
+      {% if app.status_count %}
+        {{ app.status_count }}
+      {% else %}
+        {{ icons.check_circle|raw }}
+      {% endif %}
+    </span>
+    <span class="app-status-text {{ app.status_type }}">{{ app.status_type }}</span>
+  </span>
+  <span class="app-filesize count {{ logs.file_size_level }}" data-tippy-content="{{ logs.file_size_tooltip|raw }}">{{ logs.max_file_size }} {{ icons.alert|raw }}</span>
+  <span class="app-sessions count {{ sessions.count_level }}" data-tippy-content="{{ sessions.tooltip|raw }}">{{ sessions.count_last }} {{ icons.user|raw }}</span>
+</div>

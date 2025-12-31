@@ -1,0 +1,168 @@
+<div id="modal" class="modal is-active metrics-modal" _="on closeModal add .closing then wait for animationend then remove me">
+  <div class="modal-background" _="on click trigger closeModal"></div>
+  <div class="modal-content box metrics-modal-content">
+    <div class="modal-top-bar">
+      <button class="button modal-close-button-top" _="on click trigger closeModal">
+        <span class="icon is-small">{{ icons.close|raw }}</span>
+      </button>
+      <div class="title">
+        <strong>Process Count</strong> ({{ server.name }})
+      </div>
+      <div class="title">Range: {{ filters.range|upper }} · Granularity: {{ filters.granularity }}</div>
+      <button
+        class="button modal-refresh-button-top"
+        hx-get="{{ routes.refresh }}"
+        hx-target="#modal-container"
+        hx-trigger="click"
+      >
+        {{ icons.refresh|raw }} Refresh
+      </button>
+    </div>
+
+    <div class="metrics-chart-wrapper">
+      <canvas id="{{ chart.element_id }}"></canvas>
+      <div class="metrics-chart-stats">
+        <span>{{ icons.activity|raw }} Min: <span data-metric-stat="min">{{ stats.min ?? '—' }}</span></span>
+        <span>Max: <span data-metric-stat="max">{{ stats.max ?? '—' }}</span></span>
+        <span>Avg: <span data-metric-stat="avg">{{ stats.avg ?? '—' }}</span></span>
+        <span>Unit: <span data-metric-stat="unit">{{ stats.unit }}</span></span>
+      </div>
+      <div class="metrics-chart-empty" {% if chart.series.data|length > 0 %}hidden{% endif %}>
+        <p>No process metrics available for the selected range.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  (function () {
+    const elementId = '{{ chart.element_id }}';
+    const chartElement = document.getElementById(elementId);
+    if (!chartElement) {
+      console.warn('Metrics modal: chart element not found', elementId);
+      return;
+    }
+
+    if (window.Chart === undefined) {
+      chartElement.insertAdjacentHTML('afterend', '<p class="notification is-warning mt-3">Chart.js is required to render this chart.</p>');
+      return;
+    }
+
+    const metricLabel = '{{ chart.metric_label|e('js') }}';
+    const initialSeries = {{ chart.series|json_encode|raw }};
+    const jsonUrl = '{{ chart.json_url|e('js') }}';
+
+    window.__mataCharts = window.__mataCharts || {};
+
+    const emptyState = chartElement.parentElement.querySelector('.metrics-chart-empty');
+    const statElements = {
+      min: chartElement.parentElement.querySelector('[data-metric-stat="min"]'),
+      max: chartElement.parentElement.querySelector('[data-metric-stat="max"]'),
+      avg: chartElement.parentElement.querySelector('[data-metric-stat="avg"]'),
+      unit: chartElement.parentElement.querySelector('[data-metric-stat="unit"]'),
+    };
+
+    const formatValue = (value) => (value === null || value === undefined) ? '—' : value;
+
+    const updateStats = (series) => {
+      if (statElements.min) statElements.min.textContent = formatValue(series.min);
+      if (statElements.max) statElements.max.textContent = formatValue(series.max);
+      if (statElements.avg) statElements.avg.textContent = formatValue(series.avg);
+      if (statElements.unit) statElements.unit.textContent = series.unit || '';
+    };
+
+    const hasDataPoints = (series) => Array.isArray(series.data) && series.data.some((value) => value !== null && value !== undefined);
+
+    const buildDataset = (series) => ({
+      labels: series.labels,
+      datasets: [{
+        label: metricLabel,
+        data: series.data,
+        borderColor: '#2563eb',
+        backgroundColor: 'rgba(37, 99, 235, 0.20)',
+        fill: true,
+        tension: 0.3,
+        spanGaps: true
+      }]
+    });
+
+    const renderSeries = (series) => {
+      const hasData = hasDataPoints(series);
+
+      if (!hasData) {
+        chartElement.style.display = 'none';
+        if (emptyState) {
+          emptyState.removeAttribute('hidden');
+        }
+      } else {
+        chartElement.style.display = 'block';
+        if (emptyState) {
+          emptyState.setAttribute('hidden', '');
+        }
+
+        if (window.__mataCharts[elementId]) {
+          window.__mataCharts[elementId].destroy();
+        }
+
+        window.__mataCharts[elementId] = new Chart(chartElement.getContext('2d'), {
+          type: 'line',
+          data: buildDataset(series),
+          options: {
+            maintainAspectRatio: false,
+            responsive: true,
+            scales: {
+              x: {
+                ticks: {
+                  autoSkip: true,
+                  maxTicksLimit: 10
+                }
+              },
+              y: {
+                beginAtZero: true,
+                ticks: {
+                  precision: 0
+                }
+              }
+            },
+            plugins: {
+              legend: {
+                display: true
+              },
+              tooltip: {
+                mode: 'index',
+                intersect: false
+              }
+            }
+          }
+        });
+      }
+
+      updateStats(series);
+    };
+
+    renderSeries(initialSeries);
+
+    if (jsonUrl) {
+      fetch(jsonUrl, {
+        headers: {
+          'Accept': 'application/json'
+        },
+        credentials: 'same-origin'
+      })
+        .then((response) => {
+          if (!response.ok) {
+            throw new Error('Metrics request failed with status ' + response.status);
+          }
+          return response.json();
+        })
+        .then((payload) => {
+          if (payload && payload.series) {
+            renderSeries(payload.series);
+          }
+        })
+        .catch((error) => {
+          console.warn('Metrics modal: failed to refresh chart data', error);
+        });
+    }
+  })();
+</script>

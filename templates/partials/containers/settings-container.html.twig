@@ -1,0 +1,152 @@
+{% set env_name = settings.environment|default('prod') %}
+<div class="settings-section">
+  <section class="settings-card">
+    <h3>Configuration Overview</h3>
+    <div class="settings-subtitle is-info">
+      The dashboard is currently using the <strong>{{ env_name }}</strong> monitoring set (APP_ENV: {{ settings.app_environment|default(env_name) }}). Update the JSON files listed below in a editor of your choice. Changes take effect on the next refresh.
+    </div>
+    <div class="settings-paths">
+      <div>
+        <span class="settings-path-label">Config root</span>
+        <code>{{ settings.config_root|default('config') }}</code>
+      </div>
+      <div>
+        <span class="settings-path-label">Active directory</span>
+        <code>{{ settings.environment_path|default('config/' ~ env_name) }}</code>
+      </div>
+    </div>
+    <div class="settings-files">
+      {% for file in settings.files %}
+        <article class="settings-file {{ file.exists ? 'is-present' : 'is-missing' }}">
+          <header>
+            <h4>{{ file.name }}</h4>
+            <span class="settings-status">{{ file.exists ? 'available' : 'missing' }}</span>
+          </header>
+          <p>{{ file.description }}</p>
+          <code>{{ file.path }}</code>
+        </article>
+      {% endfor %}
+    </div>
+  </section>
+
+  <section class="settings-card">
+    <h3>Monitored Servers</h3>
+    <p class="settings-subtitle">
+      Entries come from <code>servers.json</code>. API keys are masked, but the full value lives in the config file.
+    </p>
+    <div class="settings-server-list">
+      {% for server in settings.servers %}
+        <article class="settings-server">
+          <header>
+            <span class="settings-server-name">{{ server.title ? : server.key }}</span>
+            <span class="settings-server-key">{{ server.key }}</span>
+          </header>
+          <dl>
+            {% if server.url %}
+              <div>
+                <dt>Public URL</dt>
+                <dd><a href="{{ server.url }}" target="_blank" rel="noreferrer">{{ server.url }}</a></dd>
+              </div>
+            {% endif %}
+            {% if server.api_url %}
+              <div>
+                <dt>API endpoint</dt>
+                <dd>{{ server.api_url }}</dd>
+              </div>
+            {% endif %}
+            {% if server.api_key %}
+              <div>
+                <dt>API key</dt>
+                <dd><code>{{ server.api_key }}</code></dd>
+              </div>
+            {% endif %}
+            {% if server.info %}
+              <div>
+                <dt>Notes</dt>
+                <dd>{{ server.info }}</dd>
+              </div>
+            {% endif %}
+            {% if server.colors.primary or server.colors.secondary %}
+              <div>
+                <dt>Branding</dt>
+                <dd>
+                  {% if server.colors.primary %}
+                    <span class="settings-color-swatch" style="--swatch-color: {{ server.colors.primary }}">Primary {{ server.colors.primary }}</span>
+                  {% endif %}
+                  {% if server.colors.secondary %}
+                    <span class="settings-color-swatch" style="--swatch-color: {{ server.colors.secondary }}">Secondary {{ server.colors.secondary }}</span>
+                  {% endif %}
+                </dd>
+              </div>
+            {% endif %}
+          </dl>
+          {% if server.extras %}
+            <footer>
+              <span class="settings-extra-label">Extra flags</span>
+              <ul>
+                {% for extra in server.extras %}
+                  <li>
+                    <span>{{ extra.label }}</span><code>{{ extra.value }}</code>
+                  </li>
+                {% endfor %}
+              </ul>
+            </footer>
+          {% endif %}
+        </article>
+      {% else %}
+        <p class="settings-empty">
+          No servers are defined yet. Add entries to <code>servers.json</code> to get started.
+        </p>
+      {% endfor %}
+    </div>
+  </section>
+
+  <section class="settings-card">
+    <div class="settings-subcard">
+      <h3>Cache Windows</h3>
+      <p class="settings-subtitle">
+        Values from <code>ttl.json</code>. Negative numbers mean "keep forever".
+      </p>
+      <ul class="settings-ttl-list">
+        {% for ttl in settings.ttl %}
+          <li>
+            <span class="settings-key">{{ ttl.key }}</span>
+            <span class="settings-value">{{ ttl.formatted }} <em>({{ ttl.seconds }}s)</em></span>
+          </li>
+        {% else %}
+          <li class="settings-empty">TTL configuration not available.</li>
+        {% endfor %}
+      </ul>
+    </div>
+    <div class="settings-subcard">
+      <h3>Alert Thresholds</h3>
+      <p class="settings-subtitle">
+        Summaries from <code>thresholds.json</code>.
+      </p>
+      <div class="settings-thresholds">
+        {% for section in settings.thresholds %}
+          <section>
+            <h4>{{ section.section }}</h4>
+            <ul>
+              {% for metric in section.metrics %}
+                <li>
+                  <span class="settings-key">{{ metric.metric }}</span>
+                  <span class="settings-threshold-values">
+                    {% for level in metric.levels %}
+                      <span class="settings-threshold-chip">
+                        <span>{{ level.label }}</span>
+                        <strong>{{ level.value }}</strong>
+                      </span>
+                    {% endfor %}
+                  </span>
+                </li>
+              {% endfor %}
+            </ul>
+          </section>
+        {% else %}
+          <p class="settings-empty">Threshold configuration not available.</p>
+        {% endfor %}
+      </div>
+    </div>
+  </section>
+</div>

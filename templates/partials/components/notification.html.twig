@@ -1,0 +1,48 @@
+{% if ui.notification_enabled %}
+<section id="dashboard-notification">
+  <div class="container">
+    <div class="notification is-{{ ui.notification_type }}" id="{{ ui.notification_id|default('dashboard-notification') }}">
+      {% if ui.notification_close_action and ui.notification_close_endpoint %}
+        <button class="delete"
+                type="button"
+                data-notification-action="close"
+                hx-post="{{ ui.notification_close_endpoint }}"
+                hx-vals='{"action":"{{ ui.notification_close_action }}"}'
+                hx-swap="none"
+                hx-on::afterRequest="this.closest('.notification').classList.add('is-hidden')"></button>
+      {% else %}
+        <button class="delete"
+                type="button"
+                data-notification-action="close"
+                onclick="this.closest('.notification').classList.add('is-hidden');"></button>
+      {% endif %}
+      <div class="notification-content">
+        <span class="notification-title">{{ ui.notification_title }}</span>
+        <span class="notification-message">{{ ui.notification_message }}</span>
+      </div>
+      {% if ui.notification_actions %}
+        <div class="notification-actions">
+          {% for action in ui.notification_actions %}
+            {% set actionUrl = action.endpoint|default(null) %}
+            {% if action.action is defined %}
+              <button class="button is-small {{ action.style|default('') }}"
+                      type="button"
+                      data-notification-action="close"
+                      {% if actionUrl %}
+                        hx-post="{{ actionUrl }}"
+                        hx-vals='{"action":"{{ action.action }}"}'
+                        hx-swap="none"
+                        hx-on::afterRequest="this.closest('.notification').classList.add('is-hidden')"
+                      {% else %}
+                        onclick="this.closest('.notification').classList.add('is-hidden');"
+                      {% endif %}>
+                {{ action.label }}
+              </button>
+            {% endif %}
+          {% endfor %}
+        </div>
+      {% endif %}
+    </div>
+  </div>
+</section>
+{% endif %}

@@ -1,0 +1,29 @@
+<nav class="navbar is-dark is-fixed-top" role="navigation" aria-label="main navigation">
+  <div class="navbar-brand">
+    <a class="navbar-item has-text-weight-bold" href="#" hx-get="{{ endpoints.server_render }}" hx-target="#main-section" hx-swap="innerHTML">{{ layout.organization_name }} {{ ui.main_logo|raw }} <strong>MATA</strong></a>
+    <a role="button" class="navbar-burger" data-target="navbar-menu" aria-label="menu" aria-expanded="false">
+      <span aria-hidden="true"></span>
+      <span aria-hidden="true"></span>
+      <span aria-hidden="true"></span>
+      <span aria-hidden="true"></span>
+    </a>
+  </div>
+
+  <div id="navbar-menu" class="navbar-menu">
+    <div class="navbar-start">
+      {% for item in menu %}
+        {% if item.enabled %}
+          <a class="navbar-item" href="#" hx-get="{{ item.url }}" hx-target="#main-section" hx-swap="innerHTML">{{ item.icon|raw }}{{ item.label }}</a>
+        {% endif %}
+      {% endfor %}
+    </div>
+
+    <div class="navbar-end">
+      <div class="navbar-item">
+        <div class="buttons">
+          <a class="button is-secondary is-small" href="logout">Logout</a>
+        </div>
+      </div>
+    </div>
+  </div>
+</nav>

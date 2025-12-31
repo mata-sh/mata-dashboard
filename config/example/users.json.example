@@ -1,0 +1,11 @@
+[
+    {
+        "id": "user_3456aabce5",
+        "username": "demo",
+        "password_hash": "$2y$10$ACC8HqfdB7.F.odkILt5Z.rsWpRlMlIpiZqPCwyIhOhVcgqJyBc9C",
+        "role": "admin",
+        "failed_attempts": 0,
+        "remember_token": "3f182fe84ce2d671b6a25a73e1b056a7f185bc167591ab5c8f4a8d4a3427c48b",
+        "remember_expires": 1769728326
+    }
+]

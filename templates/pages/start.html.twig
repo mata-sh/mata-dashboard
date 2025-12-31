@@ -1,0 +1,12 @@
+{% extends 'layouts/main.html.twig' %}
+{% block content %}
+  {% set container_width = layout.container_width|default(1344) %}
+  {% include 'partials/structure/topbar.html.twig' %}
+  {% include 'partials/components/notification.html.twig' %}
+  <section id="main-section"
+           class="section container"
+           style="--dashboard-container-width: {{ container_width }}px"
+           hx-get="{{ endpoints.server_render }}"
+           hx-trigger="load"
+           hx-swap="innerHTML"></section>
+{% endblock %}

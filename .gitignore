@@ -1,0 +1,30 @@
+# file endings
+*.save
+*.bin
+*.env
+*.code-workspace
+*.log
+*.sql
+*.txt
+*.tar.gz
+*.zip
+*.dat
+*.cache
+.htpasswd
+
+# folder
+.git/
+.vscode/
+vendor/
+temp/
+trash/
+site/
+
+config/*.json
+config/*/*.json
+
+# npm
+node_modules/
+package-lock.json
+
+TODO.md

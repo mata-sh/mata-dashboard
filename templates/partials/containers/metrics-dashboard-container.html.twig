@@ -1,0 +1,84 @@
+<section class="section">
+  <div
+    class="box metrics-dashboard js-metrics-dashboard"
+    data-chart-endpoint="{{ chart.data_endpoint }}"
+    data-default-metric="{{ chart.default_metric }}"
+    data-default-timespan="{{ chart.default_timespan }}"
+    data-refresh-seconds="{{ chart.refresh_seconds }}"
+    data-cache-ttl="{{ chart.cache_ttl }}"
+    data-servers='{{ servers|json_encode|e("html_attr") }}'>
+
+    <div class="level metrics-dashboard__toolbar">
+      <div class="level-left">
+        <div class="level-item">
+          <div class="buttons has-addons metrics-dashboard__metrics" role="group" aria-label="Metric selector">
+            {% for metric in metrics %}
+              <button
+                type="button"
+                class="button is-small {{ metric.is_active ? 'is-link is-light' : 'is-white' }}"
+                data-metric="{{ metric.key }}"
+                aria-pressed="{{ metric.is_active ? 'true' : 'false' }}">
+                <span>{{ metric.label }}</span>
+              </button>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+
+      <div class="level-right">
+        <div class="level-item">
+          <div class="buttons has-addons metrics-dashboard__timespans" role="group" aria-label="Timespan selector">
+            {% for timespan in timespans %}
+              <button
+                type="button"
+                class="button is-small {{ timespan.is_active ? 'is-link is-light' : 'is-white' }}"
+                data-timespan="{{ timespan.key }}"
+                aria-pressed="{{ timespan.is_active ? 'true' : 'false' }}">
+                <span>{{ timespan.label }}</span>
+              </button>
+            {% endfor %}
+            <button
+              type="button"
+              class="button is-small js-metrics-refresh"
+              title="Refresh data"
+              aria-label="Refresh data">
+              {{ icons.refresh|raw }}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="metrics-dashboard__layout">
+      <div class="metrics-dashboard__chart">
+        <canvas id="{{ chart.element_id }}"></canvas>
+        <div class="metrics-dashboard__spinner js-metrics-loading is-hidden" role="status" aria-live="polite">
+          <span class="tag is-light is-medium">
+            {{ icons.activity|raw }}&nbsp;Loading metrics…
+          </span>
+        </div>
+      </div>
+
+      <div class="metrics-dashboard__stats js-metrics-stats" aria-live="polite" aria-atomic="false">
+        <div class="notification is-light is-size-7">
+          Select a metric and timespan to load server statistics.
+        </div>
+      </div>
+    </div>
+
+    <div class="metrics-dashboard__empty js-metrics-empty notification is-warning is-light is-hidden" role="status">
+      No metrics available for the selected filters.
+    </div>
+
+    <div class="metrics-dashboard__error js-metrics-error notification is-danger is-light is-hidden" role="alert">
+      Unable to load metrics overview. Please try again.
+    </div>
+
+    <footer class="metrics-dashboard__footer is-flex is-align-items-center is-justify-content-space-between">
+      <span class="is-size-7 has-text-grey js-metrics-cache">Cache: warm-up pending</span>
+      <button type="button" class="button is-text is-small js-metrics-reset">
+        {{ icons.settings|raw }} Reset view
+      </button>
+    </footer>
+  </div>
+</section>

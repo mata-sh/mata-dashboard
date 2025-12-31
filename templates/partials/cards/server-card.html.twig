@@ -1,0 +1,14 @@
+<div id="server-{{ server.id }}" class="server-container">
+  <div class="server-header" style="border-color: {{ server.primary_color }}">
+    <h3 class="server-title" data-tippy-content="Server Updated: {{ cache.age }} s ago (TTL: {{ cache.ttl }} s)">
+      {{ server.title }}
+      <a class="server-info-btn" hx-get="/watch/modal/{{ server.name }}/info" hx-target="#modal-container" hx-trigger="click" hx-toggle="modal">{{ icons.info|raw }}</a>
+      <a class="server-refresh-btn" data-tippy-content="Refresh Server" hx-swap="innerHTML" hx-target="#server-{{ server.id }}" hx-get="/watch/refresh/server/{{ server.name }}">{{ icons.refresh_ccw|raw }}</a>
+    </h3>
+    {% include 'partials/cards/server-stats.html.twig' %}
+  </div>
+  {{ content.apps_status|raw }}
+  {% if error.message is defined %}
+    <div class="server-fetch-error">{{ error.message }}</div>
+  {% endif %}
+</div>

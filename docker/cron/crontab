@@ -1,0 +1,25 @@
+# MATA Dashboard Cron Jobs
+# These jobs collect monitoring data from remote servers
+
+# Collect server metrics every 5 minutes
+*/5 * * * * www-data cd /var/www/html && /usr/local/bin/php cron/fetch_servers_data.php >> /var/www/html/logs/cron_servers.log 2>&1
+
+# Monitor cron job health every 15 minutes
+*/15 * * * * www-data cd /var/www/html && /usr/local/bin/php cron/fetch_cronjob_heartbeats.php >> /var/www/html/logs/cron_heartbeats.log 2>&1
+
+# Clean up old log files daily at 2 AM
+0 2 * * * www-data find /var/www/html/logs -name "*.log" -mtime +30 -delete 2>/dev/null
+
+# Clean up old cache files daily at 3 AM
+0 3 * * * www-data find /var/www/html/temp/api_cache -name "*.json" -mtime +7 -delete 2>/dev/null
+
+# Clean up old session files daily at 4 AM
+0 4 * * * www-data find /var/www/html/temp/sessions -name "sess_*" -mtime +1 -delete 2>/dev/null
+
+# Clean up old template cache files weekly on Sunday at 5 AM
+0 5 * * 0 www-data find /var/www/html/temp/templates_cache -name "*.php" -mtime +7 -delete 2>/dev/null
+
+# Log rotation - compress old logs weekly on Sunday at 6 AM
+0 6 * * 0 www-data cd /var/www/html/logs && for file in *.log; do [ -f "$file" ] && gzip -c "$file" > "${file}.$(date +\%Y\%m\%d).gz" && > "$file"; done 2>/dev/null
+
+# Empty line required at end of crontab file

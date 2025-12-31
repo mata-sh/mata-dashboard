@@ -1,0 +1,126 @@
+<div class="events-section">
+    <h3>Alarms</h3>
+
+    <div class="filter-menu">
+        <input id="filter-time" type="text" placeholder="2025.05.08 20:00:00">
+        <input id="filter-from" type="datetime-local" placeholder="">
+        <input id="filter-to" type="datetime-local" placeholder="">
+        <select id="filter-level">
+            <option value="">Level</option>
+            <option value="critical">Critical</option>
+            <option value="warning">Warning</option>
+        </select>
+
+        <input id="filter-id" type="text" placeholder="ID">
+        <input id="filter-type" type="text" placeholder="Type">
+        <input id="filter-msg" type="text" placeholder="Message">
+
+        <button class="button" id="filter-clear">Clear Filter</button>
+    </div>
+
+    <div id="alarms-table"></div>
+</div>
+<script>
+
+    var table = new Tabulator("#alarms-table", {
+        ajaxURL: "{{ endpoints.alarms_json }}",
+        layout:"fitDataStretch",
+        height:"1200px",
+        pagination: "local",
+        paginationSize:33,
+        columns: [
+        {title: "ID", field: "id", sorter: "number", hozAlign:"center", },
+        {title: "Datetime", field: "datetime", sorter: "datetime", hozAlign:"center"},
+        {title:"Level", field:"level", hozAlign:"center", formatter:function(cell, formatterParams){
+
+        var value = cell.getValue();
+        switch (value) {
+            case "critical":
+                return "<span style='color:red; font-weight:bold;'>" + value + "</span>";
+
+                break;
+            case "warning":
+                return "<span style='color:orange; font-weight:bold;'>" + value + "</span>";
+
+                break;
+            case "info":
+                return "<span style='color:#3FB449; font-weight:bold;'>" + value + "</span>";
+
+                break;
+
+            default:
+                return value
+                break;
+        }
+        }},
+        {title: "Type", field: "type", sorter: "string",  formatter:function(cell, formatterParams){
+        var value = cell.getValue();
+        return "<span style='font-weight:bold;'>" + value + "</span>";
+        }},
+        {title: "Message", field: "message", sorter: "string"},
+        {title: "Server", field: "server", sorter: "string", hozAlign:"center"},
+        {title: "App", field: "app", sorter: "string", hozAlign:"center"},
+        {title: "Context", field: "context", sorter: "string"},
+        {title: "Channel", field: "channel", sorter: "string", hozAlign:"center"},
+        {title: "Channel", field: "alarm_channel", sorter: "string", hozAlign:"center"},
+        {title: "Status", field: "status", sorter: "string", hozAlign:"center"},
+        {title: "Created", field: "created_at", sorter: "datetime", hozAlign:"center"},
+        {title: "Seen", field: "seen_at", sorter: "datetime", hozAlign:"center"}
+        ],
+    });
+
+    Tabulator.extendModule("filter", "filters", {
+        "===":function(headerValue, rowValue, rowData, filterParams){
+            //headerValue - the value of the header filter element
+            //rowValue - the value of the column in this row
+            //rowData - the data for the row being filtered
+            //filterParams - params object passed to the headerFilterFuncParams property
+
+            return rowVal === headerValue ? true : false;
+        }
+    });
+
+    // const fmt = "yyyy-MM-dd HH:mm:ss";
+    // const toJSDate = s => DateTime.fromFormat(s, fmt).toJSDate();
+
+    /* --- helper that reads the inputs and applies all active filters in one call --- */
+    function applyFilters(){
+        const filters = [];
+        const idVal     = document.getElementById("filter-id").value.trim();
+        const levelVal  = document.getElementById("filter-level").value;
+        const typeVal   = document.getElementById("filter-type").value.trim();
+        const msgVal   = document.getElementById("filter-msg").value.trim();
+        const timeVal   = document.getElementById("filter-time").value.trim();
+        // const fromVal = document.getElementById("filter-from").value;      // yyyy-MM-ddTHH:mm
+        // const toVal   = document.getElementById("filter-to").value;
+
+        if(idVal)    filters.push({field:"id",    type:"like", value:idVal});
+        if(levelVal) filters.push({field:"level", type:"=",    value:levelVal});
+        if(typeVal)  filters.push({field:"type",  type:"like", value:typeVal});
+        if(msgVal)  filters.push({field:"message",  type:"like", value:msgVal});
+        if(timeVal)  filters.push({field:"datetime",  type:"like", value:timeVal});
+
+        /* time range (works because Tabulator's datetime sorter uses Luxon behind the scenes) */
+        // if(fromVal) filters.push({field:"datetime", type:">=",  value:new Date(fromVal)});
+        // if(toVal)   filters.push({field:"datetime", type:"<=",  value:new Date(toVal)});
+        // if(fromVal) filters.push({field:"datetime", type:"like",  value:fromVal});
+        // if(toVal)   filters.push({field:"datetime", type:"like",  value:toVal});
+
+        table.setFilter(filters);
+    }
+
+    /* --- wire the UI --- */
+    ["filter-id","filter-type","filter-time","filter-msg"].forEach(id=>{
+        document.getElementById(id).addEventListener("input", applyFilters);
+    });
+    document.getElementById("filter-level").addEventListener("change", applyFilters);
+
+    /* --- update Clear button === */
+    document.getElementById("filter-clear").addEventListener("click", () => {
+        ["filter-id","filter-type","filter-time","filter-msg"].forEach(id=>{
+            document.getElementById(id).value = "";
+        });
+        document.getElementById("filter-level").value = "";
+        table.clearFilter();
+    });
+</script>

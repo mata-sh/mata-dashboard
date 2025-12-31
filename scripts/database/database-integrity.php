@@ -1,0 +1,30 @@
+#!/usr/bin/env php
+<?php
+
+declare(strict_types=1);
+
+use Watcher\Config\DatabaseIntegrityChecker;
+
+$bootstrap = require __DIR__ . '/../bootstrap.php';
+
+/** @var \Watcher\Core\DatabaseInterface $db */
+$db = $bootstrap['db'];
+
+$checker = new DatabaseIntegrityChecker($db);
+$result = $checker->run();
+
+$overall = $result['status'] === 'ok' ? '✅ Database integrity checks passed' : '❌ Database integrity checks failed';
+echo $overall . PHP_EOL;
+
+foreach ($result['checks'] as $check) {
+    $statusIcon = $check['status'] === 'ok' ? '  ✓' : '  ✗';
+    $details = $check['details'] ?? '';
+    if ($details !== '') {
+        $details = " ({$details})";
+    }
+    echo "{$statusIcon} {$check['label']}{$details}" . PHP_EOL;
+}
+
+if ($result['status'] !== 'ok') {
+    exit(1);
+}

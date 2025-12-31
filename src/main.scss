@@ -1,0 +1,42 @@
+// Set your brand colors
+$purple: #8a4d76;
+$pink: #fa7c91;
+$brown: #757763;
+$beige-light: #d0d1cd;
+$beige-lighter: #eff0eb;
+$white: white;
+$black: black;
+$red: red;
+
+// Path to Bulma's sass folder
+@use "bulma/sass/utilities" with (
+  $family-primary: '"Nunito", sans-serif',
+  $grey-dark: $brown,
+  $grey-light: $beige-light,
+  $primary: $black,
+  $link: $red,
+  $control-border-width: 2px,
+//   $input-shadow: none
+);
+
+@use "bulma/sass/base";
+
+
+// @use "bulma/sass/components/modal";
+@use "bulma/sass/components/navbar";
+
+@use "bulma/sass/elements/button";
+@use "bulma/sass/elements/delete";
+@use "bulma/sass/elements/loader";
+@use "bulma/sass/elements/notification";
+// @use "bulma/sass/elements/progress";
+// @use "bulma/sass/elements/table";
+
+
+@use "bulma/sass/layout/container";
+@use "bulma/sass/layout/section";
+
+@use "bulma/sass/themes";
+
+// Fonts are loaded via fonts.css in the HTML head
+

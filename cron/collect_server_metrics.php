@@ -1,0 +1,466 @@
+#!/usr/bin/php8.2
+<?php
+
+declare(strict_types=1);
+
+use Watcher\Config\AlertLimitsLoader;
+use Watcher\Config\MonitoringSettingsLoader;
+use Watcher\Models\AlertQueueRepository;
+use Watcher\Models\ConfigSyncRepository;
+use Watcher\Models\EventRecorder;
+use Watcher\Models\ServerMetrics\Dto\ServerMetricRawSnapshot;
+use Watcher\Models\ServerMetrics\ServerMetricsRepository;
+use Watcher\Services\Collect\ServerDataCollector;
+use Watcher\Services\Foundation\AlertManager;
+use Watcher\Services\Foundation\ApiClient;
+use Watcher\Services\Foundation\CacheManager;
+use Watcher\Services\Foundation\DataTransformer;
+use Watcher\Services\Foundation\EventManager;
+use Watcher\Services\Foundation\IdResolver;
+use Watcher\Services\Monitor\ServerMetricsHealthMonitor;
+use Watcher\Services\Monitor\ServerMonitor;
+use Watcher\Utils\ChannelLockManager;
+use Watcher\Utils\TypeConverter;
+
+extract(require_once __DIR__ . '/bootstrap.php');
+
+if (!$cron->acquireLock()) {
+    exit("Already running.\n");
+}
+
+$cron->startTimer();
+$cron->touchHeartbeat();
+$cron->log('Started');
+
+try {
+    // --- Repositories ---
+    $alertQueueRepository = new AlertQueueRepository($db);
+    $configSyncRepository = new ConfigSyncRepository($db);
+
+    // --- Resolvers & Recorders ---
+    $idResolver = new IdResolver($configSyncRepository);
+    $eventRecorder = new EventRecorder($db, $idResolver);
+
+    // --- Limits & Locking ---
+    $lockManager = new ChannelLockManager($paths->tempPath . '/alert_locks', $log);
+    $limitsLoader = new AlertLimitsLoader($log);
+    $alertLimits = $limitsLoader->load($paths->appPath . '/config/limits.json');
+
+    // --- Managers ---
+    $alertManager = new AlertManager(
+        $alertQueueRepository,
+        $alertLimits,
+        $lockManager,
+        $log
+    );
+
+    // --- Monitoring settings ---
+    $monitoringSettingsLoader = new MonitoringSettingsLoader($eventRecorder, $alertManager);
+    $monitoringSettings = $monitoringSettingsLoader->loadAllConfigs($paths->appPath . '/config');
+
+    // --- Final sync after configs are known ---
+    $idResolver->refreshFromRepository($monitoringSettings['servers'] ?? []);
+    $eventManager = new EventManager(
+        $eventRecorder,
+        $alertManager,
+        $appConfig,
+        $monitoringSettings['thresholds'],
+        $monitoringSettings['intervals'] ?? []
+    );
+
+    $dataRetentionConfig = $monitoringSettings['data_retention'] ?? [];
+
+    $cacheDir = $paths->tempPath . '/cache/server-metrics';
+    if (!is_dir($cacheDir)) {
+        mkdir($cacheDir, 0777, true);
+    }
+
+    $cacheManager = new CacheManager($log, $cacheDir, $monitoringSettings['ttl'] ?? []);
+    $dataTransformer = new DataTransformer($log);
+    $repository = new ServerMetricsRepository($db, $idResolver, $configSyncRepository);
+    $serverMonitor = new ServerMonitor($log, $eventManager);
+
+    $ingestionHealth = is_array($dataRetentionConfig['ingestion_health'] ?? null)
+        ? $dataRetentionConfig['ingestion_health']
+        : [];
+    $stallThresholdMinutes = (int) max(5, $ingestionHealth['stall_minutes'] ?? 15);
+    $healthLogSizeLimit = (int) max(1, $ingestionHealth['log_rotate_megabytes'] ?? 5) * 1024 * 1024;
+    $healthLogRetainedFiles = (int) max(1, $ingestionHealth['log_rotate_files'] ?? 3);
+
+    $healthMonitor = new ServerMetricsHealthMonitor(
+        repository: $repository,
+        eventManager: $eventManager,
+        logger: $log,
+        healthLogPath: $paths->logsPath . '/cron/collect_server_metrics_health.log',
+        stallThresholdMinutes: $stallThresholdMinutes,
+        maxLogBytes: $healthLogSizeLimit,
+        retainedFiles: $healthLogRetainedFiles
+    );
+    $healthMonitor->rotateLog();
+    $baseline = $healthMonitor->snapshot();
+
+    $stats = [
+        'configured' => 0,
+        'skipped' => 0,
+        'stored' => 0,
+        'failed' => 0,
+    ];
+    $activeServers = [];
+
+    foreach ($monitoringSettings['servers'] ?? [] as $serverName => $serverConfig) {
+        if (!is_array($serverConfig)) {
+            continue;
+        }
+
+        if (str_starts_with((string) $serverName, '_')) {
+            ++$stats['skipped'];
+
+            continue;
+        }
+
+        if (!isServerActive($serverConfig)) {
+            $log->info('collect_server_metrics.skip_inactive', [
+                'server' => $serverName,
+            ]);
+            ++$stats['skipped'];
+
+            continue;
+        }
+
+        ++$stats['configured'];
+        $cron->touchHeartbeat();
+        $activeServers[(string) $serverName] = true;
+
+        $apiUrl = $serverConfig['api_url'] ?? null;
+        $apiKey = $serverConfig['api_key'] ?? null;
+
+        if (!is_string($apiUrl) || $apiUrl === '' || !is_string($apiKey) || $apiKey === '') {
+            $log->error('collect_server_metrics.missing_api_credentials', [
+                'server' => $serverName,
+            ]);
+            ++$stats['failed'];
+
+            continue;
+        }
+
+        try {
+            $token = $tools->encrypt($apiKey . '|' . time(), $appConfig->secrets->watcherEncryptionSecret);
+        } catch (Throwable $encryptionError) {
+            $log->error('collect_server_metrics.encryption_failed', [
+                'server' => $serverName,
+                'error' => $encryptionError->getMessage(),
+            ]);
+            ++$stats['failed'];
+
+            continue;
+        }
+
+        try {
+            $apiClient = new ApiClient($log, $apiUrl, $token);
+            $collector = new ServerDataCollector($log, $cacheManager, $apiClient, $dataTransformer);
+
+            $metricsPayload = $serverMonitor->collectServerHealthData($collector, (string) $serverName);
+
+            $snapshot = buildSnapshotFromPayload($metricsPayload);
+            [$collectorName, $collectorVersion, $collectorContact] = resolveCollectorIdentity(
+                $metricsPayload['data'] ?? [],
+                $serverConfig
+            );
+
+            $repository->storeRawSample(
+                (string) $serverName,
+                $collectorName,
+                $snapshot,
+                $collectorVersion,
+                $collectorContact
+            );
+
+            ++$stats['stored'];
+
+            $log->info('collect_server_metrics.stored', [
+                'server' => $serverName,
+                'collector' => $collectorName,
+                'collected_at' => $snapshot->collectedAt->format(DateTimeImmutable::ATOM),
+                'cache_age' => $metricsPayload['cache']['age'] ?? null,
+                'cache_ttl' => $metricsPayload['cache']['ttl'] ?? null,
+                'from_cache' => $metricsPayload['cache']['from_cache'] ?? false,
+            ]);
+        } catch (Throwable $collectionError) {
+            $log->error('collect_server_metrics.failed', [
+                'server' => $serverName,
+                'error' => $collectionError->getMessage(),
+            ]);
+            ++$stats['failed'];
+        }
+    }
+
+    $runCompletedAt = new DateTimeImmutable();
+    $ingestionReport = $healthMonitor->evaluate(array_keys($activeServers), $baseline, $runCompletedAt);
+
+    $duration = $cron->endTimer();
+    $summary = sprintf(
+        'Finished in %.3fs (memory: %s) | servers=%d stored=%d skipped=%d failed=%d inserted=%d stalled=%d',
+        $duration,
+        $cron->memoryUsage(),
+        $stats['configured'],
+        $stats['stored'],
+        $stats['skipped'],
+        $stats['failed'],
+        $ingestionReport['total_inserted'],
+        count($ingestionReport['stalled'])
+    );
+
+    $cron->log($summary);
+    $log->info('collect_server_metrics.summary', [
+        'duration_seconds' => $duration,
+        'memory' => $cron->memoryUsage(),
+        'stats' => $stats,
+        'retention' => [
+            'raw_days' => $dataRetentionConfig['raw_retention_days'] ?? null,
+            'hourly_lag_minutes' => $dataRetentionConfig['aggregation']['hourly']['lag_minutes'] ?? null,
+        ],
+        'ingestion' => [
+            'generated_at' => $ingestionReport['generated_at'],
+            'total_inserted' => $ingestionReport['total_inserted'],
+            'servers' => $ingestionReport['per_server'],
+            'stalled_servers' => array_keys($ingestionReport['stalled']),
+        ],
+    ]);
+} catch (Throwable $e) {
+    $cron->log('ERROR: ' . $e->getMessage());
+    $log->critical('collect_server_metrics.unhandled_exception', [
+        'error' => $e->getMessage(),
+    ]);
+} finally {
+    $cron->releaseLock();
+}
+
+/**
+ * @param array<string,mixed> $payload
+ */
+function buildSnapshotFromPayload(array $payload): ServerMetricRawSnapshot
+{
+    $data = is_array($payload['data'] ?? null) ? $payload['data'] : [];
+    $cache = is_array($payload['cache'] ?? null) ? $payload['cache'] : [];
+
+    $collectedAt = resolveCollectedAt($data, $cache);
+    $ingestedAt = resolveIngestedAt();
+
+    $cpuUsage = TypeConverter::toFloat($data['cpu_usage'] ?? null);
+
+    $ramUsed = TypeConverter::toInt(
+        $data['ram_used']
+        ?? ($data['ram']['used'] ?? null)
+        ?? ($data['memory']['used'] ?? null)
+    );
+    $ramTotal = TypeConverter::toInt(
+        $data['ram_capacity']
+        ?? ($data['ram']['total'] ?? null)
+        ?? ($data['memory']['total'] ?? null)
+        ?? ($data['ram_total'] ?? null)
+    );
+
+    $diskUsed = TypeConverter::toInt(
+        $data['disk_space_used']
+        ?? ($data['disk']['used'] ?? null)
+        ?? ($data['storage']['used'] ?? null)
+    );
+    $diskTotal = TypeConverter::toInt(
+        $data['disk_space_capacity']
+        ?? ($data['disk']['total'] ?? null)
+        ?? ($data['storage']['total'] ?? null)
+        ?? ($data['disk_total'] ?? null)
+    );
+
+    $ramPercent = computePercent($ramUsed, $ramTotal);
+    $diskPercent = computePercent($diskUsed, $diskTotal);
+
+    $totalFileCount = TypeConverter::toInt(
+        $data['total_system_filecount']
+        ?? ($data['filecount']['total'] ?? null)
+        ?? ($data['filesystem']['filecount'] ?? null)
+    );
+
+    $processCount = TypeConverter::toInt(
+        $data['processes']['total'] ?? $data['total_processes'] ?? $data['process_count'] ?? null
+    );
+    $phpProcessCount = TypeConverter::toInt(
+        $data['processes']['php'] ?? $data['php_process_count'] ?? null
+    );
+
+    $phpVersion = TypeConverter::toString(
+        $data['php_version']
+        ?? ($data['php']['version'] ?? null)
+    );
+
+    $osVersion = TypeConverter::toString(
+        $data['os_version']
+        ?? ($data['system']['os_version'] ?? null)
+        ?? ($data['os']['version'] ?? null)
+    );
+
+    $serverUptime = TypeConverter::toInt(
+        $data['server_uptime']
+        ?? ($data['system']['uptime'] ?? null)
+        ?? ($data['uptime'] ?? null)
+    );
+
+    return new ServerMetricRawSnapshot(
+        $collectedAt,
+        $ingestedAt,
+        $cpuUsage,
+        $ramUsed,
+        $ramTotal,
+        $diskUsed,
+        $diskTotal,
+        $ramPercent,
+        $diskPercent,
+        $totalFileCount,
+        $processCount,
+        $phpProcessCount,
+        $phpVersion,
+        $osVersion,
+        $serverUptime
+    );
+}
+
+/**
+ * @param array<string,mixed> $serverData
+ * @param array<string,mixed> $serverConfig
+ *
+ * @return array{0:string,1:?string,2:?string}
+ */
+function resolveCollectorIdentity(array $serverData, array $serverConfig): array
+{
+    $collectorData = $serverData['collector'] ?? null;
+    if (is_array($collectorData)) {
+        $name = TypeConverter::toString($collectorData['name'] ?? null);
+        if ($name === null || $name === '') {
+            $name = 'mata-node';
+        }
+
+        return [
+            $name,
+            TypeConverter::toString($collectorData['version'] ?? null),
+            TypeConverter::toString($collectorData['contact'] ?? null),
+        ];
+    }
+
+    $fallbackName = TypeConverter::toString($serverConfig['collector_name'] ?? null)
+        ?? TypeConverter::toString($serverConfig['node_name'] ?? null)
+        ?? 'collect_server_metrics_cron';
+
+    return [
+        $fallbackName,
+        TypeConverter::toString($serverConfig['collector_version'] ?? null),
+        TypeConverter::toString($serverConfig['collector_contact'] ?? null),
+    ];
+}
+
+/**
+ * @param array<string,mixed> $data
+ * @param array<string,mixed> $cache
+ */
+function resolveCollectedAt(array $data, array $cache): DateTimeImmutable
+{
+    $candidates = [
+        $data['collected_at'] ?? null,
+        $data['timestamp'] ?? null,
+        $data['generated_at'] ?? null,
+        $data['created_at'] ?? null,
+        $data['meta']['timestamp'] ?? null,
+    ];
+
+    foreach ($candidates as $candidate) {
+        $parsed = parseDateTimeCandidate($candidate);
+        if ($parsed !== null) {
+            return $parsed;
+        }
+    }
+
+    $cacheAge = isset($cache['age']) ? (int) $cache['age'] : 0;
+    if ($cacheAge > 0) {
+        try {
+            $interval = new DateInterval('PT' . $cacheAge . 'S');
+
+            return (new DateTimeImmutable())->sub($interval);
+        } catch (Throwable) {
+            // noop, fall back to now
+        }
+    }
+
+    return new DateTimeImmutable();
+}
+
+function resolveIngestedAt(): DateTimeImmutable
+{
+    $formatted = sprintf('%.6F', microtime(true));
+    $dateTime = DateTimeImmutable::createFromFormat('U.u', $formatted);
+
+    if ($dateTime instanceof DateTimeImmutable) {
+        return $dateTime->setTimezone(new DateTimeZone(date_default_timezone_get()));
+    }
+
+    return new DateTimeImmutable();
+}
+
+function parseDateTimeCandidate(mixed $value): ?DateTimeImmutable
+{
+    if ($value instanceof DateTimeImmutable) {
+        return $value;
+    }
+
+    if ($value instanceof DateTimeInterface) {
+        return DateTimeImmutable::createFromInterface($value);
+    }
+
+    if (is_string($value) && $value !== '') {
+        try {
+            return new DateTimeImmutable($value);
+        } catch (Throwable) {
+            return null;
+        }
+    }
+
+    if (is_numeric($value)) {
+        $numeric = (float) $value;
+        if ($numeric > 9999999999) {
+            $numeric /= 1000;
+        }
+
+        $dateTime = DateTimeImmutable::createFromFormat('U.u', sprintf('%.6F', $numeric));
+        if ($dateTime instanceof DateTimeImmutable) {
+            return $dateTime->setTimezone(new DateTimeZone(date_default_timezone_get()));
+        }
+    }
+
+    return null;
+}
+
+function computePercent(?int $used, ?int $total): ?float
+{
+    if ($used === null || $total === null || $total <= 0) {
+        return null;
+    }
+
+    return round(($used / $total) * 100, 2);
+}
+
+/**
+ * @param array<string,mixed> $config
+ */
+function isServerActive(array $config): bool
+{
+    if ((TypeConverter::toBool($config['disabled'] ?? null) ?? false) === true) {
+        return false;
+    }
+
+    foreach (['enabled', 'active', 'monitoring_enabled'] as $flag) {
+        $normalized = TypeConverter::toBool($config[$flag] ?? null);
+        if ($normalized === false) {
+            return false;
+        }
+    }
+
+    return true;
+}

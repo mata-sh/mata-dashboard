@@ -1,0 +1,38 @@
+{% extends 'layouts/main.html.twig' %}
+
+{% block content %}
+  <section class="section">
+    <div class="container login-container">
+      <div class="column is-half is-offset-one-quarter">
+        <!-- <h1 class="title has-text-centered">Login</h1> -->
+        <div class="main-logo">{{ ui.main_logo|raw }}</div>
+        <form method="post" action="login">
+          <div class="field">
+            <label class="label">Username</label>
+            <div class="control">
+              <input class="input" type="text" name="username" value="{{ USERNAME }}" placeholder="Enter username" required />
+            </div>
+          </div>
+
+          <div class="field">
+            <label class="label">Password</label>
+            <div class="control">
+              <input class="input" type="password" name="password" placeholder="Enter password" required />
+            </div>
+          </div>
+
+          <div class="field">
+            <label class="checkbox"><input type="checkbox" name="remember_me" value="1" checked />Remember Login</label>
+          </div>
+
+          <div class="field">
+            {{ ui.login_error_message|raw }}
+            <div class="control">
+              <button class="button is-primary is-fullwidth" type="submit">Login</button>
+            </div>
+          </div>
+        </form>
+      </div>
+    </div>
+  </section>
+{% endblock %}

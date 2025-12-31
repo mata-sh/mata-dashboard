@@ -1,0 +1,1429 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Watcher\Services\Collect;
+
+use Psr\Log\LoggerInterface;
+use Watcher\Services\Foundation\CacheManager;
+use Watcher\Services\Foundation\DataTransformers\ApiResponseTransformer;
+
+/**
+ * Mock server data collector for demo mode.
+ *
+ * Provides realistic demo data simulating server monitoring:
+ * - Generates dynamic server metrics with variation
+ * - Simulates multiple applications per server
+ * - Provides realistic process, database, and library data
+ * - Maintains cache compatibility for consistent demo experience
+ */
+class MockServerDataCollector implements ServerDataCollectorInterface
+{
+    private LoggerInterface $logger;
+    private CacheManager $cacheManager;
+    private ApiResponseTransformer $dataTransformer;
+    private string $serverName;
+
+    /** @var array<string,mixed> */
+    private array $serverConfig;
+    private int $cacheAge = 0;
+    private int $cacheTtl = 300;
+    private ?string $projectReadme = null;
+
+    /**
+     * Initialize mock server data collector.
+     *
+     * @param LoggerInterface        $logger          PSR-3 logger for demo logging
+     * @param CacheManager           $cacheManager    Cache manager for demo caching
+     * @param ApiResponseTransformer $dataTransformer Data transformer for response normalization
+     * @param string                 $serverName      Server identifier for demo data generation
+     * @param array<string,mixed>    $serverConfig    Server configuration from demo-servers.json
+     */
+    public function __construct(
+        LoggerInterface $logger,
+        CacheManager $cacheManager,
+        ApiResponseTransformer $dataTransformer,
+        string $serverName,
+        array $serverConfig
+    ) {
+        $this->logger = $logger;
+        $this->cacheManager = $cacheManager;
+        $this->dataTransformer = $dataTransformer;
+        $this->serverName = $serverName;
+        $this->serverConfig = $serverConfig;
+        $this->cacheAge = mt_rand(10, 180); // Simulate cache age
+    }
+
+    /**
+     * Generate realistic server system metrics.
+     */
+    public function getServerSystemData(string $cacheType = 'serverData'): ?array
+    {
+        $ttlSeconds = $this->cacheManager->getTtl($cacheType);
+        $this->cacheTtl = $ttlSeconds;
+
+        // Generate realistic metrics based on server type
+        $baseMetrics = $this->getBaseMetricsForServerType($this->serverName);
+
+        $data = [
+            'cpu_usage' => $baseMetrics['cpu'] + mt_rand(-5, 15),
+            'ram_capacity' => $baseMetrics['ram_capacity'],
+            'ram_used' => $baseMetrics['ram_used'] + mt_rand(-200, 500),
+            'disk_space_capacity' => $baseMetrics['disk_capacity'],
+            'disk_space_used' => $baseMetrics['disk_used'] + mt_rand(-1000, 2000),
+            'total_system_filecount' => mt_rand(180000, 350000),
+            'uptime' => mt_rand(86400 * 5, 86400 * 45), // 5-45 days uptime
+            'load_average' => round(($baseMetrics['cpu'] / 100) * 4 + mt_rand(-50, 50) / 100, 2),
+            'network_rx_bytes' => mt_rand(1000000000, 50000000000),
+            'network_tx_bytes' => mt_rand(800000000, 40000000000),
+        ];
+
+        return $this->dataTransformer->normalizeApiResponse($data, $this->cacheAge, $ttlSeconds, false);
+    }
+
+    /**
+     * Generate demo server information.
+     */
+    public function getServerInfo(string $cacheType = 'serverInfo'): ?array
+    {
+        $ttlSeconds = $this->cacheManager->getTtl($cacheType);
+        $this->cacheTtl = $ttlSeconds;
+
+        $osOptions = [
+            'Ubuntu 22.04.3 LTS',
+            'Ubuntu 20.04.6 LTS',
+            'Debian GNU/Linux 11 (bullseye)',
+            'Debian GNU/Linux 12 (bookworm)',
+            'CentOS Linux 8.5.2111',
+            'Rocky Linux 9.2',
+            'AlmaLinux 9.1',
+            'Fedora 38',
+        ];
+
+        $commonPhpExtensions = [
+            'Core', 'date', 'libxml', 'openssl', 'pcre', 'zlib', 'filter', 'hash',
+            'json', 'pcntl', 'readline', 'Reflection', 'SPL', 'session', 'standard',
+            'mysqlnd', 'PDO', 'pdo_mysql', 'mysqli', 'curl', 'mbstring', 'gd',
+            'xml', 'xmlreader', 'xmlwriter', 'SimpleXML', 'dom', 'fileinfo',
+            'iconv', 'tokenizer', 'zip', 'Phar', 'ctype', 'posix', 'sockets',
+        ];
+
+        $optionalExtensions = [
+            'redis', 'memcached', 'opcache', 'apcu', 'imagick', 'bcmath',
+            'gmp', 'intl', 'soap', 'xsl', 'exif', 'calendar', 'ftp',
+            'gettext', 'shmop', 'sysvmsg', 'sysvsem', 'sysvshm',
+        ];
+
+        // Randomly include some optional extensions
+        $extensionCount = mt_rand(5, count($optionalExtensions) - 2);
+
+        /** @var array<int, string> $selectedOptional */
+        $selectedOptional = array_rand(array_flip($optionalExtensions), $extensionCount);
+
+        $allExtensions = array_merge($commonPhpExtensions, $selectedOptional);
+        sort($allExtensions);
+
+        $data = [
+            'os_name' => $osOptions[array_rand($osOptions)],
+            'os_version' => $osOptions[array_rand($osOptions)],
+            'kernel_version' => '5.' . mt_rand(10, 19) . '.' . mt_rand(0, 120) . '-' . mt_rand(1, 100) . '-generic',
+            'package_count' => mt_rand(800, 2500),
+            'php_version' => '8.' . mt_rand(1, 3) . '.' . mt_rand(0, 20),
+            'php_extensions' => $allExtensions,
+            'php_extension_count' => count($allExtensions),
+            'architecture' => 'x86_64',
+            'hostname' => $this->serverName . '.example.com',
+        ];
+
+        return $this->dataTransformer->normalizeApiResponse($data, $this->cacheAge, $ttlSeconds, false);
+    }
+
+    /**
+     * Generate demo application data.
+     */
+    public function getApps(string $cacheType = 'apps'): ?array
+    {
+        $ttlSeconds = $this->cacheManager->getTtl($cacheType);
+        $this->cacheTtl = $ttlSeconds;
+        $data = $this->generateDemoApps();
+
+        return $this->dataTransformer->normalizeApiResponse(
+            $data,
+            $this->cacheAge,
+            $ttlSeconds,
+            false,
+            false,
+            'apps'
+        );
+    }
+
+    /**
+     * Generate demo app logs.
+     */
+    public function getAppLogs(string $app, string $cacheType = 'appLogs', string $filter = 'errors'): ?array
+    {
+        $ttlSeconds = $this->cacheManager->getTtl($cacheType);
+        $this->cacheTtl = $ttlSeconds;
+
+        $logCount = mt_rand(10, 50);
+        $logs = [];
+
+        $errorTypes = [
+            'PHP Fatal error: Uncaught Error: Call to undefined function',
+            'PHP Warning: Division by zero in',
+            'PHP Notice: Undefined variable: data in',
+            'MySQL server has gone away',
+            'Connection timed out after 30000ms',
+            'Failed to connect to database: Access denied',
+            'HTTP 500 Internal Server Error',
+            'Class \'App\Model\User\' not found',
+        ];
+
+        for ($i = 0; $i < $logCount; ++$i) {
+            $timestamp = date('Y-m-d H:i:s', time() - mt_rand(3600, 86400 * 7));
+            $error = $errorTypes[array_rand($errorTypes)];
+            $file = '/var/www/' . $app . '/src/' . ['Controller', 'Model', 'Service'][array_rand(['Controller', 'Model', 'Service'])] . '/'
+                   . ucfirst($app) . ['Controller', 'Model', 'Service'][array_rand(['Controller', 'Model', 'Service'])] . '.php';
+            $line = mt_rand(15, 250);
+
+            $logs[] = "[{$timestamp}] {$error} {$file}:{$line}";
+        }
+
+        return $this->dataTransformer->normalizeApiResponse($logs, $this->cacheAge, $ttlSeconds, false);
+    }
+
+    /**
+     * Generate demo PHP processes.
+     */
+    public function getServerPhpProcesses(string $cacheType = 'serverProcesses'): ?array
+    {
+        $ttlSeconds = $this->cacheManager->getTtl($cacheType);
+        $this->cacheTtl = $ttlSeconds;
+
+        $processes = [];
+        $processCount = mt_rand(15, 40);
+
+        for ($i = 0; $i < $processCount; ++$i) {
+            $processes[] = [
+                'user' => ['www-data', 'nginx', 'apache', 'php-fpm'][array_rand(['www-data', 'nginx', 'apache', 'php-fpm'])],
+                'pid' => mt_rand(1000, 65000),
+                'ppid' => mt_rand(1, 1000),
+                'cpu' => round(mt_rand(0, 1500) / 100, 1),
+                'mem' => round(mt_rand(50, 2000) / 100, 1),
+                'etime' => sprintf('%02d:%02d:%02d', mt_rand(0, 23), mt_rand(0, 59), mt_rand(0, 59)),
+                'args' => 'php-fpm: pool ' . ['www', 'api', 'admin'][array_rand(['www', 'api', 'admin'])],
+            ];
+        }
+
+        return $this->dataTransformer->normalizeApiResponse($processes, $this->cacheAge, $ttlSeconds, false);
+    }
+
+    /**
+     * Generate demo database information.
+     */
+    public function getServerDatabases(string $cacheType = 'databases'): array|string|null
+    {
+        $ttlSeconds = $this->cacheManager->getTtl($cacheType);
+        $this->cacheTtl = $ttlSeconds;
+
+        $data = [
+            'mysql_version' => '8.0.' . mt_rand(25, 35),
+            'total_databases' => mt_rand(8, 25),
+            'total_tables' => mt_rand(150, 500),
+            'data_size_mb' => mt_rand(500, 5000),
+            'index_size_mb' => mt_rand(100, 1200),
+            'connections_active' => mt_rand(5, 45),
+            'connections_max' => 150,
+            'uptime_hours' => mt_rand(120, 1080),
+            'queries_per_second' => mt_rand(10, 200),
+            'databases' => [
+                'mata_dashboard' => ['tables' => 8, 'size_mb' => mt_rand(10, 100)],
+                'ecommerce_prod' => ['tables' => 45, 'size_mb' => mt_rand(800, 1500)],
+                'staging_db' => ['tables' => 32, 'size_mb' => mt_rand(200, 600)],
+                'analytics' => ['tables' => 12, 'size_mb' => mt_rand(1500, 3000)],
+                'user_sessions' => ['tables' => 3, 'size_mb' => mt_rand(50, 300)],
+            ],
+        ];
+
+        return $this->dataTransformer->normalizeApiResponse($data, $this->cacheAge, $ttlSeconds, false);
+    }
+
+    /**
+     * Generate demo app status.
+     */
+    public function getAppStatus(string $app, string $cacheType = 'apps'): ?array
+    {
+        $ttlSeconds = $this->cacheManager->getTtl($cacheType);
+        $this->cacheTtl = $ttlSeconds;
+
+        $apps = $this->generateDemoApps();
+        $appData = $apps[$app] ?? null;
+
+        return $appData ? $this->dataTransformer->normalizeApiResponse($appData, $this->cacheAge, $ttlSeconds, false) : null;
+    }
+
+    /**
+     * Generate demo libraries for all apps.
+     */
+    public function getAppsLibraries(string $cacheType = 'apps'): ?array
+    {
+        $ttlSeconds = $this->cacheManager->getTtl($cacheType);
+        $this->cacheTtl = $ttlSeconds;
+
+        $apps = array_keys($this->generateDemoApps());
+        $libraries = [];
+
+        foreach ($apps as $app) {
+            $libraries[$app] = $this->generateLibrariesForApp($app);
+        }
+
+        return $this->dataTransformer->normalizeApiResponse($libraries, $this->cacheAge, $ttlSeconds, false);
+    }
+
+    /**
+     * Generate demo libraries for specific app.
+     */
+    public function getAppLibraries(string $app, string $cacheType = 'apps'): array
+    {
+        $ttlSeconds = $this->cacheManager->getTtl($cacheType);
+        $this->cacheTtl = $ttlSeconds;
+        $data = $this->generateLibrariesForApp($app);
+
+        return $this->dataTransformer->normalizeApiResponse($data, $this->cacheAge, $ttlSeconds, false);
+    }
+
+    /**
+     * Generate demo README content.
+     */
+    public function fetchAppReadme(string $app, string $cacheType = 'readme'): ?array
+    {
+        $ttlSeconds = $this->cacheManager->getTtl($cacheType);
+        $this->cacheTtl = $ttlSeconds;
+
+        $readmeContent = $this->generateReadmeContent($app);
+
+        return $this->dataTransformer->normalizeApiResponse($readmeContent, $this->cacheAge, $ttlSeconds, false);
+    }
+
+    /**
+     * Generate demo error log content.
+     */
+    public function fetchAppErrorlog(string $app, string $cacheType = 'errorlog'): ?array
+    {
+        $ttlSeconds = $this->cacheManager->getTtl($cacheType);
+        $this->cacheTtl = $ttlSeconds;
+
+        // Generate structured log entries matching the node API format
+        $logCount = mt_rand(10, 50);
+        $parsedEntries = [];
+
+        $errorTypes = [
+            ['message' => 'PHP Fatal error: Uncaught Error: Call to undefined function', 'type' => 'Error'],
+            ['message' => 'PHP Warning: Division by zero in', 'type' => 'Warning'],
+            ['message' => 'PHP Notice: Undefined variable: data in', 'type' => 'Deprecated'],
+            ['message' => 'MySQL server has gone away', 'type' => 'Error'],
+            ['message' => 'Connection timed out after 30000ms', 'type' => 'Error'],
+            ['message' => 'Failed to connect to database: Access denied', 'type' => 'Error'],
+            ['message' => 'HTTP 500 Internal Server Error', 'type' => 'Error'],
+            ['message' => 'Class \'App\Model\User\' not found', 'type' => 'Error'],
+        ];
+
+        for ($i = 0; $i < $logCount; ++$i) {
+            $timestamp = date('Y-m-d H:i:s', time() - mt_rand(3600, 86400 * 7));
+            $errorType = $errorTypes[array_rand($errorTypes)];
+            $file = '/var/www/' . $app . '/src/' . ['Controller', 'Model', 'Service'][array_rand(['Controller', 'Model', 'Service'])] . '/'
+                   . ucfirst($app) . ['Controller', 'Model', 'Service'][array_rand(['Controller', 'Model', 'Service'])] . '.php';
+            $line = mt_rand(15, 250);
+
+            $parsedEntries[] = [
+                'timestamp' => $timestamp,
+                'type' => $errorType['type'],
+                'message' => $errorType['message'] . ' ' . $file . ':' . $line,
+            ];
+        }
+
+        return $this->dataTransformer->normalizeApiResponse($parsedEntries, $this->cacheAge, $ttlSeconds, false);
+    }
+
+    /**
+     * Mock cache age.
+     */
+    public function getCacheAge(): int
+    {
+        return $this->cacheAge;
+    }
+
+    /**
+     * Mock cache TTL.
+     */
+    public function getCacheTtl(): int
+    {
+        return $this->cacheTtl;
+    }
+
+    /**
+     * Mock JSON validation.
+     */
+    public function isValidJsonArray(string $json): bool
+    {
+        $decoded = json_decode($json, true);
+
+        return json_last_error() === JSON_ERROR_NONE && is_array($decoded);
+    }
+
+    /**
+     * Generate base metrics based on server type.
+     *
+     * @return array<string,int>
+     */
+    private function getBaseMetricsForServerType(string $serverName): array
+    {
+        $metrics = [
+            'production-web' => [
+                'cpu' => 45,
+                'ram_capacity' => 16384,
+                'ram_used' => 12000,
+                'disk_capacity' => 500000,
+                'disk_used' => 280000,
+            ],
+            'database-server' => [
+                'cpu' => 30,
+                'ram_capacity' => 32768,
+                'ram_used' => 24000,
+                'disk_capacity' => 2000000,
+                'disk_used' => 1200000,
+            ],
+            'staging-server' => [
+                'cpu' => 15,
+                'ram_capacity' => 8192,
+                'ram_used' => 4500,
+                'disk_capacity' => 200000,
+                'disk_used' => 85000,
+            ],
+            'development-server' => [
+                'cpu' => 25,
+                'ram_capacity' => 8192,
+                'ram_used' => 5200,
+                'disk_capacity' => 250000,
+                'disk_used' => 125000,
+            ],
+            'backup-server' => [
+                'cpu' => 10,
+                'ram_capacity' => 16384,
+                'ram_used' => 6000,
+                'disk_capacity' => 5000000,
+                'disk_used' => 3500000,
+            ],
+            'load-balancer' => [
+                'cpu' => 20,
+                'ram_capacity' => 4096,
+                'ram_used' => 2800,
+                'disk_capacity' => 100000,
+                'disk_used' => 35000,
+            ],
+        ];
+
+        return $metrics[$serverName] ?? $metrics['production-web'];
+    }
+
+    /**
+     * Generate demo applications for this server.
+     *
+     * @return array<string,mixed>
+     */
+    private function generateDemoApps(): array
+    {
+        $appTemplates = [
+            'ecommerce' => [
+                'title' => 'E-Commerce Platform',
+                'path' => 'ecommerce',
+                'environment' => 'live',
+                'maintenance' => 0,
+                'category' => 'commerce',
+                'suitable_environments' => ['live', 'stg'],
+                'maintenance_probability' => 0.04,
+                'log_templates' => ['logs/error.log', 'logs/access.log', 'logs/payment.log', 'logs/queue.log'],
+            ],
+            'admin-panel' => [
+                'title' => 'Admin Dashboard',
+                'path' => 'admin',
+                'environment' => 'live',
+                'maintenance' => 0,
+                'category' => 'internal',
+                'suitable_environments' => ['live', 'stg'],
+                'log_templates' => ['logs/error.log', 'logs/access.log', 'logs/audit.log'],
+            ],
+            'api-gateway' => [
+                'title' => 'API Gateway',
+                'path' => 'api',
+                'environment' => 'live',
+                'maintenance' => 0,
+                'category' => 'api',
+                'suitable_environments' => ['live', 'test', 'stg'],
+                'log_templates' => ['logs/error.log', 'logs/access.log', 'logs/request.log'],
+            ],
+            'user-portal' => [
+                'title' => 'Customer Portal',
+                'path' => 'portal',
+                'environment' => 'test',
+                'maintenance' => 0,
+                'category' => 'customer',
+                'suitable_environments' => ['live', 'test', 'stg'],
+                'log_templates' => ['logs/error.log', 'logs/access.log', 'logs/ui.log'],
+            ],
+            'inventory-system' => [
+                'title' => 'Inventory Management',
+                'path' => 'inventory',
+                'environment' => 'live',
+                'maintenance' => 0,
+                'category' => 'operations',
+                'suitable_environments' => ['live', 'stg'],
+                'log_templates' => ['logs/error.log', 'logs/sync.log', 'logs/report.log'],
+            ],
+            'analytics-dashboard' => [
+                'title' => 'Analytics Dashboard',
+                'path' => 'analytics',
+                'environment' => 'dev',
+                'maintenance' => 0,
+                'category' => 'analytics',
+                'suitable_environments' => ['live', 'test', 'stg'],
+                'maintenance_probability' => 0.06,
+                'log_templates' => ['logs/error.log', 'logs/query.log', 'logs/etl.log'],
+            ],
+            'payment-processor' => [
+                'title' => 'Payment Gateway',
+                'path' => 'payments',
+                'environment' => 'live',
+                'maintenance' => 0,
+                'category' => 'commerce',
+                'suitable_environments' => ['live'],
+                'log_templates' => ['logs/error.log', 'logs/access.log', 'logs/security.log', 'logs/settlement.log'],
+            ],
+            'notification-service' => [
+                'title' => 'Notification Service',
+                'path' => 'notifications',
+                'environment' => 'test',
+                'maintenance' => 0,
+                'category' => 'communications',
+                'suitable_environments' => ['live', 'test', 'stg'],
+                'maintenance_probability' => 0.08,
+                'log_templates' => ['logs/error.log', 'logs/queue.log', 'logs/delivery.log'],
+            ],
+            'warehouse-system' => [
+                'title' => 'Warenwirtschaft Backend',
+                'path' => 'warenwirtschaft',
+                'environment' => 'live',
+                'maintenance' => 0,
+                'category' => 'operations',
+                'suitable_environments' => ['live', 'stg'],
+                'log_templates' => ['logs/error.log', 'logs/integration.log', 'logs/erp.log'],
+            ],
+            'crm' => [
+                'title' => 'CRM Platform',
+                'path' => 'crm',
+                'environment' => 'live',
+                'maintenance' => 0,
+                'category' => 'customer',
+                'suitable_environments' => ['live', 'stg', 'test'],
+                'log_templates' => ['logs/error.log', 'logs/access.log', 'logs/integration.log'],
+            ],
+            'search-service' => [
+                'title' => 'Search Service',
+                'path' => 'search',
+                'environment' => 'live',
+                'maintenance' => 0,
+                'category' => 'api',
+                'suitable_environments' => ['live', 'stg', 'test'],
+                'log_templates' => ['logs/error.log', 'logs/indexer.log', 'logs/query.log'],
+            ],
+            'load-balancer-node' => [
+                'title' => 'Load Balancer Node',
+                'path' => 'load-balancer',
+                'environment' => 'live',
+                'maintenance' => 0,
+                'category' => 'infrastructure',
+                'suitable_environments' => ['live', 'stg'],
+                'log_templates' => ['logs/error.log', 'logs/access.log', 'logs/health.log'],
+            ],
+            'shared-storage-cluster' => [
+                'title' => 'Shared Storage Cluster',
+                'path' => 'shared-storage',
+                'environment' => 'live',
+                'maintenance' => 0,
+                'category' => 'infrastructure',
+                'suitable_environments' => ['live', 'stg'],
+                'maintenance_probability' => 0.07,
+                'log_templates' => ['logs/error.log', 'logs/replication.log', 'logs/audit.log'],
+            ],
+            'ci-runner' => [
+                'title' => 'CI Runner',
+                'path' => 'ci-runner',
+                'environment' => 'dev',
+                'maintenance' => 0,
+                'category' => 'devtools',
+                'suitable_environments' => ['dev', 'test'],
+                'maintenance_probability' => 0.12,
+                'log_templates' => ['logs/error.log', 'logs/pipeline.log', 'logs/worker.log'],
+            ],
+            'feature-flags' => [
+                'title' => 'Feature Flag Service',
+                'path' => 'feature-flags',
+                'environment' => 'dev',
+                'maintenance' => 0,
+                'category' => 'devtools',
+                'suitable_environments' => ['dev', 'test', 'stg'],
+                'log_templates' => ['logs/error.log', 'logs/audit.log', 'logs/toggle.log'],
+            ],
+            'email-gateway' => [
+                'title' => 'Email Gateway',
+                'path' => 'email',
+                'environment' => 'live',
+                'maintenance' => 0,
+                'category' => 'communications',
+                'suitable_environments' => ['live', 'stg', 'test'],
+                'log_templates' => ['logs/error.log', 'logs/delivery.log', 'logs/relay.log'],
+            ],
+            'reporting-service' => [
+                'title' => 'Reporting Service',
+                'path' => 'reporting',
+                'environment' => 'stg',
+                'maintenance' => 0,
+                'category' => 'analytics',
+                'suitable_environments' => ['live', 'stg', 'test'],
+                'log_templates' => ['logs/error.log', 'logs/report.log', 'logs/export.log'],
+            ],
+            'qa-automation' => [
+                'title' => 'QA Automation Suite',
+                'path' => 'qa-suite',
+                'environment' => 'test',
+                'maintenance' => 0,
+                'category' => 'testing',
+                'suitable_environments' => ['test', 'stg'],
+                'maintenance_probability' => 0.16,
+                'log_templates' => ['logs/error.log', 'logs/run.log', 'logs/assertion.log'],
+            ],
+            'beta-portal' => [
+                'title' => 'Beta Customer Portal',
+                'path' => 'beta-portal',
+                'environment' => 'test',
+                'maintenance' => 0,
+                'category' => 'customer',
+                'suitable_environments' => ['test', 'stg'],
+                'log_templates' => ['logs/error.log', 'logs/feature.log', 'logs/access.log'],
+            ],
+            'catalog-service' => [
+                'title' => 'Catalog Service',
+                'path' => 'catalog',
+                'environment' => 'live',
+                'maintenance' => 0,
+                'category' => 'commerce',
+                'suitable_environments' => ['live', 'stg'],
+                'log_templates' => ['logs/error.log', 'logs/ingestion.log', 'logs/search.log'],
+            ],
+            'message-broker' => [
+                'title' => 'Message Broker',
+                'path' => 'broker',
+                'environment' => 'live',
+                'maintenance' => 0,
+                'category' => 'infrastructure',
+                'suitable_environments' => ['live', 'test', 'stg'],
+                'log_templates' => ['logs/error.log', 'logs/queue.log', 'logs/cluster.log'],
+            ],
+            'workflow-engine' => [
+                'title' => 'Workflow Engine',
+                'path' => 'workflow',
+                'environment' => 'stg',
+                'maintenance' => 0,
+                'category' => 'internal',
+                'suitable_environments' => ['dev', 'test', 'stg', 'live'],
+                'log_templates' => ['logs/error.log', 'logs/execution.log', 'logs/audit.log'],
+            ],
+        ];
+
+        $serverPresets = [
+            'production_live' => [
+                'environment_weights' => ['live' => 1.0],
+                'app_count_range' => [4, 7],
+                'preferred_categories' => [
+                    'commerce' => 3.4,
+                    'customer' => 2.4,
+                    'operations' => 2.1,
+                    'analytics' => 1.5,
+                    'communications' => 1.6,
+                    'api' => 1.8,
+                    'internal' => 1.2,
+                    'infrastructure' => 0.8,
+                    'devtools' => 0.4,
+                    'testing' => 0.4,
+                ],
+                'app_weight_overrides' => [
+                    'ecommerce' => 6,
+                    'payment-processor' => 5,
+                    'inventory-system' => 4,
+                    'warehouse-system' => 4,
+                    'catalog-service' => 4,
+                    'admin-panel' => 3,
+                    'api-gateway' => 3,
+                    'crm' => 2,
+                    'analytics-dashboard' => 2,
+                    'notification-service' => 2,
+                ],
+                'status_profile' => [
+                    'fatal' => [
+                        ['prob' => 0.9, 'range' => [0, 0]],
+                        ['prob' => 0.08, 'range' => [1, 1]],
+                        ['prob' => 0.02, 'range' => [2, 4]],
+                    ],
+                    'warnings' => [
+                        ['prob' => 0.82, 'range' => [0, 1]],
+                        ['prob' => 0.14, 'range' => [2, 4]],
+                        ['prob' => 0.04, 'range' => [5, 10]],
+                    ],
+                ],
+                'status_total_base' => [250, 550],
+                'status_total_weight' => ['fatal' => 25, 'warnings' => 6],
+                'maintenance_probability' => 0.04,
+                'session_multiplier' => 1.15,
+                'log_files' => ['min' => 2, 'max' => 5],
+                'log_size_multiplier' => 1.0,
+                'live_environment_bias' => [
+                    'clean_probability' => 0.86,
+                    'max_fatal' => 2,
+                    'max_warnings' => 5,
+                    'suppress_fatal_probability' => 0.6,
+                    'suppress_warning_probability' => 0.48,
+                ],
+                'outlier_profile' => [
+                    'fatal' => [15, 45],
+                    'warnings' => [30, 140],
+                    'distribution' => ['warnings' => 0.7, 'fatal' => 0.2, 'both' => 0.1],
+                ],
+            ],
+            'test_only' => [
+                'environment_weights' => ['test' => 1.0],
+                'app_count_range' => [3, 6],
+                'preferred_categories' => [
+                    'testing' => 3.6,
+                    'devtools' => 2.8,
+                    'communications' => 1.4,
+                    'api' => 1.5,
+                    'customer' => 1.2,
+                    'analytics' => 1.1,
+                    'infrastructure' => 0.6,
+                    'internal' => 0.8,
+                ],
+                'app_weight_overrides' => [
+                    'qa-automation' => 6,
+                    'ci-runner' => 5,
+                    'feature-flags' => 4,
+                    'beta-portal' => 4,
+                    'user-portal' => 2,
+                    'notification-service' => 2,
+                    'workflow-engine' => 2,
+                ],
+                'status_profile' => [
+                    'fatal' => [
+                        ['prob' => 0.45, 'range' => [0, 0]],
+                        ['prob' => 0.35, 'range' => [1, 3]],
+                        ['prob' => 0.20, 'range' => [4, 10]],
+                    ],
+                    'warnings' => [
+                        ['prob' => 0.25, 'range' => [0, 2]],
+                        ['prob' => 0.45, 'range' => [5, 25]],
+                        ['prob' => 0.30, 'range' => [30, 90]],
+                    ],
+                ],
+                'status_total_base' => [80, 200],
+                'status_total_weight' => ['fatal' => 12, 'warnings' => 5],
+                'maintenance_probability' => 0.18,
+                'session_multiplier' => 0.45,
+                'log_files' => ['min' => 1, 'max' => 3],
+                'log_size_multiplier' => 0.6,
+                'outlier_profile' => [
+                    'fatal' => [12, 40],
+                    'warnings' => [80, 200],
+                    'distribution' => ['warnings' => 0.8, 'fatal' => 0.1, 'both' => 0.1],
+                ],
+            ],
+            'dev_test_mix' => [
+                'environment_weights' => ['dev' => 0.6, 'test' => 0.4],
+                'app_count_range' => [4, 7],
+                'preferred_categories' => [
+                    'devtools' => 3.2,
+                    'testing' => 2.2,
+                    'api' => 1.8,
+                    'communications' => 1.3,
+                    'customer' => 1.1,
+                    'analytics' => 1.0,
+                    'infrastructure' => 0.9,
+                    'internal' => 1.0,
+                ],
+                'app_weight_overrides' => [
+                    'feature-flags' => 4,
+                    'ci-runner' => 4,
+                    'qa-automation' => 3,
+                    'api-gateway' => 3,
+                    'user-portal' => 2,
+                    'message-broker' => 2,
+                    'workflow-engine' => 2,
+                ],
+                'status_profile' => [
+                    'fatal' => [
+                        ['prob' => 0.35, 'range' => [0, 1]],
+                        ['prob' => 0.40, 'range' => [2, 6]],
+                        ['prob' => 0.25, 'range' => [7, 18]],
+                    ],
+                    'warnings' => [
+                        ['prob' => 0.30, 'range' => [0, 4]],
+                        ['prob' => 0.45, 'range' => [5, 25]],
+                        ['prob' => 0.25, 'range' => [26, 80]],
+                    ],
+                ],
+                'status_total_base' => [120, 320],
+                'status_total_weight' => ['fatal' => 18, 'warnings' => 6],
+                'maintenance_probability' => 0.16,
+                'session_multiplier' => 0.5,
+                'log_files' => ['min' => 2, 'max' => 4],
+                'log_size_multiplier' => 0.7,
+                'outlier_profile' => [
+                    'fatal' => [25, 70],
+                    'warnings' => [90, 220],
+                    'distribution' => ['warnings' => 0.5, 'fatal' => 0.3, 'both' => 0.2],
+                ],
+            ],
+            'mixed_all' => [
+                'environment_weights' => ['live' => 0.4, 'stg' => 0.25, 'test' => 0.25, 'dev' => 0.1],
+                'app_count_range' => [5, 8],
+                'preferred_categories' => [
+                    'commerce' => 2.4,
+                    'customer' => 2.0,
+                    'analytics' => 1.6,
+                    'api' => 1.7,
+                    'operations' => 1.3,
+                    'communications' => 1.2,
+                    'internal' => 1.1,
+                    'infrastructure' => 1.0,
+                    'devtools' => 0.9,
+                    'testing' => 0.9,
+                ],
+                'app_weight_overrides' => [
+                    'ecommerce' => 4,
+                    'payment-processor' => 4,
+                    'inventory-system' => 3,
+                    'analytics-dashboard' => 3,
+                    'message-broker' => 2,
+                    'reporting-service' => 3,
+                    'workflow-engine' => 2,
+                ],
+                'status_profile' => [
+                    'fatal' => [
+                        ['prob' => 0.48, 'range' => [0, 1]],
+                        ['prob' => 0.32, 'range' => [2, 5]],
+                        ['prob' => 0.20, 'range' => [6, 15]],
+                    ],
+                    'warnings' => [
+                        ['prob' => 0.38, 'range' => [0, 4]],
+                        ['prob' => 0.40, 'range' => [5, 25]],
+                        ['prob' => 0.22, 'range' => [26, 90]],
+                    ],
+                ],
+                'status_total_base' => [150, 420],
+                'status_total_weight' => ['fatal' => 20, 'warnings' => 6],
+                'maintenance_probability' => 0.1,
+                'session_multiplier' => 0.95,
+                'log_files' => ['min' => 2, 'max' => 5],
+                'log_size_multiplier' => 0.9,
+                'outlier_profile' => [
+                    'fatal' => [20, 60],
+                    'warnings' => [80, 250],
+                    'distribution' => ['warnings' => 0.55, 'fatal' => 0.25, 'both' => 0.2],
+                ],
+            ],
+            'staging_live' => [
+                'environment_weights' => ['stg' => 0.55, 'live' => 0.45],
+                'app_count_range' => [4, 7],
+                'preferred_categories' => [
+                    'commerce' => 2.2,
+                    'customer' => 2.0,
+                    'analytics' => 1.6,
+                    'internal' => 1.4,
+                    'operations' => 1.8,
+                    'communications' => 1.2,
+                    'api' => 1.3,
+                    'infrastructure' => 1.0,
+                    'devtools' => 0.6,
+                    'testing' => 0.7,
+                ],
+                'app_weight_overrides' => [
+                    'catalog-service' => 4,
+                    'inventory-system' => 3,
+                    'warehouse-system' => 3,
+                    'reporting-service' => 3,
+                    'api-gateway' => 2,
+                    'workflow-engine' => 2,
+                    'shared-storage-cluster' => 2,
+                ],
+                'status_profile' => [
+                    'fatal' => [
+                        ['prob' => 0.58, 'range' => [0, 1]],
+                        ['prob' => 0.28, 'range' => [2, 4]],
+                        ['prob' => 0.14, 'range' => [5, 12]],
+                    ],
+                    'warnings' => [
+                        ['prob' => 0.40, 'range' => [0, 3]],
+                        ['prob' => 0.40, 'range' => [4, 18]],
+                        ['prob' => 0.20, 'range' => [19, 70]],
+                    ],
+                ],
+                'status_total_base' => [130, 360],
+                'status_total_weight' => ['fatal' => 18, 'warnings' => 6],
+                'maintenance_probability' => 0.08,
+                'session_multiplier' => 0.85,
+                'log_files' => ['min' => 2, 'max' => 4],
+                'log_size_multiplier' => 0.85,
+                'outlier_profile' => [
+                    'fatal' => [18, 50],
+                    'warnings' => [60, 180],
+                    'distribution' => ['warnings' => 0.5, 'fatal' => 0.2, 'both' => 0.3],
+                ],
+            ],
+            'infra_mix' => [
+                'environment_weights' => ['live' => 0.4, 'stg' => 0.3, 'test' => 0.2, 'dev' => 0.1],
+                'app_count_range' => [3, 6],
+                'preferred_categories' => [
+                    'infrastructure' => 3.5,
+                    'operations' => 2.0,
+                    'api' => 1.4,
+                    'analytics' => 1.2,
+                    'internal' => 1.1,
+                    'communications' => 1.0,
+                    'commerce' => 0.6,
+                    'customer' => 0.6,
+                    'devtools' => 1.2,
+                ],
+                'app_weight_overrides' => [
+                    'load-balancer-node' => 6,
+                    'shared-storage-cluster' => 4,
+                    'message-broker' => 4,
+                    'analytics-dashboard' => 2,
+                    'workflow-engine' => 2,
+                    'notification-service' => 2,
+                ],
+                'status_profile' => [
+                    'fatal' => [
+                        ['prob' => 0.40, 'range' => [0, 1]],
+                        ['prob' => 0.35, 'range' => [2, 5]],
+                        ['prob' => 0.25, 'range' => [6, 15]],
+                    ],
+                    'warnings' => [
+                        ['prob' => 0.30, 'range' => [0, 3]],
+                        ['prob' => 0.40, 'range' => [4, 20]],
+                        ['prob' => 0.30, 'range' => [21, 80]],
+                    ],
+                ],
+                'status_total_base' => [90, 260],
+                'status_total_weight' => ['fatal' => 16, 'warnings' => 5],
+                'maintenance_probability' => 0.12,
+                'session_multiplier' => 0.4,
+                'log_files' => ['min' => 1, 'max' => 4],
+                'log_size_multiplier' => 0.7,
+                'outlier_profile' => [
+                    'fatal' => [25, 70],
+                    'warnings' => [70, 180],
+                    'distribution' => ['warnings' => 0.5, 'fatal' => 0.3, 'both' => 0.2],
+                ],
+            ],
+        ];
+
+        $presetKeyMap = [
+            'production-web' => 'production_live',
+            'database-server' => 'mixed_all',
+            'staging-server' => 'test_only',
+            'development-server' => 'dev_test_mix',
+            'backup-server' => 'staging_live',
+            'load-balancer' => 'infra_mix',
+        ];
+
+        $presetKey = $presetKeyMap[$this->serverName] ?? 'mixed_all';
+        $preset = $serverPresets[$presetKey];
+
+        $environmentSessionProfiles = [
+            'live' => ['hour' => [300, 1800], 'day' => [4000, 22000], 'total' => [50000, 280000]],
+            'stg' => ['hour' => [60, 200], 'day' => [800, 4000], 'total' => [9000, 60000]],
+            'test' => ['hour' => [20, 120], 'day' => [300, 1600], 'total' => [4000, 25000]],
+            'dev' => ['hour' => [10, 80], 'day' => [200, 900], 'total' => [2500, 15000]],
+        ];
+
+        $categorySessionMultipliers = [
+            'commerce' => 1.3,
+            'customer' => 1.2,
+            'analytics' => 1.1,
+            'api' => 1.0,
+            'operations' => 0.9,
+            'communications' => 0.8,
+            'internal' => 0.7,
+            'infrastructure' => 0.4,
+            'devtools' => 0.5,
+            'testing' => 0.6,
+        ];
+
+        $logSizeBase = [
+            'live' => [600, 50000],
+            'stg' => [200, 18000],
+            'test' => [120, 12000],
+            'dev' => [80, 8000],
+        ];
+
+        $pickWeightedKey = static function (array $weights): string {
+            $filtered = [];
+            foreach ($weights as $key => $weight) {
+                if ($weight > 0) {
+                    $filtered[$key] = $weight;
+                }
+            }
+            if (empty($filtered)) {
+                $keys = array_keys($weights);
+
+                return $keys[array_rand($keys)];
+            }
+
+            $sum = array_sum($filtered);
+            $max = max(1, (int) round($sum * 1000));
+            $rand = mt_rand(1, $max);
+            $running = 0;
+
+            foreach ($filtered as $key => $weight) {
+                $running += (int) round($weight * 1000);
+                if ($rand <= $running) {
+                    return $key;
+                }
+            }
+
+            $keys = array_keys($filtered);
+
+            return $keys[array_rand($keys)];
+        };
+
+        $selectWeightedUnique = static function (array $weights, int $count) use ($pickWeightedKey): array {
+            $selected = [];
+            $pool = $weights;
+
+            while (count($selected) < $count && !empty($pool)) {
+                $choice = $pickWeightedKey($pool);
+                $selected[] = $choice;
+                unset($pool[$choice]);
+            }
+
+            return $selected;
+        };
+
+        $randomFromRange = static function (array $range, float $multiplier = 1.0): int {
+            $min = max(0, (int) round($range[0] * $multiplier));
+            $max = max($min, (int) round($range[1] * $multiplier));
+
+            return $min === $max ? $min : mt_rand($min, $max);
+        };
+
+        $rollProfile = static function (array $profile) {
+            if (empty($profile)) {
+                return 0;
+            }
+
+            $probabilities = [];
+            foreach ($profile as $index => $entry) {
+                $probabilities[$index] = max($entry['prob'] ?? 0, 0);
+            }
+
+            $sum = array_sum($probabilities);
+            if ($sum <= 0) {
+                $entry = reset($profile);
+                [$min, $max] = $entry['range'];
+
+                return $min >= $max ? $min : mt_rand($min, $max);
+            }
+
+            $rand = mt_rand(1, 1000);
+            $cumulative = 0;
+
+            foreach ($profile as $index => $entry) {
+                $prob = $probabilities[$index];
+                if ($prob <= 0) {
+                    continue;
+                }
+
+                $cumulative += (int) round($prob / $sum * 1000);
+                if ($rand <= $cumulative) {
+                    [$min, $max] = $entry['range'];
+
+                    return $min >= $max ? $min : mt_rand($min, $max);
+                }
+            }
+
+            $entry = end($profile);
+            [$min, $max] = $entry['range'];
+
+            return $min >= $max ? $min : mt_rand($min, $max);
+        };
+
+        $appWeights = [];
+        foreach ($appTemplates as $key => $template) {
+            $category = $template['category'] ?? 'misc';
+            $weight = $template['base_weight'] ?? 1.0;
+
+            if (isset($preset['preferred_categories'][$category])) {
+                $weight *= $preset['preferred_categories'][$category];
+            }
+
+            if (isset($preset['app_weight_overrides'][$key])) {
+                $weight = max($weight, $preset['app_weight_overrides'][$key]);
+            }
+
+            $appWeights[$key] = max($weight, 0.1);
+        }
+
+        $maxPossible = min($preset['app_count_range'][1], count($appTemplates));
+        $minPossible = min($preset['app_count_range'][0], $maxPossible);
+        $appCount = mt_rand($minPossible, $maxPossible);
+        $selectedAppKeys = $selectWeightedUnique($appWeights, $appCount);
+
+        $apps = [];
+
+        foreach ($selectedAppKeys as $appKey) {
+            $template = $appTemplates[$appKey];
+            $category = $template['category'] ?? 'misc';
+
+            $allowedEnvironments = $template['suitable_environments'] ?? array_keys($preset['environment_weights']);
+            $intersected = array_intersect($allowedEnvironments, array_keys($preset['environment_weights']));
+
+            $allowedEnvironments = array_values($intersected);
+            if (empty($allowedEnvironments)) {
+                $allowedEnvironments = array_keys($preset['environment_weights']);
+            }
+
+            $envWeights = array_intersect_key($preset['environment_weights'], array_flip($allowedEnvironments));
+            // @phpstan-ignore-next-line empty.variable - defensive check for key mismatches
+            if (empty($envWeights)) {
+                $envWeights = $preset['environment_weights'];
+            }
+
+            $environment = $pickWeightedKey($envWeights);
+
+            $fatalCount = $rollProfile($preset['status_profile']['fatal']);
+            $warningCount = $rollProfile($preset['status_profile']['warnings']);
+
+            if ($environment === 'live' && isset($preset['live_environment_bias'])) {
+                $bias = $preset['live_environment_bias'];
+                $cleanProbability = max(0.0, min(1.0, (float) ($bias['clean_probability'] ?? 0.8)));
+                if (mt_rand(1, 1000) <= (int) round($cleanProbability * 1000)) {
+                    $fatalCount = 0;
+                    $warningCount = 0;
+                } else {
+                    $maxFatal = isset($bias['max_fatal']) ? max(0, (int) $bias['max_fatal']) : null;
+                    $maxWarnings = isset($bias['max_warnings']) ? max(0, (int) $bias['max_warnings']) : null;
+
+                    if ($maxFatal !== null && $fatalCount > $maxFatal) {
+                        $fatalCount = mt_rand(0, $maxFatal);
+                    } elseif ($fatalCount > 0) {
+                        $suppressFatal = max(0.0, min(1.0, (float) ($bias['suppress_fatal_probability'] ?? 0.55)));
+                        if (mt_rand(1, 1000) <= (int) round($suppressFatal * 1000)) {
+                            $fatalCount = 0;
+                        }
+                    }
+
+                    if ($maxWarnings !== null && $warningCount > $maxWarnings) {
+                        $warningCount = mt_rand(0, $maxWarnings);
+                    } elseif ($warningCount > 0) {
+                        $suppressWarnings = max(0.0, min(1.0, (float) ($bias['suppress_warning_probability'] ?? 0.45)));
+                        if (mt_rand(1, 1000) <= (int) round($suppressWarnings * 1000)) {
+                            $warningCount = mt_rand(0, $warningCount);
+                        }
+                    }
+                }
+            }
+
+            $statusBaseRange = $preset['status_total_base'] ?? [150, 400];
+            $statusTotal = $randomFromRange($statusBaseRange, $preset['session_multiplier'] ?? 1.0);
+            $statusWeights = $preset['status_total_weight'] ?? ['fatal' => 18, 'warnings' => 5];
+            $statusTotal += (int) round($fatalCount * ($statusWeights['fatal'] ?? 18));
+            $statusTotal += (int) round($warningCount * ($statusWeights['warnings'] ?? 5));
+            $statusTotal = max($statusTotal, $fatalCount + $warningCount);
+
+            $sessionProfile = $environmentSessionProfiles[$environment] ?? $environmentSessionProfiles['live'];
+            $categoryMultiplier = $categorySessionMultipliers[$category] ?? 0.8;
+            $sessionMultiplier = ($preset['session_multiplier'] ?? 1.0) * $categoryMultiplier;
+
+            $sessionsHour = max(0, $randomFromRange($sessionProfile['hour'], $sessionMultiplier));
+            $sessionsDay = max($sessionsHour * mt_rand(12, 24), $randomFromRange($sessionProfile['day'], $sessionMultiplier));
+            $sessionsTotal = max($sessionsDay * mt_rand(6, 12), $randomFromRange($sessionProfile['total'], $sessionMultiplier));
+
+            $maintenanceProbability = $preset['maintenance_probability'] ?? 0.08;
+            if (isset($template['maintenance_probability'])) {
+                $maintenanceProbability += $template['maintenance_probability'];
+            }
+            $maintenanceProbability = min($maintenanceProbability, 0.65);
+            $maintenance = mt_rand(0, 100) < (int) round($maintenanceProbability * 100) ? 1 : 0;
+
+            $logCandidates = $template['log_templates'] ?? ['logs/error.log', 'logs/debug.log', 'logs/app.log'];
+            $maxLogs = min(count($logCandidates), $preset['log_files']['max'] ?? count($logCandidates));
+            $minLogs = max(1, min($preset['log_files']['min'] ?? 1, $maxLogs));
+            $logCount = mt_rand($minLogs, $maxLogs);
+            $logSelection = $logCandidates;
+            shuffle($logSelection);
+            $logSelection = array_slice($logSelection, 0, $logCount);
+
+            $logSizeMultiplier = $preset['log_size_multiplier'] ?? 1.0;
+            $logBaseRange = $logSizeBase[$environment] ?? [100, 8000];
+            $logs = [];
+            foreach ($logSelection as $logRelativePath) {
+                $rangeMin = (int) max(50, round($logBaseRange[0] * $logSizeMultiplier));
+                $rangeMax = (int) max($rangeMin + 10, round($logBaseRange[1] * $logSizeMultiplier));
+                $size = mt_rand($rangeMin, $rangeMax);
+                $logs[$template['path'] . '/' . ltrim($logRelativePath, '/')] = (string) $size;
+            }
+
+            $apps[$appKey] = [
+                'title' => $template['title'],
+                'path' => $template['path'],
+                'url' => rtrim($this->serverConfig['url'], '/') . '/' . $template['path'],
+                'environment' => $environment,
+                'env' => $environment,
+                'maintenance' => $maintenance,
+                'status' => [
+                    'fatal' => $fatalCount,
+                    'warnings' => $warningCount,
+                    'total' => $statusTotal,
+                ],
+                'session_count_last_hour' => (string) $sessionsHour,
+                'session_count_last_day' => (string) $sessionsDay,
+                'session_count_total' => (string) $sessionsTotal,
+                'session_path' => '/var/lib/php/sessions',
+                'logs' => $logs,
+            ];
+        }
+
+        $appKeys = array_keys($apps);
+        $totalApps = count($appKeys);
+        if ($totalApps > 0) {
+            $outlierTargets = [];
+            $groupSize = 6;
+
+            for ($offset = 0; $offset < $totalApps; $offset += $groupSize) {
+                $chunk = array_slice($appKeys, $offset, $groupSize);
+                if (empty($chunk)) {
+                    continue;
+                }
+
+                $chunkCount = count($chunk);
+                $outlierCount = min($chunkCount, mt_rand(1, min(2, $chunkCount)));
+                $chunkShuffled = $chunk;
+                shuffle($chunkShuffled);
+                $outlierTargets = array_merge($outlierTargets, array_slice($chunkShuffled, 0, $outlierCount));
+            }
+
+            $outlierProfile = $preset['outlier_profile'] ?? [];
+            $fatalRange = $outlierProfile['fatal'] ?? [25, 60];
+            $warningRange = $outlierProfile['warnings'] ?? [70, 200];
+            $distribution = $outlierProfile['distribution'] ?? ['warnings' => 0.5, 'fatal' => 0.3, 'both' => 0.2];
+
+            foreach (array_unique($outlierTargets) as $appKey) {
+                if (!isset($apps[$appKey])) {
+                    continue;
+                }
+
+                $outlierType = $pickWeightedKey([
+                    'fatal' => $distribution['fatal'] ?? 0.3,
+                    'warnings' => $distribution['warnings'] ?? 0.5,
+                    'both' => $distribution['both'] ?? 0.2,
+                ]);
+
+                if ($outlierType === 'fatal' || $outlierType === 'both') {
+                    $apps[$appKey]['status']['fatal'] = max(
+                        $apps[$appKey]['status']['fatal'],
+                        $randomFromRange($fatalRange, 1.0)
+                    );
+                }
+
+                if ($outlierType === 'warnings' || $outlierType === 'both') {
+                    $apps[$appKey]['status']['warnings'] = max(
+                        $apps[$appKey]['status']['warnings'],
+                        $randomFromRange($warningRange, 1.0)
+                    );
+                }
+
+                $statusWeights = $preset['status_total_weight'] ?? ['fatal' => 18, 'warnings' => 5];
+                $apps[$appKey]['status']['total'] = max(
+                    $apps[$appKey]['status']['total'],
+                    (int) round($apps[$appKey]['status']['fatal'] * ($statusWeights['fatal'] ?? 18)
+                        + $apps[$appKey]['status']['warnings'] * ($statusWeights['warnings'] ?? 5))
+                );
+
+                if ($apps[$appKey]['maintenance'] === 0 && mt_rand(0, 100) < 18) {
+                    $apps[$appKey]['maintenance'] = 1;
+                }
+            }
+        }
+
+        foreach ($apps as &$app) {
+            $app['status']['total'] = max(
+                $app['status']['total'],
+                $app['status']['fatal'] + $app['status']['warnings']
+            );
+        }
+        unset($app);
+
+        return $apps;
+    }
+
+    /**
+     * Generate libraries for an app.
+     *
+     * @return array<int,array<string,string>>
+     */
+    private function generateLibrariesForApp(string $app): array
+    {
+        $commonLibraries = [
+            [
+                'name' => 'symfony/symfony',
+                'version' => 'v6.' . mt_rand(1, 4) . '.' . mt_rand(0, 15),
+                'description' => 'PHP framework for web applications and a set of reusable PHP components',
+            ],
+            [
+                'name' => 'doctrine/orm',
+                'version' => 'v2.' . mt_rand(10, 17) . '.' . mt_rand(0, 8),
+                'description' => 'Object-Relational-Mapper for PHP',
+            ],
+            [
+                'name' => 'twig/twig',
+                'version' => 'v3.' . mt_rand(4, 8) . '.' . mt_rand(0, 5),
+                'description' => 'Flexible, fast, and secure template engine for PHP',
+            ],
+            [
+                'name' => 'monolog/monolog',
+                'version' => 'v3.' . mt_rand(0, 5) . '.' . mt_rand(0, 12),
+                'description' => 'Sends your logs to files, sockets, inboxes, databases and various web services',
+            ],
+            [
+                'name' => 'guzzlehttp/guzzle',
+                'version' => 'v7.' . mt_rand(4, 8) . '.' . mt_rand(0, 5),
+                'description' => 'Guzzle is a PHP HTTP client library',
+            ],
+            [
+                'name' => 'phpunit/phpunit',
+                'version' => 'v10.' . mt_rand(0, 5) . '.' . mt_rand(0, 8),
+                'description' => 'The PHP Unit Testing framework',
+            ],
+            [
+                'name' => 'league/commonmark',
+                'version' => 'v2.' . mt_rand(3, 4) . '.' . mt_rand(0, 8),
+                'description' => 'Highly-extensible PHP Markdown parser which fully supports the CommonMark spec',
+            ],
+            [
+                'name' => 'nesbot/carbon',
+                'version' => 'v2.' . mt_rand(65, 72) . '.' . mt_rand(0, 8),
+                'description' => 'A simple API extension for DateTime',
+            ],
+            [
+                'name' => 'ramsey/uuid',
+                'version' => 'v4.' . mt_rand(6, 7) . '.' . mt_rand(0, 5),
+                'description' => 'A PHP library for generating and working with UUIDs',
+            ],
+        ];
+
+        // Select random libraries
+        $libCount = mt_rand(4, 8);
+        shuffle($commonLibraries);
+
+        return array_slice($commonLibraries, 0, $libCount);
+    }
+
+    /**
+     * Generate README content for an app.
+     */
+    private function generateReadmeContent(string $app): string
+    {
+        $projectReadme = $this->getProjectReadmeContent();
+        if ($projectReadme !== null) {
+            return $projectReadme;
+        }
+
+        $appTitle = ucfirst(str_replace('-', ' ', $app));
+
+        return "# {$appTitle}
+
+            ## Overview
+            This is the {$appTitle} application running on {$this->serverName}.
+
+            ## Features
+            - User authentication and authorization
+            - RESTful API endpoints
+            - Database integration with MySQL
+            - Caching layer for improved performance
+            - Comprehensive logging and monitoring
+
+            ## Installation
+            ```bash
+            composer install
+            npm install
+            php artisan migrate
+            ```
+
+            ## Configuration
+            Copy `.env.example` to `.env` and update the configuration values.
+
+            ## Usage
+            Start the development server:
+            ```bash
+            php artisan serve
+            ```
+
+            ## API Documentation
+            The API endpoints are available at `/api/v1/` with the following resources:
+            - Users: `/api/v1/users`
+            - Products: `/api/v1/products`
+            - Orders: `/api/v1/orders`
+
+            ## Monitoring
+            This application is monitored by MATA Dashboard. Key metrics include:
+            - Response time
+            - Error rates
+            - Database query performance
+            - Cache hit ratios
+
+            ## Support
+            For issues and support, contact the development team.
+
+            ---
+            Last updated: " . date('Y-m-d H:i:s') . '
+            Generated for demo purposes by MATA Dashboard MockServerDataCollector.';
+    }
+
+    /**
+     * Load README.md content from the project root once per request.
+     */
+    private function getProjectReadmeContent(): ?string
+    {
+        if ($this->projectReadme !== null) {
+            return $this->projectReadme === '' ? null : $this->projectReadme;
+        }
+
+        $readmePath = dirname(__DIR__, 3) . DIRECTORY_SEPARATOR . 'README.md';
+        if (!is_readable($readmePath)) {
+            $this->logger->warning('Demo README not available', ['path' => $readmePath]);
+            $this->projectReadme = '';
+
+            return null;
+        }
+
+        $contents = file_get_contents($readmePath);
+        if ($contents === false) {
+            $this->logger->warning('Failed to read project README for demo mode', ['path' => $readmePath]);
+            $this->projectReadme = '';
+
+            return null;
+        }
+
+        $this->projectReadme = $contents;
+
+        return $this->projectReadme;
+    }
+}

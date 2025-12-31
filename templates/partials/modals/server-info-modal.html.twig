@@ -1,0 +1,99 @@
+<div id="modal" class="modal is-active server-info-modal" _="on closeModal add .closing then wait for animationend then remove me">
+  <div class="modal-background" _="on click trigger closeModal"></div>
+  <div class="modal-content box">
+    <div class="modal-top-bar">
+      <button class="button modal-close-button-top" _="on click trigger closeModal"><span class="icon is-small">{{ icons.close|raw }}</span></button>
+      <div class="title">
+        <strong>SERVER INFO</strong> ( {{ server.name }} )
+      </div>
+      <div class="title">last fetched: {{ cache.age }} ago</div>
+      <button class="button modal-refresh-button-top" hx-get="/watch/modal/{{ server.name }}/info/refresh" hx-target="#modal-container" hx-trigger="click">{{ icons.refresh|raw }} Refresh</button>
+    </div>
+
+    <div class="content server-info-content">
+      <div class="columns is-multiline">
+        <div class="column is-half">
+          <div class="box server-info-section">
+            <h4 class="title is-5">Operating System</h4>
+            <table class="table is-fullwidth is-striped">
+              <tbody>
+                <tr>
+                  <td>
+                    <strong>OS Name:</strong>
+                  </td>
+                  <td>{{ server.os_name }}</td>
+                </tr>
+                <tr>
+                  <td>
+                    <strong>OS Version:</strong>
+                  </td>
+                  <td>{{ server.os_version }}</td>
+                </tr>
+                <tr>
+                  <td>
+                    <strong>Kernel:</strong>
+                  </td>
+                  <td>{{ server.kernel_version }}</td>
+                </tr>
+                <tr>
+                  <td>
+                    <strong>Architecture:</strong>
+                  </td>
+                  <td>{{ server.architecture }}</td>
+                </tr>
+                <tr>
+                  <td>
+                    <strong>Hostname:</strong>
+                  </td>
+                  <td>{{ server.hostname }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="column is-half">
+          <div class="box server-info-section">
+            <h4 class="title is-5">Software</h4>
+            <table class="table is-fullwidth is-striped">
+              <tbody>
+                <tr>
+                  <td>
+                    <strong>Installed Packages:</strong>
+                  </td>
+                  <td>{{ server.package_count }}</td>
+                </tr>
+                <tr>
+                  <td>
+                    <strong>PHP Version:</strong>
+                  </td>
+                  <td>{{ server.php_version }}</td>
+                </tr>
+                <tr>
+                  <td>
+                    <strong>PHP Extensions:</strong>
+                  </td>
+                  <td>{{ server.php_extension_count }} loaded</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="column is-full">
+          <div class="box server-info-section">
+            <h4 class="title is-5">PHP Extensions ({{ server.php_extension_count }})</h4>
+            <div class="tags">
+              {% for extension in server.php_extensions %}
+                <span class="tag is-info is-light">{{ extension }}</span>
+              {% endfor %}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <br />
+    <button class="button is-dark" _="on click trigger closeModal">Close</button>
+  </div>
+</div>

@@ -1,0 +1,95 @@
+# Production-specific Docker Compose overrides
+# Usage: docker-compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+
+services:
+  mata-web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: production
+    restart: always
+
+    # Only mount persistent directories, not source code
+    volumes:
+      - ./config:/var/www/html/config:ro
+      - ./logs:/var/www/html/logs
+      - ./temp:/var/www/html/temp
+
+    # Production environment variables
+    environment:
+      - APP_ENV=prod
+      - DISPLAY_ERRORS=0
+      - LOG_LEVEL=errors
+      - TEMPLATE_DEBUG_ENABLED=false
+
+    # Resource limits
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 1G
+        reservations:
+          cpus: '0.5'
+          memory: 512M
+
+    # Security options
+    security_opt:
+      - no-new-privileges:true
+
+    # Health check with production intervals
+    healthcheck:
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+
+    # Logging configuration
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  mata-db:
+    restart: always
+
+    # Production database volumes
+    volumes:
+      - mysql_data:/var/lib/mysql
+      # Note: No init.sql in production - use migrations instead
+
+    # Resource limits for database
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 1G
+        reservations:
+          cpus: '1.0'
+          memory: 512M
+
+    # Production MySQL configuration
+    command: >
+      --max-connections=${MYSQL_MAX_CONNECTIONS:-200}
+      --innodb-buffer-pool-size=${MYSQL_INNODB_BUFFER_POOL_SIZE:-256M}
+      --character-set-server=utf8mb4
+      --collation-server=utf8mb4_unicode_ci
+      --slow-query-log=1
+      --slow-query-log-file=/var/log/mysql/slow.log
+      --long-query-time=2
+
+    # MySQL logging
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+# Production volumes with specific options
+volumes:
+  mysql_data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ${DATA_PATH:-./data}/mysql

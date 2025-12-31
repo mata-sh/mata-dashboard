@@ -1,0 +1,10 @@
+{
+    "ping": 360,
+    "servers": 720,
+    "apps": 300,
+    "app": 300,
+    "serverData": 180,
+    "databases": 10,
+    "readme": -1,
+    "errorlog": 30
+}

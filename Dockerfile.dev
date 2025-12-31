@@ -1,0 +1,91 @@
+# MATA Dashboard - Development Build
+FROM php:8.3-apache
+
+# Install system dependencies including development tools
+RUN apt-get update && apt-get install -y \
+    git \
+    curl \
+    vim \
+    nano \
+    libpng-dev \
+    libjpeg62-turbo-dev \
+    libfreetype6-dev \
+    libonig-dev \
+    libxml2-dev \
+    libzip-dev \
+    zip \
+    unzip \
+    cron \
+    && rm -rf /var/lib/apt/lists/*
+
+# Configure and install PHP extensions
+RUN docker-php-ext-configure gd --with-freetype --with-jpeg \
+    && docker-php-ext-install -j$(nproc) pdo_mysql mbstring exif pcntl bcmath gd zip opcache
+
+# Install Xdebug (commented out by default - uncomment if needed)
+# RUN pecl install xdebug-3.3.0 \
+#     && docker-php-ext-enable xdebug
+
+# Install Composer
+COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
+
+# Set working directory
+WORKDIR /var/www/html
+
+# Copy composer files (source code will be mounted via volume in dev)
+COPY composer.json composer.lock* ./
+
+# Install ALL dependencies including dev dependencies
+RUN composer install \
+    --no-scripts \
+    --no-interaction \
+    --optimize-autoloader
+
+# Create required directories with proper permissions
+RUN mkdir -p \
+    /var/www/html/temp/api_cache \
+    /var/www/html/temp/sessions \
+    /var/www/html/temp/templates_cache \
+    /var/www/html/logs \
+    /var/www/html/config \
+    && chown -R www-data:www-data /var/www/html \
+    && chmod -R 755 /var/www/html \
+    && chmod -R 775 /var/www/html/temp \
+    && chmod -R 775 /var/www/html/logs
+
+# Copy Apache configuration
+COPY docker/apache/000-default.conf /etc/apache2/sites-available/000-default.conf
+
+# Copy development PHP configuration
+COPY docker/php/php-dev.ini /usr/local/etc/php/conf.d/99-custom.ini
+
+# Copy cron configuration
+COPY docker/cron/crontab /etc/cron.d/mata-cron
+RUN chmod 0644 /etc/cron.d/mata-cron \
+    && crontab /etc/cron.d/mata-cron
+
+# Enable Apache modules
+RUN a2enmod rewrite headers ssl
+
+# Create health check script
+RUN echo '#!/bin/bash\ncurl -f http://localhost/ || exit 1' > /usr/local/bin/healthcheck.sh \
+    && chmod +x /usr/local/bin/healthcheck.sh
+
+# Health check configuration
+HEALTHCHECK --interval=30s --timeout=3s --start-period=10s --retries=3 \
+    CMD /usr/local/bin/healthcheck.sh
+
+# Copy development entrypoint script
+COPY docker/entrypoint-dev.sh /usr/local/bin/entrypoint.sh
+RUN chmod +x /usr/local/bin/entrypoint.sh
+
+# Expose port 80
+EXPOSE 80
+
+# Use entrypoint script to fix permissions on startup
+ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
+
+# Labels for image metadata
+LABEL maintainer="MATA Dashboard Team"
+LABEL description="MATA Dashboard - Development Environment"
+LABEL environment="development"

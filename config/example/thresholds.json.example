@@ -1,0 +1,82 @@
+{
+    "server_data": {
+        "log_filesize_kb": {
+            "good": 10240,
+            "warn": 102400,
+            "critical": 256000,
+            "alarm": 512000
+        },
+        "total_system_filecount": {
+            "good": 500000,
+            "warn": 750000,
+            "critical": 850000,
+            "alarm": 900000
+        },
+        "disk_space_usage_percent": {
+            "good": 60,
+            "warn": 70,
+            "critical": 80,
+            "alarm": 70
+        }
+    },
+    "app_data": {
+        "order_export_age_minutes": {
+            "good": 10,
+            "warn": 60,
+            "critical": 120,
+            "alarm": 180
+        },
+        "session_count": {
+            "good": 100,
+            "warn": 500,
+            "critical": 2500,
+            "alarm": 50000
+        }
+    },
+    "sql": {
+        "max_connections_percent": {
+            "good": 10,
+            "warn": 30,
+            "critical": 50,
+            "alarm": 75
+        }
+    },
+    "alarms": {
+        "app_unreachable": {
+            "alarm_threshold_event_count": 3,
+            "min_alarm_interval_minutes": 60
+        },
+        "orders_export_stale": {
+            "alarm_threshold_event_count": 1,
+            "min_alarm_interval_minutes": 60
+        },
+        "cronjob_heartbeat_missing": {
+            "alarm_threshold_event_count": 1,
+            "min_alarm_interval_minutes": 360
+        },
+        "filecount_too_large": {
+            "alarm_threshold_event_count": 1,
+            "min_alarm_interval_minutes": 60
+        },
+        "logfile_too_large": {
+            "alarm_threshold_event_count": 1,
+            "min_alarm_interval_minutes": 720
+        },
+        "too_many_sql_connections": {
+            "alarm_threshold_event_count": 1,
+            "min_alarm_interval_minutes": 60
+        },
+        "servers_config_not_found": {
+            "alarm_threshold_event_count": 1,
+            "min_alarm_interval_minutes": 1440
+        },
+        "remaining_disk_space_too_low": {
+            "alarm_threshold_event_count": 1,
+            "min_alarm_interval_minutes": 180
+        },
+        "fatal_errors_occuring": {
+            "alarm_threshold_event_count": 1,
+            "min_alarm_interval_minutes": 1440
+        }
+    }
+}

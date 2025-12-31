@@ -1,0 +1,54 @@
+services:
+  mata-web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: ${COMPOSE_PROJECT_NAME:-mata-dashboard}-web
+    restart: unless-stopped
+    ports:
+      - "${WEB_PORT:-8080}:80"
+    volumes:
+      - ./config:/var/www/html/config
+      - ./logs:/var/www/html/logs
+      - ./temp:/var/www/html/temp
+    environment:
+      - APP_ENV=${APP_ENV:-dev}
+      - DISPLAY_ERRORS=${DISPLAY_ERRORS:-0}
+      - LOG_LEVEL=${LOG_LEVEL:-errors}
+      - TEMPLATE_DEBUG_ENABLED=${TEMPLATE_DEBUG_ENABLED:-false}
+      - DB_HOST=${DB_HOST:-db}
+      - DB_PORT=${DB_PORT:-3306}
+      - DB_DATABASE=${DB_DATABASE:-mata_dashboard}
+      - DB_USERNAME=${DB_USERNAME:-mata_user}
+      - DB_PASSWORD=${DB_PASSWORD:-change_me}
+    depends_on:
+      mata-db:
+        condition: service_started
+    networks:
+      - mata-network
+
+  mata-db:
+    image: mysql:8.0
+    container_name: ${COMPOSE_PROJECT_NAME:-mata}-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-change_me}
+      MYSQL_DATABASE: ${DB_DATABASE:-mata_dashboard}
+      MYSQL_USER: ${DB_USERNAME:-mata_user}
+      MYSQL_PASSWORD: ${DB_PASSWORD:-change_me}
+      MYSQL_CHARACTER_SET_SERVER: utf8mb4
+      MYSQL_COLLATION_SERVER: utf8mb4_unicode_ci
+    volumes:
+      - ./docker/mysql/init.sql:/docker-entrypoint-initdb.d/init.sql
+    ports:
+      - "${DB_PORT:-3306}:3306"
+    networks:
+      - mata-network
+
+volumes:
+  mysql_data:
+    driver: local
+
+networks:
+  mata-network:
+    driver: bridge

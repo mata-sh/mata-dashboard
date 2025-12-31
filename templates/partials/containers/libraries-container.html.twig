@@ -1,0 +1,70 @@
+<div class="libraries-section">
+  <h3>Libraries</h3>
+  {{ LIBRARIES_CONTAINER }}
+
+  <div class="filter-menu">
+    <input id="filter-name" type="text" placeholder="Name" />
+    <input id="filter-version" type="text" placeholder="Version" />
+    <input id="filter-app" type="text" placeholder="App" />
+    <input id="filter-server" type="text" placeholder="Server" />
+    <input id="filter-description" type="text" placeholder="Description" />
+    <button class="button" id="filter-clear">Clear Filter</button>
+  </div>
+
+  <div id="libraries-table"></div>
+</div>
+
+<script>
+  var librariesTable = new Tabulator('#libraries-table', {
+    ajaxURL: '{{ endpoints.libraries_json }}',
+    layout: 'fitDataStretch',
+    pagination: 'local',
+    paginationSize: 40,
+    columns: [
+      { title: 'Name', field: 'name' },
+      { title: 'Version', field: 'version' },
+      { title: 'App', field: 'app' },
+      { title: 'Server', field: 'server' },
+      {
+        title: 'Description',
+        field: 'description',
+        sorter: 'string',
+        formatter: function (cell, formatterParams) {
+          var value = cell.getValue()
+          return value.length > 20 ? value.slice(0, 40) + '...' : value
+        }
+      }
+    ]
+  })
+  
+  /* --- helper that reads the inputs and applies all active filters in one call --- */
+  function applyLibrariesFilters() {
+    const filters = []
+    const nameVal = document.getElementById('filter-name').value.trim()
+    const versionVal = document.getElementById('filter-version').value.trim()
+    const appVal = document.getElementById('filter-app').value.trim()
+    const serverVal = document.getElementById('filter-server').value.trim()
+    const descriptionVal = document.getElementById('filter-description').value.trim()
+  
+    if (nameVal) filters.push({ field: 'name', type: 'like', value: nameVal })
+    if (versionVal) filters.push({ field: 'version', type: 'like', value: versionVal })
+    if (appVal) filters.push({ field: 'app', type: 'like', value: appVal })
+    if (serverVal) filters.push({ field: 'server', type: 'like', value: serverVal })
+    if (descriptionVal) filters.push({ field: 'description', type: 'like', value: descriptionVal })
+  
+    librariesTable.setFilter(filters)
+  }
+  
+  /* --- wire the UI --- */
+  ;['filter-name', 'filter-version', 'filter-app', 'filter-server', 'filter-description'].forEach((id) => {
+    document.getElementById(id).addEventListener('input', applyLibrariesFilters)
+  })
+  
+  /* --- update Clear button --- */
+  document.getElementById('filter-clear').addEventListener('click', () => {
+    ;['filter-name', 'filter-version', 'filter-app', 'filter-server', 'filter-description'].forEach((id) => {
+      document.getElementById(id).value = ''
+    })
+    librariesTable.clearFilter()
+  })
+</script>

@@ -1,0 +1,69 @@
+site_name: MATA Dashboard
+site_description: Enterprise-grade server monitoring solution
+repo_url: https://github.com/mata-sh/mata-dashboard
+edit_uri: edit/main/docs/
+
+theme:
+  name: shadcn
+  features:
+    - navigation.sections
+    - navigation.tabs
+    - content.code.copy
+    - content.action.edit
+    - toc.follow
+  icon: images/logo.svg
+  show_stargazers: false
+
+nav:
+  - Home: index.md
+
+  - Getting Started:
+      - Installation: guides/installation.md
+      - Quick Start: guides/quickstart.md
+      - First Server: tutorials/first-server.md
+      - Configuration: guides/configuration.md
+
+  - Guides:
+      - Monitoring: guides/monitoring.md
+      - Security: guides/security.md
+      - Deployment: guides/deployment.md
+
+  - Reference:
+      - Server Metrics: reference/server-metrics.md
+      - Application Monitoring: reference/application-monitoring.md
+      - Event System: reference/event-system.md
+      - Configuration: reference/configuration-reference.md
+      - Thresholds: reference/thresholds.md
+      - Alerts: reference/alerts.md
+      - API:
+          - Node API: api/node-api.md
+          - Dashboard Endpoints: api/dashboard-endpoints.md
+          - Hooks: api/hooks.md
+
+  - Architecture:
+      - Overview: architecture/overview.md
+      - Components: architecture/components.md
+      - Technology Choices: architecture/technology-choices.md
+
+  - Development:
+      - Contributing: development/contributing.md
+      - Project Structure: development/project-structure.md
+      - Code Quality: development/code-quality.md
+      - Cron Jobs: development/cron-jobs.md
+      - Testing: development/testing.md
+      - Docker Fixes: development/buildx-setup.md
+
+  - Tutorials:
+      - Custom Thresholds: tutorials/custom-thresholds.md
+  - Troubleshooting: tutorials/troubleshooting.md
+
+markdown_extensions:
+  - admonition
+  - pymdownx.details
+  - pymdownx.superfences
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - toc:
+      permalink: false

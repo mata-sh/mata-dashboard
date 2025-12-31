@@ -1,0 +1,28 @@
+{
+    "_comment": "Data retention configuration for server metrics storage and aggregation",
+    "raw_retention_days": 30,
+    "aggregation": {
+        "hourly": {
+            "_comment_lag_minutes": "Minutes to wait before considering the previous hour complete",
+            "lag_minutes": 5,
+            "_comment_catch_up_hours": "Maximum number of past hours to catch up in a single run",
+            "catch_up_hours": 24
+        },
+        "daily": {
+            "_comment_lag_minutes": "Minutes to wait after midnight before rolling the previous day",
+            "lag_minutes": 30
+        }
+    },
+    "pruning": {
+        "_comment_batch_limit": "Delete at most N raw rows per run to avoid long-running transactions",
+        "batch_limit": 5000
+    },
+    "ingestion_health": {
+        "_comment_stall_minutes": "Trigger stall alerts if no new rows arrive within this many minutes",
+        "stall_minutes": 15,
+        "_comment_log_rotate_megabytes": "Rotate health log when it exceeds this size (MB)",
+        "log_rotate_megabytes": 5,
+        "_comment_log_rotate_files": "Number of rotated health log files to retain",
+        "log_rotate_files": 3
+    }
+}

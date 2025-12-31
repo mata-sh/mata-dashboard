@@ -1,0 +1,453 @@
+# Architecture Overview
+
+MATA Dashboard is designed with simplicity, clarity, and resilience as core principles.
+
+## High-Level Architecture
+
+```
+┌──────────────────────────────────────────────────┐
+│                   Dashboard                      │
+│  ┌────────────────────────────────────────────┐ │
+│  │  Web Interface (Bulma CSS + HTMX)         │ │
+│  └────────────────────────────────────────────┘ │
+│  ┌────────────────────────────────────────────┐ │
+│  │  Controllers (Request Handling)            │ │
+│  └────────────────────────────────────────────┘ │
+│  ┌────────────────────────────────────────────┐ │
+│  │  Services (Business Logic)                 │ │
+│  │  • ServerDataCollector                     │ │
+│  │  • EventManager                            │ │
+│  │  • CacheManager                            │ │
+│  └────────────────────────────────────────────┘ │
+│  ┌────────────────────────────────────────────┐ │
+│  │  Models (Data Access)                      │ │
+│  └────────────────────────────────────────────┘ │
+│  ┌────────────────────────────────────────────┐ │
+│  │  MySQL Database (Events & Metrics)         │ │
+│  └────────────────────────────────────────────┘ │
+└──────────────────────────────────────────────────┘
+                      ↕ ↕ ↕
+          Encrypted API Communication
+                      ↕ ↕ ↕
+┌─────────────┐  ┌─────────────┐  ┌─────────────┐
+│   Node 1    │  │   Node 2    │  │   Node N    │
+│ (Server 1)  │  │ (Server 2)  │  │ (Server N)  │
+│             │  │             │  │             │
+│ Read-Only   │  │ Read-Only   │  │ Read-Only   │
+│ API         │  │ API         │  │ API         │
+└─────────────┘  └─────────────┘  └─────────────┘
+```
+
+## Component Layers
+
+### 1. Presentation Layer
+
+**Web Interface**
+
+- **Bulma CSS**: Modern, responsive CSS framework (pre-compiled)
+- **HTMX**: Dynamic interactions without JavaScript frameworks
+- **Twig Templates**: Server-side rendering with caching
+
+**Responsibilities:**
+
+- Display server status and metrics
+- Interactive dashboard updates
+- User authentication interface
+- Alert configuration UI
+
+### 2. Application Layer
+
+**Controllers** (`src/Controllers/`)
+
+Handle HTTP requests and coordinate responses:
+
+- `DashboardController`: Main dashboard, data refresh
+- `LoginController`: Authentication handling
+- `ModalController`: Dynamic modal content
+
+**Services** (`src/Services/`)
+
+Business logic and core functionality:
+
+- `ServerDataCollector`: API communication with nodes
+- `EventManager`: Alert generation and processing
+- `NotificationManager`: Email notification handling
+- `CacheManager`: Cache management with TTL
+- `ServerMonitor`: Metric evaluation and thresholds
+- `LogAnalyzer`: Log file analysis
+
+**View Renderers** (`src/View/`)
+
+Specialized HTML rendering:
+
+- `ServerRenderer`: Server card rendering
+- `DatabaseRenderer`: Database card rendering
+- `LibrariesRenderer`: Library rendering
+- `CronjobRenderer`: Cron job status rendering
+
+### 3. Core Layer
+
+**Core Services** (`src/Core/`)
+
+- `App`: Application container, dependency injection
+- `Auth`: Session-based authentication
+- `Database`: MySQL connection wrapper
+
+**Configuration** (`src/Config/`)
+
+- `EnvConfigLoader`: Environment configuration (DTOs from .env)
+- `MonitoringSettingsLoader`: Monitoring settings (arrays from .json)
+- `DatabaseSetup`: Database initialization
+
+**HTTP** (`src/Http/`)
+
+- `Endpoints`: API endpoint definitions
+- `RouterSetup`: Bramus Router configuration
+- `SecurityHeaders`: HTTP security headers
+
+### 4. Data Layer
+
+**Models** (`src/Models/`)
+
+- `EventRecorder`: Event logging to database
+- `Settings`: Application settings management
+- `Users`: User data management
+
+**Database**
+
+- MySQL/MariaDB for persistent storage
+- Custom Database wrapper (not ORM)
+- Prepared statements for security
+
+### 5. Integration Layer
+
+**Nodes (External)**
+
+- Lightweight API endpoints on monitored servers
+- Read-only operations
+- Encrypted communication with dashboard
+
+## Data Flow
+
+### Typical Request Flow
+
+1. **User Request** → Web browser sends HTTP request
+2. **Router** → Bramus Router matches route to controller
+3. **Controller** → Handles request, coordinates services
+4. **Service Layer** → Business logic execution
+5. **Cache Check** → Check if data is cached
+6. **API Call** (if needed) → Fetch from remote node
+7. **Data Processing** → Evaluate thresholds, analyze logs
+8. **Database** (if needed) → Store events, retrieve history
+9. **View Rendering** → Twig template with data
+10. **HTTP Response** → HTML sent to browser
+
+### Monitoring Data Collection
+
+```
+Cron Job (every 5 min)
+    ↓
+collect_server_metrics.php
+    ↓
+ServerDataCollector Service
+    ↓
+API Requests to Nodes
+    ↓
+Store Raw Metrics → MySQL
+    ↓
+Evaluate Thresholds
+    ↓
+Generate Events (if needed)
+    ↓
+Trigger Alerts (if threshold exceeded)
+    ↓
+Send Email Notifications
+```
+
+### Data Aggregation Flow
+
+```
+Cron Job (hourly)
+    ↓
+aggregate_server_metrics.php
+    ↓
+Query Raw Metrics (5-min data)
+    ↓
+Calculate Hourly Averages
+    ↓
+Store Aggregated Data → MySQL
+    ↓
+Cleanup Old Raw Data (> 7 days)
+```
+
+## Communication Patterns
+
+### Dashboard ↔ Node Communication
+
+**Request:**
+
+```http
+GET /mata-node/api/server-data HTTP/1.1
+Host: monitored-server.com
+X-API-Key: encrypted_api_key_with_timestamp
+Accept: application/json
+```
+
+**Response:**
+
+```json
+{
+  "cpu_usage": 45.2,
+  "memory_used": 2147483648,
+  "memory_total": 8589934592,
+  "disk_usage": 128849018880,
+  "disk_total": 536870912000,
+  "process_count": 156,
+  "file_count": 485291
+}
+```
+
+### API Endpoints
+
+**Dashboard provides:**
+
+- `/` - Main dashboard
+- `/login` - Authentication
+- `/logout` - Session termination
+- `/api/refresh` - Force data refresh
+- `/api/server/{id}` - Server details
+- `/api/events` - Event log
+
+**Nodes provide:**
+
+- `/api/ping` - Health check
+- `/api/server-data` - Server metrics
+- `/api/apps` - Application list
+- `/api/app-data/{id}` - Application metrics
+- `/api/processes` - Process information
+
+## Security Architecture
+
+### Authentication Flow
+
+```
+User Login Request
+    ↓
+LoginController
+    ↓
+Load users.json
+    ↓
+Bcrypt Password Verification
+    ↓
+Session Creation
+    ↓
+Session Cookie (HttpOnly, Secure)
+    ↓
+Subsequent Requests Include Session
+    ↓
+Auth Middleware Validates Session
+```
+
+### API Security
+
+```
+Dashboard Request
+    ↓
+Generate Encrypted API Key
+    ↓
+Add Timestamp Validation
+    ↓
+HTTP Request to Node
+    ↓
+Node Validates API Key
+    ↓
+Node Validates Timestamp
+    ↓
+Rate Limiting Check
+    ↓
+Return Data (if authorized)
+```
+
+## Caching Strategy
+
+### Multi-Level Cache
+
+1. **File-based Cache** (`temp/api_cache/`)
+   - Structured directory hierarchy
+   - JSON files with metadata
+   - TTL-based expiration
+
+2. **Template Cache** (`temp/templates_cache/`)
+   - Twig compiled templates
+   - Automatic invalidation on changes
+
+### Cache TTL Configuration
+
+Different data types have different cache lifetimes:
+
+- **Server Data**: 10 seconds (near real-time)
+- **Application List**: 60 seconds (relatively static)
+- **Error Logs**: 60 seconds (important changes)
+- **Process Info**: 30 seconds (moderate changes)
+
+### Cache Invalidation
+
+- **Time-based**: TTL expiration
+- **Manual**: Force refresh button
+- **Graceful degradation**: Use stale cache on API failure
+
+## Database Schema
+
+### Events Table
+
+Stores all monitoring events:
+
+```sql
+CREATE TABLE events (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    server_id VARCHAR(50),
+    event_type VARCHAR(50),
+    severity VARCHAR(20),
+    message TEXT,
+    timestamp DATETIME,
+    INDEX idx_server_timestamp (server_id, timestamp)
+);
+```
+
+### Alarms Table
+
+Tracks sent notifications:
+
+```sql
+CREATE TABLE alarms (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    event_id INT,
+    sent_at DATETIME,
+    recipient VARCHAR(255),
+    status VARCHAR(20),
+    INDEX idx_sent_at (sent_at)
+);
+```
+
+### Server Metrics Tables
+
+```sql
+-- Raw metrics (5-minute intervals)
+CREATE TABLE server_metrics_raw (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    server_id VARCHAR(50),
+    timestamp DATETIME,
+    cpu_usage DECIMAL(5,2),
+    memory_used BIGINT,
+    disk_usage BIGINT,
+    -- ... other metrics
+    INDEX idx_server_timestamp (server_id, timestamp)
+);
+
+-- Hourly aggregates
+CREATE TABLE server_metrics_hourly (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    server_id VARCHAR(50),
+    hour_timestamp DATETIME,
+    avg_cpu_usage DECIMAL(5,2),
+    -- ... other aggregated metrics
+    INDEX idx_server_hour (server_id, hour_timestamp)
+);
+
+-- Daily aggregates
+CREATE TABLE server_metrics_daily (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    server_id VARCHAR(50),
+    date DATE,
+    avg_cpu_usage DECIMAL(5,2),
+    -- ... other aggregated metrics
+    INDEX idx_server_date (server_id, date)
+);
+```
+
+## Design Decisions
+
+### Why Not an ORM?
+
+**Decision**: Use lightweight PDO wrapper instead of Doctrine/Eloquent
+
+**Rationale:**
+
+- Monitoring is read-heavy with simple queries
+- No need for complex relationships
+- Lower overhead and better performance
+- Easier to debug and optimize
+- No magic methods or hidden behavior
+
+### Why JSON File Auth?
+
+**Decision**: Store users in JSON file, not database
+
+**Rationale:**
+
+- Dashboard accessible even if database fails
+- Simpler for small teams (1-20 users)
+- No database migration needed for auth changes
+- Bcrypt security still maintained
+- Database migration path available if needed
+
+### Why File-based Cache?
+
+**Decision**: Use file cache instead of Redis/Memcached
+
+**Rationale:**
+
+- Zero infrastructure requirements
+- Sufficient for < 50 concurrent users
+- Simple to implement and debug
+- Automatic cleanup
+- Easy migration to Redis if needed
+
+### Why HTMX?
+
+**Decision**: Use HTMX instead of React/Vue/Angular
+
+**Rationale:**
+
+- No JavaScript framework complexity
+- No state management needed
+- Server-side rendering simplicity
+- Progressive enhancement
+- Smaller payload size
+
+## Scaling Considerations
+
+### Vertical Scaling
+
+- Increase server resources (CPU, RAM)
+- Optimize database queries with indexes
+- Increase PHP-FPM workers
+- Tune MySQL configuration
+
+### Horizontal Scaling
+
+1. **Add Load Balancer** (HAProxy, Nginx)
+2. **Shared Sessions** (Redis, database)
+3. **Centralized Cache** (Redis, Memcached)
+4. **Database Replication** (Master-slave)
+
+### When to Scale
+
+**Current architecture suitable for:**
+
+- 1-20 monitored servers
+- 1-20 concurrent users
+- < 100 requests/minute
+
+**Consider scaling when:**
+
+- > 20 monitored servers
+- > 50 concurrent users
+- > 500 requests/minute
+- Need sub-minute monitoring intervals
+
+## Next Steps
+
+- [Components](components.md) - Detailed component breakdown
+- [Technology Choices](technology-choices.md) - Technology decision rationale
+- [Project Structure](../development/project-structure.md) - Code organization

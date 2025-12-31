@@ -1,0 +1,11 @@
+<div id="server-stats-{{ server.id }}" class="server-stats">
+  <span class="server-cpu count">{{ icons.cpu|raw }} {{ server.cpu_usage }} %</span>
+  <span class="server-ram count">{{ icons.pie_chart|raw }} {{ storage.ram_used }} / {{ storage.ram_capacity }}</span>
+  <span class="server-space count {{ storage.disk_usage_level }}">{{ icons.hard_drive|raw }} {{ storage.disk_used }} / {{ storage.disk_capacity }}</span>
+  <span class="server-processes count" data-tippy-content="<strong>Prozesse</strong>
+                                    <br>Php: {{ processes.php }}
+                                    <br>Sql: {{ processes.sql }}
+                                    <br>Total: {{ processes.total }}">{{ icons.activity|raw }} {{ processes.php }}</span>
+  <span class="server-filecount count {{ files.count_level }}">{{ icons.file|raw }} {{ files.count }}</span>
+  <span class="server-refresh-stats-btn" data-tippy-content="Refresh Server System Stats" hx-swap="outerHTML" hx-target="#server-stats-{{ server.id }}" hx-get="/watch/refresh/serverstats/{{ server.name }}">{{ icons.refresh_ccw|raw }}</span>
+</div>
