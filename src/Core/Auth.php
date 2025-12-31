@@ -75,6 +75,10 @@ class Auth
             throw new RuntimeException("Users file has insecure permissions. Run: chmod 600 {$this->usersFile}");
         }
 
+        if (!is_readable($this->usersFile)) {
+            throw new RuntimeException("Users file not readable: {$this->usersFile}");
+        }
+
         $content = file_get_contents($this->usersFile);
         if ($content === false) {
             throw new RuntimeException("Failed to read users file: {$this->usersFile}");

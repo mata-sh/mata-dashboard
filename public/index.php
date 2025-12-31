@@ -118,13 +118,46 @@ $exceptionHandler = new ExceptionHandler($log, $appConfig->template->debugEnable
 // $exceptionHandler->register();
 
 // ************************************************************************************************
+// Template Engine (Twig)
+// ************************************************************************************************
+$templateDir = $paths->appPath . '/templates';
+$templateCacheDir = $paths->appPath . '/temp/templates_cache';
+
+$loader = new FilesystemLoader($templateDir);
+$twig = new Environment($loader, [
+    'cache' => $appConfig->template->debugEnabled ? $templateCacheDir : false,
+    'debug' => $appConfig->template->debugEnabled,
+    'auto_reload' => $appConfig->template->debugEnabled,
+]);
+
+// ************************************************************************************************
 // Initialize App & Authentication
 // ************************************************************************************************
 $environment = $appConfig->environment->env;
-$usersFilePath = $paths->appPath . '/config/' . $environment . '/users.json';
-$auth = new Auth($log, $usersFilePath);
-$app = new App($auth, $paths);
 
+try {
+    $usersFilePath = $paths->appPath . '/config/' . $environment . '/users.json';
+    $auth = new Auth($log, $usersFilePath);
+} catch (Throwable $e) {
+    $log->critical('Authentication initialization failed: ' . $e->getMessage());
+    // Render error template
+    echo $twig->render('pages/error.html.twig', [
+        'error' => [
+            'title' => 'Authentication System Unavailable',
+            'message' => 'The authentication system could not be initialized.',
+            'technical_details' => $appConfig->template->debugEnabled ? $e->getMessage() : null,
+            'suggestions' => [
+                'Ensure users.json exists in: ' . dirname($usersFilePath),
+                'Check file permissions (should be 600)',
+                'Verify JSON file is valid',
+            ],
+        ],
+    ]);
+
+    exit(1);
+}
+
+$app = new App($auth, $paths);
 $appDir = !empty($appConfig->environment->dir) ? DIRECTORY_SEPARATOR . $appConfig->environment->dir : '';
 $app->setBaseUrl($appConfig->environment->domain);
 
@@ -159,19 +192,6 @@ foreach ($validationResult['warnings'] ?? [] as $warning) {
 
 $notificationManager->cleanupResolvedConfigWarnings($validationResult['warnings'] ?? []);
 $notificationManager->cleanupOldNotifications(30); // delete old notifications (> 30 Days)
-
-// ************************************************************************************************
-// Template Engine (Twig)
-// ************************************************************************************************
-$templateDir = $paths->appPath . '/templates';
-$templateCacheDir = $paths->appPath . '/temp/templates_cache';
-
-$loader = new FilesystemLoader($templateDir);
-$twig = new Environment($loader, [
-    'cache' => $appConfig->template->debugEnabled ? $templateCacheDir : false,
-    'debug' => $appConfig->template->debugEnabled,
-    'auto_reload' => $appConfig->template->debugEnabled,
-]);
 
 // ************************************************************************************************
 // Initialize Mailer

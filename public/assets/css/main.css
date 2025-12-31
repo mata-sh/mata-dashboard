@@ -1203,3 +1203,41 @@ svg {
     padding: 7px;
     color: black;
 }
+
+.error-container>div {
+    background-color: #fff;
+    width: 400px;
+    margin: auto;
+    padding: 20px 20px 10px;
+    border-radius: 14px;
+    color: #101010;
+}
+
+.error-suggestions>ol {
+    padding: 6px 20px;
+}
+
+.error-title {
+    color: #000;
+    font-weight: bold;
+    text-align: center;
+}
+
+.error-subtitle {
+    font-weight: bold;
+}
+
+.error-msg {
+    padding: 6px 0;
+}
+
+.error-suggestions {
+    padding-top: 20px;
+}
+
+.error-technical {
+    background-color: #232323;
+    padding: 6px 10px;
+    border-radius: 3px;
+    color: white;
+}

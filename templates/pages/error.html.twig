@@ -1,0 +1,23 @@
+{% extends 'layouts/main.html.twig' %}
+
+{% block content %}
+  <section class="section">
+    <div class="container error-container">
+      <div class="column is-half is-offset-one-quarter">
+        <h1 class="error-title">{{ error.title }}</h1>
+        <div class="error-msg">{{ error.message }}</div>
+        <div class="error-technical">{{ error.technical_details }}</div>
+        <div class="error-suggestions">
+          {% if error.suggestions %}
+            <span class="error-subtitle">Troubleshooting:</span>
+          {% endif %}
+          <ol>
+            {% for suggestion in error.suggestions %}
+              <li>{{ suggestion }}</li>
+            {% endfor %}
+          </ol>
+        </div>
+      </div>
+    </div>
+  </section>
+{% endblock %}
