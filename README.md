@@ -2,8 +2,8 @@
 
 <!-- PROJECT LOGO -->
 <div align="center">
-  <a href="https://github.com/xarcdotdev/mata-dashboard">
-    <img src="docs/images/logo.png" alt="Logo" width="200" height="200">
+  <a href="https://github.com/mata-sh/mata-dashboard">
+    <img src="docs/images/logo.svg" alt="Logo" width="200" height="200">
   </a>
 
 <h3 align="center">MATA Dashboard</h3>
@@ -16,9 +16,9 @@
 **MATA** is a PHP-based server monitoring solution that provides centralized oversight of multiple servers and their hosted applications. Built with security automation principles, it offers real-time monitoring, intelligent alerting, and comprehensive event logging for enterprise-grade infrastructure management.
 
 <br>
-<a href="https://github.com/xarcdotdev/mata-dashboard/issues/new?labels=bug&template=bug-report---.md">Report Bug</a>
+<a href="https://github.com/mata-sh/mata-dashboard/issues/new?labels=bug&template=bug-report---.md">Report Bug</a>
 &middot;
-<a href="https://github.com/xarcdotdev/mata-dashboard/issues/new?labels=enhancement&template=feature-request---.md">Request Feature</a>
+<a href="https://github.com/mata-sh/mata-dashboard/issues/new?labels=enhancement&template=feature-request---.md">Request Feature</a>
   </p>
 
 [![Contributors][contributors-shield]][contributors-url]
@@ -84,7 +84,7 @@ MATA is an enterprise-grade server monitoring solution that combines a centraliz
 #### 1. Clone Repository
 
 ```bash
-git clone https://github.com/xarcdotdev/mata-dashboard.git
+git clone https://github.com/mata-sh/mata-dashboard.git
 cd mata-dashboard
 ```
 
@@ -532,21 +532,21 @@ See `LICENSE.txt` for details.
 
 xarc - [@xarcdev](https://x.com/xarcdev) - mata@xarc.dev
 
-Project Link: [https://github.com/xarcdotdev/mata-dashboard](https://github.com/xarcdotdev/mata-dashboard)
+Project Link: [https://github.com/mata-sh/mata-dashboard](https://github.com/mata-sh/mata-dashboard)
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
 <!-- MARKDOWN LINKS & IMAGES -->
-[contributors-shield]: https://img.shields.io/github/contributors/xarcdotdev/mata-dashboard.svg?style=for-the-badge
-[contributors-url]: https://github.com/xarcdotdev/mata-dashboard/graphs/contributors
-[forks-shield]: https://img.shields.io/github/forks/xarcdotdev/mata-dashboard.svg?style=for-the-badge
-[forks-url]: https://github.com/xarcdotdev/mata-dashboard/network/members
-[stars-shield]: https://img.shields.io/github/stars/xarcdotdev/mata-dashboard.svg?style=for-the-badge
-[stars-url]: https://github.com/xarcdotdev/mata-dashboard/stargazers
-[issues-shield]: https://img.shields.io/github/issues/xarcdotdev/mata-dashboard.svg?style=for-the-badge
-[issues-url]: https://github.com/xarcdotdev/mata-dashboard/issues
-[license-shield]: https://img.shields.io/github/license/xarcdotdev/mata-dashboard.svg?style=for-the-badge
-[license-url]: https://github.com/xarcdotdev/mata-dashboard/blob/master/LICENSE.txt
+[contributors-shield]: https://img.shields.io/github/contributors/mata-sh/mata-dashboard.svg?style=for-the-badge
+[contributors-url]: https://github.com/mata-sh/mata-dashboard/graphs/contributors
+[forks-shield]: https://img.shields.io/github/forks/mata-sh/mata-dashboard.svg?style=for-the-badge
+[forks-url]: https://github.com/mata-sh/mata-dashboard/network/members
+[stars-shield]: https://img.shields.io/github/stars/mata-sh/mata-dashboard.svg?style=for-the-badge
+[stars-url]: https://github.com/mata-sh/mata-dashboard/stargazers
+[issues-shield]: https://img.shields.io/github/issues/mata-sh/mata-dashboard.svg?style=for-the-badge
+[issues-url]: https://github.com/mata-sh/mata-dashboard/issues
+[license-shield]: https://img.shields.io/github/license/mata-sh/mata-dashboard.svg?style=for-the-badge
+[license-url]: https://github.com/mata-sh/mata-dashboard/blob/master/LICENSE.txt
 <!-- [product-screenshot]: docs/images/demo.gif -->
 [product-screenshot]: docs/images/screenshot.png
 
