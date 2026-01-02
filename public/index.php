@@ -90,6 +90,14 @@ $log->pushHandler($handler);
 // Config Initialization
 // ************************************************************************************************
 try {
+
+    $requiredConfig = $paths->appPath . '/config/config.env';
+    if (!is_readable($requiredConfig)) {
+        $log->critical('Required config is not readable/missing: ' . $requiredConfig);
+
+        exit("Missing config file:\n{$requiredConfig}");
+    }
+
     $configLoader = new EnvConfigLoader();
     $appConfig = $configLoader->load([
         'config.env',
@@ -108,7 +116,7 @@ try {
 } catch (Exception $e) {
     $log->critical('Application Initialization failed! ' . $e->getMessage());
 
-    exit('Application initialization failed!');
+    exit('Application initialization failed!' . $e->getMessage());
 }
 
 // ************************************************************************************************
