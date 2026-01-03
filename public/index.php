@@ -12,7 +12,8 @@ use Twig\Environment;
 use Twig\Loader\FilesystemLoader;
 use Watcher\Config\AlertLimitsLoader;
 use Watcher\Config\DatabaseIntegrityChecker;
-use Watcher\Config\EnvConfigLoader;
+use Watcher\Config\EnvConfigFatalException;
+use Watcher\Config\EnvConfigManager;
 use Watcher\Config\MonitoringSettingsLoader;
 use Watcher\Controllers\DashboardController;
 use Watcher\Controllers\LoginController;
@@ -90,33 +91,28 @@ $log->pushHandler($handler);
 // Config Initialization
 // ************************************************************************************************
 try {
+    $initResult = (new EnvConfigManager(
+        configDir: $paths->appPath . '/config',
+        exampleDir: $paths->appPath . '/config/example',
+        requiredFiles: [
+            'config.env',
+            'db.config.env',
+            'mail.config.env',
+        ],
+        logger: $log
+    ))->initialize();
 
-    $requiredConfig = $paths->appPath . '/config/config.env';
-    if (!is_readable($requiredConfig)) {
-        $log->critical('Required config is not readable/missing: ' . $requiredConfig);
+    $appConfig = $initResult->config;
+    $validationWarnings = $initResult->warnings;
 
-        exit("Missing config file:\n{$requiredConfig}");
-    }
+} catch (EnvConfigFatalException $e) {
+    $log->critical($e->getMessage(), ['context' => $e->getContext()]);
 
-    $configLoader = new EnvConfigLoader();
-    $appConfig = $configLoader->load([
-        'config.env',
-        'db.config.env',
-        'mail.config.env',
-    ], $paths->appPath . '/config');
+    exit($e->getUserMessage());
+} catch (Throwable $e) {
+    $log->critical('Application Initialization failed! ' . $e->getMessage(), ['exception' => $e]);
 
-    $validationResult = $configLoader->validateConfig($appConfig);
-    if (!$validationResult['is_valid']) {
-        foreach ($validationResult['critical_errors'] as $error) {
-            $log->critical("[{$error['identifier']}] {$error['message']}");
-        }
-
-        exit('Critical configuration errors!');
-    }
-} catch (Exception $e) {
-    $log->critical('Application Initialization failed! ' . $e->getMessage());
-
-    exit('Application initialization failed!' . $e->getMessage());
+    exit('Application initialization failed!');
 }
 
 // ************************************************************************************************
@@ -194,11 +190,11 @@ try {
 // ************************************************************************************************
 $notificationManager = new NotificationManager($db, $log, $paths);
 
-foreach ($validationResult['warnings'] ?? [] as $warning) {
+foreach ($validationWarnings as $warning) {
     $notificationManager->addConfigWarning($warning['identifier'], $warning['message']);
 }
 
-$notificationManager->cleanupResolvedConfigWarnings($validationResult['warnings'] ?? []);
+$notificationManager->cleanupResolvedConfigWarnings($validationWarnings);
 $notificationManager->cleanupOldNotifications(30); // delete old notifications (> 30 Days)
 
 // ************************************************************************************************
