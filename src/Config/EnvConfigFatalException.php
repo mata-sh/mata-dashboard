@@ -184,8 +184,7 @@ final class EnvConfigFatalException extends RuntimeException
 <body>
     <div class="error-container">
         <div class="error-header">
-            <span class="icon">{$color['icon']}</span>
-            <h1>{$heading}</h1>
+            <h1><span class="icon">{$color['icon']}</span> {$heading}</h1>
         </div>
         <div class="error-content">
             {$content}
