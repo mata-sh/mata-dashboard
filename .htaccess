@@ -1,4 +1,0 @@
-DirectoryIndex index.php index.html
-
-Order allow,deny
-Allow from none

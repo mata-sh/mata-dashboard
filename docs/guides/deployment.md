@@ -15,27 +15,6 @@ Setting the document root to `public/` prevents unauthorized access to:
 - `.env` files - Environment secrets
 - `composer.json` - Dependency information
 
-## Apache Configuration
-
-### Virtual Host Setup
-
-Create a virtual host configuration file:
-
-```apache
-<VirtualHost *:80>
-    ServerName mata.yourdomain.com
-    DocumentRoot /path/to/mata-dashboard/public
-
-    <Directory /path/to/mata-dashboard/public>
-        AllowOverride All
-        Require all granted
-    </Directory>
-
-    ErrorLog ${APACHE_LOG_DIR}/mata-error.log
-    CustomLog ${APACHE_LOG_DIR}/mata-access.log combined
-</VirtualHost>
-```
-
 ### Enable and Activate
 
 ```bash
@@ -362,14 +341,6 @@ opcache.max_accelerated_files = 4000
 opcache.revalidate_freq = 60
 ```
 
-### Database Optimization
-
-```sql
--- Add indexes for performance
-ALTER TABLE server_metrics ADD INDEX idx_server_timestamp (server_id, timestamp);
-ALTER TABLE events ADD INDEX idx_timestamp (timestamp);
-ALTER TABLE alarms ADD INDEX idx_sent_at (sent_at);
-```
 
 ## Monitoring Production
 
@@ -388,29 +359,6 @@ tail -f /var/log/nginx/error.log
 # Cron job logs
 tail -f temp/logs/cron-collect.log
 ```
-
-### Health Checks
-
-Set up external monitoring:
-
-- Dashboard URL uptime monitoring
-- Database connectivity checks
-- Cron job execution monitoring
-- Disk space monitoring
-
-## Scaling Considerations
-
-### Horizontal Scaling
-
-- Use a load balancer (HAProxy, Nginx)
-- Share sessions via Redis or database
-- Centralize file-based cache to Redis/Memcached
-
-### Database Replication
-
-- Set up MySQL master-slave replication
-- Use read replicas for metrics queries
-- Implement connection pooling
 
 ## Troubleshooting
 
