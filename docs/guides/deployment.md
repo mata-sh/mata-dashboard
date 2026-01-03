@@ -2,6 +2,9 @@
 
 This guide covers deploying MATA Dashboard to production environments.
 
+!!! warning "Disclaimer"
+    The configurations in this guide are provided as starting points and have not been fully tested in all environments. You should review, test, and adapt them to your specific infrastructure before deploying to production. Always test thoroughly in a staging environment first.
+
 ## Web Server Configuration
 
 !!! danger "Critical: Document Root"
@@ -15,6 +18,48 @@ Setting the document root to `public/` prevents unauthorized access to:
 - `.env` files - Environment secrets
 - `composer.json` - Dependency information
 
+## Apache Configuration
+
+### Production Setup (Recommended)
+
+For production environments, configure URL rewriting at the server level for better performance.
+
+Create `/etc/apache2/sites-available/mata.conf`:
+
+```apache
+<VirtualHost *:80>
+    ServerName mata.yourdomain.com
+    DocumentRoot /path/to/mata-dashboard/public
+
+    <Directory /path/to/mata-dashboard/public>
+        Options -Indexes +FollowSymLinks
+        AllowOverride None
+        Require all granted
+        DirectoryIndex index.php
+
+        # URL Rewriting for Bramus Router
+        # Routes all requests to index.php unless they match an actual file or directory
+        RewriteEngine On
+        RewriteBase /
+        RewriteCond %{REQUEST_FILENAME} !-f
+        RewriteCond %{REQUEST_FILENAME} !-d
+        RewriteRule ^ index.php [QSA,L]
+
+        # Security headers
+        Header always set X-Content-Type-Options nosniff
+        Header always set X-Frame-Options DENY
+        Header always set X-XSS-Protection "1; mode=block"
+        Header always set Referrer-Policy "strict-origin-when-cross-origin"
+    </Directory>
+
+    ErrorLog ${APACHE_LOG_DIR}/mata-error.log
+    CustomLog ${APACHE_LOG_DIR}/mata-access.log combined
+</VirtualHost>
+```
+
+!!! note "Why AllowOverride None?"
+    Setting `AllowOverride None` disables `.htaccess` file processing, which improves performance significantly. All necessary rewrite rules are configured directly in the virtual host configuration.
+
 ### Enable and Activate
 
 ```bash
@@ -22,8 +67,7 @@ Setting the document root to `public/` prevents unauthorized access to:
 sudo a2ensite mata
 
 # Enable required Apache modules
-sudo a2enmod rewrite
-sudo a2enmod ssl
+sudo a2enmod rewrite headers
 
 # Test configuration
 sudo apache2ctl configtest
@@ -45,8 +89,23 @@ sudo systemctl reload apache2
     SSLCertificateChainFile /path/to/chain.crt
 
     <Directory /path/to/mata-dashboard/public>
-        AllowOverride All
+        Options -Indexes +FollowSymLinks
+        AllowOverride None
         Require all granted
+        DirectoryIndex index.php
+
+        # URL Rewriting for Bramus Router
+        RewriteEngine On
+        RewriteBase /
+        RewriteCond %{REQUEST_FILENAME} !-f
+        RewriteCond %{REQUEST_FILENAME} !-d
+        RewriteRule ^ index.php [QSA,L]
+
+        # Security headers
+        Header always set X-Content-Type-Options nosniff
+        Header always set X-Frame-Options DENY
+        Header always set X-XSS-Protection "1; mode=block"
+        Header always set Referrer-Policy "strict-origin-when-cross-origin"
     </Directory>
 
     ErrorLog ${APACHE_LOG_DIR}/mata-ssl-error.log
@@ -54,11 +113,30 @@ sudo systemctl reload apache2
 </VirtualHost>
 ```
 
+### Shared Hosting (with .htaccess)
+
+If you're on shared hosting without access to Apache's main configuration, you can use `.htaccess` instead:
+
+Create `public/.htaccess`:
+
+```apache
+RewriteEngine On
+RewriteBase /
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^ index.php [QSA,L]
+```
+
+!!! warning "Performance Impact"
+    Using `.htaccess` has a performance cost as Apache must check for these files on every request. Use server-level configuration when possible.
+
 ## Nginx Configuration
+
+Nginx is a high-performance alternative to Apache, commonly used in production.
 
 ### Server Block Setup
 
-Create a server block configuration:
+Create `/etc/nginx/sites-available/mata`:
 
 ```nginx
 server {
@@ -67,10 +145,12 @@ server {
     root /path/to/mata-dashboard/public;
     index index.php index.html;
 
+    # URL Rewriting for Bramus Router
     location / {
         try_files $uri $uri/ /index.php?$query_string;
     }
 
+    # PHP-FPM configuration
     location ~ \.php$ {
         fastcgi_pass unix:/var/run/php/php8.3-fpm.sock;
         fastcgi_index index.php;
@@ -83,10 +163,16 @@ server {
         deny all;
     }
 
-    # Deny access to sensitive files
-    location ~ /(config|vendor|src|temp|cron) {
+    # Deny access to sensitive directories
+    location ~ /(config|vendor|src|temp|cron|logs) {
         deny all;
     }
+
+    # Security headers
+    add_header X-Content-Type-Options nosniff always;
+    add_header X-Frame-Options DENY always;
+    add_header X-XSS-Protection "1; mode=block" always;
+    add_header Referrer-Policy "strict-origin-when-cross-origin" always;
 }
 ```
 
@@ -117,6 +203,7 @@ server {
     ssl_protocols TLSv1.2 TLSv1.3;
     ssl_ciphers HIGH:!aNULL:!MD5;
 
+    # URL Rewriting for Bramus Router
     location / {
         try_files $uri $uri/ /index.php?$query_string;
     }
@@ -128,11 +215,79 @@ server {
         include fastcgi_params;
     }
 
+    # Deny access to hidden files
     location ~ /\. {
         deny all;
     }
+
+    # Deny access to sensitive directories
+    location ~ /(config|vendor|src|temp|cron|logs) {
+        deny all;
+    }
+
+    # Security headers
+    add_header X-Content-Type-Options nosniff always;
+    add_header X-Frame-Options DENY always;
+    add_header X-XSS-Protection "1; mode=block" always;
+    add_header Referrer-Policy "strict-origin-when-cross-origin" always;
 }
 ```
+
+## Caddy Configuration
+
+Caddy is a modern web server with automatic HTTPS via Let's Encrypt.
+
+### Caddyfile Setup
+
+Create `/etc/caddy/Caddyfile`:
+
+```caddy
+mata.yourdomain.com {
+    root * /path/to/mata-dashboard/public
+    encode gzip
+
+    # URL Rewriting for Bramus Router
+    # Try files first, then directories, finally route to index.php
+    @notStatic {
+        not file
+        not path */
+    }
+    rewrite @notStatic /index.php
+
+    # PHP-FPM handler
+    php_fastcgi unix//var/run/php/php8.3-fpm.sock
+
+    # Deny access to sensitive directories
+    @sensitive {
+        path /config/* /vendor/* /src/* /temp/* /cron/* /logs/*
+    }
+    respond @sensitive 403
+
+    # Security headers
+    header {
+        X-Content-Type-Options nosniff
+        X-Frame-Options DENY
+        X-XSS-Protection "1; mode=block"
+        Referrer-Policy "strict-origin-when-cross-origin"
+    }
+
+    # File server for static assets
+    file_server
+}
+```
+
+### Enable and Start
+
+```bash
+# Validate configuration
+sudo caddy validate --config /etc/caddy/Caddyfile
+
+# Reload Caddy
+sudo systemctl reload caddy
+```
+
+!!! success "Automatic HTTPS"
+    Caddy automatically obtains and renews SSL/TLS certificates from Let's Encrypt. No manual certificate configuration needed!
 
 ## PHP Built-in Development Server
 

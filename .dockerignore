@@ -29,6 +29,10 @@ config/.htpasswd
 .gitignore
 .gitmodules
 
+# Apache .htaccess (not needed in Docker, uses vhost config)
+.htaccess
+public/.htaccess
+
 # IDE and editor files
 .vscode/
 .idea/
