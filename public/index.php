@@ -88,6 +88,15 @@ $log = new Logger('app');
 $log->pushHandler($handler);
 
 // ************************************************************************************************
+// Template Engine (Twig)
+// ************************************************************************************************
+$templateDir = $paths->appPath . '/templates';
+$templateCacheDir = $paths->appPath . '/temp/templates_cache';
+
+$loader = new FilesystemLoader($templateDir);
+$twig = new Environment($loader, []);
+
+// ************************************************************************************************
 // Config Initialization
 // ************************************************************************************************
 try {
@@ -108,7 +117,19 @@ try {
 } catch (EnvConfigFatalException $e) {
     $log->critical($e->getMessage(), ['context' => $e->getContext()]);
 
-    exit($e->getUserMessage());
+    http_response_code(500);
+    echo $twig->render('partials/errors/config-error.html.twig', [
+        'error' => [
+            'title' => $e->getTitle(),
+            'heading' => $e->getHeading(),
+            'type' => $e->getType(),
+            'message' => $e->getUserMessage(),
+            'context' => $e->getContext(),
+            'documentation_url' => $e->getDocumentationUrl(),
+        ],
+    ]);
+
+    exit(1);
 } catch (Throwable $e) {
     $log->critical('Application Initialization failed! ' . $e->getMessage(), ['exception' => $e]);
 
@@ -124,15 +145,11 @@ $exceptionHandler = new ExceptionHandler($log, $appConfig->template->debugEnable
 // ************************************************************************************************
 // Template Engine (Twig)
 // ************************************************************************************************
-$templateDir = $paths->appPath . '/templates';
-$templateCacheDir = $paths->appPath . '/temp/templates_cache';
-
-$loader = new FilesystemLoader($templateDir);
-$twig = new Environment($loader, [
-    'cache' => $appConfig->template->debugEnabled ? $templateCacheDir : false,
-    'debug' => $appConfig->template->debugEnabled,
-    'auto_reload' => $appConfig->template->debugEnabled,
-]);
+$twig->setCache($appConfig->template->debugEnabled ? $templateCacheDir : false);
+if ($appConfig->template->debugEnabled) {
+    $twig->enableDebug();
+    $twig->enableAutoReload();
+}
 
 // ************************************************************************************************
 // Initialize App & Authentication
@@ -144,17 +161,22 @@ try {
     $auth = new Auth($log, $usersFilePath);
 } catch (Throwable $e) {
     $log->critical('Authentication initialization failed: ' . $e->getMessage());
-    // Render error template
-    echo $twig->render('pages/error.html.twig', [
+
+    http_response_code(500);
+    echo $twig->render('partials/errors/auth-error.html.twig', [
         'error' => [
-            'title' => 'Authentication System Unavailable',
+            'title' => 'Authentication Error',
+            'heading' => 'Authentication System Unavailable',
+            'type' => 'error',
             'message' => 'The authentication system could not be initialized.',
             'technical_details' => $appConfig->template->debugEnabled ? $e->getMessage() : null,
             'suggestions' => [
                 'Ensure users.json exists in: ' . dirname($usersFilePath),
                 'Check file permissions (should be 600)',
                 'Verify JSON file is valid',
+                'Use the make command to create a new user if needed',
             ],
+            'documentation_url' => 'https://docs.mata.sh/authentication', // TODO: Add documentation URL for authentication troubleshooting
         ],
     ]);
 

@@ -1,0 +1,56 @@
+{% extends 'pages/error.html.twig' %}
+
+{% block error_details %}
+  {% if error.context.created_files is defined %}
+    <div class="error-section">
+      <span class="error-subtitle">Created files</span>
+      <ul class="error-list">
+        {% for file in error.context.created_files %}
+          <li>{{ file }}</li>
+        {% endfor %}
+      </ul>
+    </div>
+  {% endif %}
+
+  {% if error.context.failed_files is defined %}
+    <div class="error-section">
+      <span class="error-subtitle">Missing files</span>
+      <ul class="error-list">
+        {% for file in error.context.failed_files %}
+          <li>{{ file }}</li>
+        {% endfor %}
+      </ul>
+    </div>
+  {% endif %}
+
+  {% if error.context.example_dir is defined %}
+    <div class="error-section">
+      <span class="error-subtitle">Templates directory</span>
+      <div class="error-technical">
+        <code>{{ error.context.example_dir }}</code>
+      </div>
+    </div>
+  {% endif %}
+
+  {% if error.context.validation_errors is defined %}
+    <div class="error-section">
+      <span class="error-subtitle">Errors found</span>
+      <ul class="error-list">
+        {% for item in error.context.validation_errors %}
+          <li>
+            <strong>[{{ item.identifier }}]</strong> {{ item.message }}
+          </li>
+        {% endfor %}
+      </ul>
+    </div>
+  {% endif %}
+
+  {% if error.context.load_error is defined %}
+    <div class="error-section">
+      <span class="error-subtitle">Error details</span>
+      <div class="error-technical">
+        <code>{{ error.context.load_error }}</code>
+      </div>
+    </div>
+  {% endif %}
+{% endblock %}

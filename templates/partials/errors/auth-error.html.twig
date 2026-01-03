@@ -1,0 +1,23 @@
+{% extends 'pages/error.html.twig' %}
+
+{% block error_details %}
+  {% if error.technical_details %}
+    <div class="error-section">
+      <span class="error-subtitle">Technical details</span>
+      <div class="error-technical">
+        <code>{{ error.technical_details }}</code>
+      </div>
+    </div>
+  {% endif %}
+
+  {% if error.suggestions %}
+    <div class="error-section">
+      <span class="error-subtitle">Troubleshooting</span>
+      <ul class="error-list">
+        {% for suggestion in error.suggestions %}
+          <li>{{ suggestion }}</li>
+        {% endfor %}
+      </ul>
+    </div>
+  {% endif %}
+{% endblock %}

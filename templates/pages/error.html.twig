@@ -1,22 +1,190 @@
 {% extends 'layouts/main.html.twig' %}
 
+{% set error_type = error.type|default('error') %}
+{% set heading = error.heading|default(error.title|default('Error')) %}
+{% set title = error.title|default(heading) %}
+{% set icon_map = {'warning': '!', 'error': 'x', 'info': 'i'} %}
+{% set icon = icon_map[error_type]|default('x') %}
+
 {% block content %}
-  <section class="section">
-    <div class="container error-container">
-      <div class="column is-half is-offset-one-quarter">
-        <h1 class="error-title">{{ error.title }}</h1>
-        <div class="error-msg">{{ error.message }}</div>
-        <div class="error-technical">{{ error.technical_details }}</div>
-        <div class="error-suggestions">
-          {% if error.suggestions %}
-            <span class="error-subtitle">Troubleshooting:</span>
-          {% endif %}
-          <ol>
-            {% for suggestion in error.suggestions %}
-              <li>{{ suggestion }}</li>
-            {% endfor %}
-          </ol>
+  <style>
+    .error-page {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px 16px;
+      background: linear-gradient(135deg, #999 0%, #fff 100%);
+    }
+
+    .error-card {
+      width: 100%;
+      max-width: 760px;
+      background: #fff;
+      border-radius: 8px;
+      overflow: hidden;
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+    }
+
+    .error-card[data-type="warning"] {
+      --error-bg: #fff3cd;
+      --error-border: #ffc107;
+      --error-text: #856404;
+    }
+
+    .error-card[data-type="error"] {
+      --error-bg: #f8d7da;
+      --error-border: #dc3545;
+      --error-text: #721c24;
+    }
+
+    .error-card[data-type="info"] {
+      --error-bg: #d1ecf1;
+      --error-border: #17a2b8;
+      --error-text: #0c5460;
+    }
+
+    .error-header {
+      background: var(--error-bg);
+      border-left: 4px solid var(--error-border);
+      padding: 28px 30px;
+      color: var(--error-text);
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .error-icon {
+      width: 34px;
+      height: 34px;
+      border-radius: 999px;
+      background: var(--error-border);
+      color: #fff;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-family: "Courier New", monospace;
+      text-transform: uppercase;
+    }
+
+    .error-kicker {
+      font-size: 13px;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      opacity: 0.8;
+    }
+
+    .error-title {
+      font-size: 24px;
+      font-weight: 600;
+      margin: 2px 0 0;
+    }
+
+    .error-body {
+      padding: 28px 30px;
+      color: #333;
+    }
+
+    .error-message {
+      margin-bottom: 16px;
+      line-height: 1.6;
+    }
+
+    .error-section {
+      margin-top: 16px;
+    }
+
+    .error-subtitle {
+      display: block;
+      margin-bottom: 8px;
+      color: #555;
+      font-weight: 600;
+    }
+
+    .error-list {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+    }
+
+    .error-list li {
+      padding: 8px 12px;
+      margin: 6px 0;
+      background: #f8f9fa;
+      border-left: 3px solid var(--error-border);
+      border-radius: 3px;
+      font-family: "Courier New", monospace;
+      font-size: 14px;
+    }
+
+    .error-technical {
+      color: #6c757d;
+      font-size: 14px;
+    }
+
+    .error-technical code {
+      background: #f8f9fa;
+      padding: 2px 6px;
+      border-radius: 3px;
+      font-family: "Courier New", monospace;
+      font-size: 13px;
+      color: #e83e8c;
+    }
+
+    .error-footer {
+      background: #f8f9fa;
+      padding: 18px 30px;
+      border-top: 1px solid #dee2e6;
+      font-size: 14px;
+      color: #6c757d;
+    }
+
+    .error-doc-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      margin-top: 12px;
+      padding: 10px 16px;
+      background: var(--error-border);
+      color: #fff;
+      text-decoration: none;
+      border-radius: 5px;
+      font-weight: 600;
+      transition: opacity 0.2s;
+    }
+
+    .error-doc-link:hover {
+      opacity: 0.85;
+    }
+
+    .error-doc-icon {
+      font-size: 18px;
+    }
+  </style>
+
+  <section class="section error-page">
+    <div class="error-card" data-type="{{ error_type }}">
+      <div class="error-header">
+        <span class="error-icon">{{ icon }}</span>
+        <div>
+          <div class="error-kicker">{{ title }}</div>
+          <h1 class="error-title">{{ heading }}</h1>
         </div>
+      </div>
+      <div class="error-body">
+        <div class="error-message">{{ error.message }}</div>
+        {% block error_details %}{% endblock %}
+      </div>
+      <div class="error-footer">
+        Check application logs for technical details.
+        {% if error.documentation_url is defined and error.documentation_url %}
+          <br>
+          <a href="{{ error.documentation_url }}" class="error-doc-link" target="_blank" rel="noopener noreferrer">
+            <span class="error-doc-icon">&#128213;</span>
+            <span>View Documentation</span>
+          </a>
+        {% endif %}
       </div>
     </div>
   </section>
