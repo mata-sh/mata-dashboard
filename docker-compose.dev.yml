@@ -12,10 +12,8 @@ services:
       - /var/www/html/vendor
 
     # Development environment overrides
+    # Most settings come from config/config.env - these are dev-specific runtime overrides
     environment:
-      - DISPLAY_ERRORS=1
-      - LOG_LEVEL=debug
-      - TEMPLATE_DEBUG_ENABLED=true
       # Optional: Xdebug settings (uncomment if Xdebug is enabled in Dockerfile.dev)
       # - XDEBUG_MODE=debug
       # - XDEBUG_CONFIG=client_host=host.docker.internal

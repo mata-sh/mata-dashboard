@@ -14,6 +14,19 @@ mkdir -p \
     /var/www/html/logs \
     /var/www/html/config
 
+# Copy config files from examples if they don't exist
+echo "📋 Checking for config files..."
+for file in config.env db.config.env mail.config.env; do
+    if [ ! -f "/var/www/html/config/$file" ]; then
+        if [ -f "/var/www/html/config/example/${file}.example" ]; then
+            cp "/var/www/html/config/example/${file}.example" "/var/www/html/config/$file"
+            echo "✅ Created config/$file from example"
+        else
+            echo "⚠️  Warning: config/example/${file}.example not found"
+        fi
+    fi
+done
+
 # Fix permissions for ALL mounted files (source code, vendor, etc.)
 # In dev mode, entire /var/www/html is mounted from host with host user ownership
 # We need to ensure www-data can read everything and write to specific dirs

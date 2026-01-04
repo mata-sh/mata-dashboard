@@ -28,7 +28,7 @@ help:
 	@echo "$(COLOR_YELLOW)ℹ️ For more commands: $(COLOR_CYAN)make docker-help$(COLOR_RESET)"
 	@echo ""
 	@echo "$(COLOR_BOLD)Local General (Git Hooks, Docs, Build):$(COLOR_RESET)"
-	@echo "  $(COLOR_GREEN)make setup$(COLOR_RESET)           - Full dev setup (install git hooks + composer deps) [$(COLOR_MAGENTA)composer, git$(COLOR_RESET)]"
+	@echo "  $(COLOR_GREEN)make setup$(COLOR_RESET)           - Full setup (composer deps + configs) [$(COLOR_MAGENTA)composer, git$(COLOR_RESET)]"
 	@echo "  $(COLOR_GREEN)make install-hooks$(COLOR_RESET)   - Install git hooks [$(COLOR_MAGENTA)git$(COLOR_RESET)]"
 	@echo "  $(COLOR_GREEN)make changelog$(COLOR_RESET)       - Generate changelog [$(COLOR_MAGENTA)claude code$(COLOR_RESET)]"
 	@echo ""
@@ -75,11 +75,11 @@ help:
 	@echo "For more details: $(COLOR_CYAN)make docker-help$(COLOR_RESET)"
 
 # ============================================
-# Development Setup
+# Setup
 # ============================================
 
-# Full development environment setup (composer + git hooks + docker)
-setup: install-hooks
+# Full environment setup (composer + config files)
+setup:
 	@echo "$(COLOR_BLUE)📦 Installing Composer dependencies...$(COLOR_RESET)"
 	@if [ -f composer.json ]; then \
 		composer install; \
@@ -87,8 +87,66 @@ setup: install-hooks
 		echo "$(COLOR_RED)❌ composer.json not found$(COLOR_RESET)"; \
 		exit 1; \
 	fi
-	@echo "$(COLOR_GREEN)✅ Full development environment ready!$(COLOR_RESET)"
-	@echo "$(COLOR_CYAN)Run 'make dev' to start Docker containers$(COLOR_RESET)"
+	@echo "$(COLOR_BLUE)📋 Creating config files from examples...$(COLOR_RESET)"
+	@mkdir -p config temp/api_cache temp/sessions temp/templates_cache logs
+	@for file in config.env db.config.env mail.config.env; do \
+		if [ ! -f "config/$$file" ]; then \
+			cp "config/example/$${file}.example" "config/$$file"; \
+			chmod 600 "config/$$file"; \
+			echo "$(COLOR_GREEN)✅ Created config/$$file$(COLOR_RESET)"; \
+		else \
+			echo "$(COLOR_YELLOW)⚠️  config/$$file already exists, skipping$(COLOR_RESET)"; \
+		fi; \
+	done
+	@echo ""
+	@echo "$(COLOR_CYAN)📋 Webserver Configuration$(COLOR_RESET)"
+	@echo "$(COLOR_YELLOW)Which webserver will you use?$(COLOR_RESET)"
+	@echo "  $(COLOR_GREEN)1)$(COLOR_RESET) Apache (shared hosting) - .htaccess"
+	@echo "  $(COLOR_GREEN)2)$(COLOR_RESET) Apache (VirtualHost) - apache-vhost.conf"
+	@echo "  $(COLOR_GREEN)3)$(COLOR_RESET) Nginx - nginx-site.conf"
+	@echo "  $(COLOR_GREEN)4)$(COLOR_RESET) Caddy - Caddyfile"
+	@echo "  $(COLOR_GREEN)5)$(COLOR_RESET) Skip (I'll configure manually)"
+	@read -p "$(COLOR_CYAN)Select option [1-5]: $(COLOR_RESET)" webserver; \
+	case $$webserver in \
+		1) \
+			if [ ! -f "public/.htaccess" ]; then \
+				cp examples/webserver-configs/.htaccess public/.htaccess; \
+				echo "$(COLOR_GREEN)✅ Created public/.htaccess$(COLOR_RESET)"; \
+				echo "$(COLOR_BLUE)ℹ️  .htaccess is ready. Ensure mod_rewrite is enabled.$(COLOR_RESET)"; \
+			else \
+				echo "$(COLOR_YELLOW)⚠️  public/.htaccess already exists, skipping$(COLOR_RESET)"; \
+			fi; \
+			;; \
+		2) \
+			echo "$(COLOR_BLUE)ℹ️  Copy examples/webserver-configs/apache-vhost.conf to /etc/apache2/sites-available/$(COLOR_RESET)"; \
+			echo "$(COLOR_BLUE)   Then: sudo a2ensite yoursite && sudo systemctl reload apache2$(COLOR_RESET)"; \
+			;; \
+		3) \
+			echo "$(COLOR_BLUE)ℹ️  Copy examples/webserver-configs/nginx-site.conf to /etc/nginx/sites-available/$(COLOR_RESET)"; \
+			echo "$(COLOR_BLUE)   Then: sudo ln -s /etc/nginx/sites-available/yoursite /etc/nginx/sites-enabled/$(COLOR_RESET)"; \
+			;; \
+		4) \
+			echo "$(COLOR_BLUE)ℹ️  Copy examples/webserver-configs/Caddyfile to /etc/caddy/$(COLOR_RESET)"; \
+			echo "$(COLOR_BLUE)   Caddy will automatically obtain SSL certificates$(COLOR_RESET)"; \
+			;; \
+		5) \
+			echo "$(COLOR_YELLOW)⚠️  Skipped. See examples/webserver-configs/README.md for manual setup$(COLOR_RESET)"; \
+			;; \
+		*) \
+			echo "$(COLOR_RED)❌ Invalid option. See examples/webserver-configs/README.md$(COLOR_RESET)"; \
+			;; \
+	esac
+	@echo ""
+	@echo "$(COLOR_GREEN)✅ Development environment ready!$(COLOR_RESET)"
+	@echo ""
+	@echo "$(COLOR_CYAN)⚙️  NEXT STEPS:$(COLOR_RESET)"
+	@echo "$(COLOR_YELLOW)1.$(COLOR_RESET) Edit $(COLOR_BOLD)config/config.env$(COLOR_RESET) - set DOMAIN, DB credentials, WATCHER_ENCRYPTION_SECRET"
+	@echo "$(COLOR_YELLOW)2.$(COLOR_RESET) Edit $(COLOR_BOLD)config/mail.config.env$(COLOR_RESET) - configure email settings (optional)"
+	@echo "$(COLOR_YELLOW)3.$(COLOR_RESET) Choose webserver config from $(COLOR_BOLD)examples/webserver-configs/README.md$(COLOR_RESET)"
+	@echo "$(COLOR_YELLOW)4.$(COLOR_RESET) Create first user: $(COLOR_CYAN)php scripts/user-management/manage-users.php create$(COLOR_RESET)"
+	@echo ""
+	@echo "$(COLOR_BLUE)Or use Docker:$(COLOR_RESET) $(COLOR_CYAN)make docker-setup$(COLOR_RESET) then $(COLOR_CYAN)make dev$(COLOR_RESET)"
+
 
 # Install Composer dependencies and git hooks
 install-hooks:
@@ -207,25 +265,42 @@ docs-ai-update:
 
 ## Setup & Installation
 
-# First-time development environment setup
+# First-time Docker development environment setup
 docker-setup:
-	@echo "$(COLOR_BLUE)🔧 Setting up development environment...$(COLOR_RESET)"
+	@echo "$(COLOR_BLUE)🐳 Setting up Docker environment...$(COLOR_RESET)"
 	@if [ ! -f .env ]; then \
 		cp .env.example .env; \
-		sed -i.bak 's/APP_ENV=.*/APP_ENV=dev/' .env && rm -f .env.bak || \
-		sed -i '' 's/APP_ENV=.*/APP_ENV=dev/' .env 2>/dev/null || true; \
-		echo "$(COLOR_GREEN)✅ .env created with dev defaults$(COLOR_RESET)"; \
+		echo "$(COLOR_GREEN)✅ Created .env (Docker infrastructure settings)$(COLOR_RESET)"; \
 	else \
-		echo "$(COLOR_GREEN)✅ .env already exists$(COLOR_RESET)"; \
+		echo "$(COLOR_YELLOW)⚠️  .env already exists, skipping$(COLOR_RESET)"; \
 	fi
-	@mkdir -p temp/api_cache temp/sessions temp/templates_cache logs config/dev
+	@mkdir -p config temp/api_cache temp/sessions temp/templates_cache logs config/dev
+	@echo "$(COLOR_BLUE)📋 Creating config files from examples...$(COLOR_RESET)"
+	@for file in config.env db.config.env mail.config.env; do \
+		if [ ! -f "config/$$file" ]; then \
+			cp "config/example/$${file}.example" "config/$$file"; \
+			chmod 600 "config/$$file"; \
+			echo "$(COLOR_GREEN)✅ Created config/$$file$(COLOR_RESET)"; \
+		else \
+			echo "$(COLOR_YELLOW)⚠️  config/$$file already exists, skipping$(COLOR_RESET)"; \
+		fi; \
+	done
 	@if [ ! -f config/dev/users.json ]; then \
 		echo '{"dev":{"username":"dev","password":"$$2y$$10$$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi","role":"admin"},"admin":{"username":"admin","password":"$$2y$$10$$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi","role":"admin"}}' > config/dev/users.json; \
-		echo "$(COLOR_GREEN)✅ config/dev/users.json created (dev/password, admin/password)$(COLOR_RESET)"; \
+		chmod 600 config/dev/users.json; \
+		echo "$(COLOR_GREEN)✅ Created config/dev/users.json (user: dev|pw: password, user: admin|pw: password)$(COLOR_RESET)"; \
+	else \
+		echo "$(COLOR_YELLOW)⚠️  config/dev/users.json already exists, skipping$(COLOR_RESET)"; \
 	fi
-	@echo "$(COLOR_GREEN)✅ Development environment ready!$(COLOR_RESET)"
 	@echo ""
-	@echo "$(COLOR_CYAN)Next: make dev$(COLOR_RESET)"
+	@echo "$(COLOR_GREEN)✅ Docker environment ready!$(COLOR_RESET)"
+	@echo ""
+	@echo "$(COLOR_CYAN)⚙️  NEXT STEPS:$(COLOR_RESET)"
+	@echo "$(COLOR_YELLOW)1.$(COLOR_RESET) Edit $(COLOR_BOLD).env$(COLOR_RESET) - change DB_PASSWORD, MYSQL_ROOT_PASSWORD to secure values"
+	@echo "$(COLOR_YELLOW)2.$(COLOR_RESET) Edit $(COLOR_BOLD)config/config.env$(COLOR_RESET) - set DOMAIN, APP_ENV, WATCHER_ENCRYPTION_SECRET"
+	@echo "    $(COLOR_BLUE)Note:$(COLOR_RESET) DB_HOST is auto-set to 'mata-db' for Docker networking"
+	@echo "$(COLOR_YELLOW)3.$(COLOR_RESET) Start containers: $(COLOR_CYAN)make dev$(COLOR_RESET)"
+	@echo "$(COLOR_YELLOW)4.$(COLOR_RESET) Login at http://localhost:8080 with $(COLOR_CYAN)dev/password$(COLOR_RESET) or $(COLOR_CYAN)admin/password$(COLOR_RESET)"
 
 ## Development (Docker)
 
