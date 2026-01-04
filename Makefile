@@ -40,7 +40,7 @@ help:
 	@echo "  $(COLOR_CYAN)Setup:$(COLOR_RESET)"
 	@echo "    $(COLOR_GREEN)make docker-setup$(COLOR_RESET)  - Docker environment setup only"
 	@echo "  $(COLOR_CYAN)Development:$(COLOR_RESET)"
-	@echo "    $(COLOR_GREEN)make dev$(COLOR_RESET)           - Start full Docker environment"
+	@echo "    $(COLOR_GREEN)make dev-start$(COLOR_RESET)           - Start full Docker environment"
 	@echo "    $(COLOR_GREEN)make dev-logs$(COLOR_RESET)      - Start dev and follow logs"
 	@echo "    $(COLOR_GREEN)make dev-stop$(COLOR_RESET)      - Stop development"
 	@echo "    $(COLOR_GREEN)make shell$(COLOR_RESET)         - Access web container"
@@ -80,13 +80,6 @@ help:
 
 # Full environment setup (composer + config files)
 setup:
-	@echo "$(COLOR_BLUE)📦 Installing Composer dependencies...$(COLOR_RESET)"
-	@if [ -f composer.json ]; then \
-		composer install; \
-	else \
-		echo "$(COLOR_RED)❌ composer.json not found$(COLOR_RESET)"; \
-		exit 1; \
-	fi
 	@echo "$(COLOR_BLUE)📋 Creating config files from examples...$(COLOR_RESET)"
 	@mkdir -p config temp/api_cache temp/sessions temp/templates_cache logs
 	@for file in config.env db.config.env mail.config.env; do \
@@ -137,6 +130,24 @@ setup:
 			;; \
 	esac
 	@echo ""
+		@echo "$(COLOR_BLUE)📦 Installing Composer dependencies...$(COLOR_RESET)"
+	@if [ ! -f composer.json ]; then \
+		echo "$(COLOR_RED)❌ composer.json not found$(COLOR_RESET)"; \
+		exit 1; \
+	fi
+	@if command -v composer >/dev/null 2>&1; then \
+		composer install; \
+	elif [ -f "$$HOME/.composer/composer" ]; then \
+		$$HOME/.composer/composer install; \
+	else \
+		echo "$(COLOR_RED)❌ Composer not found in PATH$(COLOR_RESET)"; \
+		echo "$(COLOR_YELLOW)Please install Composer or run manually:$(COLOR_RESET)"; \
+		echo "  $(COLOR_CYAN)composer install$(COLOR_RESET)"; \
+		echo ""; \
+		echo "$(COLOR_YELLOW)Or use Docker instead:$(COLOR_RESET)"; \
+		echo "  $(COLOR_CYAN)make docker-setup$(COLOR_RESET)"; \
+		exit 1; \
+	fi
 	@echo "$(COLOR_GREEN)✅ Development environment ready!$(COLOR_RESET)"
 	@echo ""
 	@echo "$(COLOR_CYAN)⚙️  NEXT STEPS:$(COLOR_RESET)"
@@ -145,7 +156,7 @@ setup:
 	@echo "$(COLOR_YELLOW)3.$(COLOR_RESET) Choose webserver config from $(COLOR_BOLD)examples/webserver-configs/README.md$(COLOR_RESET)"
 	@echo "$(COLOR_YELLOW)4.$(COLOR_RESET) Create first user: $(COLOR_CYAN)php scripts/user-management/manage-users.php create$(COLOR_RESET)"
 	@echo ""
-	@echo "$(COLOR_BLUE)Or use Docker:$(COLOR_RESET) $(COLOR_CYAN)make docker-setup$(COLOR_RESET) then $(COLOR_CYAN)make dev$(COLOR_RESET)"
+	@echo "$(COLOR_BLUE)Or use Docker:$(COLOR_RESET) $(COLOR_CYAN)make docker-setup$(COLOR_RESET) then $(COLOR_CYAN)make dev-start$(COLOR_RESET)"
 
 
 # Install Composer dependencies and git hooks
@@ -171,7 +182,7 @@ test:
 	@if docker-compose ps mata-web | grep -q "Up"; then \
 		docker-compose exec mata-web vendor/bin/phpunit; \
 	else \
-		echo "$(COLOR_RED)❌ Docker containers not running. Start with: make dev$(COLOR_RESET)"; \
+		echo "$(COLOR_RED)❌ Docker containers not running. Start with: make dev-start$(COLOR_RESET)"; \
 		exit 1; \
 	fi
 
@@ -299,14 +310,14 @@ docker-setup:
 	@echo "$(COLOR_YELLOW)1.$(COLOR_RESET) Edit $(COLOR_BOLD).env$(COLOR_RESET) - change DB_PASSWORD, MYSQL_ROOT_PASSWORD to secure values"
 	@echo "$(COLOR_YELLOW)2.$(COLOR_RESET) Edit $(COLOR_BOLD)config/config.env$(COLOR_RESET) - set DOMAIN, APP_ENV, WATCHER_ENCRYPTION_SECRET"
 	@echo "    $(COLOR_BLUE)Note:$(COLOR_RESET) DB_HOST is auto-set to 'mata-db' for Docker networking"
-	@echo "$(COLOR_YELLOW)3.$(COLOR_RESET) Start containers: $(COLOR_CYAN)make dev$(COLOR_RESET)"
+	@echo "$(COLOR_YELLOW)3.$(COLOR_RESET) Start containers: $(COLOR_CYAN)make dev-start$(COLOR_RESET)"
 	@echo "$(COLOR_YELLOW)4.$(COLOR_RESET) Login at http://localhost:8080 with $(COLOR_CYAN)dev/password$(COLOR_RESET) or $(COLOR_CYAN)admin/password$(COLOR_RESET)"
 
 ## Development (Docker)
 
 # Start development environment
-dev:
-	@echo "$(COLOR_BLUE)🚀 Starting development environment...$(COLOR_RESET)"
+dev-start:
+	@echo "$(COLOR_BLUE)🚀 Starting docker development environment...$(COLOR_RESET)"
 	docker-compose -f docker-compose.yml -f docker-compose.dev.yml up -d --build
 	@echo ""
 	@echo "$(COLOR_GREEN)✅ Development environment running!$(COLOR_RESET)"
@@ -335,7 +346,7 @@ dev-rebuild:
 ## Production
 
 # Deploy production environment
-prod:
+prod-start:
 	@echo "$(COLOR_BLUE)🚀 Deploying production environment...$(COLOR_RESET)"
 	@if [ ! -f .env ]; then \
 		echo "$(COLOR_RED)❌ ERROR: .env file required for production$(COLOR_RESET)"; \
@@ -469,7 +480,7 @@ docker-help:
 	@echo "  $(COLOR_GREEN)make docker-setup$(COLOR_RESET)    - First-time environment setup"
 	@echo ""
 	@echo "$(COLOR_BOLD)Development:$(COLOR_RESET)"
-	@echo "  $(COLOR_GREEN)make dev$(COLOR_RESET)             - Start development environment"
+	@echo "  $(COLOR_GREEN)make dev-start$(COLOR_RESET)             - Start development environment"
 	@echo "  $(COLOR_GREEN)make dev-logs$(COLOR_RESET)        - Start dev and follow logs"
 	@echo "  $(COLOR_GREEN)make dev-stop$(COLOR_RESET)        - Stop development environment"
 	@echo "  $(COLOR_GREEN)make dev-restart$(COLOR_RESET)     - Restart development containers"
