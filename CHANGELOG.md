@@ -1,4 +1,26 @@
 
+## [1.3.0] - 2026-01-03
+
+### Breaking Changes
+- None
+
+### Added
+- CLI security checks for `manage-users.php` (user authorization, SSH warnings, production confirmations)
+- Audit logging for all user management operations in `logs/user-management-audit.log`
+- `CLI_STRICT_USER_CHECK` and `CLI_ALLOWED_USERS` config options in `config.env`
+- CLI mode support in `Auth` class to bypass session/role checks
+- Server entry filtering: skip `servers.json` entries with keys beginning with underscore
+
+### Fixed
+- Composer installation order in `make setup` (now runs after config prompts)
+- Fallback handling for composer detection in setup
+- `manage-users.php` permission errors now show helpful resolution steps
+- Renamed `make dev` to `make dev-start` and `make prod` to `make prod-start` for consistency
+- Updated webserver config paths from `examples/` to `docs/examples/`
+- Renamed `db.config.example` to `db.config.env.example` for consistency
+- Removed database config section from `config.env.example` (moved to `db.config.env`)
+- Array access on potentially undefined server config keys in `ServerRenderer.php`
+
 ## [1.2.0] - 2026-01-03
 
 ### Breaking Changes

@@ -34,26 +34,34 @@ class Auth
     private const MAX_ATTEMPTS = 5;
     private const LOCKOUT_TIME_SECONDS = 900; // 15 minutes
 
+    /** @var bool CLI mode bypasses role checks for user management */
+    private bool $cliMode;
+
     /**
      * Initialize authentication system.
      *
      * @param LoggerInterface $logger    Logger instance for audit logging
      * @param string          $usersFile Absolute path to users.json file
+     * @param bool            $cliMode   Enable CLI mode (bypasses role checks, default: false)
      *
      * @throws RuntimeException If users file is missing or has insecure permissions
      */
-    public function __construct(LoggerInterface $logger, string $usersFile)
+    public function __construct(LoggerInterface $logger, string $usersFile, bool $cliMode = false)
     {
         $this->usersFile = $usersFile;
         $this->setLogger($logger);
+        $this->cliMode = $cliMode;
 
-        // Start session if needed
-        if (session_status() === PHP_SESSION_NONE) {
+        // Start session if needed (skip in CLI mode)
+        if (!$cliMode && session_status() === PHP_SESSION_NONE) {
             session_start();
         }
 
         $this->loadUsers();
-        $this->checkRememberMe();
+
+        if (!$cliMode) {
+            $this->checkRememberMe();
+        }
     }
 
     /**
@@ -66,16 +74,28 @@ class Auth
         if (!file_exists($this->usersFile)) {
             $this->users = [];
 
+            if ($this->cliMode) {
+                // In CLI mode, initialize empty users array (file will be created on first save)
+                return;
+            }
+
             throw new RuntimeException("Users file not found. {$this->usersFile}");
         }
 
-        // Check file permissions
+        // Check file permissions (relaxed in CLI mode)
         $perms = fileperms($this->usersFile);
-        if (($perms & 0x0040) || ($perms & 0x0004)) {
+        if (!$this->cliMode && (($perms & 0x0040) || ($perms & 0x0004))) {
             throw new RuntimeException("Users file has insecure permissions. Run: chmod 600 {$this->usersFile}");
         }
 
         if (!is_readable($this->usersFile)) {
+            if ($this->cliMode) {
+                throw new RuntimeException(
+                    "Users file not readable: {$this->usersFile}\n"
+                    . 'Try running with: sudo -u ' . posix_getpwuid(fileowner($this->usersFile))['name'] . ' php ' . $_SERVER['argv'][0]
+                );
+            }
+
             throw new RuntimeException("Users file not readable: {$this->usersFile}");
         }
 
@@ -346,7 +366,7 @@ class Auth
      */
     public function createUser(string $username, string $password, string $role = 'viewer'): bool
     {
-        if (!$this->hasRole('admin')) {
+        if (!$this->cliMode && !$this->hasRole('admin')) {
             throw new RuntimeException('Unauthorized: Admin access required');
         }
         if (isset($this->users[$username])) {
@@ -379,7 +399,7 @@ class Auth
      */
     public function deleteUser(string $username): bool
     {
-        if (!$this->hasRole('admin')) {
+        if (!$this->cliMode && !$this->hasRole('admin')) {
             throw new RuntimeException('Unauthorized: Admin access required');
         }
         if (!isset($this->users[$username])) {
@@ -405,7 +425,7 @@ class Auth
      */
     public function changePassword(string $username, string $newPassword): bool
     {
-        if (!$this->hasRole('admin')) {
+        if (!$this->cliMode && !$this->hasRole('admin')) {
             throw new RuntimeException('Unauthorized: Admin access required');
         }
         if (!isset($this->users[$username])) {
@@ -434,7 +454,7 @@ class Auth
      */
     public function updateUserRole(string $username, string $role): bool
     {
-        if (!$this->hasRole('admin')) {
+        if (!$this->cliMode && !$this->hasRole('admin')) {
             throw new RuntimeException('Unauthorized: Admin access required');
         }
         if (!isset($this->users[$username])) {
@@ -455,7 +475,7 @@ class Auth
      */
     public function getAllUsers(): array
     {
-        if (!$this->hasRole('admin')) {
+        if (!$this->cliMode && !$this->hasRole('admin')) {
             throw new RuntimeException('Unauthorized: Admin access required');
         }
         $users = [];
@@ -496,7 +516,7 @@ class Auth
      */
     public function unlockUser(string $username): bool
     {
-        if (!$this->hasRole('admin')) {
+        if (!$this->cliMode && !$this->hasRole('admin')) {
             throw new RuntimeException('Unauthorized: Admin access required');
         }
         if (!isset($this->users[$username])) {
@@ -521,7 +541,7 @@ class Auth
      */
     public function getUserInfo(string $username): ?array
     {
-        if (!$this->hasRole('admin')) {
+        if (!$this->cliMode && !$this->hasRole('admin')) {
             throw new RuntimeException('Unauthorized: Admin access required');
         }
         $user = $this->users[$username] ?? null;

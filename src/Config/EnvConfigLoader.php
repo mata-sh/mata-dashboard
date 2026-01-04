@@ -7,6 +7,7 @@ namespace Watcher\Config;
 use Dotenv\Dotenv;
 use InvalidArgumentException;
 use Watcher\Config\Dto\ApplicationConfig;
+use Watcher\Config\Dto\CliSecurityConfig;
 use Watcher\Config\Dto\DashboardConfig;
 use Watcher\Config\Dto\DatabaseConfig;
 use Watcher\Config\Dto\EnvironmentConfig;
@@ -59,6 +60,7 @@ final class EnvConfigLoader
             database: $this->loadDatabaseConfig(),
             mail: $this->loadMailConfig(),
             secrets: $this->loadSecretsConfig(),
+            cliSecurity: $this->loadCliSecurityConfig(),
         );
     }
 
@@ -182,6 +184,18 @@ final class EnvConfigLoader
     {
         return new SecretsConfig(
             watcherEncryptionSecret: $this->getEnv('WATCHER_ENCRYPTION_SECRET'),
+        );
+    }
+
+    private function loadCliSecurityConfig(): CliSecurityConfig
+    {
+        $strictUserCheck = $this->getEnvBool('CLI_STRICT_USER_CHECK', false);
+        $allowedUsersString = $this->getEnv('CLI_ALLOWED_USERS', 'root,http');
+        $allowedUsers = $this->parseCommaSeparated($allowedUsersString);
+
+        return new CliSecurityConfig(
+            strictUserCheck: $strictUserCheck,
+            allowedUsers: $allowedUsers,
         );
     }
 

@@ -5,28 +5,41 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/../../vendor/autoload.php';
 
-use Monolog\Handler\NullHandler;
+use Monolog\Formatter\LineFormatter;
+use Monolog\Handler\StreamHandler;
 use Monolog\Logger;
 use Watcher\Core\Auth;
-use Watcher\Config\EnvConfigLoader;
 
-// Load APP_ENV from config/config.env
-$configPath = __DIR__ . '/../../config';
-$configFile = $configPath . '/config.env';
-$env = 'dev'; // Default fallback
+// ============================================================================
+// SECURITY CHECKS
+// ============================================================================
+require_once __DIR__ . '/../bootstrap.php';
 
-if (file_exists($configFile)) {
-    try {
-        $configLoader = new EnvConfigLoader();
-        $config = $configLoader->load(['config.env'], $configPath);
-        $env = $config->environment->env;
-    } catch (Exception $e) {
-        // Fallback to environment variable or default
-        $env = getenv('APP_ENV') ?: 'dev';
-    }
+// Verify CLI execution only (not via web server)
+if (php_sapi_name() !== 'cli') {
+    exit("ERROR: This script can only be executed from the command line.\n");
+}
+
+// Get current user info early for logging
+$currentUser = posix_getpwuid(posix_geteuid());
+
+// Load APP_ENV and security settings from config/config.env
+$configPath = $paths->appPath . '/config';
+$env = $appConfig->environment->env;
+$strictUserCheck = false; // Default: OFF for shared hosting compatibility
+$allowedUsers = ['root', 'http']; // Default allowed users
+
+if (!empty($appConfig->cliSecurity)) {
+    // Load CLI security settings from config object
+    $strictUserCheck = $appConfig->cliSecurity->strictUserCheck;
+    $allowedUsers = $appConfig->cliSecurity->allowedUsers;
 } else {
     // Fallback to environment variable or default
     $env = getenv('APP_ENV') ?: 'dev';
+    $strictUserCheck = getenv('CLI_STRICT_USER_CHECK') === 'ON';
+    if ($users = getenv('CLI_ALLOWED_USERS')) {
+        $allowedUsers = array_map('trim', explode(',', $users));
+    }
 }
 
 // Allow override via --env flag
@@ -36,9 +49,95 @@ foreach ($argv as $arg) {
     }
 }
 
-$usersFile = __DIR__ . "/../../config/{$env}/users.json";
+// Verify script is executed by authorized users (if strict checking is enabled)
+if ($strictUserCheck && !in_array($currentUser['name'], $allowedUsers, true)) {
+    echo "❌ SECURITY ERROR: Unauthorized user\n\n";
+    echo 'This script can only be executed by: ' . implode(', ', $allowedUsers) . "\n";
+    echo "Current user: {$currentUser['name']}\n\n";
+    echo "To allow this user, add to config.env:\n";
+    echo '  CLI_ALLOWED_USERS=' . implode(',', array_merge($allowedUsers, [$currentUser['name']])) . "\n\n";
+    echo "Or disable strict checking (not recommended for production):\n";
+    echo "  CLI_STRICT_USER_CHECK=OFF\n\n";
+    echo "Alternatively, run with: sudo php {$argv[0]}\n";
 
-// Validate users file exists or can be created
+    exit(1);
+}
+
+// Validate environment (prevent path traversal)
+$validEnvironments = ['dev', 'demo', 'prod'];
+if (!in_array($env, $validEnvironments, true)) {
+    echo "❌ SECURITY ERROR: Invalid environment\n\n";
+    echo 'Valid environments: ' . implode(', ', $validEnvironments) . "\n";
+    echo "Provided: {$env}\n";
+
+    exit(1);
+}
+
+// Require confirmation for production operations
+if ($env === 'prod' && ($argv[1] ?? '') !== 'list') {
+    echo "⚠️  WARNING: You are about to modify PRODUCTION users!\n";
+    echo "Environment: {$env}\n";
+    echo "Action: {$argv[1]}\n";
+    echo "Operator: {$currentUser['name']}\n\n";
+    echo "Type 'CONFIRM PRODUCTION' to continue: ";
+    $confirm = trim(fgets(STDIN));
+    if ($confirm !== 'CONFIRM PRODUCTION') {
+        echo "❌ Cancelled\n";
+
+        exit(1);
+    }
+    echo "\n";
+}
+
+$usersFile = "{$configPath}/{$env}/users.json";
+$action = $argv[1] ?? 'help';
+
+// Remove --env flag from argv if present
+$argv = array_filter($argv, fn ($arg) => !str_starts_with($arg, '--env='));
+$argv = array_values($argv);
+
+// Setup audit logger
+$logDir = __DIR__ . '/../../logs';
+if (!is_dir($logDir)) {
+    mkdir($logDir, 0755, true);
+}
+$auditLogFile = $logDir . '/user-management-audit.log';
+
+// Show help without requiring file access
+if ($action === 'help' || $action === '--help' || $action === '-h') {
+    echo "Usage: php manage-users.php [action] [options] [--env=ENV]\n\n";
+    echo "SECURITY:\n";
+    if ($strictUserCheck) {
+        echo "  ⚠️  Strict user checking: ENABLED\n";
+        echo '  - Authorized users: ' . implode(', ', $allowedUsers) . "\n";
+        echo "  - Current user: {$currentUser['name']}\n";
+    } else {
+        echo "  ℹ️  Strict user checking: DISABLED (shared hosting mode)\n";
+        echo "  - To enable, add to config.env: CLI_STRICT_USER_CHECK=ON\n";
+    }
+    echo "  - All operations are logged to: logs/user-management-audit.log\n";
+    echo "  - Production operations require explicit confirmation\n\n";
+    echo "Actions:\n";
+    echo "  create [username] [role]  - Create new user\n";
+    echo "  list                       - List all users\n";
+    echo "  unlock [username]          - Unlock user account\n";
+    echo "  delete [username]          - Delete user\n";
+    echo "  passwd [username]          - Change password\n\n";
+    echo "Options:\n";
+    echo "  --env=ENV                  - Target environment (dev/demo/prod) [default: \$APP_ENV or 'dev']\n\n";
+    echo "Examples:\n";
+    echo "  php manage-users.php create admin admin\n";
+    echo "  php manage-users.php list --env=prod\n";
+    echo "  php manage-users.php passwd admin --env=prod\n\n";
+    echo "Configuration (add to config.env):\n";
+    echo "  CLI_STRICT_USER_CHECK=ON|OFF       - Enable/disable user restrictions\n";
+    echo "  CLI_ALLOWED_USERS=root,http,user1  - Comma-separated list of allowed users\n\n";
+    echo "Audit log location: {$auditLogFile}\n";
+
+    exit(0);
+}
+
+// Validate users file exists or can be created (only for non-help commands)
 if (!file_exists($usersFile)) {
     $configDir = dirname($usersFile);
     if (!is_dir($configDir)) {
@@ -47,19 +146,48 @@ if (!file_exists($usersFile)) {
     // Initialize empty users file
     file_put_contents($usersFile, '[]');
     chmod($usersFile, 0600);
+    echo "✨ Created new users file: {$usersFile}\n\n";
+} elseif (!is_readable($usersFile) || !is_writable($usersFile)) {
+    // File exists but we don't have permission
+    $owner = posix_getpwuid(fileowner($usersFile));
+
+    echo "❌ Permission denied: {$usersFile}\n";
+    echo "   File owner: {$owner['name']}\n";
+    echo "   Current user: {$currentUser['name']}\n\n";
+    echo "Fix this by running ONE of the following:\n\n";
+    echo "  Option 1 - Run as file owner:\n";
+    echo "    sudo -u {$owner['name']} php {$argv[0]}" . (isset($env) && $env !== 'dev' ? " --env={$env}" : '') . "\n\n";
+    echo "  Option 2 - Change file ownership (development only):\n";
+    echo "    sudo chown {$currentUser['name']}:{$currentUser['name']} {$usersFile}\n\n";
+
+    exit(1);
 }
 
-// Create auth with null logger for CLI
-$logger = new Logger('cli');
-$logger->pushHandler(new NullHandler());
-$auth = new Auth($logger, $usersFile);
-$_SESSION['user']['role'] = 'admin';
+// Create audit logger for CLI operations
+$logger = new Logger('user-management-cli');
 
-$action = $argv[1] ?? 'help';
+// Configure formatter for detailed audit trail
+$formatter = new LineFormatter(
+    "[%datetime%] %level_name%: %message% %context%\n",
+    'Y-m-d H:i:s',
+    true,
+    true
+);
 
-// Remove --env flag from argv if present
-$argv = array_filter($argv, fn($arg) => !str_starts_with($arg, '--env='));
-$argv = array_values($argv);
+$handler = new StreamHandler($auditLogFile, Logger::INFO);
+$handler->setFormatter($formatter);
+$logger->pushHandler($handler);
+
+// Log script execution
+$logger->info('User management script started', [
+    'operator' => $currentUser['name'],
+    'environment' => $env,
+    'action' => $action,
+    'hostname' => gethostname(),
+    'pid' => getmypid(),
+]);
+
+$auth = new Auth($logger, $usersFile, true); // Enable CLI mode
 
 echo "🔧 Environment: {$env}\n";
 echo "📁 Users file: {$usersFile}\n\n";
@@ -76,9 +204,23 @@ switch ($action) {
 
         try {
             $auth->createUser($username, $password, $role);
+            $logger->info('User created successfully', [
+                'operator' => $currentUser['name'],
+                'target_user' => $username,
+                'role' => $role,
+                'environment' => $env,
+            ]);
             echo "✅ User created: {$username} (role: {$role})\n";
         } catch (Exception $e) {
+            $logger->error('Failed to create user', [
+                'operator' => $currentUser['name'],
+                'target_user' => $username,
+                'role' => $role,
+                'error' => $e->getMessage(),
+                'environment' => $env,
+            ]);
             echo '❌ Error: ' . $e->getMessage() . "\n";
+
             exit(1);
         }
 
@@ -86,6 +228,11 @@ switch ($action) {
 
     case 'list':
         $users = $auth->getAllUsers();
+        $logger->info('Users list accessed', [
+            'operator' => $currentUser['name'],
+            'environment' => $env,
+            'user_count' => count($users),
+        ]);
         if (empty($users)) {
             echo "ℹ️  No users found\n";
         } else {
@@ -103,9 +250,21 @@ switch ($action) {
 
         try {
             $auth->unlockUser($username);
+            $logger->info('User unlocked successfully', [
+                'operator' => $currentUser['name'],
+                'target_user' => $username,
+                'environment' => $env,
+            ]);
             echo "✅ User unlocked: {$username}\n";
         } catch (Exception $e) {
+            $logger->error('Failed to unlock user', [
+                'operator' => $currentUser['name'],
+                'target_user' => $username,
+                'error' => $e->getMessage(),
+                'environment' => $env,
+            ]);
             echo '❌ Error: ' . $e->getMessage() . "\n";
+
             exit(1);
         }
 
@@ -117,12 +276,29 @@ switch ($action) {
         if ($confirm === 'yes') {
             try {
                 $auth->deleteUser($username);
+                $logger->warning('User deleted', [
+                    'operator' => $currentUser['name'],
+                    'target_user' => $username,
+                    'environment' => $env,
+                ]);
                 echo "✅ User deleted: {$username}\n";
             } catch (Exception $e) {
+                $logger->error('Failed to delete user', [
+                    'operator' => $currentUser['name'],
+                    'target_user' => $username,
+                    'error' => $e->getMessage(),
+                    'environment' => $env,
+                ]);
                 echo '❌ Error: ' . $e->getMessage() . "\n";
+
                 exit(1);
             }
         } else {
+            $logger->info('User deletion cancelled', [
+                'operator' => $currentUser['name'],
+                'target_user' => $username,
+                'environment' => $env,
+            ]);
             echo "❌ Cancelled\n";
         }
 
@@ -138,27 +314,29 @@ switch ($action) {
 
         try {
             $auth->changePassword($username, $password);
+            $logger->warning('Password changed', [
+                'operator' => $currentUser['name'],
+                'target_user' => $username,
+                'environment' => $env,
+            ]);
             echo "✅ Password changed for: {$username}\n";
         } catch (Exception $e) {
+            $logger->error('Failed to change password', [
+                'operator' => $currentUser['name'],
+                'target_user' => $username,
+                'error' => $e->getMessage(),
+                'environment' => $env,
+            ]);
             echo '❌ Error: ' . $e->getMessage() . "\n";
+
             exit(1);
         }
 
         break;
 
     default:
-        echo "Usage: php manage-users.php [action] [options] [--env=ENV]\n\n";
-        echo "Actions:\n";
-        echo "  create [username] [role]  - Create new user\n";
-        echo "  list                       - List all users\n";
-        echo "  unlock [username]          - Unlock user account\n";
-        echo "  delete [username]          - Delete user\n";
-        echo "  passwd [username]          - Change password\n\n";
-        echo "Options:\n";
-        echo "  --env=ENV                  - Target environment (dev/demo/prod) [default: \$APP_ENV or 'dev']\n\n";
-        echo "Examples:\n";
-        echo "  php manage-users.php create admin admin\n";
-        echo "  php manage-users.php list --env=prod\n";
-        echo "  php manage-users.php passwd admin --env=prod\n";
-        exit(0);
+        echo "❌ Unknown action: {$action}\n\n";
+        echo "Run 'php manage-users.php help' for usage information.\n";
+
+        exit(1);
 }

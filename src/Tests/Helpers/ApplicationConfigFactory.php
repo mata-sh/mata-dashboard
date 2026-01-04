@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Watcher\Tests\Helpers;
 
 use Watcher\Config\Dto\ApplicationConfig;
+use Watcher\Config\Dto\CliSecurityConfig;
 use Watcher\Config\Dto\DashboardConfig;
 use Watcher\Config\Dto\DatabaseConfig;
 use Watcher\Config\Dto\EnvironmentConfig;
@@ -39,6 +40,7 @@ class ApplicationConfigFactory
         ?DatabaseConfig $database = null,
         ?MailConfig $mail = null,
         ?SecretsConfig $secrets = null,
+        ?CliSecurityConfig $cliSecurity = null,
     ): ApplicationConfig {
         return new ApplicationConfig(
             environment: $environment ?? self::createEnvironmentConfig(),
@@ -50,6 +52,7 @@ class ApplicationConfigFactory
             database: $database ?? self::createDatabaseConfig(),
             mail: $mail ?? self::createMailConfig(),
             secrets: $secrets ?? self::createSecretsConfig(),
+            cliSecurity: $cliSecurity ?? self::createCliSecurityConfig(),
         );
     }
 
@@ -162,5 +165,12 @@ class ApplicationConfigFactory
         ?string $watcherEncryptionSecret = 'test-encryption-secret-key-12345',
     ): SecretsConfig {
         return new SecretsConfig($watcherEncryptionSecret);
+    }
+
+    public static function createCliSecurityConfig(
+        bool $strictUserCheck = false,
+        array $allowedUsers = ['root', 'http'],
+    ): CliSecurityConfig {
+        return new CliSecurityConfig($strictUserCheck, $allowedUsers);
     }
 }

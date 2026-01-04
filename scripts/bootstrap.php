@@ -33,8 +33,15 @@ if (!$validationResult['is_valid']) {
     exit(1);
 }
 
-// --- Database ---
-$db = new Database($appConfig->database);
+// --- Database (optional for CLI scripts) ---
+$db = null;
+
+try {
+    $db = new Database($appConfig->database);
+} catch (Exception $e) {
+    // Database not available - this is OK for CLI scripts that don't need it
+    fwrite(STDERR, "[WARNING] No Database Connection available: {$e->getMessage()}\n");
+}
 
 // --- Optional: shared tool instances ---
 return compact('paths', 'appConfig', 'db');

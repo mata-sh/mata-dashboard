@@ -6,6 +6,7 @@ namespace Watcher\Tests\Unit\Services;
 
 use PHPUnit\Framework\MockObject\MockObject;
 use Watcher\Config\Dto\ApplicationConfig;
+use Watcher\Config\Dto\CliSecurityConfig;
 use Watcher\Config\Dto\DashboardConfig;
 use Watcher\Config\Dto\DatabaseConfig;
 use Watcher\Config\Dto\EnvironmentConfig;
@@ -385,7 +386,8 @@ final class EventManagerTest extends TestCase
                 charset: 'UTF-8',
                 wordWrap: 78
             ),
-            secrets: new SecretsConfig('secret-key')
+            secrets: new SecretsConfig('secret-key'),
+            cliSecurity: new CliSecurityConfig(false, ['root', 'http'])
         );
     }
 }

@@ -31,6 +31,8 @@
         columns: [
         {title: "ID", field: "id", sorter: "number", hozAlign:"center", },
         {title: "Datetime", field: "datetime", sorter: "datetime", hozAlign:"center"},
+        {title: "Server", field: "server", sorter: "string", hozAlign:"center"},
+        {title: "App", field: "app", sorter: "string", hozAlign:"center"},
         {title:"Level", field:"level", hozAlign:"center", formatter:function(cell, formatterParams){
         var value = cell.getValue();
         switch (value) {
@@ -57,8 +59,6 @@
         return "<span style='font-weight:bold;'>" + value + "</span>";
         }},
         {title: "Message", field: "message", sorter: "string"},
-        {title: "Server", field: "server", sorter: "string", hozAlign:"center"},
-        {title: "App", field: "app", sorter: "string", hozAlign:"center"},
         {title: "Context", field: "context", sorter: "string"},
         {title: "Channel", field: "alarm_channel", sorter: "string", hozAlign:"center"}
         ],
