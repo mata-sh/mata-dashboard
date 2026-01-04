@@ -74,6 +74,13 @@ final class MonitoringSettingsLoader
             exceptionClass: Exception::class
         );
 
+        // Remove entries where array key begins with underscore
+        $serversConfig = array_filter(
+            $serversConfig,
+            fn ($key) => !str_starts_with($key, '_'),
+            ARRAY_FILTER_USE_KEY
+        );
+
         $validation = $this->validateServersConfig($serversConfig);
         if (!$validation['is_valid']) {
             foreach ($validation['errors'] as $error) {

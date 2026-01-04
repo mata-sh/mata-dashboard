@@ -423,8 +423,8 @@ class ServerRenderer extends BaseRenderer
     ): array {
         return [
             'id' => $serverId,
-            'title' => $serverConfig['title'],
-            'primary_color' => $serverConfig['primary_color'],
+            'title' => $serverConfig['title'] ?? '',
+            'primary_color' => $serverConfig['primary_color'] ?? '#fefefe',
             'cpu_usage' => $serverData['cpu_usage'] ?? 0,
         ];
     }
