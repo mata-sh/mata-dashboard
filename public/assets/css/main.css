@@ -499,7 +499,8 @@ svg {
 
 .login-container .main-logo {
     text-align: center;
-
+    width: 200px;
+    margin: auto;
 }
 
 .login-container form {
@@ -518,13 +519,13 @@ svg {
     padding: 8px 8px;
     border-radius: 3px;
     border: none;
-    background-color: aliceblue;
-    color: black;
-    border: 2px solid #ddd;
+    background-color: #18292f;
+    color: white;
+    border: 2px solid #1e3c47;
 }
 
 .login-container>div {
-    background-color: #fff;
+    background-color: #040404;
     width: 340px;
     margin: auto;
     padding: 55px 0 10px;
@@ -532,7 +533,16 @@ svg {
 }
 
 .login-container label {
-    color: #333;
+    color: #e3e3e3;
+}
+
+.login-subtitle {
+    font-size: 2.5em;
+    text-align: center;
+}
+
+.login-button {
+    background-color: #31ad3f;
 }
 
 .login-container button {

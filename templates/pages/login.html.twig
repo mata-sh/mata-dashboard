@@ -5,7 +5,12 @@
     <div class="container login-container">
       <div class="column is-half is-offset-one-quarter">
         <!-- <h1 class="title has-text-centered">Login</h1> -->
-        <div class="main-logo">{{ ui.main_logo|raw }}</div>
+        <div class="main-logo">
+          <img src="assets/images/logo.png" />
+        </div>
+        <p class="login-subtitle">
+          <strong>MATA</strong>
+        </p>
         <form method="post" action="login">
           <div class="field">
             <label class="label">Username</label>
@@ -28,7 +33,7 @@
           <div class="field">
             {{ ui.login_error_message|raw }}
             <div class="control">
-              <button class="button is-primary is-fullwidth" type="submit">Login</button>
+              <button class="login-button button is-primary is-fullwidth" type="submit">Login</button>
             </div>
           </div>
         </form>
