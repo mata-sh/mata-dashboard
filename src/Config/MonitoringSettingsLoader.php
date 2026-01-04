@@ -13,6 +13,7 @@ use Watcher\Services\Foundation\AlertManager;
 use Watcher\Services\Foundation\Dto\Alert;
 use Watcher\Services\Foundation\Dto\AlertLevel;
 use Watcher\Services\Foundation\SettingsDatabaseSync;
+use Watcher\Utils\TypeConverter;
 
 /**
  * Monitoring settings loader for servers, thresholds, and TTL settings.
@@ -242,51 +243,155 @@ final class MonitoringSettingsLoader
      *
      * @param array<string,mixed> $config Server configuration array
      *
-     * @return array<string,mixed> Validation results with is_valid flag and errors array
+     * @return array{is_valid: bool, errors: array<int,string>} Validation results
      */
     public function validateServersConfig(array $config): array
     {
         $errors = [];
 
         if (empty($config)) {
-            $errors[] = 'Server configuration is empty';
-
-            return ['is_valid' => false, 'errors' => $errors];
+            return ['is_valid' => false, 'errors' => ['Server configuration is empty']];
         }
 
         foreach ($config as $serverName => $serverConfig) {
-            if (!is_array($serverConfig)) {
-                $errors[] = "Server '{$serverName}' configuration must be an array";
-
-                continue;
-            }
-
-            // Required fields validation
-            $requiredFields = ['api_url', 'api_key', 'title'];
-            foreach ($requiredFields as $field) {
-                if (empty($serverConfig[$field])) {
-                    $errors[] = "Server '{$serverName}' missing required field: {$field}";
-                }
-            }
-
-            // API URL validation
-            if (!empty($serverConfig['api_url']) && !filter_var($serverConfig['api_url'], FILTER_VALIDATE_URL)) {
-                $errors[] = "Server '{$serverName}' has invalid API URL format";
-            }
-
-            // Color validation (if present)
-            if (
-                isset($serverConfig['primary_color'])
-                && !preg_match('/^#[0-9a-fA-F]{6}$/', $serverConfig['primary_color'])
-            ) {
-                $errors[] = "Server '{$serverName}' has invalid primary_color format (should be #RRGGBB)";
-            }
+            $errors = array_merge($errors, $this->validateServerConfig($serverName, $serverConfig));
         }
 
         return [
             'is_valid' => empty($errors),
             'errors' => $errors,
         ];
+    }
+
+    /**
+     * Validate individual server configuration.
+     *
+     * @param string $serverName   Server identifier
+     * @param mixed  $serverConfig Server configuration data
+     *
+     * @return array<int,string> Validation errors
+     */
+    private function validateServerConfig(string $serverName, mixed $serverConfig): array
+    {
+        $errors = [];
+
+        if (!is_array($serverConfig)) {
+            return ["Server '{$serverName}' configuration must be an array"];
+        }
+
+        $errors = array_merge($errors, $this->validateRequiredFields($serverName, $serverConfig));
+        $errors = array_merge($errors, $this->validateApiUrl($serverName, $serverConfig));
+
+        return array_merge($errors, $this->validateColor($serverName, $serverConfig));
+    }
+
+    /**
+     * Validate required configuration fields are present.
+     *
+     * @param string              $serverName   Server identifier
+     * @param array<string,mixed> $serverConfig Server configuration
+     *
+     * @return array<int,string> Validation errors for missing fields
+     */
+    private function validateRequiredFields(string $serverName, array $serverConfig): array
+    {
+        $errors = [];
+        $requiredFields = ['api_url', 'api_key', 'title'];
+
+        foreach ($requiredFields as $field) {
+            if (empty($serverConfig[$field])) {
+                $errors[] = "Server '{$serverName}' missing required field: {$field}";
+            }
+        }
+
+        return $errors;
+    }
+
+    /**
+     * Validate API URL format and protocol security.
+     *
+     * @param string              $serverName   Server identifier
+     * @param array<string,mixed> $serverConfig Server configuration
+     *
+     * @return array<int,string> Validation errors for invalid or insecure URLs
+     */
+    private function validateApiUrl(string $serverName, array $serverConfig): array
+    {
+        if (empty($serverConfig['api_url'])) {
+            return [];
+        }
+
+        if (!filter_var($serverConfig['api_url'], FILTER_VALIDATE_URL)) {
+            return ["Server '{$serverName}' has invalid API URL format"];
+        }
+
+        $scheme = parse_url($serverConfig['api_url'], PHP_URL_SCHEME);
+
+        if ($scheme === 'https') {
+            return [];
+        }
+
+        if ($scheme !== 'http') {
+            return ["Server '{$serverName}' API URL must use HTTPS protocol (found: {$scheme}://)"];
+        }
+
+        return $this->validateHttpAllowed($serverName, $serverConfig);
+    }
+
+    /**
+     * Validate HTTP connection permission and log security warnings.
+     *
+     * @param string              $serverName   Server identifier
+     * @param array<string,mixed> $serverConfig Server configuration
+     *
+     * @return array<int,string> Validation errors if HTTP not explicitly allowed
+     */
+    private function validateHttpAllowed(string $serverName, array $serverConfig): array
+    {
+        $allowHttp = TypeConverter::toBool($serverConfig['allow_http'] ?? null) ?? false;
+
+        if (!$allowHttp) {
+            return [
+                "Server '{$serverName}' API URL must use HTTPS protocol (found: http://). "
+                . "To allow HTTP connections, set 'allow_http': \"on\" in configuration.",
+            ];
+        }
+
+        $suppressWarning = TypeConverter::toBool($serverConfig['suppress_http_warning'] ?? null) ?? false;
+
+        if (!$suppressWarning) {
+            $this->recordConfigurationEvent(
+                type: 'http_connection_allowed',
+                message: "Security warning: HTTP connection allowed for server '{$serverName}' "
+                    . "(api_url: {$serverConfig['api_url']}). "
+                    . 'Recommendation: Use HTTPS for production environments.',
+                level: 'warning',
+                isAlarm: false
+            );
+        }
+
+        return [];
+    }
+
+    /**
+     * Validate primary color format.
+     *
+     * @param string              $serverName   Server identifier
+     * @param array<string,mixed> $serverConfig Server configuration
+     *
+     * @return array<int,string> Validation errors for invalid color format
+     */
+    private function validateColor(string $serverName, array $serverConfig): array
+    {
+        if (!isset($serverConfig['primary_color'])) {
+            return [];
+        }
+
+        if (!preg_match('/^#[0-9a-fA-F]{6}$/', $serverConfig['primary_color'])) {
+            return ["Server '{$serverName}' has invalid primary_color format (should be #RRGGBB)"];
+        }
+
+        return [];
     }
 
     /**

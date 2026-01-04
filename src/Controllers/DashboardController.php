@@ -31,6 +31,7 @@ use Watcher\Services\Monitor\ServerMonitor;
 use Watcher\Services\Navigation\MenuBuilder;
 use Watcher\Services\View\ServerViewBuilder;
 use Watcher\Utils\Tools;
+use Watcher\Utils\TypeConverter;
 use Watcher\Views\AlarmsRenderer;
 use Watcher\Views\CronjobRenderer;
 use Watcher\Views\DatabaseRenderer;
@@ -214,10 +215,18 @@ class DashboardController extends BaseController
         $secret = $this->appConfig->secrets->watcherEncryptionSecret;
         $token = $this->tools->encrypt($apiKey, $secret);
 
+        // Extract security flags with defaults
+        $allowHttp = TypeConverter::toBool($serverConfig['allow_http'] ?? null) ?? false;
+        $suppressHttpWarning = TypeConverter::toBool($serverConfig['suppress_http_warning'] ?? null) ?? false;
+
         $apiClient = new ApiClient(
             $this->logger,
             $serverConfig['api_url'],
-            $token
+            $token,
+            10,
+            true,
+            $allowHttp,
+            $suppressHttpWarning
         );
 
         return [

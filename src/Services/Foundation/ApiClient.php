@@ -28,22 +28,55 @@ class ApiClient
     /**
      * Initialize HTTP client with authentication.
      *
-     * @param LoggerInterface $logger    PSR-3 logger for HTTP request logging
-     * @param string          $apiBase   Base URL for the API endpoint
-     * @param string          $token     Authentication token for API requests
-     * @param int             $timeout   Request timeout in seconds (default: 10)
-     * @param bool            $verifySSL Whether to verify SSL certificates (default: true)
+     * @param LoggerInterface $logger              PSR-3 logger for HTTP request logging
+     * @param string          $apiBase             Base URL for the API endpoint
+     * @param string          $token               Authentication token for API requests
+     * @param int             $timeout             Request timeout in seconds (default: 10)
+     * @param bool            $verifySSL           Whether to verify SSL certificates (default: true)
+     * @param bool            $allowHttp           Whether to allow HTTP connections (default: false)
+     * @param bool            $suppressHttpWarning Whether to suppress HTTP security warnings (default: false)
      */
     public function __construct(
         LoggerInterface $logger,
         string $apiBase,
         string $token,
         int $timeout = 10,
-        bool $verifySSL = true
+        bool $verifySSL = true,
+        bool $allowHttp = false,
+        bool $suppressHttpWarning = false
     ) {
         $this->logger = $logger;
         $this->apiBase = $apiBase;
         $this->token = $token;
+
+        // Enforce HTTPS protocol (unless explicitly allowed)
+        $parsedUrl = parse_url($apiBase);
+        $scheme = $parsedUrl['scheme'] ?? 'none';
+
+        if ($scheme === 'http') {
+            if (!$allowHttp) {
+                throw new RuntimeException(
+                    'API base URL must use HTTPS protocol (found: http://). '
+                    . 'Insecure HTTP connections are not allowed. '
+                    . "To allow HTTP for development/testing, enable the 'allow_http' configuration flag."
+                );
+            }
+
+            // HTTP allowed but log security warning unless suppressed
+            if (!$suppressHttpWarning) {
+                $this->logger->warning('Security warning: HTTP connection established (insecure)', [
+                    'api_base' => $apiBase,
+                    'scheme' => $scheme,
+                    'reason' => 'allow_http flag is enabled',
+                    'recommendation' => 'Use HTTPS for production environments to protect API keys and data',
+                ]);
+            }
+        } elseif (!str_starts_with($apiBase, 'https://')) {
+            throw new RuntimeException(
+                "API base URL must use HTTPS protocol (found: {$scheme}://). "
+                . 'Insecure connections are not allowed.'
+            );
+        }
 
         $this->client = new Client([
             'base_uri' => rtrim($apiBase, '/') . '/',

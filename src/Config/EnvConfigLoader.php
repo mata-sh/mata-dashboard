@@ -46,7 +46,7 @@ final class EnvConfigLoader
         foreach ($envFiles as $file) {
             $fullPath = $configPath . DIRECTORY_SEPARATOR . $file;
             if (file_exists($fullPath)) {
-                Dotenv::createMutable($configPath, $file)->load();
+                Dotenv::createImmutable($configPath, $file)->load();
             }
         }
 

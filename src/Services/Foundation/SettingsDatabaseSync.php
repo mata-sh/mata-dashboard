@@ -179,6 +179,8 @@ final class SettingsDatabaseSync
             'secondary_color' => $serverConfig['secondary_color'] ?? null,
             'info' => $serverConfig['info'] ?? null,
             'check_disk_space' => $serverConfig['check_disk_space'] ?? null,
+            'allow_http' => $serverConfig['allow_http'] ?? null,
+            'suppress_http_warning' => $serverConfig['suppress_http_warning'] ?? null,
         ]);
 
         if ($metadata === false) {

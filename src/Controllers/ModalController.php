@@ -22,6 +22,7 @@ use Watcher\Services\Foundation\ApiClient;
 use Watcher\Services\Foundation\CacheManager;
 use Watcher\Services\Foundation\DataTransformers\ApiResponseTransformer;
 use Watcher\Utils\Tools;
+use Watcher\Utils\TypeConverter;
 use Watcher\Views\ModalRenderer;
 
 /**
@@ -119,10 +120,18 @@ class ModalController extends BaseController
             $this->appConfig->secrets->watcherEncryptionSecret
         );
 
+        // Extract security flags with defaults
+        $allowHttp = TypeConverter::toBool($serverConfig['allow_http'] ?? null) ?? false;
+        $suppressHttpWarning = TypeConverter::toBool($serverConfig['suppress_http_warning'] ?? null) ?? false;
+
         $apiClient = new ApiClient(
             $this->logger,
             $serverConfig['api_url'],
-            $token
+            $token,
+            10,
+            true,
+            $allowHttp,
+            $suppressHttpWarning
         );
         $dataTransformer = new ApiResponseTransformer($this->logger);
 
