@@ -497,6 +497,13 @@ svg {
     height: 14px;
 }
 
+.login-container>div {
+    -webkit-box-shadow: 8px 8px 24px 0px rgba(0, 0, 0, 0.55);
+    -moz-box-shadow: 8px 8px 24px 0px rgba(0, 0, 0, 0.55);
+    box-shadow: 8px 8px 24px 0px rgba(0, 0, 0, 0.55);
+
+}
+
 .login-container .main-logo {
     text-align: center;
     width: 200px;
