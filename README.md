@@ -17,10 +17,10 @@ Modern, lightweight server and application monitoring with the needs of PHP deve
 <a href="https://github.com/mata-sh/mata-dashboard/issues/new?labels=enhancement&template=feature-request---.md">Request Feature</a>
   </p>
 
+[![CI][CI-shield]][ci-url]
 [![License][license-shield]][license-url]
 [![PHP][PHP-shield]][PHP.net]
 [![HTMX][HTMX-shield]][empty-url]
-[![CI][CI-shield]][ci-url]
 
 
 </div>
@@ -33,28 +33,19 @@ Deploy read-only nodes on each server, manage alerts and logs from one lightweig
 
 <div align="center">
 
-<a href="https://demo.mata.sh">
+[![Product Name Screen Shot][product-screenshot]][demo-url]
 
-![Product Name Screen Shot][product-screenshot]
+[ Check out the demo][demo-url]
 
-<br>Check out the demo </a><br>
-**user:** demo | **password:** demo
+user: **demo** | password: **demo**
 </div>
 
-### Core Features
+## Core Features
 
 - **Application Health:** HTTP ping monitoring, error log parsing, and session tracking
 - **Alerting:** Threshold-based alarm system with email notifications
 - **Server Monitoring:** Real-time tracking of CPU/RAM/disk and system processes
 - **PHP Dev Toolset:** Supports reading of PHP logs and installed Composer packages. Redis planned for future releases.
-
-### Architecture Overview
-
-#### **Dashboard (Server)**
-A central monitoring hub with web interface and alerting system. Capable of running without database by utilizing filesystem fallback mode.
-
-#### **Nodes (Clients)**
-Lightweight, stateless client application offering **read-only** API endpoints. Easily deployed with minimal dependencies.
 
 ## Why MATA?
 
@@ -66,10 +57,6 @@ Lightweight, stateless client application offering **read-only** API endpoints. 
 - **Resilient:** Dashboard can run in degraded mode without a DB
 - **Developer Friendly:** Simple deploy, built with modern PHP and optional Docker support
 
-
-<p align="right">(<a href="#readme-top">back to top</a>)</p>
-
-
 ## Security model
 
 - **Read-only nodes:** stateless endpoints; no alerting, no emails, no remote actions.
@@ -80,6 +67,16 @@ Lightweight, stateless client application offering **read-only** API endpoints. 
 - **Abuse resistance:** rate limiting on dashboard and node APIs.
 - **Account security:** CLI-driven user management with CLI-only audit logs.
 - **Retention & thresholds:** configurable retention for events/logs and configurable alert thresholds.
+
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
+
+## Architecture Overview
+
+### **Dashboard (Server)**
+A central monitoring hub with web interface and alerting system. Capable of running without database by utilizing filesystem fallback mode.
+
+### **Nodes (Clients)**
+Lightweight, stateless client application offering **read-only** API endpoints. Easily deployed with minimal dependencies.
 
 
 ## What is collected?
@@ -170,8 +167,6 @@ api.mata.example.com -> public_html/mata-node/public
 - **[Architecture Overview](docs/architecture/overview.md)** - System design and components
 - **[Troubleshooting](docs/tutorials/troubleshooting.md)** - Common issues and solutions
 
-<p align="right">(<a href="#readme-top">back to top</a>)</p>
-
 ## Technology Choices
 
 ### Authentication & user management: file-based + CLI-only
@@ -215,14 +210,12 @@ api.mata.example.com -> public_html/mata-node/public
 
 Contributions are welcome! See [Contributing Guide](docs/development/contributing.md).
 
-<p align="right">(<a href="#readme-top">back to top</a>)</p>
 
 ## License
 
 This project is licensed under the MIT License.
 See `LICENSE.txt` for details.
 
-<p align="right">(<a href="#readme-top">back to top</a>)</p>
 
 ## Contact
 
@@ -248,5 +241,6 @@ Project Link: [https://github.com/mata-sh/mata-dashboard](https://github.com/mat
 [PHP.net]: https://php.net/
 [PHP-shield]: https://img.shields.io/badge/PHP-777BB4?style=for-the-badge&logo=php&logoColor=white
 [HTMX-shield]: https://img.shields.io/badge/HTMX-36C?style=for-the-badge&logo=htmx&logoColor=fff
-[CI-shield]: https://github.com/mata-sh/mata-dashboard/actions/workflows/ci.yml/badge.svg
+[CI-shield]: https://img.shields.io/github/actions/workflow/status/mata-sh/mata-dashboard/ci.yml?branch=main&style=for-the-badge
 [ci-url]: https://github.com/mata-sh/mata-dashboard/actions/workflows/ci.yml
+[demo-url]: https://demo.mata.sh
