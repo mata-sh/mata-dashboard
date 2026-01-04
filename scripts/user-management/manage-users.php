@@ -8,9 +8,26 @@ require_once __DIR__ . '/../../vendor/autoload.php';
 use Monolog\Handler\NullHandler;
 use Monolog\Logger;
 use Watcher\Core\Auth;
+use Watcher\Config\EnvConfigLoader;
 
-// Determine environment (default to 'dev' if not set)
-$env = getenv('APP_ENV') ?: 'dev';
+// Load APP_ENV from config/config.env
+$configPath = __DIR__ . '/../../config';
+$configFile = $configPath . '/config.env';
+$env = 'dev'; // Default fallback
+
+if (file_exists($configFile)) {
+    try {
+        $configLoader = new EnvConfigLoader();
+        $config = $configLoader->load(['config.env'], $configPath);
+        $env = $config->environment->env;
+    } catch (Exception $e) {
+        // Fallback to environment variable or default
+        $env = getenv('APP_ENV') ?: 'dev';
+    }
+} else {
+    // Fallback to environment variable or default
+    $env = getenv('APP_ENV') ?: 'dev';
+}
 
 // Allow override via --env flag
 foreach ($argv as $arg) {

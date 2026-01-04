@@ -17,8 +17,3 @@ RewriteRule ^ index.php [QSA,L]
 
 # Security: Prevent directory listing
 Options -Indexes
-
-# Security: Block access to sensitive files
-<FilesMatch "\.(env|json|lock|md|yml|yaml|xml|ini|log|bak|backup|sql)$">
-    Require all denied
-</FilesMatch>

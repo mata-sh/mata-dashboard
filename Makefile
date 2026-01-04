@@ -103,7 +103,7 @@ setup:
 	case $$webserver in \
 		1) \
 			if [ ! -f "public/.htaccess" ]; then \
-				cp examples/webserver-configs/.htaccess public/.htaccess; \
+				cp docs/examples/webserver-configs/.htaccess public/.htaccess; \
 				echo "$(COLOR_GREEN)✅ Created public/.htaccess$(COLOR_RESET)"; \
 				echo "$(COLOR_BLUE)ℹ️  .htaccess is ready. Ensure mod_rewrite is enabled.$(COLOR_RESET)"; \
 			else \
@@ -111,22 +111,30 @@ setup:
 			fi; \
 			;; \
 		2) \
-			echo "$(COLOR_BLUE)ℹ️  Copy examples/webserver-configs/apache-vhost.conf to /etc/apache2/sites-available/$(COLOR_RESET)"; \
-			echo "$(COLOR_BLUE)   Then: sudo a2ensite yoursite && sudo systemctl reload apache2$(COLOR_RESET)"; \
+			echo "$(COLOR_BLUE)ℹ️  Copy example config to a new site file:$(COLOR_RESET)"; \
+			echo "$(COLOR_CYAN)   sudo cp docs/examples/webserver-configs/apache-vhost.conf /etc/apache2/sites-available/mata-dashboard.conf$(COLOR_RESET)"; \
+			echo "$(COLOR_BLUE)   Then enable and reload:$(COLOR_RESET)"; \
+			echo "$(COLOR_CYAN)   sudo a2ensite mata-dashboard && sudo systemctl reload apache2$(COLOR_RESET)"; \
 			;; \
 		3) \
-			echo "$(COLOR_BLUE)ℹ️  Copy examples/webserver-configs/nginx-site.conf to /etc/nginx/sites-available/$(COLOR_RESET)"; \
-			echo "$(COLOR_BLUE)   Then: sudo ln -s /etc/nginx/sites-available/yoursite /etc/nginx/sites-enabled/$(COLOR_RESET)"; \
+			echo "$(COLOR_BLUE)ℹ️  Copy example config to a new site file:$(COLOR_RESET)"; \
+			echo "$(COLOR_CYAN)   sudo cp docs/examples/webserver-configs/nginx-site.conf /etc/nginx/sites-available/mata-dashboard$(COLOR_RESET)"; \
+			echo "$(COLOR_BLUE)   Then enable and reload:$(COLOR_RESET)"; \
+			echo "$(COLOR_CYAN)   sudo ln -s /etc/nginx/sites-available/mata-dashboard /etc/nginx/sites-enabled/$(COLOR_RESET)"; \
+			echo "$(COLOR_CYAN)   sudo systemctl reload nginx$(COLOR_RESET)"; \
 			;; \
 		4) \
-			echo "$(COLOR_BLUE)ℹ️  Copy examples/webserver-configs/Caddyfile to /etc/caddy/$(COLOR_RESET)"; \
-			echo "$(COLOR_BLUE)   Caddy will automatically obtain SSL certificates$(COLOR_RESET)"; \
+			echo "$(COLOR_BLUE)ℹ️  Copy example config (review before overwriting existing Caddyfile):$(COLOR_RESET)"; \
+			echo "$(COLOR_CYAN)   sudo cp docs/examples/webserver-configs/Caddyfile /etc/caddy/Caddyfile$(COLOR_RESET)"; \
+			echo "$(COLOR_BLUE)   Or append to existing Caddyfile, then reload:$(COLOR_RESET)"; \
+			echo "$(COLOR_CYAN)   sudo systemctl reload caddy$(COLOR_RESET)"; \
+			echo "$(COLOR_YELLOW)   Note: Caddy will automatically obtain SSL certificates$(COLOR_RESET)"; \
 			;; \
 		5) \
-			echo "$(COLOR_YELLOW)⚠️  Skipped. See examples/webserver-configs/README.md for manual setup$(COLOR_RESET)"; \
+			echo "$(COLOR_YELLOW)⚠️  Skipped. See docs/examples/webserver-configs/README.md for manual setup$(COLOR_RESET)"; \
 			;; \
 		*) \
-			echo "$(COLOR_RED)❌ Invalid option. See examples/webserver-configs/README.md$(COLOR_RESET)"; \
+			echo "$(COLOR_RED)❌ Invalid option. See docs/examples/webserver-configs/README.md$(COLOR_RESET)"; \
 			;; \
 	esac
 	@echo ""
@@ -153,7 +161,7 @@ setup:
 	@echo "$(COLOR_CYAN)⚙️  NEXT STEPS:$(COLOR_RESET)"
 	@echo "$(COLOR_YELLOW)1.$(COLOR_RESET) Edit $(COLOR_BOLD)config/config.env$(COLOR_RESET) - set DOMAIN, DB credentials, WATCHER_ENCRYPTION_SECRET"
 	@echo "$(COLOR_YELLOW)2.$(COLOR_RESET) Edit $(COLOR_BOLD)config/mail.config.env$(COLOR_RESET) - configure email settings (optional)"
-	@echo "$(COLOR_YELLOW)3.$(COLOR_RESET) Choose webserver config from $(COLOR_BOLD)examples/webserver-configs/README.md$(COLOR_RESET)"
+	@echo "$(COLOR_YELLOW)3.$(COLOR_RESET) Choose webserver config from $(COLOR_BOLD)docs/examples/webserver-configs/README.md$(COLOR_RESET)"
 	@echo "$(COLOR_YELLOW)4.$(COLOR_RESET) Create first user: $(COLOR_CYAN)php scripts/user-management/manage-users.php create$(COLOR_RESET)"
 	@echo ""
 	@echo "$(COLOR_BLUE)Or use Docker:$(COLOR_RESET) $(COLOR_CYAN)make docker-setup$(COLOR_RESET) then $(COLOR_CYAN)make dev-start$(COLOR_RESET)"
