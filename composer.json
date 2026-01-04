@@ -12,7 +12,7 @@
     "minimum-stability": "dev",
     "require": {
         "symfony/mailer": "^7.2",
-        "guzzlehttp/guzzle": "8.0.x-dev",
+        "guzzlehttp/guzzle": "^7.0",
         "monolog/monolog": "^3.0@dev",
         "bramus/router": "dev-master",
         "league/commonmark": "^2.8@dev",
@@ -24,11 +24,15 @@
     "require-dev": {
         "phpstan/phpstan": "^2.1",
         "phpunit/phpunit": "^12.4@dev",
-        "friendsofphp/php-cs-fixer": "^3.89"
+        "friendsofphp/php-cs-fixer": "^3.89",
+        "cyclonedx/cyclonedx-php-composer": "^6.0"
     },
     "config": {
         "platform": {
             "php": "8.3"
+        },
+        "allow-plugins": {
+            "cyclonedx/cyclonedx-php-composer": true
         }
     },
     "autoload": {

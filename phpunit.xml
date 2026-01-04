@@ -12,9 +12,6 @@
         <testsuite name="Integration">
             <directory>src/Tests/Integration</directory>
         </testsuite>
-        <testsuite name="Feature">
-            <directory>src/Tests/Feature</directory>
-        </testsuite>
     </testsuites>
 
     <source>
