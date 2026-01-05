@@ -14,7 +14,7 @@ use Watcher\Services\Collect\ServerDataCollector;
 use Watcher\Services\Foundation\AlertManager;
 use Watcher\Services\Foundation\ApiClient;
 use Watcher\Services\Foundation\CacheManager;
-use Watcher\Services\Foundation\DataTransformer;
+use Watcher\Services\Foundation\DataTransformers\ApiResponseTransformer;
 use Watcher\Services\Foundation\EventManager;
 use Watcher\Services\Foundation\IdResolver;
 use Watcher\Services\Monitor\ServerMetricsHealthMonitor;
@@ -76,7 +76,7 @@ try {
     }
 
     $cacheManager = new CacheManager($log, $cacheDir, $monitoringSettings['ttl'] ?? []);
-    $dataTransformer = new DataTransformer($log);
+    $dataTransformer = new ApiResponseTransformer($log);
     $repository = new ServerMetricsRepository($db, $idResolver, $configSyncRepository);
     $serverMonitor = new ServerMonitor($log, $eventManager);
 
@@ -156,7 +156,11 @@ try {
         }
 
         try {
-            $apiClient = new ApiClient($log, $apiUrl, $token);
+            // Extract security flags with defaults
+            $allowHttp = TypeConverter::toBool($serverConfig['allow_http'] ?? null) ?? false;
+            $suppressHttpWarning = TypeConverter::toBool($serverConfig['suppress_http_warning'] ?? null) ?? false;
+
+            $apiClient = new ApiClient($log, $apiUrl, $token, 10, true, $allowHttp, $suppressHttpWarning);
             $collector = new ServerDataCollector($log, $cacheManager, $apiClient, $dataTransformer);
 
             $metricsPayload = $serverMonitor->collectServerHealthData($collector, (string) $serverName);

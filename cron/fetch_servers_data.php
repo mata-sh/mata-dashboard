@@ -12,10 +12,11 @@ use Watcher\Services\Collect\ServerDataCollector;
 use Watcher\Services\Foundation\AlertManager;
 use Watcher\Services\Foundation\ApiClient;
 use Watcher\Services\Foundation\CacheManager;
-use Watcher\Services\Foundation\DataTransformer;
+use Watcher\Services\Foundation\DataTransformers\ApiResponseTransformer;
 use Watcher\Services\Foundation\EventManager;
 use Watcher\Services\Foundation\IdResolver;
 use Watcher\Utils\ChannelLockManager;
+use Watcher\Utils\TypeConverter;
 
 extract(require_once __DIR__ . '/bootstrap.php');
 
@@ -66,13 +67,18 @@ try {
         $monitoringSettings['thresholds'],
         $monitoringSettings['intervals'] ?? []
     );
-    $dataTransformer = new DataTransformer($log);
+    $dataTransformer = new ApiResponseTransformer($log);
     $cacheManager = new CacheManager($log);
 
     foreach ($monitoringSettings['servers'] as $server => $data) {
         try {
             $token = $tools->encrypt($data['api_key'] . '|' . time(), $appConfig->secrets->watcherEncryptionSecret);
-            $apiClient = new ApiClient($log, $data['api_url'], $token);
+
+            // Extract security flags with defaults
+            $allowHttp = TypeConverter::toBool($data['allow_http'] ?? null) ?? false;
+            $suppressHttpWarning = TypeConverter::toBool($data['suppress_http_warning'] ?? null) ?? false;
+
+            $apiClient = new ApiClient($log, $data['api_url'], $token, 10, true, $allowHttp, $suppressHttpWarning);
             $serversApi[$server] = new ServerDataCollector($log, $cacheManager, $apiClient, $dataTransformer);
         } catch (Exception $e) {
             $log->error("{$server}: " . $e->getMessage());
