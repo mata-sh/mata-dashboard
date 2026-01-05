@@ -89,8 +89,8 @@ final class EnvConfigLoader
         return new GeneralConfig(
             organizationName: $this->getEnv('ORGANIZATION_TITLE', ''),
             maintenanceModeEnabled: $this->getEnvBool('MAINTENANCE_MODE_ENABLED', false),
-            devBlockIpsEnabled: $this->getEnvBool('DEV_BLOCK_IPS_ENABLED', false),
-            devAllowedIps: $this->parseCommaSeparated($this->getEnv('DEV_ALLOWED_IPS', '')),
+            ipWhitelistEnabled: $this->getEnvBool('IP_WHITELIST_ENABLED', false),
+            allowedIps: $this->parseCommaSeparated($this->getEnv('ALLOWED_IPS', '')),
             alarmsEnabled: $this->getEnvBool('ALARMS_ENABLED', true),
             eventsEnabled: $this->getEnvBool('EVENTS_ENABLED', true),
         );

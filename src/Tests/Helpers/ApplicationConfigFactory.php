@@ -67,16 +67,16 @@ class ApplicationConfigFactory
     public static function createGeneralConfig(
         string $organizationName = 'MATA Dashboard',
         bool $maintenanceModeEnabled = false,
-        bool $devBlockIpsEnabled = false,
-        array $devAllowedIps = [],
+        bool $ipWhitelistEnabled = false,
+        array $allowedIps = [],
         bool $alarmsEnabled = true,
         bool $eventsEnabled = true,
     ): GeneralConfig {
         return new GeneralConfig(
             $organizationName,
             $maintenanceModeEnabled,
-            $devBlockIpsEnabled,
-            $devAllowedIps,
+            $ipWhitelistEnabled,
+            $allowedIps,
             $alarmsEnabled,
             $eventsEnabled,
         );

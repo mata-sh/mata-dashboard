@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Watcher\Core;
 
+use Watcher\Config\Dto\ApplicationConfig;
 use Watcher\Utils\PathResolver;
 
 /**
@@ -12,6 +13,7 @@ use Watcher\Utils\PathResolver;
 class App
 {
     public Auth $auth;
+    public ApplicationConfig $config;
     public PathResolver $paths;
     public string $baseUrl = '';
     private string $basePath = '';
@@ -19,13 +21,14 @@ class App
     /**
      * Initialize application with authentication and path management.
      */
-    public function __construct(Auth $auth, PathResolver $paths)
+    public function __construct(Auth $auth, ApplicationConfig $config, PathResolver $paths)
     {
+        $this->auth = $auth;
+        $this->config = $config;
         $this->paths = $paths;
         if (session_status() === PHP_SESSION_NONE) {
             session_start();
         }
-        $this->auth = $auth;
         $this->detectBasePath();
     }
 

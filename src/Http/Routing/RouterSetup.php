@@ -56,6 +56,7 @@ class RouterSetup
     public function setup(): void
     {
         $this->setupRateLimiting();
+        $this->setupIpWhitelist();
         $this->setupParameterValidation();
         $this->setupLoginRoutes();
         $this->setupWatchAuth();
@@ -78,6 +79,29 @@ class RouterSetup
                 http_response_code(429);
 
                 exit('Too many requests.');
+            }
+        });
+    }
+
+    /**
+     * Apply IP whitelisting to login routes.
+     */
+    private function setupIpWhitelist(): void
+    {
+        $this->router->before('GET|POST', '/login', function () {
+            $config = $this->app->config->general;
+
+            if (!$config->ipWhitelistEnabled) {
+                return; // Feature disabled
+            }
+
+            $clientIp = $_SERVER['REMOTE_ADDR'];
+
+            if (!in_array($clientIp, $config->allowedIps, true)) {
+                error_log("SECURITY: Blocked IP access to login: {$clientIp}");
+                http_response_code(403);
+
+                exit('Access forbidden');
             }
         });
     }

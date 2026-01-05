@@ -183,7 +183,7 @@ try {
     exit(1);
 }
 
-$app = new App($auth, $paths);
+$app = new App($auth, $appConfig, $paths);
 $appDir = !empty($appConfig->environment->dir) ? DIRECTORY_SEPARATOR . $appConfig->environment->dir : '';
 $app->setBaseUrl($appConfig->environment->domain);
 
