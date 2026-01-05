@@ -1,4 +1,26 @@
 
+## [1.3.0] - 2026-01-05
+
+### Breaking Changes
+- None
+
+### Added
+- GitHub Actions CI workflow (composer validate, security audit, PHPStan level 5, PHP-CS-Fixer, PHPUnit)
+- GitHub Actions Release workflow with SBOM generation (CycloneDX)
+- Dependabot configuration for monthly composer dependency updates
+- CLI security checks for `manage-users.php` (user authorization, SSH warnings, production confirmations)
+- Audit logging for user management operations in `logs/user-management-audit.log`
+- `CLI_STRICT_USER_CHECK` and `CLI_ALLOWED_USERS` config options
+- CLI mode support in `Auth` class to bypass session/role checks
+- HTTP connection security validation with `allow_http` and `suppress_http_warning` flags
+- Server entry filtering (skip underscore-prefixed keys in `servers.json`)
+
+### Fixed
+- Composer installation order in `make setup` (now runs after config prompts)
+- `manage-users.php` permission errors now show resolution steps
+- Guzzle downgraded from 8.0.x-dev to ^7.0 for stability
+- Array access on potentially undefined server config keys in `ServerRenderer.php`
+
 ## [1.3.0] - 2026-01-03
 
 ### Breaking Changes
