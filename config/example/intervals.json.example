@@ -19,9 +19,9 @@
             "app_unreachable": 60,
             "orders_export_stale": 60,
             "cronjob_heartbeat_missing": 360,
-            "filecount_too_large": 60,
+            "filecount_too_large": 72,
             "logfile_too_large": 720,
-            "too_many_sql_connections": 60,
+            "too_many_sql_connections": 72,
             "servers_config_not_found": 1440,
             "remaining_disk_space_too_low": 180,
             "fatal_errors_occuring": 1440

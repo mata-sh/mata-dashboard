@@ -19,6 +19,7 @@
     },
     
     "staging-server": {
+        "title": "Staging Server",
         "url": "https://staging.your-domain.com/",
         "api_url": "https://staging.your-domain.com/mata-node/api", 
         "api_key": "another_secure_api_key_32_characters",
@@ -29,6 +30,7 @@
     },
     
     "development-server": {
+        "title": "Development Server",
         "url": "https://dev.your-domain.com/",
         "api_url": "https://dev.your-domain.com/mata-node/api",
         "api_key": "dev_environment_api_key_32_chars",
@@ -39,6 +41,7 @@
     },
     
     "database-server": {
+        "title": "Database Server",
         "url": "https://db.your-domain.com/",
         "api_url": "https://db.your-domain.com/mata-node/api",
         "api_key": "database_server_api_key_32_chars",
@@ -49,9 +52,11 @@
     },
     
     "file-server": {
+        "title": "File Server",
         "url": "192.168.1.100",
         "api_url": "http://192.168.1.100:8080/mata-node/api",
         "api_key": "file_server_api_key_32_characters",
+        "allow_http": "on",
         "primary_color": "#fd7e14", 
         "secondary_color": "#495057",
         "info": "Internal File Server - Document Storage",
@@ -59,6 +64,7 @@
     },
     
     "load-balancer": {
+        "title": "Load Balancer",
         "url": "https://lb.your-domain.com/",
         "api_url": "https://lb.your-domain.com/mata-node/api",
         "api_key": "load_balancer_api_key_32_chars",
@@ -69,6 +75,7 @@
     },
     
     "backup-server": {
+        "title": "Backup Server",
         "url": "backup.your-domain.com",
         "api_url": "https://backup.your-domain.com/mata-node/api",
         "api_key": "backup_server_api_key_32_chars",

@@ -1101,7 +1101,7 @@ class MockServerDataCollector implements ServerDataCollectorInterface
             }
 
             $envWeights = array_intersect_key($preset['environment_weights'], array_flip($allowedEnvironments));
-            // @phpstan-ignore-next-line empty.variable - defensive check for key mismatches
+
             if (empty($envWeights)) {
                 $envWeights = $preset['environment_weights'];
             }

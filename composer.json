@@ -19,7 +19,8 @@
         "spatie/commonmark-highlighter": "dev-main",
         "vlucas/phpdotenv": "^5.6@dev",
         "twig/twig": "^3.0",
-        "robmorgan/phinx": "0.x-dev"
+        "robmorgan/phinx": "0.x-dev",
+        "mata-sh/rate-limiter": "dev-main"
     },
     "require-dev": {
         "phpstan/phpstan": "^2.1",

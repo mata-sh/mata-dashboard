@@ -16,7 +16,7 @@
             "good": 60,
             "warn": 70,
             "critical": 80,
-            "alarm": 70
+            "alarm": 90
         }
     },
     "app_data": {
