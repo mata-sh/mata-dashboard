@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use Monolog\Formatter\LineFormatter;
 use Monolog\Handler\StreamHandler;
+use Monolog\Level;
 use Monolog\Logger;
 use Symfony\Component\Mailer\Mailer;
 use Symfony\Component\Mailer\Transport;
@@ -26,11 +27,14 @@ $paths = new PathResolver(__FILE__);
 // ************************************************************************************************
 // Monolog
 // ************************************************************************************************
-$formatter = new LineFormatter("[%datetime%] %channel%.%level_name%: %message% %context% %extra%\n", 'Y-m-d H:i:s', true, true);
-$handler = new StreamHandler($paths->logsPath . '/cron/cronjob.log', Logger::Info);
+$dateFormat = 'Y-m-d H:i:s';
+$output = "[%datetime%] %channel%.%level_name%: %message% %context% %extra%\n";
+$formatter = new LineFormatter($output, $dateFormat, true, true);
+$handler = new StreamHandler($paths->logsPath . '/cron/cronjob.log', Level::Debug);
 $handler->setFormatter($formatter);
 $log = new Logger('cronjob');
 $log->pushHandler($handler);
+
 
 // ************************************************************************************************
 // Error Reporting & Logging

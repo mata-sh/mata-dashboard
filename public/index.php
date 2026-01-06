@@ -2,7 +2,6 @@
 <?php
 
 use Bramus\Router\Router;
-use MataSh\RateLimiter\RateLimiter;
 use Monolog\Formatter\LineFormatter;
 use Monolog\Handler\StreamHandler;
 use Monolog\Level;
@@ -40,7 +39,6 @@ use Watcher\Services\Foundation\DataTransformers\ChartDataTransformer;
 use Watcher\Services\Foundation\EventManager;
 use Watcher\Services\Foundation\IdResolver;
 use Watcher\Services\Foundation\NotificationManager;
-use Watcher\Services\Foundation\RateLimiterService;
 use Watcher\Services\Foundation\SettingsDatabaseSync;
 use Watcher\Services\Navigation\MenuBuilder;
 use Watcher\Services\Validation\MetricsRequestValidator;
@@ -191,7 +189,6 @@ try {
 // ************************************************************************************************
 $rateLimiterService = RateLimiterFactory::create($appConfig->rateLimiting, $log);
 $app = new App($auth, $appConfig, $paths, $rateLimiterService);
-$appDir = !empty($appConfig->environment->dir) ? DIRECTORY_SEPARATOR . $appConfig->environment->dir : '';
 $app->setBaseUrl($appConfig->environment->domain);
 
 // ************************************************************************************************
