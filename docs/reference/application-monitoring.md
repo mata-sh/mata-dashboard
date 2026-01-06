@@ -543,7 +543,7 @@ Identify application environment (development, staging, production) for environm
 ### Environment Identification
 
 **Methods:**
-1. `.env` file parsing
+1. `.env` file parsing (see [Client Configuration Reference](./client-config.md))
 2. Environment variable detection
 3. Server configuration
 4. URL pattern matching
@@ -865,6 +865,7 @@ php -i | grep session
 
 ## Related Documentation
 
+- [Client Configuration Reference](./client-config.md) - Client-side .env configuration
 - [Server Metrics Reference](./server-metrics.md)
 - [Event System Reference](./event-system.md)
 - [Threshold Configuration](./thresholds.md)

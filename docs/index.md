@@ -1,7 +1,7 @@
 # MATA Dashboard
 
 <div align="center">
-    <img src="images/screenshot.png" alt="MATA Screenshot" width="600">
+    <img src="images/screenshot.jpg" alt="MATA Screenshot" width="600">
 </div>
 
 ## What is MATA?
@@ -48,6 +48,7 @@ MATA Dashboard is a PHP-based server monitoring solution that provides centraliz
 - [Deployment Guide](guides/deployment.md)
 - [Configuration Reference](reference/configuration-reference.md)
 - [Server Metrics](reference/server-metrics.md)
+- [Client Configuration](reference/client-config.md)
 - [Node API](api/node-api.md)
 
 ## Development

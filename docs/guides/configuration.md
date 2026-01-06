@@ -428,3 +428,4 @@ MAIL_ENABLED=true
 - [Deployment Guide](deployment.md) - Deploy to production
 - [Security Guide](security.md) - Security hardening
 - [Configuration Reference](../reference/configuration-reference.md) - Complete configuration schema
+- [Client Configuration](../reference/client-config.md) - Configure client-side .env files

@@ -121,8 +121,8 @@ Enable/disable maintenance mode for the dashboard.
 MAINTENANCE_MODE_ENABLED=OFF
 ```
 
-#### DEV_BLOCK_IPS_ENABLED
-Enable IP-based access restriction (development feature).
+#### IP_WHITELIST_ENABLED
+Enable IP-based access restriction for login page protection.
 
 | Field | Value |
 |-------|-------|
@@ -131,24 +131,28 @@ Enable IP-based access restriction (development feature).
 | **Default** | `OFF` |
 | **Required** | No |
 
+**Description:** When enabled, only IP addresses listed in `ALLOWED_IPS` can access the login page. Useful for enterprise environments with known static IP addresses.
+
 **Example:**
 ```env
-DEV_BLOCK_IPS_ENABLED=OFF
+IP_WHITELIST_ENABLED=OFF
 ```
 
-#### DEV_ALLOWED_IPS
-Comma-separated list of allowed IP addresses when IP blocking is enabled.
+#### ALLOWED_IPS
+Comma-separated list of allowed IP addresses when IP whitelisting is enabled.
 
 | Field | Value |
 |-------|-------|
 | **Type** | String |
-| **Format** | Comma-separated IP addresses |
+| **Format** | Comma-separated IP addresses (IPv4 and IPv6 supported) |
 | **Default** | `127.0.0.1,::1` |
-| **Required** | If DEV_BLOCK_IPS_ENABLED=ON |
+| **Required** | If IP_WHITELIST_ENABLED=ON |
+
+**Description:** When `IP_WHITELIST_ENABLED=ON`, only these IP addresses can access the login page. All other IPs will receive a 403 Forbidden response. The feature applies only to login routes, not the entire application.
 
 **Example:**
 ```env
-DEV_ALLOWED_IPS=127.0.0.1,::1,192.168.1.100
+ALLOWED_IPS=127.0.0.1,::1,192.168.1.100
 ```
 
 #### DASHBOARD_SERVER_COLUMNS
