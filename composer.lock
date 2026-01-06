@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "b3aeebe667e1c2afce3b3c522bc5fe77",
+    "content-hash": "b2ad8e9ce2520657981f9900976ccbf7",
     "packages": [
         {
             "name": "bramus/router",
@@ -1272,6 +1272,62 @@
                 }
             ],
             "time": "2025-05-20T12:55:37+00:00"
+        },
+        {
+            "name": "mata-sh/rate-limiter",
+            "version": "dev-main",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/mata-sh/rate-limiter.git",
+                "reference": "9f7de1b5886c6f664721b477ecd09544b9a6aef8"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/mata-sh/rate-limiter/zipball/9f7de1b5886c6f664721b477ecd09544b9a6aef8",
+                "reference": "9f7de1b5886c6f664721b477ecd09544b9a6aef8",
+                "shasum": ""
+            },
+            "require": {
+                "php": "^8.0",
+                "psr/log": "^3.0"
+            },
+            "require-dev": {
+                "friendsofphp/php-cs-fixer": "^3.92",
+                "phpstan/phpstan": "^2.1"
+            },
+            "default-branch": true,
+            "type": "library",
+            "autoload": {
+                "psr-4": {
+                    "MataSh\\RateLimiter\\": "src/"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "Mata",
+                    "email": "libs@mata.sh"
+                }
+            ],
+            "description": "Robust rate limiting library for PHP with support for (Redis | APCu | filesystem).",
+            "keywords": [
+                "apcu",
+                "file",
+                "minimal dependencies",
+                "php",
+                "rate limit",
+                "rate limiter",
+                "redis",
+                "shared hosting"
+            ],
+            "support": {
+                "issues": "https://github.com/mata-sh/rate-limiter/issues",
+                "source": "https://github.com/mata-sh/rate-limiter"
+            },
+            "time": "2026-01-05T22:28:35+00:00"
         },
         {
             "name": "monolog/monolog",
@@ -7642,6 +7698,7 @@
     "stability-flags": {
         "bramus/router": 20,
         "league/commonmark": 20,
+        "mata-sh/rate-limiter": 20,
         "monolog/monolog": 20,
         "phpunit/phpunit": 20,
         "robmorgan/phinx": 20,
