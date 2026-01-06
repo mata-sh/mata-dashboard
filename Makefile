@@ -392,9 +392,13 @@ logs-db:
 	docker-compose logs -f mata-db
 
 # Follow all container logs
-logs-app:
+logs-php:
 	docker-compose exec -u www-data mata-web tail -fn 500 logs/phperror.log
 
+# Follow all container logs
+logs-app:
+	docker-compose exec -u www-data mata-web tail -fn 500 logs/app.log
+	
 # Show container status
 ps:
 	docker-compose ps
