@@ -1,5 +1,27 @@
 
-## [1.3.0] - 2026-01-05
+## [0.4.0] - 2026-01-06
+
+### Breaking Changes
+- None
+
+### Added
+- GitHub Actions CI workflow (composer validate, security audit, PHPStan level 5, PHP-CS-Fixer, PHPUnit)
+- GitHub Actions Release workflow with SBOM generation (CycloneDX)
+- Dependabot configuration for monthly composer dependency updates
+- CLI security checks for user management with audit logging
+- HTTP connection security validation with `allow_http` and `suppress_http_warning` configuration flags
+- IP whitelisting for login protection (`IP_WHITELIST_ENABLED`, `ALLOWED_IPS`)
+- Rate limiting support with file/Redis storage backends
+- Server entry filtering (skip underscore-prefixed keys in `servers.json`)
+
+### Fixed
+- Guzzle downgraded from 8.0.x-dev to ^7.0 for stability
+- Composer installation order in `make setup` (now runs after config prompts)
+- Database docker port mapping (3307:3306)
+- Monolog initialization in cronjobs
+- Array access on potentially undefined server config keys in `ServerRenderer.php`
+
+## [0.3.0] - 2026-01-05
 
 ### Breaking Changes
 - None
@@ -21,7 +43,7 @@
 - Guzzle downgraded from 8.0.x-dev to ^7.0 for stability
 - Array access on potentially undefined server config keys in `ServerRenderer.php`
 
-## [1.3.0] - 2026-01-03
+## [0.2.1] - 2026-01-03
 
 ### Breaking Changes
 - None
@@ -43,7 +65,7 @@
 - Removed database config section from `config.env.example` (moved to `db.config.env`)
 - Array access on potentially undefined server config keys in `ServerRenderer.php`
 
-## [1.2.0] - 2026-01-03
+## [0.2.0] - 2026-01-03
 
 ### Breaking Changes
 - None
@@ -68,7 +90,7 @@
 - Config file permissions set to 600 (owner read/write only) on creation
 - README streamlined to focus on quick start with links to detailed guides
 
-## [1.1.0] - 2026-01-02
+## [0.1.0] - 2026-01-02
 
 ### Breaking Changes
 - None
@@ -84,7 +106,7 @@
 - Automatic creation of missing config files from templates on first run
 
 
-## [1.0.0] - 2025-08-22
+## [0.0.1] - 2025-08-22
 
 ### Breaking Changes
 
