@@ -2,6 +2,7 @@
 <?php
 
 use Bramus\Router\Router;
+use MataSh\RateLimiter\RateLimiter;
 use Monolog\Formatter\LineFormatter;
 use Monolog\Handler\StreamHandler;
 use Monolog\Level;
@@ -24,6 +25,7 @@ use Watcher\Core\Auth;
 use Watcher\Core\Database;
 use Watcher\Core\ExceptionHandler;
 use Watcher\Core\NullDatabase;
+use Watcher\Factory\RateLimiterFactory;
 use Watcher\Factory\ServerMetricsQueryFactory;
 use Watcher\Http\Routing\Endpoints;
 use Watcher\Http\Routing\RouterSetup;
@@ -38,6 +40,7 @@ use Watcher\Services\Foundation\DataTransformers\ChartDataTransformer;
 use Watcher\Services\Foundation\EventManager;
 use Watcher\Services\Foundation\IdResolver;
 use Watcher\Services\Foundation\NotificationManager;
+use Watcher\Services\Foundation\RateLimiterService;
 use Watcher\Services\Foundation\SettingsDatabaseSync;
 use Watcher\Services\Navigation\MenuBuilder;
 use Watcher\Services\Validation\MetricsRequestValidator;
@@ -183,7 +186,11 @@ try {
     exit(1);
 }
 
-$app = new App($auth, $appConfig, $paths);
+// ************************************************************************************************
+// Rate Limiter Setup
+// ************************************************************************************************
+$rateLimiterService = RateLimiterFactory::create($appConfig->rateLimiting, $log);
+$app = new App($auth, $appConfig, $paths, $rateLimiterService);
 $appDir = !empty($appConfig->environment->dir) ? DIRECTORY_SEPARATOR . $appConfig->environment->dir : '';
 $app->setBaseUrl($appConfig->environment->domain);
 

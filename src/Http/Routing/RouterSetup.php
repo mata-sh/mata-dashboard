@@ -66,19 +66,52 @@ class RouterSetup
     }
 
     /**
-     * Apply rate limiting to all routes based on IP and endpoint.
+     * Apply rate limiting to route groups with different limits per group.
      */
     private function setupRateLimiting(): void
     {
-        $this->router->before('GET|POST', '/.*', function () {
-            $ip = $_SERVER['REMOTE_ADDR'];
-            $endpoint = $_SERVER['REQUEST_URI'];
-            $key = $ip . '|' . $endpoint;
+        // Skip if rate limiter service not available
+        if ($this->app->rateLimiter === null) {
+            return;
+        }
 
-            if ($this->app->isRateLimited($key)) {
+        // Login routes - strictest limits (brute force protection)
+        $this->router->before('GET|POST', '/login', function () {
+            if ($this->app->rateLimiter->isRateLimited('login')) {
+                http_response_code(429);
+
+                exit('Too many login attempts. Please try again later.');
+            }
+        });
+
+        $this->router->before('GET', '/logout', function () {
+            if ($this->app->rateLimiter->isRateLimited('login')) {
                 http_response_code(429);
 
                 exit('Too many requests.');
+            }
+        });
+
+        // Dashboard and watch routes - moderate limits
+        $this->router->before('GET|POST', '/watch/.*', function () {
+            if ($this->app->rateLimiter->isRateLimited('dashboard')) {
+                http_response_code(429);
+
+                exit('Too many requests. Please slow down.');
+            }
+        });
+
+        // API metrics routes - higher limits for data-heavy operations
+        $this->router->before('GET|POST', '/api/metrics/.*', function () {
+            if ($this->app->rateLimiter->isRateLimited('api')) {
+                http_response_code(429);
+                header('Content-Type: application/json');
+                echo json_encode([
+                    'error' => 'Rate limit exceeded',
+                    'message' => 'Too many API requests. Please try again later.',
+                ]);
+
+                exit;
             }
         });
     }

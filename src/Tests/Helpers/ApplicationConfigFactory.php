@@ -13,6 +13,7 @@ use Watcher\Config\Dto\GeneralConfig;
 use Watcher\Config\Dto\LoggingConfig;
 use Watcher\Config\Dto\MailConfig;
 use Watcher\Config\Dto\PhpConfig;
+use Watcher\Config\Dto\RateLimitingConfig;
 use Watcher\Config\Dto\SecretsConfig;
 use Watcher\Config\Dto\SmtpDevConfig;
 use Watcher\Config\Dto\TemplateConfig;
@@ -41,6 +42,7 @@ class ApplicationConfigFactory
         ?MailConfig $mail = null,
         ?SecretsConfig $secrets = null,
         ?CliSecurityConfig $cliSecurity = null,
+        ?RateLimitingConfig $rateLimiting = null,
     ): ApplicationConfig {
         return new ApplicationConfig(
             environment: $environment ?? self::createEnvironmentConfig(),
@@ -53,6 +55,7 @@ class ApplicationConfigFactory
             mail: $mail ?? self::createMailConfig(),
             secrets: $secrets ?? self::createSecretsConfig(),
             cliSecurity: $cliSecurity ?? self::createCliSecurityConfig(),
+            rateLimiting: $rateLimiting ?? self::createRateLimitingConfig(),
         );
     }
 
@@ -172,5 +175,37 @@ class ApplicationConfigFactory
         array $allowedUsers = ['root', 'http'],
     ): CliSecurityConfig {
         return new CliSecurityConfig($strictUserCheck, $allowedUsers);
+    }
+
+    public static function createRateLimitingConfig(
+        bool $enabled = false,
+        string $storageType = 'file',
+        ?string $filePath = '/tmp/rate_limit_test.json',
+        ?string $redisHost = null,
+        int $redisPort = 6379,
+        ?string $redisPassword = null,
+        int $redisDatabase = 0,
+        int $loginMaxRequests = 5,
+        int $loginWindowSeconds = 300,
+        int $dashboardMaxRequests = 60,
+        int $dashboardWindowSeconds = 60,
+        int $apiMaxRequests = 100,
+        int $apiWindowSeconds = 60,
+    ): RateLimitingConfig {
+        return new RateLimitingConfig(
+            $enabled,
+            $storageType,
+            $filePath,
+            $redisHost,
+            $redisPort,
+            $redisPassword,
+            $redisDatabase,
+            $loginMaxRequests,
+            $loginWindowSeconds,
+            $dashboardMaxRequests,
+            $dashboardWindowSeconds,
+            $apiMaxRequests,
+            $apiWindowSeconds,
+        );
     }
 }

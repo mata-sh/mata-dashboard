@@ -23,5 +23,6 @@ final class ApplicationConfig
         public readonly MailConfig $mail,
         public readonly SecretsConfig $secrets,
         public readonly CliSecurityConfig $cliSecurity,
+        public readonly RateLimitingConfig $rateLimiting,
     ) {}
 }

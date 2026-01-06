@@ -14,6 +14,7 @@ use Watcher\Config\Dto\GeneralConfig;
 use Watcher\Config\Dto\LoggingConfig;
 use Watcher\Config\Dto\MailConfig;
 use Watcher\Config\Dto\PhpConfig;
+use Watcher\Config\Dto\RateLimitingConfig;
 use Watcher\Config\Dto\SecretsConfig;
 use Watcher\Config\Dto\SmtpDevConfig;
 use Watcher\Config\Dto\TemplateConfig;
@@ -387,7 +388,8 @@ final class EventManagerTest extends TestCase
                 wordWrap: 78
             ),
             secrets: new SecretsConfig('secret-key'),
-            cliSecurity: new CliSecurityConfig(false, ['root', 'http'])
+            cliSecurity: new CliSecurityConfig(false, ['root', 'http']),
+            rateLimiting: new RateLimitingConfig(false, 'file', '/tmp/rate_limit_test.json', null, 6379, null, 0, 5, 300, 60, 60, 100, 60)
         );
     }
 }

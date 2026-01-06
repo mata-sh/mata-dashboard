@@ -15,6 +15,7 @@ use Watcher\Config\Dto\GeneralConfig;
 use Watcher\Config\Dto\LoggingConfig;
 use Watcher\Config\Dto\MailConfig;
 use Watcher\Config\Dto\PhpConfig;
+use Watcher\Config\Dto\RateLimitingConfig;
 use Watcher\Config\Dto\SecretsConfig;
 use Watcher\Config\Dto\SmtpDevConfig;
 use Watcher\Config\Dto\TemplateConfig;
@@ -61,6 +62,7 @@ final class EnvConfigLoader
             mail: $this->loadMailConfig(),
             secrets: $this->loadSecretsConfig(),
             cliSecurity: $this->loadCliSecurityConfig(),
+            rateLimiting: $this->loadRateLimitingConfig(),
         );
     }
 
@@ -196,6 +198,33 @@ final class EnvConfigLoader
         return new CliSecurityConfig(
             strictUserCheck: $strictUserCheck,
             allowedUsers: $allowedUsers,
+        );
+    }
+
+    private function loadRateLimitingConfig(): RateLimitingConfig
+    {
+        $enabled = $this->getEnvBool('RATE_LIMIT_ENABLED', true);
+        $storageType = strtolower($this->getEnv('RATE_LIMIT_STORAGE', 'file'));
+
+        // Validate storage type
+        if (!in_array($storageType, ['file', 'redis', 'apcu', 'session'], true)) {
+            $storageType = 'file';
+        }
+
+        return new RateLimitingConfig(
+            enabled: $enabled,
+            storageType: $storageType,
+            filePath: $this->getEnv('RATE_LIMIT_FILE_PATH'),
+            redisHost: $this->getEnv('RATE_LIMIT_REDIS_HOST', '127.0.0.1'),
+            redisPort: (int) $this->getEnv('RATE_LIMIT_REDIS_PORT', '6379'),
+            redisPassword: $this->getEnv('RATE_LIMIT_REDIS_PASSWORD'),
+            redisDatabase: (int) $this->getEnv('RATE_LIMIT_REDIS_DATABASE', '0'),
+            loginMaxRequests: (int) $this->getEnv('RATE_LIMIT_LOGIN_MAX_REQUESTS', '10'),
+            loginWindowSeconds: (int) $this->getEnv('RATE_LIMIT_LOGIN_WINDOW_SECONDS', '60'),
+            dashboardMaxRequests: (int) $this->getEnv('RATE_LIMIT_DASHBOARD_MAX_REQUESTS', '100'),
+            dashboardWindowSeconds: (int) $this->getEnv('RATE_LIMIT_DASHBOARD_WINDOW_SECONDS', '60'),
+            apiMaxRequests: (int) $this->getEnv('RATE_LIMIT_API_MAX_REQUESTS', '200'),
+            apiWindowSeconds: (int) $this->getEnv('RATE_LIMIT_API_WINDOW_SECONDS', '60'),
         );
     }
 

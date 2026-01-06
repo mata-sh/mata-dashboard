@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Watcher\Core;
 
 use Watcher\Config\Dto\ApplicationConfig;
+use Watcher\Services\Foundation\RateLimiterService;
 use Watcher\Utils\PathResolver;
 
 /**
@@ -15,17 +16,23 @@ class App
     public Auth $auth;
     public ApplicationConfig $config;
     public PathResolver $paths;
+    public ?RateLimiterService $rateLimiter = null;
     public string $baseUrl = '';
     private string $basePath = '';
 
     /**
      * Initialize application with authentication and path management.
      */
-    public function __construct(Auth $auth, ApplicationConfig $config, PathResolver $paths)
-    {
+    public function __construct(
+        Auth $auth,
+        ApplicationConfig $config,
+        PathResolver $paths,
+        ?RateLimiterService $rateLimiter = null
+    ) {
         $this->auth = $auth;
         $this->config = $config;
         $this->paths = $paths;
+        $this->rateLimiter = $rateLimiter;
         if (session_status() === PHP_SESSION_NONE) {
             session_start();
         }
@@ -125,49 +132,6 @@ class App
     public function user(): ?array
     {
         return $this->auth->getUser();
-    }
-
-    /**
-     * Check and apply rate limiting for requests.
-     *
-     * Implements file-based rate limiting with sliding window.
-     *
-     * @param string $key    Unique key for rate limiting (IP, user, endpoint)
-     * @param int    $limit  Maximum requests allowed
-     * @param int    $window Time window in seconds
-     *
-     * @return bool True if rate limit exceeded, false if within limits
-     */
-    public function isRateLimited(string $key, int $limit = 100, int $window = 60): bool
-    {
-        $dir = sys_get_temp_dir() . '/watcher_rate_limiting/';
-        if (!is_dir($dir)) {
-            // try {
-            mkdir($dir, 0777, true);
-            // } catch (Exception) {
-
-            // }
-        }
-
-        $file = $dir . md5($key) . '.log';
-        $now = time();
-        $timestamps = [];
-
-        if (file_exists($file)) {
-            $timestamps = file($file, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
-            $timestamps = $timestamps !== false ? array_map('intval', $timestamps) : [];
-            // Filter out old entries
-            $timestamps = array_filter($timestamps, fn ($t) => $t > ($now - $window));
-        }
-
-        if (count($timestamps) >= $limit) {
-            return true; // rate limit exceeded
-        }
-
-        $timestamps[] = $now;
-        file_put_contents($file, implode("\n", $timestamps));
-
-        return false;
     }
 
     /**
