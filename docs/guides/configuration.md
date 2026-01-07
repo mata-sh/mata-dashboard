@@ -9,6 +9,7 @@ MATA Dashboard uses several configuration files located in the `config/` directo
 | File | Purpose | Required |
 |------|---------|----------|
 | `config.env` | Main application settings | Yes |
+| `db.config.env` | Database configuration | Yes |
 | `mail.config.env` | Email/SMTP configuration | Yes |
 | `servers.json` | Monitored servers definition | Yes |
 | `users.json` | User authentication data | Yes |
@@ -16,7 +17,6 @@ MATA Dashboard uses several configuration files located in the `config/` directo
 | `intervals.json` | Event/alarm cooldown intervals | No (uses defaults) |
 | `ttl.json` | Cache TTL settings | No (uses defaults) |
 | `data_retention.json` | Metrics retention settings | No (uses defaults) |
-| `mysql.mata.env` | Alternative database config | No |
 
 ## Main Configuration (config.env)
 
@@ -24,14 +24,7 @@ The primary configuration file for application settings.
 
 ### Database Settings
 
-```bash
-# Database connection
-DB_HOST=localhost
-DB_PORT=3306
-DB_NAME=mata_dashboard
-DB_USER=mata_user
-DB_PASS=secure_password_here
-```
+Database settings live in `config/db.config.env`.
 
 ### Application Settings
 
