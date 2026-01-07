@@ -20,7 +20,6 @@ use Watcher\Config\Dto\SmtpDevConfig;
 use Watcher\Config\Dto\TemplateConfig;
 use Watcher\Models\Dto\EventRecordResult;
 use Watcher\Services\Foundation\AlertManager;
-use Watcher\Services\Foundation\Dto\Alert;
 use Watcher\Services\Foundation\Dto\EventContext;
 use Watcher\Services\Foundation\EventAggregatorService;
 use Watcher\Services\Foundation\EventManager;
@@ -57,7 +56,7 @@ final class EventManagerTest extends TestCase
         ];
     }
 
-    public function testHandleEventSkipsAlarmWhenAlarmsDisabled(): void
+    public function testHandleEventRecordsEventOnly(): void
     {
         $manager = $this->createManager(alarmsEnabled: false, eventsEnabled: true);
 
@@ -88,7 +87,7 @@ final class EventManagerTest extends TestCase
             message: 'Test message'
         );
 
-        $this->assertFalse($result['alarmSent']);
+        $this->assertSame(['eventRecorded' => true, 'eventId' => 1], $result);
     }
 
     public function testShouldCreateEventReturnsFalseWhenEventsDisabled(): void
@@ -156,7 +155,7 @@ final class EventManagerTest extends TestCase
         $this->assertFalse($result);
     }
 
-    public function testHandleEventSkipsWhenPoliciesBlockEverything(): void
+    public function testHandleEventSkipsWhenEventsDisabled(): void
     {
         $manager = $this->createManager(eventsEnabled: false, alarmsEnabled: false);
 
@@ -169,12 +168,12 @@ final class EventManagerTest extends TestCase
         );
 
         $this->assertSame(
-            ['eventRecorded' => false, 'alarmSent' => false, 'eventId' => null, 'alarmId' => null],
+            ['eventRecorded' => false, 'eventId' => null],
             $result
         );
     }
 
-    public function testHandleEventRecordsEventWithoutAlarmWhenOnlyEventsEnabled(): void
+    public function testHandleEventRecordsEventWithCooldownRespected(): void
     {
         $intervalsConfig = [
             'events' => ['min_event_interval_minutes' => ['_default' => 30]],
@@ -208,7 +207,7 @@ final class EventManagerTest extends TestCase
                 null,
                 null,
                 ['email'],
-                false,
+                false,  // isAlarm always false now
                 $expectedHash,
                 30
             )
@@ -231,113 +230,102 @@ final class EventManagerTest extends TestCase
         );
 
         $this->assertSame(
-            ['eventRecorded' => true, 'alarmSent' => false, 'eventId' => 123, 'alarmId' => null],
+            ['eventRecorded' => true, 'eventId' => 123],
             $result
         );
     }
 
-    public function testHandleEventRecordsEventAndSendsAlarm(): void
+    public function testShouldTriggerAlarmForEventReturnsTrueWhenThresholdMet(): void
     {
-        // Note: test_event threshold is alarm_threshold_event_count = 1
-        // So any events in the time window will trigger alarm evaluation
-        $intervalsConfig = [
-            'events' => ['min_event_interval_minutes' => ['_default' => 30]],
-            'alarms' => ['min_alarm_interval_minutes' => []],
-        ];
-        $manager = $this->createManager(eventsEnabled: true, alarmsEnabled: true, intervalsConfig: $intervalsConfig);
+        $manager = $this->createManager(alarmsEnabled: true);
 
         $this->eventAggregator
             ->expects($this->once())
             ->method('getLastEventsByContext')
+            ->with('test_event', null, 'srv-1', 'app-1', 720)
             ->willReturn([['id' => 1]])  // Return at least one event to meet threshold of 1
         ;
+
+        $result = $manager->shouldTriggerAlarmForEvent('test_event', 'srv-1', 'app-1');
+
+        $this->assertTrue($result);
+    }
+
+    public function testShouldTriggerAlarmForEventReturnsFalseWhenThresholdNotMet(): void
+    {
+        $manager = $this->createManager(alarmsEnabled: true);
+
+        $this->eventAggregator
+            ->expects($this->once())
+            ->method('getLastEventsByContext')
+            ->willReturn([])  // No events, threshold not met
+        ;
+
+        $result = $manager->shouldTriggerAlarmForEvent('test_event', 'srv-1', 'app-1');
+
+        $this->assertFalse($result);
+    }
+
+    public function testShouldTriggerAlarmForEventReturnsFalseWhenAlarmsDisabled(): void
+    {
+        $manager = $this->createManager(alarmsEnabled: false);
+
+        $this->eventAggregator->expects($this->never())->method('getLastEventsByContext');
+
+        $result = $manager->shouldTriggerAlarmForEvent('test_event', 'srv-1', 'app-1');
+
+        $this->assertFalse($result);
+    }
+
+    public function testFilterReadyChannelsReturnsAllWhenNoCooldowns(): void
+    {
+        $manager = $this->createManager();
 
         $this->eventRecorder
             ->expects($this->once())
             ->method('getActiveAlarmCooldowns')
-            ->with($this->anything())
-            ->willReturn([])  // No active cooldowns, all channels available
+            ->willReturn([])  // No active cooldowns
         ;
 
-        $context = ['detail' => 'context'];
-        $contextDto = EventContext::fromArray($context);
-        $contextJson = $contextDto->toJson();
-        $expectedHash = hash('sha256', json_encode([
+        $result = $manager->filterReadyChannels(
+            type: 'test_event',
+            requestedChannels: ['email', 'sms'],
+            server: 'srv-1',
+            app: 'app-1',
+            context: EventContext::empty()
+        );
+
+        $this->assertSame(['email', 'sms'], $result);
+    }
+
+    public function testFilterReadyChannelsFiltersOutCooledDownChannels(): void
+    {
+        $manager = $this->createManager();
+
+        $context = EventContext::empty();
+        $emailHash = hash('sha256', json_encode([
             'type' => 'test_event',
             'server' => 'srv-1',
             'app' => 'app-1',
-            'context' => $contextJson,
-            'channel' => '',  // Empty channel for events
+            'context' => $context->toJson(),
+            'channel' => 'email',
         ], JSON_UNESCAPED_SLASHES));
 
         $this->eventRecorder
             ->expects($this->once())
-            ->method('hasActiveCooldown')
-            ->with($expectedHash)
-            ->willReturn(false)
+            ->method('getActiveAlarmCooldowns')
+            ->willReturn([$emailHash])  // Email channel on cooldown
         ;
 
-        $this->eventRecorder
-            ->expects($this->once())
-            ->method('recordEvent')
-            ->with(
-                'test_event',
-                'Critical issue',
-                $contextJson,
-                'critical',
-                'srv-1',
-                'app-1',
-                ['email'],
-                true,
-                $expectedHash,
-                30
-            )
-            ->willReturn(new EventRecordResult(
-                eventId: 321,
-                alarmId: null,
-                serverId: 10,
-                appId: 20,
-                serverLabel: 'srv-1',
-                appLabel: 'app-1',
-                serverKey: 'srv-1'
-            ))
-        ;
-
-        $this->eventRecorder
-            ->expects($this->once())
-            ->method('upsertAlarmCooldown')
-        ;
-
-        $this->alertManager
-            ->expects($this->once())
-            ->method('handleAlert')
-            ->with(
-                $this->callback(function (Alert $alert) use ($contextJson) {
-                    return $alert->type === 'test_event'
-                        && $alert->message === 'Critical issue'
-                        && $alert->context === $contextJson
-                        && $alert->level->value === 'critical'
-                        && $alert->server === 'srv-1'
-                        && $alert->app === 'app-1'
-                        && $alert->channels === ['email'];
-                }),
-                $this->isInstanceOf(EventRecordResult::class)
-            )
-        ;
-
-        $result = $manager->handleEvent(
+        $result = $manager->filterReadyChannels(
             type: 'test_event',
-            message: 'Critical issue',
-            context: $context,
-            level: 'critical',
+            requestedChannels: ['email', 'sms'],
             server: 'srv-1',
-            app: 'app-1'
+            app: 'app-1',
+            context: $context
         );
 
-        $this->assertSame(
-            ['eventRecorded' => true, 'alarmSent' => true, 'eventId' => 321, 'alarmId' => null],
-            $result
-        );
+        $this->assertSame(['sms'], $result);
     }
 
     /**
@@ -349,8 +337,8 @@ final class EventManagerTest extends TestCase
         array $intervalsConfig = []
     ): EventManager {
         $manager = new EventManager(
-            $this->alertManager,
             $this->createConfig($alarmsEnabled, $eventsEnabled),
+            $this->alertManager,
             $this->eventRecorder,
             $this->eventAggregator
         );

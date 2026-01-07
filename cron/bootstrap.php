@@ -88,4 +88,12 @@ $tools = new Tools($paths->appPath);
 $transport = Transport::fromDsn($appConfig->mail->dsn);
 $mailer = new Mailer($transport);
 
-return compact('paths', 'log', 'cron', 'appConfig', 'db', 'tools', 'mailer');
+return compact(
+    'paths',
+    'log',
+    'cron',
+    'appConfig',
+    'db',
+    'tools',
+    'mailer'
+);

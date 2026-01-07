@@ -89,7 +89,7 @@ final class MonitoringSettingsLoader
                     type: 'servers_config_validation_error',
                     message: $error,
                     level: 'warning',
-                    isAlarm: false
+                    forceAlert: false
                 );
             }
         }
@@ -103,7 +103,7 @@ final class MonitoringSettingsLoader
                     type: 'settings_sync_error',
                     message: 'Failed to sync servers settings to database: ' . $e->getMessage(),
                     level: 'warning',
-                    isAlarm: false
+                    forceAlert: false
                 );
             }
         }
@@ -366,7 +366,7 @@ final class MonitoringSettingsLoader
                     . "(api_url: {$serverConfig['api_url']}). "
                     . 'Recommendation: Use HTTPS for production environments.',
                 level: 'warning',
-                isAlarm: false
+                forceAlert: false
             );
         }
 
@@ -660,7 +660,7 @@ final class MonitoringSettingsLoader
                 type: $type,
                 message: $message,
                 level: $level,
-                isAlarm: $throwOnError
+                forceAlert: $throwOnError
             );
 
             if ($throwOnError) {
@@ -682,7 +682,7 @@ final class MonitoringSettingsLoader
                 type: $type,
                 message: $message,
                 level: $level,
-                isAlarm: $throwOnError
+                forceAlert: $throwOnError
             );
 
             if ($throwOnError) {
@@ -705,7 +705,7 @@ final class MonitoringSettingsLoader
                 type: $type,
                 message: $message,
                 level: $level,
-                isAlarm: $throwOnError
+                forceAlert: $throwOnError
             );
 
             if ($throwOnError) {
@@ -724,22 +724,21 @@ final class MonitoringSettingsLoader
      * @param string $type    Event type identifier
      * @param string $message Human readable message
      * @param string $level   Severity level (info, warning, critical)
-     * @param bool   $isAlarm Whether to trigger alert delivery
      */
     private function recordConfigurationEvent(
         string $type,
         string $message,
         string $level = 'info',
-        bool $isAlarm = false
+        bool $forceAlert = false
     ): void {
         $recordResult = $this->eventRecorder->recordEvent(
             type: $type,
             message: $message,
             level: $level,
-            isAlarm: $isAlarm
+            forceAlert: $forceAlert
         );
 
-        if ($isAlarm && $this->alertManager !== null) {
+        if ($forceAlert && $this->alertManager !== null) {
             $alert = new Alert(
                 type: $type,
                 message: $message,

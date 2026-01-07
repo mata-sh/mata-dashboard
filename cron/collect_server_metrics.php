@@ -3,28 +3,18 @@
 
 declare(strict_types=1);
 
-use Watcher\Config\AlertLimitsLoader;
-use Watcher\Config\MonitoringSettingsLoader;
-use Watcher\Models\AlertQueueRepository;
-use Watcher\Models\ConfigSyncRepository;
-use Watcher\Models\EventRepository;
 use Watcher\Models\ServerMetrics\Dto\ServerMetricRawSnapshot;
 use Watcher\Models\ServerMetrics\ServerMetricsRepository;
 use Watcher\Services\Collect\ServerDataCollector;
-use Watcher\Services\Foundation\AlertManager;
 use Watcher\Services\Foundation\ApiClient;
 use Watcher\Services\Foundation\CacheManager;
 use Watcher\Services\Foundation\DataTransformers\ApiResponseTransformer;
-use Watcher\Services\Foundation\EventAggregatorService;
-use Watcher\Services\Foundation\EventManager;
-use Watcher\Services\Foundation\EventRecorderService;
-use Watcher\Services\Foundation\IdResolver;
 use Watcher\Services\Monitor\ServerMetricsHealthMonitor;
 use Watcher\Services\Monitor\ServerMonitor;
-use Watcher\Utils\ChannelLockManager;
 use Watcher\Utils\TypeConverter;
 
 extract(require_once __DIR__ . '/bootstrap.php');
+extract(require_once __DIR__ . '/bootstrap_events.php');
 
 if (!$cron->acquireLock()) {
     exit("Already running.\n");
@@ -35,37 +25,7 @@ $cron->touchHeartbeat();
 $cron->log('Started');
 
 try {
-    // --- Repositories ---
-    $alertQueueRepository = new AlertQueueRepository($db);
-    $configSyncRepository = new ConfigSyncRepository($db);
-
-    // --- Limits & Locking ---
-    $lockManager = new ChannelLockManager($paths->tempPath . '/alert_locks', $log);
-    $limitsLoader = new AlertLimitsLoader($log);
-    $alertLimits = $limitsLoader->load($paths->appPath . '/config/limits.json');
-
-    // --- Managers ---
-    $alertManager = new AlertManager(
-        $alertQueueRepository,
-        $alertLimits,
-        $lockManager,
-        $log
-    );
-
-    // --- Resolvers & Events ---
-    $idResolver = new IdResolver($configSyncRepository);
-
-    $eventManager = new EventManager($alertManager, $appConfig)
-        ->setEventRecorder(new EventRecorderService($db, $idResolver))
-        ->setEventAggregator(new EventAggregatorService(new EventRepository($db), $idResolver));
-
-    // --- Monitoring settings ---
-    $monitoringSettingsLoader = new MonitoringSettingsLoader($eventManager->recorder, $alertManager);
-    $monitoringSettings = $monitoringSettingsLoader->loadAllConfigs($paths->appPath . '/config');
-    $eventManager->setMonitoringSettings($monitoringSettings);
-
-    // --- Final sync after configs are known ---
-    $idResolver->refreshFromRepository($monitoringSettings['servers'] ?? []);
+    // All event/alert infrastructure now loaded via bootstrap_events.php
     $dataRetentionConfig = $monitoringSettings['data_retention'] ?? [];
 
     $cacheDir = $paths->tempPath . '/cache/server-metrics';

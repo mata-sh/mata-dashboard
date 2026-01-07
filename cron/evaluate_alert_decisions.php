@@ -4,11 +4,10 @@
 declare(strict_types=1);
 
 use GuzzleHttp\Client;
-use Watcher\Models\AlertQueueRepository;
-use Watcher\Models\EventRepository;
-use Watcher\Services\Foundation\EventAggregatorService;
+use Watcher\Services\Foundation\Dto\EventContext;
 
 extract(require_once __DIR__ . '/bootstrap.php');
+extract(require_once __DIR__ . '/bootstrap_events.php');
 
 if (!$cron->acquireLock()) {
     exit("Already running.\n");
@@ -19,10 +18,7 @@ $cron->touchHeartbeat();
 $cron->log('Started');
 
 try {
-    // --- Repositories ---
-    $queueRepository = new AlertQueueRepository($db);
-    $eventRepository = new EventRepository($db);
-    $eventAggregator = new EventAggregatorService($eventRepository);
+    // All event/alert infrastructure now loaded via bootstrap_events.php
 
     // --- OPA Client ---
     $opaConfig = resolveOpaConfig();
@@ -43,10 +39,29 @@ try {
         'enrich_requested' => 0,
     ];
 
-    $events = $eventAggregator->getAlertDecisionCandidates($opaConfig['batch_limit']);
+    // Fetch non-critical events (warning, info) - critical events handled by separate cronjob
+    $events = $eventAggregator->getAlertDecisionCandidates($opaConfig['batch_limit'], ['warning', 'info']);
     foreach ($events as $event) {
         ++$stats['considered'];
         $cron->touchHeartbeat();
+
+        // Evaluate threshold: check if event count meets alarm trigger criteria
+        $shouldAlarm = $eventManager->shouldTriggerAlarmForEvent(
+            type: $event['type'],
+            server: $event['server_id'],
+            app: $event['application_id']
+        );
+
+        if (!$shouldAlarm) {
+            $eventAggregator->markEventEvaluated((int) $event['id']);
+            ++$stats['skipped'];
+            $log->debug('alert_decision.threshold_not_met', [
+                'event_id' => $event['id'] ?? null,
+                'type' => $event['type'] ?? null,
+            ]);
+
+            continue;
+        }
 
         try {
             $decisionResponse = requestOpaDecision($client, $opaConfig['decision_path'], $event);
@@ -84,12 +99,48 @@ try {
             ]);
         }
 
+        // Filter channels based on alarm cooldowns
+        $eventContext = EventContext::fromArray(json_decode($event['context'] ?? '{}', true) ?: []);
+        $readyChannels = $eventManager->filterReadyChannels(
+            type: $event['type'],
+            requestedChannels: $decision['channels'],
+            server: $event['server_id'],
+            app: $event['application_id'],
+            context: $eventContext
+        );
+
+        if (empty($readyChannels)) {
+            $eventAggregator->markEventEvaluated((int) $event['id']);
+            ++$stats['skipped'];
+            $log->debug('alert_decision.all_channels_on_cooldown', [
+                'event_id' => $event['id'] ?? null,
+                'requested_channels' => $decision['channels'],
+            ]);
+
+            continue;
+        }
+
         try {
             $db->beginTransaction();
-            foreach ($decision['channels'] as $channel) {
-                $queueRepository->enqueue((int) $event['id'], $channel, $decision['priority']);
+
+            // Enqueue alerts for ready channels only
+            foreach ($readyChannels as $channel) {
+                $alertQueueRepository->enqueue((int) $event['id'], $channel, $decision['priority']);
+
+                // Set alarm cooldown for this channel
+                $alarmHash = $eventManager->generateCooldownHash(
+                    type: $event['type'],
+                    server: $event['server_id'],
+                    app: $event['application_id'],
+                    context: $eventContext,
+                    channel: $channel
+                );
+                $alarmCooldownMinutes = $eventManager->getAlarmIntervalMinutes($event['type']);
+                $eventRecorder->upsertAlarmCooldown($alarmHash, $alarmCooldownMinutes);
+
                 ++$stats['enqueued'];
             }
+
             $eventAggregator->markEventEvaluated((int) $event['id']);
             $db->commit();
         } catch (Throwable $exception) {

@@ -45,7 +45,6 @@ final class CreateDashboardLogTables extends AbstractMigration
             ])
             ->addColumn('level', 'enum', ['values' => ['info', 'warning', 'error', 'critical'], 'null' => false])
             ->addColumn('datetime', 'datetime', ['null' => false])
-            ->addColumn('alarm_channel', 'enum', ['values' => ['email', 'log', 'sms'], 'null' => true])
             ->addColumn('seen_at', 'datetime', ['null' => true])
             ->addIndex(['server_id', 'type', 'datetime'], ['name' => 'idx_lookup'])
             ->addIndex(['server_id', 'application_id', 'datetime'], ['name' => 'idx_server_app_time'])
@@ -53,7 +52,6 @@ final class CreateDashboardLogTables extends AbstractMigration
             ->addIndex(['application_id'], ['name' => 'idx_application_id'])
             ->addIndex(['datetime'], ['name' => 'idx_datetime'])
             ->addIndex(['seen_at'], ['name' => 'idx_seen_at'])
-            ->addIndex(['alarm_channel'], ['name' => 'idx_alarm_channel'])
             ->addIndex(['level'], ['name' => 'idx_level'])
             // ->addIndex(['alarm_id'], ['name' => 'fk_alarm_id'])
             // ->addForeignKey('alarm_id', 'dashboard_alarm_log', 'id', [

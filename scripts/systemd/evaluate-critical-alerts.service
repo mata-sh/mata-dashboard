@@ -1,0 +1,12 @@
+[Unit]
+Description=Mata Dashboard - Evaluate Critical Alerts
+After=network.target mysql.service
+
+[Service]
+Type=oneshot
+User=www-data
+Group=www-data
+WorkingDirectory=/home/lman/Code/xarc/mata-dashboard
+ExecStart=/usr/bin/php8.2 /home/lman/Code/xarc/mata-dashboard/cron/evaluate_critical_alerts.php
+StandardOutput=journal
+StandardError=journal

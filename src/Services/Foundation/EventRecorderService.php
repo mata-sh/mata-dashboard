@@ -9,7 +9,7 @@ use Watcher\Models\Dto\EventRecordResult;
 use Watcher\Models\EventRepository;
 
 /**
- * Event logging and alarm management service.
+ * Event logging service.
  *
  * Handles event persistence and cooldown tracking:
  * - Event logging to database with context information
@@ -43,8 +43,6 @@ class EventRecorderService
      * @param string          $level           Severity level: info, warning, critical
      * @param null|int|string $server          Server identifier (name or ID)
      * @param null|int|string $app             Application identifier (code or ID)
-     * @param array<string>   $channels        Notification/alarm channels
-     * @param bool            $isAlarm         Whether to persist an alarm entry alongside the event
      * @param null|string     $cooldownHash    Deterministic hash used to manage event cooldowns
      * @param int             $cooldownMinutes Cooldown interval in minutes
      *
@@ -57,8 +55,7 @@ class EventRecorderService
         string $level = 'info',
         int|string|null $server = null,
         int|string|null $app = null,
-        array $channels = [],
-        bool $isAlarm = false,
+        bool $forceAlert = false,
         ?string $cooldownHash = null,
         int $cooldownMinutes = 0,
     ): EventRecordResult {
@@ -71,8 +68,6 @@ class EventRecorderService
         $appLabel = $applicationContext['name'] ?? (is_scalar($app) ? (string) $app : null);
         $serverKey = is_string($server) ? trim($server) : ($serverLabel ?? null);
 
-        $primaryChannel = $this->resolvePrimaryAlarmChannel($channels);
-
         $eventId = $this->repository->insertEvent(
             type: $type,
             message: $message,
@@ -80,12 +75,12 @@ class EventRecorderService
             context: $context,
             serverId: $serverId,
             applicationId: $applicationId,
-            primaryChannel: $primaryChannel
         );
 
         if ($cooldownHash !== null && $cooldownHash !== '') {
             $this->repository->upsertCooldown($cooldownHash, $cooldownMinutes);
         }
+
 
         return new EventRecordResult(
             eventId: $eventId,
@@ -96,27 +91,7 @@ class EventRecorderService
             appLabel: $appLabel,
             serverKey: $serverKey
         );
-    }
 
-    /**
-     * Determine which channel is persisted alongside the event.
-     *
-     * Only legacy channels (email/log/sms) are stored; others return null.
-     *
-     * @param array<int,string> $channels
-     */
-    private function resolvePrimaryAlarmChannel(array $channels): ?string
-    {
-        $legacyChannels = ['email', 'log', 'sms'];
-
-        foreach ($channels as $channel) {
-            $normalized = strtolower(trim((string) $channel));
-            if (in_array($normalized, $legacyChannels, true)) {
-                return $normalized;
-            }
-        }
-
-        return null;
     }
 
     public function hasActiveCooldown(string $cooldownHash): bool

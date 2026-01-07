@@ -7,13 +7,12 @@ namespace Watcher\Services\Foundation;
 use LogicException;
 use PDOException;
 use Watcher\Config\Dto\ApplicationConfig;
-use Watcher\Models\Dto\EventRecordResult;
 use Watcher\Services\Foundation\Dto\Alert;
 use Watcher\Services\Foundation\Dto\AlertLevel;
 use Watcher\Services\Foundation\Dto\EventContext;
 
 /**
- * Monitoring event and alert management service.
+ * Monitoring events.
  *
  * PRIMARY FACADE for event operations - use this in most cases.
  *
@@ -82,6 +81,9 @@ class EventManager
     /** @var array<string,int> Alarm type to interval minutes mapping */
     private array $alarmIntervals = [];
 
+    private ?AlertManager $alertManager;
+    private ApplicationConfig $appConfig;
+
     /**
      * Event recorder for persistence and cooldown tracking.
      * Public property for direct access when needed (rare - prefer handleEvent).
@@ -93,9 +95,6 @@ class EventManager
      * Public property for direct read access (common usage pattern).
      */
     public ?EventAggregatorService $aggregator = null;
-
-    private AlertManager $alertManager;
-    private ApplicationConfig $appConfig;
 
     /**
      * Initialize event manager with optional dependencies.
@@ -111,8 +110,8 @@ class EventManager
      * @param null|EventAggregatorService $eventAggregator Optional event aggregator (can be set later via setEventAggregator)
      */
     public function __construct(
-        AlertManager $alertManager,
         ApplicationConfig $appConfig,
+        ?AlertManager $alertManager = null,
         ?EventRecorderService $eventRecorder = null,
         ?EventAggregatorService $eventAggregator = null
     ) {
@@ -272,17 +271,19 @@ class EventManager
     }
 
     /**
-     * Evaluate policy, send alerts, and persist events in a single call.
+     * Record an event with cooldown deduplication.
      *
-     * @param string                  $type     Event type identifier
-     * @param string                  $message  Human readable message
-     * @param array<int|string,mixed> $context  Additional context payload
-     * @param string                  $level    Severity level
-     * @param null|int|string         $server   Server context (name or ID)
-     * @param null|int|string         $app      Application context (code or ID)
-     * @param array<string>           $channels Notification channels (e.g., email, SMS)
+     * Simplified version that only handles event persistence.
      *
-     * @return array{eventRecorded: bool, alarmSent: bool, eventId:?int, alarmId:?int}
+     * @param string                  $type       Event type identifier
+     * @param string                  $message    Human readable message
+     * @param array<int|string,mixed> $context    Additional context payload
+     * @param string                  $level      Severity level (info, warning, critical)
+     * @param null|int|string         $server     Server context (name or ID)
+     * @param null|int|string         $app        Application context (code or ID)
+     * @param mixed                   $forceAlert
+     *
+     * @return array{eventRecorded: bool, eventId:?int}
      */
     public function handleEvent(
         string $type,
@@ -291,7 +292,7 @@ class EventManager
         string $level = 'info',
         int|string|null $server = null,
         int|string|null $app = null,
-        array $channels = ['email']
+        $forceAlert = false
     ): array {
         $eventContext = EventContext::fromArray($context);
 
@@ -303,44 +304,12 @@ class EventManager
             cooldownMinutes: $cooldownMinutes
         );
 
-        $isAlarmReady = $this->isAlarmReady($type, $message, $server, $app);
-
-        $readyChannels = [];
-        if ($isAlarmReady) {
-            $readyChannels = $this->getReadyChannels(
-                type: $type,
-                requestedChannels: $channels,
-                server: $server,
-                app: $app,
-                context: $eventContext
-            );
-        }
-
-        $shouldTriggerAlarm = !empty($readyChannels);
-
-        if (!$shouldCreateEvent && !$shouldTriggerAlarm) {
+        if (!$shouldCreateEvent) {
             return [
                 'eventRecorded' => false,
-                'alarmSent' => false,
                 'eventId' => null,
-                'alarmId' => null,
             ];
         }
-
-        $contextPayload = $eventContext->toJson();
-
-        $fallbackServer = is_scalar($server) ? (string) $server : null;
-        $fallbackApp = is_scalar($app) ? (string) $app : null;
-        $eventRecordResult = new EventRecordResult(
-            eventId: 0,
-            alarmId: null,
-            serverId: null,
-            appId: null,
-            serverLabel: $fallbackServer,
-            appLabel: $fallbackApp,
-            serverKey: $fallbackServer
-        );
-        $eventRecorded = false;
 
         if ($this->recorder === null) {
             throw new LogicException(
@@ -352,73 +321,55 @@ class EventManager
             $eventRecordResult = $this->recorder->recordEvent(
                 type: $type,
                 message: $message,
-                context: $contextPayload,
+                context: $eventContext->toJson(),
                 level: $level,
                 server: $server,
                 app: $app,
-                channels: $channels,
-                isAlarm: $shouldTriggerAlarm,
                 cooldownHash: $cooldownHash,
                 cooldownMinutes: $cooldownMinutes
             );
-            $eventRecorded = $eventRecordResult->wasRecorded();
-        } catch (PDOException $exception) {
-            // Persistence unavailable; rely on filesystem fallback in AlertManager.
-        }
 
-        if ($shouldTriggerAlarm) {
-            // Set cooldowns for all channels we're about to alert
-            $alarmCooldownMinutes = $this->getAlarmIntervalMinutes($type);
-            foreach ($readyChannels as $channel) {
-                $alarmHash = $this->generateCooldownHash($type, $server, $app, $eventContext, $channel);
-
-                try {
-                    $this->recorder->upsertAlarmCooldown($alarmHash, $alarmCooldownMinutes);
-                } catch (PDOException) {
-                    // Ignore - database unavailable, cooldowns will be re-established when DB returns.
-                }
+            if ($forceAlert && $this->alertManager !== null) {
+                $alert = new Alert(
+                    type: $type,
+                    message: $message,
+                    level: AlertLevel::fromString($level),
+                    server: $eventRecordResult->serverLabel,
+                    app: $eventRecordResult->appLabel,
+                    channels: ['email']
+                );
+                $this->alertManager->handleAlert($alert, $eventRecordResult);
             }
 
-            // Send alert only to ready channels
-            $alert = new Alert(
-                type: $type,
-                message: $message,
-                context: $contextPayload ?: null,
-                level: AlertLevel::fromString($level),
-                server: $eventRecordResult->serverLabel,
-                app: $eventRecordResult->appLabel,
-                channels: $readyChannels  // Only non-cooled-down channels
-            );
-            // todo: might throw an excepitotn just like the other outcome methods
-            $this->alertManager->handleAlert($alert, $eventRecordResult);
+            return [
+                'eventRecorded' => $eventRecordResult->wasRecorded(),
+                'eventId' => $eventRecordResult->eventId > 0 ? $eventRecordResult->eventId : null,
+            ];
+        } catch (PDOException $exception) {
+            return [
+                'eventRecorded' => false,
+                'eventId' => null,
+            ];
         }
-
-        return [
-            'eventRecorded' => $eventRecorded,
-            // todo: shouldtrigger alarm is not the same as alarm sent
-            'alarmSent' => $shouldTriggerAlarm,
-            'eventId' => $eventRecordResult->eventId > 0 ? $eventRecordResult->eventId : null,
-            'alarmId' => null,
-        ];
     }
 
     /**
-     * Check if alarm is ready to be triggered based on global settings and thresholds.
+     * Determine if an event should trigger an alarm based on threshold configuration.
      *
-     * First stage of alarm determination - checks:
+     * Evaluates alarm readiness by checking:
      * - Global alarm enablement
-     * - Event count thresholds (if configured)
+     * - Event count thresholds (if configured for this event type)
      *
-     * @param string          $type    Alarm type identifier
-     * @param string          $message Alarm message
-     * @param null|int|string $server  Server context
-     * @param null|int|string $app     Application context
+     * This method is public to support both inline and cronjob-based alarm evaluation.
      *
-     * @return bool True if alarm should proceed to channel evaluation
+     * @param string          $type   Event type identifier
+     * @param null|int|string $server Server context
+     * @param null|int|string $app    Application context
+     *
+     * @return bool True if alarm should be triggered
      */
-    private function isAlarmReady(
+    public function shouldTriggerAlarmForEvent(
         string $type,
-        string $message,
         int|string|null $server,
         int|string|null $app
     ): bool {
@@ -443,7 +394,7 @@ class EventManager
         // Check recent events to see if threshold met
         if ($this->aggregator === null) {
             throw new LogicException(
-                'EventAggregator not initialized. Call setEventAggregator() before using handleEvent() with alarm thresholds.'
+                'EventAggregator not initialized. Call setEventAggregator() before using shouldTriggerAlarmForEvent().'
             );
         }
 
@@ -459,10 +410,10 @@ class EventManager
     }
 
     /**
-     * Get channels that are ready to receive alarms (not on cooldown).
+     * Filter channels to only those ready to receive alarms (not on cooldown).
      *
-     * Second stage of alarm determination - checks per-channel cooldowns.
-     * Returns only channels that are not currently on cooldown.
+     * Performs per-channel cooldown checking and returns only available channels.
+     * This method is public to support both inline and cronjob-based alarm evaluation.
      *
      * @param string          $type              Alarm type identifier
      * @param array<string>   $requestedChannels Channels to check (e.g., ['email', 'sms'])
@@ -472,7 +423,7 @@ class EventManager
      *
      * @return array<string> Filtered array of ready (non-cooled-down) channels
      */
-    private function getReadyChannels(
+    public function filterReadyChannels(
         string $type,
         array $requestedChannels,
         int|string|null $server,
@@ -554,11 +505,13 @@ class EventManager
      * 3. User-configured default from intervals.json '_default' key
      * 4. Hardcoded fallback (1440 minutes / 24 hours)
      *
+     * This method is public to support cronjob-based alarm evaluation.
+     *
      * @param string $type Alarm type identifier
      *
      * @return int Cooldown interval in minutes
      */
-    private function getAlarmIntervalMinutes(string $type): int
+    public function getAlarmIntervalMinutes(string $type): int
     {
         // 1. Check alarm-specific configuration from intervals.json
         if (isset($this->alarmIntervals[$type])) {
@@ -581,6 +534,8 @@ class EventManager
      * Events use empty channel string, alarms include the specific channel name.
      * Hash format: SHA256(type|server|app|context|channel)
      *
+     * This method is public to support cronjob-based alarm evaluation.
+     *
      * @param string          $type    Event/alarm type identifier
      * @param null|int|string $server  Server context
      * @param null|int|string $app     Application context
@@ -589,7 +544,7 @@ class EventManager
      *
      * @return string SHA256 hash for cooldown lookup
      */
-    private function generateCooldownHash(
+    public function generateCooldownHash(
         string $type,
         int|string|null $server,
         int|string|null $app,

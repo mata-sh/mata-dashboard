@@ -27,13 +27,12 @@ class EventRepository
         string $context,
         ?int $serverId,
         ?int $applicationId,
-        ?string $primaryChannel
     ): int {
         $sql = <<<'SQL'
             INSERT INTO dashboard_event_log
-                (`type`, `message`, `level`, `context`, `server_id`, `application_id`, `datetime`, `alarm_channel`)
+                (`type`, `message`, `level`, `context`, `server_id`, `application_id`, `datetime`)
             VALUES
-                (?, ?, ?, ?, ?, ?, NOW(), ?)
+                (?, ?, ?, ?, ?, ?, NOW())
         SQL;
 
         $result = $this->db->runQuery($sql, [
@@ -43,7 +42,6 @@ class EventRepository
             $context,
             $serverId,
             $applicationId,
-            $primaryChannel,
         ]);
 
         return is_int($result) ? $result : 0;
@@ -307,11 +305,26 @@ class EventRepository
     }
 
     /**
+     * Get unevaluated events for alarm decision processing.
+     *
+     * @param int                       $limit       Maximum number of candidates to fetch
+     * @param null|array<string>|string $levelFilter Filter by severity level(s) (critical, warning, info)
+     *
      * @return array<int,array<string,mixed>>
      */
-    public function getAlertDecisionCandidates(int $limit = 100): array
+    public function getAlertDecisionCandidates(int $limit = 100, array|string|null $levelFilter = null): array
     {
         $limit = max(1, (int) $limit);
+
+        $params = [];
+        $levelClause = '';
+
+        if ($levelFilter !== null) {
+            $levels = is_array($levelFilter) ? $levelFilter : [$levelFilter];
+            $placeholders = implode(',', array_fill(0, count($levels), '?'));
+            $levelClause = " AND e.level IN ({$placeholders})";
+            $params = $levels;
+        }
 
         $sql = <<<SQL
             SELECT
@@ -333,11 +346,12 @@ class EventRepository
             LEFT JOIN applications AS a ON e.application_id = a.id
             WHERE q.id IS NULL
               AND e.seen_at IS NULL
+              {$levelClause}
             ORDER BY e.datetime ASC
             LIMIT {$limit}
         SQL;
 
-        $result = $this->db->runQuery($sql);
+        $result = $this->db->runQuery($sql, $params);
 
         return is_array($result) ? $result : [];
     }

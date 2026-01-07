@@ -3,18 +3,11 @@
 
 declare(strict_types=1);
 
-use Watcher\Config\AlertLimitsLoader;
-use Watcher\Config\MonitoringSettingsLoader;
-use Watcher\Models\AlertQueueRepository;
-use Watcher\Models\ConfigSyncRepository;
-use Watcher\Services\Foundation\EventRecorderService;
 use Watcher\Models\ServerMetrics\ServerMetricsAggregator;
 use Watcher\Models\ServerMetrics\ServerMetricsRepository;
-use Watcher\Services\Foundation\AlertManager;
-use Watcher\Services\Foundation\IdResolver;
-use Watcher\Utils\ChannelLockManager;
 
 extract(require_once __DIR__ . '/bootstrap.php');
+extract(require_once __DIR__ . '/bootstrap_events.php');
 
 if (!$cron->acquireLock()) {
     exit("Already running.\n");
@@ -25,34 +18,7 @@ $cron->touchHeartbeat();
 $cron->log('Started');
 
 try {
-    // --- Repositories ---
-    $alertQueueRepository = new AlertQueueRepository($db);
-    $configSyncRepository = new ConfigSyncRepository($db);
-
-    // --- Resolvers & Recorders ---
-    $idResolver = new IdResolver($configSyncRepository);
-    $eventRecorder = new EventRecorderService($db, $idResolver);
-
-    // --- Limits & Locking ---
-    $lockManager = new ChannelLockManager($paths->tempPath . '/alert_locks', $log);
-    $limitsLoader = new AlertLimitsLoader($log);
-    $alertLimits = $limitsLoader->load($paths->appPath . '/config/limits.json');
-
-    // --- Managers ---
-    $alertManager = new AlertManager(
-        $alertQueueRepository,
-        $alertLimits,
-        $lockManager,
-        $log
-    );
-
-    // --- Monitoring settings ---
-    $monitoringSettingsLoader = new MonitoringSettingsLoader($eventRecorder, $alertManager);
-    $monitoringSettings = $monitoringSettingsLoader->loadAllConfigs($paths->appPath . '/config');
-
-    // --- Final sync after configs are known ---
-    $idResolver->refreshFromRepository($monitoringSettings['servers'] ?? []);
-
+    // All event/alert infrastructure now loaded via bootstrap_events.php
     $dataRetentionConfig = $monitoringSettings['data_retention'] ?? [];
     $hourlyLagMinutes = (int) max(0, $dataRetentionConfig['aggregation']['hourly']['lag_minutes'] ?? 5);
     $catchUpHours = (int) max(1, $dataRetentionConfig['aggregation']['hourly']['catch_up_hours'] ?? 24);

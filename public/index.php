@@ -261,7 +261,7 @@ $limitsConfig = $limitsLoader->load($paths->appPath . '/config/limits.json');
 $alertManager = new AlertManager($queueRepository, $limitsConfig, $lockManager, $log);
 
 // --- Event Manager ---
-$eventManager = new EventManager($alertManager, $appConfig)
+$eventManager = new EventManager($appConfig, $alertManager)
     ->setEventRecorder(new EventRecorderService($db, $idResolver))
     ->setEventAggregator(new EventAggregatorService(new EventRepository($db), $idResolver));
 

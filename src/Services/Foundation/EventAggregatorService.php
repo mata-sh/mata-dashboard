@@ -21,11 +21,16 @@ class EventAggregatorService
     }
 
     /**
+     * Get unevaluated events for alarm decision processing.
+     *
+     * @param int                       $limit       Maximum number of candidates to fetch
+     * @param null|array<string>|string $levelFilter Filter by severity level(s) (critical, warning, info)
+     *
      * @return array<int,array<string,mixed>>
      */
-    public function getAlertDecisionCandidates(int $limit = 100): array
+    public function getAlertDecisionCandidates(int $limit = 100, array|string|null $levelFilter = null): array
     {
-        return $this->repository->getAlertDecisionCandidates($limit);
+        return $this->repository->getAlertDecisionCandidates($limit, $levelFilter);
     }
 
     public function markEventEvaluated(int $eventId): void
