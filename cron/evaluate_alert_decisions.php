@@ -46,7 +46,7 @@ try {
         $cron->touchHeartbeat();
 
         // Evaluate threshold: check if event count meets alarm trigger criteria
-        $shouldAlarm = $eventManager->shouldTriggerAlarmForEvent(
+        $shouldAlarm = $alertEvaluator->shouldTriggerAlarmForEvent(
             type: $event['type'],
             server: $event['server_id'],
             app: $event['application_id']
@@ -101,7 +101,7 @@ try {
 
         // Filter channels based on alarm cooldowns
         $eventContext = EventContext::fromArray(json_decode($event['context'] ?? '{}', true) ?: []);
-        $readyChannels = $eventManager->filterReadyChannels(
+        $readyChannels = $alertEvaluator->filterReadyChannels(
             type: $event['type'],
             requestedChannels: $decision['channels'],
             server: $event['server_id'],
@@ -128,14 +128,14 @@ try {
                 $alertQueueRepository->enqueue((int) $event['id'], $channel, $decision['priority']);
 
                 // Set alarm cooldown for this channel
-                $alarmHash = $eventManager->generateCooldownHash(
+                $alarmHash = $alertEvaluator->generateCooldownHash(
                     type: $event['type'],
                     server: $event['server_id'],
                     app: $event['application_id'],
                     context: $eventContext,
                     channel: $channel
                 );
-                $alarmCooldownMinutes = $eventManager->getAlarmIntervalMinutes($event['type']);
+                $alarmCooldownMinutes = $alertEvaluator->getAlarmIntervalMinutes($event['type']);
                 $eventRecorder->upsertAlarmCooldown($alarmHash, $alarmCooldownMinutes);
 
                 ++$stats['enqueued'];

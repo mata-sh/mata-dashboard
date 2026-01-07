@@ -18,9 +18,9 @@ use Watcher\Services\Foundation\Dto\EventContext;
  *
  * ## Architecture & Usage Patterns
  *
- * EventManager is the main entry point providing:
- * - Business logic (threshold evaluation, alarm policies, cooldown management)
- * - Orchestrated writes via handleEvent() with full policy evaluation
+ * EventManager provides:
+ * - Event threshold evaluation (server metrics, app metrics)
+ * - Event creation with cooldown deduplication via handleEvent()
  * - Direct access to read/write operations via public properties
  *
  * ### Recommended Usage:
@@ -51,10 +51,13 @@ use Watcher\Services\Foundation\Dto\EventContext;
  * ```
  *
  * ### Component Responsibilities:
- * - **EventManager** (this): Business logic facade, threshold evaluation, policy orchestration
+ * - **EventManager** (this): Event business logic, threshold evaluation, event cooldown management
+ * - **AlertEvaluationService**: Alarm decision logic, alarm cooldown management, channel filtering
  * - **EventRecorderService**: Low-level event/alarm persistence and cooldown tracking
  * - **EventAggregatorService**: Event/alarm querying, reporting, cleanup operations
+ * - **AlertManager**: Alert queueing and priority resolution
  *
+ * @see AlertEvaluationService For alarm decision logic
  * @see EventRecorderService For direct event persistence (rarely used directly)
  * @see EventAggregatorService For read-only event querying
  */
@@ -66,20 +69,14 @@ class EventManager
      */
     private const DEFAULT_EVENT_INTERVAL_MINUTES = 30;
 
-    /** @var array<string,mixed> */
+    /** @var array<string,mixed> Server metric thresholds */
     private array $serverDataThresholds = [];
 
-    /** @var array<string,mixed> */
+    /** @var array<string,mixed> Application metric thresholds */
     private array $appDataThresholds = [];
-
-    /** @var array<string,mixed> */
-    private array $alarmThresholds = [];
 
     /** @var array<string,int> Event type to interval minutes mapping */
     private array $eventIntervals = [];
-
-    /** @var array<string,int> Alarm type to interval minutes mapping */
-    private array $alarmIntervals = [];
 
     private ?AlertManager $alertManager;
     private ApplicationConfig $appConfig;
@@ -152,7 +149,7 @@ class EventManager
     /**
      * Set monitoring settings (fluent interface).
      *
-     * Updates thresholds and intervals from loaded monitoring configuration.
+     * Updates event thresholds and intervals from loaded monitoring configuration.
      *
      * @param array<string,mixed> $settings Monitoring settings containing 'thresholds' and 'intervals' keys
      *
@@ -165,9 +162,7 @@ class EventManager
 
         $this->serverDataThresholds = $thresholdsConfig['server_data'] ?? [];
         $this->appDataThresholds = $thresholdsConfig['app_data'] ?? [];
-        $this->alarmThresholds = $thresholdsConfig['alarms'] ?? [];
         $this->eventIntervals = $intervalsConfig['events']['min_event_interval_minutes'] ?? [];
-        $this->alarmIntervals = $intervalsConfig['alarms']['min_alarm_interval_minutes'] ?? [];
 
         return $this;
     }
@@ -218,18 +213,6 @@ class EventManager
         }
 
         return $result;
-    }
-
-    /**
-     * Get alarm configuration for a specific event type.
-     *
-     * @param string $type Event type for threshold lookup
-     *
-     * @return null|array<string,mixed> Alarm configuration or null if not found
-     */
-    public function getAlarmConfig(string $type): ?array
-    {
-        return $this->alarmThresholds[$type] ?? null;
     }
 
     /**
@@ -354,127 +337,12 @@ class EventManager
     }
 
     /**
-     * Determine if an event should trigger an alarm based on threshold configuration.
-     *
-     * Evaluates alarm readiness by checking:
-     * - Global alarm enablement
-     * - Event count thresholds (if configured for this event type)
-     *
-     * This method is public to support both inline and cronjob-based alarm evaluation.
-     *
-     * @param string          $type   Event type identifier
-     * @param null|int|string $server Server context
-     * @param null|int|string $app    Application context
-     *
-     * @return bool True if alarm should be triggered
-     */
-    public function shouldTriggerAlarmForEvent(
-        string $type,
-        int|string|null $server,
-        int|string|null $app
-    ): bool {
-        if (!$this->appConfig->general->alarmsEnabled) {
-            return false;
-        }
-
-        $config = $this->alarmThresholds[$type] ?? null;
-        if (!$config) {
-            return true;  // No config = always evaluate
-        }
-
-        $eventCountThreshold = (int) ($config['alarm_threshold_event_count'] ?? 1);
-
-        // If threshold is 0 or negative, always trigger
-        if ($eventCountThreshold <= 0) {
-            return true;
-        }
-
-        $minEventInterval = (int) ($config['min_event_interval_minutes'] ?? 720);
-
-        // Check recent events to see if threshold met
-        if ($this->aggregator === null) {
-            throw new LogicException(
-                'EventAggregator not initialized. Call setEventAggregator() before using shouldTriggerAlarmForEvent().'
-            );
-        }
-
-        $recentEvents = $this->aggregator->getLastEventsByContext(
-            type: $type,
-            context: null,
-            server: $server,
-            app: $app,
-            maxAgeMinutes: $minEventInterval
-        );
-
-        return count($recentEvents) >= $eventCountThreshold;
-    }
-
-    /**
-     * Filter channels to only those ready to receive alarms (not on cooldown).
-     *
-     * Performs per-channel cooldown checking and returns only available channels.
-     * This method is public to support both inline and cronjob-based alarm evaluation.
-     *
-     * @param string          $type              Alarm type identifier
-     * @param array<string>   $requestedChannels Channels to check (e.g., ['email', 'sms'])
-     * @param null|int|string $server            Server context
-     * @param null|int|string $app               Application context
-     * @param EventContext    $context           Alarm context payload
-     *
-     * @return array<string> Filtered array of ready (non-cooled-down) channels
-     */
-    public function filterReadyChannels(
-        string $type,
-        array $requestedChannels,
-        int|string|null $server,
-        int|string|null $app,
-        EventContext $context
-    ): array {
-        if (empty($requestedChannels)) {
-            return [];
-        }
-
-        $cooldownMinutes = $this->getAlarmIntervalMinutes($type);
-
-        // If no cooldown configured, all channels available
-        if ($cooldownMinutes <= 0) {
-            return $requestedChannels;
-        }
-
-        // Build hashes for all requested channels
-        $channelHashes = [];
-        foreach ($requestedChannels as $channel) {
-            $hash = $this->generateCooldownHash($type, $server, $app, $context, $channel);
-            $channelHashes[$channel] = $hash;
-        }
-
-        // Batch check which hashes are on cooldown
-        if ($this->recorder === null) {
-            return $requestedChannels; // No recorder available, all channels available
-        }
-
-        $activeCooldowns = $this->recorder->getActiveAlarmCooldowns(array_values($channelHashes));
-        $activeCooldownSet = array_flip($activeCooldowns);
-
-        // Filter out channels with active cooldowns
-        $availableChannels = [];
-        foreach ($requestedChannels as $channel) {
-            if (!isset($activeCooldownSet[$channelHashes[$channel]])) {
-                $availableChannels[] = $channel;
-            }
-        }
-
-        return $availableChannels;
-    }
-
-    /**
      * Get event cooldown interval in minutes for a given event type.
      *
      * Resolution order:
      * 1. Event-specific configuration from intervals.json
-     * 2. Alarm-specific configuration from thresholds.json (backward compatibility)
-     * 3. User-configured default from intervals.json '_default' key
-     * 4. Hardcoded fallback (30 minutes) to prevent spam
+     * 2. User-configured default from intervals.json '_default' key
+     * 3. Hardcoded fallback (30 minutes) to prevent spam
      *
      * @param string $type Event type identifier
      *
@@ -497,54 +365,23 @@ class EventManager
     }
 
     /**
-     * Get alarm cooldown interval in minutes for a given alarm type.
+     * Generate cooldown hash for event deduplication.
      *
-     * Resolution order:
-     * 1. Alarm-specific configuration from intervals.json
-     * 2. Thresholds config (backward compatibility)
-     * 3. User-configured default from intervals.json '_default' key
-     * 4. Hardcoded fallback (1440 minutes / 24 hours)
-     *
-     * This method is public to support cronjob-based alarm evaluation.
-     *
-     * @param string $type Alarm type identifier
-     *
-     * @return int Cooldown interval in minutes
-     */
-    public function getAlarmIntervalMinutes(string $type): int
-    {
-        // 1. Check alarm-specific configuration from intervals.json
-        if (isset($this->alarmIntervals[$type])) {
-            return max(0, (int) $this->alarmIntervals[$type]);
-        }
-
-        // 2. Check default from intervals.json
-        if (isset($this->alarmIntervals['_default'])) {
-            return max(0, (int) $this->alarmIntervals['_default']);
-        }
-
-        // 3. Hardcoded fallback - 24 hours
-        return 1440;
-    }
-
-    /**
-     * Generate cooldown hash for deduplication.
-     *
-     * Creates a unique hash for cooldown tracking based on event/alarm attributes.
-     * Events use empty channel string, alarms include the specific channel name.
+     * Creates a unique hash for cooldown tracking based on event attributes.
      * Hash format: SHA256(type|server|app|context|channel)
      *
-     * This method is public to support cronjob-based alarm evaluation.
+     * NOTE: For event cooldowns, channel should always be empty string.
+     * For alarm cooldowns, use AlertEvaluationService::generateCooldownHash() instead.
      *
-     * @param string          $type    Event/alarm type identifier
+     * @param string          $type    Event type identifier
      * @param null|int|string $server  Server context
      * @param null|int|string $app     Application context
-     * @param EventContext    $context Event/alarm context payload
-     * @param string          $channel Channel name (empty for events, 'email'/'sms'/etc for alarms)
+     * @param EventContext    $context Event context payload
+     * @param string          $channel Channel name (should be empty for events)
      *
      * @return string SHA256 hash for cooldown lookup
      */
-    public function generateCooldownHash(
+    private function generateCooldownHash(
         string $type,
         int|string|null $server,
         int|string|null $app,

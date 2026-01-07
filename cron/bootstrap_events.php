@@ -15,6 +15,7 @@ declare(strict_types=1);
  * - $lockManager           Channel-based locking for alerts
  * - $alertLimits           Rate limiting configuration
  * - $alertManager          Alert delivery orchestrator
+ * - $alertEvaluator        Alert evaluation service (alarm decision logic)
  * - $idResolver            Server/app ID resolution
  * - $eventRecorder         Event recording service
  * - $eventAggregator       Event querying service
@@ -31,6 +32,7 @@ use Watcher\Config\MonitoringSettingsLoader;
 use Watcher\Models\AlertQueueRepository;
 use Watcher\Models\ConfigSyncRepository;
 use Watcher\Models\EventRepository;
+use Watcher\Services\Foundation\AlertEvaluationService;
 use Watcher\Services\Foundation\AlertManager;
 use Watcher\Services\Foundation\EventAggregatorService;
 use Watcher\Services\Foundation\EventManager;
@@ -80,11 +82,21 @@ $eventManager = new EventManager($appConfig, $alertManager)
     ->setEventAggregator($eventAggregator);
 
 // ************************************************************************************************
+// Alert Evaluation Service
+// ************************************************************************************************
+$alertEvaluator = new AlertEvaluationService(
+    $eventAggregator,
+    $eventRecorder,
+    $appConfig
+);
+
+// ************************************************************************************************
 // Monitoring Settings
 // ************************************************************************************************
-$monitoringSettingsLoader = new MonitoringSettingsLoader($eventManager->recorder, $alertManager);
+$monitoringSettingsLoader = new MonitoringSettingsLoader($eventRecorder, $alertManager);
 $monitoringSettings = $monitoringSettingsLoader->loadAllConfigs($paths->appPath . '/config');
 $eventManager->setMonitoringSettings($monitoringSettings);
+$alertEvaluator->setMonitoringSettings($monitoringSettings);
 
 // ************************************************************************************************
 // Final ID Resolution Sync
@@ -98,6 +110,7 @@ return compact(
     'lockManager',
     'alertLimits',
     'alertManager',
+    'alertEvaluator',
     'idResolver',
     'eventRecorder',
     'eventAggregator',

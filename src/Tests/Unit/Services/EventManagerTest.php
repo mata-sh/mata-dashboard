@@ -37,9 +37,6 @@ final class EventManagerTest extends TestCase
     private EventAggregatorService&MockObject $eventAggregator;
     private AlertManager&MockObject $alertManager;
 
-    /** @var array<string,mixed> */
-    private array $thresholds;
-
     protected function setUp(): void
     {
         parent::setUp();
@@ -47,13 +44,6 @@ final class EventManagerTest extends TestCase
         $this->eventRecorder = $this->createMock(EventRecorderService::class);
         $this->eventAggregator = $this->createMock(EventAggregatorService::class);
         $this->alertManager = $this->createMock(AlertManager::class);
-        $this->thresholds = [
-            'alarms' => [
-                'test_event' => [
-                    'alarm_threshold_event_count' => 1,
-                ],
-            ],
-        ];
     }
 
     public function testHandleEventRecordsEventOnly(): void
@@ -234,99 +224,6 @@ final class EventManagerTest extends TestCase
         );
     }
 
-    public function testShouldTriggerAlarmForEventReturnsTrueWhenThresholdMet(): void
-    {
-        $manager = $this->createManager(alarmsEnabled: true);
-
-        $this->eventAggregator
-            ->expects($this->once())
-            ->method('getLastEventsByContext')
-            ->with('test_event', null, 'srv-1', 'app-1', 720)
-            ->willReturn([['id' => 1]])  // Return at least one event to meet threshold of 1
-        ;
-
-        $result = $manager->shouldTriggerAlarmForEvent('test_event', 'srv-1', 'app-1');
-
-        $this->assertTrue($result);
-    }
-
-    public function testShouldTriggerAlarmForEventReturnsFalseWhenThresholdNotMet(): void
-    {
-        $manager = $this->createManager(alarmsEnabled: true);
-
-        $this->eventAggregator
-            ->expects($this->once())
-            ->method('getLastEventsByContext')
-            ->willReturn([])  // No events, threshold not met
-        ;
-
-        $result = $manager->shouldTriggerAlarmForEvent('test_event', 'srv-1', 'app-1');
-
-        $this->assertFalse($result);
-    }
-
-    public function testShouldTriggerAlarmForEventReturnsFalseWhenAlarmsDisabled(): void
-    {
-        $manager = $this->createManager(alarmsEnabled: false);
-
-        $this->eventAggregator->expects($this->never())->method('getLastEventsByContext');
-
-        $result = $manager->shouldTriggerAlarmForEvent('test_event', 'srv-1', 'app-1');
-
-        $this->assertFalse($result);
-    }
-
-    public function testFilterReadyChannelsReturnsAllWhenNoCooldowns(): void
-    {
-        $manager = $this->createManager();
-
-        $this->eventRecorder
-            ->expects($this->once())
-            ->method('getActiveAlarmCooldowns')
-            ->willReturn([])  // No active cooldowns
-        ;
-
-        $result = $manager->filterReadyChannels(
-            type: 'test_event',
-            requestedChannels: ['email', 'sms'],
-            server: 'srv-1',
-            app: 'app-1',
-            context: EventContext::empty()
-        );
-
-        $this->assertSame(['email', 'sms'], $result);
-    }
-
-    public function testFilterReadyChannelsFiltersOutCooledDownChannels(): void
-    {
-        $manager = $this->createManager();
-
-        $context = EventContext::empty();
-        $emailHash = hash('sha256', json_encode([
-            'type' => 'test_event',
-            'server' => 'srv-1',
-            'app' => 'app-1',
-            'context' => $context->toJson(),
-            'channel' => 'email',
-        ], JSON_UNESCAPED_SLASHES));
-
-        $this->eventRecorder
-            ->expects($this->once())
-            ->method('getActiveAlarmCooldowns')
-            ->willReturn([$emailHash])  // Email channel on cooldown
-        ;
-
-        $result = $manager->filterReadyChannels(
-            type: 'test_event',
-            requestedChannels: ['email', 'sms'],
-            server: 'srv-1',
-            app: 'app-1',
-            context: $context
-        );
-
-        $this->assertSame(['sms'], $result);
-    }
-
     /**
      * Helper to create a fully-initialised EventManager with configurable toggles.
      */
@@ -342,10 +239,10 @@ final class EventManagerTest extends TestCase
             $this->eventAggregator
         );
 
-        // Set monitoring settings if thresholds or intervals provided
-        if (!empty($this->thresholds) || !empty($intervalsConfig)) {
+        // Set monitoring settings if intervals provided
+        if (!empty($intervalsConfig)) {
             $manager->setMonitoringSettings([
-                'thresholds' => $this->thresholds,
+                'thresholds' => [],
                 'intervals' => $intervalsConfig,
             ]);
         }
