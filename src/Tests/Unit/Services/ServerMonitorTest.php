@@ -106,13 +106,11 @@ final class ServerMonitorTest extends TestCase
                 'critical',
                 'critical-server',
                 null,
-                ['email']
+                false
             )
             ->willReturn([
                 'eventRecorded' => true,
-                'alarmSent' => true,
                 'eventId' => 1,
-                'alarmId' => 2,
             ])
         ;
 
@@ -149,13 +147,11 @@ final class ServerMonitorTest extends TestCase
                 'critical',
                 'disk-server',
                 null,
-                ['email']
+                false
             )
             ->willReturn([
                 'eventRecorded' => true,
-                'alarmSent' => true,
                 'eventId' => 10,
-                'alarmId' => 20,
             ])
         ;
 

@@ -206,8 +206,7 @@ final class EventManagerTest extends TestCase
                 'info',
                 null,
                 null,
-                ['email'],
-                false,  // isAlarm always false now
+                false,
                 $expectedHash,
                 30
             )

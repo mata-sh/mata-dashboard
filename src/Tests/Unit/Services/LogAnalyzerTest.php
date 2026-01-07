@@ -105,13 +105,11 @@ final class LogAnalyzerTest extends TestCase
                 'critical',
                 'srv-1',
                 'app-1',
-                ['email']
+                false
             )
             ->willReturn([
                 'eventRecorded' => true,
-                'alarmSent' => true,
                 'eventId' => 1,
-                'alarmId' => 2,
             ])
         ;
 
@@ -158,13 +156,11 @@ final class LogAnalyzerTest extends TestCase
                 'warning',
                 'srv-1',
                 'app-1',
-                ['email']
+                false
             )
             ->willReturn([
                 'eventRecorded' => true,
-                'alarmSent' => true,
                 'eventId' => 10,
-                'alarmId' => 20,
             ])
         ;
 
