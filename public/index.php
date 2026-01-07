@@ -31,12 +31,14 @@ use Watcher\Http\Routing\RouterSetup;
 use Watcher\Http\SecurityHeaders;
 use Watcher\Models\AlertQueueRepository;
 use Watcher\Models\ConfigSyncRepository;
-use Watcher\Models\EventRecorder;
+use Watcher\Models\EventRepository;
 use Watcher\Services\Cache\MetricsCacheService;
 use Watcher\Services\Foundation\AlertManager;
 use Watcher\Services\Foundation\CacheManager;
 use Watcher\Services\Foundation\DataTransformers\ChartDataTransformer;
+use Watcher\Services\Foundation\EventAggregatorService;
 use Watcher\Services\Foundation\EventManager;
+use Watcher\Services\Foundation\EventRecorderService;
 use Watcher\Services\Foundation\IdResolver;
 use Watcher\Services\Foundation\NotificationManager;
 use Watcher\Services\Foundation\SettingsDatabaseSync;
@@ -250,8 +252,7 @@ $settingsSync = new SettingsDatabaseSync($db, $log, $configSyncRepository);
 $tools = new Tools($paths->appPath);
 $idResolver = new IdResolver($configSyncRepository);
 
-// --- Event & Alert Infrastructure ---
-$eventRecorder = new EventRecorder($db, $idResolver);
+// --- Limits & Locking ---
 $lockManager = new ChannelLockManager($paths->tempPath . '/alert_locks', $log);
 $limitsLoader = new AlertLimitsLoader($log);
 $limitsConfig = $limitsLoader->load($paths->appPath . '/config/limits.json');
@@ -259,15 +260,22 @@ $limitsConfig = $limitsLoader->load($paths->appPath . '/config/limits.json');
 // --- Alert Manager ---
 $alertManager = new AlertManager($queueRepository, $limitsConfig, $lockManager, $log);
 
+// --- Event Manager ---
+$eventManager = new EventManager($alertManager, $appConfig)
+    ->setEventRecorder(new EventRecorderService($db, $idResolver))
+    ->setEventAggregator(new EventAggregatorService(new EventRepository($db), $idResolver));
+
 // ************************************************************************************************
 // Monitoring Configuration
 // ************************************************************************************************
-$monitoringSettingsLoader = new MonitoringSettingsLoader($eventRecorder, $alertManager, $db, $settingsSync);
+$monitoringSettingsLoader = new MonitoringSettingsLoader($eventManager->recorder, $alertManager, $db, $settingsSync);
 
 try {
     $configPath = $paths->appPath . '/config';
     $log->info("Loading monitoring configuration for environment: {$environment}");
     $monitoringSettings = $monitoringSettingsLoader->loadAllConfigs($configPath, $environment);
+    $eventManager->setMonitoringSettings($monitoringSettings);
+
     // Update ServerId->ServerName Map with servers.json content
     $idResolver->refreshFromRepository(
         $monitoringSettings['servers'] ?? [],
@@ -284,16 +292,9 @@ try {
     ];
 }
 // ************************************************************************************************
-// CacheManager, EventManager & Endpoints
+// CacheManager & Endpoints
 // ************************************************************************************************
 $cacheManager = new CacheManager($log, $paths->tempPath . '/api_cache', $monitoringSettings['ttl']);
-$eventManager = new EventManager(
-    $eventRecorder,
-    $alertManager,
-    $appConfig,
-    $monitoringSettings['thresholds'],
-    $monitoringSettings['intervals'] ?? []
-);
 $endpoints = new Endpoints();
 $menuBuilder = new MenuBuilder($endpoints, $tools);
 

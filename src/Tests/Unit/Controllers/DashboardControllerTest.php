@@ -15,6 +15,7 @@ use Watcher\Http\Responses\HtmlResponse;
 use Watcher\Http\Responses\JsonResponse;
 use Watcher\Http\Routing\Endpoints;
 use Watcher\Services\Foundation\CacheManager;
+use Watcher\Services\Foundation\EventAggregatorService;
 use Watcher\Services\Foundation\EventManager;
 use Watcher\Services\Foundation\NotificationManager;
 use Watcher\Services\Navigation\MenuBuilder;
@@ -679,11 +680,14 @@ class DashboardControllerTest extends TestCase
             ],
         ];
 
-        $this->eventManager
+        // Mock the aggregator service
+        $mockAggregator = $this->createMock(EventAggregatorService::class);
+        $mockAggregator
             ->expects($this->once())
             ->method('getLatestEvents')
             ->willReturn($expectedEvents)
         ;
+        $this->eventManager->aggregator = $mockAggregator;
 
         // Act
         $response = $this->controller->getEventsJson();
@@ -724,11 +728,14 @@ class DashboardControllerTest extends TestCase
             $this->monitoringSettings
         );
 
-        $this->eventManager
+        // Mock the aggregator service to throw exception
+        $mockAggregator = $this->createMock(EventAggregatorService::class);
+        $mockAggregator
             ->expects($this->once())
             ->method('getLatestEvents')
             ->willThrowException(new Exception('Database connection failed'))
         ;
+        $this->eventManager->aggregator = $mockAggregator;
 
         $this->logger
             ->expects($this->once())
@@ -792,11 +799,14 @@ class DashboardControllerTest extends TestCase
             ],
         ];
 
-        $this->eventManager
+        // Mock the aggregator service
+        $mockAggregator = $this->createMock(EventAggregatorService::class);
+        $mockAggregator
             ->expects($this->once())
             ->method('getLatestAlarms')
             ->willReturn($expectedAlarms)
         ;
+        $this->eventManager->aggregator = $mockAggregator;
 
         // Act
         $response = $this->controller->getAlarmsJson();

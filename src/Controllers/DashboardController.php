@@ -552,7 +552,7 @@ class DashboardController extends BaseController
     {
         return $this->executeWithErrorHandling(
             function () {
-                $events = $this->eventManager->getLatestEvents();
+                $events = $this->eventManager->aggregator->getLatestEvents();
 
                 return new JsonResponse($events);
             },
@@ -570,7 +570,7 @@ class DashboardController extends BaseController
     {
         return $this->executeWithErrorHandling(
             function () {
-                $alarms = $this->eventManager->getLatestAlarms();
+                $alarms = $this->eventManager->aggregator->getLatestAlarms();
 
                 return new JsonResponse($alarms);
             },

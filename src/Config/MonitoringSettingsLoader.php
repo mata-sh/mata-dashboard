@@ -8,10 +8,10 @@ use Exception;
 use RuntimeException;
 use Watcher\Core\DatabaseInterface;
 use Watcher\Core\NullDatabase;
-use Watcher\Models\EventRecorder;
 use Watcher\Services\Foundation\AlertManager;
 use Watcher\Services\Foundation\Dto\Alert;
 use Watcher\Services\Foundation\Dto\AlertLevel;
+use Watcher\Services\Foundation\EventRecorderService;
 use Watcher\Services\Foundation\SettingsDatabaseSync;
 use Watcher\Utils\TypeConverter;
 
@@ -30,19 +30,19 @@ use Watcher\Utils\TypeConverter;
  */
 final class MonitoringSettingsLoader
 {
-    private EventRecorder $eventRecorder;
+    private EventRecorderService $eventRecorder;
     private ?AlertManager $alertManager;
     private ?DatabaseInterface $db;
     private ?SettingsDatabaseSync $settingsSync;
 
     /**
-     * @param EventRecorder             $eventRecorder Event recorder for logging configuration failures
+     * @param EventRecorderService      $eventRecorder Event recorder for logging configuration failures
      * @param null|AlertManager         $alertManager  Optional alert manager for critical notifications
      * @param null|DatabaseInterface    $db            Optional database connection for settings sync
      * @param null|SettingsDatabaseSync $settingsSync  Optional settings sync service
      */
     public function __construct(
-        EventRecorder $eventRecorder,
+        EventRecorderService $eventRecorder,
         ?AlertManager $alertManager = null,
         ?DatabaseInterface $db = null,
         ?SettingsDatabaseSync $settingsSync = null

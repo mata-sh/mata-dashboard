@@ -20,6 +20,7 @@ vendor/
 temp/
 trash/
 site/
+bin/opa
 
 config/*.json
 config/*/*.json

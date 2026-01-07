@@ -7,7 +7,7 @@ namespace Watcher\Tests\Unit\Config;
 use PHPUnit\Framework\MockObject\MockObject;
 use Watcher\Config\MonitoringSettingsLoader;
 use Watcher\Models\Dto\EventRecordResult;
-use Watcher\Models\EventRecorder;
+use Watcher\Services\Foundation\EventRecorderService;
 use Watcher\Tests\TestCase;
 
 /**
@@ -17,14 +17,14 @@ use Watcher\Tests\TestCase;
  */
 final class MonitoringSettingsLoaderTest extends TestCase
 {
-    private EventRecorder&MockObject $eventRecorder;
+    private EventRecorderService&MockObject $eventRecorder;
     private MonitoringSettingsLoader $loader;
 
     protected function setUp(): void
     {
         parent::setUp();
 
-        $this->eventRecorder = $this->createMock(EventRecorder::class);
+        $this->eventRecorder = $this->createMock(EventRecorderService::class);
 
         // MonitoringSettingsLoader accepts optional parameters for alertManager, db, and settingsSync
         // We only need eventRecorder for validation tests

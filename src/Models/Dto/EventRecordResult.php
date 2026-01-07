@@ -7,7 +7,7 @@ namespace Watcher\Models\Dto;
 /**
  * Event recording result containing IDs and resolved context.
  *
- * Returned by EventRecorder::recordEvent() to provide:
+ * Returned by EventRecorderService::recordEvent() to provide:
  * - Database IDs for created event/alarm records
  * - Resolved server/app context (both ID and label)
  */

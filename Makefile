@@ -13,6 +13,15 @@ COLOR_CYAN := $(shell git config --get-color "" "cyan")
 COLOR_MAGENTA := $(shell git config --get-color "" "magenta")
 
 # ============================================
+# OPA (Open Policy Agent)
+# ============================================
+
+OPA_BASE_URL := https://openpolicyagent.org/downloads/latest
+OPA_BIN_DIR := bin
+OPA_BIN := $(OPA_BIN_DIR)/opa
+OPA_SERVICE_TEMPLATE := scripts/systemd/opa.service
+
+# ============================================
 # Help
 # ============================================
 
@@ -29,6 +38,8 @@ help:
 	@echo ""
 	@echo "$(COLOR_BOLD)Local General (Git Hooks, Docs, Build):$(COLOR_RESET)"
 	@echo "  $(COLOR_GREEN)make setup$(COLOR_RESET)           - Full setup (composer deps + configs) [$(COLOR_MAGENTA)composer, git$(COLOR_RESET)]"
+	@echo "  $(COLOR_GREEN)make setup-opa$(COLOR_RESET)       - Install OPA binary to bin/opa [$(COLOR_MAGENTA)curl$(COLOR_RESET)]"
+	@echo "  $(COLOR_GREEN)make opa-install-service$(COLOR_RESET) - Install and start systemd unit for OPA [$(COLOR_MAGENTA)systemd$(COLOR_RESET)]"
 	@echo "  $(COLOR_GREEN)make install-hooks$(COLOR_RESET)   - Install git hooks [$(COLOR_MAGENTA)git$(COLOR_RESET)]"
 	@echo "  $(COLOR_GREEN)make changelog$(COLOR_RESET)       - Generate changelog [$(COLOR_MAGENTA)claude code$(COLOR_RESET)]"
 	@echo ""
@@ -165,6 +176,58 @@ setup:
 	@echo "$(COLOR_YELLOW)4.$(COLOR_RESET) Create first user: $(COLOR_CYAN)php scripts/user-management/manage-users.php create$(COLOR_RESET)"
 	@echo ""
 	@echo "$(COLOR_BLUE)Or use Docker:$(COLOR_RESET) $(COLOR_CYAN)make docker-setup$(COLOR_RESET) then $(COLOR_CYAN)make dev-start$(COLOR_RESET)"
+
+# ============================================
+# OPA (Open Policy Agent)
+# ============================================
+
+setup-opa:
+	@set -e; \
+	echo "$(COLOR_BLUE)⬇️  Downloading OPA binary...$(COLOR_RESET)"; \
+	mkdir -p "$(OPA_BIN_DIR)"; \
+	OS=$$(uname -s | tr '[:upper:]' '[:lower:]'); \
+	ARCH=$$(uname -m); \
+	case "$$ARCH" in \
+		x86_64|amd64) ARCH=amd64 ;; \
+		aarch64|arm64) ARCH=arm64 ;; \
+	esac; \
+	if [ "$$OS" = "linux" ]; then \
+		FILENAME="opa_linux_$${ARCH}_static"; \
+	elif [ "$$OS" = "darwin" ]; then \
+		FILENAME="opa_darwin_$${ARCH}"; \
+	else \
+		echo "$(COLOR_RED)❌ Unsupported OS: $$OS$(COLOR_RESET)"; \
+		exit 1; \
+	fi; \
+	URL="$(OPA_BASE_URL)/$$FILENAME"; \
+	echo "$(COLOR_BLUE)🌐 Fetching $$URL$(COLOR_RESET)"; \
+	curl -fsSL "$$URL" -o "$(OPA_BIN).tmp"; \
+	curl -fsSL "$$URL.sha256" -o "$(OPA_BIN).sha256"; \
+	CHECKSUM=$$(awk '{print $$1}' "$(OPA_BIN).sha256"); \
+	if command -v sha256sum >/dev/null 2>&1; then \
+		echo "$$CHECKSUM  $(OPA_BIN).tmp" | sha256sum -c -; \
+	elif command -v shasum >/dev/null 2>&1; then \
+		echo "$$CHECKSUM  $(OPA_BIN).tmp" | shasum -a 256 -c -; \
+	else \
+		echo "$(COLOR_RED)❌ sha256sum or shasum not found$(COLOR_RESET)"; \
+		rm -f "$(OPA_BIN).tmp" "$(OPA_BIN).sha256"; \
+		exit 1; \
+	fi; \
+	chmod +x "$(OPA_BIN).tmp"; \
+	mv "$(OPA_BIN).tmp" "$(OPA_BIN)"; \
+	rm -f "$(OPA_BIN).sha256"; \
+	echo "$(COLOR_GREEN)✅ OPA installed at $(OPA_BIN)$(COLOR_RESET)"
+
+opa-install-service:
+	@if [ ! -x "$(OPA_BIN)" ]; then \
+		echo "$(COLOR_RED)❌ $(OPA_BIN) not found. Run: make setup-opa$(COLOR_RESET)"; \
+		exit 1; \
+	fi
+	@echo "$(COLOR_BLUE)🛠️  Installing systemd unit...$(COLOR_RESET)"
+	@sudo sh -c 'sed -e "s|@@OPA_BIN@@|$(OPA_BIN)|g" -e "s|@@OPA_WORKDIR@@|$(CURDIR)|g" "$(OPA_SERVICE_TEMPLATE)" > /etc/systemd/system/opa.service'
+	@sudo systemctl daemon-reload
+	@sudo systemctl enable --now opa.service
+	@echo "$(COLOR_GREEN)✅ OPA service installed and started$(COLOR_RESET)"
 
 
 # Install Composer dependencies and git hooks
@@ -536,4 +599,3 @@ docker-help:
 	shell db-shell shell-www \
 	db-backup db-restore \
 	down clean docker-clean docker-clean-all docker-help
-

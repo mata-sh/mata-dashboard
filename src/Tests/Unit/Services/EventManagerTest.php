@@ -19,11 +19,12 @@ use Watcher\Config\Dto\SecretsConfig;
 use Watcher\Config\Dto\SmtpDevConfig;
 use Watcher\Config\Dto\TemplateConfig;
 use Watcher\Models\Dto\EventRecordResult;
-use Watcher\Models\EventRecorder;
 use Watcher\Services\Foundation\AlertManager;
 use Watcher\Services\Foundation\Dto\Alert;
 use Watcher\Services\Foundation\Dto\EventContext;
+use Watcher\Services\Foundation\EventAggregatorService;
 use Watcher\Services\Foundation\EventManager;
+use Watcher\Services\Foundation\EventRecorderService;
 use Watcher\Tests\TestCase;
 
 /**
@@ -33,7 +34,8 @@ use Watcher\Tests\TestCase;
  */
 final class EventManagerTest extends TestCase
 {
-    private EventRecorder&MockObject $eventRecorder;
+    private EventRecorderService&MockObject $eventRecorder;
+    private EventAggregatorService&MockObject $eventAggregator;
     private AlertManager&MockObject $alertManager;
 
     /** @var array<string,mixed> */
@@ -43,7 +45,8 @@ final class EventManagerTest extends TestCase
     {
         parent::setUp();
 
-        $this->eventRecorder = $this->createMock(EventRecorder::class);
+        $this->eventRecorder = $this->createMock(EventRecorderService::class);
+        $this->eventAggregator = $this->createMock(EventAggregatorService::class);
         $this->alertManager = $this->createMock(AlertManager::class);
         $this->thresholds = [
             'alarms' => [
@@ -57,11 +60,6 @@ final class EventManagerTest extends TestCase
     public function testHandleEventSkipsAlarmWhenAlarmsDisabled(): void
     {
         $manager = $this->createManager(alarmsEnabled: false, eventsEnabled: true);
-
-        $this->eventRecorder
-            ->expects($this->never())
-            ->method('getLastAlarmsByContext')
-        ;
 
         $this->eventRecorder
             ->expects($this->once())
@@ -184,11 +182,6 @@ final class EventManagerTest extends TestCase
         ];
         $manager = $this->createManager(eventsEnabled: true, alarmsEnabled: false, intervalsConfig: $intervalsConfig);
 
-        $this->eventRecorder
-            ->expects($this->never())
-            ->method('getLastAlarmsByContext')
-        ;
-
         $expectedHash = hash('sha256', json_encode([
             'type' => 'test_event',
             'server' => '',
@@ -253,7 +246,7 @@ final class EventManagerTest extends TestCase
         ];
         $manager = $this->createManager(eventsEnabled: true, alarmsEnabled: true, intervalsConfig: $intervalsConfig);
 
-        $this->eventRecorder
+        $this->eventAggregator
             ->expects($this->once())
             ->method('getLastEventsByContext')
             ->willReturn([['id' => 1]])  // Return at least one event to meet threshold of 1
@@ -355,13 +348,22 @@ final class EventManagerTest extends TestCase
         bool $eventsEnabled = true,
         array $intervalsConfig = []
     ): EventManager {
-        return new EventManager(
-            $this->eventRecorder,
+        $manager = new EventManager(
             $this->alertManager,
             $this->createConfig($alarmsEnabled, $eventsEnabled),
-            $this->thresholds,
-            $intervalsConfig
+            $this->eventRecorder,
+            $this->eventAggregator
         );
+
+        // Set monitoring settings if thresholds or intervals provided
+        if (!empty($this->thresholds) || !empty($intervalsConfig)) {
+            $manager->setMonitoringSettings([
+                'thresholds' => $this->thresholds,
+                'intervals' => $intervalsConfig,
+            ]);
+        }
+
+        return $manager;
     }
 
     private function createConfig(bool $alarmsEnabled, bool $eventsEnabled): ApplicationConfig

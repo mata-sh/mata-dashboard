@@ -7,7 +7,7 @@ use Watcher\Config\AlertLimitsLoader;
 use Watcher\Config\MonitoringSettingsLoader;
 use Watcher\Models\AlertQueueRepository;
 use Watcher\Models\ConfigSyncRepository;
-use Watcher\Models\EventRecorder;
+use Watcher\Services\Foundation\EventRecorderService;
 use Watcher\Models\ServerMetrics\ServerMetricsAggregator;
 use Watcher\Models\ServerMetrics\ServerMetricsRepository;
 use Watcher\Services\Foundation\AlertManager;
@@ -31,7 +31,7 @@ try {
 
     // --- Resolvers & Recorders ---
     $idResolver = new IdResolver($configSyncRepository);
-    $eventRecorder = new EventRecorder($db, $idResolver);
+    $eventRecorder = new EventRecorderService($db, $idResolver);
 
     // --- Limits & Locking ---
     $lockManager = new ChannelLockManager($paths->tempPath . '/alert_locks', $log);

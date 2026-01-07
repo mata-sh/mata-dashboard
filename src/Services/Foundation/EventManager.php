@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace Watcher\Services\Foundation;
 
+use LogicException;
 use PDOException;
 use Watcher\Config\Dto\ApplicationConfig;
 use Watcher\Models\Dto\EventRecordResult;
-use Watcher\Models\EventRecorder;
 use Watcher\Services\Foundation\Dto\Alert;
 use Watcher\Services\Foundation\Dto\AlertLevel;
 use Watcher\Services\Foundation\Dto\EventContext;
@@ -15,11 +15,49 @@ use Watcher\Services\Foundation\Dto\EventContext;
 /**
  * Monitoring event and alert management service.
  *
- * Handles monitoring alerts and notifications:
- * - Threshold monitoring and evaluation
- * - Alert generation and notification dispatch
- * - Alert state management and persistence
- * - Email/SMS notification delivery
+ * PRIMARY FACADE for event operations - use this in most cases.
+ *
+ * ## Architecture & Usage Patterns
+ *
+ * EventManager is the main entry point providing:
+ * - Business logic (threshold evaluation, alarm policies, cooldown management)
+ * - Orchestrated writes via handleEvent() with full policy evaluation
+ * - Direct access to read/write operations via public properties
+ *
+ * ### Recommended Usage:
+ *
+ * **Most cases: Inject EventManager**
+ * ```php
+ * // Business logic + orchestrated write
+ * $eventManager->handleEvent($type, $message, $context, $level);
+ *
+ * // Threshold evaluation
+ * $level = $eventManager->getServerDataThresholdLevel($value, 'cpu_usage');
+ *
+ * // Read operations via public property
+ * $events = $eventManager->aggregator->getLatestEvents();
+ * $events = $eventManager->aggregator->getLastEventsByContext(...);
+ *
+ * // Direct write (rare - usually use handleEvent)
+ * $eventManager->recorder->recordEvent(...);
+ * ```
+ *
+ * **Specialized: Inject specific service**
+ * Use when you ONLY need read operations (e.g., reporting, cleanup crons):
+ * ```php
+ * // Read-only operations
+ * class ReportGenerator {
+ *     public function __construct(private EventAggregatorService $aggregator) {}
+ * }
+ * ```
+ *
+ * ### Component Responsibilities:
+ * - **EventManager** (this): Business logic facade, threshold evaluation, policy orchestration
+ * - **EventRecorderService**: Low-level event/alarm persistence and cooldown tracking
+ * - **EventAggregatorService**: Event/alarm querying, reporting, cleanup operations
+ *
+ * @see EventRecorderService For direct event persistence (rarely used directly)
+ * @see EventAggregatorService For read-only event querying
  */
 class EventManager
 {
@@ -44,34 +82,95 @@ class EventManager
     /** @var array<string,int> Alarm type to interval minutes mapping */
     private array $alarmIntervals = [];
 
-    private EventRecorder $eventRecorder;
+    /**
+     * Event recorder for persistence and cooldown tracking.
+     * Public property for direct access when needed (rare - prefer handleEvent).
+     */
+    public ?EventRecorderService $recorder = null;
+
+    /**
+     * Event aggregator for querying and reporting.
+     * Public property for direct read access (common usage pattern).
+     */
+    public ?EventAggregatorService $aggregator = null;
+
     private AlertManager $alertManager;
     private ApplicationConfig $appConfig;
 
     /**
-     * Initialize event manager with threshold and interval configuration.
+     * Initialize event manager with optional dependencies.
      *
-     * @param EventRecorder       $eventRecorder    Event recorder for monitoring events and alarm management
-     * @param AlertManager        $alertManager     Alert delivery orchestrator
-     * @param ApplicationConfig   $appConfig        Application configuration for alarm/event settings
-     * @param array<string,mixed> $thresholdsConfig Complete thresholds configuration
-     * @param array<string,mixed> $intervalsConfig  Interval configuration for events and alarms
+     * Supports fluent initialization via setter methods for deferred dependency injection.
+     * This allows EventManager to be created before loading monitoring settings.
+     *
+     * Use setMonitoringSettings() to configure thresholds and intervals after initialization.
+     *
+     * @param AlertManager                $alertManager    Alert delivery orchestrator
+     * @param ApplicationConfig           $appConfig       Application configuration for alarm/event settings
+     * @param null|EventRecorderService   $eventRecorder   Optional event recorder (can be set later via setEventRecorder)
+     * @param null|EventAggregatorService $eventAggregator Optional event aggregator (can be set later via setEventAggregator)
      */
     public function __construct(
-        EventRecorder $eventRecorder,
         AlertManager $alertManager,
         ApplicationConfig $appConfig,
-        array $thresholdsConfig = [],
-        array $intervalsConfig = []
+        ?EventRecorderService $eventRecorder = null,
+        ?EventAggregatorService $eventAggregator = null
     ) {
+        $this->alertManager = $alertManager;
+        $this->appConfig = $appConfig;
+        $this->recorder = $eventRecorder;
+        $this->aggregator = $eventAggregator;
+    }
+
+    /**
+     * Set event recorder service (fluent interface).
+     *
+     * @param EventRecorderService $recorder Event recorder instance
+     *
+     * @return $this For method chaining
+     */
+    public function setEventRecorder(EventRecorderService $recorder): self
+    {
+        $this->recorder = $recorder;
+
+        return $this;
+    }
+
+    /**
+     * Set event aggregator service (fluent interface).
+     *
+     * @param EventAggregatorService $aggregator Event aggregator instance
+     *
+     * @return $this For method chaining
+     */
+    public function setEventAggregator(EventAggregatorService $aggregator): self
+    {
+        $this->aggregator = $aggregator;
+
+        return $this;
+    }
+
+    /**
+     * Set monitoring settings (fluent interface).
+     *
+     * Updates thresholds and intervals from loaded monitoring configuration.
+     *
+     * @param array<string,mixed> $settings Monitoring settings containing 'thresholds' and 'intervals' keys
+     *
+     * @return $this For method chaining
+     */
+    public function setMonitoringSettings(array $settings): self
+    {
+        $thresholdsConfig = $settings['thresholds'] ?? [];
+        $intervalsConfig = $settings['intervals'] ?? [];
+
         $this->serverDataThresholds = $thresholdsConfig['server_data'] ?? [];
         $this->appDataThresholds = $thresholdsConfig['app_data'] ?? [];
         $this->alarmThresholds = $thresholdsConfig['alarms'] ?? [];
         $this->eventIntervals = $intervalsConfig['events']['min_event_interval_minutes'] ?? [];
         $this->alarmIntervals = $intervalsConfig['alarms']['min_alarm_interval_minutes'] ?? [];
-        $this->eventRecorder = $eventRecorder;
-        $this->alertManager = $alertManager;
-        $this->appConfig = $appConfig;
+
+        return $this;
     }
 
     /**
@@ -163,33 +262,13 @@ class EventManager
             return true;
         }
 
-        return !$this->eventRecorder->hasActiveCooldown($cooldownHash);
-    }
+        if ($this->recorder === null) {
+            throw new LogicException(
+                'EventRecorder not initialized. Call setEventRecorder() before using shouldCreateEvent().'
+            );
+        }
 
-    /**
-     * Get latest monitoring events from event recorder.
-     *
-     * Retrieves recent monitoring events for display in the dashboard.
-     * Events represent various monitoring activities and status updates.
-     *
-     * @return array<int,array<string,mixed>> Array of recent monitoring events with metadata
-     */
-    public function getLatestEvents(): array
-    {
-        return $this->eventRecorder->getLatestEvents();
-    }
-
-    /**
-     * Get latest monitoring alarms from event recorder.
-     *
-     * Retrieves recent monitoring alarms that triggered email notifications.
-     * Alarms represent critical events that require immediate attention.
-     *
-     * @return array<int,array<string,mixed>> Array of recent monitoring alarms with metadata
-     */
-    public function getLatestAlarms(): array
-    {
-        return $this->eventRecorder->getLatestAlarms();
+        return !$this->recorder->hasActiveCooldown($cooldownHash);
     }
 
     /**
@@ -263,8 +342,14 @@ class EventManager
         );
         $eventRecorded = false;
 
+        if ($this->recorder === null) {
+            throw new LogicException(
+                'EventRecorder not initialized. Call setEventRecorder() before using handleEvent().'
+            );
+        }
+
         try {
-            $eventRecordResult = $this->eventRecorder->recordEvent(
+            $eventRecordResult = $this->recorder->recordEvent(
                 type: $type,
                 message: $message,
                 context: $contextPayload,
@@ -288,7 +373,7 @@ class EventManager
                 $alarmHash = $this->generateCooldownHash($type, $server, $app, $eventContext, $channel);
 
                 try {
-                    $this->eventRecorder->upsertAlarmCooldown($alarmHash, $alarmCooldownMinutes);
+                    $this->recorder->upsertAlarmCooldown($alarmHash, $alarmCooldownMinutes);
                 } catch (PDOException) {
                     // Ignore - database unavailable, cooldowns will be re-established when DB returns.
                 }
@@ -304,11 +389,13 @@ class EventManager
                 app: $eventRecordResult->appLabel,
                 channels: $readyChannels  // Only non-cooled-down channels
             );
+            // todo: might throw an excepitotn just like the other outcome methods
             $this->alertManager->handleAlert($alert, $eventRecordResult);
         }
 
         return [
             'eventRecorded' => $eventRecorded,
+            // todo: shouldtrigger alarm is not the same as alarm sent
             'alarmSent' => $shouldTriggerAlarm,
             'eventId' => $eventRecordResult->eventId > 0 ? $eventRecordResult->eventId : null,
             'alarmId' => null,
@@ -354,7 +441,13 @@ class EventManager
         $minEventInterval = (int) ($config['min_event_interval_minutes'] ?? 720);
 
         // Check recent events to see if threshold met
-        $recentEvents = $this->eventRecorder->getLastEventsByContext(
+        if ($this->aggregator === null) {
+            throw new LogicException(
+                'EventAggregator not initialized. Call setEventAggregator() before using handleEvent() with alarm thresholds.'
+            );
+        }
+
+        $recentEvents = $this->aggregator->getLastEventsByContext(
             type: $type,
             context: null,
             server: $server,
@@ -405,7 +498,11 @@ class EventManager
         }
 
         // Batch check which hashes are on cooldown
-        $activeCooldowns = $this->eventRecorder->getActiveAlarmCooldowns(array_values($channelHashes));
+        if ($this->recorder === null) {
+            return $requestedChannels; // No recorder available, all channels available
+        }
+
+        $activeCooldowns = $this->recorder->getActiveAlarmCooldowns(array_values($channelHashes));
         $activeCooldownSet = array_flip($activeCooldowns);
 
         // Filter out channels with active cooldowns
