@@ -214,7 +214,7 @@ docker-compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
 #### Default (`docker/php/php.ini`)
 - Balanced settings for general use
 - OPcache enabled, moderate settings
-- Error logging to `/var/www/html/logs/phperror.log`
+- Error logging to `/var/www/html/logs/php-error.log`
 - Session storage in `/var/www/html/temp/sessions`
 
 #### Development (`docker/php/php-dev.ini`)
@@ -475,7 +475,7 @@ docker-compose up web
 
 4. **Check logs regularly**
    - Application logs: `logs/app.log`
-   - PHP errors: `logs/phperror.log`
+   - PHP errors: `logs/php-error.log`
    - Docker logs: `docker-compose logs`
 
 ### Production

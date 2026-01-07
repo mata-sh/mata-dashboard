@@ -456,7 +456,7 @@ logs-db:
 
 # Follow all container logs
 logs-php:
-	docker-compose exec -u www-data mata-web tail -fn 500 logs/phperror.log
+	docker-compose exec -u www-data mata-web tail -fn 500 logs/php-error.log
 
 # Follow all container logs
 logs-app:

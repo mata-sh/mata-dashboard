@@ -7,6 +7,6 @@ Type=oneshot
 User=www-data
 Group=www-data
 WorkingDirectory=/home/lman/Code/xarc/mata-dashboard
-ExecStart=/usr/bin/php8.2 /home/lman/Code/xarc/mata-dashboard/cron/evaluate_critical_alerts.php
+ExecStart=/usr/bin/php8.2 /home/lman/Code/xarc/mata-dashboard/cron/alerts_evaluate_critical.php
 StandardOutput=journal
 StandardError=journal

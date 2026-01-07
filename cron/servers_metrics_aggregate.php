@@ -6,6 +6,8 @@ declare(strict_types=1);
 use Watcher\Models\ServerMetrics\ServerMetricsAggregator;
 use Watcher\Models\ServerMetrics\ServerMetricsRepository;
 
+$requiresDatabase = true;
+
 extract(require_once __DIR__ . '/bootstrap.php');
 extract(require_once __DIR__ . '/bootstrap_events.php');
 
@@ -14,7 +16,6 @@ if (!$cron->acquireLock()) {
 }
 
 $cron->startTimer();
-$cron->touchHeartbeat();
 $cron->log('Started');
 
 try {
@@ -211,6 +212,8 @@ try {
         'hour_target' => $targetHour->format(DateTimeInterface::ATOM),
         'window_start' => $windowStart->format(DateTimeInterface::ATOM),
     ]);
+    $cron->touchHeartbeat();
+
 } catch (Throwable $exception) {
     $cron->log('ERROR: ' . $exception->getMessage());
     $log->critical('aggregate_server_metrics.unhandled_exception', [

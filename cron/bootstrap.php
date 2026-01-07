@@ -8,8 +8,10 @@ use Monolog\Level;
 use Monolog\Logger;
 use Symfony\Component\Mailer\Mailer;
 use Symfony\Component\Mailer\Transport;
+use Watcher\Config\DatabaseIntegrityChecker;
 use Watcher\Config\EnvConfigLoader;
 use Watcher\Core\Database;
+use Watcher\Core\NullDatabase;
 use Watcher\Utils\CronJob;
 use Watcher\Utils\PathResolver;
 use Watcher\Utils\Tools;
@@ -25,34 +27,28 @@ require_once __DIR__ . '/../vendor/autoload.php';
 $paths = new PathResolver(__FILE__);
 
 // ************************************************************************************************
-// Monolog
-// ************************************************************************************************
-$dateFormat = 'Y-m-d H:i:s';
-$output = "[%datetime%] %channel%.%level_name%: %message% %context% %extra%\n";
-$formatter = new LineFormatter($output, $dateFormat, true, true);
-$handler = new StreamHandler($paths->logsPath . '/cron/cronjob.log', Level::Debug);
-$handler->setFormatter($formatter);
-$log = new Logger('cronjob');
-$log->pushHandler($handler);
-
-
-// ************************************************************************************************
 // Error Reporting & Logging
 // ************************************************************************************************
 ini_set('display_errors', 0);
 ini_set('display_startup_errors', 0);
 ini_set('log_errors', 1);
-ini_set('error_log', $paths->logsPath . '/cron/phperror.log');
+ini_set('error_log', $paths->logsPath . '/cron/php-error.log');
 
 // ************************************************************************************************
-// Cronjob + Config
+// Crodqob Name
 // ************************************************************************************************
-$cron = new CronJob(
-    jobName: basename(__FILE__, '.php'),
-    logDir: $paths->logsPath . '/cron',
-    lockDir: $paths->tempPath . '/',
-    heartbeatFile: $paths->logsPath . '/cron/cron_heartbeat.txt',
-);
+$jobName = basename($_SERVER['SCRIPT_FILENAME'], '.php');
+
+// ************************************************************************************************
+// Monolog
+// ************************************************************************************************
+$dateFormat = 'Y-m-d H:i:s';
+$output = "[%datetime%] %channel%.%level_name%: %message% %context% %extra%\n";
+$formatter = new LineFormatter($output, $dateFormat, true, true);
+$handler = new StreamHandler($paths->logsPath . "/cron/app-{$jobName}.log", Level::Debug);
+$handler->setFormatter($formatter);
+$log = new Logger('cronjob');
+$log->pushHandler($handler);
 
 try {
     $configLoader = new EnvConfigLoader();
@@ -77,9 +73,34 @@ try {
 }
 
 // ************************************************************************************************
-// Tools & Database
+// Database Setup
 // ************************************************************************************************
-$db = new Database($appConfig->database);
+try {
+    $db = new Database($appConfig->database);
+
+    $databaseProbe = new DatabaseIntegrityChecker($db);
+
+    try {
+        $databaseProbe->assertReady();
+    } catch (Throwable $probeException) {
+        $log->error('Database quick probe failed; falling back to NullDatabase. ' . $probeException->getMessage());
+        $log->debug('Database quick probe failure details', ['exception' => $probeException]);
+        $db = new NullDatabase($log);
+    }
+} catch (Exception $e) {
+    $log->error('Failed to initialize DB Connection: ' . $e->getMessage());
+    $db = new NullDatabase($log);
+}
+
+if (($requiresDatabase ?? false) && $db instanceof NullDatabase) {
+    $log->critical('Database required but unavailable. Aborting cronjob.');
+
+    exit(1);
+}
+
+// ************************************************************************************************
+// Tools
+// ************************************************************************************************
 $tools = new Tools($paths->appPath);
 
 // ************************************************************************************************
@@ -87,6 +108,16 @@ $tools = new Tools($paths->appPath);
 // ************************************************************************************************
 $transport = Transport::fromDsn($appConfig->mail->dsn);
 $mailer = new Mailer($transport);
+
+// ************************************************************************************************
+// Cronjob
+// ************************************************************************************************
+$cron = new CronJob(
+    jobName: $jobName,
+    lockDir: $paths->tempPath . '/',
+    heartbeatFile: "{$paths->logsPath}/cron/heartbeat-{$jobName}.jsonl",
+    logger: $log
+);
 
 return compact(
     'paths',

@@ -12,14 +12,14 @@ MATA Dashboard uses cron jobs for automated data collection and processing:
 
 ## Existing Cron Jobs
 
-### collect_server_metrics.php
+### servers_metrics_collect.php
 
 Collects raw server metrics every 5 minutes.
 
 **Schedule:** Every 5 minutes
 
 ```bash
-*/5 * * * * /usr/bin/php /path/to/mata-dashboard/cron/collect_server_metrics.php
+*/5 * * * * /usr/bin/php /path/to/mata-dashboard/cron/servers_metrics_collect.php
 ```
 
 **What it does:**
@@ -32,14 +32,14 @@ Collects raw server metrics every 5 minutes.
 
 **Output:** Logs to `temp/logs/cron-collect.log`
 
-### aggregate_server_metrics.php
+### servers_metrics_aggregate.php
 
 Aggregates raw metrics into hourly and daily summaries.
 
 **Schedule:** Hourly (at 5 minutes past the hour)
 
 ```bash
-5 * * * * /usr/bin/php /path/to/mata-dashboard/cron/aggregate_server_metrics.php
+5 * * * * /usr/bin/php /path/to/mata-dashboard/cron/servers_metrics_aggregate.php
 ```
 
 **What it does:**
@@ -210,8 +210,8 @@ Follow action-first naming:
 **Examples:**
 
 ```
-collect_server_metrics.php
-aggregate_server_metrics.php
+servers_metrics_collect.php
+servers_metrics_aggregate.php
 cleanup_old_events.php
 monitor_cron_health.php
 sync_config_to_database.php
@@ -493,9 +493,9 @@ Avoid all cron jobs running at once:
 
 ```bash
 # Stagger job execution times
-*/5 * * * * php cron/collect_server_metrics.php     # :00, :05, :10, etc.
+*/5 * * * * php cron/servers_metrics_collect.php     # :00, :05, :10, etc.
 2-59/5 * * * * php cron/collect_application_logs.php # :02, :07, :12, etc.
-5 * * * * php cron/aggregate_server_metrics.php      # :05 each hour
+5 * * * * php cron/servers_metrics_aggregate.php      # :05 each hour
 ```
 
 ### Time-based Logic
@@ -523,7 +523,7 @@ public function run(): void
 
 ```bash
 # Run directly
-php cron/collect_server_metrics.php
+php cron/servers_metrics_collect.php
 
 # Check exit code
 echo $?

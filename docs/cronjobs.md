@@ -1,13 +1,13 @@
-# Cron Operations Runbook
+# Cron Jobs Runbook
 
 ## Monitoring Ingestion Health
-- Review `logs/cron/collect_server_metrics_health.log` after each run; every line captures inserted raw counts, last sample timestamp, and computed lag per server.
-- Stalled servers (no new rows for the configured stall window) are also emitted to the dashboard event log under the `server_metrics.ingestion_stall` type.
-- Rotate retention or stall thresholds via `config/data_retention.json` → `ingestion_health` block if the default 15 minute window is too strict or lenient.
+- Check `logs/cron/collect_server_metrics_health.log` after each run for inserts, last sample timestamp, and computed lag per server.
+- Stalled servers emit a dashboard event with type `server_metrics.ingestion_stall`.
+- Tune stall/retention thresholds in `config/data_retention.json` under `ingestion_health` (default window is 15 minutes).
 
 ## Manual Backfill / Rehydration
-- When the health log reports a stall, first resolve the upstream node issue and rerun `php cron/collect_server_metrics.php` to repopulate raw samples.
-- If raw samples already exist but hourly/daily aggregates remain empty, execute the targeted backfill below, which reuses the existing repository and aggregator classes:
+- Fix the upstream node, then rerun `php cron/servers_metrics_collect.php` to repopulate raw samples.
+- If raw samples exist but hourly/daily aggregates are missing, run the targeted backfill below:
 
 ```bash
 SERVER_METRICS_SERVER=frontend-1 \
@@ -39,4 +39,4 @@ $aggregator->aggregateDay($server, (new DateTimeImmutable($end))->setTime(0, 0))
 '
 ```
 
-- After aggregates are rebuilt, rerun `php cron/aggregate_server_metrics.php` without overrides to let the daily pruning task resume normal cadence.
+- When done, run `php cron/servers_metrics_aggregate.php` without overrides to resume normal cadence.

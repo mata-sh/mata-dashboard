@@ -147,7 +147,7 @@ Specialized HTML rendering:
 ```
 Cron Job (every 5 min)
     ↓
-collect_server_metrics.php
+servers_metrics_collect.php
     ↓
 ServerDataCollector Service
     ↓
@@ -169,7 +169,7 @@ Send Email Notifications
 ```
 Cron Job (hourly)
     ↓
-aggregate_server_metrics.php
+servers_metrics_aggregate.php
     ↓
 Query Raw Metrics (5-min data)
     ↓

@@ -2,7 +2,7 @@
 # These jobs collect monitoring data from remote servers
 
 # Collect server metrics every 5 minutes
-*/5 * * * * www-data cd /var/www/html && /usr/local/bin/php cron/fetch_servers_data.php >> /var/www/html/logs/cron_servers.log 2>&1
+*/5 * * * * www-data cd /var/www/html && /usr/local/bin/php cron/servers_data_fetch.php >> /var/www/html/logs/cron_servers.log 2>&1
 
 # Monitor cron job health every 15 minutes
 */15 * * * * www-data cd /var/www/html && /usr/local/bin/php cron/fetch_cronjob_heartbeats.php >> /var/www/html/logs/cron_heartbeats.log 2>&1

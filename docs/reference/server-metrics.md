@@ -410,7 +410,7 @@ Updated on every dashboard refresh (user-initiated):
 
 #### Every 5 Minutes
 ```bash
-*/5 * * * * /usr/bin/php /path/to/mata-dashboard/cron/collect_server_metrics.php
+*/5 * * * * /usr/bin/php /path/to/mata-dashboard/cron/servers_metrics_collect.php
 ```
 
 Collects:
@@ -422,7 +422,7 @@ Collects:
 
 #### Hourly Aggregation
 ```bash
-5 * * * * /usr/bin/php /path/to/mata-dashboard/cron/aggregate_server_metrics.php
+5 * * * * /usr/bin/php /path/to/mata-dashboard/cron/servers_metrics_aggregate.php
 ```
 
 Processes:

@@ -299,8 +299,8 @@ Automated data collection scripts.
 ```
 cron/
 ├── bootstrap.php                  # Cron initialization
-├── collect_server_metrics.php     # Collect raw metrics (every 5 min)
-├── aggregate_server_metrics.php   # Aggregate metrics (hourly)
+├── servers_metrics_collect.php     # Collect raw metrics (every 5 min)
+├── servers_metrics_aggregate.php   # Aggregate metrics (hourly)
 └── README.md                      # Cron documentation
 ```
 
@@ -365,7 +365,7 @@ docs/
   - `DatabaseSetup.php`
 
 - **Scripts**: snake_case with action-first naming
-  - `collect_server_metrics.php`
+  - `servers_metrics_collect.php`
   - `hash_password.php`
 
 ### Configuration Files

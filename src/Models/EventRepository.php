@@ -132,7 +132,7 @@ class EventRepository
         ?int $applicationId,
         int $maxAgeMinutes
     ): array {
-        $sql = 'SELECT 1 FROM dashboard_event_log AS del';
+        $sql = 'SELECT del.* FROM dashboard_event_log AS del';
         $where = [];
         $params = [];
 
@@ -161,7 +161,7 @@ class EventRepository
             $sql .= ' WHERE ' . implode(' AND ', $where);
         }
 
-        $sql .= ' ORDER BY del.`datetime` DESC LIMIT 1';
+        $sql .= ' ORDER BY del.`datetime` DESC';
 
         $result = $this->db->runQuery($sql, $params);
 
@@ -270,7 +270,7 @@ class EventRepository
                 e.message,
                 e.level,
                 e.context,
-                e.alarm_channel,
+                dal.channel,
                 s.name AS server,
                 a.code AS app
             FROM dashboard_alarm_log AS dal
@@ -291,7 +291,7 @@ class EventRepository
      */
     public function clearOldAlarms(int $days = 365): void
     {
-        $sql = 'DELETE FROM dashboard_alarm_log WHERE datetime < NOW() - INTERVAL :days DAY';
+        $sql = 'DELETE FROM dashboard_alarm_log WHERE created_at < NOW() - INTERVAL :days DAY';
         $this->db->runQuery($sql, ['days' => $days]);
     }
 
@@ -334,7 +334,6 @@ class EventRepository
                 e.level,
                 e.context,
                 e.datetime,
-                e.alarm_channel,
                 e.server_id,
                 e.application_id,
                 s.name AS server_name,

@@ -3,11 +3,12 @@
 
 declare(strict_types=1);
 
-use DateTimeImmutable;
 use Watcher\Config\AlertLimitsLoader;
 use Watcher\Models\AlertQueueRepository;
 use Watcher\Services\Foundation\AlertDispatcher;
 use Watcher\Services\Foundation\AlertEmailSender;
+
+$requiresDatabase = true;
 
 extract(require_once __DIR__ . '/bootstrap.php');
 
@@ -16,7 +17,6 @@ if (!$cron->acquireLock()) {
 }
 
 $cron->startTimer();
-$cron->touchHeartbeat();
 $cron->log('Started');
 
 try {
@@ -42,6 +42,8 @@ try {
     $dispatcher->dispatch(new DateTimeImmutable('now'), 100);
 
     $cron->log("Finished in {$cron->endTimer()}s, memory: {$cron->memoryUsage()}");
+    $cron->touchHeartbeat();
+
 } catch (Throwable $e) {
     $cron->log('ERROR: ' . $e->getMessage());
 } finally {

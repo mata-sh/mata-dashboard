@@ -379,10 +379,10 @@ crontab -e
 # Add these entries:
 
 # Collect raw server metrics every 5 minutes
-*/5 * * * * /usr/bin/php /path/to/mata-dashboard/cron/collect_server_metrics.php >> /path/to/mata-dashboard/temp/logs/cron-collect.log 2>&1
+*/5 * * * * /usr/bin/php /path/to/mata-dashboard/cron/servers_metrics_collect.php >> /path/to/mata-dashboard/temp/logs/cron-collect.log 2>&1
 
 # Aggregate server metrics hourly (at 5 minutes past each hour)
-5 * * * * /usr/bin/php /path/to/mata-dashboard/cron/aggregate_server_metrics.php >> /path/to/mata-dashboard/temp/logs/cron-aggregate.log 2>&1
+5 * * * * /usr/bin/php /path/to/mata-dashboard/cron/servers_metrics_aggregate.php >> /path/to/mata-dashboard/temp/logs/cron-aggregate.log 2>&1
 ```
 
 ### Verify Cron Jobs
@@ -539,7 +539,7 @@ crontab -l
 grep CRON /var/log/syslog
 
 # Test manual execution
-php /path/to/mata-dashboard/cron/collect_server_metrics.php
+php /path/to/mata-dashboard/cron/servers_metrics_collect.php
 ```
 
 **Issue: Database Connection Failed**

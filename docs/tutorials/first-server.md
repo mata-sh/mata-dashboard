@@ -376,10 +376,10 @@ Add these lines to collect metrics every 5 minutes:
 
 ```cron
 # MATA Dashboard - Collect raw server metrics every 5 minutes
-*/5 * * * * /usr/bin/php /path/to/mata-dashboard/cron/collect_server_metrics.php >> /var/log/mata/collect.log 2>&1
+*/5 * * * * /usr/bin/php /path/to/mata-dashboard/cron/servers_metrics_collect.php >> /var/log/mata/collect.log 2>&1
 
 # MATA Dashboard - Aggregate metrics hourly (at minute 5)
-5 * * * * /usr/bin/php /path/to/mata-dashboard/cron/aggregate_server_metrics.php >> /var/log/mata/aggregate.log 2>&1
+5 * * * * /usr/bin/php /path/to/mata-dashboard/cron/servers_metrics_aggregate.php >> /var/log/mata/aggregate.log 2>&1
 ```
 
 > **Important:** Replace `/path/to/mata-dashboard` with your actual installation path.
@@ -588,7 +588,7 @@ rm -rf /path/to/mata-dashboard/temp/api_cache/*
 tail -f /path/to/mata-dashboard/logs/app.log
 
 # Test cron job manually
-php /path/to/mata-dashboard/cron/collect_server_metrics.php
+php /path/to/mata-dashboard/cron/servers_metrics_collect.php
 ```
 
 ### Important File Locations

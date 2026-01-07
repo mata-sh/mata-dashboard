@@ -6,6 +6,8 @@ declare(strict_types=1);
 use GuzzleHttp\Client;
 use Watcher\Services\Foundation\Dto\EventContext;
 
+$requiresDatabase = true;
+
 extract(require_once __DIR__ . '/bootstrap.php');
 extract(require_once __DIR__ . '/bootstrap_events.php');
 
@@ -14,7 +16,6 @@ if (!$cron->acquireLock()) {
 }
 
 $cron->startTimer();
-$cron->touchHeartbeat();
 $cron->log('Started');
 
 try {
@@ -39,11 +40,10 @@ try {
         'enrich_requested' => 0,
     ];
 
-    // Fetch CRITICAL events only
-    $events = $eventAggregator->getAlertDecisionCandidates($opaConfig['batch_limit'], 'critical');
+    // Fetch non-critical events (warning, info) - critical events handled by separate cronjob
+    $events = $eventAggregator->getAlertDecisionCandidates($opaConfig['batch_limit'], ['warning', 'info']);
     foreach ($events as $event) {
         ++$stats['considered'];
-        $cron->touchHeartbeat();
 
         // Evaluate threshold: check if event count meets alarm trigger criteria
         $shouldAlarm = $alertEvaluator->shouldTriggerAlarmForEvent(
@@ -55,7 +55,7 @@ try {
         if (!$shouldAlarm) {
             $eventAggregator->markEventEvaluated((int) $event['id']);
             ++$stats['skipped'];
-            $log->debug('critical_alert_decision.threshold_not_met', [
+            $log->debug('alert_decision.threshold_not_met', [
                 'event_id' => $event['id'] ?? null,
                 'type' => $event['type'] ?? null,
             ]);
@@ -67,7 +67,7 @@ try {
             $decisionResponse = requestOpaDecision($client, $opaConfig['decision_path'], $event);
         } catch (Throwable $exception) {
             ++$stats['failed'];
-            $log->error('critical_alert_decision.opa_failed', [
+            $log->error('alert_decision.opa_failed', [
                 'event_id' => $event['id'] ?? null,
                 'error' => $exception->getMessage(),
             ]);
@@ -82,7 +82,7 @@ try {
             ++$stats['skipped'];
 
             if ($decision['reason'] !== null) {
-                $log->info('critical_alert_decision.skipped', [
+                $log->info('alert_decision.skipped', [
                     'event_id' => $event['id'] ?? null,
                     'reason' => $decision['reason'],
                 ]);
@@ -93,7 +93,7 @@ try {
 
         if ($decision['enrich']) {
             ++$stats['enrich_requested'];
-            $log->info('critical_alert_decision.enrichment_requested', [
+            $log->info('alert_decision.enrichment_requested', [
                 'event_id' => $event['id'] ?? null,
                 'channels' => $decision['channels'],
             ]);
@@ -112,7 +112,7 @@ try {
         if (empty($readyChannels)) {
             $eventAggregator->markEventEvaluated((int) $event['id']);
             ++$stats['skipped'];
-            $log->debug('critical_alert_decision.all_channels_on_cooldown', [
+            $log->debug('alert_decision.all_channels_on_cooldown', [
                 'event_id' => $event['id'] ?? null,
                 'requested_channels' => $decision['channels'],
             ]);
@@ -150,7 +150,7 @@ try {
                 // noop
             }
             ++$stats['failed'];
-            $log->error('critical_alert_decision.enqueue_failed', [
+            $log->error('alert_decision.enqueue_failed', [
                 'event_id' => $event['id'] ?? null,
                 'error' => $exception->getMessage(),
             ]);
@@ -167,10 +167,11 @@ try {
         $stats['failed'],
         $stats['enrich_requested']
     ));
+    $cron->touchHeartbeat();
 
 } catch (Throwable $exception) {
     $cron->log('ERROR: ' . $exception->getMessage());
-    $log->critical('evaluate_critical_alerts.unhandled_exception', [
+    $log->critical('evaluate_alert_decisions.unhandled_exception', [
         'error' => $exception->getMessage(),
     ]);
 } finally {
@@ -244,7 +245,6 @@ function buildOpaInput(array $event): array
             'level' => (string) ($event['level'] ?? 'info'),
             'context' => $context,
             'datetime' => (string) ($event['datetime'] ?? ''),
-            'alarm_channel' => $event['alarm_channel'] ?? null,
         ],
         'server' => [
             'id' => isset($event['server_id']) ? (int) $event['server_id'] : null,

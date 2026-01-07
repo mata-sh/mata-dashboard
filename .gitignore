@@ -21,6 +21,7 @@ temp/
 trash/
 site/
 bin/opa
+logs/
 
 config/*.json
 config/*/*.json

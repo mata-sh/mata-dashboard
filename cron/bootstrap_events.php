@@ -77,7 +77,7 @@ $idResolver = new IdResolver($configSyncRepository);
 $eventRecorder = new EventRecorderService($db, $idResolver);
 $eventAggregator = new EventAggregatorService($eventRepository, $idResolver);
 
-$eventManager = new EventManager($appConfig, $alertManager)
+$eventManager = (new EventManager($appConfig, $alertManager))
     ->setEventRecorder($eventRecorder)
     ->setEventAggregator($eventAggregator);
 
@@ -94,7 +94,10 @@ $alertEvaluator = new AlertEvaluationService(
 // Monitoring Settings
 // ************************************************************************************************
 $monitoringSettingsLoader = new MonitoringSettingsLoader($eventRecorder, $alertManager);
-$monitoringSettings = $monitoringSettingsLoader->loadAllConfigs($paths->appPath . '/config');
+$monitoringSettings = $monitoringSettingsLoader->loadAllConfigs(
+    $paths->appPath . '/config',
+    $appConfig->environment->env
+);
 $eventManager->setMonitoringSettings($monitoringSettings);
 $alertEvaluator->setMonitoringSettings($monitoringSettings);
 

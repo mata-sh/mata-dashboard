@@ -58,10 +58,10 @@ For automated data collection, set up these cron jobs:
 
 ```bash
 # Collect server metrics every 5 minutes
-*/5 * * * * /usr/bin/php /path/to/mata-dashboard/cron/collect_server_metrics.php
+*/5 * * * * /usr/bin/php /path/to/mata-dashboard/cron/servers_metrics_collect.php
 
 # Aggregate server metrics hourly (runs at minute 5 of each hour)
-5 * * * * /usr/bin/php /path/to/mata-dashboard/cron/aggregate_server_metrics.php
+5 * * * * /usr/bin/php /path/to/mata-dashboard/cron/servers_metrics_aggregate.php
 ```
 
 See the [Deployment Guide](deployment.md) for production cron setup.

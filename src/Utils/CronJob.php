@@ -4,7 +4,8 @@ declare(strict_types=1);
 
 namespace Watcher\Utils;
 
-use Exception;
+use Psr\Log\LoggerInterface;
+use Psr\Log\NullLogger;
 
 /**
  * Base class for cron script functionality and management.
@@ -27,11 +28,6 @@ class CronJob
     protected string $jobName;
 
     /**
-     * Directory where cronjob log files are written (no trailing slash).
-     */
-    protected string $logDir;
-
-    /**
      * Path to heartbeat file that is appended with a timestamp on every heartbeat.
      */
     protected string $heartbeatFile;
@@ -47,6 +43,11 @@ class CronJob
     protected float $startTime;
 
     /**
+     * Logger for cron job output.
+     */
+    protected LoggerInterface $logger;
+
+    /**
      * Configuration data injected via {@see setConfig()}.
      *
      * @var array<string,mixed>
@@ -56,29 +57,25 @@ class CronJob
     /**
      * CronJob constructor.
      *
-     * @param string $jobName       Name of the cronjob like "daily-report"
-     * @param string $logDir        Directory for log files
-     * @param string $lockDir       Directory for lock files
-     * @param string $heartbeatFile File written by touchHeartbeat()
+     * @param string               $jobName       Name of the cronjob like "daily-report"
+     * @param string               $lockDir       Directory for lock files
+     * @param string               $heartbeatFile File written by touchHeartbeat()
+     * @param null|LoggerInterface $logger        Logger instance for job output
      */
     public function __construct(
         string $jobName,
-        string $logDir = '/var/log/cronjobs',
         string $lockDir = '/tmp',
-        string $heartbeatFile = '/tmp/cron_heartbeat.log'
+        string $heartbeatFile = '/tmp/cron_heartbeat.log',
+        ?LoggerInterface $logger = null
     ) {
         $this->jobName = $jobName;
-        $this->logDir = rtrim($logDir, '/');
         $this->heartbeatFile = $heartbeatFile;
         $this->lockFile = "{$lockDir}/{$jobName}.lock";
+        $this->logger = $logger ?? new NullLogger();
 
-        if (!is_dir($this->logDir)) {
-            mkdir($this->logDir, 0755, true);
-        }
         if (!is_dir($lockDir)) {
             mkdir($lockDir, 0755, true);
         }
-        ini_set('error_log', $this->logDir . "/{$this->jobName}.log");
     }
 
     public function getJobName(): string
@@ -92,7 +89,12 @@ class CronJob
      */
     public function touchHeartbeat(): void
     {
-        file_put_contents($this->heartbeatFile, '[' . date('Y-m-d H:i:s') . "] {$this->jobName} alive\n", FILE_APPEND);
+        file_put_contents($this->heartbeatFile, json_encode([
+            'ts' => date('Y-m-d\TH:i:s\Z'),
+            'job' => $this->jobName,
+            'status' => 'ok',
+            'duration_ms' => $this->endTimer(),
+        ], JSON_PRETTY_PRINT) . PHP_EOL, FILE_APPEND);
     }
 
     /**
@@ -159,75 +161,6 @@ class CronJob
      */
     public function log(string $message): void
     {
-        $date = date('Y-m-d H:i:s');
-        $msg = "[{$date}] {$this->jobName}: {$message}\n";
-        file_put_contents("{$this->logDir}/{$this->jobName}.log", $msg, FILE_APPEND);
-    }
-
-    /**
-     * Inject runtime configuration values.
-     *
-     * @param array<string,mixed> $config
-     */
-    private function setConfig(array $config): void
-    {
-        $this->config = $config;
-    }
-
-    /**
-     * Loads app settings from a .env file.
-     *
-     * @param array<int,string>|string $filePaths the path to the file to be loaded
-     *
-     * @return array<string,mixed> Array keys are the setting names and the values are the values.
-     *                             If a value contains commas, it's split into an array.
-     *
-     * @throws Exception if the environment file is not found at the specified path
-     */
-    public function loadConfigs(array|string $filePaths): array
-    {
-        if (!is_array($filePaths)) {
-            $filePaths = [$filePaths];
-        }
-
-        foreach ($filePaths as $path) {
-            $vars = [];
-            if (!file_exists($path)) {
-                throw new Exception('[ERROR] Environment file not found: ' . $path);
-            }
-
-            $lines = file($path, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
-            if ($lines === false) {
-                throw new Exception('[ERROR] Could not read environment file: ' . $path);
-            }
-            foreach ($lines as $line) {
-                if (strpos(trim($line), '#') === 0) {
-                    continue; // Skip comments
-                }
-                [$name, $value] = explode('=', $line, 2);
-                $value = trim($value);
-                if (strpos($value, ',') !== false) {
-                    // Split the value into an array if it contains commas
-                    $value = array_map('trim', explode(',', $value));
-                }
-
-                if (!is_array($value)) {
-                    $upperValue = strtoupper($value);
-                    if ($upperValue === 'ON' || $value === 'true') {
-                        $value = true;
-                    }
-                    if ($upperValue === 'OFF' || $value === 'false') {
-                        $value = false;
-                    }
-                }
-                if (is_numeric($value)) {
-                    $value = (int) $value;
-                }
-                $vars[trim($name)] = $value;
-            }
-            $this->setConfig(array_merge($this->config, $vars));
-        }
-
-        return $this->config;
+        $this->logger->info($message, ['job' => $this->jobName]);
     }
 }

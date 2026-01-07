@@ -67,7 +67,7 @@ $paths = new PathResolver(__FILE__);
 ini_set('display_errors', 1);
 ini_set('display_startup_errors', 0);
 ini_set('log_errors', 1);
-ini_set('error_log', $paths->logsPath . '/phperror.log');
+ini_set('error_log', $paths->logsPath . '/php-error.log');
 
 // ************************************************************************************************
 // Session Path
@@ -261,7 +261,7 @@ $limitsConfig = $limitsLoader->load($paths->appPath . '/config/limits.json');
 $alertManager = new AlertManager($queueRepository, $limitsConfig, $lockManager, $log);
 
 // --- Event Manager ---
-$eventManager = new EventManager($appConfig, $alertManager)
+$eventManager = (new EventManager($appConfig, $alertManager))
     ->setEventRecorder(new EventRecorderService($db, $idResolver))
     ->setEventAggregator(new EventAggregatorService(new EventRepository($db), $idResolver));
 

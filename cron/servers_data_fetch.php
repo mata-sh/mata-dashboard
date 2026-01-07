@@ -9,6 +9,8 @@ use Watcher\Services\Foundation\CacheManager;
 use Watcher\Services\Foundation\DataTransformers\ApiResponseTransformer;
 use Watcher\Utils\TypeConverter;
 
+$requiresDatabase = true;
+
 extract(require_once __DIR__ . '/bootstrap.php');
 extract(require_once __DIR__ . '/bootstrap_events.php');
 
@@ -17,7 +19,6 @@ if (!$cron->acquireLock()) {
 }
 
 $cron->startTimer();
-$cron->touchHeartbeat();
 $cron->log('Started');
 
 try {
@@ -40,8 +41,9 @@ try {
         }
     }
 
-
     $cron->log("Finished in {$cron->endTimer()}s, memory: {$cron->memoryUsage()}");
+    $cron->touchHeartbeat();
+
 } catch (Throwable $e) {
     $cron->log('ERROR: ' . $e->getMessage());
 } finally {

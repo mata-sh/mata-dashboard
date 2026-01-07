@@ -281,8 +281,8 @@ crontab -l | grep mata
 
 Expected cron entries:
 ```cron
-*/5 * * * * /usr/bin/php /path/to/mata-dashboard/cron/collect_server_metrics.php
-5 * * * * /usr/bin/php /path/to/mata-dashboard/cron/aggregate_server_metrics.php
+*/5 * * * * /usr/bin/php /path/to/mata-dashboard/cron/servers_metrics_collect.php
+5 * * * * /usr/bin/php /path/to/mata-dashboard/cron/servers_metrics_aggregate.php
 ```
 
 #### 3. Manual Cron Execution
@@ -290,7 +290,7 @@ Expected cron entries:
 Run metric collection manually:
 
 ```bash
-php /path/to/mata-dashboard/cron/collect_server_metrics.php
+php /path/to/mata-dashboard/cron/servers_metrics_collect.php
 ```
 
 **Expected output:**
@@ -351,10 +351,10 @@ crontab -e
 Add:
 ```cron
 # MATA Dashboard - Collect metrics every 5 minutes
-*/5 * * * * /usr/bin/php /var/www/mata-dashboard/cron/collect_server_metrics.php >> /var/log/mata/collect.log 2>&1
+*/5 * * * * /usr/bin/php /var/www/mata-dashboard/cron/servers_metrics_collect.php >> /var/log/mata/collect.log 2>&1
 
 # MATA Dashboard - Aggregate metrics hourly
-5 * * * * /usr/bin/php /var/www/mata-dashboard/cron/aggregate_server_metrics.php >> /var/log/mata/aggregate.log 2>&1
+5 * * * * /usr/bin/php /var/www/mata-dashboard/cron/servers_metrics_aggregate.php >> /var/log/mata/aggregate.log 2>&1
 ```
 
 Verify:
@@ -398,7 +398,7 @@ rm -rf temp/templates_cache/*
 sudo systemctl start apache2
 
 # Force metric collection
-php cron/collect_server_metrics.php
+php cron/servers_metrics_collect.php
 ```
 
 #### Solution 4: Check Database for Stale Data
@@ -669,8 +669,8 @@ crontab -l
 
 Expected output:
 ```cron
-*/5 * * * * /usr/bin/php /var/www/mata-dashboard/cron/collect_server_metrics.php >> /var/log/mata/collect.log 2>&1
-5 * * * * /usr/bin/php /var/www/mata-dashboard/cron/aggregate_server_metrics.php >> /var/log/mata/aggregate.log 2>&1
+*/5 * * * * /usr/bin/php /var/www/mata-dashboard/cron/servers_metrics_collect.php >> /var/log/mata/collect.log 2>&1
+5 * * * * /usr/bin/php /var/www/mata-dashboard/cron/servers_metrics_aggregate.php >> /var/log/mata/aggregate.log 2>&1
 ```
 
 If empty, cron jobs are not installed.
@@ -694,7 +694,7 @@ Expected:
 Run cron script manually:
 
 ```bash
-/usr/bin/php /var/www/mata-dashboard/cron/collect_server_metrics.php
+/usr/bin/php /var/www/mata-dashboard/cron/servers_metrics_collect.php
 ```
 
 **If successful:**
@@ -720,8 +720,8 @@ ls -la cron/*.php
 
 Expected:
 ```
--rwxr-xr-x  cron/collect_server_metrics.php
--rwxr-xr-x  cron/aggregate_server_metrics.php
+-rwxr-xr-x  cron/servers_metrics_collect.php
+-rwxr-xr-x  cron/servers_metrics_aggregate.php
 ```
 
 #### 5. Review Cron Logs
@@ -734,7 +734,7 @@ sudo tail -f /var/log/syslog | grep CRON
 
 Expected:
 ```
-Nov  2 15:40:01 server CRON[12345]: (www-data) CMD (/usr/bin/php /var/www/mata-dashboard/cron/collect_server_metrics.php)
+Nov  2 15:40:01 server CRON[12345]: (www-data) CMD (/usr/bin/php /var/www/mata-dashboard/cron/servers_metrics_collect.php)
 ```
 
 Check application cron logs:
@@ -757,10 +757,10 @@ crontab -e
 Add entries:
 ```cron
 # MATA Dashboard - Collect server metrics every 5 minutes
-*/5 * * * * /usr/bin/php /var/www/mata-dashboard/cron/collect_server_metrics.php >> /var/log/mata/collect.log 2>&1
+*/5 * * * * /usr/bin/php /var/www/mata-dashboard/cron/servers_metrics_collect.php >> /var/log/mata/collect.log 2>&1
 
 # MATA Dashboard - Aggregate server metrics hourly (at minute 5)
-5 * * * * /usr/bin/php /var/www/mata-dashboard/cron/aggregate_server_metrics.php >> /var/log/mata/aggregate.log 2>&1
+5 * * * * /usr/bin/php /var/www/mata-dashboard/cron/servers_metrics_aggregate.php >> /var/log/mata/aggregate.log 2>&1
 
 # MATA Dashboard - Fetch cronjob heartbeats every 15 minutes
 */15 * * * * /usr/bin/php /var/www/mata-dashboard/cron/fetch_cronjob_heartbeats.php >> /var/log/mata/heartbeats.log 2>&1
@@ -777,10 +777,10 @@ Ensure absolute paths in crontab:
 
 ```bash
 # Wrong (relative path)
-*/5 * * * * php cron/collect_server_metrics.php
+*/5 * * * * php cron/servers_metrics_collect.php
 
 # Correct (absolute paths)
-*/5 * * * * /usr/bin/php /var/www/mata-dashboard/cron/collect_server_metrics.php
+*/5 * * * * /usr/bin/php /var/www/mata-dashboard/cron/servers_metrics_collect.php
 ```
 
 Find PHP path:
@@ -833,7 +833,7 @@ Add to top of crontab:
 MAILTO=admin@your-domain.com
 
 # Your cron jobs below...
-*/5 * * * * /usr/bin/php /var/www/mata-dashboard/cron/collect_server_metrics.php
+*/5 * * * * /usr/bin/php /var/www/mata-dashboard/cron/servers_metrics_collect.php
 ```
 
 You'll receive email if cron job fails.
@@ -1557,7 +1557,7 @@ tail -f logs/app.log
 php scripts/test_email.php
 
 # Manual metric collection
-php cron/collect_server_metrics.php
+php cron/servers_metrics_collect.php
 
 # Check cron jobs
 crontab -l

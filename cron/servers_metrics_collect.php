@@ -13,6 +13,8 @@ use Watcher\Services\Monitor\ServerMetricsHealthMonitor;
 use Watcher\Services\Monitor\ServerMonitor;
 use Watcher\Utils\TypeConverter;
 
+$requiresDatabase = true;
+
 extract(require_once __DIR__ . '/bootstrap.php');
 extract(require_once __DIR__ . '/bootstrap_events.php');
 
@@ -21,7 +23,6 @@ if (!$cron->acquireLock()) {
 }
 
 $cron->startTimer();
-$cron->touchHeartbeat();
 $cron->log('Started');
 
 try {
@@ -188,6 +189,8 @@ try {
             'stalled_servers' => array_keys($ingestionReport['stalled']),
         ],
     ]);
+    $cron->touchHeartbeat();
+
 } catch (Throwable $e) {
     $cron->log('ERROR: ' . $e->getMessage());
     $log->critical('collect_server_metrics.unhandled_exception', [

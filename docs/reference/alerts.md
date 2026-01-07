@@ -9,7 +9,7 @@ This document describes the alarm limiting workflow introduced in `ALARM_LIMITIN
 ## Overview
 - Alerts are recorded via `EventManager`, stored in `dashboard_event_log`, and enqueued through `AlertManager`.
 - `dashboard_alarm_log` now represents a delivery queue with statuses `pending`, `processing`, `sent`, `retry`, `failed`, `throttled`, and `discarded`.
-- A dedicated cron job (`cron/dispatch_alerts.php`) processes queued alerts, honours per-channel rate limits, and updates retry metadata.
+- A dedicated cron job (`cron/alerts_dispatch.php`) processes queued alerts, honours per-channel rate limits, and updates retry metadata.
 - When the database is unavailable, filesystem locks under `temp/alert_locks/` prevent runaway alert fan-out.
 
 ## Configuration
@@ -39,7 +39,7 @@ This document describes the alarm limiting workflow introduced in `ALARM_LIMITIN
 
 ## Operational Procedures
 1. **Queue Processing Cron**  
-   Schedule `cron/dispatch_alerts.php` to run every minute (or faster) alongside existing monitoring jobs. It is self-locking and safe to run concurrently with other cron scripts.
+   Schedule `cron/alerts_dispatch.php` to run every minute (or faster) alongside existing monitoring jobs. It is self-locking and safe to run concurrently with other cron scripts.
 
 2. **Monitoring**  
    - Track cron logs under `logs/cron/dispatch_alerts.log`.  
