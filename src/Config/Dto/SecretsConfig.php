@@ -13,6 +13,6 @@ namespace Watcher\Config\Dto;
 final class SecretsConfig
 {
     public function __construct(
-        public readonly ?string $watcherEncryptionSecret,
+        public readonly ?string $encryptionSecret,
     ) {}
 }

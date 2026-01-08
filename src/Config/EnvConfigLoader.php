@@ -185,7 +185,7 @@ final class EnvConfigLoader
     private function loadSecretsConfig(): SecretsConfig
     {
         return new SecretsConfig(
-            watcherEncryptionSecret: $this->getEnv('WATCHER_ENCRYPTION_SECRET'),
+            encryptionSecret: $this->getEnv('API_ENCRYPTION_SECRET'),
         );
     }
 
@@ -341,7 +341,7 @@ final class EnvConfigLoader
         }
 
         // Security configuration warnings
-        if (empty($config->secrets->watcherEncryptionSecret)) {
+        if (empty($config->secrets->encryptionSecret)) {
             $warnings[] = [
                 'identifier' => 'config.secrets.encryption.missing',
                 'message' => 'Encryption secret not configured - API communication may fail',

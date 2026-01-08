@@ -103,7 +103,7 @@ try {
         }
 
         try {
-            $token = $tools->encrypt($apiKey . '|' . time(), $appConfig->secrets->watcherEncryptionSecret);
+            $token = $tools->encrypt($apiKey . '|' . time(), $appConfig->secrets->encryptionSecret);
         } catch (Throwable $encryptionError) {
             $log->error('collect_server_metrics.encryption_failed', [
                 'server' => $serverName,

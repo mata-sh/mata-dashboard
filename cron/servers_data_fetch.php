@@ -28,7 +28,7 @@ try {
 
     foreach ($monitoringSettings['servers'] as $server => $data) {
         try {
-            $token = $tools->encrypt($data['api_key'] . '|' . time(), $appConfig->secrets->watcherEncryptionSecret);
+            $token = $tools->encrypt($data['api_key'] . '|' . time(), $appConfig->secrets->encryptionSecret);
 
             // Extract security flags with defaults
             $allowHttp = TypeConverter::toBool($data['allow_http'] ?? null) ?? false;

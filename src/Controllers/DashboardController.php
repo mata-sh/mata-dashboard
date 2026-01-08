@@ -212,7 +212,7 @@ class DashboardController extends BaseController
         }
 
         $apiKey = $serverConfig['api_key'] . '|' . time();
-        $secret = $this->appConfig->secrets->watcherEncryptionSecret;
+        $secret = $this->appConfig->secrets->encryptionSecret;
         $token = $this->tools->encrypt($apiKey, $secret);
 
         // Extract security flags with defaults

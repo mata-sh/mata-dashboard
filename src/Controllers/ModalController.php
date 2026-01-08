@@ -117,7 +117,7 @@ class ModalController extends BaseController
         }
         $token = $this->tools->encrypt(
             $serverConfig['api_key'] . '|' . time(),
-            $this->appConfig->secrets->watcherEncryptionSecret
+            $this->appConfig->secrets->encryptionSecret
         );
 
         // Extract security flags with defaults

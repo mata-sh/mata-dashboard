@@ -165,9 +165,9 @@ class ApplicationConfigFactory
     }
 
     public static function createSecretsConfig(
-        ?string $watcherEncryptionSecret = 'test-encryption-secret-key-12345',
+        ?string $encryptionSecret = 'test-encryption-secret-key-12345',
     ): SecretsConfig {
-        return new SecretsConfig($watcherEncryptionSecret);
+        return new SecretsConfig($encryptionSecret);
     }
 
     public static function createCliSecurityConfig(
