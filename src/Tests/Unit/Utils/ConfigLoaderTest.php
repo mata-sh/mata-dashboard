@@ -10,10 +10,6 @@ use Watcher\Tests\TestCase;
 /**
  * Test suite for EnvConfigLoader utility class.
  *
- * NOTE: EnvConfigLoader has been refactored to return DTOs via load() method.
- * The old API (loadJson, loadEnv, validate, etc.) no longer exists.
- * These tests have been removed as they tested the old, non-existent API.
- *
  * @covers \Watcher\Config\EnvConfigLoader
  *
  * @internal

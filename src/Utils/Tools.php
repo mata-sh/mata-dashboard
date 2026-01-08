@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Watcher\Utils;
 
-use Exception;
 use RuntimeException;
 use Watcher\Traits\Loggable;
 
@@ -36,42 +35,6 @@ class Tools
     {
         $this->appPath = rtrim($appPath, '/');
         $this->publicPath = $publicPath ?? $this->appPath . '/public';
-    }
-
-    /**
-     * Load environment variables from file.
-     *
-     * @param string $filePath Path to environment file
-     *
-     * @return array<string,array<int,string>|string> Parsed environment variables
-     *
-     * @throws Exception If file not found
-     */
-    public function loadEnv(string $filePath): array
-    {
-        $vars = [];
-        if (!file_exists($filePath)) {
-            throw new Exception('[ERROR] Environment file not found: ' . $filePath);
-        }
-
-        $lines = file($filePath, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
-        if ($lines === false) {
-            throw new Exception('[ERROR] Could not read environment file: ' . $filePath);
-        }
-        foreach ($lines as $line) {
-            if (strpos(trim($line), '#') === 0) {
-                continue; // Skip comments
-            }
-            [$name, $value] = explode('=', $line, 2);
-            $value = trim($value);
-            if (strpos($value, ',') !== false) {
-                // Split the value into an array if it contains commas
-                $value = array_map('trim', explode(',', $value));
-            }
-            $vars[trim($name)] = $value;
-        }
-
-        return $vars;
     }
 
     /**

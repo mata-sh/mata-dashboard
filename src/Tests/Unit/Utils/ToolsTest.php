@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Watcher\Tests\Unit\Utils;
 
-use Exception;
 use RuntimeException;
 use Watcher\Tests\TestCase;
 use Watcher\Utils\Tools;
@@ -62,101 +61,6 @@ class ToolsTest extends TestCase
     {
         $tools = new Tools($this->testAppPath);
         $this->assertInstanceOf(Tools::class, $tools);
-    }
-
-    /**
-     * @group tools
-     * @group env-parsing
-     */
-    public function testItLoadsEnvironmentVariablesFromFile(): void
-    {
-        $envContent = implode("\n", [
-            'APP_NAME=MATA Dashboard',
-            'DEBUG=true',
-            'PORT=8080',
-            'FEATURES=auth,monitoring,alerts',
-            '# This is a comment',
-            'EMPTY_VALUE=',
-        ]);
-
-        $envFile = $this->createTempFile($envContent, '.env');
-        $this->tempFiles[] = $envFile;
-
-        $result = $this->tools->loadEnv($envFile);
-
-        $this->assertIsArray($result);
-        $this->assertEquals('MATA Dashboard', $result['APP_NAME']);
-        $this->assertEquals('true', $result['DEBUG']);
-        $this->assertEquals('8080', $result['PORT']);
-        $this->assertEquals(['auth', 'monitoring', 'alerts'], $result['FEATURES']);
-        $this->assertArrayHasKey('EMPTY_VALUE', $result);
-    }
-
-    /**
-     * @group tools
-     * @group env-parsing
-     */
-    public function testItThrowsExceptionWhenEnvFileNotFound(): void
-    {
-        $this->expectException(Exception::class);
-        $this->expectExceptionMessage('[ERROR] Environment file not found:');
-
-        $this->tools->loadEnv('/nonexistent/file.env');
-    }
-
-    /**
-     * @group tools
-     * @group env-parsing
-     */
-    public function testItHandlesEmptyEnvFile(): void
-    {
-        $envFile = $this->createTempFile('', '.env');
-        $this->tempFiles[] = $envFile;
-
-        $result = $this->tools->loadEnv($envFile);
-
-        $this->assertIsArray($result);
-        $this->assertEmpty($result);
-    }
-
-    /**
-     * @group tools
-     * @group env-parsing
-     */
-    public function testItSkipsCommentLinesInEnvFile(): void
-    {
-        $envContent = implode("\n", [
-            '# Main configuration',
-            'APP_NAME=Test App',
-            '# Database settings',
-            'DB_HOST=localhost',
-            '## Another comment',
-        ]);
-
-        $envFile = $this->createTempFile($envContent, '.env');
-        $this->tempFiles[] = $envFile;
-
-        $result = $this->tools->loadEnv($envFile);
-
-        $this->assertEquals('Test App', $result['APP_NAME']);
-        $this->assertEquals('localhost', $result['DB_HOST']);
-        $this->assertCount(2, $result);
-    }
-
-    /**
-     * @group tools
-     * @group env-parsing
-     */
-    public function testItHandlesCommaSeparatedValues(): void
-    {
-        $envContent = 'ITEMS=item1,item2,item3';
-        $envFile = $this->createTempFile($envContent, '.env');
-        $this->tempFiles[] = $envFile;
-
-        $result = $this->tools->loadEnv($envFile);
-
-        $this->assertIsArray($result['ITEMS']);
-        $this->assertEquals(['item1', 'item2', 'item3'], $result['ITEMS']);
     }
 
     /**
@@ -350,35 +254,6 @@ class ToolsTest extends TestCase
         $result = $this->tools->icon('square', 24, 'my-custom-class');
 
         $this->assertStringContainsString('class="icon my-custom-class"', $result);
-    }
-
-    /**
-     * @group tools
-     * @group env-parsing
-     */
-    public function testItHandlesComplexEnvFileFormats(): void
-    {
-        $envContent = implode("\n", [
-            'SIMPLE=value',
-            'WITH_SPACES=value with spaces',
-            'QUOTED="quoted value"',
-            'EQUALS_IN_VALUE=key=value=more',
-            'COMMA_SEPARATED=item1,item2,item3',
-            '',  // Empty line
-            'AFTER_EMPTY=test',
-        ]);
-
-        $envFile = $this->createTempFile($envContent, '.env');
-        $this->tempFiles[] = $envFile;
-
-        $result = $this->tools->loadEnv($envFile);
-
-        $this->assertEquals('value', $result['SIMPLE']);
-        $this->assertEquals('value with spaces', $result['WITH_SPACES']);
-        $this->assertEquals('"quoted value"', $result['QUOTED']);
-        $this->assertEquals('key=value=more', $result['EQUALS_IN_VALUE']);
-        $this->assertEquals(['item1', 'item2', 'item3'], $result['COMMA_SEPARATED']);
-        $this->assertEquals('test', $result['AFTER_EMPTY']);
     }
 
     /**
