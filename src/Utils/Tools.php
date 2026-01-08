@@ -281,4 +281,23 @@ class Tools
         return (string) $num;
 
     }
+
+    /**
+     * Normalize a job name for log filenames.
+     * Converts snake_case / mixed_case to kebab-case, lowercase, filesystem-safe.
+     */
+    public function normalizeJobName(string $jobName): string
+    {
+        // replace underscores and whitespace with hyphens
+        $jobName = preg_replace('/[_\s]+/', '-', $jobName);
+
+        // collapse multiple hyphens
+        $jobName = preg_replace('/-+/', '-', $jobName);
+
+        // lowercase
+        $jobName = strtolower($jobName);
+
+        // trim hyphens
+        return trim($jobName, '-');
+    }
 }
