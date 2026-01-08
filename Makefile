@@ -55,6 +55,7 @@ help:
 	@echo "    $(COLOR_GREEN)make dev-start$(COLOR_RESET)           - Start full Docker environment"
 	@echo "    $(COLOR_GREEN)make dev-logs$(COLOR_RESET)      - Start dev and follow logs"
 	@echo "    $(COLOR_GREEN)make dev-stop$(COLOR_RESET)      - Stop development"
+	@echo "    $(COLOR_GREEN)make dev-recreate$(COLOR_RESET)  - Recreate containers (reload env files)"
 	@echo "    $(COLOR_GREEN)make shell$(COLOR_RESET)         - Access web container"
 	@echo "  $(COLOR_CYAN)Testing:$(COLOR_RESET)"
 	@echo "    $(COLOR_GREEN)make test$(COLOR_RESET)          - Run tests with PHPUnit"
@@ -423,6 +424,10 @@ dev-stop:
 dev-restart:
 	docker-compose -f docker-compose.yml -f docker-compose.dev.yml restart
 
+# Recreate development containers to reload env files
+dev-recreate:
+	docker-compose -f docker-compose.yml -f docker-compose.dev.yml up -d --force-recreate --no-build
+
 # Rebuild development containers from scratch
 dev-rebuild:
 	docker-compose -f docker-compose.yml -f docker-compose.dev.yml down
@@ -574,6 +579,7 @@ docker-help:
 	@echo "  $(COLOR_GREEN)make dev-logs$(COLOR_RESET)        - Start dev and follow logs"
 	@echo "  $(COLOR_GREEN)make dev-stop$(COLOR_RESET)        - Stop development environment"
 	@echo "  $(COLOR_GREEN)make dev-restart$(COLOR_RESET)     - Restart development containers"
+	@echo "  $(COLOR_GREEN)make dev-recreate$(COLOR_RESET)    - Recreate containers (reload env files)"
 	@echo "  $(COLOR_GREEN)make dev-rebuild$(COLOR_RESET)     - Rebuild from scratch"
 	@echo ""
 	@echo "$(COLOR_BOLD)Production:$(COLOR_RESET)"
@@ -608,7 +614,7 @@ docker-help:
 	users-list users-create users-unlock users-delete users-passwd \
 	changelog bootstrap \
 	docs-serve docs-deploy docs-ai-update \
-	docker-setup dev dev-logs dev-stop dev-restart dev-rebuild \
+	docker-setup dev dev-logs dev-stop dev-restart dev-recreate dev-rebuild \
 	prod prod-stop prod-rebuild \
 	logs logs-web logs-db ps \
 	shell db-shell shell-www \
