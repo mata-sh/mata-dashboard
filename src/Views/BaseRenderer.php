@@ -163,6 +163,39 @@ abstract class BaseRenderer
     }
 
     /**
+     * Build dropdown options for servers from server config.
+     *
+     * @param array<string,mixed> $serversConfig
+     *
+     * @return array<int,array{value:string,label:string}>
+     */
+    protected function buildServerDropdownOptions(array $serversConfig): array
+    {
+        $servers = [];
+
+        foreach ($serversConfig as $serverKey => $serverConfig) {
+            if (!is_array($serverConfig)) {
+                continue;
+            }
+
+            $serverKey = (string) $serverKey;
+
+            if (str_starts_with($serverKey, '_')) {
+                continue;
+            }
+
+            $servers[] = [
+                'value' => $serverKey,
+                'label' => (string) ($serverConfig['title'] ?? $serverKey),
+            ];
+        }
+
+        usort($servers, static fn (array $a, array $b) => strcmp($a['label'], $b['label']));
+
+        return $servers;
+    }
+
+    /**
      * Generate HTML img tag for images.
      *
      * @param string   $src       Image source path or filename

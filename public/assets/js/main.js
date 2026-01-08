@@ -129,3 +129,70 @@ document.body.addEventListener('htmx:afterSwap', (event) => {
         loadMetricsDashboard(event.target);
     }
 });
+
+// ────────────────────────────────────────────────
+// Dynamic Populating of Dropdowns from Tables
+// ────────────────────────────────────────────────
+function mataPopulateSelectFromRows(selectId, rows, field, placeholder) {
+    const select = document.getElementById(selectId);
+
+    if (!select || !Array.isArray(rows)) {
+        return;
+    }
+
+    const cacheKey = `mata-select:${selectId}`;
+    const currentValue = select.value;
+    const cachedValue = window.sessionStorage ? sessionStorage.getItem(cacheKey) : null;
+    const valueSet = new Set();
+
+    rows.forEach((row) => {
+        if (!row || typeof row[field] !== 'string') {
+            return;
+        }
+
+        const value = row[field].trim();
+
+        if (value) {
+            valueSet.add(value);
+        }
+    });
+
+    const values = Array.from(valueSet).sort((a, b) =>
+        a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' })
+    );
+
+    select.innerHTML = '';
+
+    const placeholderOption = document.createElement('option');
+    placeholderOption.value = '';
+    placeholderOption.textContent = placeholder || 'All';
+    select.appendChild(placeholderOption);
+
+    values.forEach((value) => {
+        const option = document.createElement('option');
+        option.value = value;
+        option.textContent = value;
+        select.appendChild(option);
+    });
+
+    const preferredValue = currentValue || cachedValue || '';
+
+    if (preferredValue && values.indexOf(preferredValue) !== -1) {
+        select.value = preferredValue;
+    }
+
+    if (window.sessionStorage) {
+        sessionStorage.setItem(cacheKey, select.value);
+    }
+
+    if (!select.dataset.mataCacheBound) {
+        select.addEventListener('change', () => {
+            if (window.sessionStorage) {
+                sessionStorage.setItem(cacheKey, select.value);
+            }
+        });
+        select.dataset.mataCacheBound = 'true';
+    }
+}
+
+window.mataPopulateSelectFromRows = mataPopulateSelectFromRows;

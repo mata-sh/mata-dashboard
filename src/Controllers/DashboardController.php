@@ -376,7 +376,8 @@ class DashboardController extends BaseController
         return $this->executeWithErrorHandling(
             function () {
                 $html = $this->librariesRenderer->renderContainer(
-                    $this->endpoints
+                    $this->endpoints,
+                    $this->serversConfig
                 );
 
                 return new HtmlResponse($html);

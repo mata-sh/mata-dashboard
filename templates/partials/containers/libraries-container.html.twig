@@ -5,8 +5,15 @@
   <div class="filter-menu">
     <input id="filter-name" type="text" placeholder="Name" />
     <input id="filter-version" type="text" placeholder="Version" />
-    <input id="filter-app" type="text" placeholder="App" />
-    <input id="filter-server" type="text" placeholder="Server" />
+    <select id="filter-app">
+      <option value="">All Apps</option>
+    </select>
+    <select id="filter-server">
+      <option value="">All Servers</option>
+      {% for server in filters.servers %}
+        <option value="{{ server.value }}">{{ server.label }}</option>
+      {% endfor %}
+    </select>
     <input id="filter-description" type="text" placeholder="Description" />
     <button class="button" id="filter-clear">Clear Filter</button>
   </div>
@@ -20,6 +27,12 @@
     layout: 'fitDataStretch',
     pagination: 'local',
     paginationSize: 40,
+    ajaxResponse: function (url, params, response) {
+      if (window.mataPopulateSelectFromRows) {
+        window.mataPopulateSelectFromRows('filter-app', response, 'app', 'All Apps')
+      }
+      return response
+    },
     columns: [
       { title: 'Name', field: 'name' },
       { title: 'Version', field: 'version' },
@@ -42,8 +55,8 @@
     const filters = []
     const nameVal = document.getElementById('filter-name').value.trim()
     const versionVal = document.getElementById('filter-version').value.trim()
-    const appVal = document.getElementById('filter-app').value.trim()
-    const serverVal = document.getElementById('filter-server').value.trim()
+    const appVal = document.getElementById('filter-app').value
+    const serverVal = document.getElementById('filter-server').value
     const descriptionVal = document.getElementById('filter-description').value.trim()
   
     if (nameVal) filters.push({ field: 'name', type: 'like', value: nameVal })
@@ -56,13 +69,20 @@
   }
   
   /* --- wire the UI --- */
-  ;['filter-name', 'filter-version', 'filter-app', 'filter-server', 'filter-description'].forEach((id) => {
+  ;['filter-name', 'filter-version', 'filter-description'].forEach((id) => {
     document.getElementById(id).addEventListener('input', applyLibrariesFilters)
+  })
+
+  ;['filter-app', 'filter-server'].forEach((id) => {
+    document.getElementById(id).addEventListener('change', applyLibrariesFilters)
   })
   
   /* --- update Clear button --- */
   document.getElementById('filter-clear').addEventListener('click', () => {
-    ;['filter-name', 'filter-version', 'filter-app', 'filter-server', 'filter-description'].forEach((id) => {
+    ;['filter-name', 'filter-version', 'filter-description'].forEach((id) => {
+      document.getElementById(id).value = ''
+    })
+    ;['filter-app', 'filter-server'].forEach((id) => {
       document.getElementById(id).value = ''
     })
     librariesTable.clearFilter()

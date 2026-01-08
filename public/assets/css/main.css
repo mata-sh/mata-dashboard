@@ -899,6 +899,24 @@ svg {
     width: 100px;
 }
 
+.filter-menu {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 0.25rem 0.45rem;
+    /* row-gap col-gap */
+    align-items: center;
+}
+
+/* Make long fields span more space */
+#filter-msg {
+    grid-column: span 2;
+}
+
+#filter-clear {
+    justify-self: end;
+}
+
+
 @media (hover: hover) and (pointer: fine) {
     .tabulator .tabulator-header .tabulator-col.tabulator-sortable.tabulator-col-sorter-element:hover {
         cursor: pointer;

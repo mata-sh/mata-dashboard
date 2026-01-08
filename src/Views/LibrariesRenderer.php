@@ -21,13 +21,18 @@ class LibrariesRenderer extends BaseRenderer
     /**
      * Render complete libraries container with wrapper template.
      *
+     * @param array<string,mixed> $serversConfig Server configurations
+     *
      * @return string Generated HTML for complete libraries container
      */
-    public function renderContainer(Endpoints $endpoints): string
+    public function renderContainer(Endpoints $endpoints, array $serversConfig): string
     {
         return $this->twig->render('partials/containers/libraries-container.html.twig', [
             'endpoints' => [
                 'libraries_json' => $endpoints->get('libraries_json'),
+            ],
+            'filters' => [
+                'servers' => $this->buildServerDropdownOptions($serversConfig),
             ],
         ]);
     }

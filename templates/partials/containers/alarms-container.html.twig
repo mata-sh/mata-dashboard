@@ -10,6 +10,12 @@
             <option value="critical">Critical</option>
             <option value="warning">Warning</option>
         </select>
+        <select id="filter-app">
+            <option value="">All Apps</option>
+        </select>
+        <select id="filter-server">
+            <option value="">All Servers</option>
+        </select>
 
         <input id="filter-id" type="text" placeholder="ID">
         <input id="filter-type" type="text" placeholder="Type">
@@ -28,6 +34,13 @@
         height:"1200px",
         pagination: "local",
         paginationSize:33,
+        ajaxResponse: function (url, params, response) {
+            if (window.mataPopulateSelectFromRows) {
+                window.mataPopulateSelectFromRows("filter-app", response, "app", "All Apps");
+                window.mataPopulateSelectFromRows("filter-server", response, "server", "All Servers");
+            }
+            return response;
+        },
         columns: [
         {title: "ID", field: "id", sorter: "number", hozAlign:"center", },
         {title: "Datetime", field: "datetime", sorter: "datetime", hozAlign:"center"},
@@ -85,6 +98,8 @@
         const filters = [];
         const idVal     = document.getElementById("filter-id").value.trim();
         const levelVal  = document.getElementById("filter-level").value;
+        const appVal    = document.getElementById("filter-app").value;
+        const serverVal = document.getElementById("filter-server").value;
         const typeVal   = document.getElementById("filter-type").value.trim();
         const msgVal   = document.getElementById("filter-msg").value.trim();
         const timeVal   = document.getElementById("filter-time").value.trim();
@@ -93,6 +108,8 @@
 
         if(idVal)    filters.push({field:"id",    type:"like", value:idVal});
         if(levelVal) filters.push({field:"level", type:"=",    value:levelVal});
+        if(appVal)   filters.push({field:"app", type:"like", value:appVal});
+        if(serverVal) filters.push({field:"server", type:"like", value:serverVal});
         if(typeVal)  filters.push({field:"type",  type:"like", value:typeVal});
         if(msgVal)  filters.push({field:"message",  type:"like", value:msgVal});
         if(timeVal)  filters.push({field:"datetime",  type:"like", value:timeVal});
@@ -111,6 +128,9 @@
         document.getElementById(id).addEventListener("input", applyFilters);
     });
     document.getElementById("filter-level").addEventListener("change", applyFilters);
+    ["filter-app","filter-server"].forEach(id=>{
+        document.getElementById(id).addEventListener("change", applyFilters);
+    });
 
     /* --- update Clear button === */
     document.getElementById("filter-clear").addEventListener("click", () => {
@@ -118,6 +138,8 @@
             document.getElementById(id).value = "";
         });
         document.getElementById("filter-level").value = "";
+        document.getElementById("filter-app").value = "";
+        document.getElementById("filter-server").value = "";
         table.clearFilter();
     });
 </script>
