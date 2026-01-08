@@ -22,6 +22,8 @@ services:
     depends_on:
       mata-db:
         condition: service_started
+      mata-opa:
+        condition: service_started
     networks:
       - mata-network
 
@@ -43,6 +45,18 @@ services:
       - ./docker/mysql/init.sql:/docker-entrypoint-initdb.d/init.sql
     ports:
       - "3307:${DB_PORT:-3306}"
+    networks:
+      - mata-network
+
+  mata-opa:
+    image: openpolicyagent/opa:latest
+    container_name: ${COMPOSE_PROJECT_NAME:-mata}-opa
+    restart: unless-stopped
+    command: ["run", "--server", "--addr", "0.0.0.0:8181", "--watch", "/policies"]
+    volumes:
+      - ./policy:/policies:ro
+    ports:
+      - "8181:8181"
     networks:
       - mata-network
 

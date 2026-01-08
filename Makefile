@@ -40,6 +40,7 @@ help:
 	@echo "  $(COLOR_GREEN)make setup$(COLOR_RESET)           - Full setup (composer deps + configs) [$(COLOR_MAGENTA)composer, git$(COLOR_RESET)]"
 	@echo "  $(COLOR_GREEN)make setup-opa$(COLOR_RESET)       - Install OPA binary to bin/opa [$(COLOR_MAGENTA)curl$(COLOR_RESET)]"
 	@echo "  $(COLOR_GREEN)make opa-install-service$(COLOR_RESET) - Install and start systemd unit for OPA [$(COLOR_MAGENTA)systemd$(COLOR_RESET)]"
+	@echo "  $(COLOR_GREEN)make opa-docker-start$(COLOR_RESET) - Start OPA in Docker with local policies mounted [$(COLOR_MAGENTA)docker$(COLOR_RESET)]"
 	@echo "  $(COLOR_GREEN)make install-hooks$(COLOR_RESET)   - Install git hooks [$(COLOR_MAGENTA)git$(COLOR_RESET)]"
 	@echo "  $(COLOR_GREEN)make changelog$(COLOR_RESET)       - Generate changelog [$(COLOR_MAGENTA)claude code$(COLOR_RESET)]"
 	@echo ""
@@ -228,6 +229,20 @@ opa-install-service:
 	@sudo systemctl daemon-reload
 	@sudo systemctl enable --now opa.service
 	@echo "$(COLOR_GREEN)✅ OPA service installed and started$(COLOR_RESET)"
+
+opa-docker-start:
+	@set -e; \
+	if docker ps -a --format '{{.Names}}' | grep -q '^mata-opa$$'; then \
+		echo "$(COLOR_YELLOW)⚠️  Removing existing mata-opa container...$(COLOR_RESET)"; \
+		docker rm -f mata-opa >/dev/null; \
+	fi; \
+	echo "$(COLOR_BLUE)🐳 Starting OPA container...$(COLOR_RESET)"; \
+	docker run -d --name mata-opa \
+		-p 8181:8181 \
+		-v "$(CURDIR)/policy:/policies" \
+		openpolicyagent/opa:latest \
+		run --server --watch /policies >/dev/null; \
+	echo "$(COLOR_GREEN)✅ OPA running at http://127.0.0.1:8181 (container: mata-opa)$(COLOR_RESET)"
 
 
 # Install Composer dependencies and git hooks
