@@ -34,6 +34,7 @@
         height:"1200px",
         pagination: "local",
         paginationSize:33,
+        paginationCounter:"rows",
         ajaxResponse: function (url, params, response) {
             if (window.mataPopulateSelectFromRows) {
                 window.mataPopulateSelectFromRows("filter-app", response, "app", "All Apps");

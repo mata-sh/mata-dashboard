@@ -27,6 +27,7 @@
     layout: 'fitDataStretch',
     pagination: 'local',
     paginationSize: 40,
+    paginationCounter: 'rows',
     ajaxResponse: function (url, params, response) {
       if (window.mataPopulateSelectFromRows) {
         window.mataPopulateSelectFromRows('filter-app', response, 'app', 'All Apps')
@@ -72,7 +73,6 @@
   ;['filter-name', 'filter-version', 'filter-description'].forEach((id) => {
     document.getElementById(id).addEventListener('input', applyLibrariesFilters)
   })
-
   ;['filter-app', 'filter-server'].forEach((id) => {
     document.getElementById(id).addEventListener('change', applyLibrariesFilters)
   })

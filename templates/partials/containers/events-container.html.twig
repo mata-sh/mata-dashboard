@@ -21,11 +21,8 @@
         <input id="filter-type" type="text" placeholder="Type">
         <input id="filter-msg" type="text" placeholder="Message">
 
-        <div class="bottom-controls">
-            <button class="button" id="filter-clear">Clear Filter</button>
-            <div class="date-range"></div>
-            <div class="result-count"></div>
-        </div>
+        <button class="button" id="filter-clear">Clear Filter</button>
+
     </div>
 
     <div id="events-table"></div>
@@ -38,6 +35,7 @@
         height:"1200px",
         pagination: "local",
         paginationSize:33,
+        paginationCounter:"rows",
         ajaxResponse: function (url, params, response) {
             if (window.mataPopulateSelectFromRows) {
                 window.mataPopulateSelectFromRows("filter-app", response, "app", "All Apps");

@@ -895,10 +895,6 @@ svg {
     padding: 7px 14px;
 }
 
-.filter-menu #filter-id {
-    width: 100px;
-}
-
 .filter-menu {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
@@ -911,11 +907,6 @@ svg {
 #filter-msg {
     grid-column: span 2;
 }
-
-#filter-clear {
-    justify-self: end;
-}
-
 
 @media (hover: hover) and (pointer: fine) {
     .tabulator .tabulator-header .tabulator-col.tabulator-sortable.tabulator-col-sorter-element:hover {
