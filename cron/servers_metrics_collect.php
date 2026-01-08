@@ -102,17 +102,7 @@ try {
             continue;
         }
 
-        try {
-            $token = $tools->encrypt($apiKey . '|' . time(), $appConfig->secrets->encryptionSecret);
-        } catch (Throwable $encryptionError) {
-            $log->error('collect_server_metrics.encryption_failed', [
-                'server' => $serverName,
-                'error' => $encryptionError->getMessage(),
-            ]);
-            ++$stats['failed'];
-
-            continue;
-        }
+        $token = $tools->buildHmacAuthToken((string) $serverName, $apiKey, time());
 
         try {
             // Extract security flags with defaults

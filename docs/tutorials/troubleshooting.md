@@ -44,7 +44,7 @@ This troubleshooting guide covers:
 Test the Node API directly from the Dashboard server:
 
 ```bash
-curl -v -H "X-API-Key: YOUR_API_KEY" https://your-server.com/mata-node/api/health
+curl -v -H "X-Mata-Auth: server-id|1700000000|nonce|hmac_sha256_hex" https://your-server.com/mata-node/api/health
 ```
 
 **Expected Response:**
@@ -166,7 +166,7 @@ Complete API test:
 
 ```bash
 curl -X GET \
-  -H "X-API-Key: YOUR_API_KEY" \
+  -H "X-Mata-Auth: server-id|1700000000|nonce|hmac_sha256_hex" \
   -H "Accept: application/json" \
   -v \
   https://your-server.com/mata-node/api/server-data
@@ -1216,7 +1216,7 @@ API keys must match exactly.
 #### 2. Test API Key Authentication
 
 ```bash
-curl -v -H "X-API-Key: YOUR_KEY_HERE" https://your-server.com/mata-node/api/health
+curl -v -H "X-Mata-Auth: server-id|1700000000|nonce|hmac_sha256_hex" https://your-server.com/mata-node/api/health
 ```
 
 **Success:**
@@ -1282,7 +1282,7 @@ nano /var/www/mata-node/config/config.php
 
 Test:
 ```bash
-curl -H "X-API-Key: NEW_KEY_HERE" https://node-server.com/mata-node/api/health
+curl -H "X-Mata-Auth: server-id|1700000000|nonce|hmac_sha256_hex" https://node-server.com/mata-node/api/health
 ```
 
 #### Solution 2: Add Dashboard IP to Whitelist
@@ -1352,7 +1352,7 @@ watch -n 5 'ls -lah temp/api_cache/ | tail -10'
 Time API requests:
 
 ```bash
-time curl -H "X-API-Key: KEY" https://server.com/mata-node/api/server-data
+time curl -H "X-Mata-Auth: server-id|1700000000|nonce|hmac_sha256_hex" https://server.com/mata-node/api/server-data
 ```
 
 Expected: < 2 seconds
@@ -1542,7 +1542,7 @@ Include:
 
 ```bash
 # Test Node API
-curl -H "X-API-Key: KEY" https://server.com/mata-node/api/health
+curl -H "X-Mata-Auth: server-id|1700000000|nonce|hmac_sha256_hex" https://server.com/mata-node/api/health
 
 # Validate JSON config
 php -r "json_decode(file_get_contents('config/servers.json'));"

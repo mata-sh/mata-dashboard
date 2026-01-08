@@ -16,7 +16,6 @@ use Watcher\Config\Dto\LoggingConfig;
 use Watcher\Config\Dto\MailConfig;
 use Watcher\Config\Dto\PhpConfig;
 use Watcher\Config\Dto\RateLimitingConfig;
-use Watcher\Config\Dto\SecretsConfig;
 use Watcher\Config\Dto\SmtpDevConfig;
 use Watcher\Config\Dto\TemplateConfig;
 
@@ -60,7 +59,6 @@ final class EnvConfigLoader
             logging: $this->loadLoggingConfig(),
             database: $this->loadDatabaseConfig(),
             mail: $this->loadMailConfig(),
-            secrets: $this->loadSecretsConfig(),
             cliSecurity: $this->loadCliSecurityConfig(),
             rateLimiting: $this->loadRateLimitingConfig(),
         );
@@ -179,13 +177,6 @@ final class EnvConfigLoader
             smtpDev: $smtpDev,
             charset: $this->getEnv('MAIL_CHARSET', 'utf-8'),
             wordWrap: (int) $this->getEnv('MAIL_WORD_WRAP', '50'),
-        );
-    }
-
-    private function loadSecretsConfig(): SecretsConfig
-    {
-        return new SecretsConfig(
-            encryptionSecret: $this->getEnv('API_ENCRYPTION_SECRET'),
         );
     }
 
@@ -337,14 +328,6 @@ final class EnvConfigLoader
             $warnings[] = [
                 'identifier' => 'config.mail.from_email.missing',
                 'message' => 'Mail from_email not configured - emails may not send properly',
-            ];
-        }
-
-        // Security configuration warnings
-        if (empty($config->secrets->encryptionSecret)) {
-            $warnings[] = [
-                'identifier' => 'config.secrets.encryption.missing',
-                'message' => 'Encryption secret not configured - API communication may fail',
             ];
         }
 

@@ -211,9 +211,8 @@ class DashboardController extends BaseController
             throw new InvalidArgumentException("Server {$server} missing required config");
         }
 
-        $apiKey = $serverConfig['api_key'] . '|' . time();
-        $secret = $this->appConfig->secrets->encryptionSecret;
-        $token = $this->tools->encrypt($apiKey, $secret);
+        $timestamp = time();
+        $token = $this->tools->buildHmacAuthToken($server, $serverConfig['api_key'], $timestamp);
 
         // Extract security flags with defaults
         $allowHttp = TypeConverter::toBool($serverConfig['allow_http'] ?? null) ?? false;

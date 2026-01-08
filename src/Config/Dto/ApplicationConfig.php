@@ -21,7 +21,6 @@ final class ApplicationConfig
         public readonly LoggingConfig $logging,
         public readonly DatabaseConfig $database,
         public readonly MailConfig $mail,
-        public readonly SecretsConfig $secrets,
         public readonly CliSecurityConfig $cliSecurity,
         public readonly RateLimitingConfig $rateLimiting,
     ) {}

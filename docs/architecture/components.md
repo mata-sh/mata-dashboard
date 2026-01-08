@@ -459,7 +459,7 @@ $analysis = $logAnalyzer->analyzeLogs($logContent);
 // Make API request
 $response = $apiClient->get($url, [
     'headers' => [
-        'X-API-Key' => $apiKey,
+        'X-Mata-Auth' => $token,
         'Accept' => 'application/json'
     ],
     'timeout' => 10

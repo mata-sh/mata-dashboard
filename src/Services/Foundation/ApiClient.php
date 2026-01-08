@@ -30,7 +30,7 @@ class ApiClient
      *
      * @param LoggerInterface $logger              PSR-3 logger for HTTP request logging
      * @param string          $apiBase             Base URL for the API endpoint
-     * @param string          $token               Authentication token for API requests
+     * @param string          $token               Authentication token for API requests (HMAC)
      * @param int             $timeout             Request timeout in seconds (default: 10)
      * @param bool            $verifySSL           Whether to verify SSL certificates (default: true)
      * @param bool            $allowHttp           Whether to allow HTTP connections (default: false)
@@ -83,7 +83,7 @@ class ApiClient
             'timeout' => $timeout,
             'verify' => $verifySSL,
             'headers' => [
-                'Auth' => "Bearer {$this->token}",
+                'X-Mata-Auth' => $this->token,
                 'Accept' => 'application/json',
             ],
         ]);

@@ -249,6 +249,24 @@ class Tools
     }
 
     /**
+     * Build an HMAC auth token for API requests.
+     *
+     * Format: server|timestamp|nonce|signature
+     */
+    public function buildHmacAuthToken(
+        string $server,
+        string $apiKey,
+        int $timestamp,
+        ?string $nonce = null
+    ): string {
+        $nonceValue = $nonce ?? bin2hex(random_bytes(16));
+        $payload = $server . '|' . $timestamp . '|' . $nonceValue;
+        $signature = hash_hmac('sha256', $payload, $apiKey);
+
+        return $server . '|' . $timestamp . '|' . $nonceValue . '|' . $signature;
+    }
+
+    /**
      * Format large numbers with K/M suffix.
      */
     public function formatNumber(float|int $num): string

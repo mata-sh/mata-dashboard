@@ -189,7 +189,7 @@ Cleanup Old Raw Data (> 7 days)
 ```http
 GET /mata-node/api/server-data HTTP/1.1
 Host: monitored-server.com
-X-API-Key: encrypted_api_key_with_timestamp
+X-Mata-Auth: server-id|1700000000|nonce|hmac_sha256_hex
 Accept: application/json
 ```
 

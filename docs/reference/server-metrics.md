@@ -634,7 +634,7 @@ Metrics are evaluated against configured thresholds in `config/thresholds.json`.
 **Problem:** Metrics seem incorrect
 
 **Check:**
-1. Node API response: `curl -H "X-API-Key: xxx" https://node/api/system`
+1. Node API response: `curl -H "X-Mata-Auth: server-id|1700000000|nonce|hmac_sha256_hex" https://node/api/system`
 2. Timezone settings: Server and application must match
 3. Unit conversion: Verify bytes → MB/GB calculations
 4. Caching: Force refresh to bypass cache

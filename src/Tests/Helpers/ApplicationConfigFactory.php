@@ -14,7 +14,6 @@ use Watcher\Config\Dto\LoggingConfig;
 use Watcher\Config\Dto\MailConfig;
 use Watcher\Config\Dto\PhpConfig;
 use Watcher\Config\Dto\RateLimitingConfig;
-use Watcher\Config\Dto\SecretsConfig;
 use Watcher\Config\Dto\SmtpDevConfig;
 use Watcher\Config\Dto\TemplateConfig;
 
@@ -40,7 +39,6 @@ class ApplicationConfigFactory
         ?LoggingConfig $logging = null,
         ?DatabaseConfig $database = null,
         ?MailConfig $mail = null,
-        ?SecretsConfig $secrets = null,
         ?CliSecurityConfig $cliSecurity = null,
         ?RateLimitingConfig $rateLimiting = null,
     ): ApplicationConfig {
@@ -53,7 +51,6 @@ class ApplicationConfigFactory
             logging: $logging ?? self::createLoggingConfig(),
             database: $database ?? self::createDatabaseConfig(),
             mail: $mail ?? self::createMailConfig(),
-            secrets: $secrets ?? self::createSecretsConfig(),
             cliSecurity: $cliSecurity ?? self::createCliSecurityConfig(),
             rateLimiting: $rateLimiting ?? self::createRateLimitingConfig(),
         );
@@ -162,12 +159,6 @@ class ApplicationConfigFactory
         ?string $fromName = null,
     ): SmtpDevConfig {
         return new SmtpDevConfig($host, $port, $user, $password, $secure, $from, $fromName);
-    }
-
-    public static function createSecretsConfig(
-        ?string $encryptionSecret = 'test-encryption-secret-key-12345',
-    ): SecretsConfig {
-        return new SecretsConfig($encryptionSecret);
     }
 
     public static function createCliSecurityConfig(

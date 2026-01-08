@@ -29,8 +29,8 @@ MATA uses a client-server architecture:
 
 ```
 ┌─────────────────────┐          API Request           ┌──────────────────────┐
-│                     │     (with API Key auth)        │                      │
-│  MATA Dashboard    │───────────────────────────────>│   MATA Node         │
+│                     │    (with HMAC Token auth)      │                      │
+│  MATA Dashboard     │───────────────────────────────>│   MATA Node          │
 │  (Central Server)   │<───────────────────────────────│   (Monitored Server) │
 │                     │     JSON Response              │                      │
 └─────────────────────┘                                └──────────────────────┘
@@ -67,7 +67,7 @@ mv mata-node-main mata-node
 
 ```bash
 cd mata-node
-composer install --no-dev --optimize-autoloader
+make setup
 ```
 
 ### 1.3 Configure the Node
@@ -85,21 +85,11 @@ Copy and save this API key - you'll need it in both the Node configuration and D
 Edit the Node's configuration file:
 
 ```bash
-cp config/config.php.example config/config.php
-nano config/config.php
+cp config/config.env.example config/config.env
+nano config/config.env
 ```
 
-Update the API key in `config.php`:
-
-```php
-<?php
-return [
-    'api_key' => '8f3a9b2c1d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0',
-    'allowed_ips' => [
-        '203.0.113.50',  // Your Dashboard server IP
-    ],
-];
-```
+Update the API key in `config.env`:
 
 > **Security Note:** Always restrict API access to specific IP addresses in production environments.
 
@@ -164,7 +154,7 @@ sudo systemctl restart nginx
 Verify the Node is accessible:
 
 ```bash
-curl -H "X-API-Key: 8f3a9b2c1d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0" \
+curl -H "X-Mata-Auth: server-id|1700000000|nonce|hmac_sha256_hex" \
      https://your-server.com/mata-node/api/health
 ```
 
@@ -264,7 +254,7 @@ This ensures only the web server user can read the file containing API keys.
 From the Dashboard server, test the connection:
 
 ```bash
-curl -H "X-API-Key: YOUR_API_KEY_HERE" \
+curl -H "X-Mata-Auth: server-id|1700000000|nonce|hmac_sha256_hex" \
      https://your-server.com/mata-node/api/server-data
 ```
 
@@ -324,88 +314,40 @@ https://your-dashboard-domain.com/
 
 Log in with your credentials.
 
-### 4.2 Locate Your Server
+### 4.2 Force Data Refresh
 
-On the main dashboard page, you should see a server card for your newly added server:
-
-```
-┌─────────────────────────────────────┐
-│ 🖥️  Production Web Server           │
-│                                     │
-│ CPU Usage:         23.5%            │
-│ RAM Usage:         25% (4GB/16GB)   │
-│ Disk Usage:        44% (45GB/100GB) │
-│ Uptime:            1 day            │
-│ Last Updated:      5 seconds ago    │
-│                                     │
-│ [View Details] [Refresh]            │
-└─────────────────────────────────────┘
-```
-
-> **Note:** If you don't see your server, check the troubleshooting section below.
-
-### 4.3 Force Data Refresh
-
-Click the **Refresh** button to force an immediate data collection from your server. This bypasses the cache and fetches fresh metrics.
-
-### 4.4 View Detailed Metrics
-
-Click **View Details** to see:
-
-- Running PHP processes
-- Application status
-- Database connections
-- Log file sizes
-- Recent errors and warnings
+Click the **Refresh** button to force an immediate data collection from your server. This bypasses the cache and fetches fresh metrics. Note: The Node on the server might provide cached data itself.
 
 ---
 
 ## Step 5: Configure Automated Data Collection
 
-To enable continuous monitoring, set up the cron jobs on the Dashboard server.
+To enable continuous monitoring, set up the cron jobs on the Dashboard server. When running in docker, the crontab in `mata-dashboard/docker/cron/crontab` is used.
 
-### 5.1 Edit Crontab
+### 5.1 Edit Crontab manually
 
 ```bash
 crontab -e
 ```
 
-### 5.2 Add Collection Jobs
-
-Add these lines to collect metrics every 5 minutes:
-
-```cron
-# MATA Dashboard - Collect raw server metrics every 5 minutes
-*/5 * * * * /usr/bin/php /path/to/mata-dashboard/cron/servers_metrics_collect.php >> /var/log/mata/collect.log 2>&1
-
-# MATA Dashboard - Aggregate metrics hourly (at minute 5)
-5 * * * * /usr/bin/php /path/to/mata-dashboard/cron/servers_metrics_aggregate.php >> /var/log/mata/aggregate.log 2>&1
-```
-
 > **Important:** Replace `/path/to/mata-dashboard` with your actual installation path.
 
-### 5.3 Create Log Directory
+### 5.2 Create Log Directory
 
 ```bash
-sudo mkdir -p /var/log/mata
-sudo chown www-data:www-data /var/log/mata
+sudo mkdir -p /path/to/mata-dashboard/logs
+sudo chown www-data:www-data /path/to/mata-dashboard/logs/cron/
 ```
 
-### 5.4 Verify Cron Execution
+### 5.3 Verify Cron Execution
 
 Wait 5 minutes, then check if the cron job ran successfully:
 
 ```bash
-tail -f /var/log/mata/collect.log
-```
-
-You should see output indicating successful metric collection:
-
-```
-[2025-11-02 15:40:00] INFO: Starting server metrics collection
-[2025-11-02 15:40:01] INFO: Collecting metrics from production-web-server
-[2025-11-02 15:40:02] SUCCESS: Collected 12 metrics from production-web-server
-[2025-11-02 15:40:02] INFO: Metrics collection completed
+# cronjob logs
+tail -f /path/to/mata-dashboard/logs/cron/collect_server_metrics.log
+# payload health log
+tail -f /path/to/mata-dashboard/logs/cron/collect_server_metrics_health.log
 ```
 
 ---
@@ -420,7 +362,7 @@ You should see output indicating successful metric collection:
 
 1. **Verify JSON syntax:**
    ```bash
-   php -r "json_decode(file_get_contents('/path/to/servers.json'));" && echo "Valid JSON" || echo "Invalid JSON"
+   php -r "json_decode(file_get_contents('/path/to/mata-dashboard/config/servers.json'));" && echo "Valid JSON" || echo "Invalid JSON"
    ```
 
 2. **Check file permissions:**
@@ -437,6 +379,7 @@ You should see output indicating successful metric collection:
 4. **Check error logs:**
    ```bash
    tail -f /path/to/mata-dashboard/logs/app.log
+   tail -f /path/to/mata-dashboard/logs/php-error.log
    ```
 
 ### Connection Timeout Errors
@@ -466,7 +409,7 @@ You should see output indicating successful metric collection:
 4. **Test from Dashboard server:**
    ```bash
    # SSH into Dashboard server
-   curl -H "X-API-Key: YOUR_KEY" https://your-server.com/mata-node/api/server-data
+   curl -H "X-Mata-Auth: server-id|1700000000|nonce|hmac_sha256_hex" https://your-server.com/mata-node/api/server-data
    ```
 
 ### API Authentication Failures
@@ -476,16 +419,10 @@ You should see output indicating successful metric collection:
 **Solutions:**
 
 1. **Verify API keys match:**
-   - Node configuration: `/var/www/mata-node/config/config.php`
+   - Node configuration: `/var/www/mata-node/config/config.env`
    - Dashboard configuration: `/path/to/mata-dashboard/config/servers.json`
 
-2. **Check for whitespace:**
-   ```bash
-   # API keys should not have leading/trailing spaces
-   grep "api_key" /path/to/mata-dashboard/config/servers.json
-   ```
-
-3. **Regenerate API key:**
+2. **Regenerate API key:**
    ```bash
    openssl rand -hex 32
    # Update both Node and Dashboard configurations
@@ -499,7 +436,7 @@ You should see output indicating successful metric collection:
 
 1. **Check Node API response:**
    ```bash
-   curl -H "X-API-Key: YOUR_KEY" https://your-server.com/mata-node/api/server-data
+   curl -H "X-Mata-Auth: server-id|1700000000|nonce|hmac_sha256_hex" https://your-server.com/mata-node/api/server-data
    # Should return JSON with metrics
    ```
 
@@ -512,6 +449,8 @@ You should see output indicating successful metric collection:
 3. **Check Node error logs:**
    ```bash
    tail -f /var/log/apache2/error.log  # or Nginx equivalent
+    tail -f /path/to/mata-node/logs/app.log
+   tail -f /path/to/mata-node/logs/php-error.log
    ```
 
 4. **Test individual metrics:**
@@ -541,6 +480,10 @@ You should see output indicating successful metric collection:
 3. **Verify config file permissions:**
    ```bash
    ls -la /path/to/mata-dashboard/config/servers.json
+   ls -la /path/to/mata-dashboard/config/config.env
+   ls -la /path/to/mata-dashboard/config/db.config.env
+   ls -la /path/to/mata-dashboard/config/mail.config.env
+
    # Should be 600 (readable by web server user)
    ```
 
@@ -548,7 +491,7 @@ You should see output indicating successful metric collection:
 
 ## Next Steps
 
-Congratulations! You've successfully added your first monitored server to MATA Dashboard. Here's what you can do next:
+Here's what you can do next:
 
 1. **Add More Servers:** Repeat this process to monitor additional servers
 2. **Configure Alert Thresholds:** Set up custom thresholds for CPU, RAM, and disk usage
@@ -576,7 +519,7 @@ Congratulations! You've successfully added your first monitored server to MATA D
 
 ```bash
 # Test Node API from Dashboard server
-curl -H "X-API-Key: YOUR_KEY" https://server.com/mata-node/api/health
+curl -H "X-Mata-Auth: server-id|1700000000|nonce|hmac_sha256_hex" https://server.com/mata-node/api/health
 
 # Validate servers.json syntax
 php -r "json_decode(file_get_contents('config/servers.json'));"
@@ -612,5 +555,5 @@ php /path/to/mata-dashboard/cron/servers_metrics_collect.php
 
 ---
 
-**Last Updated:** November 2025
+**Last Updated:** January 2026
 **MATA Dashboard Version:** 1.0+

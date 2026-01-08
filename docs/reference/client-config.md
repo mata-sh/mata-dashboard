@@ -100,7 +100,6 @@ ALLOWED_IPS=203.0.113.10
 # Secrets
 FILEPATH_SECRET=your_secret_key
 WATCHER_API_KEY=your_api_key
-WATCHER_ENCRYPTION_SECRET=your_encryption_secret
 ```
 
 **Logging Config (`config/log.config.env`):**
@@ -288,7 +287,6 @@ These values can be stored in config files but are **not transmitted** to the da
 | `MINIFYING` | Asset minification setting |
 | `FILEPATH_SECRET` | File path encryption secret |
 | `WATCHER_API_KEY` | API authentication key for node |
-| `WATCHER_ENCRYPTION_SECRET` | Encryption key for sensitive data transmission |
 
 ---
 
@@ -610,7 +608,6 @@ config/
 # security.config.env
 FILEPATH_SECRET=my_secret_key_here
 WATCHER_API_KEY=api_key_12345
-WATCHER_ENCRYPTION_SECRET=encryption_secret_67890
 DATABASE_PASSWORD=super_secret_password
 ```
 
@@ -676,14 +673,9 @@ DOMAIN=example.com
 # Copy to config.env and customize
 ```
 
-### 5. Encryption
+### 5. API Authentication
 
-For highly sensitive data transmitted to the dashboard, use encryption:
-
-```env
-# Enable encryption for transmitted data
-WATCHER_ENCRYPTION_SECRET=your_32_character_secret_key_here
-```
+Node API authentication uses HMAC tokens derived from `WATCHER_API_KEY`.
 
 ---
 

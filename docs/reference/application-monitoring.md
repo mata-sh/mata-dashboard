@@ -815,7 +815,7 @@ POST /api/app/{app_name}/refresh
 curl -v https://your-app.com
 
 # Check API response
-curl -H "X-API-Key: your_key" https://your-app.com/mata-node/api/health
+curl -H "X-Mata-Auth: server-id|1700000000|nonce|hmac_sha256_hex" https://your-app.com/mata-node/api/health
 
 # Check firewall rules
 iptables -L -n | grep <dashboard-ip>

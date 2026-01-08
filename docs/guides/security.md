@@ -24,7 +24,7 @@ MATA Dashboard implements multiple layers of security:
 
 ### API Key Authentication
 
-Node communication uses encrypted API keys with timestamp validation.
+Node communication uses HMAC-signed tokens with timestamp validation.
 
 **Generate secure API keys:**
 

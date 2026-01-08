@@ -291,30 +291,6 @@ LOG_HELPER_FILE=info.log
 
 ---
 
-### Security Secrets
-
-#### WATCHER_ENCRYPTION_SECRET
-Secret key for API communication encryption.
-
-| Field | Value |
-|-------|-------|
-| **Type** | String |
-| **Format** | 64+ character random string |
-| **Required** | Yes |
-| **Security** | Must be unique and secure |
-
-**Generate:**
-```bash
-openssl rand -base64 64
-```
-
-**Example:**
-```env
-WATCHER_ENCRYPTION_SECRET=8kF7mN2pQ9rT4vW6xZ1aC3dE5gH8jK0mO2pR5sU7wY9zA1bC4eF6hI9kL2nP5qS8t
-```
-
----
-
 ### Database Configuration
 
 #### DB_HOST

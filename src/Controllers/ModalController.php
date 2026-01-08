@@ -115,10 +115,8 @@ class ModalController extends BaseController
         if (!isset($serverConfig['api_key'], $serverConfig['api_url'])) {
             throw new InvalidArgumentException("Server {$server} missing required config");
         }
-        $token = $this->tools->encrypt(
-            $serverConfig['api_key'] . '|' . time(),
-            $this->appConfig->secrets->encryptionSecret
-        );
+        $timestamp = time();
+        $token = $this->tools->buildHmacAuthToken($server, $serverConfig['api_key'], $timestamp);
 
         // Extract security flags with defaults
         $allowHttp = TypeConverter::toBool($serverConfig['allow_http'] ?? null) ?? false;

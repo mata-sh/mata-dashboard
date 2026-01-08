@@ -31,7 +31,7 @@ MATA Dashboard is a PHP-based server monitoring solution that provides centraliz
 - Server monitoring: CPU, RAM, disk, and processes
 - Application health: HTTP checks, error logs, session tracking
 - Intelligent alerting: threshold rules with notifications
-- Security-first: encrypted API, rate limits, read-only nodes
+- Security-first: HMAC-signed API, rate limits, read-only nodes
 - Event logging: configurable retention and severity
 
 ## Start Here
