@@ -963,7 +963,7 @@ ORDER BY event_count DESC;
 ### No Alarms Being Created
 
 **Check:**
-1. Event logging enabled: `config/config.env` → `LOG_HELPER=ON`
+1. Event logging enabled: `config/config.env` → `APP_LOG_PATH` and `MONOLOG_LEVEL` configured
 2. Threshold configuration: `config/thresholds.json`
 3. Database connectivity
 4. Cron jobs running

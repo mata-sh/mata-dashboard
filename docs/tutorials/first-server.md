@@ -378,6 +378,7 @@ tail -f /path/to/mata-dashboard/logs/cron/collect_server_metrics_health.log
 
 4. **Check error logs:**
    ```bash
+   tail -f /path/to/mata-dashboard/logs/boot.log
    tail -f /path/to/mata-dashboard/logs/app.log
    tail -f /path/to/mata-dashboard/logs/php-error.log
    ```
@@ -449,7 +450,8 @@ tail -f /path/to/mata-dashboard/logs/cron/collect_server_metrics_health.log
 3. **Check Node error logs:**
    ```bash
    tail -f /var/log/apache2/error.log  # or Nginx equivalent
-    tail -f /path/to/mata-node/logs/app.log
+   tail -f /path/to/mata-node/logs/boot.log
+   tail -f /path/to/mata-node/logs/app.log
    tail -f /path/to/mata-node/logs/php-error.log
    ```
 

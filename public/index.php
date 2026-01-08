@@ -2,10 +2,6 @@
 <?php
 
 use Bramus\Router\Router;
-use Monolog\Formatter\LineFormatter;
-use Monolog\Handler\StreamHandler;
-use Monolog\Level;
-use Monolog\Logger;
 use Symfony\Component\Mailer\Mailer;
 use Symfony\Component\Mailer\Transport;
 use Twig\Environment;
@@ -46,6 +42,7 @@ use Watcher\Services\Navigation\MenuBuilder;
 use Watcher\Services\Validation\MetricsRequestValidator;
 use Watcher\Services\View\ChartViewBuilder;
 use Watcher\Services\View\MetricsViewBuilder;
+use Watcher\Config\LogConfigurator;
 use Watcher\Utils\ChannelLockManager;
 use Watcher\Utils\PathResolver;
 use Watcher\Utils\Tools;
@@ -83,42 +80,8 @@ $sessionPath = session_save_path($paths->appPath . '/temp/sessions');
 // ************************************************************************************************
 // Monolog (pre config loading -> boot.log)
 // ************************************************************************************************
-$createLogFormatter = static function (): LineFormatter {
-    $dateFormat = 'Y-m-d H:i:s';
-    $output = "[%datetime%] %channel%.%level_name%: %message% %context% %extra%\n";
-
-    return new LineFormatter($output, $dateFormat, true, true);
-};
-
-$resolveLogPath = static function (string $path, PathResolver $paths): string {
-    if (!str_starts_with($path, DIRECTORY_SEPARATOR) && !preg_match('/^[A-Za-z]:\\\/', $path)) {
-        return $paths->appPath . DIRECTORY_SEPARATOR . ltrim($path, DIRECTORY_SEPARATOR);
-    }
-
-    return $path;
-};
-
-$resolveLogLevel = static function (string $level, Logger $logger): Level {
-    try {
-        return Level::fromName($level);
-    } catch (Throwable $e) {
-        $logger->warning('Invalid monolog level configured, falling back to debug', [
-            'level' => $level,
-        ]);
-
-        return Level::Debug;
-    }
-};
-
-$applyLogHandler = static function (Logger $logger, string $path, Level $level, LineFormatter $formatter): void {
-    $handler = new StreamHandler($path, $level);
-    $handler->setFormatter($formatter);
-    $logger->setHandlers([$handler]);
-};
-
-$formatter = $createLogFormatter();
-$log = new Logger('boot');
-$applyLogHandler($log, $paths->logsPath . '/boot.log', Level::Debug, $formatter);
+$logConfigurator = new LogConfigurator();
+$log = $logConfigurator->createBootLogger($paths);
 
 // ************************************************************************************************
 // Template Engine (Twig)
@@ -172,9 +135,7 @@ try {
 // ************************************************************************************************
 // Apply Configured Monolog Settings
 // ************************************************************************************************
-$logPath = $resolveLogPath($appConfig->logging->path, $paths);
-$logLevel = $resolveLogLevel($appConfig->logging->level, $log);
-$applyLogHandler($log, $logPath, $logLevel, $formatter);
+$logConfigurator->applyConfiguredLogger($log, $appConfig->logging, $paths);
 
 // ************************************************************************************************
 // Global Exception Handler

@@ -2,14 +2,11 @@
 
 declare(strict_types=1);
 
-use Monolog\Formatter\LineFormatter;
-use Monolog\Handler\StreamHandler;
-use Monolog\Level;
-use Monolog\Logger;
 use Symfony\Component\Mailer\Mailer;
 use Symfony\Component\Mailer\Transport;
 use Watcher\Config\DatabaseIntegrityChecker;
 use Watcher\Config\EnvConfigLoader;
+use Watcher\Config\LogConfigurator;
 use Watcher\Core\Database;
 use Watcher\Core\NullDatabase;
 use Watcher\Utils\CronJob;
@@ -47,13 +44,8 @@ $jobName = $tools->normalizeJobName(basename($_SERVER['SCRIPT_FILENAME'], '.php'
 // ************************************************************************************************
 // Monolog
 // ************************************************************************************************
-$dateFormat = 'Y-m-d H:i:s';
-$output = "[%datetime%] %channel%.%level_name%: %message% %context% %extra%\n";
-$formatter = new LineFormatter($output, $dateFormat, true, true);
-$handler = new StreamHandler($paths->logsPath . "/cron/app-{$jobName}.log", Level::Debug);
-$handler->setFormatter($formatter);
-$log = new Logger('cronjob');
-$log->pushHandler($handler);
+$logConfigurator = new LogConfigurator();
+$log = $logConfigurator->createCronLogger($paths, $jobName);
 
 try {
     $configLoader = new EnvConfigLoader();

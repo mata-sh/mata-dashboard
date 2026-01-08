@@ -71,7 +71,7 @@ The configuration parser follows these rules:
 | **Format** | Key-value pairs separated by `=` | `SHOP_ENV=production` |
 | **Whitespace** | Leading/trailing whitespace is trimmed | `  KEY = VALUE  ` → `KEY=VALUE` |
 | **Empty Lines** | Blank lines are skipped | - |
-| **Arrays** | Comma-separated values become arrays | `LOG_METHODS=error_log,file_put` |
+| **Arrays** | Comma-separated values become arrays | `ALLOWED_IPS=192.168.1.1,192.168.1.2` |
 | **No Quotes** | Values don't need quotes (they're stripped) | `VALUE=test` not `VALUE="test"` |
 
 ### Example Configuration File
@@ -104,11 +104,11 @@ WATCHER_API_KEY=your_api_key
 
 **Logging Config (`config/log.config.env`):**
 ```env
-# Log Helper Configuration
-# ERROR,SECURITY,DEBUG,TEST,INFO
-LOG_HELPER_IMPORTANT=ERROR,SECURITY,DEBUG
-LOG_HELPER=ON
-LOG_METHODS=error_log,file_put
+# Application log file path (relative to app root or absolute)
+APP_LOG_PATH=logs/app.log
+
+# Monolog level: debug, info, notice, warning, error, critical, alert, emergency
+MONOLOG_LEVEL=debug
 ```
 
 ---
@@ -244,7 +244,7 @@ The following configuration values are read from client `.env` files and transmi
 
 | Configuration Key | Type | Description | Example Values |
 |-------------------|------|-------------|----------------|
-| `SHOP_ENV` | String | Application environment | `dev`, `staging`, `production` |
+| `APP_ENV` | String | Application environment | `dev`, `staging`, `production` |
 | `DOMAIN` | String | Primary domain name | `example.com` |
 | `DIR` | String | Application directory path | `shop/api`, `/var/www/app` |
 | `SESSION_PATH` | String | Custom session storage path | `shop/sessions`, `/tmp/sessions` |
@@ -252,8 +252,8 @@ The following configuration values are read from client `.env` files and transmi
 | `IP_WHITELIST_ENABLED` | String | IP whitelisting feature status | `ON`, `OFF` |
 | `DISPLAY_ERRORS` | String | PHP display_errors setting | `0` (off), `1` (on) |
 | `LOG_LEVEL` | String | Application logging level | `errors`, `warnings`, `notices`, `debug` |
-| `LOG_HELPER_IMPORTANT` | Array | Important log categories | `ERROR,SECURITY,DEBUG` |
-| `LOG_HELPER` | String | Log helper feature status | `ON`, `OFF` |
+| `APP_LOG_PATH` | String | Application log file path | `logs/app.log`, `/var/log/mata/app.log` |
+| `MONOLOG_LEVEL` | String | Monolog log level | `debug`, `info`, `warning`, `error` |
 
 ### Value Types
 
@@ -267,14 +267,13 @@ DOMAIN=example.com
 ```env
 MAINTENANCE_ENABLED=ON
 DISPLAY_ERRORS=0
-LOG_HELPER=OFF
+MONOLOG_LEVEL=debug
 ```
 
 **Array Values (comma-separated):**
 ```env
-LOG_HELPER_IMPORTANT=ERROR,SECURITY,DEBUG
-LOG_METHODS=error_log,file_put,syslog
 ALLOWED_IPS=192.168.1.1,192.168.1.2,10.0.0.1
+MAIL_ALERT_RECIPIENTS=ops@example.com,dev@example.com
 ```
 
 ### Additional Supported Values
@@ -417,8 +416,8 @@ Dashboard receives and displays:
 ```env
 # Base Settings
 DOMAIN=myapp.com
-LOG_HELPER=ON
-LOG_LEVEL=warnings
+APP_LOG_PATH=logs/app.log
+MONOLOG_LEVEL=warning
 ```
 
 **Development Config (`config/config.dev.env`):**
@@ -704,8 +703,8 @@ GET /api/shops/{shop_name}/config
     "MAINTENANCE_ENABLED": "OFF",
     "DISPLAY_ERRORS": "0",
     "LOG_LEVEL": "errors",
-    "LOG_HELPER": "ON",
-    "LOG_HELPER_IMPORTANT": ["ERROR", "SECURITY", "DEBUG"]
+    "APP_LOG_PATH": "logs/app.log",
+    "MONOLOG_LEVEL": "error"
   },
   "last_updated": "2025-11-02T14:30:00Z"
 }
@@ -783,8 +782,8 @@ cat config/shops.json | jq '.myshop.configs'
 
 **Problem:**
 ```env
-LOG_METHODS=error_log,file_put
-# Dashboard shows: "error_log,file_put" (string, not array)
+MAIL_ALERT_RECIPIENTS=ops@example.com,dev@example.com
+# Dashboard shows: "ops@example.com,dev@example.com" (string, not array)
 ```
 
 **Cause:** Parser automatically converts comma-separated values to arrays.
@@ -792,7 +791,7 @@ LOG_METHODS=error_log,file_put
 **Verify Parser Output:**
 The parser should split this into:
 ```php
-["error_log", "file_put"]
+["ops@example.com", "dev@example.com"]
 ```
 
 **If Not Working:**

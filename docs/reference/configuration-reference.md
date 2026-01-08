@@ -227,66 +227,33 @@ LOG_LEVEL=errors
 
 ### Application Logging
 
-#### LOG_HELPER
-Enable application logging.
+#### APP_LOG_PATH
+Application log file path (relative to app root or absolute).
 
 | Field | Value |
 |-------|-------|
 | **Type** | String |
-| **Options** | `ON`, `OFF` |
-| **Default** | `ON` |
+| **Default** | `logs/app.log` |
 | **Required** | No |
 
 **Example:**
 ```env
-LOG_HELPER=ON
+APP_LOG_PATH=logs/app.log
 ```
 
-#### LOG_HELPER_IMPORTANT
-Types of log messages to capture.
+#### MONOLOG_LEVEL
+Monolog log level.
 
 | Field | Value |
 |-------|-------|
 | **Type** | String |
-| **Format** | Comma-separated list |
-| **Options** | `ERROR`, `SECURITY`, `DEBUG`, `TEST`, `INFO` |
-| **Default** | `ERROR,SECURITY,DEBUG` |
+| **Options** | `debug`, `info`, `notice`, `warning`, `error`, `critical`, `alert`, `emergency` |
+| **Default** | `debug` |
 | **Required** | No |
 
 **Example:**
 ```env
-LOG_HELPER_IMPORTANT=ERROR,SECURITY,DEBUG
-```
-
-#### LOG_METHODS
-Logging output methods.
-
-| Field | Value |
-|-------|-------|
-| **Type** | String |
-| **Format** | Comma-separated list |
-| **Options** | `error_log`, `file_put` |
-| **Default** | `error_log,file_put` |
-| **Required** | No |
-
-**Example:**
-```env
-LOG_METHODS=error_log,file_put
-```
-
-#### LOG_HELPER_FILE
-Application log file name.
-
-| Field | Value |
-|-------|-------|
-| **Type** | String |
-| **Format** | Filename |
-| **Default** | `info.log` |
-| **Required** | No |
-
-**Example:**
-```env
-LOG_HELPER_FILE=info.log
+MONOLOG_LEVEL=warning
 ```
 
 ---
