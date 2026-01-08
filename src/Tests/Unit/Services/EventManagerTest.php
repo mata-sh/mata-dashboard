@@ -257,7 +257,7 @@ final class EventManagerTest extends TestCase
             dashboard: new DashboardConfig(3, 1200),
             template: new TemplateConfig(false),
             php: new PhpConfig(0, 'error'),
-            logging: new LoggingConfig([], false, [], '/tmp/app.log'),
+            logging: new LoggingConfig('/tmp/app.log', 'debug'),
             database: new DatabaseConfig('localhost', 'user', 'pass', 'db', '3306'),
             mail: new MailConfig(
                 dsn: null,

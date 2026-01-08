@@ -146,10 +146,8 @@ final class EnvConfigLoader
     private function loadLoggingConfig(): LoggingConfig
     {
         return new LoggingConfig(
-            helperImportant: $this->parseCommaSeparated($this->getEnv('LOG_HELPER_IMPORTANT', 'ERROR,SECURITY')),
-            helperEnabled: $this->getEnvBool('LOG_HELPER', false),
-            methods: $this->parseCommaSeparated($this->getEnv('LOG_METHODS', 'error_log')),
-            helperFile: $this->getEnv('LOG_HELPER_FILE', 'info.log'),
+            path: $this->getEnv('APP_LOG_PATH', 'logs/app.log'),
+            level: $this->getEnv('MONOLOG_LEVEL', 'debug'),
         );
     }
 
@@ -304,16 +302,16 @@ final class EnvConfigLoader
         }
 
         // Logging configuration warnings
-        if (empty($config->logging->methods)) {
-            $warnings[] = [
-                'identifier' => 'config.logging.methods.missing',
-                'message' => 'Logging methods not configured - application events may not be logged',
-            ];
-        }
-        if (empty($config->logging->helperFile)) {
+        if (empty($config->logging->path)) {
             $warnings[] = [
                 'identifier' => 'config.logging.file.missing',
                 'message' => 'Log file path not configured - logs may not be written to file',
+            ];
+        }
+        if (empty($config->logging->level)) {
+            $warnings[] = [
+                'identifier' => 'config.logging.level.missing',
+                'message' => 'Monolog level not configured - default log level may be used',
             ];
         }
 

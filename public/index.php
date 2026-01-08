@@ -57,9 +57,10 @@ use Watcher\Views\MetricsRenderer;
 require_once '../vendor/autoload.php';
 
 // ************************************************************************************************
-// Path Initialization
+// Path & Tools Initialization
 // ************************************************************************************************
 $paths = new PathResolver(__FILE__);
+$tools = new Tools($paths->appPath);
 
 // ************************************************************************************************
 // Error Reporting & Logging
@@ -80,15 +81,44 @@ $sessionPath = session_save_path($paths->appPath . '/temp/sessions');
 // SecurityHeaders::apply();
 
 // ************************************************************************************************
-// Monolog
+// Monolog (pre config loading -> boot.log)
 // ************************************************************************************************
-$dateFormat = 'Y-m-d H:i:s';
-$output = "[%datetime%] %channel%.%level_name%: %message% %context% %extra%\n";
-$formatter = new LineFormatter($output, $dateFormat, true, true);
-$handler = new StreamHandler($paths->logsPath . '/app.log', Level::Debug);
-$handler->setFormatter($formatter);
-$log = new Logger('app');
-$log->pushHandler($handler);
+$createLogFormatter = static function (): LineFormatter {
+    $dateFormat = 'Y-m-d H:i:s';
+    $output = "[%datetime%] %channel%.%level_name%: %message% %context% %extra%\n";
+
+    return new LineFormatter($output, $dateFormat, true, true);
+};
+
+$resolveLogPath = static function (string $path, PathResolver $paths): string {
+    if (!str_starts_with($path, DIRECTORY_SEPARATOR) && !preg_match('/^[A-Za-z]:\\\/', $path)) {
+        return $paths->appPath . DIRECTORY_SEPARATOR . ltrim($path, DIRECTORY_SEPARATOR);
+    }
+
+    return $path;
+};
+
+$resolveLogLevel = static function (string $level, Logger $logger): Level {
+    try {
+        return Level::fromName($level);
+    } catch (Throwable $e) {
+        $logger->warning('Invalid monolog level configured, falling back to debug', [
+            'level' => $level,
+        ]);
+
+        return Level::Debug;
+    }
+};
+
+$applyLogHandler = static function (Logger $logger, string $path, Level $level, LineFormatter $formatter): void {
+    $handler = new StreamHandler($path, $level);
+    $handler->setFormatter($formatter);
+    $logger->setHandlers([$handler]);
+};
+
+$formatter = $createLogFormatter();
+$log = new Logger('boot');
+$applyLogHandler($log, $paths->logsPath . '/boot.log', Level::Debug, $formatter);
 
 // ************************************************************************************************
 // Template Engine (Twig)
@@ -138,6 +168,13 @@ try {
 
     exit('Application initialization failed!');
 }
+
+// ************************************************************************************************
+// Apply Configured Monolog Settings
+// ************************************************************************************************
+$logPath = $resolveLogPath($appConfig->logging->path, $paths);
+$logLevel = $resolveLogLevel($appConfig->logging->level, $log);
+$applyLogHandler($log, $logPath, $logLevel, $formatter);
 
 // ************************************************************************************************
 // Global Exception Handler
@@ -249,7 +286,6 @@ $queueRepository = new AlertQueueRepository($db);
 $settingsSync = new SettingsDatabaseSync($db, $log, $configSyncRepository);
 
 // --- Tools & Resolvers ---
-$tools = new Tools($paths->appPath);
 $idResolver = new IdResolver($configSyncRepository);
 
 // --- Limits & Locking ---

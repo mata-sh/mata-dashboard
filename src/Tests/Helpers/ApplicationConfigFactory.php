@@ -103,12 +103,10 @@ class ApplicationConfigFactory
     }
 
     public static function createLoggingConfig(
-        array $helperImportant = ['ERROR', 'SECURITY'],
-        bool $helperEnabled = false,
-        array $methods = ['error_log'],
-        string $helperFile = 'test.log',
+        string $path = 'logs/test.log',
+        string $level = 'debug',
     ): LoggingConfig {
-        return new LoggingConfig($helperImportant, $helperEnabled, $methods, $helperFile);
+        return new LoggingConfig($path, $level);
     }
 
     public static function createDatabaseConfig(

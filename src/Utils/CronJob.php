@@ -65,7 +65,7 @@ class CronJob
     public function __construct(
         string $jobName,
         string $lockDir = '/tmp',
-        string $heartbeatFile = '/tmp/cron_heartbeat.log',
+        string $heartbeatFile = '/tmp/cron-heartbeat.jsonl',
         ?LoggerInterface $logger = null
     ) {
         $this->jobName = $jobName;
