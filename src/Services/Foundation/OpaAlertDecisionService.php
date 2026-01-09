@@ -36,7 +36,7 @@ final class OpaAlertDecisionService implements AlertDecisionServiceInterface
     public function decide(array $event, array $supportedChannels = ['email']): AlertDecision
     {
         $payload = [
-            'input' => $this->buildInput($event),
+            'input' => $this->buildInput($event, $supportedChannels),
         ];
 
         $response = $this->client->post(ltrim($this->config->decisionPath, '/'), ['json' => $payload]);
@@ -61,10 +61,11 @@ final class OpaAlertDecisionService implements AlertDecisionServiceInterface
 
     /**
      * @param array<string,mixed> $event
+     * @param array<int,string>   $supportedChannels
      *
      * @return array<string,mixed>
      */
-    private function buildInput(array $event): array
+    private function buildInput(array $event, array $supportedChannels): array
     {
         $context = null;
         if (is_string($event['context'] ?? null) && $event['context'] !== '') {
@@ -74,7 +75,10 @@ final class OpaAlertDecisionService implements AlertDecisionServiceInterface
             $context = $event['context'];
         }
 
-        return [
+        $threshold = $this->extractThreshold($event, $context);
+        $applicationEnv = $this->extractApplicationEnv($event, $context);
+
+        $input = [
             'event' => [
                 'id' => (int) ($event['id'] ?? 0),
                 'type' => (string) ($event['type'] ?? ''),
@@ -92,7 +96,119 @@ final class OpaAlertDecisionService implements AlertDecisionServiceInterface
                 'code' => $event['app_code'] ?? null,
                 'name' => $event['app_name'] ?? null,
             ],
+            'metrics' => $this->normalizeMetrics($event['metrics'] ?? null),
+            'channels' => $this->normalizeChannels($supportedChannels),
         ];
+
+        if ($threshold !== null) {
+            $input['event']['threshold'] = $threshold;
+        }
+
+        if ($applicationEnv !== null) {
+            $input['application']['env'] = $applicationEnv;
+        }
+
+        return $input;
+    }
+
+    /**
+     * @param array<int,string> $channels
+     *
+     * @return array<int,string>
+     */
+    private function normalizeChannels(array $channels): array
+    {
+        $normalized = [];
+        foreach ($channels as $channel) {
+            if (!is_string($channel)) {
+                continue;
+            }
+            $channel = strtolower(trim($channel));
+            if ($channel === '') {
+                continue;
+            }
+            $normalized[] = $channel;
+        }
+
+        return array_values(array_unique($normalized));
+    }
+
+    /**
+     * @return array<string,mixed>
+     */
+    private function normalizeMetrics(mixed $metrics): array
+    {
+        $counts = [];
+        $lastEventAt = null;
+        $lastAlertAt = null;
+
+        if (is_array($metrics)) {
+            $countsSource = $metrics['counts']['same_type_level_or_higher'] ?? $metrics['same_type_level_or_higher'] ?? null;
+            if (is_array($countsSource)) {
+                foreach ($countsSource as $span => $count) {
+                    if (!is_string($span) || $span === '') {
+                        continue;
+                    }
+                    $counts[$span] = (int) $count;
+                }
+            }
+
+            if (is_string($metrics['last_event_at'] ?? null)) {
+                $lastEventAt = $metrics['last_event_at'];
+            }
+            if (is_string($metrics['last_alert_at'] ?? null)) {
+                $lastAlertAt = $metrics['last_alert_at'];
+            }
+        }
+
+        return [
+            'counts' => [
+                'same_type_level_or_higher' => $counts,
+            ],
+            'last_event_at' => $lastEventAt,
+            'last_alert_at' => $lastAlertAt,
+        ];
+    }
+
+    /**
+     * @param array<string,mixed> $event
+     */
+    private function extractThreshold(array $event, mixed $context): ?float
+    {
+        if (isset($event['threshold']) && is_numeric($event['threshold'])) {
+            return (float) $event['threshold'];
+        }
+
+        if (is_array($context) && isset($context['threshold']) && is_numeric($context['threshold'])) {
+            return (float) $context['threshold'];
+        }
+
+        return null;
+    }
+
+    /**
+     * @param array<string,mixed> $event
+     */
+    private function extractApplicationEnv(array $event, mixed $context): ?string
+    {
+        $candidates = [
+            $event['app_env'] ?? null,
+            $event['environment'] ?? null,
+            $event['env'] ?? null,
+        ];
+
+        if (is_array($context)) {
+            $candidates[] = $context['environment'] ?? null;
+            $candidates[] = $context['env'] ?? null;
+        }
+
+        foreach ($candidates as $candidate) {
+            if (is_string($candidate) && $candidate !== '') {
+                return $candidate;
+            }
+        }
+
+        return null;
     }
 
     /**
