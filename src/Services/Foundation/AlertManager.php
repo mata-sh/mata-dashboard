@@ -11,7 +11,6 @@ use Watcher\Models\AlertQueueRepository;
 use Watcher\Models\Dto\EventRecordResult;
 use Watcher\Services\Foundation\Dto\Alert;
 use Watcher\Services\Foundation\Dto\AlertLevel;
-use Watcher\Traits\Loggable;
 use Watcher\Utils\AlertLimitHelper;
 use Watcher\Utils\ChannelLockManager;
 
@@ -24,24 +23,22 @@ use Watcher\Utils\ChannelLockManager;
  */
 class AlertManager
 {
-    use Loggable;
-
     private AlertQueueRepository $queueRepository;
     private AlertLimitsConfig $limitsConfig;
     private ChannelLockManager $lockManager;
+    private LoggerInterface $logger;
 
     public function __construct(
         AlertQueueRepository $queueRepository,
         AlertLimitsConfig $limitsConfig,
         ChannelLockManager $lockManager,
-        ?LoggerInterface $logger = null
+        LoggerInterface $logger
     ) {
         $this->queueRepository = $queueRepository;
         $this->limitsConfig = $limitsConfig;
         $this->lockManager = $lockManager;
-        if ($logger !== null) {
-            $this->setLogger($logger);
-        }
+
+        $this->logger = $logger;
     }
 
     /**
@@ -73,18 +70,16 @@ class AlertManager
 
                 return;
             } catch (PDOException $exception) {
-                $this->log(
-                    "Failed to enqueue alert; switching to filesystem throttling [channel={$channel}, server={$serverKey}, error={$exception->getMessage()}]",
-                    'warning'
+                $this->logger->warning(
+                    "Failed to enqueue alert; switching to filesystem throttling [channel={$channel}, server={$serverKey}, error={$exception->getMessage()}]"
                 );
             }
         }
 
         $spacingSeconds = AlertLimitHelper::calculateSpacingSeconds($effectiveLimit);
         if ($spacingSeconds <= 0) {
-            $this->log(
-                "Dropping alert due to unavailable queue and zero spacing limit [channel={$channel}, server={$serverKey}]",
-                'warning'
+            $this->logger->warning(
+                "Dropping alert due to unavailable queue and zero spacing limit [channel={$channel}, server={$serverKey}]"
             );
 
             return;
@@ -92,9 +87,8 @@ class AlertManager
 
         $acquired = $this->lockManager->tryAcquire($serverKey, $channel, $spacingSeconds);
         if ($acquired) {
-            $this->log(
-                "Alert queue unavailable; alert suppressed after acquiring filesystem lock [channel={$channel}, server={$serverKey}, spacing_seconds={$spacingSeconds}]",
-                'warning'
+            $this->logger->warning(
+                "Alert queue unavailable; alert suppressed after acquiring filesystem lock [channel={$channel}, server={$serverKey}, spacing_seconds={$spacingSeconds}]"
             );
         }
     }

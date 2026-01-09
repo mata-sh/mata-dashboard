@@ -4,8 +4,9 @@ declare(strict_types=1);
 
 namespace Watcher\Utils;
 
+use Psr\Log\LoggerInterface;
+use Psr\Log\NullLogger;
 use RuntimeException;
-use Watcher\Traits\Loggable;
 
 /**
  * Common utility functions and helper methods.
@@ -20,10 +21,9 @@ use Watcher\Traits\Loggable;
  */
 class Tools
 {
-    use Loggable;
-
     private string $appPath;
     private string $publicPath;
+    private LoggerInterface $logger;
 
     /**
      * Initialize Tools with application paths.
@@ -31,10 +31,11 @@ class Tools
      * @param string      $appPath    Base application path
      * @param null|string $publicPath Public assets path (defaults to appPath/public)
      */
-    public function __construct(string $appPath, ?string $publicPath = null)
+    public function __construct(string $appPath, ?string $publicPath = null, ?LoggerInterface $logger = null)
     {
         $this->appPath = rtrim($appPath, '/');
         $this->publicPath = $publicPath ?? $this->appPath . '/public';
+        $this->logger = $logger ?? new NullLogger();
     }
 
     /**
@@ -55,13 +56,13 @@ class Tools
         if (file_exists($iconPath)) {
             $svg = file_get_contents($iconPath);
             if ($svg === false) {
-                $this->log("Could not read icon file: {$iconPath}", 'error');
+                $this->logger->error("Could not read icon file: {$iconPath}");
 
                 return '';
             }
             $svg = preg_replace('/(width|height)="[^"]*"/', '', $svg);
             if ($svg === null) {
-                $this->log("preg_replace failed for icon: {$iconPath}", 'error');
+                $this->logger->error("preg_replace failed for icon: {$iconPath}");
 
                 return '';
             }
@@ -71,7 +72,7 @@ class Tools
                 $svg
             );
             if ($svg === null) {
-                $this->log("preg_replace failed for SVG element: {$iconPath}", 'error');
+                $this->logger->error("preg_replace failed for SVG element: {$iconPath}");
 
                 return '';
             }
@@ -79,9 +80,7 @@ class Tools
             return $svg;
         }
 
-        if ($this->logger !== null) {
-            $this->log("Cant find icon: {$iconPath}", 'warning');
-        }
+        $this->logger->warning("Cant find icon: {$iconPath}");
 
         return '';
     }

@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Watcher\Services\Foundation;
 
 use Exception;
-use Monolog\Logger;
+use Psr\Log\LoggerInterface;
 use Watcher\Core\DatabaseInterface;
 use Watcher\Core\NullDatabase;
 use Watcher\Utils\FileStateStore;
@@ -25,7 +25,7 @@ use Watcher\Utils\PathResolver;
 final class NotificationManager
 {
     private DatabaseInterface $db;
-    private Logger $logger;
+    private LoggerInterface $logger;
     private FileStateStore $offlineNoticeStore;
 
     private const OFFLINE_NOTICE_SUBDIR = 'runtime';
@@ -34,7 +34,7 @@ final class NotificationManager
     /**
      * Initialize notification manager with database connection.
      */
-    public function __construct(DatabaseInterface $db, Logger $logger, ?PathResolver $paths = null)
+    public function __construct(DatabaseInterface $db, LoggerInterface $logger, ?PathResolver $paths = null)
     {
         $this->db = $db;
         $this->logger = $logger;

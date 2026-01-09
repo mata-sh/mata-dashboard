@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Watcher\Utils;
 
 use Psr\Log\LoggerInterface;
-use Psr\Log\NullLogger;
 
 /**
  * Base class for cron script functionality and management.
@@ -57,21 +56,21 @@ class CronJob
     /**
      * CronJob constructor.
      *
-     * @param string               $jobName       Name of the cronjob like "daily-report"
-     * @param string               $lockDir       Directory for lock files
-     * @param string               $heartbeatFile File written by touchHeartbeat()
-     * @param null|LoggerInterface $logger        Logger instance for job output
+     * @param string          $jobName       Name of the cronjob like "daily-report"
+     * @param string          $lockDir       Directory for lock files
+     * @param string          $heartbeatFile File written by touchHeartbeat()
+     * @param LoggerInterface $logger        Logger instance for job output
      */
     public function __construct(
+        LoggerInterface $logger,
         string $jobName,
         string $lockDir = '/tmp',
         string $heartbeatFile = '/tmp/cron-heartbeat.jsonl',
-        ?LoggerInterface $logger = null
     ) {
         $this->jobName = $jobName;
         $this->heartbeatFile = $heartbeatFile;
         $this->lockFile = "{$lockDir}/{$jobName}.lock";
-        $this->logger = $logger ?? new NullLogger();
+        $this->logger = $logger;
 
         if (!is_dir($lockDir)) {
             mkdir($lockDir, 0755, true);

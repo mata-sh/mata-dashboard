@@ -6,9 +6,9 @@ namespace Watcher\Config;
 
 use JsonException;
 use Psr\Log\LoggerInterface;
+use Psr\Log\NullLogger;
 use Watcher\Config\Dto\AlertLimitsConfig;
 use Watcher\Services\Foundation\Dto\AlertLimit;
-use Watcher\Traits\Loggable;
 
 /**
  * Loader for alert throttling configuration stored in limits.json.
@@ -18,13 +18,11 @@ use Watcher\Traits\Loggable;
  */
 final class AlertLimitsLoader
 {
-    use Loggable;
+    private LoggerInterface $logger;
 
     public function __construct(?LoggerInterface $logger = null)
     {
-        if ($logger !== null) {
-            $this->setLogger($logger);
-        }
+        $this->logger = $logger ?? new NullLogger();
     }
 
     /**
@@ -55,10 +53,7 @@ final class AlertLimitsLoader
                 continue;
             }
             if (!is_array($channelConfig)) {
-                $this->log(
-                    "Skipping invalid channel limit configuration [channel={$channel}, reason='not an array']",
-                    'warning'
-                );
+                $this->logger->warning("Skipping invalid channel limit configuration [channel={$channel}, reason='not an array']");
 
                 continue;
             }
@@ -73,9 +68,8 @@ final class AlertLimitsLoader
                 $serverKeyLower = strtolower((string) $serverKey);
 
                 if (!is_array($serverConfig)) {
-                    $this->log(
-                        "Skipping malformed server limits override [server={$serverKey}, reason='override must be an object']",
-                        'warning'
+                    $this->logger->warning(
+                        "Skipping malformed server limits override [server={$serverKey}, reason='override must be an object']"
                     );
 
                     continue;
@@ -83,9 +77,8 @@ final class AlertLimitsLoader
 
                 foreach ($serverConfig as $channelKey => $channelOverride) {
                     if (!is_array($channelOverride)) {
-                        $this->log(
-                            "Skipping malformed channel override [server={$serverKey}, channel={$channelKey}]",
-                            'warning'
+                        $this->logger->warning(
+                            "Skipping malformed channel override [server={$serverKey}, channel={$channelKey}]"
                         );
 
                         continue;
@@ -111,14 +104,14 @@ final class AlertLimitsLoader
     private function decodeFile(string $limitsFile): array
     {
         if ($limitsFile === '' || !is_file($limitsFile)) {
-            $this->log("Alert limits file missing; falling back to defaults [file={$limitsFile}]", 'warning');
+            $this->logger->warning("Alert limits file missing; falling back to defaults [file={$limitsFile}]");
 
             return [];
         }
 
         $contents = file_get_contents($limitsFile);
         if ($contents === false) {
-            $this->log("Alert limits file unreadable; falling back to defaults [file={$limitsFile}]", 'warning');
+            $this->logger->warning("Alert limits file unreadable; falling back to defaults [file={$limitsFile}]");
 
             return [];
         }
@@ -126,9 +119,8 @@ final class AlertLimitsLoader
         try {
             $decoded = json_decode($contents, true, flags: JSON_THROW_ON_ERROR);
         } catch (JsonException $exception) {
-            $this->log(
-                "Alert limits file malformed; falling back to defaults [file={$limitsFile}, error={$exception->getMessage()}]",
-                'warning'
+            $this->logger->warning(
+                "Alert limits file malformed; falling back to defaults [file={$limitsFile}, error={$exception->getMessage()}]"
             );
 
             return [];

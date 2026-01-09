@@ -105,10 +105,10 @@ $mailer = new Mailer($transport);
 // Cronjob
 // ************************************************************************************************
 $cron = new CronJob(
+    logger: $log,
     jobName: $jobName,
     lockDir: $paths->tempPath . '/',
     heartbeatFile: "{$paths->logsPath}/cron/heartbeat-{$jobName}.jsonl",
-    logger: $log
 );
 
 return compact(

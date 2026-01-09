@@ -6,7 +6,6 @@ namespace Watcher\Core;
 
 use Psr\Log\LoggerInterface;
 use RuntimeException;
-use Watcher\Traits\Loggable;
 
 /**
  * Authentication and user management system.
@@ -25,8 +24,6 @@ use Watcher\Traits\Loggable;
  */
 class Auth
 {
-    use Loggable;
-
     private string $usersFile;
 
     /** @var array<string,array<string,mixed>> */
@@ -36,6 +33,7 @@ class Auth
 
     /** @var bool CLI mode bypasses role checks for user management */
     private bool $cliMode;
+    private LoggerInterface $logger;
 
     /**
      * Initialize authentication system.
@@ -49,7 +47,7 @@ class Auth
     public function __construct(LoggerInterface $logger, string $usersFile, bool $cliMode = false)
     {
         $this->usersFile = $usersFile;
-        $this->setLogger($logger);
+        $this->logger = $logger;
         $this->cliMode = $cliMode;
 
         // Start session if needed (skip in CLI mode)

@@ -6,7 +6,7 @@ namespace Watcher\Utils;
 
 use DateTimeImmutable;
 use Psr\Log\LoggerInterface;
-use Watcher\Traits\Loggable;
+use Psr\Log\NullLogger;
 
 /**
  * Filesystem-backed throttle guard used when database persistence is unavailable.
@@ -16,16 +16,13 @@ use Watcher\Traits\Loggable;
  */
 final class ChannelLockManager
 {
-    use Loggable;
-
     private string $baseDirectory;
+    private LoggerInterface $logger;
 
     public function __construct(string $baseDirectory, ?LoggerInterface $logger = null)
     {
         $this->baseDirectory = rtrim($baseDirectory, DIRECTORY_SEPARATOR);
-        if ($logger !== null) {
-            $this->setLogger($logger);
-        }
+        $this->logger = $logger ?? new NullLogger();
     }
 
     /**
@@ -47,14 +44,14 @@ final class ChannelLockManager
 
         $handle = @fopen($path, 'c+');
         if ($handle === false) {
-            $this->log("Failed to open lock file [file={$path}]", 'warning');
+            $this->logger->warning("Failed to open lock file [file={$path}]");
 
             return false;
         }
 
         try {
             if (!flock($handle, LOCK_EX)) {
-                $this->log("Failed to acquire lock for lock file [file={$path}]", 'warning');
+                $this->logger->warning("Failed to acquire lock for lock file [file={$path}]");
 
                 return false;
             }
@@ -121,7 +118,7 @@ final class ChannelLockManager
             return true;
         }
 
-        $this->log("Failed to create lock directory [directory={$path}]", 'warning');
+        $this->logger->warning("Failed to create lock directory [directory={$path}]");
 
         return false;
     }

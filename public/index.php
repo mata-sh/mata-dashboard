@@ -10,6 +10,7 @@ use Watcher\Config\AlertLimitsLoader;
 use Watcher\Config\DatabaseIntegrityChecker;
 use Watcher\Config\EnvConfigFatalException;
 use Watcher\Config\EnvConfigManager;
+use Watcher\Config\LogConfigurator;
 use Watcher\Config\MonitoringSettingsLoader;
 use Watcher\Controllers\DashboardController;
 use Watcher\Controllers\LoginController;
@@ -42,7 +43,6 @@ use Watcher\Services\Navigation\MenuBuilder;
 use Watcher\Services\Validation\MetricsRequestValidator;
 use Watcher\Services\View\ChartViewBuilder;
 use Watcher\Services\View\MetricsViewBuilder;
-use Watcher\Config\LogConfigurator;
 use Watcher\Utils\ChannelLockManager;
 use Watcher\Utils\PathResolver;
 use Watcher\Utils\Tools;
@@ -260,7 +260,7 @@ $alertManager = new AlertManager($queueRepository, $limitsConfig, $lockManager, 
 // --- Event Manager ---
 $eventManager = (new EventManager($appConfig, $alertManager))
     ->setEventRecorder(new EventRecorderService($db, $idResolver))
-    ->setEventAggregator(new EventAggregatorService(new EventRepository($db), $idResolver));
+    ->setEventAggregator(new EventAggregatorService(new EventRepository($db), $idResolver, $log));
 
 // ************************************************************************************************
 // Monitoring Configuration

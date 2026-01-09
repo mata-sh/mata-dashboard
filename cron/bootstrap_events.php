@@ -75,7 +75,7 @@ $alertManager = new AlertManager(
 $idResolver = new IdResolver($configSyncRepository);
 
 $eventRecorder = new EventRecorderService($db, $idResolver);
-$eventAggregator = new EventAggregatorService($eventRepository, $idResolver);
+$eventAggregator = new EventAggregatorService($eventRepository, $idResolver, $log);
 
 $eventManager = (new EventManager($appConfig, $alertManager))
     ->setEventRecorder($eventRecorder)

@@ -233,7 +233,7 @@ class EventAggregatorService
     {
         $normalized = [];
         foreach ($spans as $label => $minutes) {
-            if (!is_string($label) || $label === '') {
+            if ($label === '') {
                 continue;
             }
             $minutes = (int) $minutes;

@@ -8,8 +8,6 @@ use PDO;
 use PDOException;
 use Watcher\Config\Dto\DatabaseConfig;
 
-// use Watcher\Traits\Loggable;
-
 /**
  * MySQL database connection wrapper with prepared statements.
  *
@@ -22,7 +20,6 @@ use Watcher\Config\Dto\DatabaseConfig;
  */
 class Database implements DatabaseInterface
 {
-    // use Loggable;
     private PDO $pdo;
 
     /**
