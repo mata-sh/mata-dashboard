@@ -144,9 +144,31 @@ if (!file_exists($usersFile)) {
         mkdir($configDir, 0755, true);
     }
     // Initialize empty users file
-    file_put_contents($usersFile, '[]');
-    chmod($usersFile, 0600);
-    echo "✨ Created new users file: {$usersFile}\n\n";
+    $lockFile = $usersFile . '.lock';
+    $lockHandle = fopen($lockFile, 'c');
+    if ($lockHandle === false || !flock($lockHandle, LOCK_EX)) {
+        if (is_resource($lockHandle)) {
+            fclose($lockHandle);
+        }
+        echo "❌ Failed to lock users file for initialization: {$usersFile}\n";
+
+        exit(1);
+    }
+    if (!file_exists($usersFile)) {
+        $tempFile = $usersFile . '.' . getmypid() . '.tmp';
+        if (file_put_contents($tempFile, '[]') === false || !rename($tempFile, $usersFile)) {
+            @unlink($tempFile);
+            flock($lockHandle, LOCK_UN);
+            fclose($lockHandle);
+            echo "❌ Failed to create users file: {$usersFile}\n";
+
+            exit(1);
+        }
+        chmod($usersFile, 0600);
+        echo "✨ Created new users file: {$usersFile}\n\n";
+    }
+    flock($lockHandle, LOCK_UN);
+    fclose($lockHandle);
 } elseif (!is_readable($usersFile) || !is_writable($usersFile)) {
     // File exists but we don't have permission
     $owner = posix_getpwuid(fileowner($usersFile));

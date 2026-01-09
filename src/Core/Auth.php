@@ -25,6 +25,7 @@ use RuntimeException;
 class Auth
 {
     private string $usersFile;
+    private ?int $usersFileMtime = null;
 
     /** @var array<string,array<string,mixed>> */
     private array $users = [];
@@ -80,42 +81,50 @@ class Auth
             throw new RuntimeException("Users file not found. {$this->usersFile}");
         }
 
-        // Check file permissions (relaxed in CLI mode)
-        $perms = fileperms($this->usersFile);
-        if (!$this->cliMode && (($perms & 0x0040) || ($perms & 0x0004))) {
-            throw new RuntimeException("Users file has insecure permissions. Run: chmod 600 {$this->usersFile}");
-        }
-
-        if (!is_readable($this->usersFile)) {
-            if ($this->cliMode) {
-                throw new RuntimeException(
-                    "Users file not readable: {$this->usersFile}\n"
-                    . 'Try running with: sudo -u ' . posix_getpwuid(fileowner($this->usersFile))['name'] . ' php ' . $_SERVER['argv'][0]
-                );
+        $this->withFileLock(LOCK_SH, function () {
+            // Check file permissions (relaxed in CLI mode)
+            $perms = fileperms($this->usersFile);
+            if (!$this->cliMode && (($perms & 0x0040) || ($perms & 0x0004))) {
+                throw new RuntimeException("Users file has insecure permissions. Run: chmod 600 {$this->usersFile}");
             }
 
-            throw new RuntimeException("Users file not readable: {$this->usersFile}");
-        }
+            if (!is_readable($this->usersFile)) {
+                if ($this->cliMode) {
+                    throw new RuntimeException(
+                        "Users file not readable: {$this->usersFile}\n"
+                        . 'Try running with: sudo -u ' . posix_getpwuid(fileowner($this->usersFile))['name'] . ' php ' . $_SERVER['argv'][0]
+                    );
+                }
 
-        $content = file_get_contents($this->usersFile);
-        if ($content === false) {
-            throw new RuntimeException("Failed to read users file: {$this->usersFile}");
-        }
-
-        $users = json_decode($content, true);
-        if (json_last_error() !== JSON_ERROR_NONE) {
-            throw new RuntimeException('Invalid JSON in users file: ' . json_last_error_msg());
-        }
-
-        // Index by username
-        $this->users = [];
-        foreach ($users as $user) {
-            if (isset($user['username'])) {
-                $this->users[$user['username']] = $user;
+                throw new RuntimeException("Users file not readable: {$this->usersFile}");
             }
-        }
 
-        $this->logger->info('Loaded users file');
+            $content = file_get_contents($this->usersFile);
+            if ($content === false) {
+                throw new RuntimeException("Failed to read users file: {$this->usersFile}");
+            }
+
+            $mtime = filemtime($this->usersFile);
+            if ($mtime === false) {
+                throw new RuntimeException("Failed to stat users file: {$this->usersFile}");
+            }
+
+            $users = json_decode($content, true);
+            if (json_last_error() !== JSON_ERROR_NONE) {
+                throw new RuntimeException('Invalid JSON in users file: ' . json_last_error_msg());
+            }
+
+            // Index by username
+            $this->users = [];
+            foreach ($users as $user) {
+                if (isset($user['username'])) {
+                    $this->users[$user['username']] = $user;
+                }
+            }
+
+            $this->usersFileMtime = $mtime;
+            $this->logger->info('Loaded users file');
+        });
     }
 
     /**
@@ -278,14 +287,84 @@ class Auth
      */
     private function saveUsers(): void
     {
-        $temp = $this->usersFile . '.tmp';
-        file_put_contents(
-            $temp,
-            json_encode(array_values($this->users), JSON_PRETTY_PRINT),
-            LOCK_EX
-        );
-        rename($temp, $this->usersFile);
-        chmod($this->usersFile, 0600);
+        $this->withFileLock(LOCK_EX, function () {
+            if (file_exists($this->usersFile)) {
+                $currentMtime = filemtime($this->usersFile);
+                if ($currentMtime === false) {
+                    throw new RuntimeException("Failed to stat users file: {$this->usersFile}");
+                }
+                if ($this->usersFileMtime !== null && $currentMtime !== $this->usersFileMtime) {
+                    throw new RuntimeException('Users file changed on disk; reload before saving');
+                }
+            }
+
+            $temp = $this->usersFile . '.' . getmypid() . '.tmp';
+            $encoded = json_encode(array_values($this->users), JSON_PRETTY_PRINT);
+            if ($encoded === false) {
+                throw new RuntimeException('Failed to encode users JSON');
+            }
+
+            if (file_put_contents($temp, $encoded) === false) {
+                throw new RuntimeException("Failed to write temp users file: {$temp}");
+            }
+
+            if (!rename($temp, $this->usersFile)) {
+                @unlink($temp);
+
+                throw new RuntimeException("Failed to replace users file: {$this->usersFile}");
+            }
+
+            chmod($this->usersFile, 0600);
+            $savedMtime = filemtime($this->usersFile);
+            if ($savedMtime !== false) {
+                $this->usersFileMtime = $savedMtime;
+            }
+        });
+    }
+
+    /**
+     * Open the lock file handle for coordinating access to users.json.
+     *
+     * @return resource
+     */
+    private function openUsersLock()
+    {
+        $lockFile = $this->usersFile . '.lock';
+        $lockHandle = fopen($lockFile, 'c');
+        if ($lockHandle === false) {
+            throw new RuntimeException("Failed to open users lock file: {$lockFile}");
+        }
+
+        return $lockHandle;
+    }
+
+    /**
+     * Execute a callback with file locking, ensuring proper cleanup.
+     *
+     * @param int      $lockType Lock type (LOCK_SH for read, LOCK_EX for write)
+     * @param callable $callback Callback to execute while holding the lock
+     *
+     * @return mixed Return value from the callback
+     *
+     * @throws RuntimeException If lock cannot be acquired or callback throws
+     */
+    private function withFileLock(int $lockType, callable $callback)
+    {
+        $lockHandle = $this->openUsersLock();
+
+        if (!flock($lockHandle, $lockType)) {
+            fclose($lockHandle);
+            $mode = $lockType === LOCK_SH ? 'reading' : 'writing';
+
+            throw new RuntimeException("Failed to lock users file for {$mode}: {$this->usersFile}");
+        }
+
+        try {
+            return $callback();
+        } finally {
+            flock($lockHandle, LOCK_UN);
+            fclose($lockHandle);
+        }
     }
 
     /**
