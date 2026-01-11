@@ -6,6 +6,8 @@ namespace Watcher\Services\Foundation;
 
 use DateInterval;
 use DateTimeImmutable;
+use Psr\Log\LoggerInterface;
+use Psr\Log\NullLogger;
 use RuntimeException;
 use Throwable;
 use Watcher\Config\Dto\AlertLimitsConfig;
@@ -27,17 +29,20 @@ final class AlertDispatcher
     private AlertLimitsConfig $limitsConfig;
     private AlertEmailSender $emailSender;
     private int $maxAttempts;
+    private LoggerInterface $logger;
 
     public function __construct(
         AlertQueueRepository $queueRepository,
         AlertLimitsConfig $limitsConfig,
         AlertEmailSender $emailSender,
-        int $maxAttempts = 5
+        ?LoggerInterface $logger = null,
+        int $maxAttempts = 5,
     ) {
         $this->queueRepository = $queueRepository;
         $this->limitsConfig = $limitsConfig;
         $this->emailSender = $emailSender;
         $this->maxAttempts = max(1, $maxAttempts);
+        $this->logger = $logger ?? new NullLogger();
     }
 
     /**
@@ -90,6 +95,11 @@ final class AlertDispatcher
 
         $limit = $this->limitsConfig->resolve($serverKey, $channel);
         if (!$rateLimiter->allow($serverKey, $channel)) {
+            $this->logger->info('ratelimiter rejected alert', [
+                'server' => $serverKey,
+                'channel' => $channel,
+                'limit' => $limit,
+            ]);
             $spacing = AlertLimitHelper::calculateSpacingSeconds($limit);
             $nextRetry = $spacing > 0 ? $now->add(new DateInterval('PT' . $spacing . 'S')) : null;
             $this->queueRepository->updateStatus($queuedAlert->id, 'pending', $queuedAlert->attempts, $nextRetry);
@@ -120,16 +130,17 @@ final class AlertDispatcher
 
     private function sendAlert(QueuedAlert $queuedAlert, string $channel): void
     {
+        $alertLevel = AlertLevel::fromString($queuedAlert->level);
+
         $alert = new Alert(
             type: $queuedAlert->type,
             message: $queuedAlert->message,
             context: $queuedAlert->context,
-            level: AlertLevel::fromString($queuedAlert->level),
+            level: $alertLevel,
             server: $queuedAlert->serverName,
             app: $queuedAlert->appName,
             channels: [$channel]
         );
-
         match ($channel) {
             'email' => $this->emailSender->send($alert),
             default => throw new RuntimeException("Unsupported alert channel: {$channel}"),

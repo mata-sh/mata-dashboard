@@ -35,8 +35,8 @@ try {
     ];
 
     // --- Senders & Dispatchers ---
-    $emailSender = new AlertEmailSender($mailer, $mailConfig);
-    $dispatcher = new AlertDispatcher($queueRepository, $limitsConfig, $emailSender);
+    $emailSender = new AlertEmailSender($mailer, $mailConfig, $log);
+    $dispatcher = new AlertDispatcher($queueRepository, $limitsConfig, $emailSender, $log);
 
     // --- Dispatch Alerts ---
     $dispatcher->dispatch(new DateTimeImmutable('now'), 100);

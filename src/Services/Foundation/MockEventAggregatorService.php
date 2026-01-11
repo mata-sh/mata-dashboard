@@ -114,6 +114,13 @@ final class MockEventAggregatorService implements EventAggregatorServiceInterfac
             }
         }
 
+        $this->logger->debug('Mock alert decision candidates fetched.', [
+            'count' => count($candidates),
+            'types' => $this->summarizeTypes($candidates, 'type'),
+            'limit' => $limit,
+            'levels' => $levels,
+        ]);
+
         return $candidates;
     }
 
@@ -146,7 +153,21 @@ final class MockEventAggregatorService implements EventAggregatorServiceInterfac
             $maxAgeMinutes
         );
 
-        return $this->sortByTime($events, 'datetime', false);
+        $events = $this->sortByTime($events, 'datetime', false);
+
+        $this->logger->debug('Mock events fetched by context.', [
+            'count' => count($events),
+            'types' => $this->summarizeTypes($events, 'type'),
+            'filter' => [
+                'type' => $type,
+                'context' => $context,
+                'server' => $serverId,
+                'app' => $appId,
+                'max_age_minutes' => $maxAgeMinutes,
+            ],
+        ]);
+
+        return $events;
     }
 
     /**
@@ -171,7 +192,21 @@ final class MockEventAggregatorService implements EventAggregatorServiceInterfac
             $maxAgeMinutes
         );
 
-        return $this->sortByTime($alarms, 'created_at', false);
+        $alarms = $this->sortByTime($alarms, 'created_at', false);
+
+        $this->logger->debug('Mock alarms fetched by context.', [
+            'count' => count($alarms),
+            'types' => $this->summarizeTypes($alarms, 'type'),
+            'filter' => [
+                'type' => $type,
+                'message' => $message,
+                'server' => $serverId,
+                'app' => $appId,
+                'max_age_minutes' => $maxAgeMinutes,
+            ],
+        ]);
+
+        return $alarms;
     }
 
     /**
@@ -182,7 +217,15 @@ final class MockEventAggregatorService implements EventAggregatorServiceInterfac
         $limit = max(1, (int) $limit);
         $events = $this->sortByTime($this->events, 'datetime', false);
 
-        return array_slice($events, 0, $limit);
+        $events = array_slice($events, 0, $limit);
+
+        $this->logger->debug('Mock latest events fetched.', [
+            'count' => count($events),
+            'types' => $this->summarizeTypes($events, 'type'),
+            'limit' => $limit,
+        ]);
+
+        return $events;
     }
 
     /**
@@ -193,7 +236,15 @@ final class MockEventAggregatorService implements EventAggregatorServiceInterfac
         $limit = max(1, (int) $limit);
         $alarms = $this->sortByTime($this->alarms, 'created_at', false);
 
-        return array_slice($alarms, 0, $limit);
+        $alarms = array_slice($alarms, 0, $limit);
+
+        $this->logger->debug('Mock latest alarms fetched.', [
+            'count' => count($alarms),
+            'types' => $this->summarizeTypes($alarms, 'type'),
+            'limit' => $limit,
+        ]);
+
+        return $alarms;
     }
 
     public function clearOldAlarms(int $days = 365): void
@@ -364,6 +415,25 @@ final class MockEventAggregatorService implements EventAggregatorServiceInterfac
         }
 
         return $normalized === [] ? null : array_values(array_unique($normalized));
+    }
+
+    /**
+     * @param array<int,array<string,mixed>> $rows
+     *
+     * @return array<string,int>
+     */
+    private function summarizeTypes(array $rows, string $field): array
+    {
+        $counts = [];
+        foreach ($rows as $row) {
+            $value = $row[$field] ?? 'unknown';
+            $key = is_string($value) && $value !== '' ? $value : 'unknown';
+            $counts[$key] = ($counts[$key] ?? 0) + 1;
+        }
+
+        ksort($counts);
+
+        return $counts;
     }
 
     /**
