@@ -53,6 +53,7 @@ final class CreateDashboardLogTables extends AbstractMigration
             ->addIndex(['datetime'], ['name' => 'idx_datetime'])
             ->addIndex(['seen_at'], ['name' => 'idx_seen_at'])
             ->addIndex(['level'], ['name' => 'idx_level'])
+            ->addIndex(['seen_at', 'datetime', 'level'], ['name' => 'idx_event_alarm_eval'])
             // ->addIndex(['alarm_id'], ['name' => 'fk_alarm_id'])
             // ->addForeignKey('alarm_id', 'dashboard_alarm_log', 'id', [
             //     'delete' => 'SET_NULL',
@@ -84,11 +85,6 @@ final class CreateDashboardLogTables extends AbstractMigration
             ->addIndex(['status'], ['name' => 'idx_status'])
             ->addIndex(['seen_at'], ['name' => 'idx_seen_at'])
             ->addIndex(['created_at'], ['name' => 'idx_created_at'])
-            ->addForeignKey('event_id', 'dashboard_event_log', 'id', [
-                'delete' => 'SET_NULL',
-                'update' => 'NO_ACTION',
-                'constraint' => 'fk_event_log_alarm',
-            ])
             ->create();
 
 
