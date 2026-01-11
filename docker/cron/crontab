@@ -1,11 +1,39 @@
 # MATA Dashboard Cron Jobs
 # These jobs collect monitoring data from remote servers
 
-# Collect server metrics every 5 minutes
+# ============================================================================
+# METRICS COLLECTION (every 5 minutes)
+# ============================================================================
+
+# Fetch server data every 5 minutes
 */5 * * * * www-data cd /var/www/html && /usr/local/bin/php cron/servers_data_fetch.php >> /var/www/html/logs/cron_servers.log 2>&1
 
-# Monitor cron job health every 15 minutes
-*/15 * * * * www-data cd /var/www/html && /usr/local/bin/php cron/fetch_cronjob_heartbeats.php >> /var/www/html/logs/cron_heartbeats.log 2>&1
+# Collect raw server metrics every 5 minutes
+*/5 * * * * www-data cd /var/www/html && /usr/local/bin/php cron/servers_metrics_collect.php >> /var/www/html/logs/cron_metrics_collect.log 2>&1
+
+# Aggregate metrics every 15 minutes (hourly/daily rollups)
+*/15 * * * * www-data cd /var/www/html && /usr/local/bin/php cron/servers_metrics_aggregate.php >> /var/www/html/logs/cron_metrics_aggregate.log 2>&1
+
+# ============================================================================
+# ALERT EVALUATION (critical: every 1 min, non-critical: every 5 min)
+# ============================================================================
+
+# Evaluate critical alerts every minute
+* * * * * www-data cd /var/www/html && /usr/local/bin/php cron/alerts_evaluate_critical.php >> /var/www/html/logs/cron_alerts_critical.log 2>&1
+
+# Evaluate non-critical alerts every 5 minutes
+*/5 * * * * www-data cd /var/www/html && /usr/local/bin/php cron/alerts_evaluate_non_critical.php >> /var/www/html/logs/cron_alerts_non_critical.log 2>&1
+
+# ============================================================================
+# ALERT DISPATCH (every 1 minute)
+# ============================================================================
+
+# Dispatch queued alerts every minute
+* * * * * www-data cd /var/www/html && /usr/local/bin/php cron/alerts_dispatch.php >> /var/www/html/logs/cron_alerts_dispatch.log 2>&1
+
+# ============================================================================
+# CLEANUP & MAINTENANCE
+# ============================================================================
 
 # Clean up old log files daily at 2 AM
 0 2 * * * www-data find /var/www/html/logs -name "*.log" -mtime +30 -delete 2>/dev/null
