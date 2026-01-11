@@ -1,4 +1,33 @@
 
+## [0.5.0] - 2026-01-12
+
+### Breaking Changes
+- Changed root namespace from `Watcher` to `Mata` across entire codebase
+- Removed `Loggable` trait in favor of direct `LoggerInterface` constructor injection
+- `EventAggregatorService` now implements `EventAggregatorServiceInterface`
+- Moved alert-related services from `Services\Foundation` to `Services\Alert`
+- Moved event-related services from `Services\Foundation` to `Services\Event`
+- Moved notification services from `Services\Foundation` to `Services\Notification`
+- Removed foreign key constraint between `alarms.event_id` and `events.id`
+
+### Added
+- Added `MockEventAggregatorService` for demo/testing scenarios with static event data
+- Added `EventAggregatorServiceInterface` to allow swapping real/mock implementations
+- Added `app_env` field to `applications` table
+- Added composite index `idx_event_alarm_eval` on `events` table
+- Added `*.lock` to `.gitignore`
+- Added file locking to `Auth` class for concurrent user file access
+- Added `treatPhpDocTypesAsCertain: false` to PHPStan configuration
+- Added logging to `AlertDispatcher`, `AlertEmailSender`
+
+### Fixed
+- Fixed user file race conditions in `Auth` with exclusive file locking
+- Fixed unsafe user file initialization in `manage-users.php` with atomic writes
+- Removed outdated SMTP dev config examples from `mail.config.env.example`
+- Improved alert email subject format to show app and server more clearly
+- Streamlined `CronJob` constructor to require logger as first parameter
+- Database table renames for consistency (`dashboard_*` → simpler names)
+
 ## [0.4.0] - 2026-01-06
 
 ### Breaking Changes
