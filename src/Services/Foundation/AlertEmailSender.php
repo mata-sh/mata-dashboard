@@ -72,12 +72,13 @@ final class AlertEmailSender
         $serverLabel = $alert->server ?? '';
         $appLabel = $alert->app ?? '';
 
+        // 🔴 shop.points [fatal_errors_occuring]
         $subject = sprintf(
-            '%s %s | [%s] on [%s]',
+            '%s %s.%s | [%s]',
             $alert->level->getEmoji(),
-            strtoupper($alert->type),
-            $appLabel !== '' ? $appLabel : '-',
-            $serverLabel !== '' ? $serverLabel : '-'
+            $appLabel !== '' ? $appLabel : '*',
+            $serverLabel !== '' ? $serverLabel : '*',
+            strtolower($alert->type),
         );
 
         $context = $alert->context ?? '';

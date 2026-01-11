@@ -69,6 +69,7 @@ final class CreateCoreTables extends AbstractMigration
             ->addColumn('id', 'biginteger', ['identity' => true, 'signed' => false])
             ->addColumn('code', 'string', ['limit' => 100, 'null' => false])
             ->addColumn('display_name', 'string', ['limit' => 150, 'null' => false])
+            ->addColumn('app_env', 'string', ['limit' => 10, 'null' => true])
             ->addColumn('owner', 'string', ['limit' => 100, 'null' => true])
             ->addColumn('metadata', 'json', [
                 'null' => true,

@@ -97,6 +97,7 @@ final class OpaAlertDecisionService implements AlertDecisionServiceInterface
                 'id' => isset($event['application_id']) ? (int) $event['application_id'] : null,
                 'code' => $event['app_code'] ?? null,
                 'name' => $event['app_name'] ?? null,
+                'app_env' => $event['app_env'] ?? null,
             ],
             'metrics' => $metrics,
             'channels' => $this->normalizeChannels($supportedChannels),
