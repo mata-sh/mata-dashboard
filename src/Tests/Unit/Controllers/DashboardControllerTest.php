@@ -15,7 +15,7 @@ use Watcher\Http\Responses\HtmlResponse;
 use Watcher\Http\Responses\JsonResponse;
 use Watcher\Http\Routing\Endpoints;
 use Watcher\Services\Foundation\CacheManager;
-use Watcher\Services\Foundation\EventAggregatorService;
+use Watcher\Services\Foundation\EventAggregatorServiceInterface;
 use Watcher\Services\Foundation\EventManager;
 use Watcher\Services\Foundation\NotificationManager;
 use Watcher\Services\Navigation\MenuBuilder;
@@ -681,7 +681,7 @@ class DashboardControllerTest extends TestCase
         ];
 
         // Mock the aggregator service
-        $mockAggregator = $this->createMock(EventAggregatorService::class);
+        $mockAggregator = $this->createMock(EventAggregatorServiceInterface::class);
         $mockAggregator
             ->expects($this->once())
             ->method('getLatestEvents')
@@ -729,7 +729,7 @@ class DashboardControllerTest extends TestCase
         );
 
         // Mock the aggregator service to throw exception
-        $mockAggregator = $this->createMock(EventAggregatorService::class);
+        $mockAggregator = $this->createMock(EventAggregatorServiceInterface::class);
         $mockAggregator
             ->expects($this->once())
             ->method('getLatestEvents')
@@ -800,7 +800,7 @@ class DashboardControllerTest extends TestCase
         ];
 
         // Mock the aggregator service
-        $mockAggregator = $this->createMock(EventAggregatorService::class);
+        $mockAggregator = $this->createMock(EventAggregatorServiceInterface::class);
         $mockAggregator
             ->expects($this->once())
             ->method('getLatestAlarms')

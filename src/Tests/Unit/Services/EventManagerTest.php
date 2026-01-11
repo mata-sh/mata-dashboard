@@ -20,7 +20,7 @@ use Watcher\Config\Dto\TemplateConfig;
 use Watcher\Models\Dto\EventRecordResult;
 use Watcher\Services\Foundation\AlertManager;
 use Watcher\Services\Foundation\Dto\EventContext;
-use Watcher\Services\Foundation\EventAggregatorService;
+use Watcher\Services\Foundation\EventAggregatorServiceInterface;
 use Watcher\Services\Foundation\EventManager;
 use Watcher\Services\Foundation\EventRecorderService;
 use Watcher\Tests\TestCase;
@@ -33,7 +33,7 @@ use Watcher\Tests\TestCase;
 final class EventManagerTest extends TestCase
 {
     private EventRecorderService&MockObject $eventRecorder;
-    private EventAggregatorService&MockObject $eventAggregator;
+    private EventAggregatorServiceInterface&MockObject $eventAggregator;
     private AlertManager&MockObject $alertManager;
 
     protected function setUp(): void
@@ -41,7 +41,7 @@ final class EventManagerTest extends TestCase
         parent::setUp();
 
         $this->eventRecorder = $this->createMock(EventRecorderService::class);
-        $this->eventAggregator = $this->createMock(EventAggregatorService::class);
+        $this->eventAggregator = $this->createMock(EventAggregatorServiceInterface::class);
         $this->alertManager = $this->createMock(AlertManager::class);
     }
 

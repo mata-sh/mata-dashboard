@@ -78,6 +78,8 @@ final class OpaAlertDecisionService implements AlertDecisionServiceInterface
         $threshold = $this->extractThreshold($event, $context);
         $applicationEnv = $this->extractApplicationEnv($event, $context);
 
+        $metrics = $this->normalizeMetrics($event['metrics'] ?? null);
+
         $input = [
             'event' => [
                 'id' => (int) ($event['id'] ?? 0),
@@ -96,9 +98,13 @@ final class OpaAlertDecisionService implements AlertDecisionServiceInterface
                 'code' => $event['app_code'] ?? null,
                 'name' => $event['app_name'] ?? null,
             ],
-            'metrics' => $this->normalizeMetrics($event['metrics'] ?? null),
+            'metrics' => $metrics,
             'channels' => $this->normalizeChannels($supportedChannels),
         ];
+
+        if (!empty($metrics['counts']['same_type_level_or_higher'])) {
+            $input['event']['counts'] = $metrics['counts']['same_type_level_or_higher'];
+        }
 
         if ($threshold !== null) {
             $input['event']['threshold'] = $threshold;

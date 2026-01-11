@@ -1,0 +1,504 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Watcher\Services\Foundation;
+
+use DateInterval;
+use DateTimeImmutable;
+use Psr\Log\LoggerInterface;
+use Psr\Log\NullLogger;
+use Throwable;
+
+/**
+ * Mock event aggregator for demo/debug scenarios.
+ *
+ * Returns preloaded events/alarms instead of querying the database.
+ */
+final class MockEventAggregatorService implements EventAggregatorServiceInterface
+{
+    private const DEFAULT_ALERT_DECISION_LIMIT = 100;
+    private const DEFAULT_LATEST_EVENTS_LIMIT = 50;
+    private const DEFAULT_LATEST_ALARMS_LIMIT = 50;
+
+    /** @var array<int,array<string,mixed>> */
+    private array $events = [];
+
+    /** @var array<int,array<string,mixed>> */
+    private array $alarms = [];
+
+    /** @var array<int,bool> */
+    private array $evaluatedEventIds = [];
+
+    private LoggerInterface $logger;
+
+    /**
+     * @param null|array<string,mixed> $demoData
+     */
+    public function __construct(
+        ?LoggerInterface $logger = null,
+        ?array $demoData = null
+    ) {
+        $this->logger = $logger ?? new NullLogger();
+
+        $data = $demoData ?? self::defaultDemoData();
+        $this->events = $this->normalizeEvents($data['events'] ?? []);
+        $this->alarms = $this->normalizeAlarms($data['alarms'] ?? []);
+    }
+
+    /**
+     * Load demo event data from a JSON file.
+     *
+     * @return array<string,mixed>
+     */
+    public static function loadDemoData(?string $path, ?LoggerInterface $logger = null): array
+    {
+        $logger = $logger ?? new NullLogger();
+
+        if ($path === null || $path === '') {
+            return self::defaultDemoData();
+        }
+
+        if (!is_file($path)) {
+            $logger->warning('Mock event data file not found, using defaults.', ['path' => $path]);
+
+            return self::defaultDemoData();
+        }
+
+        $contents = file_get_contents($path);
+        if ($contents === false) {
+            $logger->warning('Mock event data file unreadable, using defaults.', ['path' => $path]);
+
+            return self::defaultDemoData();
+        }
+
+        $decoded = json_decode($contents, true);
+        if (!is_array($decoded)) {
+            $logger->warning('Mock event data JSON invalid, using defaults.', ['path' => $path]);
+
+            return self::defaultDemoData();
+        }
+
+        return $decoded;
+    }
+
+    /**
+     * @return array<int,array<string,mixed>>
+     */
+    public function getAlertDecisionCandidates(
+        int $limit = self::DEFAULT_ALERT_DECISION_LIMIT,
+        array|string|null $levelFilter = null
+    ): array {
+        $limit = max(1, (int) $limit);
+        $levels = $this->normalizeLevelFilter($levelFilter);
+
+        $events = $this->sortByTime($this->events, 'datetime', true);
+        $candidates = [];
+
+        foreach ($events as $event) {
+            $eventId = (int) ($event['id'] ?? 0);
+            if ($eventId > 0 && isset($this->evaluatedEventIds[$eventId])) {
+                continue;
+            }
+
+            if ($levels !== null) {
+                $level = strtolower((string) ($event['level'] ?? ''));
+                if (!in_array($level, $levels, true)) {
+                    continue;
+                }
+            }
+
+            $candidates[] = $this->normalizeDecisionCandidate($event);
+            if (count($candidates) >= $limit) {
+                break;
+            }
+        }
+
+        return $candidates;
+    }
+
+    public function markEventEvaluated(int $eventId): void
+    {
+        if ($eventId > 0) {
+            $this->evaluatedEventIds[$eventId] = true;
+        }
+    }
+
+    /**
+     * @return array<int,array<string,mixed>>
+     */
+    public function getLastEventsByContext(
+        ?string $type = null,
+        ?string $context = null,
+        int|string|null $server = null,
+        int|string|null $app = null,
+        int $maxAgeMinutes = 0
+    ): array {
+        $serverId = $server === '' ? null : $server;
+        $appId = $app === '' ? null : $app;
+
+        $events = $this->filterEvents(
+            $this->events,
+            $type,
+            $context,
+            $serverId,
+            $appId,
+            $maxAgeMinutes
+        );
+
+        return $this->sortByTime($events, 'datetime', false);
+    }
+
+    /**
+     * @return array<int,array<string,mixed>>
+     */
+    public function getLastAlarmsByContext(
+        ?string $type = null,
+        ?string $message = null,
+        int|string|null $server = null,
+        int|string|null $app = null,
+        int $maxAgeMinutes = 0
+    ): array {
+        $serverId = $server === '' ? null : $server;
+        $appId = $app === '' ? null : $app;
+
+        $alarms = $this->filterAlarms(
+            $this->alarms,
+            $type,
+            $message,
+            $serverId,
+            $appId,
+            $maxAgeMinutes
+        );
+
+        return $this->sortByTime($alarms, 'created_at', false);
+    }
+
+    /**
+     * @return array<int,array<string,mixed>>
+     */
+    public function getLatestEvents(int $limit = self::DEFAULT_LATEST_EVENTS_LIMIT): array
+    {
+        $limit = max(1, (int) $limit);
+        $events = $this->sortByTime($this->events, 'datetime', false);
+
+        return array_slice($events, 0, $limit);
+    }
+
+    /**
+     * @return array<int,array<string,mixed>>
+     */
+    public function getLatestAlarms(int $limit = self::DEFAULT_LATEST_ALARMS_LIMIT): array
+    {
+        $limit = max(1, (int) $limit);
+        $alarms = $this->sortByTime($this->alarms, 'created_at', false);
+
+        return array_slice($alarms, 0, $limit);
+    }
+
+    public function clearOldAlarms(int $days = 365): void
+    {
+        $this->logger->debug('Mock clearOldAlarms ignored.', ['days' => $days]);
+    }
+
+    public function clearOldEvents(int $days = 180): void
+    {
+        $this->logger->debug('Mock clearOldEvents ignored.', ['days' => $days]);
+    }
+
+    /**
+     * @return array<string,mixed>
+     */
+    private static function defaultDemoData(): array
+    {
+        return [
+            'events' => [],
+            'alarms' => [],
+        ];
+    }
+
+    /**
+     * @param array<int,array<string,mixed>> $events
+     *
+     * @return array<int,array<string,mixed>>
+     */
+    private function normalizeEvents(array $events): array
+    {
+        $normalized = [];
+        foreach ($events as $event) {
+            if (!is_array($event)) {
+                continue;
+            }
+            $normalized[] = $this->normalizeEvent($event);
+        }
+
+        return $normalized;
+    }
+
+    /**
+     * @param array<int,array<string,mixed>> $alarms
+     *
+     * @return array<int,array<string,mixed>>
+     */
+    private function normalizeAlarms(array $alarms): array
+    {
+        $normalized = [];
+        foreach ($alarms as $alarm) {
+            if (!is_array($alarm)) {
+                continue;
+            }
+            $normalized[] = $this->normalizeAlarm($alarm);
+        }
+
+        return $normalized;
+    }
+
+    /**
+     * @param array<string,mixed> $event
+     *
+     * @return array<string,mixed>
+     */
+    private function normalizeEvent(array $event): array
+    {
+        if (!isset($event['server']) && isset($event['server_name'])) {
+            $event['server'] = $event['server_name'];
+        }
+        if (!isset($event['server_name']) && isset($event['server'])) {
+            $event['server_name'] = $event['server'];
+        }
+        if (!isset($event['app']) && isset($event['app_code'])) {
+            $event['app'] = $event['app_code'];
+        }
+        if (!isset($event['app_code']) && isset($event['app'])) {
+            $event['app_code'] = $event['app'];
+        }
+        if (!isset($event['app_name']) && isset($event['app'])) {
+            $event['app_name'] = $event['app'];
+        }
+        if (!isset($event['metrics'])) {
+            $event['metrics'] = $this->defaultMetrics($event);
+        }
+
+        return $event;
+    }
+
+    /**
+     * @param array<string,mixed> $alarm
+     *
+     * @return array<string,mixed>
+     */
+    private function normalizeAlarm(array $alarm): array
+    {
+        if (!isset($alarm['server']) && isset($alarm['server_name'])) {
+            $alarm['server'] = $alarm['server_name'];
+        }
+        if (!isset($alarm['server_name']) && isset($alarm['server'])) {
+            $alarm['server_name'] = $alarm['server'];
+        }
+        if (!isset($alarm['app']) && isset($alarm['app_code'])) {
+            $alarm['app'] = $alarm['app_code'];
+        }
+        if (!isset($alarm['app_code']) && isset($alarm['app'])) {
+            $alarm['app_code'] = $alarm['app'];
+        }
+
+        return $alarm;
+    }
+
+    /**
+     * @param array<string,mixed> $event
+     *
+     * @return array<string,mixed>
+     */
+    private function normalizeDecisionCandidate(array $event): array
+    {
+        if (!isset($event['metrics'])) {
+            $event['metrics'] = $this->defaultMetrics($event);
+        }
+
+        return $event;
+    }
+
+    /**
+     * @param array<string,mixed> $event
+     *
+     * @return array<string,mixed>
+     */
+    private function defaultMetrics(array $event): array
+    {
+        $datetime = is_string($event['datetime'] ?? null) ? $event['datetime'] : null;
+
+        return [
+            'counts' => [
+                'same_type_level_or_higher' => [
+                    '1h' => 1,
+                ],
+            ],
+            'last_event_at' => $datetime,
+            'last_alert_at' => null,
+        ];
+    }
+
+    /**
+     * @param null|array<string>|string $levelFilter
+     *
+     * @return null|array<int,string>
+     */
+    private function normalizeLevelFilter(array|string|null $levelFilter): ?array
+    {
+        if ($levelFilter === null) {
+            return null;
+        }
+
+        $levels = is_array($levelFilter) ? $levelFilter : [$levelFilter];
+        $normalized = [];
+        foreach ($levels as $level) {
+            if (!is_string($level)) {
+                continue;
+            }
+            $level = strtolower(trim($level));
+            if ($level === '') {
+                continue;
+            }
+            $normalized[] = $level;
+        }
+
+        return $normalized === [] ? null : array_values(array_unique($normalized));
+    }
+
+    /**
+     * @param array<int,array<string,mixed>> $events
+     *
+     * @return array<int,array<string,mixed>>
+     */
+    private function filterEvents(
+        array $events,
+        ?string $type,
+        ?string $context,
+        int|string|null $serverId,
+        int|string|null $applicationId,
+        int $maxAgeMinutes
+    ): array {
+        $filtered = [];
+        foreach ($events as $event) {
+            if ($type !== null && $type !== '' && ($event['type'] ?? null) !== $type) {
+                continue;
+            }
+            if ($context !== null && ($event['context'] ?? null) !== $context) {
+                continue;
+            }
+            if ($serverId !== null && (int) ($event['server_id'] ?? 0) !== (int) $serverId) {
+                continue;
+            }
+            if ($applicationId !== null && (int) ($event['application_id'] ?? 0) !== (int) $applicationId) {
+                continue;
+            }
+            if (!$this->withinMaxAge($event['datetime'] ?? null, $maxAgeMinutes)) {
+                continue;
+            }
+            $filtered[] = $event;
+        }
+
+        return $filtered;
+    }
+
+    /**
+     * @param array<int,array<string,mixed>> $alarms
+     *
+     * @return array<int,array<string,mixed>>
+     */
+    private function filterAlarms(
+        array $alarms,
+        ?string $type,
+        ?string $message,
+        int|string|null $serverId,
+        int|string|null $applicationId,
+        int $maxAgeMinutes
+    ): array {
+        $filtered = [];
+        foreach ($alarms as $alarm) {
+            if ($type !== null && $type !== '' && ($alarm['type'] ?? null) !== $type) {
+                continue;
+            }
+            if ($message !== null && $message !== '' && ($alarm['message'] ?? null) !== $message) {
+                continue;
+            }
+            if ($serverId !== null && (int) ($alarm['server_id'] ?? 0) !== (int) $serverId) {
+                continue;
+            }
+            if ($applicationId !== null && (int) ($alarm['application_id'] ?? 0) !== (int) $applicationId) {
+                continue;
+            }
+            if (!$this->withinMaxAge($alarm['created_at'] ?? null, $maxAgeMinutes)) {
+                continue;
+            }
+            $filtered[] = $alarm;
+        }
+
+        return $filtered;
+    }
+
+    private function withinMaxAge(mixed $value, int $maxAgeMinutes): bool
+    {
+        if ($maxAgeMinutes <= 0) {
+            return true;
+        }
+
+        $eventTime = $this->parseDateTime($value);
+        if ($eventTime === null) {
+            return false;
+        }
+
+        $threshold = (new DateTimeImmutable())->sub(new DateInterval('PT' . $maxAgeMinutes . 'M'));
+
+        return $eventTime >= $threshold;
+    }
+
+    private function parseDateTime(mixed $value): ?DateTimeImmutable
+    {
+        if (!is_string($value) || $value === '') {
+            return null;
+        }
+
+        try {
+            return new DateTimeImmutable($value);
+        } catch (Throwable) {
+            return null;
+        }
+    }
+
+    /**
+     * @param array<int,array<string,mixed>> $rows
+     *
+     * @return array<int,array<string,mixed>>
+     */
+    private function sortByTime(array $rows, string $field, bool $ascending): array
+    {
+        usort($rows, function (array $left, array $right) use ($field, $ascending): int {
+            $leftTime = $this->parseDateTime($left[$field] ?? null);
+            $rightTime = $this->parseDateTime($right[$field] ?? null);
+
+            if ($leftTime === null && $rightTime === null) {
+                return 0;
+            }
+            if ($leftTime === null) {
+                return 1;
+            }
+            if ($rightTime === null) {
+                return -1;
+            }
+
+            if ($leftTime == $rightTime) {
+                return 0;
+            }
+
+            if ($ascending) {
+                return $leftTime < $rightTime ? -1 : 1;
+            }
+
+            return $leftTime > $rightTime ? -1 : 1;
+        });
+
+        return $rows;
+    }
+}

@@ -46,7 +46,7 @@ use Watcher\Services\Foundation\Dto\EventContext;
  * ```php
  * // Read-only operations
  * class ReportGenerator {
- *     public function __construct(private EventAggregatorService $aggregator) {}
+ *     public function __construct(private EventAggregatorServiceInterface $aggregator) {}
  * }
  * ```
  *
@@ -59,7 +59,7 @@ use Watcher\Services\Foundation\Dto\EventContext;
  *
  * @see AlertEvaluationService For alarm decision logic
  * @see EventRecorderService For direct event persistence (rarely used directly)
- * @see EventAggregatorService For read-only event querying
+ * @see EventAggregatorServiceInterface For read-only event querying
  */
 class EventManager
 {
@@ -91,7 +91,7 @@ class EventManager
      * Event aggregator for querying and reporting.
      * Public property for direct read access (common usage pattern).
      */
-    public ?EventAggregatorService $aggregator = null;
+    public ?EventAggregatorServiceInterface $aggregator = null;
 
     /**
      * Initialize event manager with optional dependencies.
@@ -101,16 +101,16 @@ class EventManager
      *
      * Use setMonitoringSettings() to configure thresholds and intervals after initialization.
      *
-     * @param AlertManager                $alertManager    Alert delivery orchestrator
-     * @param ApplicationConfig           $appConfig       Application configuration for alarm/event settings
-     * @param null|EventRecorderService   $eventRecorder   Optional event recorder (can be set later via setEventRecorder)
-     * @param null|EventAggregatorService $eventAggregator Optional event aggregator (can be set later via setEventAggregator)
+     * @param AlertManager                         $alertManager    Alert delivery orchestrator
+     * @param ApplicationConfig                    $appConfig       Application configuration for alarm/event settings
+     * @param null|EventRecorderService            $eventRecorder   Optional event recorder (can be set later via setEventRecorder)
+     * @param null|EventAggregatorServiceInterface $eventAggregator Optional event aggregator (can be set later via setEventAggregator)
      */
     public function __construct(
         ApplicationConfig $appConfig,
         ?AlertManager $alertManager = null,
         ?EventRecorderService $eventRecorder = null,
-        ?EventAggregatorService $eventAggregator = null
+        ?EventAggregatorServiceInterface $eventAggregator = null
     ) {
         $this->alertManager = $alertManager;
         $this->appConfig = $appConfig;
@@ -135,11 +135,11 @@ class EventManager
     /**
      * Set event aggregator service (fluent interface).
      *
-     * @param EventAggregatorService $aggregator Event aggregator instance
+     * @param EventAggregatorServiceInterface $aggregator Event aggregator instance
      *
      * @return $this For method chaining
      */
-    public function setEventAggregator(EventAggregatorService $aggregator): self
+    public function setEventAggregator(EventAggregatorServiceInterface $aggregator): self
     {
         $this->aggregator = $aggregator;
 

@@ -38,6 +38,7 @@ use Watcher\Services\Foundation\EventAggregatorService;
 use Watcher\Services\Foundation\EventManager;
 use Watcher\Services\Foundation\EventRecorderService;
 use Watcher\Services\Foundation\IdResolver;
+use Watcher\Services\Foundation\MockEventAggregatorService;
 use Watcher\Utils\ChannelLockManager;
 
 // Ensure bootstrap.php was loaded first
@@ -73,9 +74,17 @@ $alertManager = new AlertManager(
 // Resolvers & Event Services
 // ************************************************************************************************
 $idResolver = new IdResolver($configSyncRepository);
-
 $eventRecorder = new EventRecorderService($db, $idResolver);
-$eventAggregator = new EventAggregatorService($eventRepository, $idResolver, $log);
+
+$useMockEvents = (getenv('MATA_EVENTS_MOCK') === '1' || $appConfig->environment->env === 'demo');
+if ($useMockEvents) {
+    $demoDataPath = getenv('MATA_EVENTS_MOCK_DATA_PATH') ?: $paths->appPath . '/config/demo/events.json';
+    $demoData = MockEventAggregatorService::loadDemoData($demoDataPath, $log);
+    $eventAggregator = new MockEventAggregatorService($log, $demoData);
+    $log->info('Using mock event aggregator for demo data.', ['path' => $demoDataPath]);
+} else {
+    $eventAggregator = new EventAggregatorService($eventRepository, $idResolver, $log);
+}
 
 $eventManager = (new EventManager($appConfig, $alertManager))
     ->setEventRecorder($eventRecorder)

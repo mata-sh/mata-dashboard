@@ -15,7 +15,7 @@ use Watcher\Models\EventRepository;
 /**
  * Event aggregator and query service for decision engines.
  */
-class EventAggregatorService
+class EventAggregatorService implements EventAggregatorServiceInterface
 {
     private const DEFAULT_ALERT_DECISION_LIMIT = 100;
     private const DEFAULT_LATEST_EVENTS_LIMIT = 50;

@@ -37,6 +37,7 @@ use Watcher\Services\Foundation\EventAggregatorService;
 use Watcher\Services\Foundation\EventManager;
 use Watcher\Services\Foundation\EventRecorderService;
 use Watcher\Services\Foundation\IdResolver;
+use Watcher\Services\Foundation\MockEventAggregatorService;
 use Watcher\Services\Foundation\NotificationManager;
 use Watcher\Services\Foundation\SettingsDatabaseSync;
 use Watcher\Services\Navigation\MenuBuilder;
@@ -258,9 +259,22 @@ $limitsConfig = $limitsLoader->load($paths->appPath . '/config/limits.json');
 $alertManager = new AlertManager($queueRepository, $limitsConfig, $lockManager, $log);
 
 // --- Event Manager ---
+$eventRepository = new EventRepository($db);
+$eventRecorder = new EventRecorderService($db, $idResolver);
+
+$useMockEvents = (getenv('MATA_EVENTS_MOCK') === '1' || $appConfig->environment->env === 'demo');
+if ($useMockEvents) {
+    $demoDataPath = getenv('MATA_EVENTS_MOCK_DATA_PATH') ?: $paths->appPath . '/config/demo/events.json';
+    $demoData = MockEventAggregatorService::loadDemoData($demoDataPath, $log);
+    $eventAggregator = new MockEventAggregatorService($log, $demoData);
+    $log->info('Using mock event aggregator for demo data.', ['path' => $demoDataPath]);
+} else {
+    $eventAggregator = new EventAggregatorService($eventRepository, $idResolver, $log);
+}
+
 $eventManager = (new EventManager($appConfig, $alertManager))
-    ->setEventRecorder(new EventRecorderService($db, $idResolver))
-    ->setEventAggregator(new EventAggregatorService(new EventRepository($db), $idResolver, $log));
+    ->setEventRecorder($eventRecorder)
+    ->setEventAggregator($eventAggregator);
 
 // ************************************************************************************************
 // Monitoring Configuration

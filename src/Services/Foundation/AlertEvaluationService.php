@@ -48,19 +48,19 @@ class AlertEvaluationService
     /** @var array<string,int> Alarm type to interval minutes mapping */
     private array $alarmIntervals = [];
 
-    private EventAggregatorService $aggregator;
+    private EventAggregatorServiceInterface $aggregator;
     private EventRecorderService $recorder;
     private ApplicationConfig $appConfig;
 
     /**
      * Initialize alert evaluation service.
      *
-     * @param EventAggregatorService $aggregator Event querying service for threshold checks
-     * @param EventRecorderService   $recorder   Event recorder for cooldown tracking
-     * @param ApplicationConfig      $appConfig  Application configuration for alarm settings
+     * @param EventAggregatorServiceInterface $aggregator Event querying service for threshold checks
+     * @param EventRecorderService            $recorder   Event recorder for cooldown tracking
+     * @param ApplicationConfig               $appConfig  Application configuration for alarm settings
      */
     public function __construct(
-        EventAggregatorService $aggregator,
+        EventAggregatorServiceInterface $aggregator,
         EventRecorderService $recorder,
         ApplicationConfig $appConfig
     ) {
