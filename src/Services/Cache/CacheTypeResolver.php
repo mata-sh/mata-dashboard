@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace Watcher\Services\Cache;
+namespace Mata\Services\Cache;
 
-use Watcher\Constants\CacheTypes;
+use Mata\Constants\CacheTypes;
 
 /**
  * Resolves cache type usage based on force refresh flags.

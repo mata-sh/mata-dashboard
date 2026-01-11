@@ -2,18 +2,18 @@
 
 declare(strict_types=1);
 
-namespace Watcher\Config;
+namespace Mata\Config;
 
 use Exception;
+use Mata\Core\DatabaseInterface;
+use Mata\Core\NullDatabase;
+use Mata\Services\Alert\AlertManager;
+use Mata\Services\Alert\Dto\Alert;
+use Mata\Services\Alert\Dto\AlertLevel;
+use Mata\Services\Event\EventRecorderService;
+use Mata\Services\Foundation\SettingsDatabaseSync;
+use Mata\Utils\TypeConverter;
 use RuntimeException;
-use Watcher\Core\DatabaseInterface;
-use Watcher\Core\NullDatabase;
-use Watcher\Services\Foundation\AlertManager;
-use Watcher\Services\Foundation\Dto\Alert;
-use Watcher\Services\Foundation\Dto\AlertLevel;
-use Watcher\Services\Foundation\EventRecorderService;
-use Watcher\Services\Foundation\SettingsDatabaseSync;
-use Watcher\Utils\TypeConverter;
 
 /**
  * Monitoring settings loader for servers, thresholds, and TTL settings.

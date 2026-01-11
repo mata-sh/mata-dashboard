@@ -2,14 +2,14 @@
 
 declare(strict_types=1);
 
-namespace Watcher\Views;
+namespace Mata\Views;
 
 use Exception;
+use Mata\Core\App;
+use Mata\Services\Collect\ServerDataCollectorInterface;
+use Mata\Utils\Tools;
 use Monolog\Logger;
 use Twig\Environment;
-use Watcher\Core\App;
-use Watcher\Services\Collect\ServerDataCollectorInterface;
-use Watcher\Utils\Tools;
 
 /**
  * Database rendering service.

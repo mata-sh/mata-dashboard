@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Watcher\Services\Validation;
+namespace Mata\Services\Validation;
 
 use InvalidArgumentException;
 

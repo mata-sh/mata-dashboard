@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace Watcher\Views;
+namespace Mata\Views;
 
-use Watcher\Http\Routing\Endpoints;
+use Mata\Http\Routing\Endpoints;
 
 /**
  * Events rendering service.

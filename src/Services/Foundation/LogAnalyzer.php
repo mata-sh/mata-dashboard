@@ -2,10 +2,11 @@
 
 declare(strict_types=1);
 
-namespace Watcher\Services\Foundation;
+namespace Mata\Services\Foundation;
 
-use Watcher\Services\Collect\ServerDataCollectorInterface;
-use Watcher\Utils\Tools;
+use Mata\Services\Collect\ServerDataCollectorInterface;
+use Mata\Services\Event\EventManager;
+use Mata\Utils\Tools;
 
 /**
  * Application log analysis and processing service.

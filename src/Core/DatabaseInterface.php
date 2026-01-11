@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Watcher\Core;
+namespace Mata\Core;
 
 /**
  * Common contract for database implementations used by the application.

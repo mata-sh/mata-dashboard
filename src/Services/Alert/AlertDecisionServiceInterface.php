@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace Watcher\Services\Foundation;
+namespace Mata\Services\Alert;
 
-use Watcher\Services\Foundation\Dto\AlertDecision;
+use Mata\Services\Alert\Dto\AlertDecision;
 
 interface AlertDecisionServiceInterface
 {

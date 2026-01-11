@@ -3,9 +3,9 @@
 
 declare(strict_types=1);
 
-use Watcher\Services\Foundation\Dto\EventContext;
-use Watcher\Services\Foundation\Dto\OpaAlertDecisionConfig;
-use Watcher\Services\Foundation\OpaAlertDecisionService;
+use Mata\Services\Foundation\Dto\EventContext;
+use Mata\Services\Foundation\Dto\OpaAlertDecisionConfig;
+use Mata\Services\Foundation\OpaAlertDecisionService;
 
 $requiresDatabase = true;
 

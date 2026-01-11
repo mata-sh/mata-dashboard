@@ -2,17 +2,17 @@
 
 declare(strict_types=1);
 
-namespace Watcher\Controllers;
+namespace Mata\Controllers;
 
 use InvalidArgumentException;
+use Mata\Http\Responses\HtmlResponse;
+use Mata\Http\Responses\Response;
+use Mata\Services\Cache\MetricsCacheService;
+use Mata\Services\Validation\MetricsRequestValidator;
+use Mata\Services\View\ChartViewBuilder;
+use Mata\Services\View\MetricsViewBuilder;
+use Mata\Views\MetricsRenderer;
 use Monolog\Logger;
-use Watcher\Http\Responses\HtmlResponse;
-use Watcher\Http\Responses\Response;
-use Watcher\Services\Cache\MetricsCacheService;
-use Watcher\Services\Validation\MetricsRequestValidator;
-use Watcher\Services\View\ChartViewBuilder;
-use Watcher\Services\View\MetricsViewBuilder;
-use Watcher\Views\MetricsRenderer;
 
 /**
  * Metrics-specific controller exposing time-series endpoints for charts.

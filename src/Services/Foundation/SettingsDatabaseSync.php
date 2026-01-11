@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-namespace Watcher\Services\Foundation;
+namespace Mata\Services\Foundation;
 
 use Exception;
+use Mata\Core\DatabaseInterface;
+use Mata\Models\ConfigSyncRepository;
 use Monolog\Logger;
-use Watcher\Core\DatabaseInterface;
-use Watcher\Models\ConfigSyncRepository;
 
 /**
  * Settings to Database Synchronization Service.

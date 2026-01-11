@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-namespace Watcher\Services\View;
+namespace Mata\Services\View;
 
 use InvalidArgumentException;
-use Watcher\Services\Foundation\DataTransformers\ChartDataTransformer;
-use Watcher\Services\Validation\MetricsRequestValidator;
-use Watcher\Views\MetricsRenderer;
+use Mata\Services\Foundation\DataTransformers\ChartDataTransformer;
+use Mata\Services\Validation\MetricsRequestValidator;
+use Mata\Views\MetricsRenderer;
 
 /**
  * Chart view builder for dashboard metrics visualizations.

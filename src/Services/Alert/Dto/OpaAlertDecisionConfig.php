@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Watcher\Services\Foundation\Dto;
+namespace Mata\Services\Alert\Dto;
 
 final class OpaAlertDecisionConfig
 {

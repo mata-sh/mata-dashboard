@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Watcher\Core;
+namespace Mata\Core;
 
 use Psr\Log\LoggerInterface;
 use RuntimeException;

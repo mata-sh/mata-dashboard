@@ -3,15 +3,15 @@
 
 declare(strict_types=1);
 
-use Watcher\Models\ServerMetrics\Dto\ServerMetricRawSnapshot;
-use Watcher\Models\ServerMetrics\ServerMetricsRepository;
-use Watcher\Services\Collect\ServerDataCollector;
-use Watcher\Services\Foundation\ApiClient;
-use Watcher\Services\Foundation\CacheManager;
-use Watcher\Services\Foundation\DataTransformers\ApiResponseTransformer;
-use Watcher\Services\Monitor\ServerMetricsHealthMonitor;
-use Watcher\Services\Monitor\ServerMonitor;
-use Watcher\Utils\TypeConverter;
+use Mata\Models\ServerMetrics\Dto\ServerMetricRawSnapshot;
+use Mata\Models\ServerMetrics\ServerMetricsRepository;
+use Mata\Services\Collect\ServerDataCollector;
+use Mata\Services\Foundation\ApiClient;
+use Mata\Services\Foundation\CacheManager;
+use Mata\Services\Foundation\DataTransformers\ApiResponseTransformer;
+use Mata\Services\Monitor\ServerMetricsHealthMonitor;
+use Mata\Services\Monitor\ServerMonitor;
+use Mata\Utils\TypeConverter;
 
 $requiresDatabase = true;
 

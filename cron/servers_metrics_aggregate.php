@@ -3,8 +3,8 @@
 
 declare(strict_types=1);
 
-use Watcher\Models\ServerMetrics\ServerMetricsAggregator;
-use Watcher\Models\ServerMetrics\ServerMetricsRepository;
+use Mata\Models\ServerMetrics\ServerMetricsAggregator;
+use Mata\Models\ServerMetrics\ServerMetricsRepository;
 
 $requiresDatabase = true;
 

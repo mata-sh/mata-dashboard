@@ -2,17 +2,17 @@
 
 declare(strict_types=1);
 
-namespace Watcher\Tests\Unit\Services;
+namespace Mata\Tests\Unit\Services;
 
+use Mata\Services\Collect\ServerDataCollectorInterface;
+use Mata\Services\Event\EventManager;
+use Mata\Services\Foundation\LogAnalyzer;
+use Mata\Tests\TestCase;
+use Mata\Utils\Tools;
 use PHPUnit\Framework\MockObject\MockObject;
-use Watcher\Services\Collect\ServerDataCollectorInterface;
-use Watcher\Services\Foundation\EventManager;
-use Watcher\Services\Foundation\LogAnalyzer;
-use Watcher\Tests\TestCase;
-use Watcher\Utils\Tools;
 
 /**
- * @covers \Watcher\Services\Foundation\LogAnalyzer
+ * @covers \Mata\Services\Foundation\LogAnalyzer
  *
  * @internal
  */

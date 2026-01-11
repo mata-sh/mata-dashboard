@@ -2,14 +2,14 @@
 
 declare(strict_types=1);
 
-namespace Watcher\Services\Foundation;
+namespace Mata\Services\Alert;
 
+use Mata\Services\Alert\Dto\Alert;
 use Psr\Log\LoggerInterface;
 use Psr\Log\NullLogger;
 use RuntimeException;
 use Symfony\Component\Mailer\MailerInterface;
 use Symfony\Component\Mime\Email;
-use Watcher\Services\Foundation\Dto\Alert;
 
 /**
  * Channel-specific email sender for alert dispatch.

@@ -2,27 +2,27 @@
 
 declare(strict_types=1);
 
-namespace Watcher\Tests\Unit\Controllers;
+namespace Mata\Tests\Unit\Controllers;
 
 use Exception;
+use Mata\Config\Dto\ApplicationConfig;
+use Mata\Controllers\DashboardController;
+use Mata\Core\App;
+use Mata\Http\Responses\HtmlResponse;
+use Mata\Http\Responses\JsonResponse;
+use Mata\Http\Routing\Endpoints;
+use Mata\Services\Event\EventAggregatorServiceInterface;
+use Mata\Services\Event\EventManager;
+use Mata\Services\Foundation\CacheManager;
+use Mata\Services\Navigation\MenuBuilder;
+use Mata\Services\Notification\NotificationManager;
+use Mata\Tests\Helpers\ApplicationConfigFactory;
+use Mata\Tests\Helpers\NotificationManagerFactory;
+use Mata\Utils\PathResolver;
+use Mata\Utils\Tools;
 use Monolog\Logger;
 use PHPUnit\Framework\TestCase;
 use Twig\Environment;
-use Watcher\Config\Dto\ApplicationConfig;
-use Watcher\Controllers\DashboardController;
-use Watcher\Core\App;
-use Watcher\Http\Responses\HtmlResponse;
-use Watcher\Http\Responses\JsonResponse;
-use Watcher\Http\Routing\Endpoints;
-use Watcher\Services\Foundation\CacheManager;
-use Watcher\Services\Foundation\EventAggregatorServiceInterface;
-use Watcher\Services\Foundation\EventManager;
-use Watcher\Services\Foundation\NotificationManager;
-use Watcher\Services\Navigation\MenuBuilder;
-use Watcher\Tests\Helpers\ApplicationConfigFactory;
-use Watcher\Tests\Helpers\NotificationManagerFactory;
-use Watcher\Utils\PathResolver;
-use Watcher\Utils\Tools;
 
 /**
  * DashboardController Test Suite.

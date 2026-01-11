@@ -2,13 +2,13 @@
 
 declare(strict_types=1);
 
-namespace Watcher\Models;
+namespace Mata\Models;
 
 use DateInterval;
 use DateTimeImmutable;
+use Mata\Core\DatabaseInterface;
+use Mata\Services\Alert\Dto\QueuedAlert;
 use PDOException;
-use Watcher\Core\DatabaseInterface;
-use Watcher\Services\Foundation\Dto\QueuedAlert;
 
 /**
  * Repository encapsulating access to the alert queue table.

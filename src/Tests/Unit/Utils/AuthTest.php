@@ -2,17 +2,17 @@
 
 declare(strict_types=1);
 
-namespace Watcher\Tests\Unit\Utils;
+namespace Mata\Tests\Unit\Utils;
 
+use Mata\Core\Auth;
+use Mata\Tests\TestCase;
 use Psr\Log\NullLogger;
 use RuntimeException;
-use Watcher\Core\Auth;
-use Watcher\Tests\TestCase;
 
 /**
  * Test suite for Auth utility class.
  *
- * @covers \Watcher\Core\Auth
+ * @covers \Mata\Core\Auth
  *
  * @internal
  */

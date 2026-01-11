@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace Watcher\Views;
+namespace Mata\Views;
 
 use Exception;
-use Watcher\Services\Collect\ServerDataCollectorInterface;
+use Mata\Services\Collect\ServerDataCollectorInterface;
 
 /**
  * Cronjob rendering service.

@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Watcher\Services\Collect;
+namespace Mata\Services\Collect;
 
 /**
  * Server data collection interface.

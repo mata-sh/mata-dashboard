@@ -2,44 +2,44 @@
 
 declare(strict_types=1);
 
-namespace Watcher\Controllers;
+namespace Mata\Controllers;
 
 use Exception;
 use InvalidArgumentException;
+use Mata\Config\Dto\ApplicationConfig;
+use Mata\Core\App;
+use Mata\Http\Responses\HtmlResponse;
+use Mata\Http\Responses\JsonResponse;
+use Mata\Http\Responses\Response;
+use Mata\Http\Routing\Endpoints;
+use Mata\Services\Cache\CacheTypeResolver;
+use Mata\Services\Collect\MockServerDataCollector;
+use Mata\Services\Collect\ServerDataCollector;
+use Mata\Services\Collect\ServerDataCollectorInterface;
+use Mata\Services\Event\EventManager;
+use Mata\Services\Foundation\ApiClient;
+use Mata\Services\Foundation\CacheManager;
+use Mata\Services\Foundation\DataTransformers\ApiResponseTransformer;
+use Mata\Services\Foundation\LogAnalyzer;
+use Mata\Services\Monitor\AppMonitor;
+use Mata\Services\Monitor\AppMonitorInterface;
+use Mata\Services\Monitor\MockAppMonitor;
+use Mata\Services\Monitor\ServerMonitor;
+use Mata\Services\Navigation\MenuBuilder;
+use Mata\Services\Notification\NotificationManager;
+use Mata\Services\View\ServerViewBuilder;
+use Mata\Utils\Tools;
+use Mata\Utils\TypeConverter;
+use Mata\Views\AlarmsRenderer;
+use Mata\Views\CronjobRenderer;
+use Mata\Views\DatabaseRenderer;
+use Mata\Views\EventsRenderer;
+use Mata\Views\LibrariesRenderer;
+use Mata\Views\LogRenderer;
+use Mata\Views\ServerRenderer;
+use Mata\Views\SettingsRenderer;
 use Monolog\Logger;
 use Twig\Environment;
-use Watcher\Config\Dto\ApplicationConfig;
-use Watcher\Core\App;
-use Watcher\Http\Responses\HtmlResponse;
-use Watcher\Http\Responses\JsonResponse;
-use Watcher\Http\Responses\Response;
-use Watcher\Http\Routing\Endpoints;
-use Watcher\Services\Cache\CacheTypeResolver;
-use Watcher\Services\Collect\MockServerDataCollector;
-use Watcher\Services\Collect\ServerDataCollector;
-use Watcher\Services\Collect\ServerDataCollectorInterface;
-use Watcher\Services\Foundation\ApiClient;
-use Watcher\Services\Foundation\CacheManager;
-use Watcher\Services\Foundation\DataTransformers\ApiResponseTransformer;
-use Watcher\Services\Foundation\EventManager;
-use Watcher\Services\Foundation\LogAnalyzer;
-use Watcher\Services\Foundation\NotificationManager;
-use Watcher\Services\Monitor\AppMonitor;
-use Watcher\Services\Monitor\AppMonitorInterface;
-use Watcher\Services\Monitor\MockAppMonitor;
-use Watcher\Services\Monitor\ServerMonitor;
-use Watcher\Services\Navigation\MenuBuilder;
-use Watcher\Services\View\ServerViewBuilder;
-use Watcher\Utils\Tools;
-use Watcher\Utils\TypeConverter;
-use Watcher\Views\AlarmsRenderer;
-use Watcher\Views\CronjobRenderer;
-use Watcher\Views\DatabaseRenderer;
-use Watcher\Views\EventsRenderer;
-use Watcher\Views\LibrariesRenderer;
-use Watcher\Views\LogRenderer;
-use Watcher\Views\ServerRenderer;
-use Watcher\Views\SettingsRenderer;
 
 /**
  * Main dashboard controller for server monitoring endpoints.

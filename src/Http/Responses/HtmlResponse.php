@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Watcher\Http\Responses;
+namespace Mata\Http\Responses;
 
 /**
  * HTML Response.

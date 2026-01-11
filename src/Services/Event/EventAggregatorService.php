@@ -2,15 +2,16 @@
 
 declare(strict_types=1);
 
-namespace Watcher\Services\Foundation;
+namespace Mata\Services\Event;
 
 use DateInterval;
 use DateTimeImmutable;
 use DateTimeInterface;
+use Mata\Models\EventRepository;
+use Mata\Services\Foundation\IdResolver;
 use Psr\Log\LoggerInterface;
 use Psr\Log\NullLogger;
 use Throwable;
-use Watcher\Models\EventRepository;
 
 /**
  * Event aggregator and query service for decision engines.

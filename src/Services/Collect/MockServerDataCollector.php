@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace Watcher\Services\Collect;
+namespace Mata\Services\Collect;
 
+use Mata\Services\Foundation\CacheManager;
+use Mata\Services\Foundation\DataTransformers\ApiResponseTransformer;
 use Psr\Log\LoggerInterface;
-use Watcher\Services\Foundation\CacheManager;
-use Watcher\Services\Foundation\DataTransformers\ApiResponseTransformer;
 
 /**
  * Mock server data collector for demo mode.

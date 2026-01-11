@@ -2,14 +2,14 @@
 
 declare(strict_types=1);
 
-namespace Watcher\Services\Collect;
+namespace Mata\Services\Collect;
 
 use GuzzleHttp\Exception\RequestException;
+use Mata\Services\Foundation\ApiClient;
+use Mata\Services\Foundation\CacheManager;
+use Mata\Services\Foundation\DataTransformers\ApiResponseTransformer;
 use Psr\Log\LoggerInterface;
 use RuntimeException;
-use Watcher\Services\Foundation\ApiClient;
-use Watcher\Services\Foundation\CacheManager;
-use Watcher\Services\Foundation\DataTransformers\ApiResponseTransformer;
 
 /**
  * Server data collection coordination service.

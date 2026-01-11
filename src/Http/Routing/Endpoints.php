@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Watcher\Http\Routing;
+namespace Mata\Http\Routing;
 
 /**
  * Centralizes route endpoints for easy access in templates and HTMX interactions.

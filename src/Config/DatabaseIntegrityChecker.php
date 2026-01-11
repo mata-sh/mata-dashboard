@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace Watcher\Config;
+namespace Mata\Config;
 
+use Mata\Core\DatabaseInterface;
 use RuntimeException;
 use Throwable;
-use Watcher\Core\DatabaseInterface;
 
 /**
  * Database integrity checker.

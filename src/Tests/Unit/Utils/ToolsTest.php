@@ -2,16 +2,16 @@
 
 declare(strict_types=1);
 
-namespace Watcher\Tests\Unit\Utils;
+namespace Mata\Tests\Unit\Utils;
 
+use Mata\Tests\TestCase;
+use Mata\Utils\Tools;
 use RuntimeException;
-use Watcher\Tests\TestCase;
-use Watcher\Utils\Tools;
 
 /**
  * Test suite for Tools utility class.
  *
- * @covers \Watcher\Utils\Tools
+ * @covers \Mata\Utils\Tools
  *
  * @internal
  */

@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace Watcher\Views;
+namespace Mata\Views;
 
 use Exception;
-use Watcher\Http\Routing\Endpoints;
-use Watcher\Services\Collect\ServerDataCollectorInterface;
+use Mata\Http\Routing\Endpoints;
+use Mata\Services\Collect\ServerDataCollectorInterface;
 
 /**
  * Libraries rendering service.

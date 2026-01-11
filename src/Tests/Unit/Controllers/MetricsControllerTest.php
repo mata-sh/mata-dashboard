@@ -2,23 +2,23 @@
 
 declare(strict_types=1);
 
-namespace Watcher\Tests\Unit\Controllers;
+namespace Mata\Tests\Unit\Controllers;
 
 use Exception;
 use InvalidArgumentException;
+use Mata\Controllers\MetricsController;
+use Mata\Http\Responses\HtmlResponse;
+use Mata\Http\Responses\JsonResponse;
+use Mata\Http\Responses\Response;
+use Mata\Services\Cache\MetricsCacheService;
+use Mata\Services\Validation\MetricsRequestValidator;
+use Mata\Services\Validation\MetricsValidationResult;
+use Mata\Services\View\ChartViewBuilder;
+use Mata\Services\View\MetricsViewBuilder;
+use Mata\Tests\TestCase;
+use Mata\Views\MetricsRenderer;
 use Monolog\Logger;
 use PHPUnit\Framework\MockObject\MockObject;
-use Watcher\Controllers\MetricsController;
-use Watcher\Http\Responses\HtmlResponse;
-use Watcher\Http\Responses\JsonResponse;
-use Watcher\Http\Responses\Response;
-use Watcher\Services\Cache\MetricsCacheService;
-use Watcher\Services\Validation\MetricsRequestValidator;
-use Watcher\Services\Validation\MetricsValidationResult;
-use Watcher\Services\View\ChartViewBuilder;
-use Watcher\Services\View\MetricsViewBuilder;
-use Watcher\Tests\TestCase;
-use Watcher\Views\MetricsRenderer;
 
 /**
  * Test suite for MetricsController.
@@ -32,7 +32,7 @@ use Watcher\Views\MetricsRenderer;
  * - Cache integration and TTL management
  * - JSON response formatting
  *
- * @covers \Watcher\Controllers\MetricsController
+ * @covers \Mata\Controllers\MetricsController
  *
  * @internal
  */

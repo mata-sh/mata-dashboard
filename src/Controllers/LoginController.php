@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace Watcher\Controllers;
+namespace Mata\Controllers;
 
+use Mata\Core\App;
+use Mata\Utils\Tools;
 use Twig\Environment;
-use Watcher\Core\App;
-use Watcher\Utils\Tools;
 
 /**
  * Authentication controller handling login/logout operations.

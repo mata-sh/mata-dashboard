@@ -2,21 +2,21 @@
 
 declare(strict_types=1);
 
-namespace Watcher\Tests\Unit\Controllers;
+namespace Mata\Tests\Unit\Controllers;
 
 use Exception;
+use Mata\Controllers\LoginController;
+use Mata\Core\App;
+use Mata\Core\Auth;
+use Mata\Tests\TestCase;
+use Mata\Utils\Tools;
 use PHPUnit\Framework\MockObject\MockObject;
 use Twig\Environment;
-use Watcher\Controllers\LoginController;
-use Watcher\Core\App;
-use Watcher\Core\Auth;
-use Watcher\Tests\TestCase;
-use Watcher\Utils\Tools;
 
 /**
  * Test suite for LoginController.
  *
- * @covers \Watcher\Controllers\LoginController
+ * @covers \Mata\Controllers\LoginController
  *
  * @internal
  */

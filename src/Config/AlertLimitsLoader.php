@@ -2,13 +2,13 @@
 
 declare(strict_types=1);
 
-namespace Watcher\Config;
+namespace Mata\Config;
 
 use JsonException;
+use Mata\Config\Dto\AlertLimitsConfig;
+use Mata\Services\Alert\Dto\AlertLimit;
 use Psr\Log\LoggerInterface;
 use Psr\Log\NullLogger;
-use Watcher\Config\Dto\AlertLimitsConfig;
-use Watcher\Services\Foundation\Dto\AlertLimit;
 
 /**
  * Loader for alert throttling configuration stored in limits.json.

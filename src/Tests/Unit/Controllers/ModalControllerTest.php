@@ -2,25 +2,25 @@
 
 declare(strict_types=1);
 
-namespace Watcher\Tests\Unit\Controllers;
+namespace Mata\Tests\Unit\Controllers;
 
 use Exception;
+use Mata\Config\Dto\ApplicationConfig;
+use Mata\Config\Dto\EnvironmentConfig;
+use Mata\Controllers\ModalController;
+use Mata\Core\App;
+use Mata\Http\Responses\HtmlResponse;
+use Mata\Http\Responses\JsonResponse;
+use Mata\Services\Collect\ServerDataCollectorInterface;
+use Mata\Services\Foundation\CacheManager;
+use Mata\Tests\Helpers\ApplicationConfigFactory;
+use Mata\Tests\TestCase;
+use Mata\Utils\Tools;
+use Mata\Views\ModalRenderer;
 use Monolog\Handler\TestHandler;
 use Monolog\Logger;
 use PHPUnit\Framework\MockObject\MockObject;
 use Twig\Environment;
-use Watcher\Config\Dto\ApplicationConfig;
-use Watcher\Config\Dto\EnvironmentConfig;
-use Watcher\Controllers\ModalController;
-use Watcher\Core\App;
-use Watcher\Http\Responses\HtmlResponse;
-use Watcher\Http\Responses\JsonResponse;
-use Watcher\Services\Collect\ServerDataCollectorInterface;
-use Watcher\Services\Foundation\CacheManager;
-use Watcher\Tests\Helpers\ApplicationConfigFactory;
-use Watcher\Tests\TestCase;
-use Watcher\Utils\Tools;
-use Watcher\Views\ModalRenderer;
 
 /**
  * Test suite for ModalController.
@@ -34,7 +34,7 @@ use Watcher\Views\ModalRenderer;
  * - Error handling for missing resources
  * - XSS prevention in rendered content
  *
- * @covers \Watcher\Controllers\ModalController
+ * @covers \Mata\Controllers\ModalController
  *
  * @internal
  */

@@ -2,14 +2,15 @@
 
 declare(strict_types=1);
 
-namespace Watcher\Services\Foundation;
+namespace Mata\Services\Event;
 
 use LogicException;
+use Mata\Config\Dto\ApplicationConfig;
+use Mata\Services\Alert\AlertManager;
+use Mata\Services\Alert\Dto\Alert;
+use Mata\Services\Alert\Dto\AlertLevel;
+use Mata\Services\Event\Dto\EventContext;
 use PDOException;
-use Watcher\Config\Dto\ApplicationConfig;
-use Watcher\Services\Foundation\Dto\Alert;
-use Watcher\Services\Foundation\Dto\AlertLevel;
-use Watcher\Services\Foundation\Dto\EventContext;
 
 /**
  * Monitoring events.

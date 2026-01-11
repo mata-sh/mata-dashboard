@@ -2,14 +2,14 @@
 
 declare(strict_types=1);
 
-namespace Watcher\Services\Foundation;
+namespace Mata\Services\Notification;
 
 use Exception;
+use Mata\Core\DatabaseInterface;
+use Mata\Core\NullDatabase;
+use Mata\Utils\FileStateStore;
+use Mata\Utils\PathResolver;
 use Psr\Log\LoggerInterface;
-use Watcher\Core\DatabaseInterface;
-use Watcher\Core\NullDatabase;
-use Watcher\Utils\FileStateStore;
-use Watcher\Utils\PathResolver;
 
 /**
  * Notification management system for application alerts and warnings.

@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Watcher\Services\Foundation;
+namespace Mata\Services\Foundation;
 
 use Psr\Log\LoggerInterface;
 use RecursiveDirectoryIterator;

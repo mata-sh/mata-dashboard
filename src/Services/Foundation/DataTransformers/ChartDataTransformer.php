@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Watcher\Services\Foundation\DataTransformers;
+namespace Mata\Services\Foundation\DataTransformers;
 
 /**
  * Chart data transformation service for visualization formatting.

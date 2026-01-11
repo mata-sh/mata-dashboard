@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Watcher\Http;
+namespace Mata\Http;
 
 class SecurityHeaders
 {

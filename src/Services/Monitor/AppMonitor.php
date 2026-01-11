@@ -2,14 +2,14 @@
 
 declare(strict_types=1);
 
-namespace Watcher\Services\Monitor;
+namespace Mata\Services\Monitor;
 
+use Mata\Constants\CacheTypes;
+use Mata\Services\Event\EventManager;
+use Mata\Services\Foundation\ApiClient;
+use Mata\Services\Foundation\CacheManager;
+use Mata\Services\Monitor\Dto\EndpointTarget;
 use Psr\Log\LoggerInterface;
-use Watcher\Constants\CacheTypes;
-use Watcher\Services\Foundation\ApiClient;
-use Watcher\Services\Foundation\CacheManager;
-use Watcher\Services\Foundation\EventManager;
-use Watcher\Services\Monitor\Dto\EndpointTarget;
 
 /**
  * Application monitoring service responsible for availability checks.

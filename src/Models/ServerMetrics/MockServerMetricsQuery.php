@@ -2,13 +2,13 @@
 
 declare(strict_types=1);
 
-namespace Watcher\Models\ServerMetrics;
+namespace Mata\Models\ServerMetrics;
 
 use DateInterval;
 use DateTimeImmutable;
-use Watcher\Models\ServerMetrics\Dto\ServerMetricDailyAggregate;
-use Watcher\Models\ServerMetrics\Dto\ServerMetricHourlyAggregate;
-use Watcher\Models\ServerMetrics\Dto\ServerMetricRawSnapshot;
+use Mata\Models\ServerMetrics\Dto\ServerMetricDailyAggregate;
+use Mata\Models\ServerMetrics\Dto\ServerMetricHourlyAggregate;
+use Mata\Models\ServerMetrics\Dto\ServerMetricRawSnapshot;
 
 /**
  * Mock server metrics query for demo mode.

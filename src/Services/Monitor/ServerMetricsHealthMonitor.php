@@ -2,13 +2,13 @@
 
 declare(strict_types=1);
 
-namespace Watcher\Services\Monitor;
+namespace Mata\Services\Monitor;
 
 use DateTimeImmutable;
 use DateTimeInterface;
+use Mata\Models\ServerMetrics\ServerMetricsRepository;
+use Mata\Services\Event\EventManager;
 use Psr\Log\LoggerInterface;
-use Watcher\Models\ServerMetrics\ServerMetricsRepository;
-use Watcher\Services\Foundation\EventManager;
 
 /**
  * Coordinates ingestion health telemetry for server metrics collection.

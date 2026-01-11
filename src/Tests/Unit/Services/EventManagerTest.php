@@ -2,31 +2,31 @@
 
 declare(strict_types=1);
 
-namespace Watcher\Tests\Unit\Services;
+namespace Mata\Tests\Unit\Services;
 
+use Mata\Config\Dto\ApplicationConfig;
+use Mata\Config\Dto\CliSecurityConfig;
+use Mata\Config\Dto\DashboardConfig;
+use Mata\Config\Dto\DatabaseConfig;
+use Mata\Config\Dto\EnvironmentConfig;
+use Mata\Config\Dto\GeneralConfig;
+use Mata\Config\Dto\LoggingConfig;
+use Mata\Config\Dto\MailConfig;
+use Mata\Config\Dto\PhpConfig;
+use Mata\Config\Dto\RateLimitingConfig;
+use Mata\Config\Dto\SmtpDevConfig;
+use Mata\Config\Dto\TemplateConfig;
+use Mata\Models\Dto\EventRecordResult;
+use Mata\Services\Alert\AlertManager;
+use Mata\Services\Event\Dto\EventContext;
+use Mata\Services\Event\EventAggregatorServiceInterface;
+use Mata\Services\Event\EventManager;
+use Mata\Services\Event\EventRecorderService;
+use Mata\Tests\TestCase;
 use PHPUnit\Framework\MockObject\MockObject;
-use Watcher\Config\Dto\ApplicationConfig;
-use Watcher\Config\Dto\CliSecurityConfig;
-use Watcher\Config\Dto\DashboardConfig;
-use Watcher\Config\Dto\DatabaseConfig;
-use Watcher\Config\Dto\EnvironmentConfig;
-use Watcher\Config\Dto\GeneralConfig;
-use Watcher\Config\Dto\LoggingConfig;
-use Watcher\Config\Dto\MailConfig;
-use Watcher\Config\Dto\PhpConfig;
-use Watcher\Config\Dto\RateLimitingConfig;
-use Watcher\Config\Dto\SmtpDevConfig;
-use Watcher\Config\Dto\TemplateConfig;
-use Watcher\Models\Dto\EventRecordResult;
-use Watcher\Services\Foundation\AlertManager;
-use Watcher\Services\Foundation\Dto\EventContext;
-use Watcher\Services\Foundation\EventAggregatorServiceInterface;
-use Watcher\Services\Foundation\EventManager;
-use Watcher\Services\Foundation\EventRecorderService;
-use Watcher\Tests\TestCase;
 
 /**
- * @covers \Watcher\Services\Foundation\EventManager
+ * @covers \Mata\Services\Event\EventManager
  *
  * @internal
  */

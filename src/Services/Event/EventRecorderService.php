@@ -2,11 +2,12 @@
 
 declare(strict_types=1);
 
-namespace Watcher\Services\Foundation;
+namespace Mata\Services\Event;
 
-use Watcher\Core\DatabaseInterface;
-use Watcher\Models\Dto\EventRecordResult;
-use Watcher\Models\EventRepository;
+use Mata\Core\DatabaseInterface;
+use Mata\Models\Dto\EventRecordResult;
+use Mata\Models\EventRepository;
+use Mata\Services\Foundation\IdResolver;
 
 /**
  * Event logging service.

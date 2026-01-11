@@ -2,15 +2,15 @@
 
 declare(strict_types=1);
 
-namespace Watcher\Tests\Unit\Utils;
+namespace Mata\Tests\Unit\Utils;
 
-use Watcher\Config\EnvConfigLoader;
-use Watcher\Tests\TestCase;
+use Mata\Config\EnvConfigLoader;
+use Mata\Tests\TestCase;
 
 /**
  * Test suite for EnvConfigLoader utility class.
  *
- * @covers \Watcher\Config\EnvConfigLoader
+ * @covers \Mata\Config\EnvConfigLoader
  *
  * @internal
  */

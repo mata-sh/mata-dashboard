@@ -3,11 +3,11 @@
 
 declare(strict_types=1);
 
-use Watcher\Services\Collect\ServerDataCollector;
-use Watcher\Services\Foundation\ApiClient;
-use Watcher\Services\Foundation\CacheManager;
-use Watcher\Services\Foundation\DataTransformers\ApiResponseTransformer;
-use Watcher\Utils\TypeConverter;
+use Mata\Services\Collect\ServerDataCollector;
+use Mata\Services\Foundation\ApiClient;
+use Mata\Services\Foundation\CacheManager;
+use Mata\Services\Foundation\DataTransformers\ApiResponseTransformer;
+use Mata\Utils\TypeConverter;
 
 $requiresDatabase = true;
 

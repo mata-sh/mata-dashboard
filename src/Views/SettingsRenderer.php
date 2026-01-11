@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Watcher\Views;
+namespace Mata\Views;
 
 /**
  * Settings renderer for configuration overview.

@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace Watcher\Services\Cache;
+namespace Mata\Services\Cache;
 
+use Mata\Services\Foundation\CacheManager;
 use Monolog\Logger;
-use Watcher\Services\Foundation\CacheManager;
 
 /**
  * Manages caching for metrics data.

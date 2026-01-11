@@ -2,28 +2,28 @@
 
 declare(strict_types=1);
 
-namespace Watcher\Controllers;
+namespace Mata\Controllers;
 
 use Exception;
 use InvalidArgumentException;
+use Mata\Config\Dto\ApplicationConfig;
+use Mata\Core\App;
+use Mata\Http\Responses\HtmlResponse;
+use Mata\Http\Responses\JsonResponse;
+use Mata\Http\Responses\Response;
+use Mata\Services\Cache\CacheTypeResolver;
+use Mata\Services\Cache\ModalCacheService;
+use Mata\Services\Collect\MockServerDataCollector;
+use Mata\Services\Collect\ServerDataCollector;
+use Mata\Services\Collect\ServerDataCollectorInterface;
+use Mata\Services\Foundation\ApiClient;
+use Mata\Services\Foundation\CacheManager;
+use Mata\Services\Foundation\DataTransformers\ApiResponseTransformer;
+use Mata\Utils\Tools;
+use Mata\Utils\TypeConverter;
+use Mata\Views\ModalRenderer;
 use Monolog\Logger;
 use Twig\Environment;
-use Watcher\Config\Dto\ApplicationConfig;
-use Watcher\Core\App;
-use Watcher\Http\Responses\HtmlResponse;
-use Watcher\Http\Responses\JsonResponse;
-use Watcher\Http\Responses\Response;
-use Watcher\Services\Cache\CacheTypeResolver;
-use Watcher\Services\Cache\ModalCacheService;
-use Watcher\Services\Collect\MockServerDataCollector;
-use Watcher\Services\Collect\ServerDataCollector;
-use Watcher\Services\Collect\ServerDataCollectorInterface;
-use Watcher\Services\Foundation\ApiClient;
-use Watcher\Services\Foundation\CacheManager;
-use Watcher\Services\Foundation\DataTransformers\ApiResponseTransformer;
-use Watcher\Utils\Tools;
-use Watcher\Utils\TypeConverter;
-use Watcher\Views\ModalRenderer;
 
 /**
  * Modal content controller for dynamic AJAX responses.

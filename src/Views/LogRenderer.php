@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Watcher\Views;
+namespace Mata\Views;
 
 /**
  * Log rendering service.

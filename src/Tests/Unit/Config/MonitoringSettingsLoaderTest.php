@@ -2,16 +2,16 @@
 
 declare(strict_types=1);
 
-namespace Watcher\Tests\Unit\Config;
+namespace Mata\Tests\Unit\Config;
 
+use Mata\Config\MonitoringSettingsLoader;
+use Mata\Models\Dto\EventRecordResult;
+use Mata\Services\Event\EventRecorderService;
+use Mata\Tests\TestCase;
 use PHPUnit\Framework\MockObject\MockObject;
-use Watcher\Config\MonitoringSettingsLoader;
-use Watcher\Models\Dto\EventRecordResult;
-use Watcher\Services\Foundation\EventRecorderService;
-use Watcher\Tests\TestCase;
 
 /**
- * @covers \Watcher\Config\MonitoringSettingsLoader
+ * @covers \Mata\Config\MonitoringSettingsLoader
  *
  * @internal
  */

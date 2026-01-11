@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace Watcher\Services\Foundation\Dto;
+namespace Mata\Services\Alert\Dto;
 
 use InvalidArgumentException;
-use Watcher\Utils\TypeConverter;
+use Mata\Utils\TypeConverter;
 
 /**
  * Value object representing rate limits for a channel.

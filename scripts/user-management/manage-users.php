@@ -5,10 +5,10 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/../../vendor/autoload.php';
 
+use Mata\Core\Auth;
 use Monolog\Formatter\LineFormatter;
 use Monolog\Handler\StreamHandler;
 use Monolog\Logger;
-use Watcher\Core\Auth;
 
 // ============================================================================
 // SECURITY CHECKS

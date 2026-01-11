@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace Watcher\Core;
+namespace Mata\Core;
 
+use Mata\Config\Dto\DatabaseConfig;
 use PDO;
 use PDOException;
-use Watcher\Config\Dto\DatabaseConfig;
 
 /**
  * MySQL database connection wrapper with prepared statements.

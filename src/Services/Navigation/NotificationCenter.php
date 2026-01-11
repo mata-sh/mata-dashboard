@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace Watcher\Services\Navigation;
+namespace Mata\Services\Navigation;
 
 // use Monolog\Logger;
-// use Watcher\Core\Database;
+// use Mata\Core\Database;
 
 /**
  * Manages user-specific notifications in the dashboard.

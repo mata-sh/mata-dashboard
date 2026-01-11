@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace Watcher\Utils;
+namespace Mata\Utils;
 
-use Watcher\Services\Foundation\Dto\AlertLimit;
+use Mata\Services\Alert\Dto\AlertLimit;
 
 /**
  * Helper utilities for working with {@see AlertLimit} windows.

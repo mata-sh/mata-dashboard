@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace Watcher\Tests\Helpers;
+namespace Mata\Tests\Helpers;
 
+use Mata\Core\NullDatabase;
+use Mata\Services\Notification\NotificationManager;
 use Monolog\Logger;
-use Watcher\Core\NullDatabase;
-use Watcher\Services\Foundation\NotificationManager;
 
 /**
  * Factory for creating test instances of NotificationManager.

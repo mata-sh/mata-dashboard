@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Watcher\Config\Dto;
+namespace Mata\Config\Dto;
 
 /**
  * Immutable DTO representing logging configuration.

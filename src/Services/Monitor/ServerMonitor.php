@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-namespace Watcher\Services\Monitor;
+namespace Mata\Services\Monitor;
 
 use Exception;
+use Mata\Services\Collect\ServerDataCollectorInterface;
+use Mata\Services\Event\EventManager;
 use Monolog\Logger;
-use Watcher\Services\Collect\ServerDataCollectorInterface;
-use Watcher\Services\Foundation\EventManager;
 
 /**
  * Server monitoring and threshold evaluation service.

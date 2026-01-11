@@ -2,10 +2,12 @@
 
 declare(strict_types=1);
 
-namespace Watcher\Services\Foundation;
+namespace Mata\Services\Alert;
 
-use Watcher\Config\Dto\ApplicationConfig;
-use Watcher\Services\Foundation\Dto\EventContext;
+use Mata\Config\Dto\ApplicationConfig;
+use Mata\Services\Event\Dto\EventContext;
+use Mata\Services\Event\EventAggregatorServiceInterface;
+use Mata\Services\Event\EventRecorderService;
 
 /**
  * Alert evaluation service for alarm decision logic.

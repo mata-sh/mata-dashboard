@@ -2,18 +2,18 @@
 
 declare(strict_types=1);
 
-namespace Watcher\Services\View;
+namespace Mata\Services\View;
 
 use Exception;
+use Mata\Constants\CacheTypes;
+use Mata\Services\Cache\CacheTypeResolver;
+use Mata\Services\Collect\ServerDataCollectorInterface;
+use Mata\Services\Event\EventManager;
+use Mata\Services\Foundation\LogAnalyzer;
+use Mata\Services\Monitor\AppMonitorInterface;
+use Mata\Services\Monitor\Dto\EndpointTarget;
+use Mata\Services\Monitor\ServerMonitor;
 use Monolog\Logger;
-use Watcher\Constants\CacheTypes;
-use Watcher\Services\Cache\CacheTypeResolver;
-use Watcher\Services\Collect\ServerDataCollectorInterface;
-use Watcher\Services\Foundation\EventManager;
-use Watcher\Services\Foundation\LogAnalyzer;
-use Watcher\Services\Monitor\AppMonitorInterface;
-use Watcher\Services\Monitor\Dto\EndpointTarget;
-use Watcher\Services\Monitor\ServerMonitor;
 
 /**
  * Server view data builder service.

@@ -2,16 +2,16 @@
 
 declare(strict_types=1);
 
-namespace Watcher\Models\ServerMetrics;
+namespace Mata\Models\ServerMetrics;
 
 use DateTimeImmutable;
+use Mata\Core\DatabaseInterface;
+use Mata\Models\ServerMetrics\Dto\ServerMetricDailyAggregate;
+use Mata\Models\ServerMetrics\Dto\ServerMetricHourlyAggregate;
+use Mata\Models\ServerMetrics\Dto\ServerMetricRawSnapshot;
+use Mata\Services\Foundation\IdResolver;
 use RuntimeException;
 use Throwable;
-use Watcher\Core\DatabaseInterface;
-use Watcher\Models\ServerMetrics\Dto\ServerMetricDailyAggregate;
-use Watcher\Models\ServerMetrics\Dto\ServerMetricHourlyAggregate;
-use Watcher\Models\ServerMetrics\Dto\ServerMetricRawSnapshot;
-use Watcher\Services\Foundation\IdResolver;
 
 /**
  * Read-only query layer for server metrics.

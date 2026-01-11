@@ -2,15 +2,15 @@
 
 declare(strict_types=1);
 
-namespace Watcher\Tests\Unit\Services;
+namespace Mata\Tests\Unit\Services;
 
-use Watcher\Config\Dto\AlertLimitsConfig;
-use Watcher\Services\Foundation\AlertRateLimiter;
-use Watcher\Services\Foundation\Dto\AlertLimit;
-use Watcher\Tests\TestCase;
+use Mata\Config\Dto\AlertLimitsConfig;
+use Mata\Services\Alert\AlertRateLimiter;
+use Mata\Services\Alert\Dto\AlertLimit;
+use Mata\Tests\TestCase;
 
 /**
- * @covers \Watcher\Services\Foundation\AlertRateLimiter
+ * @covers \Mata\Services\Alert\AlertRateLimiter
  *
  * @internal
  */

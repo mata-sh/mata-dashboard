@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-namespace Watcher\Config;
+namespace Mata\Config;
 
 use Exception;
+use Mata\Config\Dto\ApplicationConfig;
+use Mata\Config\Dto\ConfigInitializationResult;
 use Psr\Log\LoggerInterface;
-use Watcher\Config\Dto\ApplicationConfig;
-use Watcher\Config\Dto\ConfigInitializationResult;
 
 /**
  * Orchestrates environment configuration initialization.

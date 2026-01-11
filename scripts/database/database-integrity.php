@@ -3,11 +3,11 @@
 
 declare(strict_types=1);
 
-use Watcher\Config\DatabaseIntegrityChecker;
+use Mata\Config\DatabaseIntegrityChecker;
 
 $bootstrap = require __DIR__ . '/../bootstrap.php';
 
-/** @var \Watcher\Core\DatabaseInterface $db */
+/** @var \Mata\Core\DatabaseInterface $db */
 $db = $bootstrap['db'];
 
 $checker = new DatabaseIntegrityChecker($db);

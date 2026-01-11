@@ -2,16 +2,16 @@
 
 declare(strict_types=1);
 
-namespace Watcher\Tests\Unit\Utils;
+namespace Mata\Tests\Unit\Utils;
 
 use InvalidArgumentException;
-use Watcher\Tests\TestCase;
-use Watcher\Utils\PathResolver;
+use Mata\Tests\TestCase;
+use Mata\Utils\PathResolver;
 
 /**
  * Test suite for PathResolver utility class.
  *
- * @covers \Watcher\Utils\PathResolver
+ * @covers \Mata\Utils\PathResolver
  *
  * @internal
  */

@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace Watcher\Config\Dto;
+namespace Mata\Config\Dto;
 
-use Watcher\Services\Foundation\Dto\AlertLimit;
+use Mata\Services\Alert\Dto\AlertLimit;
 
 /**
  * Aggregates channel-level defaults and per-server overrides.

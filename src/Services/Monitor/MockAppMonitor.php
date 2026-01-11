@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace Watcher\Services\Monitor;
+namespace Mata\Services\Monitor;
 
-use Watcher\Constants\CacheTypes;
-use Watcher\Services\Monitor\Dto\EndpointTarget;
+use Mata\Constants\CacheTypes;
+use Mata\Services\Monitor\Dto\EndpointTarget;
 
 /**
  * Demo implementation of the AppMonitor that simulates availability.

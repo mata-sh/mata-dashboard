@@ -27,19 +27,19 @@ declare(strict_types=1);
  *   extract(require_once __DIR__ . '/bootstrap_events.php');
  */
 
-use Watcher\Config\AlertLimitsLoader;
-use Watcher\Config\MonitoringSettingsLoader;
-use Watcher\Models\AlertQueueRepository;
-use Watcher\Models\ConfigSyncRepository;
-use Watcher\Models\EventRepository;
-use Watcher\Services\Foundation\AlertEvaluationService;
-use Watcher\Services\Foundation\AlertManager;
-use Watcher\Services\Foundation\EventAggregatorService;
-use Watcher\Services\Foundation\EventManager;
-use Watcher\Services\Foundation\EventRecorderService;
-use Watcher\Services\Foundation\IdResolver;
-use Watcher\Services\Foundation\MockEventAggregatorService;
-use Watcher\Utils\ChannelLockManager;
+use Mata\Config\AlertLimitsLoader;
+use Mata\Config\MonitoringSettingsLoader;
+use Mata\Models\AlertQueueRepository;
+use Mata\Models\ConfigSyncRepository;
+use Mata\Models\EventRepository;
+use Mata\Services\Alert\AlertEvaluationService;
+use Mata\Services\Alert\AlertManager;
+use Mata\Services\Event\EventAggregatorService;
+use Mata\Services\Event\EventManager;
+use Mata\Services\Event\EventRecorderService;
+use Mata\Services\Event\MockEventAggregatorService;
+use Mata\Services\Foundation\IdResolver;
+use Mata\Utils\ChannelLockManager;
 
 // Ensure bootstrap.php was loaded first
 if (!isset($db, $appConfig, $paths, $log)) {

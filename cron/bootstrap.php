@@ -2,16 +2,16 @@
 
 declare(strict_types=1);
 
+use Mata\Config\DatabaseIntegrityChecker;
+use Mata\Config\EnvConfigLoader;
+use Mata\Config\LogConfigurator;
+use Mata\Core\Database;
+use Mata\Core\NullDatabase;
+use Mata\Utils\CronJob;
+use Mata\Utils\PathResolver;
+use Mata\Utils\Tools;
 use Symfony\Component\Mailer\Mailer;
 use Symfony\Component\Mailer\Transport;
-use Watcher\Config\DatabaseIntegrityChecker;
-use Watcher\Config\EnvConfigLoader;
-use Watcher\Config\LogConfigurator;
-use Watcher\Core\Database;
-use Watcher\Core\NullDatabase;
-use Watcher\Utils\CronJob;
-use Watcher\Utils\PathResolver;
-use Watcher\Utils\Tools;
 
 // ************************************************************************************************
 // Composer

@@ -2,13 +2,13 @@
 
 declare(strict_types=1);
 
-namespace Watcher\Core;
+namespace Mata\Core;
 
 use ErrorException;
 use Exception;
+use Mata\Http\Responses\ResponseFactory;
 use Monolog\Logger;
 use Throwable;
-use Watcher\Http\Responses\ResponseFactory;
 
 class ExceptionHandler
 {

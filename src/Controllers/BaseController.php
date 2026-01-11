@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-namespace Watcher\Controllers;
+namespace Mata\Controllers;
 
 use Exception;
+use Mata\Http\Responses\Response;
+use Mata\Http\Responses\ResponseFactory;
 use Monolog\Logger;
-use Watcher\Http\Responses\Response;
-use Watcher\Http\Responses\ResponseFactory;
 
 /**
  * Base controller providing standardized error handling.

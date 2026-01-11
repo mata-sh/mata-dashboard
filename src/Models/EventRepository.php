@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace Watcher\Models;
+namespace Mata\Models;
 
 use DateInterval;
 use DateTimeImmutable;
-use Watcher\Core\DatabaseInterface;
+use Mata\Core\DatabaseInterface;
 
 /**
  * Repository encapsulating access to dashboard event and alarm tables.

@@ -2,20 +2,20 @@
 
 declare(strict_types=1);
 
-namespace Watcher\Tests\Helpers;
+namespace Mata\Tests\Helpers;
 
-use Watcher\Config\Dto\ApplicationConfig;
-use Watcher\Config\Dto\CliSecurityConfig;
-use Watcher\Config\Dto\DashboardConfig;
-use Watcher\Config\Dto\DatabaseConfig;
-use Watcher\Config\Dto\EnvironmentConfig;
-use Watcher\Config\Dto\GeneralConfig;
-use Watcher\Config\Dto\LoggingConfig;
-use Watcher\Config\Dto\MailConfig;
-use Watcher\Config\Dto\PhpConfig;
-use Watcher\Config\Dto\RateLimitingConfig;
-use Watcher\Config\Dto\SmtpDevConfig;
-use Watcher\Config\Dto\TemplateConfig;
+use Mata\Config\Dto\ApplicationConfig;
+use Mata\Config\Dto\CliSecurityConfig;
+use Mata\Config\Dto\DashboardConfig;
+use Mata\Config\Dto\DatabaseConfig;
+use Mata\Config\Dto\EnvironmentConfig;
+use Mata\Config\Dto\GeneralConfig;
+use Mata\Config\Dto\LoggingConfig;
+use Mata\Config\Dto\MailConfig;
+use Mata\Config\Dto\PhpConfig;
+use Mata\Config\Dto\RateLimitingConfig;
+use Mata\Config\Dto\SmtpDevConfig;
+use Mata\Config\Dto\TemplateConfig;
 
 /**
  * Factory for creating test instances of ApplicationConfig.

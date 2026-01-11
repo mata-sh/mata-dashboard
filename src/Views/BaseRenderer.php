@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-namespace Watcher\Views;
+namespace Mata\Views;
 
+use Mata\Core\App;
+use Mata\Utils\Tools;
 use Monolog\Logger;
 use Twig\Environment;
-use Watcher\Core\App;
-use Watcher\Utils\Tools;
 
 /**
  * Base renderer class providing common functionality for view renderers.

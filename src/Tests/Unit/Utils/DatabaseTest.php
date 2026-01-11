@@ -2,19 +2,19 @@
 
 declare(strict_types=1);
 
-namespace Watcher\Tests\Unit\Utils;
+namespace Mata\Tests\Unit\Utils;
 
+use Mata\Core\Database;
+use Mata\Tests\TestCase;
 use PDO;
 use PDOException;
 use PDOStatement;
 use ReflectionClass;
-use Watcher\Core\Database;
-use Watcher\Tests\TestCase;
 
 /**
  * Test suite for Database utility class.
  *
- * @covers \Watcher\Core\Database
+ * @covers \Mata\Core\Database
  *
  * @internal
  */

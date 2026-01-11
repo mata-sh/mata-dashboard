@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace Watcher\Models;
+namespace Mata\Models;
 
-use Watcher\Core\DatabaseInterface;
+use Mata\Core\DatabaseInterface;
 
 /**
  * Persistence layer for settings synchronization.

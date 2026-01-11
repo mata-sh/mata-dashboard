@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace Watcher\Services\Foundation;
+namespace Mata\Services\Alert;
 
-use Watcher\Config\Dto\AlertLimitsConfig;
+use Mata\Config\Dto\AlertLimitsConfig;
 
 /**
  * In-memory helper to enforce per-server/channel alert limits during dispatch.

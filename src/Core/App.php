@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace Watcher\Core;
+namespace Mata\Core;
 
-use Watcher\Config\Dto\ApplicationConfig;
-use Watcher\Services\Foundation\RateLimiterService;
-use Watcher\Utils\PathResolver;
+use Mata\Config\Dto\ApplicationConfig;
+use Mata\Services\Foundation\RateLimiterService;
+use Mata\Utils\PathResolver;
 
 /**
  * Main application container with authentication and rate limiting.

@@ -2,17 +2,17 @@
 
 declare(strict_types=1);
 
-namespace Watcher\Services\Foundation;
+namespace Mata\Services\Alert;
 
+use Mata\Config\Dto\AlertLimitsConfig;
+use Mata\Models\AlertQueueRepository;
+use Mata\Models\Dto\EventRecordResult;
+use Mata\Services\Alert\Dto\Alert;
+use Mata\Services\Alert\Dto\AlertLevel;
+use Mata\Utils\AlertLimitHelper;
+use Mata\Utils\ChannelLockManager;
 use PDOException;
 use Psr\Log\LoggerInterface;
-use Watcher\Config\Dto\AlertLimitsConfig;
-use Watcher\Models\AlertQueueRepository;
-use Watcher\Models\Dto\EventRecordResult;
-use Watcher\Services\Foundation\Dto\Alert;
-use Watcher\Services\Foundation\Dto\AlertLevel;
-use Watcher\Utils\AlertLimitHelper;
-use Watcher\Utils\ChannelLockManager;
 
 /**
  * Alert manager responsible for persisting alerts into the queue.

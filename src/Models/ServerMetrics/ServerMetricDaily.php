@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-namespace Watcher\Models\ServerMetrics;
+namespace Mata\Models\ServerMetrics;
 
 use DateTimeImmutable;
+use Mata\Core\DatabaseInterface;
+use Mata\Models\ServerMetrics\Dto\ServerMetricDailyAggregate;
 use Throwable;
-use Watcher\Core\DatabaseInterface;
-use Watcher\Models\ServerMetrics\Dto\ServerMetricDailyAggregate;
 
 /**
  * Persistence helper for the `server_metrics_daily` table.

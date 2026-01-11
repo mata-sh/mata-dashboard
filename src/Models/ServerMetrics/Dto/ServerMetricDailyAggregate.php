@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Watcher\Models\ServerMetrics\Dto;
+namespace Mata\Models\ServerMetrics\Dto;
 
 use DateTimeImmutable;
 

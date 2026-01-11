@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-use Watcher\Config\EnvConfigLoader;
-use Watcher\Core\Database;
-use Watcher\Utils\PathResolver;
+use Mata\Config\EnvConfigLoader;
+use Mata\Core\Database;
+use Mata\Utils\PathResolver;
 
 require_once __DIR__ . '/../vendor/autoload.php';
 

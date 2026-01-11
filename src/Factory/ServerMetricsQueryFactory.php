@@ -2,13 +2,13 @@
 
 declare(strict_types=1);
 
-namespace Watcher\Factory;
+namespace Mata\Factory;
 
-use Watcher\Core\DatabaseInterface;
-use Watcher\Models\ServerMetrics\MockServerMetricsQuery;
-use Watcher\Models\ServerMetrics\ServerMetricsQuery;
-use Watcher\Models\ServerMetrics\ServerMetricsQueryInterface;
-use Watcher\Services\Foundation\IdResolver;
+use Mata\Core\DatabaseInterface;
+use Mata\Models\ServerMetrics\MockServerMetricsQuery;
+use Mata\Models\ServerMetrics\ServerMetricsQuery;
+use Mata\Models\ServerMetrics\ServerMetricsQueryInterface;
+use Mata\Services\Foundation\IdResolver;
 
 /**
  * Factory responsible for creating the appropriate server metrics query

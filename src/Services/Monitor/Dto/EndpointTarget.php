@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace Watcher\Services\Monitor\Dto;
+namespace Mata\Services\Monitor\Dto;
 
-use Watcher\Utils\TypeConverter;
+use Mata\Utils\TypeConverter;
 
 /**
  * Immutable data transfer object representing an endpoint availability target.

@@ -2,16 +2,16 @@
 
 declare(strict_types=1);
 
-namespace Watcher\Http\Routing;
+namespace Mata\Http\Routing;
 
 use Bramus\Router\Router;
 use InvalidArgumentException;
-use Watcher\Controllers\DashboardController;
-use Watcher\Controllers\LoginController;
-use Watcher\Controllers\MetricsController;
-use Watcher\Controllers\ModalController;
-use Watcher\Core\App;
-use Watcher\Http\Responses\Response;
+use Mata\Controllers\DashboardController;
+use Mata\Controllers\LoginController;
+use Mata\Controllers\MetricsController;
+use Mata\Controllers\ModalController;
+use Mata\Core\App;
+use Mata\Http\Responses\Response;
 
 /**
  * Centralizes routing configuration including authentication, rate limiting, and error handling.

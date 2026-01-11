@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace Watcher\Services\Foundation;
+namespace Mata\Services\Foundation;
 
-use Watcher\Models\ConfigSyncRepository;
+use Mata\Models\ConfigSyncRepository;
 
 /**
  * Resolves server and application identifiers from human-readable names or numeric IDs.

@@ -2,17 +2,17 @@
 
 declare(strict_types=1);
 
-namespace Watcher\Models\ServerMetrics;
+namespace Mata\Models\ServerMetrics;
 
 use DateInterval;
 use DateTimeImmutable;
 use DateTimeInterface;
+use Mata\Core\DatabaseInterface;
+use Mata\Models\ServerMetrics\Dto\ServerMetricDailyAggregate;
+use Mata\Models\ServerMetrics\Dto\ServerMetricHourlyAggregate;
+use Mata\Utils\TypeConverter;
 use Psr\Log\LoggerInterface;
 use Throwable;
-use Watcher\Core\DatabaseInterface;
-use Watcher\Models\ServerMetrics\Dto\ServerMetricDailyAggregate;
-use Watcher\Models\ServerMetrics\Dto\ServerMetricHourlyAggregate;
-use Watcher\Utils\TypeConverter;
 
 /**
  * Aggregates raw server metrics into hourly and daily rollups.

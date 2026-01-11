@@ -2,15 +2,15 @@
 
 declare(strict_types=1);
 
-namespace Watcher\Config;
+namespace Mata\Config;
 
+use Mata\Config\Dto\LoggingConfig;
+use Mata\Utils\PathResolver;
 use Monolog\Formatter\LineFormatter;
 use Monolog\Handler\StreamHandler;
 use Monolog\Level;
 use Monolog\Logger;
 use Throwable;
-use Watcher\Config\Dto\LoggingConfig;
-use Watcher\Utils\PathResolver;
 
 final class LogConfigurator
 {

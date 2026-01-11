@@ -38,12 +38,12 @@
     },
     "autoload": {
         "psr-4": {
-            "Watcher\\": "src/"
+            "Mata\\": "src/"
         }
     },
     "autoload-dev": {
         "psr-4": {
-            "Watcher\\Tests\\": "src/tests/"
+            "Mata\\Tests\\": "src/tests/"
         }
     },
     "scripts": {

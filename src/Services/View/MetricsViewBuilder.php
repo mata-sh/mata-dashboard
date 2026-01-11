@@ -2,16 +2,16 @@
 
 declare(strict_types=1);
 
-namespace Watcher\Services\View;
+namespace Mata\Services\View;
 
 use DateInterval;
 use DateTimeImmutable;
 use InvalidArgumentException;
+use Mata\Models\ServerMetrics\Dto\ServerMetricDailyAggregate;
+use Mata\Models\ServerMetrics\Dto\ServerMetricHourlyAggregate;
+use Mata\Models\ServerMetrics\Dto\ServerMetricRawSnapshot;
+use Mata\Models\ServerMetrics\ServerMetricsQueryInterface;
 use Monolog\Logger;
-use Watcher\Models\ServerMetrics\Dto\ServerMetricDailyAggregate;
-use Watcher\Models\ServerMetrics\Dto\ServerMetricHourlyAggregate;
-use Watcher\Models\ServerMetrics\Dto\ServerMetricRawSnapshot;
-use Watcher\Models\ServerMetrics\ServerMetricsQueryInterface;
 
 /**
  * Metrics view data builder service.

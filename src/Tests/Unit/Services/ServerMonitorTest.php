@@ -2,19 +2,19 @@
 
 declare(strict_types=1);
 
-namespace Watcher\Tests\Unit\Services;
+namespace Mata\Tests\Unit\Services;
 
 use Exception;
+use Mata\Services\Collect\ServerDataCollectorInterface;
+use Mata\Services\Event\EventManager;
+use Mata\Services\Monitor\ServerMonitor;
+use Mata\Tests\TestCase;
 use Monolog\Handler\NullHandler;
 use Monolog\Logger;
 use PHPUnit\Framework\MockObject\MockObject;
-use Watcher\Services\Collect\ServerDataCollectorInterface;
-use Watcher\Services\Foundation\EventManager;
-use Watcher\Services\Monitor\ServerMonitor;
-use Watcher\Tests\TestCase;
 
 /**
- * @covers \Watcher\Services\Monitor\ServerMonitor
+ * @covers \Mata\Services\Monitor\ServerMonitor
  *
  * @internal
  */

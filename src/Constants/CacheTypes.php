@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Watcher\Constants;
+namespace Mata\Constants;
 
 /**
  * Cache type constants used across the application.

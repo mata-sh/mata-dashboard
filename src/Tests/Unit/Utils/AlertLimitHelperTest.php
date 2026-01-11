@@ -2,14 +2,14 @@
 
 declare(strict_types=1);
 
-namespace Watcher\Tests\Unit\Utils;
+namespace Mata\Tests\Unit\Utils;
 
-use Watcher\Services\Foundation\Dto\AlertLimit;
-use Watcher\Tests\TestCase;
-use Watcher\Utils\AlertLimitHelper;
+use Mata\Services\Alert\Dto\AlertLimit;
+use Mata\Tests\TestCase;
+use Mata\Utils\AlertLimitHelper;
 
 /**
- * @covers \Watcher\Utils\AlertLimitHelper
+ * @covers \Mata\Utils\AlertLimitHelper
  *
  * @internal
  */

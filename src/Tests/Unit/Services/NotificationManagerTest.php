@@ -2,22 +2,22 @@
 
 declare(strict_types=1);
 
-namespace Watcher\Tests\Unit\Services;
+namespace Mata\Tests\Unit\Services;
 
 use Exception;
+use Mata\Core\DatabaseInterface;
+use Mata\Core\NullDatabase;
+use Mata\Services\Notification\NotificationManager;
+use Mata\Tests\TestCase;
+use Mata\Utils\PathResolver;
 use Monolog\Handler\NullHandler;
 use Monolog\Logger;
 use PHPUnit\Framework\MockObject\MockObject;
-use Watcher\Core\DatabaseInterface;
-use Watcher\Core\NullDatabase;
-use Watcher\Services\Foundation\NotificationManager;
-use Watcher\Tests\TestCase;
-use Watcher\Utils\PathResolver;
 
 /**
  * Test suite for NotificationManager service.
  *
- * @covers \Watcher\Services\Foundation\NotificationManager
+ * @covers \Mata\Services\Notification\NotificationManager
  *
  * @internal
  */

@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Watcher\Tests;
+namespace Mata\Tests;
 
 use PHPUnit\Framework\TestCase as BaseTestCase;
 use ReflectionClass;

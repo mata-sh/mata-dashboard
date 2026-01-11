@@ -2,15 +2,15 @@
 
 declare(strict_types=1);
 
-namespace Watcher\Tests\Integration;
+namespace Mata\Tests\Integration;
 
 use InvalidArgumentException;
+use Mata\Config\EnvConfigLoader;
+use Mata\Core\Auth;
+use Mata\Tests\TestCase;
+use Mata\Utils\PathResolver;
 use Psr\Log\NullLogger;
 use RuntimeException;
-use Watcher\Config\EnvConfigLoader;
-use Watcher\Core\Auth;
-use Watcher\Tests\TestCase;
-use Watcher\Utils\PathResolver;
 
 /**
  * Integration test for authentication workflow.

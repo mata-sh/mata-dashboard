@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace Watcher\Services\Navigation;
+namespace Mata\Services\Navigation;
 
-use Watcher\Http\Routing\Endpoints;
-use Watcher\Utils\Tools;
+use Mata\Http\Routing\Endpoints;
+use Mata\Utils\Tools;
 
 /**
  * Builds navigation menu configuration for the dashboard.

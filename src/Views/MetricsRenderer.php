@@ -2,14 +2,14 @@
 
 declare(strict_types=1);
 
-namespace Watcher\Views;
+namespace Mata\Views;
 
 use Exception;
+use Mata\Core\App;
+use Mata\Http\Responses\JsonResponse;
+use Mata\Utils\Tools;
 use Monolog\Logger;
 use Twig\Environment;
-use Watcher\Core\App;
-use Watcher\Http\Responses\JsonResponse;
-use Watcher\Utils\Tools;
 
 /**
  * Metrics renderer for visualization payloads.

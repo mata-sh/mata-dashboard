@@ -2,14 +2,14 @@
 
 declare(strict_types=1);
 
-namespace Watcher\Tests\Unit\Utils;
+namespace Mata\Tests\Unit\Utils;
 
 use DateTimeImmutable;
-use Watcher\Tests\TestCase;
-use Watcher\Utils\ChannelLockManager;
+use Mata\Tests\TestCase;
+use Mata\Utils\ChannelLockManager;
 
 /**
- * @covers \Watcher\Utils\ChannelLockManager
+ * @covers \Mata\Utils\ChannelLockManager
  *
  * @internal
  */

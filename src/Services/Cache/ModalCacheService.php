@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace Watcher\Services\Cache;
+namespace Mata\Services\Cache;
 
-use Watcher\Constants\CacheTypes;
-use Watcher\Services\Collect\ServerDataCollectorInterface;
+use Mata\Constants\CacheTypes;
+use Mata\Services\Collect\ServerDataCollectorInterface;
 
 /**
  * Coordinates cache-related behaviour for modal endpoints.

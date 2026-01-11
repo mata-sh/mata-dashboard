@@ -2,13 +2,13 @@
 
 declare(strict_types=1);
 
-namespace Watcher\Services\Foundation;
+namespace Mata\Services\Alert;
 
 use GuzzleHttp\Client;
 use GuzzleHttp\Exception\GuzzleException;
+use Mata\Services\Alert\Dto\AlertDecision;
+use Mata\Services\Alert\Dto\OpaAlertDecisionConfig;
 use RuntimeException;
-use Watcher\Services\Foundation\Dto\AlertDecision;
-use Watcher\Services\Foundation\Dto\OpaAlertDecisionConfig;
 
 final class OpaAlertDecisionService implements AlertDecisionServiceInterface
 {

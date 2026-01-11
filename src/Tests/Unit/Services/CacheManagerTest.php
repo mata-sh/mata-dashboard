@@ -2,18 +2,18 @@
 
 declare(strict_types=1);
 
-namespace Watcher\Tests\Unit\Services;
+namespace Mata\Tests\Unit\Services;
 
+use Mata\Services\Foundation\CacheManager;
+use Mata\Tests\TestCase;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Psr\Log\LoggerInterface;
 use Psr\Log\NullLogger;
-use Watcher\Services\Foundation\CacheManager;
-use Watcher\Tests\TestCase;
 
 /**
  * Test suite for CacheManager service class.
  *
- * @covers \Watcher\Services\Foundation\CacheManager
+ * @covers \Mata\Services\Foundation\CacheManager
  *
  * @internal
  */

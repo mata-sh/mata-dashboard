@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Watcher\Utils;
+namespace Mata\Utils;
 
 use Psr\Log\LoggerInterface;
 

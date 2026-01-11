@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace Watcher\Services\Foundation;
+namespace Mata\Services\Foundation;
 
+use Mata\Config\Dto\RateLimitingConfig;
 use MataSh\RateLimiter\RateLimiter;
 use MataSh\RateLimiter\RateLimitIdentifier;
-use Watcher\Config\Dto\RateLimitingConfig;
 
 /**
  * Wrapper service for mata-sh/rate-limiter package.

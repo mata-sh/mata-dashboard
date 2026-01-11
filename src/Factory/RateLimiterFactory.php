@@ -2,15 +2,15 @@
 
 declare(strict_types=1);
 
-namespace Watcher\Factory;
+namespace Mata\Factory;
 
+use Mata\Config\Dto\RateLimitingConfig;
+use Mata\Services\Foundation\RateLimiterService;
 use MataSh\RateLimiter\RateLimiter;
 use Psr\Log\LoggerInterface;
 use Redis;
 use RuntimeException;
 use Throwable;
-use Watcher\Config\Dto\RateLimitingConfig;
-use Watcher\Services\Foundation\RateLimiterService;
 
 /**
  * Factory for creating RateLimiterService instances.

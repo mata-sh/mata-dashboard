@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Watcher\Models\Dto;
+namespace Mata\Models\Dto;
 
 /**
  * Event recording result containing IDs and resolved context.

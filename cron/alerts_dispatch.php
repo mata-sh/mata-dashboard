@@ -3,10 +3,10 @@
 
 declare(strict_types=1);
 
-use Watcher\Config\AlertLimitsLoader;
-use Watcher\Models\AlertQueueRepository;
-use Watcher\Services\Foundation\AlertDispatcher;
-use Watcher\Services\Foundation\AlertEmailSender;
+use Mata\Config\AlertLimitsLoader;
+use Mata\Models\AlertQueueRepository;
+use Mata\Services\Alert\AlertDispatcher;
+use Mata\Services\Alert\AlertEmailSender;
 
 $requiresDatabase = true;
 

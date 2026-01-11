@@ -2,20 +2,20 @@
 
 declare(strict_types=1);
 
-namespace Watcher\Services\Foundation;
+namespace Mata\Services\Alert;
 
 use DateInterval;
 use DateTimeImmutable;
+use Mata\Config\Dto\AlertLimitsConfig;
+use Mata\Models\AlertQueueRepository;
+use Mata\Services\Alert\Dto\Alert;
+use Mata\Services\Alert\Dto\AlertLevel;
+use Mata\Services\Alert\Dto\QueuedAlert;
+use Mata\Utils\AlertLimitHelper;
 use Psr\Log\LoggerInterface;
 use Psr\Log\NullLogger;
 use RuntimeException;
 use Throwable;
-use Watcher\Config\Dto\AlertLimitsConfig;
-use Watcher\Models\AlertQueueRepository;
-use Watcher\Services\Foundation\Dto\Alert;
-use Watcher\Services\Foundation\Dto\AlertLevel;
-use Watcher\Services\Foundation\Dto\QueuedAlert;
-use Watcher\Utils\AlertLimitHelper;
 
 /**
  * Processes queued alerts and dispatches them to their respective channels.

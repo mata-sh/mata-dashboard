@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Watcher\Config;
+namespace Mata\Config;
 
 use InvalidArgumentException;
 use RuntimeException;
