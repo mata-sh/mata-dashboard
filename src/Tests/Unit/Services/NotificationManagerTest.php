@@ -76,11 +76,11 @@ class NotificationManagerTest extends TestCase
             ->willReturnCallback(function ($sql, $params) use (&$callCount) {
                 ++$callCount;
                 if ($callCount === 1) {
-                    $this->assertStringContainsString('SELECT id FROM dashboard_notifications', $sql);
+                    $this->assertStringContainsString('SELECT id FROM notifications', $sql);
 
                     return [];
                 }
-                $this->assertStringContainsString('INSERT INTO dashboard_notifications', $sql);
+                $this->assertStringContainsString('INSERT INTO notifications', $sql);
                 $this->assertSame('warning', $params[1]);
                 $this->assertSame('Test Title', $params[2]);
                 $this->assertSame('Test Message', $params[3]);
@@ -114,11 +114,11 @@ class NotificationManagerTest extends TestCase
             ->willReturnCallback(function ($sql, $params) use (&$callCount) {
                 ++$callCount;
                 if ($callCount === 1) {
-                    $this->assertStringContainsString('SELECT id FROM dashboard_notifications', $sql);
+                    $this->assertStringContainsString('SELECT id FROM notifications', $sql);
 
                     return [];
                 }
-                $this->assertStringContainsString('INSERT INTO dashboard_notifications', $sql);
+                $this->assertStringContainsString('INSERT INTO notifications', $sql);
 
                 throw new Exception('Database error');
             })
@@ -145,7 +145,7 @@ class NotificationManagerTest extends TestCase
         $this->mockDb->expects($this->once())
             ->method('runQuery')
             ->with(
-                $this->stringContains('SELECT id FROM dashboard_notifications'),
+                $this->stringContains('SELECT id FROM notifications'),
                 $this->anything()
             )
             ->willReturn([['id' => 1]]) // Duplicate exists
@@ -176,11 +176,11 @@ class NotificationManagerTest extends TestCase
             ->willReturnCallback(function ($sql) use (&$callCount) {
                 ++$callCount;
                 if ($callCount === 1) {
-                    $this->assertStringContainsString('SELECT * FROM dashboard_notifications', $sql);
+                    $this->assertStringContainsString('SELECT * FROM notifications', $sql);
 
                     return [];
                 }
-                $this->assertStringContainsString('INSERT INTO dashboard_notifications', $sql);
+                $this->assertStringContainsString('INSERT INTO notifications', $sql);
 
                 return 1;
             })
@@ -214,11 +214,11 @@ class NotificationManagerTest extends TestCase
             ->willReturnCallback(function ($sql) use (&$callCount) {
                 ++$callCount;
                 if ($callCount === 1) {
-                    $this->assertStringContainsString('SELECT * FROM dashboard_notifications', $sql);
+                    $this->assertStringContainsString('SELECT * FROM notifications', $sql);
 
                     return [['id' => 1, 'identifier' => 'config.test', 'deactivated_at' => null]];
                 }
-                $this->assertStringContainsString('UPDATE dashboard_notifications', $sql);
+                $this->assertStringContainsString('UPDATE notifications', $sql);
 
                 return 1;
             })
@@ -247,7 +247,7 @@ class NotificationManagerTest extends TestCase
         $this->mockDb->expects($this->once())
             ->method('runQuery')
             ->with(
-                $this->stringContains('UPDATE dashboard_notifications SET deactivated_at'),
+                $this->stringContains('UPDATE notifications SET deactivated_at'),
                 ['config.resolved']
             )
         ;
@@ -365,7 +365,7 @@ class NotificationManagerTest extends TestCase
         $this->mockDb->expects($this->once())
             ->method('runQuery')
             ->with(
-                $this->stringContains('UPDATE dashboard_notifications SET dismissed_at'),
+                $this->stringContains('UPDATE notifications SET dismissed_at'),
                 [123]
             )
         ;
@@ -385,7 +385,7 @@ class NotificationManagerTest extends TestCase
         $this->mockDb->expects($this->once())
             ->method('runQuery')
             ->with(
-                $this->stringContains('UPDATE dashboard_notifications SET deactivated_at'),
+                $this->stringContains('UPDATE notifications SET deactivated_at'),
                 [456]
             )
         ;
@@ -405,7 +405,7 @@ class NotificationManagerTest extends TestCase
         $this->mockDb->expects($this->once())
             ->method('runQuery')
             ->with(
-                $this->stringContains('DELETE FROM dashboard_notifications'),
+                $this->stringContains('DELETE FROM notifications'),
                 [30]
             )
         ;
@@ -705,11 +705,11 @@ class NotificationManagerTest extends TestCase
             ->willReturnCallback(function ($sql, $params) use (&$callCount) {
                 ++$callCount;
                 if ($callCount === 1) {
-                    $this->assertStringContainsString('SELECT id FROM dashboard_notifications', $sql);
+                    $this->assertStringContainsString('SELECT id FROM notifications', $sql);
 
                     return [];
                 }
-                $this->assertStringContainsString('INSERT INTO dashboard_notifications', $sql);
+                $this->assertStringContainsString('INSERT INTO notifications', $sql);
                 $this->assertSame(0, $params[4]);
 
                 return 1;

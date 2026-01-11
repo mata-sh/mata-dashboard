@@ -73,7 +73,7 @@ final class NotificationManager
             return true; // Don't add duplicate, but return success
         }
 
-        $sql = 'INSERT INTO dashboard_notifications
+        $sql = 'INSERT INTO notifications
                 (`identifier`, `type`, `title`, `message`, `created_at`, `updated_at`, `last_shown`, `show_interval`, `dismissed_at`, `deactivated_at`)
                 VALUES (?, ?, ?, ?, NOW(), NOW(), NULL, ?, NULL, ?)';
 
@@ -123,7 +123,7 @@ final class NotificationManager
             );
         }
         // Create new notification
-        $sql = 'INSERT INTO dashboard_notifications
+        $sql = 'INSERT INTO notifications
                     (identifier, type, title, message, created_at, updated_at, last_shown, show_interval, dismissed_at, deactivated_at)
                     VALUES (?, ?, ?, ?, NOW(), NOW(), NULL, ?, NULL, ?)';
 
@@ -159,7 +159,7 @@ final class NotificationManager
         int $showInterval,
         bool $isActive
     ): bool {
-        $sql = 'UPDATE dashboard_notifications
+        $sql = 'UPDATE notifications
                 SET type = ?, title = ?, message = ?, updated_at = NOW(),
                     show_interval = ?, deactivated_at = ?, dismissed_at = NULL
                 WHERE identifier = ? AND deactivated_at IS NULL';
@@ -184,7 +184,7 @@ final class NotificationManager
      */
     private function getNotificationByIdentifier(string $identifier): ?array
     {
-        $sql = 'SELECT * FROM dashboard_notifications WHERE identifier = ? AND deactivated_at IS NULL LIMIT 1';
+        $sql = 'SELECT * FROM notifications WHERE identifier = ? AND deactivated_at IS NULL LIMIT 1';
 
         try {
             $result = $this->db->runQuery($sql, [$identifier]);
@@ -209,7 +209,7 @@ final class NotificationManager
      */
     public function removeNotificationByIdentifier(string $identifier): bool
     {
-        $sql = 'UPDATE dashboard_notifications SET deactivated_at = NOW() WHERE identifier = ? AND deactivated_at IS NULL';
+        $sql = 'UPDATE notifications SET deactivated_at = NOW() WHERE identifier = ? AND deactivated_at IS NULL';
 
         try {
             $this->db->runQuery($sql, [$identifier]);
@@ -236,7 +236,7 @@ final class NotificationManager
         }
 
         $placeholders = implode(',', array_fill(0, count($identifiers), '?'));
-        $sql = "UPDATE dashboard_notifications
+        $sql = "UPDATE notifications
                 SET deactivated_at = NOW()
                 WHERE identifier IN ({$placeholders}) AND deactivated_at IS NULL";
 
@@ -262,7 +262,7 @@ final class NotificationManager
 
         if (!$this->db instanceof NullDatabase) {
             $sql = "SELECT id, type, title, message, created_at, dismissed_at, show_interval
-                    FROM dashboard_notifications
+                    FROM notifications
                     WHERE deactivated_at IS NULL
                     AND (
                         dismissed_at IS NULL
@@ -300,7 +300,7 @@ final class NotificationManager
      */
     public function markAsRead(int $notificationId): bool
     {
-        $sql = 'UPDATE dashboard_notifications SET dismissed_at = NOW() WHERE id = ?';
+        $sql = 'UPDATE notifications SET dismissed_at = NOW() WHERE id = ?';
 
         try {
             $this->db->runQuery($sql, [$notificationId]);
@@ -322,7 +322,7 @@ final class NotificationManager
      */
     public function deactivateNotification(int $notificationId): bool
     {
-        $sql = 'UPDATE dashboard_notifications SET deactivated_at = NOW() WHERE id = ?';
+        $sql = 'UPDATE notifications SET deactivated_at = NOW() WHERE id = ?';
 
         try {
             $this->db->runQuery($sql, [$notificationId]);
@@ -344,7 +344,7 @@ final class NotificationManager
      */
     public function cleanupOldNotifications(int $daysOld = 30): bool
     {
-        $sql = 'DELETE FROM dashboard_notifications
+        $sql = 'DELETE FROM notifications
                 WHERE created_at < DATE_SUB(NOW(), INTERVAL ? DAY)
                 AND deactivated_at IS NOT NULL';
 
@@ -367,7 +367,7 @@ final class NotificationManager
     public function getUnreadCount(): array
     {
         $sql = 'SELECT type, COUNT(*) as count
-                FROM dashboard_notifications
+                FROM notifications
                 WHERE deactivated_at IS NULL AND dismissed_at IS NULL
                 GROUP BY type';
 
@@ -403,7 +403,7 @@ final class NotificationManager
      */
     private function isDuplicateNotification(string $type, string $title, string $message): bool
     {
-        $sql = 'SELECT id FROM dashboard_notifications
+        $sql = 'SELECT id FROM notifications
                 WHERE type = ? AND title = ? AND message = ?
                 AND deactivated_at IS NULL
                 LIMIT 1';
@@ -587,7 +587,7 @@ final class NotificationManager
     public function getConfigWarningIdentifiers(): array
     {
         $sql = "SELECT DISTINCT identifier
-                FROM dashboard_notifications
+                FROM notifications
                 WHERE identifier LIKE 'config.%'
                 AND deactivated_at IS NULL";
 

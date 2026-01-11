@@ -29,7 +29,7 @@ class EventRepository
         ?int $applicationId,
     ): int {
         $sql = <<<'SQL'
-            INSERT INTO dashboard_event_log
+            INSERT INTO events
                 (`type`, `message`, `level`, `context`, `server_id`, `application_id`, `datetime`)
             VALUES
                 (?, ?, ?, ?, ?, ?, NOW())
@@ -55,7 +55,7 @@ class EventRepository
 
         $sql = <<<'SQL'
             SELECT 1
-            FROM dashboard_cooldowns
+            FROM cooldowns
             WHERE cooldown_hash = ?
               AND cooldown_until > NOW()
             LIMIT 1
@@ -73,7 +73,7 @@ class EventRepository
         }
 
         if ($cooldownMinutes <= 0) {
-            $sql = 'DELETE FROM dashboard_cooldowns WHERE cooldown_hash = ?';
+            $sql = 'DELETE FROM cooldowns WHERE cooldown_hash = ?';
             $this->db->runQuery($sql, [$cooldownHash]);
 
             return;
@@ -83,7 +83,7 @@ class EventRepository
         $expiry = $expiresAt->format('Y-m-d H:i:s');
 
         $sql = <<<'SQL'
-            INSERT INTO dashboard_cooldowns (cooldown_hash, cooldown_until, created_at, updated_at)
+            INSERT INTO cooldowns (cooldown_hash, cooldown_until, created_at, updated_at)
             VALUES (?, ?, NOW(), NOW())
             ON DUPLICATE KEY UPDATE
                 cooldown_until = VALUES(cooldown_until),
@@ -108,7 +108,7 @@ class EventRepository
 
         $sql = <<<SQL
             SELECT cooldown_hash
-            FROM dashboard_cooldowns
+            FROM cooldowns
             WHERE cooldown_hash IN ({$placeholders})
               AND cooldown_until > NOW()
         SQL;
@@ -132,7 +132,7 @@ class EventRepository
         ?int $applicationId,
         int $maxAgeMinutes
     ): array {
-        $sql = 'SELECT del.* FROM dashboard_event_log AS del';
+        $sql = 'SELECT e.* FROM events AS e';
         $where = [];
         $params = [];
 
@@ -141,19 +141,19 @@ class EventRepository
             $params[] = $type;
         }
         if ($serverId !== null) {
-            $where[] = 'del.`server_id` = ?';
+            $where[] = 'e.`server_id` = ?';
             $params[] = $serverId;
         }
         if ($applicationId !== null) {
-            $where[] = 'del.`application_id` = ?';
+            $where[] = 'e.`application_id` = ?';
             $params[] = $applicationId;
         }
         if ($context !== null) {
-            $where[] = 'del.`context` = ?';
+            $where[] = 'e.`context` = ?';
             $params[] = $context;
         }
         if ($maxAgeMinutes > 0) {
-            $where[] = 'del.`datetime` >= NOW() - INTERVAL ? MINUTE';
+            $where[] = 'e.`datetime` >= NOW() - INTERVAL ? MINUTE';
             $params[] = $maxAgeMinutes;
         }
 
@@ -161,7 +161,7 @@ class EventRepository
             $sql .= ' WHERE ' . implode(' AND ', $where);
         }
 
-        $sql .= ' ORDER BY del.`datetime` DESC';
+        $sql .= ' ORDER BY e.`datetime` DESC';
 
         $result = $this->db->runQuery($sql, $params);
 
@@ -191,8 +191,8 @@ class EventRepository
                 e.context,
                 s.name AS server,
                 a.code AS app
-            FROM dashboard_alarm_log AS dal
-            LEFT JOIN dashboard_event_log AS e ON e.id = dal.event_id
+            FROM alarms AS dal
+            LEFT JOIN events AS e ON e.id = dal.event_id
             LEFT JOIN servers AS s ON e.server_id = s.id
             LEFT JOIN applications AS a ON e.application_id = a.id
         SQL;
@@ -240,13 +240,13 @@ class EventRepository
 
         $sql = <<<SQL
             SELECT
-                del.*,
+                e.*,
                 s.name AS server,
                 a.code AS app
-            FROM dashboard_event_log AS del
-            LEFT JOIN servers AS s ON del.server_id = s.id
-            LEFT JOIN applications AS a ON del.application_id = a.id
-            ORDER BY del.`datetime` DESC
+            FROM events AS e
+            LEFT JOIN servers AS s ON e.server_id = s.id
+            LEFT JOIN applications AS a ON e.application_id = a.id
+            ORDER BY e.`datetime` DESC
             LIMIT {$limit}
         SQL;
 
@@ -273,8 +273,8 @@ class EventRepository
                 dal.channel,
                 s.name AS server,
                 a.code AS app
-            FROM dashboard_alarm_log AS dal
-            LEFT JOIN dashboard_event_log AS e ON dal.event_id = e.id
+            FROM alarms AS dal
+            LEFT JOIN events AS e ON dal.event_id = e.id
             LEFT JOIN servers AS s ON e.server_id = s.id
             LEFT JOIN applications AS a ON e.application_id = a.id
             ORDER BY dal.created_at DESC
@@ -291,7 +291,7 @@ class EventRepository
      */
     public function clearOldAlarms(int $days = 365): void
     {
-        $sql = 'DELETE FROM dashboard_alarm_log WHERE created_at < NOW() - INTERVAL :days DAY';
+        $sql = 'DELETE FROM alarms WHERE created_at < NOW() - INTERVAL :days DAY';
         $this->db->runQuery($sql, ['days' => $days]);
     }
 
@@ -300,7 +300,7 @@ class EventRepository
      */
     public function clearOldEvents(int $days = 180): void
     {
-        $sql = 'DELETE FROM dashboard_event_log WHERE datetime < NOW() - INTERVAL :days DAY';
+        $sql = 'DELETE FROM events WHERE datetime < NOW() - INTERVAL :days DAY';
         $this->db->runQuery($sql, ['days' => $days]);
     }
 
@@ -339,11 +339,11 @@ class EventRepository
                 s.name AS server_name,
                 a.code AS app_code,
                 a.display_name AS app_name
-            FROM dashboard_event_log AS e
-            LEFT JOIN dashboard_alarm_log AS q ON q.event_id = e.id
+            FROM events AS e
+            LEFT JOIN alarms AS al ON al.event_id = e.id
             LEFT JOIN servers AS s ON e.server_id = s.id
             LEFT JOIN applications AS a ON e.application_id = a.id
-            WHERE q.id IS NULL
+            WHERE al.id IS NULL
               AND e.seen_at IS NULL
               {$levelClause}
             ORDER BY e.datetime ASC
@@ -358,6 +358,6 @@ class EventRepository
     public function markEventEvaluated(int $eventId): void
     {
         // Reuse seen_at as the alert-decision marker to avoid reprocessing.
-        $this->db->runQuery('UPDATE dashboard_event_log SET seen_at = NOW() WHERE id = ?', [$eventId]);
+        $this->db->runQuery('UPDATE events SET seen_at = NOW() WHERE id = ?', [$eventId]);
     }
 }

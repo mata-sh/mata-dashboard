@@ -31,7 +31,7 @@ final class CreateDashboardLogTables extends AbstractMigration
     public function change(): void
     {
 
-        $eventLog = $this->table('dashboard_event_log', $this->tableOptions());
+        $eventLog = $this->table('events', $this->tableOptions());
 
         $eventLog
             ->addColumn('id', 'biginteger', ['identity' => true, 'signed' => false])
@@ -55,7 +55,7 @@ final class CreateDashboardLogTables extends AbstractMigration
             ->addIndex(['level'], ['name' => 'idx_level'])
             ->addIndex(['seen_at', 'datetime', 'level'], ['name' => 'idx_event_alarm_eval'])
             // ->addIndex(['alarm_id'], ['name' => 'fk_alarm_id'])
-            // ->addForeignKey('alarm_id', 'dashboard_alarm_log', 'id', [
+            // ->addForeignKey('alarm_id', 'alarms', 'id', [
             //     'delete' => 'SET_NULL',
             //     'update' => 'NO_ACTION',
             //     'constraint' => 'fk_event_log_alarm',
@@ -72,7 +72,7 @@ final class CreateDashboardLogTables extends AbstractMigration
             ])
             ->create();
 
-        $alarmLog = $this->table('dashboard_alarm_log', $this->tableOptions());
+        $alarmLog = $this->table('alarms', $this->tableOptions());
 
         $alarmLog
             ->addColumn('id', 'biginteger', ['identity' => true, 'signed' => false])
@@ -88,7 +88,7 @@ final class CreateDashboardLogTables extends AbstractMigration
             ->create();
 
 
-        $cooldowns = $this->table('dashboard_cooldowns', $this->tableOptions());
+        $cooldowns = $this->table('cooldowns', $this->tableOptions());
 
         $cooldowns
             ->addColumn('id', 'biginteger', ['identity' => true, 'signed' => false])
@@ -104,7 +104,7 @@ final class CreateDashboardLogTables extends AbstractMigration
             ->addIndex(['cooldown_until'], ['name' => 'idx_cooldown_until'])
             ->create();
 
-        $loginLog = $this->table('dashboard_login_log', $this->tableOptions());
+        $loginLog = $this->table('logins', $this->tableOptions());
 
         $loginLog
             ->addColumn('id', 'biginteger', ['identity' => true, 'signed' => false])
@@ -117,7 +117,7 @@ final class CreateDashboardLogTables extends AbstractMigration
             ->addIndex(['ip'], ['name' => 'idx_ip'])
             ->create();
 
-        $notifications = $this->table('dashboard_notifications', $this->tableOptions());
+        $notifications = $this->table('notifications', $this->tableOptions());
 
         $notifications
             ->addColumn('id', 'biginteger', ['identity' => true, 'signed' => false])

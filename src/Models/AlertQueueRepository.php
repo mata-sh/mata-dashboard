@@ -13,7 +13,7 @@ use Watcher\Services\Foundation\Dto\QueuedAlert;
 /**
  * Repository encapsulating access to the alert queue table.
  *
- * Handles all reads/writes to `dashboard_alarm_log` to keep SQL details centralised.
+ * Handles all reads/writes to `alarms` to keep SQL details centralised.
  */
 class AlertQueueRepository
 {
@@ -32,7 +32,7 @@ class AlertQueueRepository
     public function enqueue(int $eventId, string $channel, int $priority = 100): int
     {
         $sql = <<<'SQL'
-            INSERT INTO dashboard_alarm_log
+            INSERT INTO alarms
                 (event_id, channel, status, priority, attempts, created_at, seen_at, next_retry_at, error_payload)
             VALUES
                 (?, ?, 'pending', ?, 0, NOW(), NULL, NULL, NULL)
@@ -53,29 +53,29 @@ class AlertQueueRepository
 
         $sql = <<<SQL
             SELECT
-                q.id,
-                q.event_id,
-                q.channel,
-                q.priority,
-                q.attempts,
-                q.next_retry_at,
-                q.created_at,
+                al.id,
+                al.event_id,
+                al.channel,
+                al.priority,
+                al.attempts,
+                al.next_retry_at,
+                al.created_at,
                 e.type,
                 e.message,
                 e.level,
                 e.context,
                 COALESCE(s.name, '') AS server_name,
                 COALESCE(a.display_name, a.code, '') AS app_name
-            FROM dashboard_alarm_log AS q
-            LEFT JOIN dashboard_event_log AS e ON e.id = q.event_id
+            FROM alarms AS al
+            LEFT JOIN events AS e ON e.id = al.event_id
             LEFT JOIN servers AS s ON e.server_id = s.id
             LEFT JOIN applications AS a ON e.application_id = a.id
             WHERE
                 (
-                    q.status = 'pending'
-                    OR (q.status = 'retry' AND (q.next_retry_at IS NULL OR q.next_retry_at <= ?))
+                    al.status = 'pending'
+                    OR (al.status = 'retry' AND (al.next_retry_at IS NULL OR al.next_retry_at <= ?))
                 )
-            ORDER BY q.priority ASC, q.created_at ASC
+            ORDER BY al.priority ASC, al.created_at ASC
             LIMIT {$limit}
         SQL;
 
@@ -89,7 +89,7 @@ class AlertQueueRepository
         $placeholders = implode(',', array_fill(0, count($ids), '?'));
 
         $updateSql = <<<SQL
-            UPDATE dashboard_alarm_log
+            UPDATE alarms
                SET status = 'processing',
                    seen_at = ?
              WHERE id IN ({$placeholders})
@@ -126,16 +126,16 @@ class AlertQueueRepository
         $sql = <<<'SQL'
             SELECT
                 LOWER(COALESCE(s.name, 'global')) AS server_key,
-                LOWER(q.channel) AS channel,
-                SUM(CASE WHEN q.seen_at >= :minute_threshold THEN 1 ELSE 0 END) AS minute_count,
-                SUM(CASE WHEN q.seen_at >= :hour_threshold THEN 1 ELSE 0 END) AS hour_count,
+                LOWER(al.channel) AS channel,
+                SUM(CASE WHEN al.seen_at >= :minute_threshold THEN 1 ELSE 0 END) AS minute_count,
+                SUM(CASE WHEN al.seen_at >= :hour_threshold THEN 1 ELSE 0 END) AS hour_count,
                 COUNT(*) AS day_count
-            FROM dashboard_alarm_log AS q
-            LEFT JOIN dashboard_event_log AS e ON e.id = q.event_id
+            FROM alarms AS al
+            LEFT JOIN events AS e ON e.id = al.event_id
             LEFT JOIN servers AS s ON e.server_id = s.id
-            WHERE q.status = 'sent'
-              AND q.seen_at IS NOT NULL
-              AND q.seen_at >= :day_threshold
+            WHERE al.status = 'sent'
+              AND al.seen_at IS NOT NULL
+              AND al.seen_at >= :day_threshold
             GROUP BY server_key, channel
         SQL;
 
@@ -177,7 +177,7 @@ class AlertQueueRepository
     public function updateError(int $alarmId, ?string $errorPayload): void
     {
         $sql = <<<'SQL'
-            UPDATE dashboard_alarm_log
+            UPDATE alarms
                SET error_payload = ?, seen_at = NOW()
              WHERE id = ?
         SQL;
@@ -195,7 +195,7 @@ class AlertQueueRepository
         ?DateTimeImmutable $nextRetryAt = null
     ): void {
         $sql = <<<'SQL'
-            UPDATE dashboard_alarm_log
+            UPDATE alarms
                SET status = ?,
                    attempts = ?,
                    next_retry_at = ?,

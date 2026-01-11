@@ -17,7 +17,7 @@ use Watcher\Utils\ChannelLockManager;
 /**
  * Alert manager responsible for persisting alerts into the queue.
  *
- * - Persists alerts to `dashboard_alarm_log`
+ * - Persists alerts to `alarms`
  * - Resolves per-server/channel limits for fallback throttling
  * - Falls back to filesystem locks when the database is unavailable
  */

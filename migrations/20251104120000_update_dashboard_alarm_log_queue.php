@@ -8,7 +8,7 @@ final class UpdateDashboardAlarmLogQueue extends AbstractMigration
 {
     public function change(): void
     {
-        $table = $this->table('dashboard_alarm_log');
+        $table = $this->table('alarms');
 
         if (!$table->hasColumn('priority')) {
             $table->addColumn('priority', 'integer', [

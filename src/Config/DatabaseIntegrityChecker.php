@@ -24,9 +24,9 @@ class DatabaseIntegrityChecker
     private array $requiredTables = [
         'servers',
         'config_sync_tracking',
-        'dashboard_event_log',
-        'dashboard_alarm_log',
-        'dashboard_notifications',
+        'events',
+        'alarms',
+        'notifications',
         'phinxlog',
     ];
 

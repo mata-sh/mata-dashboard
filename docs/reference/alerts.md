@@ -7,8 +7,8 @@ title: Alert Limiting & Dispatch
 This document describes the alarm limiting workflow introduced in `ALARM_LIMITING.md`. It covers configuration, runtime behaviour, and operational procedures for the alert queue and dispatcher.
 
 ## Overview
-- Alerts are recorded via `EventManager`, stored in `dashboard_event_log`, and enqueued through `AlertManager`.
-- `dashboard_alarm_log` now represents a delivery queue with statuses `pending`, `processing`, `sent`, `retry`, `failed`, `throttled`, and `discarded`.
+- Alerts are recorded via `EventManager`, stored in `events`, and enqueued through `AlertManager`.
+- `alarms` now represents a delivery queue with statuses `pending`, `processing`, `sent`, `retry`, `failed`, `throttled`, and `discarded`.
 - A dedicated cron job (`cron/alerts_dispatch.php`) processes queued alerts, honours per-channel rate limits, and updates retry metadata.
 - When the database is unavailable, filesystem locks under `temp/alert_locks/` prevent runaway alert fan-out.
 
@@ -49,7 +49,7 @@ This document describes the alarm limiting workflow introduced in `ALARM_LIMITIN
 3. **Backlog Inspection**  
    - Pending alerts:  
      ```sql
-     SELECT * FROM dashboard_alarm_log WHERE status IN ('pending','retry') ORDER BY created_at;
+     SELECT * FROM alarms WHERE status IN ('pending','retry') ORDER BY created_at;
      ```
    - Failed alerts include diagnostic payloads in `error_payload`.
 

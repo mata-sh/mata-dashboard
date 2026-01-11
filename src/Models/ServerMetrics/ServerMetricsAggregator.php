@@ -201,7 +201,7 @@ SQL;
 SELECT
     SUM(CASE WHEN e.level = 'critical' THEN 1 ELSE 0 END) AS alarm_count,
     SUM(CASE WHEN e.level = 'warning' THEN 1 ELSE 0 END) AS warning_count
-FROM dashboard_event_log AS e
+FROM events AS e
 INNER JOIN servers AS s ON s.id = e.server_id
 WHERE
     s.name = ?
