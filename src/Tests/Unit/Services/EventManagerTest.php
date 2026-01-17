@@ -14,7 +14,6 @@ use Mata\Config\Dto\LoggingConfig;
 use Mata\Config\Dto\MailConfig;
 use Mata\Config\Dto\PhpConfig;
 use Mata\Config\Dto\RateLimitingConfig;
-use Mata\Config\Dto\SmtpDevConfig;
 use Mata\Config\Dto\TemplateConfig;
 use Mata\Models\Dto\EventRecordResult;
 use Mata\Services\Alert\AlertManager;
@@ -268,7 +267,6 @@ final class EventManagerTest extends TestCase
                 devRecipients: [],
                 mailerApp: 'symfony/mailer',
                 mailerDev: 'symfony/mailer-dev',
-                smtpDev: new SmtpDevConfig(null, 1025, null, null, 'none', null, null),
                 charset: 'UTF-8',
                 wordWrap: 78
             ),

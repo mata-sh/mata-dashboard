@@ -16,7 +16,6 @@ use Mata\Config\Dto\LoggingConfig;
 use Mata\Config\Dto\MailConfig;
 use Mata\Config\Dto\PhpConfig;
 use Mata\Config\Dto\RateLimitingConfig;
-use Mata\Config\Dto\SmtpDevConfig;
 use Mata\Config\Dto\TemplateConfig;
 
 /**
@@ -153,16 +152,6 @@ final class EnvConfigLoader
 
     private function loadMailConfig(): MailConfig
     {
-        $smtpDev = new SmtpDevConfig(
-            host: $this->getEnv('SMTP_DEV_HOST'),
-            port: (int) $this->getEnv('SMTP_DEV_PORT', '587'),
-            user: $this->getEnv('SMTP_DEV_USER'),
-            password: $this->getEnv('SMTP_DEV_PASSWORD'),
-            secure: $this->getEnv('SMTP_DEV_SECURE', 'tls'),
-            from: $this->getEnv('SMTP_DEV_FROM'),
-            fromName: $this->getEnv('SMTP_DEV_FROM_NAME'),
-        );
-
         return new MailConfig(
             dsn: $this->getEnv('SYM_MAILER_DSN'),
             fromEmail: $this->getEnv('SYM_FROM_EMAIL'),
@@ -172,7 +161,6 @@ final class EnvConfigLoader
             devRecipients: $this->parseCommaSeparated($this->getEnv('MAIL_DEV_RECIPIENTS', '')),
             mailerApp: $this->getEnv('MAILER_APP', 'sendgrid'),
             mailerDev: $this->getEnv('MAILER_DEV', 'phpmailer'),
-            smtpDev: $smtpDev,
             charset: $this->getEnv('MAIL_CHARSET', 'utf-8'),
             wordWrap: (int) $this->getEnv('MAIL_WORD_WRAP', '50'),
         );

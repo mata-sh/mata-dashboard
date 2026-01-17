@@ -26,7 +26,6 @@ final class MailConfig
         public readonly array $devRecipients,
         public readonly string $mailerApp,
         public readonly string $mailerDev,
-        public readonly SmtpDevConfig $smtpDev,
         public readonly string $charset,
         public readonly int $wordWrap,
     ) {}

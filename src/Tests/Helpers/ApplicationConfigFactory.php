@@ -14,7 +14,6 @@ use Mata\Config\Dto\LoggingConfig;
 use Mata\Config\Dto\MailConfig;
 use Mata\Config\Dto\PhpConfig;
 use Mata\Config\Dto\RateLimitingConfig;
-use Mata\Config\Dto\SmtpDevConfig;
 use Mata\Config\Dto\TemplateConfig;
 
 /**
@@ -128,7 +127,6 @@ class ApplicationConfigFactory
         array $devRecipients = [],
         string $mailerApp = 'sendgrid',
         string $mailerDev = 'phpmailer',
-        ?SmtpDevConfig $smtpDev = null,
         string $charset = 'utf-8',
         int $wordWrap = 50,
     ): MailConfig {
@@ -141,22 +139,9 @@ class ApplicationConfigFactory
             $devRecipients,
             $mailerApp,
             $mailerDev,
-            $smtpDev ?? self::createSmtpDevConfig(),
             $charset,
             $wordWrap,
         );
-    }
-
-    public static function createSmtpDevConfig(
-        ?string $host = null,
-        int $port = 587,
-        ?string $user = null,
-        ?string $password = null,
-        string $secure = 'tls',
-        ?string $from = null,
-        ?string $fromName = null,
-    ): SmtpDevConfig {
-        return new SmtpDevConfig($host, $port, $user, $password, $secure, $from, $fromName);
     }
 
     public static function createCliSecurityConfig(
