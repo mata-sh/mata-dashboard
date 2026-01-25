@@ -38,7 +38,7 @@ chmod -R a+rX /var/www/html
 # Fix ownership and permissions for writable directories
 echo "📁 Setting up writable directories..."
 chown -R www-data:www-data /var/www/html/temp /var/www/html/logs /var/www/html/config
-chmod -R 775 /var/www/html/temp /var/www/html/logs
+chmod -R 770 /var/www/html/temp /var/www/html/logs
 chmod -R 755 /var/www/html/config
 
 # Secure users.json files (must be 600 for security)
@@ -53,5 +53,5 @@ fi
 
 echo "✅ Development environment ready!"
 
-# Start cron and Apache
+# Start cron (www-data crontab will run) and Apache
 exec sh -c "cron && apache2-foreground"

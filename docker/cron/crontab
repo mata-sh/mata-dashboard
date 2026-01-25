@@ -1,53 +1,67 @@
 # MATA Dashboard Cron Jobs
 # These jobs collect monitoring data from remote servers
+# FORMAT (User Crontab - NO username field):
+# ┌───────────── minute (0-59)
+# │ ┌───────────── hour (0-23)
+# │ │ ┌───────────── day of month (1-31)
+# │ │ │ ┌───────────── month (1-12)
+# │ │ │ │ ┌───────────── day of week (0-6, Sunday=0)
+# │ │ │ │ │
+# * * * * * command-to-execute
+#
+# Example (runs every 5 minutes):
+# */5 * * * * cd /var/www/html && /usr/local/bin/php cron/servers_data_fetch.php >> /var/www/html/logs/cron_servers.log 2>&1
+#
+# IMPORTANT: Do NOT include username (www-data) - this is a user crontab, not a system crontab
+# Jobs will run as www-data user automatically.
 
 # ============================================================================
 # METRICS COLLECTION (every 5 minutes)
 # ============================================================================
 
 # Fetch server data every 5 minutes
-*/5 * * * * www-data cd /var/www/html && /usr/local/bin/php cron/servers_data_fetch.php >> /var/www/html/logs/cron_servers.log 2>&1
+*/5 * * * * cd /var/www/html && /usr/local/bin/php cron/servers_data_fetch.php >> /var/www/html/logs/cron_servers.log 2>&1
 
 # Collect raw server metrics every 5 minutes
-*/5 * * * * www-data cd /var/www/html && /usr/local/bin/php cron/servers_metrics_collect.php >> /var/www/html/logs/cron_metrics_collect.log 2>&1
+*/5 * * * * cd /var/www/html && /usr/local/bin/php cron/servers_metrics_collect.php >> /var/www/html/logs/cron_metrics_collect.log 2>&1
 
 # Aggregate metrics every 15 minutes (hourly/daily rollups)
-*/15 * * * * www-data cd /var/www/html && /usr/local/bin/php cron/servers_metrics_aggregate.php >> /var/www/html/logs/cron_metrics_aggregate.log 2>&1
+*/15 * * * * cd /var/www/html && /usr/local/bin/php cron/servers_metrics_aggregate.php >> /var/www/html/logs/cron_metrics_aggregate.log 2>&1
 
 # ============================================================================
 # ALERT EVALUATION (critical: every 1 min, non-critical: every 5 min)
 # ============================================================================
 
 # Evaluate critical alerts every minute
-* * * * * www-data cd /var/www/html && /usr/local/bin/php cron/alerts_evaluate_critical.php >> /var/www/html/logs/cron_alerts_critical.log 2>&1
+* * * * * cd /var/www/html && /usr/local/bin/php cron/alerts_evaluate_critical.php >> /var/www/html/logs/cron_alerts_critical.log 2>&1
 
 # Evaluate non-critical alerts every 5 minutes
-*/5 * * * * www-data cd /var/www/html && /usr/local/bin/php cron/alerts_evaluate_non_critical.php >> /var/www/html/logs/cron_alerts_non_critical.log 2>&1
+*/5 * * * * cd /var/www/html && /usr/local/bin/php cron/alerts_evaluate_non_critical.php >> /var/www/html/logs/cron_alerts_non_critical.log 2>&1
 
 # ============================================================================
 # ALERT DISPATCH (every 1 minute)
 # ============================================================================
 
 # Dispatch queued alerts every minute
-* * * * * www-data cd /var/www/html && /usr/local/bin/php cron/alerts_dispatch.php >> /var/www/html/logs/cron_alerts_dispatch.log 2>&1
+* * * * * cd /var/www/html && /usr/local/bin/php cron/alerts_dispatch.php >> /var/www/html/logs/cron_alerts_dispatch.log 2>&1
 
 # ============================================================================
 # CLEANUP & MAINTENANCE
 # ============================================================================
 
 # Clean up old log files daily at 2 AM
-0 2 * * * www-data find /var/www/html/logs -name "*.log" -mtime +30 -delete 2>/dev/null
+0 2 * * * find /var/www/html/logs -name "*.log" -mtime +30 -delete 2>/dev/null
 
 # Clean up old cache files daily at 3 AM
-0 3 * * * www-data find /var/www/html/temp/api_cache -name "*.json" -mtime +7 -delete 2>/dev/null
+0 3 * * * find /var/www/html/temp/api_cache -name "*.json" -mtime +7 -delete 2>/dev/null
 
 # Clean up old session files daily at 4 AM
-0 4 * * * www-data find /var/www/html/temp/sessions -name "sess_*" -mtime +1 -delete 2>/dev/null
+0 4 * * * find /var/www/html/temp/sessions -name "sess_*" -mtime +1 -delete 2>/dev/null
 
 # Clean up old template cache files weekly on Sunday at 5 AM
-0 5 * * 0 www-data find /var/www/html/temp/templates_cache -name "*.php" -mtime +7 -delete 2>/dev/null
+0 5 * * 0 find /var/www/html/temp/templates_cache -name "*.php" -mtime +7 -delete 2>/dev/null
 
 # Log rotation - compress old logs weekly on Sunday at 6 AM
-0 6 * * 0 www-data cd /var/www/html/logs && for file in *.log; do [ -f "$file" ] && gzip -c "$file" > "${file}.$(date +\%Y\%m\%d).gz" && > "$file"; done 2>/dev/null
+0 6 * * 0 cd /var/www/html/logs && for file in *.log; do [ -f "$file" ] && gzip -c "$file" > "${file}.$(date +\%Y\%m\%d).gz" && > "$file"; done 2>/dev/null
 
 # Empty line required at end of crontab file

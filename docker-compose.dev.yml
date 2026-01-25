@@ -1,13 +1,19 @@
 services:
   mata-web:
+    # Development-specific restart policy (easier debugging)
+    restart: "no"
+
     # Use development Dockerfile
     build:
       context: .
       dockerfile: Dockerfile.dev
+      args:
+        PHP_VERSION: ${PHP_VERSION:-8.3}
+        COMPOSER_VERSION: ${COMPOSER_VERSION:-latest}
 
     # Mount entire source code for hot reload
     volumes:
-      - .:/var/www/html:cached
+      - .:/var/www/html
       # Override vendor to avoid permission issues
       - /var/www/html/vendor
 
@@ -17,13 +23,6 @@ services:
       # Optional: Xdebug settings (uncomment if Xdebug is enabled in Dockerfile.dev)
       # - XDEBUG_MODE=debug
       # - XDEBUG_CONFIG=client_host=host.docker.internal
-
-    # Keep Apache running (not built-in server)
-    # Apache config already set up for document root at /var/www/html/public
-
-    # Port mapping (Apache on port 80 inside container)
-    ports:
-      - "${WEB_PORT:-8080}:80"
 
     # Development health check
     healthcheck:

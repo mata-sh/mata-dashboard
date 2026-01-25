@@ -3,6 +3,11 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+      args:
+        PHP_VERSION: ${PHP_VERSION:-8.3.14}
+        COMPOSER_VERSION: ${COMPOSER_VERSION:-2.7.9}
+    # Note: container_name prevents scaling (docker-compose up --scale)
+    # Remove if you need multiple replicas or orchestration
     container_name: ${COMPOSE_PROJECT_NAME:-mata-dashboard}-web
     restart: unless-stopped
     ports:
@@ -18,6 +23,7 @@ services:
     environment:
       # Override only Docker-specific infrastructure settings
       # Application settings come from config/*.env files
+      - APP_ENV=${APP_ENV:-prod}
       - DB_HOST=mata-db
     depends_on:
       mata-db:
