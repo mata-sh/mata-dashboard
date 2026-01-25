@@ -38,7 +38,7 @@ final class MonitoringSettingsLoaderTest extends TestCase
         $config = [
             'production-server' => [
                 'title' => 'Production Server',
-                'api_url' => 'https://api.example.com/mata-node/api',
+                'api_url' => 'https://mata.api.example.com/',
                 'api_key' => 'secure_key_123',
             ],
         ];
@@ -54,7 +54,7 @@ final class MonitoringSettingsLoaderTest extends TestCase
         $config = [
             'dev-server' => [
                 'title' => 'Dev Server',
-                'api_url' => 'http://localhost:3301/mata-node/api',
+                'api_url' => 'http://localhost:3310/mata-node',
                 'api_key' => 'dev_key_123',
             ],
         ];
@@ -72,7 +72,7 @@ final class MonitoringSettingsLoaderTest extends TestCase
         $config = [
             'dev-server' => [
                 'title' => 'Dev Server',
-                'api_url' => 'http://localhost:3301/mata-node/api',
+                'api_url' => 'http://localhost:3310/mata-node',
                 'api_key' => 'dev_key_123',
                 'allow_http' => 'on',
             ],
@@ -102,7 +102,7 @@ final class MonitoringSettingsLoaderTest extends TestCase
         $config = [
             'internal-server' => [
                 'title' => 'Internal Server',
-                'api_url' => 'http://192.168.1.100/mata-node/api',
+                'api_url' => 'http://192.168.1.100/mata-node',
                 'api_key' => 'internal_key_123',
                 'allow_http' => 'on',
                 'suppress_http_warning' => 'on',
@@ -125,7 +125,7 @@ final class MonitoringSettingsLoaderTest extends TestCase
         $config = [
             'server' => [
                 'title' => 'Server',
-                'api_url' => 'http://example.com/api',
+                'api_url' => 'http://api.example.com/',
                 'api_key' => 'key123',
                 'allow_http' => 'maybe', // Invalid value
             ],
@@ -142,7 +142,7 @@ final class MonitoringSettingsLoaderTest extends TestCase
         $config = [
             'server' => [
                 'title' => 'Server',
-                'api_url' => 'http://example.com/api',
+                'api_url' => 'http://api.example.com/',
                 'api_key' => 'key123',
                 'allow_http' => 'off',
             ],
@@ -178,7 +178,7 @@ final class MonitoringSettingsLoaderTest extends TestCase
         $config = [
             'server' => [
                 'title' => 'Server',
-                'api_url' => 'ftp://example.com/api',
+                'api_url' => 'ftp://api.example.com',
                 'api_key' => 'key123',
             ],
         ];
@@ -212,7 +212,7 @@ final class MonitoringSettingsLoaderTest extends TestCase
         $config = [
             'server' => [
                 'title' => 'Server',
-                'api_url' => 'https://example.com/api',
+                'api_url' => 'https://api.example.com',
                 'api_key' => 'key123',
                 'primary_color' => '#28a745',
             ],
@@ -229,7 +229,7 @@ final class MonitoringSettingsLoaderTest extends TestCase
         $config = [
             'server' => [
                 'title' => 'Server',
-                'api_url' => 'https://example.com/api',
+                'api_url' => 'https://api.example.com',
                 'api_key' => 'key123',
                 'primary_color' => '28a745',
             ],
@@ -247,7 +247,7 @@ final class MonitoringSettingsLoaderTest extends TestCase
         $config = [
             'server' => [
                 'title' => 'Server',
-                'api_url' => 'https://example.com/api',
+                'api_url' => 'https://api.example.com',
                 'api_key' => 'key123',
                 'primary_color' => '#28a',
             ],
@@ -264,7 +264,7 @@ final class MonitoringSettingsLoaderTest extends TestCase
         $config = [
             'server' => [
                 'title' => 'Server',
-                'api_url' => 'https://example.com/api',
+                'api_url' => 'https://api.example.com',
                 'api_key' => 'key123',
                 'primary_color' => '#28a74512',
             ],
@@ -281,7 +281,7 @@ final class MonitoringSettingsLoaderTest extends TestCase
         $config = [
             'server' => [
                 'title' => 'Server',
-                'api_url' => 'https://example.com/api',
+                'api_url' => 'https://api.example.com',
                 'api_key' => 'key123',
                 'primary_color' => '#gghhii',
             ],
@@ -298,7 +298,7 @@ final class MonitoringSettingsLoaderTest extends TestCase
         $config = [
             'server' => [
                 'title' => 'Server',
-                'api_url' => 'https://example.com/api',
+                'api_url' => 'https://api.example.com',
                 'api_key' => 'key123',
             ],
         ];
@@ -315,7 +315,7 @@ final class MonitoringSettingsLoaderTest extends TestCase
     {
         $config = [
             'server' => [
-                'api_url' => 'https://example.com/api',
+                'api_url' => 'https://api.example.com',
                 'api_key' => 'key123',
             ],
         ];
@@ -331,7 +331,7 @@ final class MonitoringSettingsLoaderTest extends TestCase
         $config = [
             'server' => [
                 'title' => 'Server',
-                'api_url' => 'https://example.com/api',
+                'api_url' => 'https://api.example.com',
             ],
         ];
 
@@ -345,7 +345,7 @@ final class MonitoringSettingsLoaderTest extends TestCase
     {
         $config = [
             'server' => [
-                'api_url' => 'http://example.com/api', // HTTP without allow_http
+                'api_url' => 'http://api.example.com', // HTTP without allow_http
                 'primary_color' => 'invalid-color',      // Invalid color
             ],
         ];
@@ -363,12 +363,12 @@ final class MonitoringSettingsLoaderTest extends TestCase
         $config = [
             'server1' => [
                 'title' => 'Server 1',
-                'api_url' => 'https://server1.example.com/api',
+                'api_url' => 'https://server1.api.example.com',
                 'api_key' => 'key1',
             ],
             'server2' => [
                 'title' => 'Server 2',
-                'api_url' => 'https://server2.example.com/api',
+                'api_url' => 'https://server2.api.example.com',
                 'api_key' => 'key2',
                 'primary_color' => '#ff0000',
             ],
@@ -385,12 +385,12 @@ final class MonitoringSettingsLoaderTest extends TestCase
         $config = [
             'valid-server' => [
                 'title' => 'Valid Server',
-                'api_url' => 'https://valid.example.com/api',
+                'api_url' => 'https://valid.api.example.com',
                 'api_key' => 'key1',
             ],
             'invalid-server' => [
                 'title' => 'Invalid Server',
-                'api_url' => 'http://invalid.example.com/api', // HTTP without flag
+                'api_url' => 'http://invalid.api.example.com', // HTTP without flag
                 'api_key' => 'key2',
             ],
         ];
@@ -433,7 +433,7 @@ final class MonitoringSettingsLoaderTest extends TestCase
         $config = [
             'server' => [
                 'title' => 'Server',
-                'api_url' => 'https://Example.Com/api', // Only host can be mixed case
+                'api_url' => 'https://api.Example.Com', // Only host can be mixed case
                 'api_key' => 'key123',
             ],
         ];
@@ -452,7 +452,7 @@ final class MonitoringSettingsLoaderTest extends TestCase
             $config = [
                 "server-{$variation}" => [
                     'title' => 'Server',
-                    'api_url' => 'http://example.com/api',
+                    'api_url' => 'http://api.example.com',
                     'api_key' => 'key123',
                     'allow_http' => $variation,
                     'suppress_http_warning' => 'on',
@@ -481,7 +481,7 @@ final class MonitoringSettingsLoaderTest extends TestCase
             $config = [
                 "server-{$variation}" => [
                     'title' => 'Server',
-                    'api_url' => 'http://example.com/api',
+                    'api_url' => 'http://api.example.com',
                     'api_key' => 'key123',
                     'allow_http' => 'on',
                     'suppress_http_warning' => $variation,
@@ -502,7 +502,7 @@ final class MonitoringSettingsLoaderTest extends TestCase
         $config = [
             'server' => [
                 'title' => 'Server',
-                'api_url' => 'https://example.com/api',
+                'api_url' => 'https://api.example.com',
                 'api_key' => 'key123',
                 'primary_color' => '#ABCDEF',
             ],
