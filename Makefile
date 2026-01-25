@@ -52,7 +52,7 @@ help:
 	@echo "  $(COLOR_CYAN)Setup:$(COLOR_RESET)"
 	@echo "    $(COLOR_GREEN)make docker-setup$(COLOR_RESET)  - Docker environment setup only"
 	@echo "  $(COLOR_CYAN)Development:$(COLOR_RESET)"
-	@echo "    $(COLOR_GREEN)make dev-start$(COLOR_RESET)           - Start full Docker environment"
+	@echo "    $(COLOR_GREEN)make dev-start$(COLOR_RESET)     - Start full Docker environment"
 	@echo "    $(COLOR_GREEN)make dev-logs$(COLOR_RESET)      - Start dev and follow logs"
 	@echo "    $(COLOR_GREEN)make dev-stop$(COLOR_RESET)      - Stop development"
 	@echo "    $(COLOR_GREEN)make dev-recreate$(COLOR_RESET)  - Recreate containers (reload env files)"
@@ -83,7 +83,7 @@ help:
 	@echo "$(COLOR_BOLD)Docker Production Environment:$(COLOR_RESET)"
 	@echo "  $(COLOR_GREEN)make prod$(COLOR_RESET)            - Deploy production"
 	@echo "  $(COLOR_GREEN)make prod-stop$(COLOR_RESET)       - Stop production"
-	@echo "  $(COLOR_RED)make clean$(COLOR_RESET)           - Remove everything (WARNING!)"
+	@echo "  $(COLOR_RED)make clean$(COLOR_RESET)             - Remove everything (WARNING!)"
 	@echo ""
 	@echo "For more details: $(COLOR_CYAN)make docker-help$(COLOR_RESET)"
 
@@ -179,6 +179,20 @@ setup:
 	@echo ""
 	@echo "$(COLOR_BLUE)Or use Docker:$(COLOR_RESET) $(COLOR_CYAN)make docker-setup$(COLOR_RESET) then $(COLOR_CYAN)make dev-start$(COLOR_RESET)"
 
+# Install Composer dependencies and git hooks
+install-hooks:
+	@echo "$(COLOR_BLUE)🪝 Installing git hooks...$(COLOR_RESET)"
+	@if [ -f .githooks/pre-commit ]; then \
+		ln -sf ../../.githooks/pre-commit .git/hooks/pre-commit; \
+		chmod +x .git/hooks/pre-commit; \
+		echo "$(COLOR_GREEN)✅ Git pre-commit hook installed$(COLOR_RESET)"; \
+	else \
+		echo "$(COLOR_YELLOW)⚠️  .githooks/pre-commit not found, skipping$(COLOR_RESET)"; \
+	fi
+	@echo "$(COLOR_BLUE)🔧 Making scripts executable...$(COLOR_RESET)"
+	@chmod +x scripts/build/generate-changelog.sh scripts/docs/ai-update.sh 2>/dev/null || true
+	@echo "$(COLOR_GREEN)✅ Scripts are now executable$(COLOR_RESET)"
+
 # ============================================
 # OPA (Open Policy Agent)
 # ============================================
@@ -244,21 +258,6 @@ opa-docker-start:
 		openpolicyagent/opa:latest \
 		run --server --watch /policies >/dev/null; \
 	echo "$(COLOR_GREEN)✅ OPA running at http://127.0.0.1:8181 (container: mata-opa)$(COLOR_RESET)"
-
-
-# Install Composer dependencies and git hooks
-install-hooks:
-	@echo "$(COLOR_BLUE)🪝 Installing git hooks...$(COLOR_RESET)"
-	@if [ -f .githooks/pre-commit ]; then \
-		ln -sf ../../.githooks/pre-commit .git/hooks/pre-commit; \
-		chmod +x .git/hooks/pre-commit; \
-		echo "$(COLOR_GREEN)✅ Git pre-commit hook installed$(COLOR_RESET)"; \
-	else \
-		echo "$(COLOR_YELLOW)⚠️  .githooks/pre-commit not found, skipping$(COLOR_RESET)"; \
-	fi
-	@echo "$(COLOR_BLUE)🔧 Making scripts executable...$(COLOR_RESET)"
-	@chmod +x scripts/build/generate-changelog.sh scripts/docs/ai-update.sh 2>/dev/null || true
-	@echo "$(COLOR_GREEN)✅ Scripts are now executable$(COLOR_RESET)"
 
 # ============================================
 # Testing
@@ -575,7 +574,7 @@ docker-help:
 	@echo "  $(COLOR_GREEN)make docker-setup$(COLOR_RESET)    - First-time environment setup"
 	@echo ""
 	@echo "$(COLOR_BOLD)Development:$(COLOR_RESET)"
-	@echo "  $(COLOR_GREEN)make dev-start$(COLOR_RESET)             - Start development environment"
+	@echo "  $(COLOR_GREEN)make dev-start$(COLOR_RESET)       - Start development environment"
 	@echo "  $(COLOR_GREEN)make dev-logs$(COLOR_RESET)        - Start dev and follow logs"
 	@echo "  $(COLOR_GREEN)make dev-stop$(COLOR_RESET)        - Stop development environment"
 	@echo "  $(COLOR_GREEN)make dev-restart$(COLOR_RESET)     - Restart development containers"
@@ -604,9 +603,9 @@ docker-help:
 	@echo ""
 	@echo "$(COLOR_BOLD)Cleanup:$(COLOR_RESET)"
 	@echo "  $(COLOR_GREEN)make down$(COLOR_RESET)            - Stop all containers"
-	@echo "  $(COLOR_RED)make clean$(COLOR_RESET)           - Remove everything (including data!)"
-	@echo "  $(COLOR_YELLOW)make docker-clean$(COLOR_RESET)    - Clean mata-dashboard Docker resources only"
-	@echo "  $(COLOR_RED)make docker-clean-all$(COLOR_RESET) - System-wide Docker cleanup (ALL projects!)"
+	@echo "  $(COLOR_RED)make clean$(COLOR_RESET)             - Remove everything (including data!)"
+	@echo "  $(COLOR_YELLOW)make docker-clean$(COLOR_RESET)   - Clean mata-dashboard Docker resources only"
+	@echo "  $(COLOR_RED)make docker-clean-all$(COLOR_RESET)  - System-wide Docker cleanup (ALL projects!)"
 
 .PHONY: help setup install-hooks \
 	test test-coverage \
