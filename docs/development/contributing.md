@@ -366,7 +366,7 @@ pip install mkdocs
 # Serve documentation locally
 mkdocs serve
 
-# Access at http://localhost:8000
+# Access at http://localhost:8000 (MkDocs server, not MATA app)
 ```
 
 ## Community Guidelines
@@ -390,8 +390,8 @@ mkdocs serve
 ### Local Development Server
 
 ```bash
-# PHP built-in server
-php -S 0.0.0.0:8001 -t public/
+# PHP built-in server (default port: 3300)
+php -S 0.0.0.0:3300 -t public/
 
 # Watch CSS changes
 npm start

@@ -50,9 +50,9 @@ help:
 	@echo ""
 	@echo "$(COLOR_BOLD)Docker Dev Environment:$(COLOR_RESET)"
 	@echo "  $(COLOR_CYAN)Setup:$(COLOR_RESET)"
-	@echo "    $(COLOR_GREEN)make docker-setup$(COLOR_RESET)  - Docker environment setup only"
+	@echo "    $(COLOR_GREEN)make docker-setup$(COLOR_RESET)  - Docker environment setup only (optional - dev-start does this automatically)"
 	@echo "  $(COLOR_CYAN)Development:$(COLOR_RESET)"
-	@echo "    $(COLOR_GREEN)make dev-start$(COLOR_RESET)     - Start full Docker environment"
+	@echo "    $(COLOR_GREEN)make dev-start$(COLOR_RESET)     - Start full Docker environment (auto-runs setup if needed)"
 	@echo "    $(COLOR_GREEN)make dev-logs$(COLOR_RESET)      - Start dev and follow logs"
 	@echo "    $(COLOR_GREEN)make dev-stop$(COLOR_RESET)      - Stop development"
 	@echo "    $(COLOR_GREEN)make dev-recreate$(COLOR_RESET)  - Recreate containers (reload env files)"
@@ -177,7 +177,7 @@ setup:
 	@echo "$(COLOR_YELLOW)3.$(COLOR_RESET) Choose webserver config from $(COLOR_BOLD)docs/examples/webserver-configs/README.md$(COLOR_RESET)"
 	@echo "$(COLOR_YELLOW)4.$(COLOR_RESET) Create first user: $(COLOR_CYAN)php scripts/user-management/manage-users.php create$(COLOR_RESET)"
 	@echo ""
-	@echo "$(COLOR_BLUE)Or use Docker:$(COLOR_RESET) $(COLOR_CYAN)make docker-setup$(COLOR_RESET) then $(COLOR_CYAN)make dev-start$(COLOR_RESET)"
+	@echo "$(COLOR_BLUE)Or use Docker:$(COLOR_RESET) $(COLOR_CYAN)make dev-start$(COLOR_RESET) (auto-setup included)"
 
 # Install Composer dependencies and git hooks
 install-hooks:
@@ -253,11 +253,11 @@ opa-docker-start:
 	fi; \
 	echo "$(COLOR_BLUE)🐳 Starting OPA container...$(COLOR_RESET)"; \
 	docker run -d --name mata-opa \
-		-p 8181:8181 \
+		-p 3320:3320 \
 		-v "$(CURDIR)/policy:/policies" \
 		openpolicyagent/opa:latest \
 		run --server --watch /policies >/dev/null; \
-	echo "$(COLOR_GREEN)✅ OPA running at http://127.0.0.1:8181 (container: mata-opa)$(COLOR_RESET)"
+	echo "$(COLOR_GREEN)✅ OPA running at http://127.0.0.1:3320 (container: mata-opa)$(COLOR_RESET)"
 
 # ============================================
 # Testing
@@ -393,21 +393,32 @@ docker-setup:
 	@echo "$(COLOR_GREEN)✅ Docker environment ready!$(COLOR_RESET)"
 	@echo ""
 	@echo "$(COLOR_CYAN)⚙️  NEXT STEPS:$(COLOR_RESET)"
-	@echo "$(COLOR_YELLOW)1.$(COLOR_RESET) Edit $(COLOR_BOLD).env$(COLOR_RESET) - change DB_PASSWORD, MYSQL_ROOT_PASSWORD to secure values"
+	@echo "$(COLOR_YELLOW)1.$(COLOR_RESET) Edit $(COLOR_BOLD).env$(COLOR_RESET) - review ports (3300/3310/3320/3330), set passwords"
 	@echo "$(COLOR_YELLOW)2.$(COLOR_RESET) Edit $(COLOR_BOLD)config/config.env$(COLOR_RESET) - set DOMAIN, APP_ENV, WATCHER_ENCRYPTION_SECRET"
 	@echo "    $(COLOR_BLUE)Note:$(COLOR_RESET) DB_HOST is auto-set to 'mata-db' for Docker networking"
 	@echo "$(COLOR_YELLOW)3.$(COLOR_RESET) Start containers: $(COLOR_CYAN)make dev-start$(COLOR_RESET)"
-	@echo "$(COLOR_YELLOW)4.$(COLOR_RESET) Login at http://localhost:8080 with $(COLOR_CYAN)dev/password$(COLOR_RESET) or $(COLOR_CYAN)admin/password$(COLOR_RESET)"
+	@PORT=$$(grep -E '^WEB_PORT=' .env 2>/dev/null | cut -d '=' -f2 || echo "3300"); \
+	echo "$(COLOR_YELLOW)4.$(COLOR_RESET) Login at http://localhost:$$PORT with $(COLOR_CYAN)dev/password$(COLOR_RESET) or $(COLOR_CYAN)admin/password$(COLOR_RESET)"
 
 ## Development (Docker)
 
-# Start development environment
+# Start development environment (auto-runs docker-setup if needed)
 dev-start:
 	@echo "$(COLOR_BLUE)🚀 Starting docker development environment...$(COLOR_RESET)"
+	@# Check if setup is needed
+	@if [ ! -f .env ] || [ ! -f config/config.env ] || [ ! -f config/db.config.env ] || [ ! -f config/mail.config.env ]; then \
+		echo "$(COLOR_YELLOW)⚠️  Setup files missing. Running docker-setup first...$(COLOR_RESET)"; \
+		echo ""; \
+		$(MAKE) docker-setup; \
+		echo ""; \
+	fi
 	docker-compose -f docker-compose.yml -f docker-compose.dev.yml up -d --build
 	@echo ""
 	@echo "$(COLOR_GREEN)✅ Development environment running!$(COLOR_RESET)"
-	@echo "$(COLOR_CYAN)🌐 http://localhost:$${WEB_PORT:-8080}$(COLOR_RESET)"
+	@# Read actual port from .env file or use default
+	@PORT=$$(grep -E '^WEB_PORT=' .env 2>/dev/null | cut -d '=' -f2 || echo "3300"); \
+	echo "$(COLOR_CYAN)🌐 Dashboard: http://localhost:$$PORT$(COLOR_RESET)"; \
+	echo "$(COLOR_CYAN)🩺 Health: http://localhost:$$PORT/health$(COLOR_RESET)"
 	@echo "$(COLOR_YELLOW)👤 Login: dev/password or admin/password$(COLOR_RESET)"
 
 # Start dev environment and follow logs
@@ -571,10 +582,10 @@ docker-help:
 	@echo "$(COLOR_BOLD)$(COLOR_CYAN)Docker Development Commands:$(COLOR_RESET)"
 	@echo ""
 	@echo "$(COLOR_BOLD)Setup:$(COLOR_RESET)"
-	@echo "  $(COLOR_GREEN)make docker-setup$(COLOR_RESET)    - First-time environment setup"
+	@echo "  $(COLOR_GREEN)make docker-setup$(COLOR_RESET)    - First-time environment setup (optional)"
 	@echo ""
 	@echo "$(COLOR_BOLD)Development:$(COLOR_RESET)"
-	@echo "  $(COLOR_GREEN)make dev-start$(COLOR_RESET)       - Start development environment"
+	@echo "  $(COLOR_GREEN)make dev-start$(COLOR_RESET)       - Start development environment (auto-setup if needed)"
 	@echo "  $(COLOR_GREEN)make dev-logs$(COLOR_RESET)        - Start dev and follow logs"
 	@echo "  $(COLOR_GREEN)make dev-stop$(COLOR_RESET)        - Stop development environment"
 	@echo "  $(COLOR_GREEN)make dev-restart$(COLOR_RESET)     - Restart development containers"

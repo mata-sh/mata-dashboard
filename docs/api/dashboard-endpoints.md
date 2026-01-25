@@ -819,15 +819,15 @@ All parameters are validated:
 # Authenticate and save session cookie
 curl -c cookies.txt -X POST \
   -d "username=admin&password=secure_password" \
-  http://localhost:8001/login
+  http://localhost:3300/login
 
 # Access protected endpoint
 curl -b cookies.txt \
-  http://localhost:8001/watch/servers
+  http://localhost:3300/watch/servers
 
 # Get JSON data
 curl -b cookies.txt \
-  http://localhost:8001/watch/events/json?limit=10
+  http://localhost:3300/watch/events/json?limit=10
 ```
 
 ### Using Browser DevTools

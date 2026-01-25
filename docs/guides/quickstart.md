@@ -14,10 +14,12 @@ For quick testing and development:
 
 ```bash
 cd /path/to/mata-dashboard
-php -S 0.0.0.0:8001 -t public/
+php -S 0.0.0.0:3300 -t public/
 ```
 
-Access the dashboard at `http://localhost:8001/`
+Access the dashboard at `http://localhost:3300/`
+
+> **Port Convention**: MATA uses decade-spaced ports - Dashboard: 3300, Node: 3310, OPA: 3320, MkDocs: 3330, MySQL: 3306
 
 ### 2. Configure Your First Server
 
@@ -46,7 +48,7 @@ Edit `config/servers.json` to add your first monitored server:
 
 ### 3. Login to Dashboard
 
-1. Navigate to `http://localhost:8001/`
+1. Navigate to `http://localhost:3300/`
 2. Login with the credentials configured in `config/users.json`
 3. View your server dashboard
 

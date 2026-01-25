@@ -104,6 +104,22 @@ Lightweight, stateless client application offering **read-only** API endpoints. 
 - **Web server** (Apache/Nginx/Caddy) with URL rewriting
 - **MySQL/MariaDB** for event logging and configuration (optional but recommended for Dashboard server)
 
+### Default Ports
+
+The MATA stack uses **decade-spaced ports** for clean separation and easy scaling:
+
+| Port | Service | Description |
+|------|---------|-------------|
+| **3300** | Dashboard | Main web interface |
+| **3310** | Node API | Remote monitoring endpoint (for local testing) |
+| **3320** | OPA Service | Policy evaluation engine |
+| **3330** | MkDocs | Documentation server (development) |
+| **3306** | MySQL | Database (standard port) |
+
+> **Decade spacing** leaves room for expansion (e.g., 3301-3309 reserved for dashboard features). Multiple stacks can use 3400, 3410, 3420... to avoid conflicts.
+
+Customize ports in your `.env` file.
+
 ### Quick Start
 
 Make sure you have a working PHP 8.3+ environment with composer and git installed.

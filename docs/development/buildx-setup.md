@@ -140,7 +140,7 @@ BUILD_DATE=2024-01-01T00:00:00Z
 VERSION=latest
 
 # Network
-WEB_PORT=8080
+WEB_PORT=3300
 
 # Database
 DB_DATABASE=mata_dashboard

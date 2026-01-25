@@ -54,7 +54,7 @@ final class MonitoringSettingsLoaderTest extends TestCase
         $config = [
             'dev-server' => [
                 'title' => 'Dev Server',
-                'api_url' => 'http://localhost:8080/mata-node/api',
+                'api_url' => 'http://localhost:3301/mata-node/api',
                 'api_key' => 'dev_key_123',
             ],
         ];
@@ -72,7 +72,7 @@ final class MonitoringSettingsLoaderTest extends TestCase
         $config = [
             'dev-server' => [
                 'title' => 'Dev Server',
-                'api_url' => 'http://localhost:8080/mata-node/api',
+                'api_url' => 'http://localhost:3301/mata-node/api',
                 'api_key' => 'dev_key_123',
                 'allow_http' => 'on',
             ],

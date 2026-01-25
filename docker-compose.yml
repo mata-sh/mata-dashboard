@@ -11,7 +11,7 @@ services:
     container_name: ${COMPOSE_PROJECT_NAME:-mata-dashboard}-web
     restart: unless-stopped
     ports:
-      - "${WEB_PORT:-8080}:80"
+      - "${WEB_PORT:-3300}:80"
     volumes:
       - ./config:/var/www/html/config
       - ./logs:/var/www/html/logs
@@ -50,7 +50,7 @@ services:
     volumes:
       - ./docker/mysql/init.sql:/docker-entrypoint-initdb.d/init.sql
     ports:
-      - "3307:${DB_PORT:-3306}"
+      - "${MYSQL_PORT:-3306}:3306"
     networks:
       - mata-network
 
@@ -58,11 +58,11 @@ services:
     image: openpolicyagent/opa:latest
     container_name: ${COMPOSE_PROJECT_NAME:-mata}-opa
     restart: unless-stopped
-    command: ["run", "--server", "--addr", "0.0.0.0:8181", "--watch", "/policies"]
+    command: ["run", "--server", "--addr", "0.0.0.0:3320", "--watch", "/policies"]
     volumes:
       - ./policy:/policies:ro
     ports:
-      - "8181:8181"
+      - "${OPA_PORT:-3320}:3320"
     networks:
       - mata-network
 

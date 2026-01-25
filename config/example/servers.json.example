@@ -54,7 +54,7 @@
     "file-server": {
         "title": "File Server",
         "url": "192.168.1.100",
-        "api_url": "http://192.168.1.100:8080/mata-node/api",
+        "api_url": "http://192.168.1.100:3301/mata-node/api",
         "api_key": "file_server_api_key_32_characters",
         "allow_http": "on",
         "primary_color": "#fd7e14", 

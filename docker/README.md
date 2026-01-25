@@ -69,6 +69,34 @@ project/
     └── setup-dev-env.sh              # First-time setup
 ```
 
+## Default Ports (Decade-Spaced Convention)
+
+The MATA Dashboard stack uses **decade-spaced ports** for clean separation:
+
+| Service | Port | Variable | Description |
+|---------|------|----------|-------------|
+| **Dashboard** | 3300 | `WEB_PORT` | Main web interface |
+| **Node API** | 3310 | `NODE_PORT` | Remote monitoring node (for local testing) |
+| **OPA Service** | 3320 | `OPA_PORT` | Open Policy Agent for alert evaluation |
+| **MkDocs** | 3330 | `MKDOCS_PORT` | Documentation server (dev only) |
+| **MySQL** | 3306 | `MYSQL_PORT` | Database (standard port, not exposed in prod) |
+
+### Port Convention Benefits
+
+- **Decade spacing** (3300, 3310, 3320...) provides clear separation
+- Room for expansion (3301-3309 reserved for future dashboard features)
+- Multiple stacks can coexist: use 3400, 3410, 3420 for a second environment
+- Easy to remember and type
+
+Customize ports in your `.env` file:
+```bash
+WEB_PORT=3300          # Dashboard
+NODE_PORT=3310         # Node API
+OPA_PORT=3320          # Policy engine
+MKDOCS_PORT=3330       # Documentation
+MYSQL_PORT=3306        # Database (standard)
+```
+
 ## Environment Separation
 
 ### Configuration Layers
@@ -84,7 +112,7 @@ The application uses **two separate configuration layers**:
 Example:
 ```bash
 COMPOSE_PROJECT_NAME=mata-dashboard
-WEB_PORT=8080
+WEB_PORT=3300  # Dashboard web interface
 APP_ENV=dev
 DB_HOST=db
 DB_USERNAME=mata_user
@@ -140,7 +168,10 @@ make dev
 # 3. Follow logs (optional)
 make logs
 
-# Access application: http://localhost:8080
+# Access services at:
+# - Dashboard: http://localhost:3300
+# - OPA Service: http://localhost:3320
+# - MkDocs: http://localhost:3330 (if running)
 # Login: dev / password
 ```
 
@@ -155,8 +186,10 @@ sed -i 's/APP_ENV=.*/APP_ENV=dev/' .env
 # 3. Start containers
 docker-compose -f docker-compose.yml -f docker-compose.dev.yml up -d --build
 
-# 4. Access application
-# http://localhost:8080
+# 4. Access services
+# - Dashboard: http://localhost:3300
+# - OPA Service: http://localhost:3320
+# - Node API: http://localhost:3310 (if testing node locally)
 # Login: dev / password
 ```
 
@@ -388,15 +421,25 @@ docker-compose exec -u www-data web bash
 
 ### Port Already in Use
 
-**Problem**: `Bind for 0.0.0.0:8080 failed: port is already allocated`
+**Problem**: `Bind for 0.0.0.0:3300 failed: port is already allocated`
 
 **Solution**:
 ```bash
-# Change WEB_PORT in .env
-echo "WEB_PORT=8081" >> .env
+# Change ports in .env (uses decade-spaced convention)
+echo "WEB_PORT=3400" >> .env     # Alternative dashboard port
+echo "OPA_PORT=3420" >> .env     # Alternative OPA port
 
 # Or stop conflicting service
-lsof -ti:8080 | xargs kill -9
+lsof -ti:3300 | xargs kill -9
+
+# Default port scheme (decade-spaced):
+# - Dashboard: 3300
+# - Node API: 3310
+# - OPA Service: 3320
+# - MkDocs: 3330
+# - MySQL: 3306 (standard)
+#
+# For 2nd stack, use: 3400, 3410, 3420, 3430...
 ```
 
 ### Database Connection Fails

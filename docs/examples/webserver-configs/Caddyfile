@@ -58,7 +58,7 @@ mata.yourdomain.com {
 
 # Development/Local Configuration (HTTP only)
 # Uncomment for local testing without SSL
-# :8080 {
+# :3300 {
 #     root * /var/www/html/public
 #
 #     @notStatic {

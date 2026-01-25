@@ -110,7 +110,7 @@ By contributing, you agree to follow our [Code of Conduct](CODE_OF_CONDUCT.md).
 ## 💡 Tips
 
 * Run `composer outdated` to check for outdated dependencies.
-* Use `php -S localhost:8000 -t public` for quick local testing if needed.
+* Use `php -S localhost:3300 -t public` for quick local testing (default port: 3300).
 * Keep PRs small and focused — easier to review and merge.
 
 ---

@@ -101,7 +101,7 @@ class CacheManagerTest extends TestCase
      */
     public function testItGeneratesCachePathForValidUrl(): void
     {
-        $apiBase = 'https://api.example.com:8080';
+        $apiBase = 'https://api.example.com:3300';
         $method = 'GET';
         $path = '/api/v1/data';
 

@@ -295,10 +295,18 @@ For development and testing only:
 
 ```bash
 cd /path/to/mata-dashboard
-php -S 0.0.0.0:8001 -t public/
+php -S 0.0.0.0:3300 -t public/
 ```
 
-Access at: `http://localhost:8001/`
+Access at: `http://localhost:3300/`
+
+!!! info "Default Ports (Decade-Spaced)"
+    MATA uses decade-spaced ports for clean separation:
+    - Dashboard: 3300
+    - Node API: 3310
+    - OPA Service: 3320
+    - MkDocs: 3330
+    - MySQL: 3306 (standard)
 
 !!! warning "Not for Production"
     The PHP built-in server is not suitable for production use. Use Apache or Nginx for production deployments.
@@ -310,7 +318,7 @@ Access at: `http://localhost:8001/`
 ```bash
 docker run -d \
     --name mata-dashboard \
-    -p 8001:80 \
+    -p 3300:80 \
     -v $(pwd):/var/www/html \
     -w /var/www/html \
     php:8.3-apache \
@@ -320,6 +328,8 @@ docker run -d \
            a2enmod rewrite && \
            apache2-foreground"
 ```
+
+Access at: `http://localhost:3300/`
 
 ### Docker Compose
 
@@ -331,7 +341,7 @@ services:
   mata:
     image: php:8.3-apache
     ports:
-      - "8001:80"
+      - "3300:80"  # Dashboard web interface
     volumes:
       - .:/var/www/html
     working_dir: /var/www/html/public
@@ -359,6 +369,8 @@ services:
 volumes:
   mysql_data:
 ```
+
+Access dashboard at: `http://localhost:3300/`
 
 Start services:
 
