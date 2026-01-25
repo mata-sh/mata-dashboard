@@ -5,101 +5,133 @@
         "security_note": "NEVER commit servers.json to version control - it contains API keys",
         "api_key_generation": "Generate secure API keys with: openssl rand -hex 32"
     },
-    
     "production-web-server": {
         "title": "Production Server",
         "active": true,
-        "url": "https://your-production-server.com/",
-        "api_url": "https://your-production-server.com/mata-node/api",
+        "url": "https://app.yourdomain.com/",
+        "api_url": "https://mata.api.yourdomain.com/",
         "api_key": "your_secure_api_key_here_32_characters",
         "primary_color": "#28a745",
         "secondary_color": "#ffffff",
         "info": "Production Web Server - Main Application",
         "check_disk_space": "on"
     },
-    
     "staging-server": {
         "title": "Staging Server",
-        "url": "https://staging.your-domain.com/",
-        "api_url": "https://staging.your-domain.com/mata-node/api", 
+        "url": "https://staging.yourdomain.com/",
+        "api_url": "https://mata.api.staging.yourdomain.com/",
         "api_key": "another_secure_api_key_32_characters",
         "primary_color": "#ffc107",
         "secondary_color": "#212529",
         "info": "Staging Environment - Testing & QA",
         "check_disk_space": "on"
     },
-    
     "development-server": {
         "title": "Development Server",
-        "url": "https://dev.your-domain.com/",
-        "api_url": "https://dev.your-domain.com/mata-node/api",
+        "url": "http://localhost:3300/",
+        "api_url": "http://localhost:3310/",
         "api_key": "dev_environment_api_key_32_chars",
+        "allow_http": "on",
         "primary_color": "#17a2b8",
-        "secondary_color": "#ffffff", 
-        "info": "Development Server - Testing New Features",
+        "secondary_color": "#ffffff",
+        "info": "Local Development - Docker ports 3300 (dashboard), 3310 (node API)",
         "check_disk_space": "off"
     },
-    
     "database-server": {
         "title": "Database Server",
-        "url": "https://db.your-domain.com/",
-        "api_url": "https://db.your-domain.com/mata-node/api",
+        "url": "https://db.yourdomain.com/",
+        "api_url": "https://mata.api.db.yourdomain.com/",
         "api_key": "database_server_api_key_32_chars",
         "primary_color": "#6f42c1",
         "secondary_color": "#ffffff",
         "info": "Dedicated Database Server - MySQL/MariaDB",
         "check_disk_space": "on"
     },
-    
-    "file-server": {
-        "title": "File Server",
-        "url": "192.168.1.100",
-        "api_url": "http://192.168.1.100:3301/mata-node/api",
-        "api_key": "file_server_api_key_32_characters",
-        "allow_http": "on",
-        "primary_color": "#fd7e14", 
+    "shared-hosting-example": {
+        "title": "Shared Hosting Server",
+        "url": "https://yourdomain.com/",
+        "api_url": "https://yourdomain.com/mata-node/public/",
+        "api_key": "shared_hosting_api_key_32_chars",
+        "primary_color": "#fd7e14",
         "secondary_color": "#495057",
-        "info": "Internal File Server - Document Storage",
+        "info": "Shared Hosting Example - Path-based deployment (no subdomain access)",
         "check_disk_space": "on"
     },
-    
+    "internal-server": {
+        "title": "Internal File Server",
+        "url": "http://192.168.1.100/",
+        "api_url": "http://192.168.1.100:3310/",
+        "api_key": "internal_server_api_key_32_chars",
+        "allow_http": "on",
+        "primary_color": "#e83e8c",
+        "secondary_color": "#ffffff",
+        "info": "Internal Network - Private IP with custom port (decade-spaced)",
+        "check_disk_space": "on"
+    },
     "load-balancer": {
         "title": "Load Balancer",
-        "url": "https://lb.your-domain.com/",
-        "api_url": "https://lb.your-domain.com/mata-node/api",
+        "url": "https://lb.yourdomain.com/",
+        "api_url": "https://mata.api.lb.yourdomain.com/",
         "api_key": "load_balancer_api_key_32_chars",
-        "primary_color": "#e83e8c",
+        "primary_color": "#6c757d",
         "secondary_color": "#ffffff",
         "info": "Load Balancer - Traffic Distribution",
         "check_disk_space": "off"
     },
-    
-    "backup-server": {
-        "title": "Backup Server",
-        "url": "backup.your-domain.com",
-        "api_url": "https://backup.your-domain.com/mata-node/api",
-        "api_key": "backup_server_api_key_32_chars",
-        "primary_color": "#6c757d",
-        "secondary_color": "#ffffff",
-        "info": "Backup Server - Daily Backups & Archives",
-        "check_disk_space": "on"
+    "_DEPLOYMENT_STRATEGIES": {
+        "subdomain_recommended": {
+            "description": "RECOMMENDED: Use subdomains for cleaner URLs and better scalability",
+            "examples": [
+                "Dashboard: https://monitor.yourdomain.com/",
+                "Node API:  https://api.yourdomain.com/",
+                "OR",
+                "Dashboard: https://mata.yourdomain.com/",
+                "Node API:  https://mata.api.yourdomain.com/"
+            ],
+            "benefits": [
+                "Clean, professional URLs",
+                "Easier SSL/TLS certificate management",
+                "Better separation of concerns",
+                "Simpler reverse proxy configuration",
+                "Easy to move services to different servers later",
+                "Better for load balancing and CDN integration"
+            ],
+            "nginx_example": "server { server_name api.yourdomain.com; root /var/www/mata-node/public; ... }",
+            "apache_example": "<VirtualHost *:443>\n  ServerName api.yourdomain.com\n  DocumentRoot /var/www/mata-node/public\n  ...\n</VirtualHost>"
+        },
+        "path_based_fallback": {
+            "description": "Path-based deployment for shared hosting or limited subdomain access",
+            "example": "https://yourdomain.com/mata-node/public/",
+            "use_cases": [
+                "Shared hosting without subdomain control",
+                "Temporary setups or quick testing",
+                "Single-domain SSL certificate scenarios"
+            ],
+            "note": "Requires careful .htaccess/nginx configuration to prevent public access to non-public directories"
+        },
+        "local_development": {
+            "description": "Docker development uses decade-spaced ports",
+            "dashboard": "http://localhost:3300/",
+            "node_api": "http://localhost:3310/",
+            "opa_service": "http://localhost:3320/",
+            "note": "Use allow_http: \"on\" for local HTTP testing"
+        }
     },
-    
     "_CONFIGURATION_NOTES": {
         "active": "Enable/disable monitoring for this server (true/false) - defaults to true if not specified. When false, no metrics are collected and server is hidden from dashboard.",
         "title": "Display name for the server shown in the dashboard",
         "url": "The base URL of the server (with or without trailing slash)",
-        "api_url": "Full API endpoint URL for the MATA Node API",
+        "api_url": "Full API endpoint URL for the MATA Node API - RECOMMENDED: use subdomain (https://api.yourdomain.com/)",
         "api_key": "Secure API key for authentication (must match node configuration)",
+        "allow_http": "Set to \"on\" for HTTP connections (local dev only) - production must use HTTPS",
         "primary_color": "Hex color code for server identification in dashboard",
         "secondary_color": "Secondary color for UI theming",
         "info": "Human-readable description of the server's purpose",
         "check_disk_space": "Enable/disable disk space monitoring (on/off) - optional field"
     },
-    
     "_COLOR_EXAMPLES": {
         "green_success": "#28a745",
-        "blue_primary": "#007bff", 
+        "blue_primary": "#007bff",
         "yellow_warning": "#ffc107",
         "red_danger": "#dc3545",
         "purple_info": "#6f42c1",
@@ -109,21 +141,32 @@
         "teal_modern": "#20c997",
         "indigo_corporate": "#6610f2"
     },
-    
     "_API_SETUP_INSTRUCTIONS": [
         "1. Install MATA Node on each server you want to monitor",
-        "2. Configure the node with the same API key specified here",
-        "3. Ensure the API endpoint is accessible from your dashboard server",
-        "4. Test connectivity using: curl -H 'X-API-Key: your_key' https://server/mata-node/api/health",
-        "5. The node should respond with JSON containing server metrics"
+        "2. RECOMMENDED: Configure subdomain pointing to node's public directory",
+        "   Example: mata.api.yourdomain.com -> /var/www/mata-node/public",
+        "3. Configure the node with the same API key specified here",
+        "4. Ensure the API endpoint is accessible from your dashboard server",
+        "5. Test connectivity: curl -H 'X-API-Key: your_key' https://mata.api.yourdomain.com/health",
+        "6. For shared hosting, use path-based: https://yourdomain.com/mata-node/public/",
+        "7. For local development, use ports: http://localhost:3310/ (decade-spaced)"
     ],
-    
     "_SECURITY_CHECKLIST": [
         "✓ Generated unique API keys for each server (minimum 32 characters)",
-        "✓ API keys are stored securely and not committed to version control", 
-        "✓ HTTPS is used for all API communications",
+        "✓ API keys are stored securely and not committed to version control",
+        "✓ HTTPS is used for all API communications (except local dev)",
+        "✓ Subdomain DNS records configured with proper SSL certificates",
         "✓ Firewall rules restrict API access to authorized IP addresses",
         "✓ API keys are rotated regularly (recommended: every 90 days)",
         "✓ Remove this example file from production servers"
-    ]
+    ],
+    "_PORT_CONVENTION": {
+        "description": "MATA uses decade-spaced ports for local development",
+        "dashboard": "3300 (WEB_PORT)",
+        "node_api": "3310 (NODE_PORT)",
+        "opa_service": "3320 (OPA_PORT)",
+        "mkdocs": "3330 (MKDOCS_PORT)",
+        "mysql": "3306 (MYSQL_PORT - standard)",
+        "note": "Decade spacing allows multiple stacks (e.g., 2nd stack: 3400, 3410, 3420...)"
+    }
 }

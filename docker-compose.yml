@@ -23,7 +23,6 @@ services:
     environment:
       # Override only Docker-specific infrastructure settings
       # Application settings come from config/*.env files
-      - APP_ENV=${APP_ENV:-prod}
       - DB_HOST=mata-db
     depends_on:
       mata-db:
