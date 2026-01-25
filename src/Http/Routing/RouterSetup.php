@@ -55,6 +55,7 @@ class RouterSetup
      */
     public function setup(): void
     {
+        $this->setupHealthCheck();
         $this->setupRateLimiting();
         $this->setupIpWhitelist();
         $this->setupParameterValidation();
@@ -63,6 +64,25 @@ class RouterSetup
         $this->setupWatchRoutes();
         $this->setupMetricsRoutes();
         $this->setup404Handler();
+    }
+
+    /**
+     * Configure health check endpoint for container monitoring.
+     * This endpoint is unauthenticated and excluded from rate limiting.
+     */
+    private function setupHealthCheck(): void
+    {
+        $this->endpoints->register('health', '/health');
+        $this->router->get('/health', function () {
+            http_response_code(200);
+            header('Content-Type: application/json');
+            echo json_encode([
+                'status' => 'healthy',
+                'timestamp' => time(),
+            ]);
+
+            exit;
+        });
     }
 
     /**
