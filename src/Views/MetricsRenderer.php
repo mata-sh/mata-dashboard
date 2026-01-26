@@ -98,7 +98,7 @@ class MetricsRenderer extends BaseRenderer
             ],
             'routes' => [
                 'refresh' => sprintf(
-                    '/api/metrics/server/%s/%s?%s',
+                    '/api/metrics/%s/%s?%s',
                     rawurlencode($serverName),
                     rawurlencode($metricSlug),
                     http_build_query($queryParams)
@@ -108,7 +108,7 @@ class MetricsRenderer extends BaseRenderer
                 'element_id' => $this->generateHtmlId($serverName, $metricKey . '-chart'),
                 'series' => $series,
                 'json_url' => sprintf(
-                    '/api/metrics/server/%s/%s/json?%s',
+                    '/api/metrics/%s/%s?%s',
                     rawurlencode($serverName),
                     rawurlencode($metricSlug),
                     http_build_query($jsonParams)
@@ -152,14 +152,6 @@ class MetricsRenderer extends BaseRenderer
             $payload['cache'] = $cache;
         }
 
-        return new JsonResponse($payload);
-    }
-
-    /**
-     * @param array<string,mixed> $payload
-     */
-    public function renderDashboardMetricsJson(array $payload): JsonResponse
-    {
         return new JsonResponse($payload);
     }
 

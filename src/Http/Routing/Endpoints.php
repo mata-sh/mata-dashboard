@@ -29,10 +29,49 @@ class Endpoints
      * @param string $name The route name
      *
      * @return null|string The route path or null if not found
+     *
+     * @deprecated Use url() instead for consistency
      */
     public function get(string $name): ?string
     {
         return $this->routes[$name] ?? null;
+    }
+
+    /**
+     * Generate a URL for a named route with optional parameters.
+     *
+     * Substitutes placeholders like {server}, {metric} with provided values.
+     * Automatically handles URL encoding for parameter values.
+     *
+     * @param string               $name   Route name
+     * @param array<string,string> $params Parameters to substitute into route placeholders
+     *
+     * @return null|string The generated URL or null if route not found
+     *
+     * @example $endpoints->url('login') // '/login'
+     * @example $endpoints->url('metrics_server', ['server' => 'prod', 'metric' => 'cpu']) // '/api/metrics/prod/cpu'
+     */
+    public function url(string $name, array $params = []): ?string
+    {
+        $route = $this->routes[$name] ?? null;
+
+        if ($route === null) {
+            return null;
+        }
+
+        // No parameters, return route as-is
+        if ($params === []) {
+            return $route;
+        }
+
+        // Replace placeholders with URL-encoded parameter values
+        $url = $route;
+        foreach ($params as $key => $value) {
+            $placeholder = '{' . $key . '}';
+            $url = str_replace($placeholder, rawurlencode((string) $value), $url);
+        }
+
+        return $url;
     }
 
     /**

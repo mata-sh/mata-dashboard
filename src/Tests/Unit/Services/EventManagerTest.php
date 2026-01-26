@@ -251,7 +251,7 @@ final class EventManagerTest extends TestCase
     private function createConfig(bool $alarmsEnabled, bool $eventsEnabled): ApplicationConfig
     {
         return new ApplicationConfig(
-            environment: new EnvironmentConfig('prod', 'example.com', '/srv/app'),
+            environment: new EnvironmentConfig('prod', 'example.com', '/srv/app', ''),
             general: new GeneralConfig('Test Org', false, false, [], $alarmsEnabled, $eventsEnabled),
             dashboard: new DashboardConfig(3, 1200),
             template: new TemplateConfig(false),

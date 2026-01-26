@@ -100,6 +100,9 @@ class ModalRenderer extends BaseRenderer
                 'server' => $server,
                 'name' => $app,
             ],
+            'endpoints' => [
+                'errorlog_json' => "/api/errorlog/{$server}/{$app}",
+            ],
             'icons' => $this->getModalIcons(),
             'cache' => [
                 'age' => $this->tools->formatDuration($cacheAge),

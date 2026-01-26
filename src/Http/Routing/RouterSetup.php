@@ -62,6 +62,7 @@ class RouterSetup
         $this->setupLoginRoutes();
         $this->setupWatchAuth();
         $this->setupWatchRoutes();
+        $this->setupApiRoutes();
         $this->setupMetricsRoutes();
         $this->setup404Handler();
     }
@@ -121,8 +122,9 @@ class RouterSetup
             }
         });
 
-        // API metrics routes - higher limits for data-heavy operations
-        $this->router->before('GET|POST', '/api/metrics/.*', function () {
+        // API routes - higher limits for data-heavy operations
+        // Covers both /api/* (events, alarms, libraries, errorlog) and /api/metrics/*
+        $this->router->before('GET|POST', '/api/.*', function () {
             if ($this->app->rateLimiter->isRateLimited('api')) {
                 http_response_code(429);
                 header('Content-Type: application/json');
@@ -248,11 +250,8 @@ class RouterSetup
                 ['servers_render', '/servers', 'get', fn () => $this->dashboardController->renderServersOverview()],
                 ['cronjobs_render', '/cronjobs', 'get', fn () => $this->dashboardController->renderCronjobsOverview()],
                 ['events_render', '/events', 'get', fn () => $this->dashboardController->renderEventsOverview()],
-                ['events_json', '/events/json', 'get', fn () => $this->dashboardController->getEventsJson()],
                 ['alarms_render', '/alarms', 'get', fn () => $this->dashboardController->renderAlarmsOverview()],
-                ['alarms_json', '/alarms/json', 'get', fn () => $this->dashboardController->getAlarmsJson()],
                 ['libraries_render', '/libraries', 'get', fn () => $this->dashboardController->renderLibrariesOverview()],
-                ['libraries_json', '/libraries/json', 'get', fn () => $this->dashboardController->getLibrariesJson()],
                 ['databases_render', '/databases', 'get', fn () => $this->dashboardController->renderDatabasesOverview()],
                 ['settings_render', '/settings', 'get', fn () => $this->dashboardController->renderSettingsOverview()],
                 ['database_notice_ack', '/database-notice/ack/{action}', 'get', fn ($action) => $this->dashboardController->acknowledgeDatabaseNotice($action)],
@@ -275,9 +274,9 @@ class RouterSetup
                 ['modal_app_readme_refresh', '/modal/{server}/{app}/readme/refresh', 'get', fn ($server, $app) => $this->modalController->renderAppReadme($server, $app, forceRefresh: true)],
                 ['modal_app_errorlog_render', '/modal/{server}/{app}/errorlog', 'get', fn ($server, $app) => $this->modalController->renderAppErrorlog($server, $app)],
                 ['modal_app_errorlog_refresh', '/modal/{server}/{app}/errorlog/refresh', 'get', fn ($server, $app) => $this->modalController->renderAppErrorlog($server, $app, forceRefresh: true)],
-                ['modal_app_errorlog_json', '/modal/{server}/{app}/errorlog/json', 'get', fn ($server, $app) => $this->modalController->renderAppErrorlogJson($server, $app, forceRefresh: true)],
                 ['modal_server_info_render', '/modal/{server}/info', 'get', fn ($server) => $this->modalController->renderServerInfo($server)],
                 ['modal_server_info_refresh', '/modal/{server}/info/refresh', 'get', fn ($server) => $this->modalController->renderServerInfo($server, forceRefresh: true)],
+                ['modal_server_process_count_render', '/modal/{server}/process-count', 'get', fn ($server) => $this->metricsController->renderProcessCountModal($server)],
             ];
 
             // Register routes
@@ -300,15 +299,35 @@ class RouterSetup
     }
 
     /**
-     * Configure metrics API routes for JSON endpoints (/api/metrics/*).
+     * Configure API routes for JSON data endpoints (/api/*).
+     * All endpoints return JSON responses.
+     */
+    private function setupApiRoutes(): void
+    {
+        $this->mount('/api', function () {
+            $apiRoutes = [
+                ['events_json', '/events', 'get', fn () => $this->dashboardController->getEventsJson()],
+                ['alarms_json', '/alarms', 'get', fn () => $this->dashboardController->getAlarmsJson()],
+                ['libraries_json', '/libraries', 'get', fn () => $this->dashboardController->getLibrariesJson()],
+                ['app_errorlog_json', '/errorlog/{server}/{app}', 'get', fn ($server, $app) => $this->modalController->getAppErrorlogJson($server, $app, forceRefresh: true)],
+            ];
+
+            foreach ($apiRoutes as [$name, $path, $method, $handler]) {
+                $this->registerRoute($name, $path, $method, $handler);
+            }
+        });
+    }
+
+    /**
+     * Configure metrics API routes for JSON data endpoints (/api/metrics/*).
+     * All endpoints return JSON time-series and aggregated metrics data.
      */
     private function setupMetricsRoutes(): void
     {
         $this->mount('/api/metrics', function () {
             $metricsApiRoutes = [
-                ['metrics_process_modal', '/server/{server}/process-count', 'get', fn ($server) => $this->metricsController->renderProcessCountModal($server)],
-                ['metrics_server_json', '/server/{server}/{metric}/json', 'get', fn ($server, $metric) => $this->metricsController->getServerMetricSeries($server, $metric)],
-                ['metrics_server_multi_json', '/server/{server}/compare/json', 'get', fn ($server) => $this->metricsController->getServerMultiMetricSeries($server)],
+                ['metrics_server', '/{server}/{metric}', 'get', fn ($server, $metric) => $this->metricsController->getServerMetricSeries($server, $metric)],
+                ['metrics_server_multi', '/{server}/compare', 'get', fn ($server) => $this->metricsController->getServerMultiMetricSeries($server)],
                 ['metrics_dashboard_data', '/dashboard', 'get', fn () => $this->metricsController->getDashboardMetricsData()],
             ];
 
@@ -375,8 +394,8 @@ class RouterSetup
             }
         });
 
-        // Validate metrics HTML modal route parameters
-        $this->router->before('GET', '/api/metrics/server/([^/]+)/process-count', function ($server) {
+        // Validate process count modal route parameters
+        $this->router->before('GET', '/watch/modal/([^/]+)/process-count', function ($server) {
             if (
                 !filter_var($server, FILTER_VALIDATE_REGEXP, [
                     'options' => ['regexp' => '/^[a-zA-Z0-9_\-\.]+$/'],
@@ -387,7 +406,7 @@ class RouterSetup
         });
 
         // Validate metrics JSON route parameters
-        $this->router->before('GET', '/api/metrics/server/([^/]+)/([^/]+)/json', function ($server, $metric) {
+        $this->router->before('GET', '/api/metrics/([^/]+)/([^/]+)', function ($server, $metric) {
             $serverValid = filter_var($server, FILTER_VALIDATE_REGEXP, [
                 'options' => ['regexp' => '/^[a-zA-Z0-9_\-\.]+$/'],
             ]);
@@ -402,13 +421,28 @@ class RouterSetup
         });
 
         // Validate multi-metric comparison route parameters
-        $this->router->before('GET', '/api/metrics/server/([^/]+)/compare/json', function ($server) {
+        $this->router->before('GET', '/api/metrics/([^/]+)/compare', function ($server) {
             if (
                 !filter_var($server, FILTER_VALIDATE_REGEXP, [
                     'options' => ['regexp' => '/^[a-zA-Z0-9_\-\.]+$/'],
                 ])
             ) {
                 throw new InvalidArgumentException('Invalid server parameter');
+            }
+        });
+
+        // Validate errorlog API route parameters
+        $this->router->before('GET', '/api/errorlog/([^/]+)/([^/]+)', function ($server, $app) {
+            $serverValid = filter_var($server, FILTER_VALIDATE_REGEXP, [
+                'options' => ['regexp' => '/^[a-zA-Z0-9_\-\.]+$/'],
+            ]);
+
+            $appValid = filter_var($app, FILTER_VALIDATE_REGEXP, [
+                'options' => ['regexp' => '/^[a-zA-Z0-9_\-\.]+$/'],
+            ]);
+
+            if ($serverValid === false || $appValid === false) {
+                throw new InvalidArgumentException('Invalid errorlog API route parameter');
             }
         });
     }

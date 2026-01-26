@@ -413,14 +413,10 @@ class ModalControllerTest extends TestCase
 
         $this->injectMockCollector($server, $mockCollector);
 
-        $response = $this->controller->renderAppErrorlog($server, $app, json: true);
+        $response = $this->controller->getAppErrorlogJson($server, $app);
 
         $this->assertInstanceOf(JsonResponse::class, $response);
-        $this->assertEquals([
-            'result' => $errorLogData,
-            'cache_age' => 30,
-            'cache_ttl' => 60,
-        ], $response->getData());
+        $this->assertEquals($errorLogData, $response->getData());
     }
 
     /**
@@ -430,8 +426,8 @@ class ModalControllerTest extends TestCase
      * @group errorlog-modal
      * @group json-endpoint
      *
-     * Tests dedicated JSON error log endpoint. This is similar to the previous
-     * test but uses a separate method specifically designed for JSON responses.
+     * Tests dedicated JSON error log endpoint.
+     * Separate methods for HTML vs JSON provide clearer semantics.
      */
     public function testItReturnsErrorlogJsonViaDedicatedEndpoint(): void
     {
@@ -454,7 +450,7 @@ class ModalControllerTest extends TestCase
 
         $this->injectMockCollector($server, $mockCollector);
 
-        $response = $this->controller->renderAppErrorlogJson($server, $app);
+        $response = $this->controller->getAppErrorlogJson($server, $app);
 
         $this->assertInstanceOf(JsonResponse::class, $response);
         $this->assertEquals($errorLogData, $response->getData());
@@ -1017,7 +1013,7 @@ MARKDOWN;
     private function createTestApplicationConfig(string $env = 'production'): ApplicationConfig
     {
         return ApplicationConfigFactory::create(
-            environment: new EnvironmentConfig($env, 'test.local', '/test/dir')
+            environment: new EnvironmentConfig($env, 'test.local', '/test/dir', '')
         );
     }
 }

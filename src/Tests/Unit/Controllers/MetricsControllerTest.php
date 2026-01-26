@@ -69,7 +69,7 @@ class MetricsControllerTest extends TestCase
         ;
         $this->mockRenderer = $this->getMockBuilder(MetricsRenderer::class)
             ->disableOriginalConstructor()
-            ->onlyMethods(['renderDashboardOverview', 'renderProcessCountModal', 'renderMetricsJson', 'renderDashboardMetricsJson', 'renderValidationError', 'renderError'])
+            ->onlyMethods(['renderDashboardOverview', 'renderProcessCountModal', 'renderMetricsJson', 'renderValidationError', 'renderError'])
             ->getMock()
         ;
         $this->mockCacheService = $this->getMockBuilder(MetricsCacheService::class)
@@ -292,20 +292,11 @@ class MetricsControllerTest extends TestCase
         ;
 
         $mockJsonResponse = $this->createMock(JsonResponse::class);
-        $mockJsonResponse->method('getStatusCode')->willReturn(200);
-        $mockJsonResponse->method('getContent')->willReturn(json_encode($cachedPayload));
-
-        $this->mockRenderer
-            ->expects($this->once())
-            ->method('renderDashboardMetricsJson')
-            ->with($cachedPayload)
-            ->willReturn($mockJsonResponse)
-        ;
-
         // Act: Fetch dashboard metrics data
         $response = $this->controller->getDashboardMetricsData();
 
-        // Assert: Verify cache was used (no build call) and response is valid
+        // Assert: Verify cache was used (no build call) and response is valid JSON
+        $this->assertInstanceOf(JsonResponse::class, $response);
         $this->assertEquals(200, $response->getStatusCode());
         $content = json_decode($response->getContent(), true);
         $this->assertTrue($content['cache']['from_cache']);
@@ -458,14 +449,13 @@ class MetricsControllerTest extends TestCase
             ->with('cache-key', $freshPayload, 60)
         ;
 
-        $mockJsonResponse = $this->createMock(JsonResponse::class);
-        $this->mockRenderer->method('renderDashboardMetricsJson')->willReturn($mockJsonResponse);
-
         // Act: Fetch with force refresh
         $response = $this->controller->getDashboardMetricsData();
 
-        // Assert: Verify build was called (no cache hit)
-        $this->assertInstanceOf(Response::class, $response);
+        // Assert: Verify build was called (no cache hit) and returns JSON
+        $this->assertInstanceOf(JsonResponse::class, $response);
+        $content = json_decode($response->getContent(), true);
+        $this->assertFalse($content['cache']['from_cache']);
     }
 
     // ═══════════════════════════════════════════════════════════════════════

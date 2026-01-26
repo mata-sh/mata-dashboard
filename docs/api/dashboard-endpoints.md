@@ -15,8 +15,12 @@ The dashboard exposes internal endpoints for:
 
 All dashboard endpoints follow these patterns:
 - **Authentication**: `/login`, `/logout`
-- **Dashboard Views**: `/watch/*`
-- **Metrics API**: `/api/metrics/*`
+- **Dashboard Views (HTML)**: `/watch/*`
+- **API (JSON Data)**: `/api/*`
+  - Events, alarms, libraries data
+  - Application errorlogs
+  - Server metrics and comparison data
+  - Dashboard metrics summary
 
 ## Authentication Endpoints
 
@@ -212,7 +216,7 @@ Render libraries overview for all applications.
 
 ---
 
-### GET /watch/libraries/json
+### GET /api/libraries
 
 Retrieve libraries data in JSON format for frontend processing.
 
@@ -263,7 +267,7 @@ Render events log view.
 
 ---
 
-### GET /watch/events/json
+### GET /api/events
 
 Retrieve events data in JSON format.
 
@@ -279,7 +283,7 @@ Retrieve events data in JSON format.
 **Example Request:**
 
 ```http
-GET /watch/events/json?limit=50&level=critical HTTP/1.1
+GET /api/events?limit=50&level=critical HTTP/1.1
 ```
 
 **Response Format:**
@@ -320,11 +324,11 @@ Render alarms log view.
 
 ---
 
-### GET /watch/alarms/json
+### GET /api/alarms
 
 Retrieve alarms data in JSON format.
 
-**Query Parameters:** Similar to `/watch/events/json`
+**Query Parameters:** Similar to `/api/events`
 
 **Response Format:**
 
@@ -428,9 +432,13 @@ Force refresh error log from node.
 
 ---
 
-### GET /watch/modal/{server}/{app}/errorlog/json
+### GET /api/errorlog/{server}/{app}
 
 Retrieve error log in JSON format.
+
+**Path Parameters:**
+- `server`: Server identifier
+- `app`: Application code
 
 **Response Format:**
 
@@ -473,11 +481,38 @@ Force refresh server information.
 
 ---
 
+### GET /watch/modal/{server}/process-count
+
+Render process count modal with time-series chart.
+
+**Path Parameters:**
+- `server`: Server identifier
+
+**Query Parameters:**
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `range` | string | 30d | Time range (e.g., 24h, 7d, 30d, 60d) |
+
+**Response:** HTML modal with:
+- Process count time-series chart
+- Daily aggregated data
+- Historical trends
+- Cache metadata
+
+**Example Request:**
+
+```http
+GET /watch/modal/production-web/process-count?range=60d HTTP/1.1
+```
+
+---
+
 ## Metrics API Endpoints
 
 JSON API endpoints for charts and metrics visualization.
 
-### GET /api/metrics/server/{server}/{metric}/json
+### GET /api/metrics/{server}/{metric}
 
 Retrieve time-series data for a specific server metric.
 
@@ -489,13 +524,13 @@ Retrieve time-series data for a specific server metric.
 
 | Parameter | Type | Default | Description |
 |-----------|------|---------|-------------|
-| `period` | string | 24h | Time period (1h, 6h, 24h, 7d, 30d) |
+| `range` | string | 24h | Time range (1h, 6h, 24h, 7d, 30d, 60d) |
 | `granularity` | string | auto | Data granularity (raw, hourly, daily) |
 
 **Example Request:**
 
 ```http
-GET /api/metrics/server/production-web/cpu_usage/json?period=24h HTTP/1.1
+GET /api/metrics/production-web/cpu_usage?range=24h HTTP/1.1
 ```
 
 **Response Format:**
@@ -529,21 +564,25 @@ GET /api/metrics/server/production-web/cpu_usage/json?period=24h HTTP/1.1
 
 ---
 
-### GET /api/metrics/server/{server}/compare/json
+### GET /api/metrics/{server}/compare
 
 Retrieve multiple metrics for comparison charts.
+
+**Path Parameters:**
+- `server`: Server identifier
 
 **Query Parameters:**
 
 | Parameter | Type | Default | Description |
 |-----------|------|---------|-------------|
 | `metrics` | string | all | Comma-separated metric names |
-| `period` | string | 24h | Time period |
+| `range` | string | 24h | Time range (1h, 6h, 24h, 7d, 30d, 60d) |
+| `granularity` | string | auto | Data granularity (raw, hourly, daily) |
 
 **Example Request:**
 
 ```http
-GET /api/metrics/server/production-web/compare/json?metrics=cpu_usage,memory_used&period=6h
+GET /api/metrics/production-web/compare?metrics=cpu_usage,memory_used&range=6h
 ```
 
 **Response Format:**
@@ -564,19 +603,6 @@ GET /api/metrics/server/production-web/compare/json?metrics=cpu_usage,memory_use
 ```
 
 **Content-Type:** `application/json`
-
----
-
-### GET /api/metrics/server/{server}/process-count
-
-Render process count modal with detailed breakdown.
-
-**Response:** HTML modal content showing:
-- Total processes
-- PHP processes
-- SQL processes
-- Other processes
-- Process list table
 
 ---
 
@@ -613,6 +639,34 @@ Retrieve dashboard-wide metrics summary.
 ```
 
 **Content-Type:** `application/json`
+
+---
+
+## API Endpoints Summary
+
+All JSON data endpoints are consolidated under `/api/*` for clear separation from HTML views.
+
+### Data API Endpoints (`/api/*`)
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/events` | GET | Retrieve events log in JSON format |
+| `/api/alarms` | GET | Retrieve alarms log in JSON format |
+| `/api/libraries` | GET | Retrieve libraries comparison data |
+| `/api/errorlog/{server}/{app}` | GET | Retrieve application error log |
+
+### Metrics API Endpoints (`/api/metrics/*`)
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/metrics/{server}/{metric}` | GET | Time-series data for a specific metric |
+| `/api/metrics/{server}/compare` | GET | Multiple metrics comparison data |
+| `/api/metrics/dashboard` | GET | Dashboard-wide metrics summary |
+
+**Notes:**
+- All API endpoints require authentication
+- Rate limiting applies to all `/api/*` routes
+- Responses are JSON unless otherwise specified
 
 ---
 
@@ -827,7 +881,7 @@ curl -b cookies.txt \
 
 # Get JSON data
 curl -b cookies.txt \
-  http://localhost:3300/watch/events/json?limit=10
+  http://localhost:3300/api/events?limit=10
 ```
 
 ### Using Browser DevTools

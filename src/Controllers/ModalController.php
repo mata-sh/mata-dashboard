@@ -190,18 +190,16 @@ class ModalController extends BaseController
      * Fetch and render error log content for a app.
      *
      * @param bool $forceRefresh Whether to bypass cache
-     * @param bool $json         Whether to return JSON format
      *
      * @return Response Rendered modal HTML or JSON response
      */
     public function renderAppErrorlog(
         string $server,
         string $app,
-        bool $forceRefresh = false,
-        bool $json = false
+        bool $forceRefresh = false
     ): Response {
         return $this->executeWithErrorHandling(
-            function () use ($server, $app, $forceRefresh, $json) {
+            function () use ($server, $app, $forceRefresh) {
                 if (!isset($this->serverDataCollectors[$server])) {
                     return $this->handleNotFound("Server '{$server}'", 'Errorlog request');
                 }
@@ -211,10 +209,6 @@ class ModalController extends BaseController
 
                 if ($errorlogResponse === null) {
                     throw new Exception("Failed to fetch errorlog of {$app} on {$server} via API");
-                }
-
-                if ($json === true) {
-                    return new JsonResponse($errorlogResponse);
                 }
 
                 $html = $this->modalRenderer->renderErrorlogModal(
@@ -234,11 +228,13 @@ class ModalController extends BaseController
     /**
      * Return error log data as JSON response.
      *
-     * @param bool $forceRefresh Whether to bypass cache
+     * @param string $server       Server identifier
+     * @param string $app          Application code
+     * @param bool   $forceRefresh Whether to bypass cache
      *
      * @return Response JSON response with error log data
      */
-    public function renderAppErrorlogJson(string $server, string $app, bool $forceRefresh = false): Response
+    public function getAppErrorlogJson(string $server, string $app, bool $forceRefresh = false): Response
     {
         return $this->executeWithErrorHandling(
             function () use ($server, $app, $forceRefresh) {

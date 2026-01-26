@@ -308,8 +308,8 @@ class AuthenticationFlowTest extends TestCase
         }
 
         // Test path resolution with non-existent directories
-        $nonExistentPath = $this->pathResolver->tempPath . '/cache/deep/nested/file.json';
-        $this->assertStringContainsString('cache/deep/nested/file.json', $nonExistentPath);
+        $nonExistentPath = $this->pathResolver->tempPath . '/deep/nested/file.json';
+        $this->assertStringContainsString('deep/nested/file.json', $nonExistentPath);
 
         // Test configuration validation with missing required keys
         $this->writeEnvFile([

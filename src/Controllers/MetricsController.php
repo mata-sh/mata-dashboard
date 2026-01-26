@@ -6,6 +6,7 @@ namespace Mata\Controllers;
 
 use InvalidArgumentException;
 use Mata\Http\Responses\HtmlResponse;
+use Mata\Http\Responses\JsonResponse;
 use Mata\Http\Responses\Response;
 use Mata\Services\Cache\MetricsCacheService;
 use Mata\Services\Validation\MetricsRequestValidator;
@@ -147,7 +148,7 @@ final class MetricsController extends BaseController
 
                 $cachedPayload = $this->cacheService->readDashboardCache($cacheKey, $this->dashboardCacheTtl, $forceRefresh);
                 if ($cachedPayload !== null) {
-                    return $this->metricsRenderer->renderDashboardMetricsJson($cachedPayload);
+                    return new JsonResponse($cachedPayload);
                 }
 
                 $payload = $this->chartViewBuilder->buildDashboardMetricsPayload(
@@ -161,7 +162,7 @@ final class MetricsController extends BaseController
 
                 $this->cacheService->writeDashboardCache($cacheKey, $payload, $this->dashboardCacheTtl);
 
-                return $this->metricsRenderer->renderDashboardMetricsJson($payload);
+                return new JsonResponse($payload);
             },
             'Failed to load dashboard metrics data',
             'MetricsController:getDashboardMetricsData'
@@ -175,8 +176,8 @@ final class MetricsController extends BaseController
      * specified time range. Defaults to 30 days with daily granularity.
      *
      * @example
-     * GET /api/metrics/server/prod-server/process-count
-     * GET /api/metrics/server/prod-server/process-count?range=60d
+     * GET /watch/modal/prod-server/process-count
+     * GET /watch/modal/prod-server/process-count?range=60d
      *
      * @param string $server Server name from servers.json config
      *
@@ -264,13 +265,13 @@ final class MetricsController extends BaseController
      *
      * @example
      * // Get CPU usage for last 24 hours with auto granularity
-     * GET /api/metrics/server/prod-server/cpu/json?range=24h&granularity=auto
+     * GET /api/metrics/prod-server/cpu?range=24h&granularity=auto
      * @example
      * // Get process count for last 30 days with daily aggregation
-     * GET /api/metrics/server/prod-server/process-count/json?range=30d&granularity=daily
+     * GET /api/metrics/prod-server/process_count?range=30d&granularity=daily
      * @example
      * // Get RAM percentage for last 7 days with hourly granularity
-     * GET /api/metrics/server/prod-server/ram-percent/json?range=7d&granularity=hourly
+     * GET /api/metrics/prod-server/ram_percent?range=7d&granularity=hourly
      *
      * @param string $server Server name from servers.json config
      * @param string $metric Metric key (cpu, ram_percent, disk_percent, process_count, etc.)
@@ -356,10 +357,10 @@ final class MetricsController extends BaseController
      *
      * @example
      * // Compare CPU, RAM, and Disk usage over last 24 hours
-     * GET /api/metrics/server/prod-server/compare/json?metrics=cpu,ram_percent,disk_percent&range=24h&granularity=auto
+     * GET /api/metrics/prod-server/compare?metrics=cpu,ram_percent,disk_percent&range=24h&granularity=auto
      * @example
      * // Compare RAM used vs disk used over last 7 days
-     * GET /api/metrics/server/prod-server/compare/json?metrics=ram_used,disk_used&range=7d&granularity=daily
+     * GET /api/metrics/prod-server/compare?metrics=ram_used,disk_used&range=7d&granularity=daily
      *
      * @param string $server Server name from servers.json config
      *
