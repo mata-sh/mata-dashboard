@@ -11,7 +11,7 @@
       <div class="title">Range: {{ filters.range|upper }} · Granularity: {{ filters.granularity }}</div>
       <button
         class="button modal-refresh-button-top"
-        hx-get="{{ routes.refresh }}"
+        hx-get="{{ endpoints.metrics_server }}"
         hx-target="#modal-container"
         hx-trigger="click"
       >
@@ -50,7 +50,7 @@
 
     const metricLabel = '{{ chart.metric_label|e('js') }}';
     const initialSeries = {{ chart.series|json_encode|raw }};
-    const jsonUrl = '{{ chart.json_url|e('js') }}';
+    const jsonUrl = '{{ endpoints.metrics_server_json|e('js') }}';
 
     window.__mataCharts = window.__mataCharts || {};
 

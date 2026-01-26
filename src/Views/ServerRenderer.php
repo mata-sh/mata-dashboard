@@ -276,6 +276,13 @@ class ServerRenderer extends BaseRenderer
             'apps_status' => $appsHtml,
         ];
 
+        $data['endpoints'] = [
+            'modal_server_info_render' => $this->endpoints->url(
+                'modal_server_info_render',
+                ['server' => $serverName]
+            ),
+        ];
+
         return $data;
     }
 
@@ -392,6 +399,16 @@ class ServerRenderer extends BaseRenderer
                 'cache_ttl' => $this->tools->formatDuration($appsCacheTtl),
             ],
             'icons' => $this->getCommonIcons(),
+            'endpoints' => [
+                'modal_app_readme_render' => $this->endpoints->url(
+                    'modal_app_readme_render',
+                    ['server' => $server, 'app' => $app]
+                ),
+                'modal_app_errorlog_render' => $this->endpoints->url(
+                    'modal_app_errorlog_render',
+                    ['server' => $server, 'app' => $app]
+                ),
+            ],
             'logs' => [
                 'file_size_level' => $logAnalysis['log_analysis']['level'],
                 'file_size_tooltip' => $this->logRenderer->formatLogAnalysisTooltip($logAnalysis['log_analysis']),

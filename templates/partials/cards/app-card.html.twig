@@ -9,14 +9,14 @@
            data-tippy-content="Refresh {{ app.name }}">
             {{ icons.refresh_ccw|raw }}
         </a>  --> #}
-    <a class="app-readme-btn" hx-get="/watch/modal/{{ app.server }}/{{ app.key }}/readme" hx-target="#modal-container" hx-trigger="click" hx-toggle="modal">{{ icons.info|raw }}</a>
+    <a class="app-readme-btn" hx-get="{{ endpoints.modal_app_readme_render }}" hx-target="#modal-container" hx-trigger="click" hx-toggle="modal">{{ icons.info|raw }}</a>
   </span>
   {# <!--  <span class="app-libs {{ APP_ENV }}" data-tippy-content="{{ APP_PATH }}">
         <span class="libs-helper">2.0.9.2</span>
         <span class="libis-security">2.0.6.0</span>        
     </span>  --> #}
   <span class="app-env {{ app.env }}" data-tippy-content="{{ app.path }}">{{ app.env }}</span>
-  <span id="app-status-{{ app.id }}" class="app-status {{ config.errors_alarms_enabled }}" data-tippy-content="{{ app.status_tooltip|raw }}" hx-get="/watch/modal/{{ app.server }}/{{ app.key }}/errorlog" hx-target="#modal-container" hx-trigger="click" hx-toggle="modal">
+  <span id="app-status-{{ app.id }}" class="app-status {{ config.errors_alarms_enabled }}" data-tippy-content="{{ app.status_tooltip|raw }}" hx-get="{{ endpoints.modal_app_errorlog_render }}" hx-target="#modal-container" hx-trigger="click" hx-toggle="modal">
     <span class="app-status-count {{ app.status_type }}">
       {% if app.status_count %}
         {{ app.status_count }}

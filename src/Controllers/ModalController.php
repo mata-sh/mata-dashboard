@@ -176,12 +176,20 @@ class ModalController extends BaseController
                     ? $readmeResponse['result']
                     : 'No Readme.md found.';
 
+                $endpoints = [
+                    'modal_app_readme_refresh' => $this->endpoints->url(
+                        'modal_app_readme_refresh',
+                        ['server' => $server, 'app' => $app]
+                    ),
+                ];
+
                 $html = $this->modalRenderer->renderReadmeModal(
                     $markdownContent,
                     $server,
                     $app,
                     $readmeResponse['cache_age'] ?? 0,
-                    $readmeResponse['cache_ttl'] ?? 0
+                    $readmeResponse['cache_ttl'] ?? 0,
+                    $endpoints
                 );
 
                 return new HtmlResponse($html);
@@ -216,11 +224,23 @@ class ModalController extends BaseController
                     throw new Exception("Failed to fetch errorlog of {$app} on {$server} via API");
                 }
 
+                $endpoints = [
+                    'app_errorlog_json' => $this->endpoints->url('app_errorlog_json', [
+                        'server' => $server,
+                        'app' => $app,
+                    ]),
+                    'modal_app_errorlog_refresh' => $this->endpoints->url(
+                        'modal_app_errorlog_refresh',
+                        ['server' => $server, 'app' => $app]
+                    ),
+                ];
+
                 $html = $this->modalRenderer->renderErrorlogModal(
                     $server,
                     $app,
                     $errorlogResponse['cache_age'] ?? 0,
-                    $errorlogResponse['cache_ttl'] ?? 0
+                    $errorlogResponse['cache_ttl'] ?? 0,
+                    $endpoints
                 );
 
                 return new HtmlResponse($html);
@@ -292,11 +312,19 @@ class ModalController extends BaseController
                     ? $serverInfoResponse['result']
                     : [];
 
+                $endpoints = [
+                    'modal_server_info_refresh' => $this->endpoints->url(
+                        'modal_server_info_refresh',
+                        ['server' => $server]
+                    ),
+                ];
+
                 $html = $this->modalRenderer->renderServerInfoModal(
                     $serverInfo,
                     $server,
                     $serverInfoResponse['cache_age'] ?? 0,
-                    $serverInfoResponse['cache_ttl'] ?? 0
+                    $serverInfoResponse['cache_ttl'] ?? 0,
+                    $endpoints
                 );
 
                 return new HtmlResponse($html);

@@ -43,11 +43,12 @@ class ModalRenderer extends BaseRenderer
     /**
      * Build template data for README modal.
      *
-     * @param string $markdownContent Raw markdown content
-     * @param string $server          Server name
-     * @param string $app             Application name
-     * @param int    $cacheAge        Cache age in seconds
-     * @param int    $cacheTtl        Cache ttl in seconds
+     * @param string              $markdownContent Raw markdown content
+     * @param string              $server          Server name
+     * @param string              $app             Application name
+     * @param int                 $cacheAge        Cache age in seconds
+     * @param int                 $cacheTtl        Cache ttl in seconds
+     * @param array<string,mixed> $endpoints       Pre-built endpoint URLs
      *
      * @return array<string,mixed> Template data array
      */
@@ -56,7 +57,8 @@ class ModalRenderer extends BaseRenderer
         string $server,
         string $app,
         int $cacheAge,
-        int $cacheTtl
+        int $cacheTtl,
+        array $endpoints
     ): array {
         $convertedContent = $this->renderReadmeContent($markdownContent);
 
@@ -68,6 +70,7 @@ class ModalRenderer extends BaseRenderer
                 'server' => $server,
                 'name' => $app,
             ],
+            'endpoints' => $endpoints,
             'icons' => $this->getModalIcons(),
             'cache' => [
                 'age' => $this->tools->formatDuration($cacheAge),
@@ -79,10 +82,11 @@ class ModalRenderer extends BaseRenderer
     /**
      * Build template data for error log modal.
      *
-     * @param string $server   Server name
-     * @param string $app      Application name
-     * @param int    $cacheAge Cache age in seconds
-     * @param int    $cacheTtl Cache TTL in seconds
+     * @param string              $server    Server name
+     * @param string              $app       Application name
+     * @param int                 $cacheAge  Cache age in seconds
+     * @param int                 $cacheTtl  Cache TTL in seconds
+     * @param array<string,mixed> $endpoints Pre-built endpoint URLs
      *
      * @return array<string,mixed> Template data array
      */
@@ -90,7 +94,8 @@ class ModalRenderer extends BaseRenderer
         string $server,
         string $app,
         int $cacheAge,
-        int $cacheTtl
+        int $cacheTtl,
+        array $endpoints
     ): array {
         $errorLogTableHtml = $this->renderErrorlogTable($server, $app);
 
@@ -102,12 +107,7 @@ class ModalRenderer extends BaseRenderer
                 'server' => $server,
                 'name' => $app,
             ],
-            'endpoints' => [
-                'errorlog_json' => $this->endpoints->url('app_errorlog_json', [
-                    'server' => $server,
-                    'app' => $app,
-                ]),
-            ],
+            'endpoints' => $endpoints,
             'icons' => $this->getModalIcons(),
             'cache' => [
                 'age' => $this->tools->formatDuration($cacheAge),
@@ -282,10 +282,12 @@ class ModalRenderer extends BaseRenderer
     /**
      * Render complete README modal.
      *
-     * @param string $markdownContent Raw markdown content
-     * @param string $server          Server name
-     * @param string $app             Application name
-     * @param int    $cacheAge        Cache age in seconds
+     * @param string              $markdownContent Raw markdown content
+     * @param string              $server          Server name
+     * @param string              $app             Application name
+     * @param int                 $cacheAge        Cache age in seconds
+     * @param int                 $cacheTtl        Cache TTL in seconds
+     * @param array<string,mixed> $endpoints       Pre-built endpoint URLs
      *
      * @return string Rendered modal HTML
      */
@@ -294,9 +296,10 @@ class ModalRenderer extends BaseRenderer
         string $server,
         string $app,
         int $cacheAge,
-        int $cacheTtl
+        int $cacheTtl,
+        array $endpoints
     ): string {
-        $data = $this->buildReadmeModalData($markdownContent, $server, $app, $cacheAge, $cacheTtl);
+        $data = $this->buildReadmeModalData($markdownContent, $server, $app, $cacheAge, $cacheTtl, $endpoints);
 
         try {
             return $this->twig->render('partials/modals/readme-modal.html.twig', $data);
@@ -313,10 +316,11 @@ class ModalRenderer extends BaseRenderer
     /**
      * Render complete error log modal.
      *
-     * @param string $server   Server name
-     * @param string $app      Application name
-     * @param int    $cacheAge Cache age in seconds
-     * @param int    $cacheTtl Cache TTL in seconds
+     * @param string              $server    Server name
+     * @param string              $app       Application name
+     * @param int                 $cacheAge  Cache age in seconds
+     * @param int                 $cacheTtl  Cache TTL in seconds
+     * @param array<string,mixed> $endpoints Pre-built endpoint URLs
      *
      * @return string Rendered modal HTML
      */
@@ -324,9 +328,10 @@ class ModalRenderer extends BaseRenderer
         string $server,
         string $app,
         int $cacheAge,
-        int $cacheTtl
+        int $cacheTtl,
+        array $endpoints
     ): string {
-        $data = $this->buildErrorlogModalData($server, $app, $cacheAge, $cacheTtl);
+        $data = $this->buildErrorlogModalData($server, $app, $cacheAge, $cacheTtl, $endpoints);
 
         try {
             return $this->twig->render('partials/modals/errorlog-modal.html.twig', $data);
@@ -347,6 +352,7 @@ class ModalRenderer extends BaseRenderer
      * @param string              $server     Server name
      * @param int                 $cacheAge   Cache age in seconds
      * @param int                 $cacheTtl   Cache TTL in seconds
+     * @param array<string,mixed> $endpoints  Pre-built endpoint URLs
      *
      * @return array<string,mixed> Template data array
      */
@@ -354,7 +360,8 @@ class ModalRenderer extends BaseRenderer
         array $serverInfo,
         string $server,
         int $cacheAge,
-        int $cacheTtl
+        int $cacheTtl,
+        array $endpoints
     ): array {
         return [
             'server' => [
@@ -369,6 +376,7 @@ class ModalRenderer extends BaseRenderer
                 'architecture' => $serverInfo['architecture'] ?? 'N/A',
                 'hostname' => $serverInfo['hostname'] ?? 'N/A',
             ],
+            'endpoints' => $endpoints,
             'icons' => $this->getModalIcons(),
             'cache' => [
                 'age' => $this->tools->formatDuration($cacheAge),
@@ -384,6 +392,7 @@ class ModalRenderer extends BaseRenderer
      * @param string              $server     Server name
      * @param int                 $cacheAge   Cache age in seconds
      * @param int                 $cacheTtl   Cache TTL in seconds
+     * @param array<string,mixed> $endpoints  Pre-built endpoint URLs
      *
      * @return string Rendered modal HTML
      */
@@ -391,9 +400,10 @@ class ModalRenderer extends BaseRenderer
         array $serverInfo,
         string $server,
         int $cacheAge,
-        int $cacheTtl
+        int $cacheTtl,
+        array $endpoints
     ): string {
-        $data = $this->buildServerInfoModalData($serverInfo, $server, $cacheAge, $cacheTtl);
+        $data = $this->buildServerInfoModalData($serverInfo, $server, $cacheAge, $cacheTtl, $endpoints);
 
         try {
             return $this->twig->render('partials/modals/server-info-modal.html.twig', $data);

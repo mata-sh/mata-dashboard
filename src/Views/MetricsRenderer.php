@@ -103,13 +103,13 @@ class MetricsRenderer extends BaseRenderer
                 'avg' => $series['avg'] ?? null,
                 'unit' => $series['unit'] ?? '',
             ],
-            'routes' => [
-                'refresh' => $this->endpoints->url('metrics_server', $routeParams, $queryParams),
+            'endpoints' => [
+                'metrics_server' => $this->endpoints->url('metrics_server', $routeParams, $queryParams),
+                'metrics_server_json' => $this->endpoints->url('metrics_server', $routeParams, $jsonParams),
             ],
             'chart' => [
                 'element_id' => $this->generateHtmlId($serverName, $metricKey . '-chart'),
                 'series' => $series,
-                'json_url' => $this->endpoints->url('metrics_server', $routeParams, $jsonParams),
                 'metric_label' => $metricLabel,
                 'metric' => $metricKey,
             ],

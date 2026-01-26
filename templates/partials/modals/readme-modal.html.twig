@@ -7,7 +7,7 @@
         <strong>README.MD</strong> ( {{ app.name }} on {{ app.server }} )
       </div>
       <div class="title">last fetched: {{ cache.age }} ago</div>
-      <button class="button modal-refresh-button-top" hx-get="/watch/modal/{{ app.server }}/{{ app.name }}/readme/refresh" hx-target="#modal-container" hx-trigger="click">{{ icons.refresh|raw }} Refresh</button>
+      <button class="button modal-refresh-button-top" hx-get="{{ endpoints.modal_app_readme_refresh }}" hx-target="#modal-container" hx-trigger="click">{{ icons.refresh|raw }} Refresh</button>
     </div>
 
     {{ content.modal_content|raw }}
