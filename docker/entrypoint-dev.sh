@@ -8,9 +8,9 @@ echo "🔧 Setting up development environment..."
 
 # Ensure directories exist and have correct permissions
 mkdir -p \
-    /var/www/html/temp/api_cache \
+    /var/www/html/temp/api-cache \
     /var/www/html/temp/sessions \
-    /var/www/html/temp/templates_cache \
+    /var/www/html/temp/templates-cache \
     /var/www/html/logs \
     /var/www/html/config
 

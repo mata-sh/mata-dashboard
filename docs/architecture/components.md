@@ -333,7 +333,7 @@ $cacheManager->resetCacheTtl();
 
 **Cache Storage Structure:**
 ```
-temp/api_cache/
+temp/api-cache/
 ├── production-server.com/
 │   ├── GET/
 │   │   ├── apps.cache
@@ -1078,7 +1078,7 @@ Utility classes provide common functionality across the application.
 **Example Paths:**
 ```php
 PathResolver::getConfigPath('servers.json')
-PathResolver::getCachePath('api_cache')
+PathResolver::getCachePath('api-cache')
 PathResolver::getTemplatePath('pages/dashboard.html.twig')
 ```
 

@@ -272,12 +272,12 @@ Return Data (if authorized)
 
 ### Multi-Level Cache
 
-1. **File-based Cache** (`temp/api_cache/`)
+1. **File-based Cache** (`temp/api-cache/`)
    - Structured directory hierarchy
    - JSON files with metadata
    - TTL-based expiration
 
-2. **Template Cache** (`temp/templates_cache/`)
+2. **Template Cache** (`temp/templates-cache/`)
    - Twig compiled templates
    - Automatic invalidation on changes
 

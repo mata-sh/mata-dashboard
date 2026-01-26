@@ -163,10 +163,10 @@ class PathResolverTest extends TestCase
     {
         $pathResolver = new PathResolver($this->testEntryFile);
 
-        $nestedPath = $pathResolver->appPath . '/temp/api_cache/server_data/response.json';
+        $nestedPath = $pathResolver->appPath . '/temp/api-cache/server_data/response.json';
         $relativePath = $pathResolver->toRelativePath($nestedPath);
 
-        $this->assertEquals('temp/api_cache/server_data/response.json', $relativePath);
+        $this->assertEquals('temp/api-cache/server_data/response.json', $relativePath);
     }
 
     /**

@@ -316,12 +316,12 @@ Cache and temporary files (not in version control).
 
 ```
 temp/
-├── api_cache/            # API response cache
+├── api-cache/            # API response cache
 │   └── [host]/
 │       └── [method]/
 │           └── [path]/
 │               └── cache.json
-├── templates_cache/      # Twig compiled templates
+├── templates-cache/      # Twig compiled templates
 ├── logs/                 # Application logs
 │   ├── application.log
 │   ├── cron-collect.log

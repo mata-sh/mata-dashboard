@@ -251,7 +251,7 @@ $settingsSync = new SettingsDatabaseSync($db, $log, $configSyncRepository);
 $idResolver = new IdResolver($configSyncRepository);
 
 // --- Limits & Locking ---
-$lockManager = new ChannelLockManager($paths->tempPath . '/alert_locks', $log);
+$lockManager = new ChannelLockManager($paths->tempPath . '/alert-locks', $log);
 $limitsLoader = new AlertLimitsLoader($log);
 $limitsConfig = $limitsLoader->load($paths->appPath . '/config/limits.json');
 
@@ -305,7 +305,7 @@ try {
 // ************************************************************************************************
 // CacheManager & Endpoints
 // ************************************************************************************************
-$cacheManager = new CacheManager($log, $paths->tempPath . '/api_cache', $monitoringSettings['ttl']);
+$cacheManager = new CacheManager($log, $paths->tempPath . '/api-cache', $monitoringSettings['ttl']);
 $endpoints = new Endpoints();
 $menuBuilder = new MenuBuilder($endpoints, $tools);
 

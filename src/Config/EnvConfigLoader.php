@@ -80,6 +80,7 @@ final class EnvConfigLoader
             env: $this->getEnv('APP_ENV', 'prod'),
             domain: $this->getEnv('DOMAIN', ''),
             dir: $this->getEnv('DIR', ''),
+            tempDir: $this->getEnv('TEMP_DIR', ''),
         );
     }
 
@@ -273,15 +274,19 @@ final class EnvConfigLoader
         if (empty($config->database->host)) {
             $missingDbFields[] = 'host';
         }
+
         if (empty($config->database->username)) {
             $missingDbFields[] = 'username';
         }
+
         if (empty($config->database->password)) {
             $missingDbFields[] = 'password';
         }
+
         if (empty($config->database->database)) {
             $missingDbFields[] = 'database';
         }
+
         if (!empty($missingDbFields)) {
             $warnings[] = [
                 'identifier' => 'config.database.missing',
@@ -296,6 +301,7 @@ final class EnvConfigLoader
                 'message' => 'Log file path not configured - logs may not be written to file',
             ];
         }
+
         if (empty($config->logging->level)) {
             $warnings[] = [
                 'identifier' => 'config.logging.level.missing',

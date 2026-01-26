@@ -91,9 +91,9 @@ COPY --from=builder --chown=www-data:www-data /var/www/html /var/www/html
 
 # Create required directories with proper permissions
 RUN mkdir -p \
-    /var/www/html/temp/api_cache \
+    /var/www/html/temp/api-cache \
     /var/www/html/temp/sessions \
-    /var/www/html/temp/templates_cache \
+    /var/www/html/temp/templates-cache \
     /var/www/html/logs \
     /var/www/html/config \
     && chown -R www-data:www-data /var/www/html \

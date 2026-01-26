@@ -211,7 +211,7 @@ NOT:
 
 ```bash
 # On Dashboard server
-rm -rf temp/api_cache/*
+rm -rf temp/api-cache/*
 ```
 
 Refresh the Dashboard page.
@@ -257,14 +257,14 @@ Attempt to refresh server data and check logs for detailed error messages.
 View cache files:
 
 ```bash
-ls -lah temp/api_cache/
+ls -lah temp/api-cache/
 ```
 
 Check if cache files are being updated:
 
 ```bash
 # Watch cache directory for changes
-watch -n 5 'ls -lah temp/api_cache/ | tail -10'
+watch -n 5 'ls -lah temp/api-cache/ | tail -10'
 ```
 
 #### 2. Verify Cron Jobs
@@ -391,8 +391,8 @@ Reduce cache duration for more frequent updates:
 sudo systemctl stop apache2  # or nginx
 
 # Clear all caches
-rm -rf temp/api_cache/*
-rm -rf temp/templates_cache/*
+rm -rf temp/api-cache/*
+rm -rf temp/templates-cache/*
 
 # Restart web server
 sudo systemctl start apache2
@@ -1106,8 +1106,8 @@ Required permissions:
 ```bash
 drwxr-xr-x (755)  - config/
 drwxr-xr-x (755)  - temp/
-drwxr-xr-x (755)  - temp/api_cache/
-drwxr-xr-x (755)  - temp/templates_cache/
+drwxr-xr-x (755)  - temp/api-cache/
+drwxr-xr-x (755)  - temp/templates-cache/
 drwxr-xr-x (755)  - logs/
 drwxr-xr-x (755)  - logs/cron/
 -rw------- (600)  - config/servers.json
@@ -1155,8 +1155,8 @@ sudo chmod 600 /var/www/mata-dashboard/config/mail.config.env
 
 ```bash
 # Create required directories
-mkdir -p temp/api_cache
-mkdir -p temp/templates_cache
+mkdir -p temp/api-cache
+mkdir -p temp/templates-cache
 mkdir -p logs/cron
 mkdir -p logs/mail
 
@@ -1338,13 +1338,13 @@ Monitor cache usage:
 
 ```bash
 # Count cache files
-ls -1 temp/api_cache/ | wc -l
+ls -1 temp/api-cache/ | wc -l
 
 # Check cache file ages
-ls -lah temp/api_cache/ | head -20
+ls -lah temp/api-cache/ | head -20
 
 # Monitor cache writes
-watch -n 5 'ls -lah temp/api_cache/ | tail -10'
+watch -n 5 'ls -lah temp/api-cache/ | tail -10'
 ```
 
 #### 2. Monitor API Response Times
@@ -1479,7 +1479,7 @@ Remove old cached data and logs:
 
 ```bash
 # Remove cache older than 1 day
-find temp/api_cache/ -type f -mtime +1 -delete
+find temp/api-cache/ -type f -mtime +1 -delete
 
 # Remove logs older than 30 days
 find logs/ -name "*.log" -mtime +30 -delete
@@ -1548,7 +1548,7 @@ curl -H "X-Mata-Auth: server-id|1700000000|nonce|hmac_sha256_hex" https://server
 php -r "json_decode(file_get_contents('config/servers.json'));"
 
 # Clear all caches
-rm -rf temp/api_cache/* temp/templates_cache/*
+rm -rf temp/api-cache/* temp/templates-cache/*
 
 # View logs in real-time
 tail -f logs/app.log

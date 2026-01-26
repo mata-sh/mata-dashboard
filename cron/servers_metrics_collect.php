@@ -29,7 +29,7 @@ try {
     // All event/alert infrastructure now loaded via bootstrap_events.php
     $dataRetentionConfig = $monitoringSettings['data_retention'] ?? [];
 
-    $cacheDir = $paths->tempPath . '/cache/server-metrics';
+    $cacheDir = $paths->tempPath . '/server-metrics';
     if (!is_dir($cacheDir)) {
         mkdir($cacheDir, 0777, true);
     }

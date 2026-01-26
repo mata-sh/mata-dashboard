@@ -655,7 +655,7 @@ curl -H "Auth: Bearer your_api_key" \
 
 **Cache Issues:**
 - Verify TTL configuration in `config/ttl.json`
-- Check cache directory permissions (`temp/api_cache/`)
+- Check cache directory permissions (`temp/api-cache/`)
 - Use force refresh endpoints to bypass cache
 
 ## Related Documentation

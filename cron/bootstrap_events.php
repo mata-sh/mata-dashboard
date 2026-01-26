@@ -56,7 +56,7 @@ $eventRepository = new EventRepository($db);
 // ************************************************************************************************
 // Limits & Locking
 // ************************************************************************************************
-$lockManager = new ChannelLockManager($paths->tempPath . '/alert_locks', $log);
+$lockManager = new ChannelLockManager($paths->tempPath . '/alert-locks', $log);
 $limitsLoader = new AlertLimitsLoader($log);
 $alertLimits = $limitsLoader->load($paths->appPath . '/config/limits.json');
 

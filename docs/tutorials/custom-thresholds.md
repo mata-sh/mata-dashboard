@@ -481,7 +481,7 @@ Configuration changes take effect immediately (no restart required). However, to
 
 ```bash
 # Clear cache to force fresh evaluation
-rm -rf temp/api_cache/*
+rm -rf temp/api-cache/*
 ```
 
 ### 7.4 Monitor Application Logs
@@ -849,8 +849,8 @@ Review metrics:
 
 3. **Clear cache:**
    ```bash
-   rm -rf temp/api_cache/*
-   rm -rf temp/templates_cache/*
+   rm -rf temp/api-cache/*
+   rm -rf temp/templates-cache/*
    ```
 
 4. **Check logs for errors:**

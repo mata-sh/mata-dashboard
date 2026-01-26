@@ -94,7 +94,7 @@ help:
 # Full environment setup (composer + config files)
 setup:
 	@echo "$(COLOR_BLUE)📋 Creating config files from examples...$(COLOR_RESET)"
-	@mkdir -p config temp/api_cache temp/sessions temp/templates_cache logs
+	@mkdir -p config temp/api-cache temp/sessions temp/templates-cache logs
 	@for file in config.env db.config.env mail.config.env; do \
 		if [ ! -f "config/$$file" ]; then \
 			cp "config/example/$${file}.example" "config/$$file"; \
@@ -371,7 +371,7 @@ docker-setup:
 	else \
 		echo "$(COLOR_YELLOW)⚠️  .env already exists, skipping$(COLOR_RESET)"; \
 	fi
-	@mkdir -p config temp/api_cache temp/sessions temp/templates_cache logs config/dev
+	@mkdir -p config temp/api-cache temp/sessions temp/templates-cache logs config/dev
 	@echo "$(COLOR_BLUE)📋 Creating config files from examples...$(COLOR_RESET)"
 	@for file in config.env db.config.env mail.config.env; do \
 		if [ ! -f "config/$$file" ]; then \

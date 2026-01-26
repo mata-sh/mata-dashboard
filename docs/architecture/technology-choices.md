@@ -804,7 +804,7 @@ class CacheManager
 
 **Cache Directory Structure:**
 ```
-temp/api_cache/
+temp/api-cache/
 ├── production-server.com/
 │   ├── GET/
 │   │   ├── apps.cache

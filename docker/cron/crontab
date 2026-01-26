@@ -53,13 +53,13 @@
 0 2 * * * find /var/www/html/logs -name "*.log" -mtime +30 -delete 2>/dev/null
 
 # Clean up old cache files daily at 3 AM
-0 3 * * * find /var/www/html/temp/api_cache -name "*.json" -mtime +7 -delete 2>/dev/null
+0 3 * * * find /var/www/html/temp/api-cache -name "*.json" -mtime +7 -delete 2>/dev/null
 
 # Clean up old session files daily at 4 AM
 0 4 * * * find /var/www/html/temp/sessions -name "sess_*" -mtime +1 -delete 2>/dev/null
 
 # Clean up old template cache files weekly on Sunday at 5 AM
-0 5 * * 0 find /var/www/html/temp/templates_cache -name "*.php" -mtime +7 -delete 2>/dev/null
+0 5 * * 0 find /var/www/html/temp/templates-cache -name "*.php" -mtime +7 -delete 2>/dev/null
 
 # Log rotation - compress old logs weekly on Sunday at 6 AM
 0 6 * * 0 cd /var/www/html/logs && for file in *.log; do [ -f "$file" ] && gzip -c "$file" > "${file}.$(date +\%Y\%m\%d).gz" && > "$file"; done 2>/dev/null

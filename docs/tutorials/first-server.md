@@ -289,15 +289,15 @@ Look for entries related to your server connection attempts.
 Ensure the cache directory exists and is writable:
 
 ```bash
-ls -la /path/to/mata-dashboard/temp/api_cache/
+ls -la /path/to/mata-dashboard/temp/api-cache/
 ```
 
 If it doesn't exist:
 
 ```bash
-mkdir -p /path/to/mata-dashboard/temp/api_cache
-chmod 755 /path/to/mata-dashboard/temp/api_cache
-chown www-data:www-data /path/to/mata-dashboard/temp/api_cache  # Adjust user as needed
+mkdir -p /path/to/mata-dashboard/temp/api-cache
+chmod 755 /path/to/mata-dashboard/temp/api-cache
+chown www-data:www-data /path/to/mata-dashboard/temp/api-cache  # Adjust user as needed
 ```
 
 ---
@@ -373,7 +373,7 @@ tail -f /path/to/mata-dashboard/logs/cron/collect_server_metrics_health.log
 
 3. **Clear application cache:**
    ```bash
-   rm -rf /path/to/mata-dashboard/temp/api_cache/*
+   rm -rf /path/to/mata-dashboard/temp/api-cache/*
    ```
 
 4. **Check error logs:**
@@ -527,7 +527,7 @@ curl -H "X-Mata-Auth: server-id|1700000000|nonce|hmac_sha256_hex" https://server
 php -r "json_decode(file_get_contents('config/servers.json'));"
 
 # Clear Dashboard cache
-rm -rf /path/to/mata-dashboard/temp/api_cache/*
+rm -rf /path/to/mata-dashboard/temp/api-cache/*
 
 # View Dashboard logs
 tail -f /path/to/mata-dashboard/logs/app.log
@@ -541,7 +541,7 @@ php /path/to/mata-dashboard/cron/servers_metrics_collect.php
 | File | Purpose |
 |------|---------|
 | `config/servers.json` | Server configuration and API keys |
-| `temp/api_cache/` | Cached server metrics |
+| `temp/api-cache/` | Cached server metrics |
 | `logs/app.log` | Application logs |
 | `logs/cron/` | Cron job execution logs |
 

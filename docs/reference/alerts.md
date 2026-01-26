@@ -10,7 +10,7 @@ This document describes the alarm limiting workflow introduced in `ALARM_LIMITIN
 - Alerts are recorded via `EventManager`, stored in `events`, and enqueued through `AlertManager`.
 - `alarms` now represents a delivery queue with statuses `pending`, `processing`, `sent`, `retry`, `failed`, `throttled`, and `discarded`.
 - A dedicated cron job (`cron/alerts_dispatch.php`) processes queued alerts, honours per-channel rate limits, and updates retry metadata.
-- When the database is unavailable, filesystem locks under `temp/alert_locks/` prevent runaway alert fan-out.
+- When the database is unavailable, filesystem locks under `temp/alert-locks/` prevent runaway alert fan-out.
 
 ## Configuration
 - Limits live in `config/limits.json`. Structure:
@@ -34,7 +34,7 @@ This document describes the alarm limiting workflow introduced in `ALARM_LIMITIN
 ## Runtime Components
 - **AlertManager**: Persists queue entries and falls back to filesystem locks when DB writes fail.
 - **AlertDispatcher**: Fetches pending alerts, enforces limits via `AlertRateLimiter`, dispatches through `AlertEmailSender`, and updates statuses.
-- **ChannelLockManager**: Maintains per `(server, channel)` timestamps on disk (`temp/alert_locks/<server>/<channel>.lock`).
+- **ChannelLockManager**: Maintains per `(server, channel)` timestamps on disk (`temp/alert-locks/<server>/<channel>.lock`).
 - **AlertRateLimiter**: Applies per-minute/hour/day ceilings using historical send counts.
 
 ## Operational Procedures
@@ -54,7 +54,7 @@ This document describes the alarm limiting workflow introduced in `ALARM_LIMITIN
    - Failed alerts include diagnostic payloads in `error_payload`.
 
 4. **Fallback Behaviour**  
-   - If MySQL is unavailable, AlertManager writes timestamps to `temp/alert_locks`. Clearing the lock files resets throttling once service is restored.
+   - If MySQL is unavailable, AlertManager writes timestamps to `temp/alert-locks`. Clearing the lock files resets throttling once service is restored.
    - Dispatcher resumes automatically; no manual steps needed beyond ensuring cron job is running.
 
 5. **Retention & Cleanup**  
