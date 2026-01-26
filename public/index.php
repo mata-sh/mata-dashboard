@@ -66,7 +66,13 @@ $tools = new Tools($paths->appPath);
 ini_set('display_errors', 1);
 ini_set('display_startup_errors', 0);
 ini_set('log_errors', 1);
-ini_set('error_log', $paths->logsPath . '/php-error.log');
+ini_set('error_log', $paths->bootLogPath);
+
+// ************************************************************************************************
+// Monolog (pre config loading -> boot.log)
+// ************************************************************************************************
+$logConfigurator = new LogConfigurator();
+$log = $logConfigurator->createBootLogger($paths);
 
 // ************************************************************************************************
 // Session Path
@@ -79,18 +85,9 @@ $sessionPath = session_save_path($paths->appPath . '/temp/sessions');
 // SecurityHeaders::apply();
 
 // ************************************************************************************************
-// Monolog (pre config loading -> boot.log)
-// ************************************************************************************************
-$logConfigurator = new LogConfigurator();
-$log = $logConfigurator->createBootLogger($paths);
-
-// ************************************************************************************************
 // Template Engine (Twig)
 // ************************************************************************************************
-$templateDir = $paths->appPath . '/templates';
-$templateCacheDir = $paths->appPath . '/temp/templates_cache';
-
-$loader = new FilesystemLoader($templateDir);
+$loader = new FilesystemLoader($paths->appPath . '/templates');
 $twig = new Environment($loader, []);
 
 // ************************************************************************************************
@@ -134,9 +131,17 @@ try {
 }
 
 // ************************************************************************************************
+// Setting Environment & configurable Paths
+// ************************************************************************************************
+$environment = $appConfig->environment->env;
+$paths->applyConfig($appConfig);
+
+// ************************************************************************************************
 // Apply Configured Monolog Settings
 // ************************************************************************************************
-$logConfigurator->applyConfiguredLogger($log, $appConfig->logging, $paths);
+$log = $logConfigurator->createConfiguredLogger($appConfig->logging, $paths, 'app');
+ini_set('error_log', $paths->logsPath . '/php-error.log');
+ini_set('display_errors', 0);
 
 // ************************************************************************************************
 // Global Exception Handler
@@ -147,6 +152,7 @@ $exceptionHandler = new ExceptionHandler($log, $appConfig->template->debugEnable
 // ************************************************************************************************
 // Template Engine (Twig)
 // ************************************************************************************************
+$templateCacheDir = $this->tempPath . '/templates-cache';
 $twig->setCache($appConfig->template->debugEnabled ? $templateCacheDir : false);
 if ($appConfig->template->debugEnabled) {
     $twig->enableDebug();
@@ -156,8 +162,6 @@ if ($appConfig->template->debugEnabled) {
 // ************************************************************************************************
 // Initialize App & Authentication
 // ************************************************************************************************
-$environment = $appConfig->environment->env;
-
 try {
     $usersFilePath = $paths->appPath . '/config/' . $environment . '/users.json';
     $auth = new Auth($log, $usersFilePath);

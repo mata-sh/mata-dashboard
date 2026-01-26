@@ -24,9 +24,9 @@ final class LogConfigurator
 
     public function createBootLogger(PathResolver $paths, string $channel = 'boot'): Logger
     {
-        $path = $paths->logsPath . DIRECTORY_SEPARATOR . 'boot.log';
+        $path = $paths->bootLogPath;
 
-        return $this->createLogger($channel, $path, Level::Debug);
+        return $this->createLogger($channel, $path, Level::Error);
     }
 
     public function createCronLogger(PathResolver $paths, string $jobName, string $channel = 'cronjob'): Logger
@@ -38,9 +38,20 @@ final class LogConfigurator
 
     public function applyConfiguredLogger(Logger $logger, LoggingConfig $config, PathResolver $paths): void
     {
-        $path = $this->resolveLogPath($config->path, $paths);
+        $path = $paths->appLogPath;
         $level = $this->resolveLogLevel($config->level, $logger);
         $this->applyHandler($logger, $path, $level);
+    }
+
+    public function createConfiguredLogger(
+        LoggingConfig $config,
+        PathResolver $paths,
+        string $channel = 'app'
+    ): Logger {
+        $logger = new Logger($channel);
+        $this->applyConfiguredLogger($logger, $config, $paths);
+
+        return $logger;
     }
 
     private function applyHandler(Logger $logger, string $path, Level $level): void
@@ -56,15 +67,6 @@ final class LogConfigurator
         $output = "[%datetime%] %channel%.%level_name%: %message% %context% %extra%\n";
 
         return new LineFormatter($output, $dateFormat, true, true);
-    }
-
-    private function resolveLogPath(string $path, PathResolver $paths): string
-    {
-        if (!str_starts_with($path, DIRECTORY_SEPARATOR) && !preg_match('/^[A-Za-z]:\\\/', $path)) {
-            return $paths->appPath . DIRECTORY_SEPARATOR . ltrim($path, DIRECTORY_SEPARATOR);
-        }
-
-        return $path;
     }
 
     private function resolveLogLevel(string $level, Logger $logger): Level

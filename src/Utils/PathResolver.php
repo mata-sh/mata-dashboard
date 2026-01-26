@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Mata\Utils;
 
 use InvalidArgumentException;
+use Mata\Config\Dto\ApplicationConfig;
 use RuntimeException;
 
 /**
@@ -26,6 +27,8 @@ class PathResolver
     public string $tempPath;
     public string $publicPath;
     public string $configPath;
+    public string $appLogPath;
+    public string $bootLogPath;
 
     /**
      * Initialize path resolver based on entry point file location.
@@ -45,9 +48,111 @@ class PathResolver
         }
         $this->rootPath = $rootPath;
         $this->logsPath = $this->appPath . DIRECTORY_SEPARATOR . 'logs';
+        $this->appLogPath = $this->logsPath . DIRECTORY_SEPARATOR . 'app.log';
+        $this->bootLogPath = $this->resolveBootLogPath();
         $this->tempPath = $this->appPath . DIRECTORY_SEPARATOR . 'temp';
         $this->publicPath = $this->appPath . DIRECTORY_SEPARATOR . 'public';
         $this->configPath = $this->appPath . DIRECTORY_SEPARATOR . 'config';
+    }
+
+    /**
+     * Apply config overrides for log/temp paths.
+     */
+    public function applyConfig(ApplicationConfig $config): void
+    {
+        $logPath = trim($config->logging->path);
+        if ($logPath !== '') {
+            $this->appLogPath = $this->resolvePath($logPath);
+            $this->logsPath = dirname($this->appLogPath);
+        }
+
+        $tempDir = trim($config->environment->tempDir);
+        if ($tempDir !== '') {
+            $this->tempPath = $this->resolvePath($tempDir);
+        }
+
+        $this->ensureDirectory($this->logsPath);
+        $this->ensureDirectory($this->tempPath);
+    }
+
+    /**
+     * Ensure a directory exists and is writable; create it if not existing.
+     *
+     * @throws RuntimeException if the directory is not writable or cannot be created
+     */
+    private function ensureDirectory(string $path): void
+    {
+        if (!is_dir($path)) {
+            if (!mkdir($path, 0775, true)) {
+                throw new RuntimeException("Failed to create directory: {$path}");
+            }
+        }
+
+        if (!is_writable($path)) {
+            throw new RuntimeException("Directory is not writable: {$path}");
+        }
+    }
+
+    /**
+     * Resolve a path, treating relative paths as app-root relative.
+     */
+    private function resolvePath(string $path): string
+    {
+        if ($path === '') {
+            return $this->appPath;
+        }
+
+        if ($this->isAbsolutePath($path)) {
+            return $path;
+        }
+
+        return $this->appPath . DIRECTORY_SEPARATOR . $path;
+    }
+
+    private function isAbsolutePath(string $path): bool
+    {
+        if ($path === '') {
+            return false;
+        }
+
+        // Unix-style absolute path
+        if ($path[0] === DIRECTORY_SEPARATOR) {
+            return true;
+        }
+
+        // Windows drive letter paths like C:\ or C:/
+        return (bool) preg_match('/^[A-Za-z]:[\\\\\/]/', $path);
+    }
+
+    private function resolveBootLogPath(): string
+    {
+        $envAppLogPath = $this->getSystemEnv('APP_LOG_PATH');
+        if ($envAppLogPath !== null) {
+            $candidate = $this->resolvePath($envAppLogPath);
+            $dir = dirname($candidate);
+            if (is_dir($dir) && is_writable($dir)) {
+                return $candidate;
+            }
+        }
+
+        $bootPath = $this->logsPath . DIRECTORY_SEPARATOR . 'boot.log';
+        $bootDir = dirname($bootPath);
+
+        if (is_dir($bootDir) && is_writable($bootDir)) {
+            return $bootPath;
+        }
+
+        return sys_get_temp_dir() . 'mata-boot.log';
+    }
+
+    private function getSystemEnv(string $key): ?string
+    {
+        $value = $_ENV[$key] ?? getenv($key);
+        if (!is_string($value) || $value === '') {
+            return null;
+        }
+
+        return $value;
     }
 
     /**

@@ -59,8 +59,9 @@ class ApplicationConfigFactory
         string $env = 'test',
         string $domain = 'localhost',
         string $dir = '',
+        string $tempDir = '',
     ): EnvironmentConfig {
-        return new EnvironmentConfig($env, $domain, $dir);
+        return new EnvironmentConfig($env, $domain, $dir, $tempDir);
     }
 
     public static function createGeneralConfig(

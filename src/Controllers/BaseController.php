@@ -78,7 +78,7 @@ abstract class BaseController
         array $errors,
         string $message = 'Validation failed'
     ): Response {
-        $this->logger->warning('Validation failed', [
+        $this->logger->warning($message, [
             'errors' => $errors,
             'request_uri' => $_SERVER['REQUEST_URI'] ?? '',
         ]);
