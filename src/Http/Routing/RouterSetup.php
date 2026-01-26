@@ -266,17 +266,22 @@ class RouterSetup
 
             $metricsRoutes = [
                 ['metrics_render', '/metrics', 'get', fn () => $this->metricsController->renderMetricsOverview()],
-                // Future metrics modals will be added here
             ];
 
-            $modalRoutes = [
+            // Content-based modals handled by ModalController
+            $contentModalRoutes = [
                 ['modal_app_readme_render', '/modal/{server}/{app}/readme', 'get', fn ($server, $app) => $this->modalController->renderAppReadme($server, $app)],
                 ['modal_app_readme_refresh', '/modal/{server}/{app}/readme/refresh', 'get', fn ($server, $app) => $this->modalController->renderAppReadme($server, $app, forceRefresh: true)],
                 ['modal_app_errorlog_render', '/modal/{server}/{app}/errorlog', 'get', fn ($server, $app) => $this->modalController->renderAppErrorlog($server, $app)],
                 ['modal_app_errorlog_refresh', '/modal/{server}/{app}/errorlog/refresh', 'get', fn ($server, $app) => $this->modalController->renderAppErrorlog($server, $app, forceRefresh: true)],
                 ['modal_server_info_render', '/modal/{server}/info', 'get', fn ($server) => $this->modalController->renderServerInfo($server)],
                 ['modal_server_info_refresh', '/modal/{server}/info/refresh', 'get', fn ($server) => $this->modalController->renderServerInfo($server, forceRefresh: true)],
+            ];
+
+            // Metrics-based modals with time-series charts handled by MetricsController
+            $metricsModalRoutes = [
                 ['modal_server_process_count_render', '/modal/{server}/process-count', 'get', fn ($server) => $this->metricsController->renderProcessCountModal($server)],
+                // Future metrics modals (CPU trends, RAM history, etc.) will be added here
             ];
 
             // Register routes
@@ -292,7 +297,11 @@ class RouterSetup
                 $this->registerRoute($name, $path, $method, $handler);
             }
 
-            foreach ($modalRoutes as [$name, $path, $method, $handler]) {
+            foreach ($contentModalRoutes as [$name, $path, $method, $handler]) {
+                $this->registerRoute($name, $path, $method, $handler);
+            }
+
+            foreach ($metricsModalRoutes as [$name, $path, $method, $handler]) {
                 $this->registerRoute($name, $path, $method, $handler);
             }
         });
