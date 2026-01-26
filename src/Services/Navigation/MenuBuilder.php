@@ -109,7 +109,7 @@ class MenuBuilder
                 'label' => $item['label'],
                 'icon' => $item['icon'],
                 'endpoint' => $item['endpoint_key'],
-                'url' => $this->endpoints->get($item['endpoint_key']),
+                'url' => $this->endpoints->url($item['endpoint_key']),
                 'enabled' => $item['enabled'],
             ];
         }, $menuItems);

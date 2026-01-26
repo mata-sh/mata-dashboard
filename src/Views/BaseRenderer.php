@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Mata\Views;
 
 use Mata\Core\App;
+use Mata\Http\Routing\Endpoints;
 use Mata\Utils\Tools;
 use Monolog\Logger;
 use Twig\Environment;
@@ -17,6 +18,7 @@ use Twig\Environment;
  * - Logging capabilities
  * - Utility functions for formatting and icons
  * - HTML ID generation utilities
+ * - Route endpoint URL generation
  */
 abstract class BaseRenderer
 {
@@ -24,17 +26,20 @@ abstract class BaseRenderer
     protected Logger $logger;
     protected Tools $tools;
     protected App $app;
+    protected Endpoints $endpoints;
 
     public function __construct(
         Environment $twig,
         Logger $logger,
         Tools $tools,
-        App $app
+        App $app,
+        Endpoints $endpoints
     ) {
         $this->twig = $twig;
         $this->logger = $logger;
         $this->tools = $tools;
         $this->app = $app;
+        $this->endpoints = $endpoints;
     }
 
     // ────────────────────────────────────────────────

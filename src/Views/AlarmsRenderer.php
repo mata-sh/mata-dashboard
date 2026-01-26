@@ -26,7 +26,7 @@ class AlarmsRenderer extends BaseRenderer
     {
         return $this->twig->render('partials/containers/alarms-container.html.twig', [
             'endpoints' => [
-                'alarms_json' => $endpoints->get('alarms_json'),
+                'alarms_json' => $endpoints->url('alarms_json'),
             ],
         ]);
     }

@@ -6,6 +6,7 @@ namespace Mata\Views;
 
 use Exception;
 use Mata\Core\App;
+use Mata\Http\Routing\Endpoints;
 use Mata\Services\Collect\ServerDataCollectorInterface;
 use Mata\Utils\Tools;
 use Monolog\Logger;
@@ -26,8 +27,9 @@ class DatabaseRenderer extends BaseRenderer
         Logger $logger,
         Tools $tools,
         App $app,
+        Endpoints $endpoints
     ) {
-        parent::__construct($twig, $logger, $tools, $app);
+        parent::__construct($twig, $logger, $tools, $app, $endpoints);
     }
 
     /**

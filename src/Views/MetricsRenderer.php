@@ -7,6 +7,7 @@ namespace Mata\Views;
 use Exception;
 use Mata\Core\App;
 use Mata\Http\Responses\JsonResponse;
+use Mata\Http\Routing\Endpoints;
 use Mata\Utils\Tools;
 use Monolog\Logger;
 use Twig\Environment;
@@ -23,9 +24,10 @@ class MetricsRenderer extends BaseRenderer
         Environment $twig,
         Logger $logger,
         Tools $tools,
-        App $app
+        App $app,
+        Endpoints $endpoints
     ) {
-        parent::__construct($twig, $logger, $tools, $app);
+        parent::__construct($twig, $logger, $tools, $app, $endpoints);
     }
 
     /**
@@ -73,6 +75,11 @@ class MetricsRenderer extends BaseRenderer
         $range = (string) ($filters['range'] ?? $series['range'] ?? '30d');
         $granularity = (string) ($filters['granularity'] ?? $series['granularity'] ?? 'daily');
 
+        $routeParams = [
+            'server' => $serverName,
+            'metric' => $metricSlug,
+        ];
+
         $queryParams = [
             'range' => $range,
         ];
@@ -97,22 +104,12 @@ class MetricsRenderer extends BaseRenderer
                 'unit' => $series['unit'] ?? '',
             ],
             'routes' => [
-                'refresh' => sprintf(
-                    '/api/metrics/%s/%s?%s',
-                    rawurlencode($serverName),
-                    rawurlencode($metricSlug),
-                    http_build_query($queryParams)
-                ),
+                'refresh' => $this->endpoints->url('metrics_server', $routeParams, $queryParams),
             ],
             'chart' => [
                 'element_id' => $this->generateHtmlId($serverName, $metricKey . '-chart'),
                 'series' => $series,
-                'json_url' => sprintf(
-                    '/api/metrics/%s/%s?%s',
-                    rawurlencode($serverName),
-                    rawurlencode($metricSlug),
-                    http_build_query($jsonParams)
-                ),
+                'json_url' => $this->endpoints->url('metrics_server', $routeParams, $jsonParams),
                 'metric_label' => $metricLabel,
                 'metric' => $metricKey,
             ],

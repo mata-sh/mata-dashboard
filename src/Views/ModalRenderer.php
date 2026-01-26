@@ -7,6 +7,7 @@ namespace Mata\Views;
 use Exception;
 use League\CommonMark\GithubFlavoredMarkdownConverter;
 use Mata\Core\App;
+use Mata\Http\Routing\Endpoints;
 use Mata\Utils\Tools;
 use Monolog\Logger;
 use Twig\Environment;
@@ -28,9 +29,10 @@ class ModalRenderer extends BaseRenderer
         Environment $twig,
         Logger $logger,
         Tools $tools,
-        App $app
+        App $app,
+        Endpoints $endpoints
     ) {
-        parent::__construct($twig, $logger, $tools, $app);
+        parent::__construct($twig, $logger, $tools, $app, $endpoints);
 
         $this->markdownConverter = new GithubFlavoredMarkdownConverter([
             // 'html_input' => 'strip',
@@ -101,7 +103,10 @@ class ModalRenderer extends BaseRenderer
                 'name' => $app,
             ],
             'endpoints' => [
-                'errorlog_json' => "/api/errorlog/{$server}/{$app}",
+                'errorlog_json' => $this->endpoints->url('app_errorlog_json', [
+                    'server' => $server,
+                    'app' => $app,
+                ]),
             ],
             'icons' => $this->getModalIcons(),
             'cache' => [

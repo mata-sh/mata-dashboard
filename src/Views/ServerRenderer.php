@@ -6,6 +6,7 @@ namespace Mata\Views;
 
 use Exception;
 use Mata\Core\App;
+use Mata\Http\Routing\Endpoints;
 use Mata\Utils\Tools;
 use Monolog\Logger;
 use Twig\Environment;
@@ -34,9 +35,10 @@ class ServerRenderer extends BaseRenderer
         Logger $logger,
         Tools $tools,
         App $app,
+        Endpoints $endpoints,
         LogRenderer $logRenderer
     ) {
-        parent::__construct($twig, $logger, $tools, $app);
+        parent::__construct($twig, $logger, $tools, $app, $endpoints);
         $this->logRenderer = $logRenderer;
     }
 

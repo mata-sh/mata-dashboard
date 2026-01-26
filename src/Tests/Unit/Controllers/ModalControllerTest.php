@@ -11,6 +11,7 @@ use Mata\Controllers\ModalController;
 use Mata\Core\App;
 use Mata\Http\Responses\HtmlResponse;
 use Mata\Http\Responses\JsonResponse;
+use Mata\Http\Routing\Endpoints;
 use Mata\Services\Collect\ServerDataCollectorInterface;
 use Mata\Services\Foundation\CacheManager;
 use Mata\Tests\Helpers\ApplicationConfigFactory;
@@ -46,6 +47,7 @@ class ModalControllerTest extends TestCase
     private Environment&MockObject $mockTwig;
     private Logger $logger;
     private CacheManager&MockObject $mockCacheManager;
+    private Endpoints&MockObject $mockEndpoints;
     private ApplicationConfig $appConfig;
     private array $serversConfig;
 
@@ -58,6 +60,7 @@ class ModalControllerTest extends TestCase
         $this->mockTwig = $this->createMock(Environment::class);
         $this->logger = new Logger('test', [new TestHandler()]);
         $this->mockCacheManager = $this->createMock(CacheManager::class);
+        $this->mockEndpoints = $this->createMock(Endpoints::class);
 
         // Create minimal ApplicationConfig with all required DTOs
         $this->appConfig = $this->createTestApplicationConfig();
@@ -98,6 +101,7 @@ class ModalControllerTest extends TestCase
             $this->logger,
             $this->appConfig,
             $this->mockCacheManager,
+            $this->mockEndpoints,
             $this->serversConfig
         );
     }
@@ -136,6 +140,7 @@ class ModalControllerTest extends TestCase
             $this->logger,
             $demoConfig,
             $this->mockCacheManager,
+            $this->mockEndpoints,
             $this->serversConfig
         );
 
@@ -887,6 +892,7 @@ MARKDOWN;
             $mockLogger,
             $this->appConfig,
             $this->mockCacheManager,
+            $this->mockEndpoints,
             $invalidServersConfig
         );
 
@@ -963,6 +969,7 @@ MARKDOWN;
             $this->logger,
             $this->appConfig,
             $this->mockCacheManager,
+            $this->mockEndpoints,
             $specialConfig
         );
 

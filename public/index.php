@@ -338,13 +338,14 @@ $modalController = new ModalController(
     $log,
     $appConfig,
     $cacheManager,
+    $endpoints,
     $monitoringSettings['servers'],
 );
 
 $metricsQueryFactory = new ServerMetricsQueryFactory($environment, $db, $idResolver);
 $metricsQuery = $metricsQueryFactory->create();
 $metricsViewBuilder = new MetricsViewBuilder($metricsQuery, $log);
-$metricsRenderer = new MetricsRenderer($twig, $log, $tools, $app);
+$metricsRenderer = new MetricsRenderer($twig, $log, $tools, $app, $endpoints);
 $metricsRequestValidator = new MetricsRequestValidator(
     MetricsController::SUPPORTED_METRICS,
     MetricsController::ALLOWED_GRANULARITIES

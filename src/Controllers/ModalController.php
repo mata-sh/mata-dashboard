@@ -11,6 +11,7 @@ use Mata\Core\App;
 use Mata\Http\Responses\HtmlResponse;
 use Mata\Http\Responses\JsonResponse;
 use Mata\Http\Responses\Response;
+use Mata\Http\Routing\Endpoints;
 use Mata\Services\Cache\CacheTypeResolver;
 use Mata\Services\Cache\ModalCacheService;
 use Mata\Services\Collect\MockServerDataCollector;
@@ -42,6 +43,7 @@ class ModalController extends BaseController
     private CacheManager $cacheManager;
     private ModalRenderer $modalRenderer;
     private ModalCacheService $modalCacheService;
+    private Endpoints $endpoints;
 
     /** @var array<string,ServerDataCollectorInterface> */
     private array $serverDataCollectors = [];
@@ -57,6 +59,7 @@ class ModalController extends BaseController
      * @param ApplicationConfig   $appConfig     Application configuration DTO
      * @param array<string,mixed> $serversConfig Server configuration array
      * @param CacheManager        $cacheManager  Cache management service with TTL configuration
+     * @param Endpoints           $endpoints     Route endpoints for URL generation
      */
     public function __construct(
         App $app,
@@ -65,18 +68,20 @@ class ModalController extends BaseController
         Logger $logger,
         ApplicationConfig $appConfig,
         CacheManager $cacheManager,
+        Endpoints $endpoints,
         array $serversConfig
     ) {
         $this->tools = $tools;
         $this->logger = $logger;
         $this->appConfig = $appConfig;
         $this->cacheManager = $cacheManager;
+        $this->endpoints = $endpoints;
         $this->serversConfig = $serversConfig;
         $cacheTypeResolver = new CacheTypeResolver();
         $this->modalCacheService = new ModalCacheService($cacheTypeResolver);
 
         // Initialize ModalRenderer
-        $this->modalRenderer = new ModalRenderer($twig, $logger, $tools, $app);
+        $this->modalRenderer = new ModalRenderer($twig, $logger, $tools, $app, $endpoints);
 
         foreach ($this->serversConfig as $server => $serverConfig) {
             try {

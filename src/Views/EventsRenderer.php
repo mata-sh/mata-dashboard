@@ -26,7 +26,7 @@ class EventsRenderer extends BaseRenderer
     {
         return $this->twig->render('partials/containers/events-container.html.twig', [
             'endpoints' => [
-                'events_json' => $endpoints->get('events_json'),
+                'events_json' => $endpoints->url('events_json'),
             ],
         ]);
     }

@@ -137,14 +137,14 @@ class DashboardController extends BaseController
         $this->monitoringEnvironment = $monitoringSettings['environment'] ?? 'unset';
 
         // Initialize view renderers in dependency order
-        $this->logRenderer = new LogRenderer($twig, $logger, $tools, $app);
-        $this->serverRenderer = new ServerRenderer($twig, $logger, $tools, $app, $this->logRenderer);
-        $this->databaseRenderer = new DatabaseRenderer($twig, $logger, $tools, $app);
-        $this->librariesRenderer = new LibrariesRenderer($twig, $logger, $tools, $app);
-        $this->cronjobRenderer = new CronjobRenderer($twig, $logger, $tools, $app);
-        $this->settingsRenderer = new SettingsRenderer($twig, $logger, $tools, $app);
-        $this->eventsRenderer = new EventsRenderer($twig, $logger, $tools, $app);
-        $this->alarmsRenderer = new AlarmsRenderer($twig, $logger, $tools, $app);
+        $this->logRenderer = new LogRenderer($twig, $logger, $tools, $app, $endpoints);
+        $this->serverRenderer = new ServerRenderer($twig, $logger, $tools, $app, $endpoints, $this->logRenderer);
+        $this->databaseRenderer = new DatabaseRenderer($twig, $logger, $tools, $app, $endpoints);
+        $this->librariesRenderer = new LibrariesRenderer($twig, $logger, $tools, $app, $endpoints);
+        $this->cronjobRenderer = new CronjobRenderer($twig, $logger, $tools, $app, $endpoints);
+        $this->settingsRenderer = new SettingsRenderer($twig, $logger, $tools, $app, $endpoints);
+        $this->eventsRenderer = new EventsRenderer($twig, $logger, $tools, $app, $endpoints);
+        $this->alarmsRenderer = new AlarmsRenderer($twig, $logger, $tools, $app, $endpoints);
 
         // Initialize service classes
         $this->serverMonitor = new ServerMonitor($logger, $eventManager);
@@ -282,8 +282,8 @@ class DashboardController extends BaseController
                 $menu = $this->menuBuilder->buildDashboardMenu();
 
                 $endpoints = [
-                    'server_render' => $this->endpoints->get('servers_render'),
-                    'database_notice_ack' => $this->endpoints->get('database_notice_ack'),
+                    'server_render' => $this->endpoints->url('servers_render'),
+                    'database_notice_ack' => $this->endpoints->url('database_notice_ack'),
                 ];
 
                 $layout = [

@@ -157,7 +157,7 @@ class DashboardControllerTest extends TestCase
         ];
 
         $this->endpoints
-            ->method('get')
+            ->method('url')
             ->willReturnCallback(function ($key) use ($expectedEndpoints) {
                 return $expectedEndpoints[$key] ?? null;
             })
@@ -612,7 +612,7 @@ class DashboardControllerTest extends TestCase
 
         $this->endpoints
             ->expects($this->once())
-            ->method('get')
+            ->method('url')
             ->with('alarms_json')
             ->willReturn('/api/alarms/json')
         ;
