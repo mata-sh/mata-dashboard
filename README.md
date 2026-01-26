@@ -153,7 +153,7 @@ vi config/mail.config.env # smtp server
 vi config/db.config.env # database connection
 
 # Create a user and password with admin role for the dashboard
-make create-user
+make users-create
 ```
 
 #### 3. Subdomain
@@ -161,7 +161,7 @@ make create-user
 **Create 2 subdomains for the dashboard and the client nodes.**
 ```
 mata.example.com -> public_html/mata-dashboard/public
-api.mata.example.com -> public_html/mata-node/public
+mata.api.example.com -> public_html/mata-node/public
 ```
 -> Access the dashboard at `https://mata.example.com`
 

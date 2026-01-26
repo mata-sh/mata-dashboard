@@ -15,24 +15,21 @@ This document explains how to set up your environment, run tests, and follow our
     ```
 
 2. **Set up the development environment**
-   Run the setup script to install dependencies and configure Git hooks:
 
    ```bash
-   ./scripts/dev/setup.sh
+    make dev-start
+    make users-create
+    make db-migrate
    ```
-
-   This will:
-
-   * Install PHP dependencies via Composer
-   * Symlink the provided `pre-commit` hook into `.git/hooks/`
 
 ---
 
 ## ✅ Git Hooks
 
 We provide a **pre-commit hook** in `.githooks/pre-commit`.
-It runs code quality checks (PHPStan, PHP CodeSniffer, etc.) before commits.
+It runs code quality checks (PHPStan, PHP Cs-Fixer, etc.) before commits.
 If the hook blocks your commit, fix the reported issues and try again.
+You can skip with `git commit --no-verify`.
 
 ---
 
@@ -42,10 +39,8 @@ If the hook blocks your commit, fix the reported issues and try again.
 * Run static analysis and linting locally before pushing:
 
   ```bash
-  composer run lint
-  composer run analyse
+  composer check
   ```
-* Keep functions small and focused. Refactor legacy code incrementally, not in massive rewrites.
 
 ---
 
@@ -73,7 +68,7 @@ If the hook blocks your commit, fix the reported issues and try again.
 
 ## 🛠 Release & Changelog
 
-Maintainers can generate a changelog when creating a new release tag using:
+Maintainers can generate a changelog (needs `Claude Code`) when creating a new release tag using:
 
 ```bash
 ./scripts/release/generate-changelog.sh
@@ -85,32 +80,6 @@ This script builds a commit-based changelog to include in release notes.
 
 ## 🧪 Tests
 
-* Add or update tests for new features and bug fixes.
-* Ensure all tests pass before pushing:
-
   ```bash
-  composer run test
+  composer test
   ```
-
----
-
-## 📖 Documentation
-
-* Update the README or relevant docs for any new features.
-* Keep `CONTRIBUTING.md` updated if workflows/scripts change.
-
----
-
-## 🤝 Code of Conduct
-
-By contributing, you agree to follow our [Code of Conduct](CODE_OF_CONDUCT.md).
-
----
-
-## 💡 Tips
-
-* Run `composer outdated` to check for outdated dependencies.
-* Use `php -S localhost:3300 -t public` for quick local testing (default port: 3300).
-* Keep PRs small and focused — easier to review and merge.
-
----
