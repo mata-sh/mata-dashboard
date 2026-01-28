@@ -383,7 +383,7 @@ docker-setup:
 		fi; \
 	done
 	@if [ ! -f config/dev/users.json ]; then \
-		echo '{"dev":{"username":"dev","password":"$$2y$$10$$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi","role":"admin"},"admin":{"username":"admin","password":"$$2y$$10$$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi","role":"admin"}}' > config/dev/users.json; \
+		echo '[{"id":"user_dev123","username":"dev","password_hash":"$$2y$$10$$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi","role":"admin","failed_attempts":0},{"id":"user_admin123","username":"admin","password_hash":"$$2y$$10$$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi","role":"admin","failed_attempts":0}]' > config/dev/users.json; \
 		chmod 600 config/dev/users.json; \
 		echo "$(COLOR_GREEN)✅ Created config/dev/users.json (user: dev|pw: password, user: admin|pw: password)$(COLOR_RESET)"; \
 	else \

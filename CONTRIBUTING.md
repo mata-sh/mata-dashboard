@@ -18,9 +18,14 @@ This document explains how to set up your environment, run tests, and follow our
 
    ```bash
     make dev-start
-    make users-create
     make db-migrate
    ```
+
+   > **Note:** `make dev-start` automatically creates two default users:
+   > - Username: `dev` | Password: `password` (admin role)
+   > - Username: `admin` | Password: `password` (admin role)
+   >
+   > You can create additional users with `make users-create` if needed.
 
 ---
 

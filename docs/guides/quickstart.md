@@ -49,8 +49,12 @@ Edit `config/servers.json` to add your first monitored server:
 ### 3. Login to Dashboard
 
 1. Navigate to `http://localhost:3300/`
-2. Login with the credentials configured in `config/users.json`
+2. Login with one of these credentials:
+   - **Username:** `dev` | **Password:** `password` (admin role)
+   - **Username:** `admin` | **Password:** `password` (admin role)
 3. View your server dashboard
+
+> **Note:** For Docker development (`make dev-start`), these default users are created automatically. For manual setup, you'll need to configure `config/users.json` or create users with `make users-create`.
 
 ## Setting Up Automated Monitoring
 
