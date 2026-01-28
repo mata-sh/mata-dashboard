@@ -9,21 +9,21 @@
         "title": "Production Server",
         "active": true,
         "url": "https://app.yourdomain.com/",
-        "api_url": "https://mata.api.yourdomain.com/",
+        "api_url": "https://api.yourdomain.com/",
         "api_key": "your_secure_api_key_here_32_characters",
         "primary_color": "#28a745",
         "secondary_color": "#ffffff",
-        "info": "Production Web Server - Main Application",
+        "info": "Production Web Server - Main Application (subdomain setup)",
         "check_disk_space": "on"
     },
     "staging-server": {
         "title": "Staging Server",
         "url": "https://staging.yourdomain.com/",
-        "api_url": "https://mata.api.staging.yourdomain.com/",
+        "api_url": "https://api.staging.yourdomain.com/",
         "api_key": "another_secure_api_key_32_characters",
         "primary_color": "#ffc107",
         "secondary_color": "#212529",
-        "info": "Staging Environment - Testing & QA",
+        "info": "Staging Environment - Testing & QA (subdomain setup)",
         "check_disk_space": "on"
     },
     "development-server": {
@@ -34,17 +34,17 @@
         "allow_http": "on",
         "primary_color": "#17a2b8",
         "secondary_color": "#ffffff",
-        "info": "Local Development - Docker ports 3300 (dashboard), 3310 (node API)",
+        "info": "Local Development - Docker ports (dashboard: 3300, node: 3310)",
         "check_disk_space": "off"
     },
-    "database-server": {
-        "title": "Database Server",
-        "url": "https://db.yourdomain.com/",
-        "api_url": "https://mata.api.db.yourdomain.com/",
-        "api_key": "database_server_api_key_32_chars",
+    "docker-production": {
+        "title": "Docker Production Server",
+        "url": "https://yourdomain.com/",
+        "api_url": "https://yourdomain.com:3310/",
+        "api_key": "docker_prod_api_key_32_characters",
         "primary_color": "#6f42c1",
         "secondary_color": "#ffffff",
-        "info": "Dedicated Database Server - MySQL/MariaDB",
+        "info": "Production Docker on single server - ports 3300 (dash), 3310 (node), 3320 (OPA)",
         "check_disk_space": "on"
     },
     "shared-hosting-example": {
@@ -54,7 +54,7 @@
         "api_key": "shared_hosting_api_key_32_chars",
         "primary_color": "#fd7e14",
         "secondary_color": "#495057",
-        "info": "Shared Hosting Example - Path-based deployment (no subdomain access)",
+        "info": "Shared Hosting - Path-based deployment (no subdomain access)",
         "check_disk_space": "on"
     },
     "internal-server": {
@@ -63,31 +63,26 @@
         "api_url": "http://192.168.1.100:3310/",
         "api_key": "internal_server_api_key_32_chars",
         "allow_http": "on",
+        "suppress_http_warning": "on",
         "primary_color": "#e83e8c",
         "secondary_color": "#ffffff",
-        "info": "Internal Network - Private IP with custom port (decade-spaced)",
+        "info": "Internal Network - Private IP with Docker ports (decade-spaced)",
         "check_disk_space": "on"
-    },
-    "load-balancer": {
-        "title": "Load Balancer",
-        "url": "https://lb.yourdomain.com/",
-        "api_url": "https://mata.api.lb.yourdomain.com/",
-        "api_key": "load_balancer_api_key_32_chars",
-        "primary_color": "#6c757d",
-        "secondary_color": "#ffffff",
-        "info": "Load Balancer - Traffic Distribution",
-        "check_disk_space": "off"
     },
     "_DEPLOYMENT_STRATEGIES": {
         "subdomain_recommended": {
             "description": "RECOMMENDED: Use subdomains for cleaner URLs and better scalability",
             "examples": [
-                "Dashboard: https://monitor.yourdomain.com/",
-                "Node API:  https://api.yourdomain.com/",
-                "OR",
-                "Dashboard: https://mata.yourdomain.com/",
-                "Node API:  https://mata.api.yourdomain.com/"
+                "Dashboard: https://monitor.yourdomain.com/ OR https://mata.yourdomain.com/",
+                "Node API:  https://api.yourdomain.com/ (recommended)",
+                "Node API:  https://node.yourdomain.com/ (alternative)",
+                "Node API:  https://mata.api.yourdomain.com/ (if you have multiple APIs)"
             ],
+            "subdomain_naming": {
+                "simple_pattern": "api.yourdomain.com (recommended for most users)",
+                "namespaced_pattern": "mata.api.yourdomain.com (if running multiple API services)",
+                "alternative_pattern": "node.yourdomain.com (descriptive alternative)"
+            },
             "benefits": [
                 "Clean, professional URLs",
                 "Easier SSL/TLS certificate management",
@@ -98,6 +93,23 @@
             ],
             "nginx_example": "server { server_name api.yourdomain.com; root /var/www/mata-node/public; ... }",
             "apache_example": "<VirtualHost *:443>\n  ServerName api.yourdomain.com\n  DocumentRoot /var/www/mata-node/public\n  ...\n</VirtualHost>"
+        },
+        "docker_single_server": {
+            "description": "Docker deployment on a single server using decade-spaced ports",
+            "example": "https://yourdomain.com:3310/ (expose Docker ports directly)",
+            "use_cases": [
+                "All services on one VPS/server",
+                "Simple production setup without reverse proxy",
+                "Quick deployment with docker-compose"
+            ],
+            "ports": {
+                "dashboard": "3300 (WEB_PORT)",
+                "node_api": "3310 (NODE_PORT)",
+                "opa_service": "3320 (OPA_PORT - internal only)",
+                "mysql": "3306 (MYSQL_PORT - internal only)"
+            },
+            "note": "Expose only necessary ports (3300, 3310). Keep OPA and MySQL internal to Docker network.",
+            "firewall": "Configure firewall to allow only ports 80, 443, 3300, 3310 if needed"
         },
         "path_based_fallback": {
             "description": "Path-based deployment for shared hosting or limited subdomain access",
@@ -110,24 +122,26 @@
             "note": "Requires careful .htaccess/nginx configuration to prevent public access to non-public directories"
         },
         "local_development": {
-            "description": "Docker development uses decade-spaced ports",
+            "description": "Local Docker development using decade-spaced ports",
             "dashboard": "http://localhost:3300/",
             "node_api": "http://localhost:3310/",
             "opa_service": "http://localhost:3320/",
+            "mysql": "localhost:3306 (or 3306 if exposed)",
             "note": "Use allow_http: \"on\" for local HTTP testing"
         }
     },
     "_CONFIGURATION_NOTES": {
-        "active": "Enable/disable monitoring for this server (true/false) - defaults to true if not specified. When false, no metrics are collected and server is hidden from dashboard.",
+        "active": "Enable/disable monitoring for this server (true/false) - defaults to true if not specified",
         "title": "Display name for the server shown in the dashboard",
         "url": "The base URL of the server (with or without trailing slash)",
-        "api_url": "Full API endpoint URL for the MATA Node API - RECOMMENDED: use subdomain (https://api.yourdomain.com/)",
+        "api_url": "Full API endpoint URL for MATA Node - RECOMMENDED: https://api.yourdomain.com/ or https://yourdomain.com:3310/ (Docker)",
         "api_key": "Secure API key for authentication (must match node configuration)",
-        "allow_http": "Set to \"on\" for HTTP connections (local dev only) - production must use HTTPS",
+        "allow_http": "Set to \"on\" for HTTP connections (local dev or internal networks only)",
+        "suppress_http_warning": "Set to \"on\" to suppress HTTP warning logs for trusted internal networks",
         "primary_color": "Hex color code for server identification in dashboard",
         "secondary_color": "Secondary color for UI theming",
         "info": "Human-readable description of the server's purpose",
-        "check_disk_space": "Enable/disable disk space monitoring (on/off) - optional field"
+        "check_disk_space": "Enable/disable disk space monitoring (on/off)"
     },
     "_COLOR_EXAMPLES": {
         "green_success": "#28a745",
@@ -143,30 +157,43 @@
     },
     "_API_SETUP_INSTRUCTIONS": [
         "1. Install MATA Node on each server you want to monitor",
-        "2. RECOMMENDED: Configure subdomain pointing to node's public directory",
-        "   Example: mata.api.yourdomain.com -> /var/www/mata-node/public",
+        "2a. RECOMMENDED: Configure subdomain -> /var/www/mata-node/public",
+        "    Examples: api.yourdomain.com or node.yourdomain.com",
+        "2b. ALTERNATIVE: Docker on single server with exposed ports",
+        "    Example: https://yourdomain.com:3310/ (decade-spaced)",
+        "2c. FALLBACK: Shared hosting path-based deployment",
+        "    Example: https://yourdomain.com/mata-node/public/",
         "3. Configure the node with the same API key specified here",
-        "4. Ensure the API endpoint is accessible from your dashboard server",
-        "5. Test connectivity: curl -H 'X-API-Key: your_key' https://mata.api.yourdomain.com/health",
-        "6. For shared hosting, use path-based: https://yourdomain.com/mata-node/public/",
-        "7. For local development, use ports: http://localhost:3310/ (decade-spaced)"
+        "4. Ensure the API endpoint is accessible from your dashboard",
+        "5. Test connectivity:",
+        "   curl -H 'X-API-Key: your_key' https://api.yourdomain.com/health",
+        "   OR curl -H 'X-API-Key: your_key' https://yourdomain.com:3310/health",
+        "6. For local development: http://localhost:3310/"
     ],
     "_SECURITY_CHECKLIST": [
         "✓ Generated unique API keys for each server (minimum 32 characters)",
         "✓ API keys are stored securely and not committed to version control",
-        "✓ HTTPS is used for all API communications (except local dev)",
-        "✓ Subdomain DNS records configured with proper SSL certificates",
-        "✓ Firewall rules restrict API access to authorized IP addresses",
+        "✓ HTTPS is used for all API communications (except local dev/internal)",
+        "✓ DNS records configured with proper SSL certificates",
+        "✓ Firewall configured to allow only necessary ports",
         "✓ API keys are rotated regularly (recommended: every 90 days)",
         "✓ Remove this example file from production servers"
     ],
     "_PORT_CONVENTION": {
-        "description": "MATA uses decade-spaced ports for local development",
-        "dashboard": "3300 (WEB_PORT)",
-        "node_api": "3310 (NODE_PORT)",
-        "opa_service": "3320 (OPA_PORT)",
-        "mkdocs": "3330 (MKDOCS_PORT)",
-        "mysql": "3306 (MYSQL_PORT - standard)",
-        "note": "Decade spacing allows multiple stacks (e.g., 2nd stack: 3400, 3410, 3420...)"
+        "description": "MATA uses decade-spaced ports for Docker deployments (local AND production)",
+        "dashboard": "3300 (WEB_PORT) - Main web interface",
+        "node_api": "3310 (NODE_PORT) - Remote monitoring API",
+        "opa_service": "3320 (OPA_PORT) - Policy engine (internal)",
+        "mkdocs": "3330 (MKDOCS_PORT) - Documentation (dev only)",
+        "mysql": "3306 (MYSQL_PORT) - Database (internal)",
+        "benefits": [
+            "Decade spacing (3300, 3310, 3320...) provides clear separation",
+            "Works for both local development and production Docker",
+            "Room for expansion (3301-3309 reserved for dashboard features)",
+            "Multiple stacks possible: 2nd stack uses 3400, 3410, 3420...",
+            "Easy to remember and type"
+        ],
+        "production_note": "In production, expose only ports you need (3300 for dashboard, 3310 for node). Keep OPA/MySQL internal to Docker network.",
+        "reverse_proxy_note": "Best practice: Use reverse proxy (nginx/caddy) on ports 80/443, proxy to Docker ports internally"
     }
 }

@@ -247,10 +247,12 @@ class DashboardController extends BaseController
     /**
      * Handle acknowledgement actions for the database availability banner.
      */
-    public function acknowledgeDatabaseNotice(string $action): Response
+    public function acknowledgeDatabaseNotice(): Response
     {
         return $this->executeWithErrorHandling(
-            function () use ($action) {
+            function () {
+                $action = $_POST['action'] ?? '';
+
                 if (!$this->notificationManager->acknowledgeOfflineNotice($action)) {
                     return new JsonResponse([
                         'success' => false,

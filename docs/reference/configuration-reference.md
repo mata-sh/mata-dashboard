@@ -53,14 +53,18 @@ Application environment mode.
 | **Options** | `prod`, `dev`, `demo` |
 | **Default** | `prod` |
 | **Required** | Yes |
+| **Location** | `.env` (root directory) |
 
 **Values:**
 - `prod` (production): Full monitoring, real API calls, high alert sensitivity
 - `dev` (development): Debug enabled, development settings
 - `demo`: Uses MockServerDataCollector with demo data
 
+**Important:** `APP_ENV` should be set in `.env` (root directory). This allows Docker Compose to use it for selecting environment-specific override files (`docker-compose.dev.yml`, `docker-compose.prod.yml`).
+
 **Example:**
 ```env
+# In .env (root directory)
 APP_ENV=prod
 ```
 

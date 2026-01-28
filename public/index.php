@@ -152,7 +152,7 @@ $exceptionHandler = new ExceptionHandler($log, $appConfig->template->debugEnable
 // ************************************************************************************************
 // Template Engine (Twig)
 // ************************************************************************************************
-$templateCacheDir = $this->tempPath . '/templates-cache';
+$templateCacheDir = $paths->tempPath . '/templates-cache';
 $twig->setCache($appConfig->template->debugEnabled ? $templateCacheDir : false);
 if ($appConfig->template->debugEnabled) {
     $twig->enableDebug();

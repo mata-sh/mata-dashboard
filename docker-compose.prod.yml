@@ -20,7 +20,7 @@ services:
 
     # Production environment variables
     environment:
-      - APP_ENV=prod
+      - APP_ENV=${APP_ENV:-prod}
       - DISPLAY_ERRORS=0
       - LOG_LEVEL=errors
       - TEMPLATE_DEBUG_ENABLED=false

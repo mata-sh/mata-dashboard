@@ -254,7 +254,7 @@ class RouterSetup
                 ['libraries_render', '/libraries', 'get', fn () => $this->dashboardController->renderLibrariesOverview()],
                 ['databases_render', '/databases', 'get', fn () => $this->dashboardController->renderDatabasesOverview()],
                 ['settings_render', '/settings', 'get', fn () => $this->dashboardController->renderSettingsOverview()],
-                ['database_notice_ack', '/database-notice/ack/{action}', 'get', fn ($action) => $this->dashboardController->acknowledgeDatabaseNotice($action)],
+                ['database_notice_ack', '/database-notice/ack', 'post', fn () => $this->dashboardController->acknowledgeDatabaseNotice()],
             ];
 
             $refreshRoutes = [
