@@ -29,18 +29,18 @@ final class LogConfigurator
         return $this->createLogger($channel, $path, Level::Error);
     }
 
-    public function createCronLogger(PathResolver $paths, string $jobName, string $channel = 'cronjob'): Logger
-    {
+    public function createCronLogger(
+        PathResolver $paths,
+        string $jobName,
+        string $level = 'debug',
+        string $channel = 'cronjob'
+    ): Logger {
         $path = $paths->logsPath . DIRECTORY_SEPARATOR . 'cron' . DIRECTORY_SEPARATOR . "app-{$jobName}.log";
+        $logger = new Logger($channel);
+        $resolvedLevel = $this->resolveLogLevel($level, $logger);
+        $this->applyHandler($logger, $path, $resolvedLevel);
 
-        return $this->createLogger($channel, $path, Level::Debug);
-    }
-
-    public function applyConfiguredLogger(Logger $logger, LoggingConfig $config, PathResolver $paths): void
-    {
-        $path = $paths->appLogPath;
-        $level = $this->resolveLogLevel($config->level, $logger);
-        $this->applyHandler($logger, $path, $level);
+        return $logger;
     }
 
     public function createConfiguredLogger(
@@ -52,6 +52,13 @@ final class LogConfigurator
         $this->applyConfiguredLogger($logger, $config, $paths);
 
         return $logger;
+    }
+
+    public function applyConfiguredLogger(Logger $logger, LoggingConfig $config, PathResolver $paths): void
+    {
+        $path = $paths->appLogPath;
+        $level = $this->resolveLogLevel($config->level, $logger);
+        $this->applyHandler($logger, $path, $level);
     }
 
     private function applyHandler(Logger $logger, string $path, Level $level): void
