@@ -123,7 +123,7 @@ class RouterSetup
         });
 
         // API routes - higher limits for data-heavy operations
-        // Covers both /api/* (events, alarms, libraries, errorlog) and /api/metrics/*
+        // Covers both /api/* (events, alarms, libraries, logs) and /api/metrics/*
         $this->router->before('GET|POST', '/api/.*', function () {
             if ($this->app->rateLimiter->isRateLimited('api')) {
                 http_response_code(429);
@@ -272,8 +272,8 @@ class RouterSetup
             $contentModalRoutes = [
                 ['modal_app_readme_render', '/modal/{server}/{app}/readme', 'get', fn ($server, $app) => $this->modalController->renderAppReadme($server, $app)],
                 ['modal_app_readme_refresh', '/modal/{server}/{app}/readme/refresh', 'get', fn ($server, $app) => $this->modalController->renderAppReadme($server, $app, forceRefresh: true)],
-                ['modal_app_errorlog_render', '/modal/{server}/{app}/errorlog', 'get', fn ($server, $app) => $this->modalController->renderAppErrorlog($server, $app)],
-                ['modal_app_errorlog_refresh', '/modal/{server}/{app}/errorlog/refresh', 'get', fn ($server, $app) => $this->modalController->renderAppErrorlog($server, $app, forceRefresh: true)],
+                ['modal_app_logs_render', '/modal/{server}/{app}/logs', 'get', fn ($server, $app) => $this->modalController->renderAppLogs($server, $app)],
+                ['modal_app_logs_refresh', '/modal/{server}/{app}/logs/refresh', 'get', fn ($server, $app) => $this->modalController->renderAppLogs($server, $app, forceRefresh: true)],
                 ['modal_server_info_render', '/modal/{server}/info', 'get', fn ($server) => $this->modalController->renderServerInfo($server)],
                 ['modal_server_info_refresh', '/modal/{server}/info/refresh', 'get', fn ($server) => $this->modalController->renderServerInfo($server, forceRefresh: true)],
             ];
@@ -318,7 +318,8 @@ class RouterSetup
                 ['events_json', '/events', 'get', fn () => $this->dashboardController->getEventsJson()],
                 ['alarms_json', '/alarms', 'get', fn () => $this->dashboardController->getAlarmsJson()],
                 ['libraries_json', '/libraries', 'get', fn () => $this->dashboardController->getLibrariesJson()],
-                ['app_errorlog_json', '/errorlog/{server}/{app}', 'get', fn ($server, $app) => $this->modalController->getAppErrorlogJson($server, $app, forceRefresh: true)],
+                ['app_logs_json', '/logs/{server}/{app}', 'get', fn ($server, $app) => $this->modalController->getAppLogsJson($server, $app, forceRefresh: true)],
+                ['app_logs_status_json', '/logs-status/{server}/{app}', 'get', fn ($server, $app) => $this->modalController->getAppLogsStatusJson($server, $app, forceRefresh: true)],
             ];
 
             foreach ($apiRoutes as [$name, $path, $method, $handler]) {
@@ -440,8 +441,8 @@ class RouterSetup
             }
         });
 
-        // Validate errorlog API route parameters
-        $this->router->before('GET', '/api/errorlog/([^/]+)/([^/]+)', function ($server, $app) {
+        // Validate logs and logs-status API route parameters
+        $this->router->before('GET', '/api/(logs|logs-status)/([^/]+)/([^/]+)', function ($routeType, $server, $app) {
             $serverValid = filter_var($server, FILTER_VALIDATE_REGEXP, [
                 'options' => ['regexp' => '/^[a-zA-Z0-9_\-\.]+$/'],
             ]);
@@ -451,7 +452,7 @@ class RouterSetup
             ]);
 
             if ($serverValid === false || $appValid === false) {
-                throw new InvalidArgumentException('Invalid errorlog API route parameter');
+                throw new InvalidArgumentException('Invalid API route parameter');
             }
         });
     }

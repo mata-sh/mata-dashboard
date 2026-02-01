@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Mata\Services\Collect;
 
+use Mata\Services\DataTransformers\ApiResponseTransformer;
 use Mata\Services\Foundation\CacheManager;
-use Mata\Services\Foundation\DataTransformers\ApiResponseTransformer;
 use Psr\Log\LoggerInterface;
 
 /**
@@ -306,16 +306,20 @@ class MockServerDataCollector implements ServerDataCollectorInterface
     }
 
     /**
-     * Generate demo error log content.
+     * Generate demo grouped log content matching new API structure.
      */
-    public function fetchAppErrorlog(string $app, string $cacheType = 'errorlog'): ?array
+    public function fetchAppLogs(string $app, string $cacheType = 'appLogs'): ?array
     {
         $ttlSeconds = $this->cacheManager->getTtl($cacheType);
         $this->cacheTtl = $ttlSeconds;
 
-        // Generate structured log entries matching the node API format
-        $logCount = mt_rand(10, 50);
-        $parsedEntries = [];
+        $logFiles = [
+            "{$app}/logs/error.log",
+            "{$app}/logs/access.log",
+            "{$app}/logs/debug.log",
+        ];
+
+        $groupedLogs = [];
 
         $errorTypes = [
             ['message' => 'PHP Fatal error: Uncaught Error: Call to undefined function', 'type' => 'Error'],
@@ -326,23 +330,61 @@ class MockServerDataCollector implements ServerDataCollectorInterface
             ['message' => 'Failed to connect to database: Access denied', 'type' => 'Error'],
             ['message' => 'HTTP 500 Internal Server Error', 'type' => 'Error'],
             ['message' => 'Class \'App\Model\User\' not found', 'type' => 'Error'],
+            ['message' => 'Session started', 'type' => 'Other'],
+            ['message' => 'Request completed in 234ms', 'type' => 'Other'],
         ];
 
-        for ($i = 0; $i < $logCount; ++$i) {
-            $timestamp = date('Y-m-d H:i:s', time() - mt_rand(3600, 86400 * 7));
-            $errorType = $errorTypes[array_rand($errorTypes)];
-            $file = '/var/www/' . $app . '/src/' . ['Controller', 'Model', 'Service'][array_rand(['Controller', 'Model', 'Service'])] . '/'
-                   . ucfirst($app) . ['Controller', 'Model', 'Service'][array_rand(['Controller', 'Model', 'Service'])] . '.php';
-            $line = mt_rand(15, 250);
+        foreach ($logFiles as $logFile) {
+            $entriesCount = mt_rand(5, 20);
+            $entries = [];
 
-            $parsedEntries[] = [
-                'timestamp' => $timestamp,
-                'type' => $errorType['type'],
-                'message' => $errorType['message'] . ' ' . $file . ':' . $line,
-            ];
+            for ($i = 0; $i < $entriesCount; ++$i) {
+                $timestamp = date('Y-m-d H:i:s', time() - mt_rand(3600, 86400 * 7));
+                $errorType = $errorTypes[array_rand($errorTypes)];
+                $file = '/var/www/' . $app . '/src/' . ['Controller', 'Model', 'Service'][array_rand(['Controller', 'Model', 'Service'])] . '/'
+                       . ucfirst($app) . ['Controller', 'Model', 'Service'][array_rand(['Controller', 'Model', 'Service'])] . '.php';
+                $line = mt_rand(15, 250);
+
+                $entries[] = [
+                    'timestamp' => $timestamp,
+                    'type' => $errorType['type'],
+                    'message' => $errorType['message'] . ' ' . $file . ':' . $line,
+                ];
+            }
+
+            $groupedLogs[$logFile] = $entries;
         }
 
-        return $this->dataTransformer->normalizeApiResponse($parsedEntries, $this->cacheAge, $ttlSeconds, false);
+        return $this->dataTransformer->normalizeApiResponse($groupedLogs, $this->cacheAge, $ttlSeconds, false);
+    }
+
+    /**
+     * Generate demo log file metadata.
+     */
+    public function fetchAppLogsStatus(string $app, string $cacheType = 'appLogs'): ?array
+    {
+        $ttlSeconds = $this->cacheManager->getTtl($cacheType);
+        $this->cacheTtl = $ttlSeconds;
+
+        $logsStatus = [
+            "{$app}/logs/error.log" => [
+                'size' => mt_rand(10240, 524288), // 10KB to 512KB
+                'lines' => mt_rand(100, 5000),
+                'last_modified' => date('Y-m-d H:i:s', time() - mt_rand(60, 86400)),
+            ],
+            "{$app}/logs/access.log" => [
+                'size' => mt_rand(51200, 1048576), // 50KB to 1MB
+                'lines' => mt_rand(500, 10000),
+                'last_modified' => date('Y-m-d H:i:s', time() - mt_rand(60, 3600)),
+            ],
+            "{$app}/logs/debug.log" => [
+                'size' => mt_rand(5120, 204800), // 5KB to 200KB
+                'lines' => mt_rand(50, 2000),
+                'last_modified' => date('Y-m-d H:i:s', time() - mt_rand(300, 43200)),
+            ],
+        ];
+
+        return $this->dataTransformer->normalizeApiResponse($logsStatus, $this->cacheAge, $ttlSeconds, false);
     }
 
     /**

@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Mata\Services\Foundation\DataTransformers;
+namespace Mata\Services\DataTransformers;
 
 use Psr\Log\LoggerInterface;
 use RuntimeException;
@@ -213,19 +213,6 @@ class ApiResponseTransformer
     }
 
     /**
-     * Normalize error log data.
-     *
-     * @param array<string,mixed> $data Decoded error log data
-     *
-     * @return array<string,mixed> Normalized error log data
-     */
-    public function normalizeErrorlogData(array $data): array
-    {
-        // No specific normalization needed currently
-        return $data;
-    }
-
-    /**
      * Normalize README data.
      *
      * @param array<string,mixed> $data Decoded README data
@@ -310,8 +297,7 @@ class ApiResponseTransformer
             $path === 'apps' => $this->normalizeAppsData($data),
             $path === 'server-data' => $this->normalizeServerSystemData($data),
             $path === 'server-databases' => $this->normalizeDatabaseData($data),
-            str_contains($path, '/logs/') => $this->normalizeAppLogs($data),
-            str_contains($path, '/errorlog') => $this->normalizeErrorlogData($data),
+            str_contains($path, '/logs/') || str_ends_with($path, '/logs') => $this->normalizeAppLogs($data),
             str_contains($path, '/readme') => $this->normalizeReadmeData($data),
             str_contains($path, '/libraries') => $this->normalizeLibrariesData($data),
             $path === 'server-php' => $this->normalizePhpProcesses($data),

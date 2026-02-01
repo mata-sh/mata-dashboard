@@ -36,16 +36,29 @@ final class ModalCacheService
     }
 
     /**
-     * Fetch error log data with cache handling applied.
+     * Fetch logs data with cache handling applied.
      */
-    public function fetchErrorLog(
+    public function fetchLogs(
         ServerDataCollectorInterface $collector,
         string $app,
         bool $forceRefresh
     ): ?array {
-        $cacheType = $this->cacheTypeResolver->resolve($forceRefresh, CacheTypes::ERROR_LOG);
+        $cacheType = $this->cacheTypeResolver->resolve($forceRefresh, CacheTypes::APP_LOGS);
 
-        return $collector->fetchAppErrorlog($app, $cacheType);
+        return $collector->fetchAppLogs($app, $cacheType);
+    }
+
+    /**
+     * Fetch logs status data with cache handling applied.
+     */
+    public function fetchLogsStatus(
+        ServerDataCollectorInterface $collector,
+        string $app,
+        bool $forceRefresh
+    ): ?array {
+        $cacheType = $this->cacheTypeResolver->resolve($forceRefresh, CacheTypes::APP_LOGS);
+
+        return $collector->fetchAppLogsStatus($app, $cacheType);
     }
 
     /**

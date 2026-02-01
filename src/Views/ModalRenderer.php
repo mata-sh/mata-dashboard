@@ -80,7 +80,7 @@ class ModalRenderer extends BaseRenderer
     }
 
     /**
-     * Build template data for error log modal.
+     * Build template data for logs modal.
      *
      * @param string              $server    Server name
      * @param string              $app       Application name
@@ -90,18 +90,18 @@ class ModalRenderer extends BaseRenderer
      *
      * @return array<string,mixed> Template data array
      */
-    public function buildErrorlogModalData(
+    public function buildLogsModalData(
         string $server,
         string $app,
         int $cacheAge,
         int $cacheTtl,
         array $endpoints
     ): array {
-        $errorLogTableHtml = $this->renderErrorlogTable($server, $app);
+        $logsTableHtml = $this->renderLogsTable($server, $app, $endpoints);
 
         return [
             'content' => [
-                'modal_content' => $errorLogTableHtml,
+                'modal_content' => $logsTableHtml,
             ],
             'app' => [
                 'server' => $server,
@@ -251,31 +251,33 @@ class ModalRenderer extends BaseRenderer
     }
 
     /**
-     * Render error log table HTML.
+     * Render logs table HTML.
      *
-     * @param string $server Server name
-     * @param string $app    Application name
+     * @param string $server    Server name
+     * @param string $app       Application name
+     * @param array  $endpoints Endpoint URLs for the table
      *
      * @return string HTML table content
      */
-    public function renderErrorlogTable(string $server, string $app): string
+    public function renderLogsTable(string $server, string $app, array $endpoints = []): string
     {
         $data = [
             'app' => [
                 'server' => $server,
                 'name' => $app,
             ],
+            'endpoints' => $endpoints,
         ];
 
         try {
-            return $this->twig->render('partials/components/errorlog-table.html.twig', $data);
+            return $this->twig->render('partials/components/logs-table.html.twig', $data);
         } catch (Exception $e) {
-            $this->logError($e->getMessage(), 'ErrorlogTable', [
+            $this->logError($e->getMessage(), 'LogsTable', [
                 'server' => $server,
                 'app' => $app,
             ]);
 
-            return '<p>Error rendering error log table</p>';
+            return '<p>Error rendering logs table</p>';
         }
     }
 
@@ -314,7 +316,7 @@ class ModalRenderer extends BaseRenderer
     }
 
     /**
-     * Render complete error log modal.
+     * Render complete logs modal.
      *
      * @param string              $server    Server name
      * @param string              $app       Application name
@@ -324,24 +326,24 @@ class ModalRenderer extends BaseRenderer
      *
      * @return string Rendered modal HTML
      */
-    public function renderErrorlogModal(
+    public function renderLogsModal(
         string $server,
         string $app,
         int $cacheAge,
         int $cacheTtl,
         array $endpoints
     ): string {
-        $data = $this->buildErrorlogModalData($server, $app, $cacheAge, $cacheTtl, $endpoints);
+        $data = $this->buildLogsModalData($server, $app, $cacheAge, $cacheTtl, $endpoints);
 
         try {
-            return $this->twig->render('partials/modals/errorlog-modal.html.twig', $data);
+            return $this->twig->render('partials/modals/logs-modal.html.twig', $data);
         } catch (Exception $e) {
-            $this->logError($e->getMessage(), 'ErrorlogModal', [
+            $this->logError($e->getMessage(), 'LogsModal', [
                 'server' => $server,
                 'app' => $app,
             ]);
 
-            return '<div class="notification is-danger">Error rendering error log modal</div>';
+            return '<div class="notification is-danger">Error rendering logs modal</div>';
         }
     }
 

@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Mata\Services\Foundation\DataTransformers;
+namespace Mata\Services\DataTransformers;
 
 /**
  * Chart data transformation service for visualization formatting.

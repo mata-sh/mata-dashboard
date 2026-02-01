@@ -13,6 +13,7 @@ use Mata\Http\Responses\HtmlResponse;
 use Mata\Http\Responses\JsonResponse;
 use Mata\Http\Routing\Endpoints;
 use Mata\Services\Collect\ServerDataCollectorInterface;
+use Mata\Services\DataTransformers\LogDataTransformer;
 use Mata\Services\Foundation\CacheManager;
 use Mata\Tests\Helpers\ApplicationConfigFactory;
 use Mata\Tests\TestCase;
@@ -47,6 +48,7 @@ class ModalControllerTest extends TestCase
     private Environment&MockObject $mockTwig;
     private Logger $logger;
     private CacheManager&MockObject $mockCacheManager;
+    private LogDataTransformer&MockObject $mockLogTransformer;
     private Endpoints&MockObject $mockEndpoints;
     private ApplicationConfig $appConfig;
     private array $serversConfig;
@@ -60,6 +62,7 @@ class ModalControllerTest extends TestCase
         $this->mockTwig = $this->createMock(Environment::class);
         $this->logger = new Logger('test', [new TestHandler()]);
         $this->mockCacheManager = $this->createMock(CacheManager::class);
+        $this->mockLogTransformer = $this->createMock(LogDataTransformer::class);
         $this->mockEndpoints = $this->createMock(Endpoints::class);
 
         // Create minimal ApplicationConfig with all required DTOs
@@ -94,6 +97,11 @@ class ModalControllerTest extends TestCase
             ->willReturnCallback(fn ($seconds) => "{$seconds}s")
         ;
 
+        // Mock LogDataTransformer to pass through data
+        $this->mockLogTransformer->method('flattenGroupedLogs')
+            ->willReturnCallback(fn ($data) => $data)
+        ;
+
         $this->controller = new ModalController(
             $this->mockApp,
             $this->mockTools,
@@ -101,6 +109,7 @@ class ModalControllerTest extends TestCase
             $this->logger,
             $this->appConfig,
             $this->mockCacheManager,
+            $this->mockLogTransformer,
             $this->mockEndpoints,
             $this->serversConfig
         );
@@ -140,6 +149,7 @@ class ModalControllerTest extends TestCase
             $this->logger,
             $demoConfig,
             $this->mockCacheManager,
+            $this->mockLogTransformer,
             $this->mockEndpoints,
             $this->serversConfig
         );
@@ -340,21 +350,21 @@ class ModalControllerTest extends TestCase
      * @test
      *
      * @group modal-controller
-     * @group errorlog-modal
+     * @group logs-modal
      * @group happy-path
      *
      * Tests successful error log modal rendering. When a user views an app's
      * error log, the controller should fetch the log data and render it in
      * a modal with proper formatting and structure.
      */
-    public function testItRendersErrorlogModalSuccessfully(): void
+    public function testItRendersLogsModalSuccessfully(): void
     {
         $server = 'server1';
         $app = 'test-app';
 
         $mockCollector = $this->createMockServerDataCollector($server);
         $mockCollector->expects($this->once())
-            ->method('fetchAppErrorlog')
+            ->method('fetchAppLogs')
             ->with($app, $this->anything())
             ->willReturn([
                 'result' => [
@@ -370,10 +380,10 @@ class ModalControllerTest extends TestCase
         $expectedHtml = '<div class="modal">Error log content</div>';
         $this->mockTwig->method('render')
             ->willReturnCallback(function (string $template) use ($expectedHtml) {
-                if ($template === 'partials/components/errorlog-table.html.twig') {
+                if ($template === 'partials/components/logs-table.html.twig') {
                     return '<div>Table</div>';
                 }
-                if ($template === 'partials/modals/errorlog-modal.html.twig') {
+                if ($template === 'partials/modals/logs-modal.html.twig') {
                     return $expectedHtml;
                 }
 
@@ -381,7 +391,7 @@ class ModalControllerTest extends TestCase
             })
         ;
 
-        $response = $this->controller->renderAppErrorlog($server, $app);
+        $response = $this->controller->renderAppLogs($server, $app);
 
         $this->assertInstanceOf(HtmlResponse::class, $response);
         $this->assertEquals($expectedHtml, $response->getContent());
@@ -391,14 +401,14 @@ class ModalControllerTest extends TestCase
      * @test
      *
      * @group modal-controller
-     * @group errorlog-modal
+     * @group logs-modal
      * @group json-response
      *
      * Tests JSON error log endpoint. Some AJAX requests need raw JSON data
      * instead of rendered HTML. This tests that the controller can return
      * error log data as JSON when requested.
      */
-    public function testItReturnsErrorlogAsJsonWhenRequested(): void
+    public function testItReturnsLogsAsJsonWhenRequested(): void
     {
         $server = 'server1';
         $app = 'test-app';
@@ -408,7 +418,7 @@ class ModalControllerTest extends TestCase
 
         $mockCollector = $this->createMockServerDataCollector($server);
         $mockCollector->expects($this->once())
-            ->method('fetchAppErrorlog')
+            ->method('fetchAppLogs')
             ->willReturn([
                 'result' => $errorLogData,
                 'cache_age' => 30,
@@ -418,7 +428,7 @@ class ModalControllerTest extends TestCase
 
         $this->injectMockCollector($server, $mockCollector);
 
-        $response = $this->controller->getAppErrorlogJson($server, $app);
+        $response = $this->controller->getAppLogsJson($server, $app);
 
         $this->assertInstanceOf(JsonResponse::class, $response);
         $this->assertEquals($errorLogData, $response->getData());
@@ -428,13 +438,13 @@ class ModalControllerTest extends TestCase
      * @test
      *
      * @group modal-controller
-     * @group errorlog-modal
+     * @group logs-modal
      * @group json-endpoint
      *
      * Tests dedicated JSON error log endpoint.
      * Separate methods for HTML vs JSON provide clearer semantics.
      */
-    public function testItReturnsErrorlogJsonViaDedicatedEndpoint(): void
+    public function testItReturnsLogsJsonViaDedicatedEndpoint(): void
     {
         $server = 'server1';
         $app = 'test-app';
@@ -445,7 +455,7 @@ class ModalControllerTest extends TestCase
 
         $mockCollector = $this->createMockServerDataCollector($server);
         $mockCollector->expects($this->once())
-            ->method('fetchAppErrorlog')
+            ->method('fetchAppLogs')
             ->willReturn([
                 'result' => $errorLogData,
                 'cache_age' => 15,
@@ -455,7 +465,7 @@ class ModalControllerTest extends TestCase
 
         $this->injectMockCollector($server, $mockCollector);
 
-        $response = $this->controller->getAppErrorlogJson($server, $app);
+        $response = $this->controller->getAppLogsJson($server, $app);
 
         $this->assertInstanceOf(JsonResponse::class, $response);
         $this->assertEquals($errorLogData, $response->getData());
@@ -465,15 +475,15 @@ class ModalControllerTest extends TestCase
      * @test
      *
      * @group modal-controller
-     * @group errorlog-modal
+     * @group logs-modal
      * @group validation
      *
      * Tests server validation for error log requests. Invalid server names
      * should result in a 404 response.
      */
-    public function testItReturnsNotFoundForInvalidServerOnErrorlog(): void
+    public function testItReturnsNotFoundForInvalidServerOnLogs(): void
     {
-        $response = $this->controller->renderAppErrorlog('nonexistent-server', 'test-app');
+        $response = $this->controller->renderAppLogs('nonexistent-server', 'test-app');
 
         $this->assertEquals(404, $response->getStatusCode());
         $this->assertInstanceOf(JsonResponse::class, $response);
@@ -483,27 +493,27 @@ class ModalControllerTest extends TestCase
      * @test
      *
      * @group modal-controller
-     * @group errorlog-modal
+     * @group logs-modal
      * @group error-handling
      *
      * Tests error handling when error log fetching fails. The API might be
      * down or the app might not have an error log. The controller should
      * handle this gracefully.
      */
-    public function testItHandlesApiFailureForErrorlog(): void
+    public function testItHandlesApiFailureForLogs(): void
     {
         $server = 'server1';
         $app = 'test-app';
 
         $mockCollector = $this->createMockServerDataCollector($server);
         $mockCollector->expects($this->once())
-            ->method('fetchAppErrorlog')
+            ->method('fetchAppLogs')
             ->willReturn(null) // API failure
         ;
 
         $this->injectMockCollector($server, $mockCollector);
 
-        $response = $this->controller->renderAppErrorlog($server, $app);
+        $response = $this->controller->renderAppLogs($server, $app);
 
         $this->assertGreaterThanOrEqual(400, $response->getStatusCode());
     }
@@ -892,6 +902,7 @@ MARKDOWN;
             $mockLogger,
             $this->appConfig,
             $this->mockCacheManager,
+            $this->mockLogTransformer,
             $this->mockEndpoints,
             $invalidServersConfig
         );
@@ -969,6 +980,7 @@ MARKDOWN;
             $this->logger,
             $this->appConfig,
             $this->mockCacheManager,
+            $this->mockLogTransformer,
             $this->mockEndpoints,
             $specialConfig
         );

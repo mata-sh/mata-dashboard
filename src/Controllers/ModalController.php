@@ -17,9 +17,10 @@ use Mata\Services\Cache\ModalCacheService;
 use Mata\Services\Collect\MockServerDataCollector;
 use Mata\Services\Collect\ServerDataCollector;
 use Mata\Services\Collect\ServerDataCollectorInterface;
+use Mata\Services\DataTransformers\ApiResponseTransformer;
+use Mata\Services\DataTransformers\LogDataTransformer;
 use Mata\Services\Foundation\ApiClient;
 use Mata\Services\Foundation\CacheManager;
-use Mata\Services\Foundation\DataTransformers\ApiResponseTransformer;
 use Mata\Utils\Tools;
 use Mata\Utils\TypeConverter;
 use Mata\Views\ModalRenderer;
@@ -43,6 +44,7 @@ class ModalController extends BaseController
     private CacheManager $cacheManager;
     private ModalRenderer $modalRenderer;
     private ModalCacheService $modalCacheService;
+    private LogDataTransformer $logTransformer;
     private Endpoints $endpoints;
 
     /** @var array<string,ServerDataCollectorInterface> */
@@ -56,10 +58,11 @@ class ModalController extends BaseController
     /**
      * Initialize modal controller with dependencies.
      *
-     * @param ApplicationConfig   $appConfig     Application configuration DTO
-     * @param array<string,mixed> $serversConfig Server configuration array
-     * @param CacheManager        $cacheManager  Cache management service with TTL configuration
-     * @param Endpoints           $endpoints     Route endpoints for URL generation
+     * @param ApplicationConfig   $appConfig      Application configuration DTO
+     * @param array<string,mixed> $serversConfig  Server configuration array
+     * @param CacheManager        $cacheManager   Cache management service with TTL configuration
+     * @param LogDataTransformer  $logTransformer Log data transformation service
+     * @param Endpoints           $endpoints      Route endpoints for URL generation
      */
     public function __construct(
         App $app,
@@ -68,6 +71,7 @@ class ModalController extends BaseController
         Logger $logger,
         ApplicationConfig $appConfig,
         CacheManager $cacheManager,
+        LogDataTransformer $logTransformer,
         Endpoints $endpoints,
         array $serversConfig
     ) {
@@ -75,6 +79,7 @@ class ModalController extends BaseController
         $this->logger = $logger;
         $this->appConfig = $appConfig;
         $this->cacheManager = $cacheManager;
+        $this->logTransformer = $logTransformer;
         $this->endpoints = $endpoints;
         $this->serversConfig = $serversConfig;
         $cacheTypeResolver = new CacheTypeResolver();
@@ -200,13 +205,13 @@ class ModalController extends BaseController
     }
 
     /**
-     * Fetch and render error log content for a app.
+     * Fetch and render application logs modal.
      *
      * @param bool $forceRefresh Whether to bypass cache
      *
      * @return Response Rendered modal HTML or JSON response
      */
-    public function renderAppErrorlog(
+    public function renderAppLogs(
         string $server,
         string $app,
         bool $forceRefresh = false
@@ -214,72 +219,113 @@ class ModalController extends BaseController
         return $this->executeWithErrorHandling(
             function () use ($server, $app, $forceRefresh) {
                 if (!isset($this->serverDataCollectors[$server])) {
-                    return $this->handleNotFound("Server '{$server}'", 'Errorlog request');
+                    return $this->handleNotFound("Server '{$server}'", 'Logs request');
                 }
                 $serverData = $this->serverDataCollectors[$server];
 
-                $errorlogResponse = $this->modalCacheService->fetchErrorLog($serverData, $app, $forceRefresh);
+                $logsResponse = $this->modalCacheService->fetchLogs($serverData, $app, $forceRefresh);
 
-                if ($errorlogResponse === null) {
-                    throw new Exception("Failed to fetch errorlog of {$app} on {$server} via API");
+                if ($logsResponse === null) {
+                    throw new Exception("Failed to fetch logs of {$app} on {$server} via API");
                 }
 
                 $endpoints = [
-                    'app_errorlog_json' => $this->endpoints->url('app_errorlog_json', [
+                    'app_logs_json' => $this->endpoints->url('app_logs_json', [
                         'server' => $server,
                         'app' => $app,
                     ]),
-                    'modal_app_errorlog_refresh' => $this->endpoints->url(
-                        'modal_app_errorlog_refresh',
+                    'app_logs_status_json' => $this->endpoints->url('app_logs_status_json', [
+                        'server' => $server,
+                        'app' => $app,
+                    ]),
+                    'modal_app_logs_refresh' => $this->endpoints->url(
+                        'modal_app_logs_refresh',
                         ['server' => $server, 'app' => $app]
                     ),
                 ];
 
-                $html = $this->modalRenderer->renderErrorlogModal(
+                $html = $this->modalRenderer->renderLogsModal(
                     $server,
                     $app,
-                    $errorlogResponse['cache_age'] ?? 0,
-                    $errorlogResponse['cache_ttl'] ?? 0,
+                    $logsResponse['cache_age'] ?? 0,
+                    $logsResponse['cache_ttl'] ?? 0,
                     $endpoints
                 );
 
                 return new HtmlResponse($html);
             },
-            'Failed to load application error log',
-            "Error log for {$app} on {$server}"
+            'Failed to load application logs',
+            "Logs for {$app} on {$server}"
         );
     }
 
     /**
-     * Return error log data as JSON response.
+     * Return application logs data as JSON response.
      *
      * @param string $server       Server identifier
      * @param string $app          Application code
      * @param bool   $forceRefresh Whether to bypass cache
      *
-     * @return Response JSON response with error log data
+     * @return Response JSON response with log data
      */
-    public function getAppErrorlogJson(string $server, string $app, bool $forceRefresh = false): Response
+    public function getAppLogsJson(string $server, string $app, bool $forceRefresh = false): Response
     {
         return $this->executeWithErrorHandling(
             function () use ($server, $app, $forceRefresh) {
                 if (!isset($this->serverDataCollectors[$server])) {
-                    return $this->handleNotFound("Server '{$server}'", 'Errorlog JSON request');
+                    return $this->handleNotFound("Server '{$server}'", 'Logs JSON request');
                 }
                 $serverData = $this->serverDataCollectors[$server];
 
-                $errorlogResponse = $this->modalCacheService->fetchErrorLog($serverData, $app, $forceRefresh);
+                // Fetch grouped logs from new API
+                $logsResponse = $this->modalCacheService->fetchLogs($serverData, $app, $forceRefresh);
 
-                if ($errorlogResponse === null) {
-                    throw new Exception("Failed to fetch errorlog of {$app} on {$server} via API");
+                if ($logsResponse === null) {
+                    throw new Exception("Failed to fetch logs for {$app} on {$server}");
                 }
 
-                $errorlogData = $errorlogResponse['result'] ?? [];
+                $groupedLogs = $logsResponse['result'] ?? [];
 
-                return new JsonResponse($errorlogData);
+                // Transform to flat structure with source field
+                $flatLogs = $this->logTransformer->flattenGroupedLogs($groupedLogs);
+
+                return new JsonResponse($flatLogs);
             },
-            'Failed to load application error log',
-            "Error log JSON for {$app} on {$server}"
+            'Failed to load application logs',
+            "Logs JSON for {$app} on {$server}"
+        );
+    }
+
+    /**
+     * Return log file metadata as JSON response.
+     *
+     * @param string $server       Server identifier
+     * @param string $app          Application code
+     * @param bool   $forceRefresh Whether to bypass cache
+     *
+     * @return Response JSON response with log file metadata
+     */
+    public function getAppLogsStatusJson(string $server, string $app, bool $forceRefresh = false): Response
+    {
+        return $this->executeWithErrorHandling(
+            function () use ($server, $app, $forceRefresh) {
+                if (!isset($this->serverDataCollectors[$server])) {
+                    return $this->handleNotFound("Server '{$server}'", 'Logs status JSON request');
+                }
+                $serverData = $this->serverDataCollectors[$server];
+
+                $logsStatusResponse = $this->modalCacheService->fetchLogsStatus($serverData, $app, $forceRefresh);
+
+                if ($logsStatusResponse === null) {
+                    throw new Exception("Failed to fetch logs status for {$app} on {$server}");
+                }
+
+                $logsStatusData = $logsStatusResponse['result'] ?? [];
+
+                return new JsonResponse($logsStatusData);
+            },
+            'Failed to load logs status',
+            "Logs status JSON for {$app} on {$server}"
         );
     }
 

@@ -404,8 +404,8 @@ class ServerRenderer extends BaseRenderer
                     'modal_app_readme_render',
                     ['server' => $server, 'app' => $app]
                 ),
-                'modal_app_errorlog_render' => $this->endpoints->url(
-                    'modal_app_errorlog_render',
+                'modal_app_logs_render' => $this->endpoints->url(
+                    'modal_app_logs_render',
                     ['server' => $server, 'app' => $app]
                 ),
             ],

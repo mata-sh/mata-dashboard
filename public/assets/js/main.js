@@ -1,4 +1,3 @@
-
 tippy('[data-tippy-content]', {
     allowHTML: true,
 });
@@ -59,23 +58,23 @@ document.body.addEventListener('htmx:afterRequest', function () {
 });
 
 const burger = document.querySelector('.navbar-burger');
-const menu = document.getElementById(burger.dataset.target);
-
-burger.addEventListener('click', () => {
-    burger.classList.toggle('is-active');
-    menu.classList.toggle('is-active');
-});
+if (burger) {
+    const menu = document.getElementById(burger.dataset.target);
+    burger.addEventListener('click', () => {
+        burger.classList.toggle('is-active');
+        menu.classList.toggle('is-active');
+    });
+}
 
 // Close modal on Escape key press
 document.addEventListener('keydown', function (event) {
     if (event.key === 'Escape' || event.keyCode === 27) {
         const modal = document.querySelector('#modal');
         if (modal) {
-            // Trigger the closeModal event using HTMX
-            htmx.trigger(modal, 'closeModal');
+            modal.dispatchEvent(new CustomEvent('closeModal'));
         }
     }
-});
+}, true);
 
 // ────────────────────────────────────────────────
 // Dynamic Module Loading - Metrics Dashboard

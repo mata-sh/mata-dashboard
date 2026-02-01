@@ -27,12 +27,13 @@ use Mata\Models\ConfigSyncRepository;
 use Mata\Models\EventRepository;
 use Mata\Services\Alert\AlertManager;
 use Mata\Services\Cache\MetricsCacheService;
+use Mata\Services\DataTransformers\LogDataTransformer;
 use Mata\Services\Event\EventAggregatorService;
 use Mata\Services\Event\EventManager;
 use Mata\Services\Event\EventRecorderService;
 use Mata\Services\Event\MockEventAggregatorService;
 use Mata\Services\Foundation\CacheManager;
-use Mata\Services\Foundation\DataTransformers\ChartDataTransformer;
+use Mata\Services\DataTransformers\ChartDataTransformer;
 use Mata\Services\Foundation\IdResolver;
 use Mata\Services\Foundation\SettingsDatabaseSync;
 use Mata\Services\Navigation\MenuBuilder;
@@ -331,6 +332,8 @@ $dashboardController = new DashboardController(
     $monitoringSettings,
 );
 
+$logDataTransformer = new LogDataTransformer($log);
+
 $modalController = new ModalController(
     $app,
     $tools,
@@ -338,6 +341,7 @@ $modalController = new ModalController(
     $log,
     $appConfig,
     $cacheManager,
+    $logDataTransformer,
     $endpoints,
     $monitoringSettings['servers'],
 );

@@ -1,5 +1,5 @@
-<div class="errorlog-section">
-    <h3>ErrorLog</h3>
+<div class="logs-section">
+    <h3>Logs</h3>
 
     <div class="filter-menu">
         <input id="filter-time" type="text" placeholder="2025.05.08 20:00:00">
@@ -11,19 +11,21 @@
             <option value="Deprecated">Deprecated</option>
             <option value="Other">Other</option>
         </select>
-                        
+
+        <input id="filter-source" type="text" placeholder="Source file">
+
         <input id="filter-msg" type="text" placeholder="Message">
 
         <button class="button" id="filter-clear">Clear Filter</button>
     </div>
     
-    <div id="errorlog-table"></div>
+    <div id="logs-table"></div>
 </div>
 
 <script>
 
-var table = new Tabulator("#errorlog-table", {
-    ajaxURL: "{{ endpoints.errorlog_json }}",
+var table = new Tabulator("#logs-table", {
+    ajaxURL: "{{ endpoints.app_logs_json }}",
     // layout: "fitColumns",
     layout:"fitDataFill",
     height:"1200px",
@@ -31,8 +33,8 @@ var table = new Tabulator("#errorlog-table", {
     // paginationSize: 10,
     paginationSize:33,
     columns: [
-        {title: "Timestamp", field: "timestamp", sorter: "datetime", hozAlign:"center"},
-        {title:"Type", field:"type", hozAlign:"center", formatter:function(cell, formatterParams){
+        {title: "Timestamp", field: "timestamp", sorter: "datetime", hozAlign:"center", width: 180},
+        {title:"Type", field:"type", hozAlign:"center", width: 120, formatter:function(cell, formatterParams){
         // {title: "Level", field: "level", sorter: "string",hozAlign:"center"},
         var value = cell.getValue();
             switch (value) {
@@ -45,8 +47,9 @@ var table = new Tabulator("#errorlog-table", {
                 default:
                     return value;
             }
-        
+
         }},
+        {title: "Source", field: "source", sorter: "string", hozAlign:"left", width: 250},
         {title: "Message", field: "message", sorter: "string"}
     ],
 });
@@ -58,7 +61,7 @@ Tabulator.extendModule("filter", "filters", {
         //rowData - the data for the row being filtered
         //filterParams - params object passed to the headerFilterFuncParams property
 
-        return rowVal === headerValue ? true : false;
+        return rowValue === headerValue ? true : false;
     }
 });
 
@@ -66,26 +69,28 @@ Tabulator.extendModule("filter", "filters", {
 /* --- helper that reads the inputs and applies all active filters in one call --- */
 function applyFilters(){
     const filters = [];
-    const typeVal  = document.getElementById("filter-type").value;
-    const msgVal   = document.getElementById("filter-msg").value.trim();
+    const typeVal   = document.getElementById("filter-type").value;
+    const sourceVal = document.getElementById("filter-source").value.trim();
+    const msgVal    = document.getElementById("filter-msg").value.trim();
     const timeVal   = document.getElementById("filter-time").value.trim();
 
-    if(typeVal) filters.push({field:"type", type:"=",    value:typeVal});
-    if(msgVal)  filters.push({field:"message",  type:"like", value:msgVal});
-    if(timeVal)  filters.push({field:"timestamp",  type:"like", value:timeVal});
+    if(typeVal)   filters.push({field:"type",      type:"=",    value:typeVal});
+    if(sourceVal) filters.push({field:"source",    type:"like", value:sourceVal});
+    if(msgVal)    filters.push({field:"message",   type:"like", value:msgVal});
+    if(timeVal)   filters.push({field:"timestamp", type:"like", value:timeVal});
 
     table.setFilter(filters);               // one hit, zero fuss
 }
 
 /* --- wire the UI --- */
-["filter-time","filter-msg"].forEach(id=>{
+["filter-time","filter-source","filter-msg"].forEach(id=>{
     document.getElementById(id).addEventListener("input", applyFilters);
 });
 document.getElementById("filter-type").addEventListener("change", applyFilters);
 
 /* === update Clear button === */
 document.getElementById("filter-clear").addEventListener("click", () => {
-    ["filter-type","filter-time","filter-msg"].forEach(id=>{
+    ["filter-type","filter-time","filter-source","filter-msg"].forEach(id=>{
         document.getElementById(id).value = "";
     });
     document.getElementById("filter-type").value = "";

@@ -6,7 +6,7 @@ declare(strict_types=1);
 use Mata\Services\Collect\ServerDataCollector;
 use Mata\Services\Foundation\ApiClient;
 use Mata\Services\Foundation\CacheManager;
-use Mata\Services\Foundation\DataTransformers\ApiResponseTransformer;
+use Mata\Services\DataTransformers\ApiResponseTransformer;
 use Mata\Utils\TypeConverter;
 
 $requiresDatabase = true;

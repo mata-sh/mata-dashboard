@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Mata\Services\View;
 
 use InvalidArgumentException;
-use Mata\Services\Foundation\DataTransformers\ChartDataTransformer;
+use Mata\Services\DataTransformers\ChartDataTransformer;
 use Mata\Services\Validation\MetricsRequestValidator;
 use Mata\Views\MetricsRenderer;
 

@@ -5,9 +5,9 @@ declare(strict_types=1);
 namespace Mata\Services\Collect;
 
 use GuzzleHttp\Exception\RequestException;
+use Mata\Services\DataTransformers\ApiResponseTransformer;
 use Mata\Services\Foundation\ApiClient;
 use Mata\Services\Foundation\CacheManager;
-use Mata\Services\Foundation\DataTransformers\ApiResponseTransformer;
 use Psr\Log\LoggerInterface;
 use RuntimeException;
 
@@ -196,16 +196,30 @@ class ServerDataCollector implements ServerDataCollectorInterface
     }
 
     /**
-     * Fetch error log content from a specific app.
+     * Fetch parsed log entries from multiple log files.
+     * Returns grouped structure: ['file_path' => [entries...]].
      *
      * @param string $app       App identifier
-     * @param string $cacheType Cache type key for TTL lookup (default: 'errorlog')
+     * @param string $cacheType Cache type key for TTL lookup (default: 'appLogs')
      *
-     * @return null|array<string,mixed> Error log content or null on failure
+     * @return null|array<string,mixed> Grouped log entries or null on failure
      */
-    public function fetchAppErrorlog(string $app, string $cacheType = 'errorlog'): ?array
+    public function fetchAppLogs(string $app, string $cacheType = 'appLogs'): ?array
     {
-        return $this->request('GET', "{$app}/errorlog", $cacheType);
+        return $this->request('GET', "{$app}/logs", $cacheType);
+    }
+
+    /**
+     * Fetch log file metadata (sizes, line counts, last modified).
+     *
+     * @param string $app       App identifier
+     * @param string $cacheType Cache type key for TTL lookup (default: 'appLogs')
+     *
+     * @return null|array<string,mixed> Log file metadata or null on failure
+     */
+    public function fetchAppLogsStatus(string $app, string $cacheType = 'appLogs'): ?array
+    {
+        return $this->request('GET', "{$app}/logs-status", $cacheType);
     }
 
     /**
