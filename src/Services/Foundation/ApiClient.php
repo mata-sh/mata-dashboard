@@ -51,12 +51,13 @@ class ApiClient
 
         // Enforce HTTPS protocol (unless explicitly allowed)
         $parsedUrl = parse_url($apiBase);
-        $scheme = $parsedUrl['scheme'] ?? 'none';
+        $scheme = $parsedUrl['scheme'] ?? null;
+        $isHttps = ($scheme === 'https');
 
-        if ($scheme === 'http') {
+        if (!$isHttps) {
             if (!$allowHttp) {
                 throw new RuntimeException(
-                    'API base URL must use HTTPS protocol (found: http://). '
+                    "API base URL must use HTTPS protocol (found: {$scheme}). "
                     . 'Insecure HTTP connections are not allowed. '
                     . "To allow HTTP for development/testing, enable the 'allow_http' configuration flag."
                 );
@@ -71,11 +72,6 @@ class ApiClient
                     'recommendation' => 'Use HTTPS for production environments to protect API keys and data',
                 ]);
             }
-        } elseif (!str_starts_with($apiBase, 'https://')) {
-            throw new RuntimeException(
-                "API base URL must use HTTPS protocol (found: {$scheme}://). "
-                . 'Insecure connections are not allowed.'
-            );
         }
 
         $this->client = new Client([
