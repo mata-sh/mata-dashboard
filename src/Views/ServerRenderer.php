@@ -388,7 +388,7 @@ class ServerRenderer extends BaseRenderer
                 'url' => $appData['url'],
                 'id' => $appDivId,
                 'server' => $server,
-                'env' => $appData['env'],
+                'env' => $appData['env'] ?? '',
                 'path' => $appData['path'],
                 'ping' => $availabilityView['status'],
                 'ping_latency' => $availabilityView['tooltip'],

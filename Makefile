@@ -371,6 +371,8 @@ docker-setup:
 	else \
 		echo "$(COLOR_YELLOW)⚠️  .env already exists, skipping$(COLOR_RESET)"; \
 	fi
+	@echo "$(COLOR_BLUE)🔌 Ensuring shared Docker network exists...$(COLOR_RESET)"
+	@docker network inspect mata-network >/dev/null 2>&1 || docker network create mata-network >/dev/null
 	@mkdir -p config temp/api-cache temp/sessions temp/templates-cache logs config/dev
 	@echo "$(COLOR_BLUE)📋 Creating config files from examples...$(COLOR_RESET)"
 	@for file in config.env db.config.env mail.config.env; do \
@@ -398,7 +400,7 @@ docker-setup:
 	@echo "    $(COLOR_BLUE)Note:$(COLOR_RESET) DB_HOST is auto-set to 'mata-db' for Docker networking"
 	@echo "$(COLOR_YELLOW)3.$(COLOR_RESET) Start containers: $(COLOR_CYAN)make dev-start$(COLOR_RESET)"
 	@PORT=$$(grep -E '^WEB_PORT=' .env 2>/dev/null | cut -d '=' -f2 || echo "3300"); \
-	echo "$(COLOR_YELLOW)4.$(COLOR_RESET) Login at http://localhost:$$PORT with $(COLOR_CYAN)dev/password$(COLOR_RESET) or $(COLOR_CYAN)admin/password$(COLOR_RESET)"
+	echo "$(COLOR_YELLOW)4.$(COLOR_RESET) Login at http://localhost:$$PORT with $(COLOR_CYAN)user: admin pw: admin$(COLOR_RESET)"
 
 ## Development (Docker)
 

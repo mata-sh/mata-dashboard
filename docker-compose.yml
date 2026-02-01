@@ -31,7 +31,6 @@ services:
         condition: service_started
     networks:
       - mata-network
-
   mata-db:
     image: mysql:8.0
     container_name: ${COMPOSE_PROJECT_NAME:-mata}-mysql
@@ -71,4 +70,5 @@ volumes:
 
 networks:
   mata-network:
-    driver: bridge
+    name: mata-network
+    external: true
