@@ -385,9 +385,9 @@ docker-setup:
 		fi; \
 	done
 	@if [ ! -f config/dev/users.json ]; then \
-		echo '[{"id":"user_dev123","username":"dev","password_hash":"$$2y$$10$$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi","role":"admin","failed_attempts":0},{"id":"user_admin123","username":"admin","password_hash":"$$2y$$10$$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi","role":"admin","failed_attempts":0}]' > config/dev/users.json; \
+		echo '[{"id":"user_mata123","username":"mata","password_hash":"$$2y$$12$$Yu0Yg9fwwcCh4d9QbXMYv.iVn6vyOCIpKxLlRKyiIY2nYuqGw1MXW","role":"admin","failed_attempts":0}]' > config/dev/users.json; \
 		chmod 600 config/dev/users.json; \
-		echo "$(COLOR_GREEN)✅ Created config/dev/users.json (user: dev|pw: password, user: admin|pw: password)$(COLOR_RESET)"; \
+		echo "$(COLOR_GREEN)✅ Created config/dev/users.json (user: mata|pw: mata)$(COLOR_RESET)"; \
 	else \
 		echo "$(COLOR_YELLOW)⚠️  config/dev/users.json already exists, skipping$(COLOR_RESET)"; \
 	fi
@@ -400,7 +400,8 @@ docker-setup:
 	@echo "    $(COLOR_BLUE)Note:$(COLOR_RESET) DB_HOST is auto-set to 'mata-db' for Docker networking"
 	@echo "$(COLOR_YELLOW)3.$(COLOR_RESET) Start containers: $(COLOR_CYAN)make dev-start$(COLOR_RESET)"
 	@PORT=$$(grep -E '^WEB_PORT=' .env 2>/dev/null | cut -d '=' -f2 || echo "3300"); \
-	echo "$(COLOR_YELLOW)4.$(COLOR_RESET) Login at http://localhost:$$PORT with $(COLOR_CYAN)user: admin pw: admin$(COLOR_RESET)"
+	echo "$(COLOR_YELLOW)4.$(COLOR_RESET) Login at http://localhost:$$PORT with $(COLOR_CYAN)user: mata pw: mata$(COLOR_RESET)"; \
+	echo "$(COLOR_YELLOW)5.$(COLOR_RESET) Manage users with $(COLOR_CYAN)make users-list|users-create|users-passwd|users-unlock|users-delete$(COLOR_RESET) (see $(COLOR_BOLD)docs/guides/user-management.md$(COLOR_RESET))"
 
 ## Development (Docker)
 
@@ -421,7 +422,7 @@ dev-start:
 	@PORT=$$(grep -E '^WEB_PORT=' .env 2>/dev/null | cut -d '=' -f2 || echo "3300"); \
 	echo "$(COLOR_CYAN)🌐 Dashboard: http://localhost:$$PORT$(COLOR_RESET)"; \
 	echo "$(COLOR_CYAN)🩺 Health: http://localhost:$$PORT/health$(COLOR_RESET)"
-	@echo "$(COLOR_YELLOW)👤 Login: dev/password or admin/password$(COLOR_RESET)"
+	@echo "$(COLOR_YELLOW)👤 Login: mata/mata$(COLOR_RESET)"
 
 # Start dev environment and follow logs
 dev-logs:
