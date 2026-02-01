@@ -1,6 +1,6 @@
 # Technology Choices and Rationale
 
-This document explains the technology decisions made in MATA Dashboard, the reasoning behind each choice, and how they align with the project's goals and constraints.
+This document explains the technology decisions made in MATA Dashboard, the reasoning behind each choice.
 
 ## Table of Contents
 
@@ -19,18 +19,19 @@ This document explains the technology decisions made in MATA Dashboard, the reas
 ## Design Philosophy
 
 **Core Principles:**
-- **Simplicity First** - Avoid unnecessary complexity and over-engineering
-- **Clarity Over Cleverness** - Explicit code that's easy to understand and maintain
+- **Simplicity First** - Avoid unnecessary complexity and dependencies
 - **Resilience** - System should gracefully handle failures without cascading issues
-- **Real-World Focus** - Solve actual monitoring needs without enterprise bloat
 
 **Target Audience:**
 - Small to medium teams (1-20 members)
 - Infrastructure with 1-20 monitored servers
-- Organizations needing quick deployment
+- Organizations needing quick deployment & operate in restrictive environments
 - Environments where database reliability is a concern
+- PHP and legacy application monitoring
+
 
 ## Core Technology Stack
+
 
 ### PHP 8.3
 
@@ -38,7 +39,6 @@ This document explains the technology decisions made in MATA Dashboard, the reas
 
 **Rationale:**
 - **Type Safety** - Strong typing prevents runtime errors and improves code quality
-- **Performance** - PHP 8.3 offers significant performance improvements over older versions
 - **Modern Features** - Enums, attributes, readonly properties, and constructor property promotion
 - **Ecosystem** - Mature package ecosystem with Composer
 
@@ -63,11 +63,6 @@ $result = $this->analyze(
     limit: 100
 );
 ```
-
-**Trade-offs:**
-- Requires PHP 8.3+ on hosting environment
-- May need to update older PHP code during migration
-- Some shared hosting providers may not support latest PHP
 
 ### MySQL/MariaDB
 
@@ -118,12 +113,6 @@ CREATE TABLE server_metrics (
 );
 ```
 
-**Benefits:**
-- Efficient querying with proper indexes
-- JSON support for flexible data storage
-- Transaction support for data consistency
-- Easy backup and replication
-
 ## Authentication Strategy
 
 ### JSON File Storage
@@ -135,21 +124,15 @@ CREATE TABLE server_metrics (
 #### 1. Resilience During Database Failures
 ```
 Database Down Scenario:
-┌─────────────────────────────────────┐
-│  Database Unavailable               │
-│  ✗ Cannot access monitoring data    │
-│  ✓ Can still authenticate          │
-│  ✓ Dashboard remains accessible    │
-│  ✓ Can troubleshoot database       │
-└─────────────────────────────────────┘
+┌──────────────────────────────────────────────┐
+│  Database Unavailable                        │
+│  ✗ Cannot access historic monitoring data   │
+│  ✓ Can still authenticate                    │
+│  ✓ Dashboard remains accessible              │
+│  ✓ Can monitor current state                 │
+└──────────────────────────────────────────────┘
 ```
 
-**Real-World Example:**
-```
-Database fails at 3 AM due to disk space issue.
-With JSON auth: Admin can login, see the alert, diagnose the problem.
-With DB auth: Admin is locked out, cannot access dashboard, problem escalates.
-```
 
 #### 2. Optimal Scale
 - **Sweet Spot:** 1-20 users
@@ -232,13 +215,6 @@ if ($user === null) {
 }
 ```
 
-**File Permissions:**
-```bash
-# Restrict access to authentication file
-chmod 600 config/users.json
-chown www-data:www-data config/users.json
-```
-
 #### 4. Migration Path
 
 When scale requires database authentication:
@@ -280,6 +256,8 @@ $auth = new Auth($authStorage);
 - ✗ Not suitable for 100+ users
 - ✗ No granular permissions out-of-box
 - ✗ Manual user management
+
+
 
 ## Database Approach
 
@@ -1241,3 +1219,69 @@ The technology stack is carefully chosen to:
 
 For implementation details of specific components, see [Components](./components.md).
 For system architecture overview, see [Overview](./overview.md).
+
+
+
+
+
+
+Web Interface
+
+    Bulma CSS: Modern, responsive CSS framework (pre-compiled)
+    HTMX: Dynamic interactions without JavaScript frameworks
+    Twig Templates: Server-side rendering with caching
+
+
+
+
+## Design Decisions
+
+### Why Not an ORM?
+
+**Decision**: Use lightweight PDO wrapper instead of Doctrine/Eloquent
+
+**Rationale:**
+
+- Monitoring is read-heavy with simple queries
+- No need for complex relationships
+- Lower overhead and better performance
+- Easier to debug and optimize
+- No magic methods or hidden behavior
+
+### Why JSON File Auth?
+
+**Decision**: Store users in JSON file, not database
+
+**Rationale:**
+
+- Dashboard accessible even if database fails
+- Simpler for small teams (1-20 users)
+- No database migration needed for auth changes
+- Bcrypt security still maintained
+- Database migration path available if needed
+
+### Why File-based Cache?
+
+**Decision**: Use file cache instead of Redis/Memcached
+
+**Rationale:**
+
+- Zero infrastructure requirements
+- Sufficient for < 50 concurrent users
+- Simple to implement and debug
+- Automatic cleanup
+- Easy migration to Redis if needed
+
+### Why HTMX?
+
+**Decision**: Use HTMX instead of React/Vue/Angular
+
+**Rationale:**
+
+- No JavaScript framework complexity
+- No state management needed
+- Server-side rendering simplicity
+- Progressive enhancement
+- Smaller payload size
+
+

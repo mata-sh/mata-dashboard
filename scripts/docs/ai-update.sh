@@ -158,7 +158,7 @@ $(printf '%s\n' "${DOC_FILES[@]}")
 Which documentation files should be updated?
 
 Please respond with ONLY a JSON array of file paths, like:
-["docs/index.md", "docs/guides/installation.md"]
+["docs/index.md", "docs/guides/quickstart.md"]
 
 If no files need updating, respond with an empty array: []
 EOF

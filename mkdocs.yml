@@ -13,57 +13,67 @@ theme:
     - toc.follow
   icon: images/logo_transparent.png
   show_stargazers: false
+  pygments: true
 
 nav:
-  - Home: index.md
+  - MATA: index.md
 
   - Getting Started:
-      - Installation: guides/installation.md
       - Quick Start: guides/quickstart.md
       - First Server: tutorials/first-server.md
       - Configuration: guides/configuration.md
 
   - Guides:
-      - Monitoring: guides/monitoring.md
-      - Security: guides/security.md
-      - Deployment: guides/deployment.md
+      - Docker Deployment: guides/docker-deployment.md
+      - User Management CLI: guides/user-management.md
+      # - First Server: guides/first-server.md
+      - Securing Application: guides/secure-application.md
+#     - Monitoring: guides/monitoring.md
+#     - Deployment: guides/deployment.md
 
-  - Reference:
-      - Server Metrics: reference/server-metrics.md
-      - Application Monitoring: reference/application-monitoring.md
-      - Event System: reference/event-system.md
-      - Configuration: reference/configuration-reference.md
-      - Thresholds: reference/thresholds.md
-      - Alerts: reference/alerts.md
-      - API:
-          - Node API: api/node-api.md
-          - Dashboard Endpoints: api/dashboard-endpoints.md
-          - Hooks: api/hooks.md
+# - Reference:
+#     - Server Metrics: reference/server-metrics.md
+#     - Application Monitoring: reference/application-monitoring.md
+#     - Event System: reference/event-system.md
+#     - Configuration: reference/configuration-reference.md
+#     - Thresholds: reference/thresholds.md
+#     - Alerts: reference/alerts.md
+#     - API:
+#         - Node API: api/node-api.md
+#         - Dashboard Endpoints: api/dashboard-endpoints.md
+#         - Hooks: api/hooks.md
 
   - Architecture:
-      - Overview: architecture/overview.md
-      - Components: architecture/components.md
-      - Technology Choices: architecture/technology-choices.md
+    - Security: architecture/security.md
+    - Overview: architecture/overview.md
+  #   - Components: architecture/components.md
+  #   - Technology Choices: architecture/technology-choices.md
+  #   - Security Model: architecture/security-model.md
 
   - Development:
-      - Contributing: development/contributing.md
-      - Project Structure: development/project-structure.md
-      - Code Quality: development/code-quality.md
-      - Cron Jobs: development/cron-jobs.md
-      - Testing: development/testing.md
-      - Docker Fixes: development/buildx-setup.md
+      - Setup Development: development/development-setup.md
+#     - Contributing: development/contributing.md
+#     - Project Structure: development/project-structure.md
+#     - Code Quality: development/code-quality.md
+#     - Cron Jobs: development/cron-jobs.md
+#     - Testing: development/testing.md
+#     - Docker Fixes: development/buildx-setup.md
 
-  - Tutorials:
-      - Custom Thresholds: tutorials/custom-thresholds.md
-  - Troubleshooting: tutorials/troubleshooting.md
+# - Tutorials:
+#     - Custom Thresholds: tutorials/custom-thresholds.md
+# - Troubleshooting: tutorials/troubleshooting.md
+
+
+extra_css:
+  - styles/pygments-dark.css
 
 markdown_extensions:
-  - admonition
-  - pymdownx.details
   - pymdownx.superfences
   - pymdownx.highlight:
+      use_pygments: true
       anchor_linenums: true
   - pymdownx.inlinehilite
   - pymdownx.snippets
+  - admonition
   - toc:
       permalink: false

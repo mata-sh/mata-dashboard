@@ -1,5 +1,9 @@
 # Monitoring
 
+!!! tip "Currently in development!"
+    This feature is not fully implemented yet.
+
+
 This guide covers how to use MATA Dashboard's monitoring features effectively.
 
 ## Overview

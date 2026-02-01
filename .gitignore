@@ -23,6 +23,7 @@ trash/
 site/
 bin/opa
 logs/
+docs/_drafts
 
 config/*.json
 config/*/*.json

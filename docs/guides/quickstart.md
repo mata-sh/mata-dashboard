@@ -2,109 +2,88 @@
 
 Get MATA Dashboard up and running in minutes with this quick start guide.
 
-## Prerequisites
+!!! info "Requirements:" 
+    You only need **PHP 8.3+**, **composer** and **git**. A SQL-Database is recommended for the Dashboard application though.
 
-Make sure you have completed the [Installation Guide](installation.md) before proceeding.
+<!-- - [Docker Deployment Guide](docker-deployment.md) for using docker. -->
 
-## Quick Setup
+## 1. Client Node
 
-### 1. Start the Development Server
-
-For quick testing and development:
+The client is the application living on the server where the applications are you wantto monitor. 
 
 ```bash
-cd /path/to/mata-dashboard
-php -S 0.0.0.0:3300 -t public/
+# ssh into your server and clone the repo for the mata client
+git clone https://github.com/mata-sh/mata-node.git && cd mata-node
+
+# Runs composer install and creates config files
+make setup
+
+# generate api key
+openssl rand -hex 32
+
+# set DASHBOARD_API_KEY
+vi config/config.env 
+
+# Edit node configuration (apps to monitor, log paths, session paths, etc.)
+vi config/apps.json
 ```
 
-Access the dashboard at `http://localhost:3300/`
 
-> **Port Convention**: MATA uses decade-spaced ports - Dashboard: 3300, Node: 3310, OPA: 3320, MkDocs: 3330, MySQL: 3306
+## 2. Server Dashboard 
 
-### 2. Configure Your First Server
+This is the Innterface that fetches data from the client nodes on the same or other servers.
 
-Edit `config/servers.json` to add your first monitored server:
+```bash
+# ssh into your server and clone the repo for the dashboard
+git clone https://github.com/mata-sh/mata-dashboard.git && cd mata-dashboard
+
+# Runs composer install and creates config files
+make setup
+
+# Create a user and password with admin role for the dashboard
+make users-create
+
+# smtp server (optional)
+vi config/mail.config.env 
+
+ # database connection (optional)
+vi config/db.config.env
+```
+
+**Configure the applications to be monitored**
+
+```bash
+ # client node URLs & shared secrets
+ vi config/servers.json
+```
 
 ```json
+// Set Api key you generated for your client node (DASHBOARD_API_KEY)
 {
-  "production-web-server": {
-    "title": "Production Server",
-    "url": "https://your-production-server.com/",
-    "api_url": "https://your-production-server.com/mata-node/api",
-    "api_key": "your_secure_api_key_here_32_characters",
-    "primary_color": "#28a745",
-    "secondary_color": "#ffffff",
-    "info": "Production Web Server - Main Application",
-    "check_disk_space": "on"
+  "server-id": {
+    "api_key": "32_character_hexadecimal_api_key_here"
   }
 }
 ```
 
-!!! tip "Generating Secure API Keys"
-    Generate a secure API key using:
-    ```bash
-    openssl rand -hex 32
-    ```
+## 3. Subdomains
 
-### 3. Login to Dashboard
+**Create 2 subdomains for the dashboard and the client nodes.**
 
-1. Navigate to `http://localhost:3300/`
-2. Login with one of these credentials:
-   - **Username:** `dev` | **Password:** `password` (admin role)
-   - **Username:** `admin` | **Password:** `password` (admin role)
-3. View your server dashboard
-
-> **Note:** For Docker development (`make dev-start`), these default users are created automatically. For manual setup, you'll need to configure `config/users.json` or create users with `make users-create`.
-
-## Setting Up Automated Monitoring
-
-### Configure Cron Jobs
-
-For automated data collection, set up these cron jobs:
-
-```bash
-# Collect server metrics every 5 minutes
-*/5 * * * * /usr/bin/php /path/to/mata-dashboard/cron/servers_metrics_collect.php
-
-# Aggregate server metrics hourly (runs at minute 5 of each hour)
-5 * * * * /usr/bin/php /path/to/mata-dashboard/cron/servers_metrics_aggregate.php
+```
+mata.example.com -> public_html/mata-dashboard/public
+mata.api.example.com -> public_html/mata-node/public
 ```
 
-See the [Deployment Guide](deployment.md) for production cron setup.
+-> Access the dashboard at `https://mata.example.com`
 
-## Verifying Your Setup
-
-### Check Server Connectivity
-
-1. Navigate to the main dashboard
-2. Your server should appear with a status indicator
-3. Green = Connected, Red = Connection issues
-
-### Test Alerting
-
-1. Navigate to **Settings** > **Thresholds**
-2. Lower a threshold temporarily (e.g., disk space to 1%)
-3. Wait for the next cron run
-4. Check that you receive an email alert
 
 ## Next Steps
 
-- [Configuration Guide](configuration.md) - Customize your monitoring setup
-- [Monitoring Guide](monitoring.md) - Learn about monitoring features
 - [Adding Your First Server Tutorial](../tutorials/first-server.md) - Detailed walkthrough
+- [Deployment Guide](deployment.md) for production setup.
+- [Configuration Guide](configuration.md) - Customize your monitoring setup
+<!-- - [Monitoring Guide](monitoring.md) - Learn about monitoring features -->
 
-## Common Issues
+For troubleshooting help, see the [Troubleshooting Guide](../tutorials/troubleshooting.md).
 
-### Server Shows as Disconnected
-
-- Verify API endpoint is accessible from the dashboard
-- Check API key matches between dashboard and node
-- Review `temp/logs/` for connection errors
-
-### No Email Alerts
-
-- Verify SMTP settings in `config/mail.config.env`
-- Check spam/junk folders
-- Test email sending manually
-
-For more troubleshooting help, see the [Troubleshooting Guide](../tutorials/troubleshooting.md).

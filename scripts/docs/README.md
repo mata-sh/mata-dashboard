@@ -124,7 +124,6 @@ The `docs/` directory is organized as follows:
 docs/
 ├── index.md                    # Homepage
 ├── guides/                     # User guides
-│   ├── installation.md
 │   ├── quickstart.md
 │   ├── configuration.md
 │   └── ...
@@ -161,13 +160,6 @@ The workflow (`.github/workflows/gh-pages.yml`) runs:
 3. Installs MkDocs and theme
 4. Deploys to GitHub Pages
 
-## Tips
-
-1. **Preview before pushing**: Use `make docs-serve` to preview changes locally
-2. **Stage related changes**: For AI updates, stage only related code changes
-3. **Review AI suggestions**: Always review AI-generated content before applying
-4. **Check build output**: Ensure MkDocs builds without errors (`mkdocs build`)
-5. **Keep structure consistent**: Follow existing patterns in docs organization
 
 ## Troubleshooting
 

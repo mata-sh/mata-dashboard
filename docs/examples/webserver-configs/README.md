@@ -81,7 +81,6 @@ All configurations must:
 4. Enable required modules (Apache: `rewrite`, `headers`)
 5. Test and reload your web server
 
-For detailed deployment instructions, see the [Deployment Guide](../guides/deployment.md).
 
 ## Testing
 
