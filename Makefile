@@ -257,7 +257,7 @@ opa-docker-start:
 		-v "$(CURDIR)/policy:/policies" \
 		openpolicyagent/opa:latest \
 		run --server --watch /policies >/dev/null; \
-	echo "$(COLOR_GREEN)✅ OPA running at http://127.0.0.1:3320 (container: mata-opa)$(COLOR_RESET)"
+	echo "$(COLOR_GREEN)✅ OPA running at http://localhost:3320 (container: mata-opa)$(COLOR_RESET)"
 
 # ============================================
 # Testing
@@ -346,7 +346,8 @@ changelog:
 
 # Serve documentation locally
 docs-serve:
-	mkdocs serve -a 127.0.0.1:8099
+	@echo "$(COLOR_YELLOW)ℹ️  Requires mkdocs in PATH (e.g., via pipx).$(COLOR_RESET)"
+	mkdocs serve -a localhost:3330
 
 # Deploy documentation to GitHub Pages
 docs-deploy:
@@ -416,6 +417,8 @@ dev-start:
 		echo ""; \
 	fi
 	docker-compose -f docker-compose.yml -f docker-compose.dev.yml up -d --build
+	@echo "$(COLOR_BLUE)🗄️  Running database migrations...$(COLOR_RESET)"
+	@$(MAKE) db-migrate
 	@echo ""
 	@echo "$(COLOR_GREEN)✅ Development environment running!$(COLOR_RESET)"
 	@# Read actual port from .env file or use default
@@ -461,6 +464,8 @@ prod-start:
 		exit 1; \
 	fi
 	docker-compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
+	@echo "$(COLOR_BLUE)🗄️  Running database migrations...$(COLOR_RESET)"
+	@$(MAKE) db-migrate
 	@echo "$(COLOR_GREEN)✅ Production deployed!$(COLOR_RESET)"
 
 # Stop production environment
