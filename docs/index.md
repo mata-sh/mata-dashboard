@@ -39,7 +39,7 @@ MATA Dashboard is a PHP-based monitoring platform for centralized visibility acr
 ## Start Here
 
 - [Quick Start](guides/quickstart.md)
-- [Docker Deployment](guides/docker-deployment.md)
+- [Docker Deployment](guides/quickstart-docker.md)
 - [First Server](guides/first-server.md)
 
 ## Docs

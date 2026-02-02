@@ -1,4 +1,4 @@
-### Prerequisites
+# Quickstart Docker
 
 !!! info "Requirements:" 
     Besides **PHP 8.3+**, **composer** and **git**, you need **make** and **Docker** + **Docker Compose**.

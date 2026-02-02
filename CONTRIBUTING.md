@@ -10,20 +10,18 @@ This document explains how to set up your environment, run tests, and follow our
 
 1. **Clone the repository**
    ```bash
-   git clone https://github.com/<your-username>/<your-repo>.git
-   cd <your-repo>
+   git clone https://github.com/mata-sh/mata-dashboard.git
+   cd mata-dashboard
     ```
 
 2. **Set up the development environment**
 
    ```bash
     make dev-start
-    make db-migrate
    ```
 
-   > **Note:** `make dev-start` automatically creates two default users:
-   > - Username: `dev` | Password: `password` (admin role)
-   > - Username: `admin` | Password: `password` (admin role)
+   > **Note:** `make dev-start` automatically creates a default user:
+   > - Username: `mata` | Password: `mata` (admin role)
    >
    > You can create additional users with `make users-create` if needed.
 

@@ -45,7 +45,7 @@ user: **demo** | password: **demo**
 - **Application Health:** HTTP ping monitoring, error log parsing, and session tracking
 - **Alerting:** Threshold-based alarm system with email notifications
 - **Server Monitoring:** Real-time tracking of CPU/RAM/disk and system processes
-- **PHP Dev Toolset:** Supports reading of PHP logs and installed Composer packages. Redis planned for future releases.
+- **PHP Dev Toolset:** Supports reading of PHP logs and installed Composer packages.
 
 ## Why MATA?
 
@@ -83,17 +83,17 @@ Lightweight, stateless client application offering **read-only** API endpoints. 
 
 **Collected**
 - CPU / RAM / disk metrics
-- process list snapshot (top processes)
+- Process list snapshot (top processes)
 - HTTP status (and optional latency, if enabled)
-- Recent PHP error log lines
-- session counts
+- Recent log lines
+- Session counts
 - Composer package inventory (names/versions)
-- explicitly **whitelisted** application metadata from config
+- Explicitly **whitelisted** application metadata from config
 
 **Not collected**
-- secrets (API keys, passwords), environment variables
-- database contents
-- application source code
+- Secrets (API keys, passwords), environment variables
+- Database contents
+- Application source code
 
 
 ## Getting Started
@@ -101,96 +101,18 @@ Lightweight, stateless client application offering **read-only** API endpoints. 
 ### Requirements
 
 - **PHP 8.3+**
-- **Web server** (Apache/Nginx/Caddy) with URL rewriting
 - **MySQL/MariaDB** for event logging and configuration (optional but recommended for Dashboard server)
-
-### Default Ports
-
-The MATA stack uses **decade-spaced ports** for clean separation and easy scaling:
-
-| Port | Service | Description |
-|------|---------|-------------|
-| **3300** | Dashboard | Main web interface |
-| **3310** | Node API | Remote monitoring endpoint (for local testing) |
-| **3320** | OPA Service | Policy evaluation engine |
-| **3330** | MkDocs | Documentation server (development) |
-| **3306** | MySQL | Database (standard port) |
-
-> **Decade spacing** leaves room for expansion (e.g., 3301-3309 reserved for dashboard features). Multiple stacks can use 3400, 3410, 3420... to avoid conflicts.
-
-Customize ports in your `.env` file.
 
 ### Quick Start
 
-Make sure you have a working PHP 8.3+ environment with composer and git installed.
-
-#### 1. Client Nodes
-
-```bash
-# ssh into your server and clone the repo for the client node
-git clone https://github.com/mata-sh/mata-node.git
-
-# Runs composer install and creates config files
-cd mata-node && make setup
-
-# Edit node configuration (apps to monitor, log paths, session paths, etc.)
-vi config/apps.json
-vi config/config.env # shared secret
-```
-
-#### 2. Dashboard 
-
-```bash
-# ssh into your server and clone the repo for the dashboard
-git clone https://github.com/mata-sh/mata-dashboard.git
-
-# Runs composer install and creates config files
-cd mata-dashboard && make setup
-
-# Edit configuration files with your database and the servers to monitor
-vi config/servers.json # node URLs & shared secrets
-vi config/mail.config.env # smtp server
-vi config/db.config.env # database connection
-
-# Create a user and password with admin role for the dashboard
-make users-create
-```
-
-#### 3. Subdomain
-
-**Create 2 subdomains for the dashboard and the client nodes.**
-```
-mata.example.com -> public_html/mata-dashboard/public
-mata.api.example.com -> public_html/mata-node/public
-```
--> Access the dashboard at `https://mata.example.com`
-
-
-- [Quick Start Tutorial](docs/guides/quickstart.md) - Get monitoring in 5 minutes
-- [Quick Start - Docker](docs/guides/quickstart-docker.md) - Get monitoring in 5 minutes with Docker
+- [Quick Start Tutorial](docs/guides/quickstart.md)
+- [Quick Start - Docker](docs/guides/quickstart-docker.md)
 
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
-## Documentation
-
-- **[Installation Guide](docs/guides/installation.md)** - Complete setup instructions
-- **[Configuration Reference](docs/guides/configuration.md)** - Configuration file documentation
-- **[Deployment Guide](docs/guides/deployment.md)** - Production deployment for Apache, Nginx, Caddy, Docker
-- **[Monitoring Guide](docs/guides/monitoring.md)** - Server metrics, application monitoring, event system
-- **[Security Guide](docs/guides/security.md)** - Security best practices and hardening
-- **[API Documentation](docs/api/)** - Dashboard and Node API reference
-- **[Architecture Overview](docs/architecture/overview.md)** - System design and components
-- **[Troubleshooting](docs/tutorials/troubleshooting.md)** - Common issues and solutions
 
 ## Technology Choices
-
-### Authentication & user management: file-based + CLI-only
-- **Why:** dashboard stays up even if the database fails (degraded mode)
-- **Storage:** `users.json` stores **password hashes only**
-- **Controls:** restrictive permissions enforced; user changes via CLI tool
-- **Audit:** CLI-only audit log for administrative actions
-- **Scale:** optimized for small teams (≈1–20 users)
 
 ### Frontend: HTMX + Bulma CSS
 - **HTMX:** Dynamic updates via HTML attributes, no JavaScript framework needed
@@ -201,37 +123,31 @@ mata.api.example.com -> public_html/mata-node/public
 - **Why:** Familiar to developers & fast and easy to learn
 - **Security:** Automatic XSS protection
 
-### API Caching: File-based
-- **Purpose:** Reduce load on monitored servers
-- **Capacity:** Handles < 50 concurrent users efficiently
+### Authentication & user management: file-based + CLI-only
+- **Why:** dashboard stays up even if the database fails (degraded mode)
+- **Audit:** CLI-only audit log for administrative actions
 
 
 ## Use Case Fit
 
 ✅ **Ideal for:**
-- agencies managing dozens of small customer servers
+- Agencies managing dozens of small customer servers
 - 1–20 monitored servers / 1–20 team members
 - PHP apps with file-based sessions and messy logs
-- unreliable or legacy environments
-- hosts where you cannot install agents/exporters
-- see failures across many small servers without SSH hopping
-
+- Unreliable or legacy environments
+- Hosts where you cannot install agents/exporters
+- See failures across many small servers without SSH hopping
 
 ❌ **Not for:**
-- public dashboards
+- Public dashboards
 - 100+ concurrent users
-- complex Kubernetes monitoring in full-control environments (use dedicated observability stacks)
-
-## Contributing
-
-Contributions are welcome! See [Contributing Guide](docs/development/contributing.md).
+- Complex Kubernetes monitoring in full-control environments (use dedicated observability stacks)
 
 
 ## License
 
 This project is licensed under the MIT License.
 See `LICENSE.txt` for details.
-
 
 ## Contact
 

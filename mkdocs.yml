@@ -24,7 +24,7 @@ nav:
       - Configuration: guides/configuration.md
 
   - Guides:
-      - Docker Deployment: guides/docker-deployment.md
+      - Docker Deployment: guides/quickstart-docker.md
       - User Management CLI: guides/user-management.md
       # - First Server: guides/first-server.md
       - Securing Application: guides/secure-application.md

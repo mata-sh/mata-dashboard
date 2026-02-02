@@ -5,7 +5,7 @@ Get MATA Dashboard up and running in minutes with this quick start guide.
 !!! info "Requirements:" 
     You only need **PHP 8.3+**, **composer** and **git**. A SQL-Database is recommended for the Dashboard application though.
 
-<!-- - [Docker Deployment Guide](docker-deployment.md) for using docker. -->
+<!-- - [Docker Deployment Guide](quickstart-docker.md) for using docker. -->
 
 ## 1. Client Node
 
