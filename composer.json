@@ -2,7 +2,7 @@
     "name": "mata/mata-dashboard",
     "description": "Mata Monitoring Tool",
     "type": "project",
-    "license": "MIT",
+    "license": "Apache-2.0",
     "authors": [
         {
             "name": "XarcDev",

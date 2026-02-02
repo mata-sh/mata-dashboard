@@ -35,9 +35,9 @@ Deploy read-only nodes on each server, manage alerts and logs from one lightweig
 
 [![Product Name Screen Shot][product-screenshot]][demo-url]
 
-[ Check out the demo][demo-url]
+[Check out the demo][demo-url]
 
-user: **demo** | password: **demo**
+User: **demo** | Password: **demo**
 </div>
 
 ## Core Features
@@ -45,7 +45,7 @@ user: **demo** | password: **demo**
 - **Application Health:** HTTP ping monitoring, error log parsing, and session tracking
 - **Alerting:** Threshold-based alarm system with email notifications
 - **Server Monitoring:** Real-time tracking of CPU/RAM/disk and system processes
-- **PHP Dev Toolset:** Supports reading of PHP logs and installed Composer packages.
+- **PHP Dev Toolset:** Supports reading PHP logs and installed Composer packages.
 
 ## Why MATA?
 
@@ -146,7 +146,7 @@ Lightweight, stateless client application offering **read-only** API endpoints. 
 
 ## License
 
-This project is licensed under the MIT License.
+Licensed under the Apache License, Version 2.0.
 See `LICENSE.txt` for details.
 
 ## Contact
