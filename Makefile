@@ -157,9 +157,9 @@ setup:
 		exit 1; \
 	fi
 	@if command -v composer >/dev/null 2>&1; then \
-		composer install; \
+		composer install --no-dev; \
 	elif [ -f "$$HOME/.composer/composer" ]; then \
-		$$HOME/.composer/composer install; \
+		$$HOME/.composer/composer install --no-dev; \
 	else \
 		echo "$(COLOR_RED)❌ Composer not found in PATH$(COLOR_RESET)"; \
 		echo "$(COLOR_YELLOW)Please install Composer or run manually:$(COLOR_RESET)"; \
