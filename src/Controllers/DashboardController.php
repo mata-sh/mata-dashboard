@@ -292,6 +292,7 @@ class DashboardController extends BaseController
                     'server_columns' => $this->appConfig->dashboard->serverColumns,
                     'container_width' => $this->appConfig->dashboard->containerWidth,
                     'organization_name' => $this->appConfig->general->organizationName,
+                    'app_env' => $this->appConfig->environment->env,
                 ];
 
                 $html = $this->serverRenderer->renderDashboardPage(

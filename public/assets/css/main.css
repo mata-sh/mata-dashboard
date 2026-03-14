@@ -342,7 +342,7 @@ svg {
     font-size: 0.7em;
     text-transform: uppercase;
     font-weight: bold;
-    width: 37px;
+    /* width: 37px; */
     text-align: center;
     margin-right: 11px;
 
@@ -362,6 +362,34 @@ svg {
 
 .app-env.stg {
     background-color: rebeccapurple;
+}
+
+.app-env.demo {
+    background-color: #ffa500;
+    color: black;
+}
+
+.topbar-env-tag {
+    padding: 3px 10px 2px !important;
+    font-size: 0.65rem;
+    letter-spacing: 1px;
+    line-height: 1;
+    border-radius: 4px;
+    height: auto;
+    align-self: center;
+    animation: env-tag-pulse 2s ease-in-out infinite;
+}
+
+@keyframes env-tag-pulse {
+
+    0%,
+    100% {
+        opacity: 1;
+    }
+
+    50% {
+        opacity: 0.7;
+    }
 }
 
 /* .app-libs {

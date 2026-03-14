@@ -666,6 +666,7 @@ class ServerRenderer extends BaseRenderer
         ];
 
         return [
+            'app_env' => $layout['app_env'] ?? 'prod',
             'ui' => [
                 'main_logo' => $this->tools->icon('turtle', 12),
                 'notification_enabled' => $notificationEnabled,
