@@ -60,7 +60,7 @@ User: **demo** | Password: **demo**
 - **Multi-Node Visibility:** One dashboard for many nodes and apps
 - **Works where you can only run PHP:** Shared hosting / constrained VPS (no root, no daemons, no system packages)
 - **Alerting:** Threshold-based alerts with email notifications
-- **Least privilege by design:** Lightweight, read-only nodes
+- **Least privilege by design:** Lightweight, read-only nodes with proper deployment and network isolation
 - **PHP-first insights:** Error logs, Composer inventory, session monitoring
 - **Resilient:** Dashboard can run in degraded mode without a DB
 - **Developer Friendly:** Simple deploy, built with modern PHP and optional Docker support
@@ -102,6 +102,7 @@ Lightweight, stateless applications offering **read-only** API endpoints. They n
 - Secrets (API keys, passwords), environment variables
 - Database contents
 - Application source code
+- Data exposure depends on node configuration; misconfiguration can expose unintended data.
 
 
 ## Getting Started
