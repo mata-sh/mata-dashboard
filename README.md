@@ -9,7 +9,7 @@
 <h3 align="center">MATA Dashboard</h3>
 
   <p align="center">
-Modern, lightweight server and application monitoring with the needs of PHP developers kept in mind.
+Modern, lightweight node and application monitoring with the needs of PHP developers kept in mind.
 
 <br>
 <a href="https://github.com/mata-sh/mata-dashboard/issues/new?labels=bug&template=bug-report---.md">Report Bug</a>
@@ -29,7 +29,15 @@ Modern, lightweight server and application monitoring with the needs of PHP deve
 <!-- ABOUT THE PROJECT -->
 <p>
 <strong>MATA</strong> is a PHP-native monitoring solution for environments where full observability stacks are impractical.
-Deploy read-only nodes on each server, manage alerts and logs from one lightweight dashboard. Works on shared hosting, constrained VPS, anywhere PHP 8.3+ runs.</p>
+Deploy read-only nodes on each monitored environment, manage alerts and logs from one lightweight dashboard. Works on shared hosting, constrained VPS, anywhere PHP 8.3+ runs.</p>
+
+## Mental Model
+
+- **Dashboard pulls data from nodes.**
+- **Nodes never initiate connections.**
+- **Nodes are stateless and read-only.**
+
+MATA consists of one dashboard and one or more nodes. The dashboard polls each node for snapshots and evaluates alerts centrally. Nodes expose read-only endpoints and do not send data anywhere on their own.
 
 <div align="center">
 
@@ -44,12 +52,12 @@ User: **demo** | Password: **demo**
 
 - **Application Health:** HTTP ping monitoring, error log parsing, and session tracking
 - **Alerting:** Threshold-based alarm system with email notifications
-- **Server Monitoring:** Real-time tracking of CPU/RAM/disk and system processes
+- **Node Monitoring:** Real-time tracking of CPU/RAM/disk and system processes
 - **PHP Dev Toolset:** Supports reading PHP logs and installed Composer packages.
 
 ## Why MATA?
 
-- **Multi-Server Visibility:** One dashboard for many servers and apps
+- **Multi-Node Visibility:** One dashboard for many nodes and apps
 - **Works where you can only run PHP:** Shared hosting / constrained VPS (no root, no daemons, no system packages)
 - **Alerting:** Threshold-based alerts with email notifications
 - **Least privilege by design:** Lightweight, read-only nodes
@@ -61,7 +69,7 @@ User: **demo** | Password: **demo**
 
 - **Read-only nodes:** stateless endpoints; no alerting, no emails, no remote actions.
 - **Pull-only traffic:** communication is **dashboard → node** only.
-- **Auth (HMAC + short TTL):** per-node shared secret; each request includes a timestamped HMAC token with a short TTL.
+- **Auth (HMAC + short TTL):** per-node shared secret; each pull request includes a timestamped HMAC token with a short TTL.
 - **TLS required:** nodes accept **HTTPS only**.
 - **Network controls:** optional IP allowlists for dashboard and node endpoints.
 - **Abuse resistance:** rate limiting on dashboard and node APIs.
@@ -72,18 +80,18 @@ User: **demo** | Password: **demo**
 
 ## Architecture Overview
 
-### **Dashboard (Server)**
-A central monitoring hub with web interface and alerting system. Capable of running without database by utilizing filesystem fallback mode.
+### **Dashboard**
+The monitoring hub with web interface and alerting system. It pulls snapshots from nodes and can run without a database by utilizing filesystem fallback mode.
 
-### **Nodes (Clients)**
-Lightweight, stateless client application offering **read-only** API endpoints. Easily deployed with minimal dependencies.
+### **Nodes**
+Lightweight, stateless applications offering **read-only** API endpoints. They never initiate connections and are easily deployed with minimal dependencies.
 
 
 ## What is collected?
 
 **Collected**
 - CPU / RAM / disk metrics
-- Process list snapshot (top processes)
+- Process snapshot (top processes)
 - HTTP status (and optional latency, if enabled)
 - Recent log lines
 - Session counts
@@ -101,7 +109,7 @@ Lightweight, stateless client application offering **read-only** API endpoints. 
 ### Requirements
 
 - **PHP 8.3+**
-- **MySQL/MariaDB** for event logging and configuration (optional but recommended for Dashboard server)
+- **MySQL/MariaDB** for event logging and configuration (optional but recommended for the dashboard)
 
 ### Quick Start
 
@@ -131,12 +139,12 @@ Lightweight, stateless client application offering **read-only** API endpoints. 
 ## Use Case Fit
 
 ✅ **Ideal for:**
-- Agencies managing dozens of small customer servers
-- 1–20 monitored servers / 1–20 team members
+- Agencies managing dozens of small customer nodes
+- 1–20 nodes / 1–20 team members
 - PHP apps with file-based sessions and messy logs
 - Unreliable or legacy environments
 - Hosts where you cannot install agents/exporters
-- See failures across many small servers without SSH hopping
+- See failures across many small nodes without SSH hopping
 
 ❌ **Not for:**
 - Public dashboards
