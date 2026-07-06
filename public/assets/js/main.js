@@ -13,7 +13,12 @@ const bar = document.getElementById('htmx-progress-bar');
 let progressInterval;
 let current = 0;
 
-document.body.addEventListener('htmx:configRequest', function () {
+document.body.addEventListener('htmx:configRequest', function (evt) {
+    const csrfMeta = document.querySelector('meta[name="csrf-token"]');
+    if (csrfMeta) {
+        evt.detail.headers['X-CSRF-Token'] = csrfMeta.content;
+    }
+
     if (bar) {
         current = 10;
         bar.style.width = current + '%';

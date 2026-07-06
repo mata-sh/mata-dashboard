@@ -12,6 +12,8 @@ use Mata\Controllers\MetricsController;
 use Mata\Controllers\ModalController;
 use Mata\Core\App;
 use Mata\Http\Responses\Response;
+use Mata\Http\Responses\ResponseFactory;
+use Mata\Http\Security\CsrfGuard;
 
 /**
  * Centralizes routing configuration including authentication, rate limiting, and error handling.
@@ -25,6 +27,7 @@ class RouterSetup
     private ModalController $modalController;
     private MetricsController $metricsController;
     private Endpoints $endpoints;
+    private CsrfGuard $csrf;
     private string $baseRoute;
 
     /**
@@ -39,7 +42,8 @@ class RouterSetup
         DashboardController $dashboardController,
         ModalController $modalController,
         MetricsController $metricsController,
-        Endpoints $endpoints
+        Endpoints $endpoints,
+        CsrfGuard $csrf
     ) {
         $this->router = $router;
         $this->app = $app;
@@ -48,6 +52,7 @@ class RouterSetup
         $this->modalController = $modalController;
         $this->metricsController = $metricsController;
         $this->endpoints = $endpoints;
+        $this->csrf = $csrf;
     }
 
     /**
@@ -58,6 +63,7 @@ class RouterSetup
         $this->setupHealthCheck();
         $this->setupRateLimiting();
         $this->setupIpWhitelist();
+        $this->setupCsrfProtection();
         $this->setupParameterValidation();
         $this->setupLoginRoutes();
         $this->setupWatchAuth();
@@ -105,7 +111,7 @@ class RouterSetup
             }
         });
 
-        $this->router->before('GET', '/logout', function () {
+        $this->router->before('POST', '/logout', function () {
             if ($this->app->rateLimiter->isRateLimited('login')) {
                 http_response_code(429);
 
@@ -162,6 +168,31 @@ class RouterSetup
     }
 
     /**
+     * Apply CSRF protection to unsafe HTTP methods.
+     */
+    private function setupCsrfProtection(): void
+    {
+        $this->router->before('POST|PUT|PATCH|DELETE', '/.*', function () {
+            if ($this->csrf->validateRequest()) {
+                return;
+            }
+            if (ResponseFactory::isHtmxRequest()) {
+                ResponseFactory::forbidden('Invalid or missing CSRF token')
+                    ->addHeader('HX-Refresh', 'true')
+                    ->send();
+
+                exit;
+            }
+            if (!ResponseFactory::expectsJson()) {
+                $this->app->redirect('login');
+            }
+            ResponseFactory::forbidden('Invalid or missing CSRF token')->send();
+
+            exit;
+        });
+    }
+
+    /**
      * Apply authentication to all /watch/* routes.
      */
     private function setupWatchAuth(): void
@@ -210,7 +241,7 @@ class RouterSetup
 
         // logout
         $this->endpoints->register('logout', '/logout');
-        $this->router->get('/logout', function () {
+        $this->router->post('/logout', function () {
             $this->loginController->logout();
         });
     }

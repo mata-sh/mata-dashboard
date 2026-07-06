@@ -21,6 +21,7 @@ use Mata\Factory\RateLimiterFactory;
 use Mata\Factory\ServerMetricsQueryFactory;
 use Mata\Http\Routing\Endpoints;
 use Mata\Http\Routing\RouterSetup;
+use Mata\Http\Security\CsrfGuard;
 use Mata\Http\SecurityHeaders;
 use Mata\Models\AlertQueueRepository;
 use Mata\Models\ConfigSyncRepository;
@@ -196,6 +197,8 @@ try {
 $rateLimiterService = RateLimiterFactory::create($appConfig->rateLimiting, $log);
 $app = new App($auth, $appConfig, $paths, $rateLimiterService);
 $app->setBaseUrl($appConfig->environment->domain);
+$csrf = new CsrfGuard();
+$twig->addGlobal('csrf', $csrf);
 
 // ************************************************************************************************
 // Database Setup
@@ -401,7 +404,8 @@ $routerSetup = new RouterSetup(
     $dashboardController,
     $modalController,
     $metricsController,
-    $endpoints
+    $endpoints,
+    $csrf
 );
 
 $routerSetup->setup();

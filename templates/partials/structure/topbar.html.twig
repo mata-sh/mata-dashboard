@@ -24,7 +24,10 @@
     <div class="navbar-end">
       <div class="navbar-item">
         <div class="buttons">
-          <a class="button is-secondary is-small" href="logout">Logout</a>
+          <form method="post" action="logout">
+            <input type="hidden" name="_csrf" value="{{ csrf.token }}" />
+            <button class="button is-secondary is-small" type="submit">Logout</button>
+          </form>
         </div>
       </div>
     </div>
