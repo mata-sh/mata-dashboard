@@ -52,8 +52,8 @@ class Auth
         $this->cliMode = $cliMode;
 
         // Start session if needed (skip in CLI mode)
-        if (!$cliMode && session_status() === PHP_SESSION_NONE) {
-            session_start();
+        if (!$cliMode) {
+            Session::start();
         }
 
         $this->loadUsers();
@@ -211,18 +211,17 @@ class Auth
         $this->users[$username]['remember_expires'] = time() + (30 * 24 * 60 * 60);
         $this->saveUsers();
 
-        $isSecure = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')
-                    || $_SERVER['SERVER_PORT'] == 443;
-
         // Set cookie with unhashed token
         setcookie(
             'remember_token',
             $username . '|' . $token,
-            time() + (30 * 24 * 60 * 60),
-            '/',
-            '',
-            $isSecure,  // HTTPS only
-            true   // HttpOnly
+            [
+                'expires' => time() + (30 * 24 * 60 * 60),
+                'path' => '/',
+                'secure' => Session::isSecureRequest(),
+                'httponly' => true,
+                'samesite' => 'Lax',
+            ]
         );
     }
 
@@ -244,7 +243,7 @@ class Auth
 
         // Verify token and expiry
         if (
-            hash('sha256', $token) === $user['remember_token']
+            hash_equals($user['remember_token'], hash('sha256', $token))
             && time() < $user['remember_expires']
         ) {
             $_SESSION['user'] = [
@@ -253,6 +252,7 @@ class Auth
                 'id' => $user['id'] ?? uniqid('usr_'),
             ];
             $_SESSION['logged_in'] = true;
+            session_regenerate_id(true);
 
             // Regenerate token for security
             $this->setRememberMe($username);
@@ -383,7 +383,14 @@ class Auth
 
         $_SESSION = [];
         session_destroy();
-        setcookie('remember_token', '', time() - 3600, '/');
+        setcookie('remember_token', '', [
+            'expires' => time() - 3600,
+            'path' => '/',
+            'secure' => Session::isSecureRequest(),
+            'httponly' => true,
+            'samesite' => 'Lax',
+        ]);
+        Session::destroyCookie();
 
         $this->logger->info('User logged out: ' . ($username ?? 'unknown'));
     }

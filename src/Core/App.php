@@ -33,9 +33,7 @@ class App
         $this->config = $config;
         $this->paths = $paths;
         $this->rateLimiter = $rateLimiter;
-        if (session_status() === PHP_SESSION_NONE) {
-            session_start();
-        }
+        Session::start();
         $this->detectBasePath();
     }
 
