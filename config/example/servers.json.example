@@ -27,14 +27,15 @@
         "check_disk_space": "on"
     },
     "development-server": {
-        "title": "Development Server",
+        "title": "Local Development Server (HTTP, dev only)",
         "url": "http://localhost:3300/",
         "api_url": "http://localhost:3310/",
         "api_key": "dev_environment_api_key_32_chars",
         "allow_http": "on",
+        "suppress_http_warning": "on",
         "primary_color": "#17a2b8",
         "secondary_color": "#ffffff",
-        "info": "Local Development - Docker ports (dashboard: 3300, node: 3310)",
+        "info": "Local Development ONLY - Docker ports (dashboard: 3300, node: 3310); allow_http is for local dev only",
         "check_disk_space": "off"
     },
     "docker-production": {
@@ -59,14 +60,12 @@
     },
     "internal-server": {
         "title": "Internal File Server",
-        "url": "http://192.168.1.100/",
-        "api_url": "http://192.168.1.100:3310/",
+        "url": "https://fileserver.internal.example.com/",
+        "api_url": "https://fileserver.internal.example.com:3310/",
         "api_key": "internal_server_api_key_32_chars",
-        "allow_http": "on",
-        "suppress_http_warning": "on",
         "primary_color": "#e83e8c",
         "secondary_color": "#ffffff",
-        "info": "Internal Network - Private IP with Docker ports (decade-spaced)",
+        "info": "Internal Network - HTTPS required (use internal CA or valid certificates)",
         "check_disk_space": "on"
     },
     "_DEPLOYMENT_STRATEGIES": {
@@ -127,7 +126,7 @@
             "node_api": "http://localhost:3310/",
             "opa_service": "http://localhost:3320/",
             "mysql": "localhost:3306 (or 3306 if exposed)",
-            "note": "Use allow_http: \"on\" for local HTTP testing"
+            "note": "Use allow_http: \"on\" for local development HTTP testing only - never in production"
         }
     },
     "_CONFIGURATION_NOTES": {
@@ -136,8 +135,8 @@
         "url": "The base URL of the server (with or without trailing slash)",
         "api_url": "Full API endpoint URL for MATA Node - RECOMMENDED: https://api.yourdomain.com/ or https://yourdomain.com:3310/ (Docker)",
         "api_key": "Secure API key for authentication (must match node configuration)",
-        "allow_http": "Set to \"on\" for HTTP connections (local dev or internal networks only)",
-        "suppress_http_warning": "Set to \"on\" to suppress HTTP warning logs for trusted internal networks",
+        "allow_http": "Set to \"on\" for HTTP connections (local development only - never use in production)",
+        "suppress_http_warning": "Set to \"on\" to suppress HTTP warning logs (local development only - do not use in production)",
         "primary_color": "Hex color code for server identification in dashboard",
         "secondary_color": "Secondary color for UI theming",
         "info": "Human-readable description of the server's purpose",
@@ -173,7 +172,7 @@
     "_SECURITY_CHECKLIST": [
         "✓ Generated unique API keys for each server (minimum 32 characters)",
         "✓ API keys are stored securely and not committed to version control",
-        "✓ HTTPS is used for all API communications (except local dev/internal)",
+        "✓ HTTPS is used for all API communications (except local development)",
         "✓ DNS records configured with proper SSL certificates",
         "✓ Firewall configured to allow only necessary ports",
         "✓ API keys are rotated regularly (recommended: every 90 days)",
