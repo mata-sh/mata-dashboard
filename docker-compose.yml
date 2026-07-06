@@ -47,8 +47,6 @@ services:
       MYSQL_COLLATION_SERVER: utf8mb4_unicode_ci
     volumes:
       - ./docker/mysql/init.sql:/docker-entrypoint-initdb.d/init.sql
-    ports:
-      - "${MYSQL_PORT:-3306}:3306"
     networks:
       - mata-network
 
@@ -59,8 +57,6 @@ services:
     command: ["run", "--server", "--addr", "0.0.0.0:3320", "--watch", "/policies"]
     volumes:
       - ./policy:/policies:ro
-    ports:
-      - "${OPA_PORT:-3320}:3320"
     networks:
       - mata-network
 

@@ -52,7 +52,7 @@ make prod-start
 Access the dashboard at `http://<your-server-host>:3300/` (or the `WEB_PORT` in `.env`).
 
 !!! tip "Port Convention:"
-    MATA uses decade-spaced ports - Dashboard: 3300, Node: 3310, OPA: 3320, MkDocs: 3330, MySQL: 3306
+    In production, only the dashboard port is published by default: 3300 (`WEB_PORT`). OPA (3320) and MySQL (3306) host ports are dev-only localhost bindings.
 
 
 ### 3. Log In to the Dashboard

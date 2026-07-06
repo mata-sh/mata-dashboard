@@ -34,6 +34,10 @@ services:
       start_period: 10s
 
   mata-db:
+    # Dev-only: bind to localhost so host tools can connect; not published in prod
+    ports:
+      - "127.0.0.1:${MYSQL_PORT:-3306}:3306"
+
     # Use tmpfs for faster database operations in development
     # Override volumes to remove persistent mysql_data volume
     volumes:
@@ -46,3 +50,8 @@ services:
     environment:
       - MYSQL_GENERAL_LOG=1
       - MYSQL_GENERAL_LOG_FILE=/var/lib/mysql/general.log
+
+  mata-opa:
+    # Dev-only: bind to localhost so host tools can connect; not published in prod
+    ports:
+      - "127.0.0.1:${OPA_PORT:-3320}:3320"

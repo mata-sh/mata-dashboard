@@ -253,7 +253,7 @@ opa-docker-start:
 	fi; \
 	echo "$(COLOR_BLUE)🐳 Starting OPA container...$(COLOR_RESET)"; \
 	docker run -d --name mata-opa \
-		-p 3320:3320 \
+		-p 127.0.0.1:3320:3320 \
 		-v "$(CURDIR)/policy:/policies" \
 		openpolicyagent/opa:latest \
 		run --server --watch /policies >/dev/null; \

@@ -71,15 +71,15 @@ project/
 
 ## Default Ports (Decade-Spaced Convention)
 
-The MATA Dashboard stack uses **decade-spaced ports** for clean separation:
+The MATA Dashboard stack uses **decade-spaced ports** for clean separation. In production, only the dashboard port is published by default; OPA and MySQL host ports are dev-only localhost bindings.
 
 | Service | Port | Variable | Description |
 |---------|------|----------|-------------|
 | **Dashboard** | 3300 | `WEB_PORT` | Main web interface |
 | **Node API** | 3310 | `NODE_PORT` | Remote monitoring node (for local testing) |
-| **OPA Service** | 3320 | `OPA_PORT` | Open Policy Agent for alert evaluation |
+| **OPA Service** | 3320 | `OPA_PORT` | Open Policy Agent (dev-only localhost host binding) |
 | **MkDocs** | 3330 | `MKDOCS_PORT` | Documentation server (dev only) |
-| **MySQL** | 3306 | `MYSQL_PORT` | Database (standard port, not exposed in prod) |
+| **MySQL** | 3306 | `MYSQL_PORT` | Database (dev-only localhost host binding) |
 
 ### Port Convention Benefits
 
@@ -92,9 +92,9 @@ Customize ports in your `.env` file:
 ```bash
 WEB_PORT=3300          # Dashboard
 NODE_PORT=3310         # Node API
-OPA_PORT=3320          # Policy engine
+OPA_PORT=3320          # Policy engine (dev-only localhost host binding)
 MKDOCS_PORT=3330       # Documentation
-MYSQL_PORT=3306        # Database (standard)
+MYSQL_PORT=3306        # Database (dev-only localhost host binding)
 ```
 
 ## Environment Separation
@@ -170,7 +170,7 @@ make logs
 
 # Access services at:
 # - Dashboard: http://localhost:3300
-# - OPA Service: http://localhost:3320
+# - OPA Service: http://127.0.0.1:3320 (dev only)
 # - MkDocs: http://localhost:3330 (if running)
 # Login: dev / password
 ```
@@ -188,7 +188,7 @@ docker-compose -f docker-compose.yml -f docker-compose.dev.yml up -d --build
 
 # 4. Access services
 # - Dashboard: http://localhost:3300
-# - OPA Service: http://localhost:3320
+# - OPA Service: http://127.0.0.1:3320 (dev only)
 # - Node API: http://localhost:3310 (if testing node locally)
 # Login: dev / password
 ```
@@ -427,7 +427,7 @@ docker-compose exec -u www-data web bash
 ```bash
 # Change ports in .env (uses decade-spaced convention)
 echo "WEB_PORT=3400" >> .env     # Alternative dashboard port
-echo "OPA_PORT=3420" >> .env     # Alternative OPA port
+echo "OPA_PORT=3420" >> .env     # Alternative OPA dev port
 
 # Or stop conflicting service
 lsof -ti:3300 | xargs kill -9
@@ -435,9 +435,9 @@ lsof -ti:3300 | xargs kill -9
 # Default port scheme (decade-spaced):
 # - Dashboard: 3300
 # - Node API: 3310
-# - OPA Service: 3320
+# - OPA Service: 3320 (dev-only localhost host binding)
 # - MkDocs: 3330
-# - MySQL: 3306 (standard)
+# - MySQL: 3306 (dev-only localhost host binding)
 #
 # For 2nd stack, use: 3400, 3410, 3420, 3430...
 ```
