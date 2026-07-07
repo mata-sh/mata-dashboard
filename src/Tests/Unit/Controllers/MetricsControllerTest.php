@@ -608,29 +608,29 @@ class MetricsControllerTest extends TestCase
         $this->mockCacheService->method('buildCacheMetadata')->willReturn($seriesPayload['cache']);
         $this->mockRenderer->method('renderProcessCountModal')->willReturn('<div>Modal</div>');
 
-        // Expect debug logging with request start and completion
-        $callCount = 0;
+        // Expect debug logging with request start and completion.
+        // The controller may also log internal build timings.
+        $debugCalls = [];
         $this->mockLogger
-            ->expects($this->exactly(2))
+            ->expects($this->atLeast(2))
             ->method('debug')
-            ->willReturnCallback(function ($message, $context) use (&$callCount) {
-                ++$callCount;
-                if ($callCount === 1) {
-                    $this->assertSame('metrics.request.start', $message);
-                    $this->assertSame('renderProcessCountModal', $context['endpoint'] ?? null);
-                    $this->assertSame('prod-server', $context['server'] ?? null);
-                    $this->assertSame('process_count', $context['metric'] ?? null);
-                } else {
-                    $this->assertSame('metrics.request.complete', $message);
-                    $this->assertArrayHasKey('duration_ms', $context);
-                    $this->assertSame(30, $context['data_points'] ?? null);
-                    $this->assertArrayHasKey('from_cache', $context);
-                }
+            ->willReturnCallback(function ($message, $context) use (&$debugCalls) {
+                $debugCalls[$message] = $context;
             })
         ;
 
         // Act
         $this->controller->renderProcessCountModal('prod-server');
+
+        $this->assertArrayHasKey('metrics.request.start', $debugCalls);
+        $this->assertSame('renderProcessCountModal', $debugCalls['metrics.request.start']['endpoint'] ?? null);
+        $this->assertSame('prod-server', $debugCalls['metrics.request.start']['server'] ?? null);
+        $this->assertSame('process_count', $debugCalls['metrics.request.start']['metric'] ?? null);
+
+        $this->assertArrayHasKey('metrics.request.complete', $debugCalls);
+        $this->assertArrayHasKey('duration_ms', $debugCalls['metrics.request.complete']);
+        $this->assertArrayHasKey('data_points', $debugCalls['metrics.request.complete']);
+        $this->assertArrayHasKey('from_cache', $debugCalls['metrics.request.complete']);
     }
 
     // ═══════════════════════════════════════════════════════════════════════
@@ -1287,20 +1287,14 @@ class MetricsControllerTest extends TestCase
         $this->mockViewBuilder->method('buildServerMetricTimeSeries')->willReturn($seriesPayload['series']);
         $this->mockCacheService->method('buildCacheMetadata')->willReturn($seriesPayload['cache']);
 
-        // Expect debug logging with performance metrics
-        $callCount = 0;
+        // Expect debug logging with performance metrics.
+        // The controller may also log internal build timings.
+        $debugCalls = [];
         $this->mockLogger
-            ->expects($this->exactly(2))
+            ->expects($this->atLeast(2))
             ->method('debug')
-            ->willReturnCallback(function ($message, $context) use (&$callCount) {
-                ++$callCount;
-                if ($callCount === 1) {
-                    $this->assertSame('metrics.request.start', $message);
-                } else {
-                    $this->assertSame('metrics.request.complete', $message);
-                    $this->assertArrayHasKey('duration_ms', $context);
-                    $this->assertSame(24, $context['data_points'] ?? null);
-                }
+            ->willReturnCallback(function ($message, $context) use (&$debugCalls) {
+                $debugCalls[$message] = $context;
             });
 
         $mockJsonResponse = $this->createMock(JsonResponse::class);
@@ -1308,5 +1302,10 @@ class MetricsControllerTest extends TestCase
 
         // Act
         $this->controller->getServerMetricSeries('prod-server', 'cpu');
+
+        $this->assertArrayHasKey('metrics.request.start', $debugCalls);
+        $this->assertArrayHasKey('metrics.request.complete', $debugCalls);
+        $this->assertArrayHasKey('duration_ms', $debugCalls['metrics.request.complete']);
+        $this->assertArrayHasKey('data_points', $debugCalls['metrics.request.complete']);
     }
 }

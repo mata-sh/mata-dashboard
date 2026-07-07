@@ -426,6 +426,7 @@ class MockServerDataCollector implements ServerDataCollectorInterface
      */
     private function generateDemoApps(): array
     {
+        /** @var array<string,array<string,mixed>> $appTemplates */
         $appTemplates = [
             'ecommerce' => [
                 'title' => 'E-Commerce Platform',
@@ -947,6 +948,7 @@ class MockServerDataCollector implements ServerDataCollectorInterface
             'dev' => ['hour' => [10, 80], 'day' => [200, 900], 'total' => [2500, 15000]],
         ];
 
+        /** @var array<string,float> $categorySessionMultipliers */
         $categorySessionMultipliers = [
             'commerce' => 1.3,
             'customer' => 1.2,

@@ -368,9 +368,6 @@ class ChartViewBuilder
 
         if ($normalized === []) {
             foreach (self::DEFAULT_CHART_CONFIG['metrics'] as $metricKey => $meta) {
-                if (!in_array($metricKey, self::SUPPORTED_METRICS, true)) {
-                    continue;
-                }
                 $normalized[$metricKey] = [
                     'key' => $metricKey,
                     'label' => $meta['label'],
