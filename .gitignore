@@ -28,6 +28,10 @@ docs/_drafts
 config/*.json
 config/*/*.json
 
+# instance branding (seeded from public/assets/branding/ on first run)
+public/branding/*
+!public/branding/README.md
+
 # npm
 node_modules/
 package-lock.json

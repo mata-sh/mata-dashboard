@@ -93,6 +93,7 @@ final class EnvConfigLoader
             allowedIps: $this->parseCommaSeparated($this->getEnv('ALLOWED_IPS', '')),
             alarmsEnabled: $this->getEnvBool('ALARMS_ENABLED', true),
             eventsEnabled: $this->getEnvBool('EVENTS_ENABLED', true),
+            appName: $this->getEnv('APP_NAME', 'MATA'),
         );
     }
 

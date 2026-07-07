@@ -22,5 +22,6 @@ final class GeneralConfig
         public readonly array $allowedIps,
         public readonly bool $alarmsEnabled,
         public readonly bool $eventsEnabled,
+        public readonly string $appName = 'MATA',
     ) {}
 }

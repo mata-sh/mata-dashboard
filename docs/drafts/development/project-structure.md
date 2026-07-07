@@ -253,8 +253,12 @@ public/
 │   │   └── bulma.purged.min.css  # Optimized CSS
 │   ├── js/
 │   │   └── htmx.min.js         # HTMX library
-│   └── images/
-│       └── logo.png
+│   ├── images/
+│   │   └── favicon.png
+│   └── branding/               # Default logos (seed source, do not edit)
+│       ├── logo.png
+│       └── logo_topbar.png
+├── branding/               # Instance logos (gitignored, seeded on first run)
 ├── index.php              # Application entry point
 └── .htaccess             # Apache configuration
 ```

@@ -12,7 +12,8 @@ mkdir -p \
     /var/www/html/temp/sessions \
     /var/www/html/temp/templates-cache \
     /var/www/html/logs \
-    /var/www/html/config
+    /var/www/html/config \
+    /var/www/html/public/branding
 
 # Copy config files from examples if they don't exist
 echo "📋 Checking for config files..."
@@ -37,9 +38,9 @@ chmod -R a+rX /var/www/html
 
 # Fix ownership and permissions for writable directories
 echo "📁 Setting up writable directories..."
-chown -R www-data:www-data /var/www/html/temp /var/www/html/logs /var/www/html/config
+chown -R www-data:www-data /var/www/html/temp /var/www/html/logs /var/www/html/config /var/www/html/public/branding
 chmod -R 770 /var/www/html/temp /var/www/html/logs
-chmod -R 755 /var/www/html/config
+chmod -R 755 /var/www/html/config /var/www/html/public/branding
 
 # Secure users.json files (must be 600 for security)
 echo "🔒 Securing users.json files..."

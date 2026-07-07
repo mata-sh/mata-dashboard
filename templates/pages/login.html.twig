@@ -6,10 +6,10 @@
       <div class="column is-half is-offset-one-quarter">
         <!-- <h1 class="title has-text-centered">Login</h1> -->
         <div class="main-logo">
-          <img src="assets/images/logo.png" />
+          <img src="{{ branding.logo }}" />
         </div>
         <p class="login-subtitle">
-          <strong>MATA</strong>
+          <strong>{{ branding.app_name }}</strong>
         </p>
         <form method="post" action="login">
           <input type="hidden" name="_csrf" value="{{ csrf.token }}" />
