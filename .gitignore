@@ -22,7 +22,8 @@ temp/
 trash/
 site/
 bin/opa
-logs/
+logs/*
+!logs/.gitkeep
 docs/_drafts
 
 config/*.json
