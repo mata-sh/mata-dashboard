@@ -22,17 +22,6 @@ interface ServerDataCollectorInterface
     public function getServerSystemData(string $cacheType = 'serverData'): ?array;
 
     /**
-     * Fetch raw log data from a specific app.
-     *
-     * @param string $app       App identifier
-     * @param string $cacheType Cache type key for TTL lookup (default: 'appLogs')
-     * @param string $filter    Log filter type (default: 'errors')
-     *
-     * @return null|array<string> Raw log entries array or null on failure
-     */
-    public function getAppLogs(string $app, string $cacheType = 'appLogs', string $filter = 'errors'): ?array;
-
-    /**
      * Fetch raw PHP process information from server.
      *
      * @param string $cacheType Cache type key for TTL lookup (default: 'serverProcesses')
@@ -74,16 +63,6 @@ interface ServerDataCollectorInterface
     public function getApps(string $cacheType = 'apps'): ?array;
 
     /**
-     * Fetch status information for a specific app.
-     *
-     * @param string $app       App identifier
-     * @param string $cacheType Cache type key for TTL lookup (default: 'apps')
-     *
-     * @return null|array<string,mixed> App status data or null on failure
-     */
-    public function getAppStatus(string $app, string $cacheType = 'apps'): ?array;
-
-    /**
      * Fetch library information for all apps.
      *
      * @param string $cacheType Cache type key for TTL lookup (default: 'apps')
@@ -98,9 +77,9 @@ interface ServerDataCollectorInterface
      * @param string $app       App identifier
      * @param string $cacheType Cache type key for TTL lookup (default: 'apps')
      *
-     * @return array<string,mixed> Libraries data for the specified app
+     * @return null|array<string,mixed> Libraries data for the specified app or null on failure
      */
-    public function getAppLibraries(string $app, string $cacheType = 'apps'): array;
+    public function getAppLibraries(string $app, string $cacheType = 'apps'): ?array;
 
     /**
      * Fetch README content from a specific app.

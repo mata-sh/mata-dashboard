@@ -84,20 +84,6 @@ class ServerDataCollector implements ServerDataCollectorInterface
     }
 
     /**
-     * Fetch raw log data from a specific app.
-     *
-     * @param string $app       App identifier
-     * @param string $cacheType Cache type key for TTL lookup (default: 'appLogs')
-     * @param string $filter    Log filter type (default: 'errors')
-     *
-     * @return null|array<string> Raw log entries array or null on failure
-     */
-    public function getAppLogs(string $app, string $cacheType = 'appLogs', string $filter = 'errors'): ?array
-    {
-        return $this->request('GET', "{$app}/logs/{$filter}", $cacheType);
-    }
-
-    /**
      * Fetch raw PHP process information from server.
      *
      * @param string $cacheType Cache type key for TTL lookup (default: 'serverProcesses')
@@ -141,19 +127,6 @@ class ServerDataCollector implements ServerDataCollectorInterface
     }
 
     /**
-     * Fetch status information for a specific app.
-     *
-     * @param string $app       App identifier
-     * @param string $cacheType Cache type key for TTL lookup (default: 'apps')
-     *
-     * @return null|array<string,mixed> App status data or null on failure
-     */
-    public function getAppStatus(string $app, string $cacheType = 'apps'): ?array
-    {
-        return $this->request('GET', "app/{$app}/status", $cacheType);
-    }
-
-    /**
      * Fetch library information for all apps.
      *
      * Retrieves installed packages and their versions across all apps.
@@ -175,11 +148,11 @@ class ServerDataCollector implements ServerDataCollectorInterface
      * @param string $app       App identifier
      * @param string $cacheType Cache type key for TTL lookup (default: 'apps')
      *
-     * @return array<string,mixed> Libraries data for the specified app
+     * @return null|array<string,mixed> Libraries data for the specified app or null on failure
      */
-    public function getAppLibraries(string $app, string $cacheType = 'apps'): array
+    public function getAppLibraries(string $app, string $cacheType = 'apps'): ?array
     {
-        return $this->request('GET', "app/{$app}/libraries", $cacheType);
+        return $this->request('GET', "{$app}/libraries", $cacheType);
     }
 
     /**

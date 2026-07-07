@@ -158,41 +158,6 @@ class MockServerDataCollector implements ServerDataCollectorInterface
     }
 
     /**
-     * Generate demo app logs.
-     */
-    public function getAppLogs(string $app, string $cacheType = 'appLogs', string $filter = 'errors'): ?array
-    {
-        $ttlSeconds = $this->cacheManager->getTtl($cacheType);
-        $this->cacheTtl = $ttlSeconds;
-
-        $logCount = mt_rand(10, 50);
-        $logs = [];
-
-        $errorTypes = [
-            'PHP Fatal error: Uncaught Error: Call to undefined function',
-            'PHP Warning: Division by zero in',
-            'PHP Notice: Undefined variable: data in',
-            'MySQL server has gone away',
-            'Connection timed out after 30000ms',
-            'Failed to connect to database: Access denied',
-            'HTTP 500 Internal Server Error',
-            'Class \'App\Model\User\' not found',
-        ];
-
-        for ($i = 0; $i < $logCount; ++$i) {
-            $timestamp = date('Y-m-d H:i:s', time() - mt_rand(3600, 86400 * 7));
-            $error = $errorTypes[array_rand($errorTypes)];
-            $file = '/var/www/' . $app . '/src/' . ['Controller', 'Model', 'Service'][array_rand(['Controller', 'Model', 'Service'])] . '/'
-                   . ucfirst($app) . ['Controller', 'Model', 'Service'][array_rand(['Controller', 'Model', 'Service'])] . '.php';
-            $line = mt_rand(15, 250);
-
-            $logs[] = "[{$timestamp}] {$error} {$file}:{$line}";
-        }
-
-        return $this->dataTransformer->normalizeApiResponse($logs, $this->cacheAge, $ttlSeconds, false);
-    }
-
-    /**
      * Generate demo PHP processes.
      */
     public function getServerPhpProcesses(string $cacheType = 'serverProcesses'): ?array
@@ -249,20 +214,6 @@ class MockServerDataCollector implements ServerDataCollectorInterface
     }
 
     /**
-     * Generate demo app status.
-     */
-    public function getAppStatus(string $app, string $cacheType = 'apps'): ?array
-    {
-        $ttlSeconds = $this->cacheManager->getTtl($cacheType);
-        $this->cacheTtl = $ttlSeconds;
-
-        $apps = $this->generateDemoApps();
-        $appData = $apps[$app] ?? null;
-
-        return $appData ? $this->dataTransformer->normalizeApiResponse($appData, $this->cacheAge, $ttlSeconds, false) : null;
-    }
-
-    /**
      * Generate demo libraries for all apps.
      */
     public function getAppsLibraries(string $cacheType = 'apps'): ?array
@@ -283,7 +234,7 @@ class MockServerDataCollector implements ServerDataCollectorInterface
     /**
      * Generate demo libraries for specific app.
      */
-    public function getAppLibraries(string $app, string $cacheType = 'apps'): array
+    public function getAppLibraries(string $app, string $cacheType = 'apps'): ?array
     {
         $ttlSeconds = $this->cacheManager->getTtl($cacheType);
         $this->cacheTtl = $ttlSeconds;

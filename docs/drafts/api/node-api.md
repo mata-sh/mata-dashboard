@@ -331,9 +331,12 @@ Retrieve detailed status for a specific application.
 
 ---
 
-#### GET /app/{app_code}/libraries
+#### GET /{app_code}/libraries
 
 Retrieve installed packages/libraries for a specific application.
+
+**Path Parameters:**
+- `app_code`: Application identifier
 
 **Response Fields:**
 
