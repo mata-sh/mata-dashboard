@@ -119,9 +119,11 @@ class RouterSetupTest extends TestCase
         $this->assertNull($csrfMiddleware());
     }
 
-    public function testCsrfMiddlewareRejectsBrowserRequestsWhenTokenFails(): void
+    #[DataProvider('unsafeHttpMethodProvider')]
+    public function testCsrfMiddlewareRejectsUnsafeBrowserRequestsWhenTokenFails(string $method): void
     {
         $this->resetCsrfGlobals();
+        $_SERVER['REQUEST_METHOD'] = $method;
 
         $csrfMiddleware = null;
         $router = $this->createStub(Router::class);
@@ -137,7 +139,7 @@ class RouterSetupTest extends TestCase
         $app->expects($this->once())
             ->method('redirect')
             ->with('login')
-            ->willThrowException(new RuntimeException('csrf rejected'))
+            ->willThrowException(new RuntimeException("csrf rejected {$method}"))
         ;
 
         $setup = $this->createRouterSetup(router: $router, app: $app);
@@ -146,9 +148,22 @@ class RouterSetupTest extends TestCase
         $this->assertIsCallable($csrfMiddleware);
 
         $this->expectException(RuntimeException::class);
-        $this->expectExceptionMessage('csrf rejected');
+        $this->expectExceptionMessage("csrf rejected {$method}");
 
         $csrfMiddleware();
+    }
+
+    /**
+     * @return array<string,array{0:string}>
+     */
+    public static function unsafeHttpMethodProvider(): array
+    {
+        return [
+            'POST' => ['POST'],
+            'PUT' => ['PUT'],
+            'PATCH' => ['PATCH'],
+            'DELETE' => ['DELETE'],
+        ];
     }
 
     public function testRouteParameterValidationAcceptsSafeValues(): void
@@ -221,6 +236,7 @@ class RouterSetupTest extends TestCase
             $_SERVER['HTTP_ACCEPT'],
             $_SERVER['HTTP_HX_REQUEST'],
             $_SERVER['HTTP_X_CSRF_TOKEN'],
+            $_SERVER['REQUEST_METHOD'],
             $_SERVER['REQUEST_URI']
         );
     }

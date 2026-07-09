@@ -31,7 +31,8 @@ class SecurityHeaders
             'Content-Security-Policy' => implode('; ', $contentSecurityPolicy),
         ];
 
-        if (isset($_SERVER['HTTPS'])) {
+        $https = $_SERVER['HTTPS'] ?? '';
+        if ($https === 'on' || $https === '1') {
             $headers['Strict-Transport-Security'] = 'max-age=31536000; includeSubDomains';
         }
 

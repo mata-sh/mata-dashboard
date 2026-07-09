@@ -6,6 +6,7 @@ namespace Mata\Tests\Unit\Http;
 
 use Mata\Http\SecurityHeaders;
 use Mata\Tests\TestCase;
+use PHPUnit\Framework\Attributes\DataProvider;
 
 /**
  * @covers \Mata\Http\SecurityHeaders
@@ -37,12 +38,33 @@ class SecurityHeadersTest extends TestCase
         $this->assertArrayNotHasKey('Strict-Transport-Security', $headers);
     }
 
-    public function testHeadersIncludeHstsForHttpsRequests(): void
+    #[DataProvider('httpsServerValueProvider')]
+    public function testHeadersIncludeHstsForHttpsRequests(string $httpsValue): void
     {
-        $_SERVER['HTTPS'] = 'on';
+        $_SERVER['HTTPS'] = $httpsValue;
 
         $headers = SecurityHeaders::headers();
 
         $this->assertSame('max-age=31536000; includeSubDomains', $headers['Strict-Transport-Security']);
+    }
+
+    /**
+     * @return array<string,array{0:string}>
+     */
+    public static function httpsServerValueProvider(): array
+    {
+        return [
+            'apache/mod_php' => ['on'],
+            'cgi/fpm' => ['1'],
+        ];
+    }
+
+    public function testHeadersOmitHstsWhenHttpsServerFlagIsOff(): void
+    {
+        $_SERVER['HTTPS'] = 'off';
+
+        $headers = SecurityHeaders::headers();
+
+        $this->assertArrayNotHasKey('Strict-Transport-Security', $headers);
     }
 }
