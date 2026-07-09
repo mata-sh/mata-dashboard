@@ -476,6 +476,56 @@ class ModalControllerTest extends TestCase
      *
      * @group modal-controller
      * @group logs-modal
+     * @group json-endpoint
+     */
+    public function testItReturnsGroupedLogsJsonFlattenedWithSource(): void
+    {
+        $server = 'server1';
+        $app = 'test-app';
+        $groupedLogs = [
+            'logs/app.log' => [
+                [
+                    'timestamp' => '2026-07-09 12:00:00',
+                    'type' => 'Error',
+                    'message' => 'Boom',
+                ],
+            ],
+        ];
+        $expectedLogs = [
+            [
+                'timestamp' => '2026-07-09 12:00:00',
+                'type' => 'Error',
+                'message' => 'Boom',
+                'source' => 'logs/app.log',
+            ],
+        ];
+
+        $mockCollector = $this->createMockServerDataCollector($server);
+        $mockCollector->expects($this->once())
+            ->method('fetchAppLogs')
+            ->with($app, $this->anything())
+            ->willReturn([
+                'result' => $groupedLogs,
+                'cache_age' => 15,
+                'cache_ttl' => 60,
+            ])
+        ;
+
+        $this->injectMockCollector($server, $mockCollector);
+        $this->setProperty($this->controller, 'logTransformer', new LogDataTransformer());
+
+        $response = $this->controller->getAppLogsJson($server, $app);
+
+        $this->assertInstanceOf(JsonResponse::class, $response);
+        $this->assertSame($expectedLogs, $response->getData());
+        $this->assertSame(json_encode($expectedLogs, JSON_THROW_ON_ERROR), $response->getContent());
+    }
+
+    /**
+     * @test
+     *
+     * @group modal-controller
+     * @group logs-modal
      * @group validation
      *
      * Tests server validation for error log requests. Invalid server names

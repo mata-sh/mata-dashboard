@@ -196,20 +196,27 @@ class ApiResponseTransformer
     /**
      * Normalize app logs data.
      *
+     * Keep the grouped node shape intact:
+     * ['file_path' => [['timestamp' => ..., 'type' => ..., 'message' => ...]]]
+     * Non-array groups are dropped with a warning.
+     *
      * @param array<string,mixed> $data Decoded logs data
      *
      * @return array<string,mixed> Normalized logs data
      */
     public function normalizeAppLogs(array $data): array
     {
-        // Ensure it's a simple array of strings
-        if (!$this->isSequentialArray($data)) {
-            $this->logger->warning('App logs response is not a sequential array', [
-                'data_type' => gettype($data),
-            ]);
+        foreach ($data as $filePath => $entries) {
+            if (!is_array($entries)) {
+                $this->logger->warning('App log group is not an array, dropping', [
+                    'file' => $filePath,
+                    'type' => gettype($entries),
+                ]);
+                unset($data[$filePath]);
+            }
         }
 
-        return array_map('strval', $data);
+        return $data;
     }
 
     /**
