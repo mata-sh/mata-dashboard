@@ -265,7 +265,7 @@ class ServerViewBuilder
     }
 
     /**
-     * Format session data for view rendering.
+     * Format normalized session data for view rendering.
      *
      * @param array<string,mixed> $appData
      *
@@ -273,23 +273,72 @@ class ServerViewBuilder
      */
     private function formatSessionDataForView(array $appData): array
     {
-        $lastHour = (int) ($appData['session_count_last_hour'] ?? 0);
-        $lastDay = (int) ($appData['session_count_last_day'] ?? 0);
-        $total = (int) ($appData['session_count_total'] ?? 0);
-        $path = Html::escapeTooltipValue($appData['session_path'] ?? '');
+        $session = $appData['session'];
+        $status = $session['status'];
 
-        $tooltip = sprintf(
-            '%s<br><strong>1 Hour:</strong> %d<br><strong>24 Hours:</strong> %d<br><strong>Total:</strong> %d<br>',
-            $path,
-            $lastHour,
-            $lastDay,
-            $total
-        );
+        if ($status === 'ok' && $session['count_last_hour'] !== null) {
+            $lastHour = $session['count_last_hour'];
+            $tooltipParts = [];
+
+            $tooltipParts[] = sprintf('<strong>Type:</strong> %s', Html::escapeTooltipValue($session['type']));
+
+            if ($session['path'] !== null) {
+                $tooltipParts[] = Html::escapeTooltipValue($session['path']);
+            }
+
+            foreach ([
+                '1 Hour' => $lastHour,
+                '24 Hours' => $session['count_last_day'],
+                'Total' => $session['count_total'],
+            ] as $label => $count) {
+                $tooltipParts[] = sprintf(
+                    '<strong>%s:</strong> %s',
+                    $label,
+                    $this->formatNumber($count)
+                );
+            }
+
+            if ($session['size_kb'] !== null) {
+                $tooltipParts[] = sprintf('<strong>Size:</strong> %s KB', (string) $session['size_kb']);
+            }
+
+            return [
+                'level' => $this->eventManager->getAppDataThresholdLevel($lastHour, 'session_count'),
+                'formatted_count' => $this->formatNumber($lastHour),
+                'tooltip' => implode('<br>', $tooltipParts),
+            ];
+        }
+
+        if ($status === 'ok') {
+            $total = $session['count_total'];
+
+            return [
+                'level' => '',
+                'formatted_count' => $this->formatNumber($total),
+                'tooltip' => sprintf(
+                    '<strong>Type:</strong> %s<br><strong>Total:</strong> %s<br>Hourly/daily counts not available',
+                    Html::escapeTooltipValue($session['type']),
+                    $this->formatNumber($total)
+                ),
+            ];
+        }
+
+        if ($status === 'unconfigured') {
+            return [
+                'level' => '',
+                'formatted_count' => '–',
+                'tooltip' => 'Sessions not configured',
+            ];
+        }
 
         return [
-            'level' => $this->eventManager->getAppDataThresholdLevel($lastHour, 'session_count'),
-            'formatted_count' => $this->formatNumber($lastHour),
-            'tooltip' => $tooltip,
+            'level' => 'warning',
+            'formatted_count' => '!',
+            'tooltip' => sprintf(
+                'Sessions (%s): %s',
+                Html::escapeTooltipValue($session['type']),
+                Html::escapeTooltipValue($session['error'])
+            ),
         ];
     }
 
