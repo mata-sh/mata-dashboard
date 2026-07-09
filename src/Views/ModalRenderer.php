@@ -5,9 +5,9 @@ declare(strict_types=1);
 namespace Mata\Views;
 
 use Exception;
-use League\CommonMark\GithubFlavoredMarkdownConverter;
 use Mata\Core\App;
 use Mata\Http\Routing\Endpoints;
+use Mata\Utils\Markdown;
 use Mata\Utils\Tools;
 use Monolog\Logger;
 use Twig\Environment;
@@ -23,8 +23,6 @@ use Twig\Environment;
  */
 class ModalRenderer extends BaseRenderer
 {
-    private GithubFlavoredMarkdownConverter $markdownConverter;
-
     public function __construct(
         Environment $twig,
         Logger $logger,
@@ -33,11 +31,6 @@ class ModalRenderer extends BaseRenderer
         Endpoints $endpoints
     ) {
         parent::__construct($twig, $logger, $tools, $app, $endpoints);
-
-        $this->markdownConverter = new GithubFlavoredMarkdownConverter([
-            // 'html_input' => 'strip',
-            // 'allow_unsafe_links' => false,
-        ]);
     }
 
     /**
@@ -212,9 +205,11 @@ class ModalRenderer extends BaseRenderer
             // Sanitize markdown and capture image info
             $sanitized = $this->sanitizeMarkdownForWeb($markdownContent);
 
+            $readmeHtml = Markdown::toSafeHtml($sanitized['content']);
+
             $htmlContent = <<< HTML
-                <div class"readme-markdown-container">
-                    {$this->markdownConverter->convert($sanitized['content'])}
+                <div class="readme-markdown-container">
+                    {$readmeHtml}
                 </div>
             HTML;
 

@@ -4,21 +4,27 @@ declare(strict_types=1);
 
 namespace Mata\Utils;
 
-use League\CommonMark\CommonMarkConverter;
+use League\CommonMark\GithubFlavoredMarkdownConverter;
+use League\CommonMark\Output\RenderedContentInterface;
 
 /**
  * Markdown parser and converter utility.
  *
- * Provides secure markdown-to-HTML conversion using CommonMark:
+ * Provides secure markdown-to-HTML conversion using GitHub Flavored Markdown:
  * - Safe markdown parsing with HTML stripping
  * - Security-focused configuration (no unsafe links)
- * - CommonMark specification compliance
+ * - GFM support for README tables/task lists
  * - Documentation and README file processing
  * - Content sanitization and XSS prevention
  * - HTML output generation for web display
  */
 class Markdown
 {
+    private const CONFIG = [
+        'html_input' => 'strip',
+        'allow_unsafe_links' => false,
+    ];
+
     private string $markdown;
 
     /**
@@ -30,19 +36,23 @@ class Markdown
     }
 
     /**
-     * Convert markdown content to HTML.
-     *
-     * Uses CommonMark converter with security-focused configuration.
-     *
-     * @return \League\CommonMark\Output\RenderedContentInterface Converted HTML content
+     * Convert markdown content to safe HTML string.
      */
-    public function convert()
+    public static function toSafeHtml(string $markdown): string
     {
-        $converter = new CommonMarkConverter([
-            'html_input' => 'strip',
-            'allow_unsafe_links' => false,
-        ]);
+        return (string) self::converter()->convert($markdown);
+    }
 
-        return $converter->convert($this->markdown);
+    /**
+     * Convert markdown content to HTML.
+     */
+    public function convert(): RenderedContentInterface
+    {
+        return self::converter()->convert($this->markdown);
+    }
+
+    private static function converter(): GithubFlavoredMarkdownConverter
+    {
+        return new GithubFlavoredMarkdownConverter(self::CONFIG);
     }
 }
