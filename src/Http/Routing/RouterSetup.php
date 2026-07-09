@@ -203,25 +203,14 @@ class RouterSetup
         });
 
         $this->router->before('*', '/api/.*', function () {
-            $response = $this->createApiAuthFailureResponse();
-
-            if ($response === null) {
+            if ($this->app->auth->check()) {
                 return;
             }
 
-            $response->send();
+            ResponseFactory::unauthorized('Authentication required')->send();
 
             exit;
         });
-    }
-
-    private function createApiAuthFailureResponse(): ?Response
-    {
-        if ($this->app->auth->check()) {
-            return null;
-        }
-
-        return ResponseFactory::unauthorized('Authentication required');
     }
 
     /**

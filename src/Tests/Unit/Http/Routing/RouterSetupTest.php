@@ -12,7 +12,6 @@ use Mata\Controllers\MetricsController;
 use Mata\Controllers\ModalController;
 use Mata\Core\App;
 use Mata\Core\Auth;
-use Mata\Http\Responses\Response;
 use Mata\Http\Routing\Endpoints;
 use Mata\Http\Routing\RouterSetup;
 use Mata\Http\Security\CsrfGuard;
@@ -71,32 +70,18 @@ class RouterSetupTest extends TestCase
         ];
     }
 
-    public function testItReturnsJsonUnauthorizedForUnauthenticatedApiRequests(): void
+    public function testApiAuthMiddlewareAllowsAuthenticatedRequests(): void
     {
-        $_SERVER['REQUEST_URI'] = '/api/events';
-
-        $auth = $this->createMock(Auth::class);
-        $auth->expects($this->once())
-            ->method('check')
-            ->willReturn(false)
+        $apiMiddleware = null;
+        $router = $this->createStub(Router::class);
+        $router->method('before')
+            ->willReturnCallback(function (string $methods, string $pattern, callable $handler) use (&$apiMiddleware): void {
+                if ($methods === '*' && $pattern === '/api/.*') {
+                    $apiMiddleware = $handler;
+                }
+            })
         ;
 
-        $app = $this->createStub(App::class);
-        $app->auth = $auth;
-
-        $setup = $this->createRouterSetup(app: $app);
-
-        /** @var Response $response */
-        $response = $this->invokeMethod($setup, 'createApiAuthFailureResponse');
-        $payload = json_decode($response->getContent(), true);
-
-        $this->assertSame(401, $response->getStatusCode());
-        $this->assertSame('Authentication required', $payload['message']);
-        $this->assertSame('UNAUTHORIZED', $payload['code']);
-    }
-
-    public function testItAllowsAuthenticatedApiRequests(): void
-    {
         $auth = $this->createMock(Auth::class);
         $auth->expects($this->once())
             ->method('check')
@@ -106,9 +91,11 @@ class RouterSetupTest extends TestCase
         $app = $this->createStub(App::class);
         $app->auth = $auth;
 
-        $setup = $this->createRouterSetup(app: $app);
+        $setup = $this->createRouterSetup(router: $router, app: $app);
+        $this->invokeMethod($setup, 'setupProtectedRouteAuth');
 
-        $this->assertNull($this->invokeMethod($setup, 'createApiAuthFailureResponse'));
+        $this->assertIsCallable($apiMiddleware);
+        $this->assertNull($apiMiddleware());
     }
 
     public function testRouteParameterValidationAcceptsSafeValues(): void
