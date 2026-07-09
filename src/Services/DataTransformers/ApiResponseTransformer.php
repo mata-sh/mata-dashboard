@@ -213,16 +213,26 @@ class ApiResponseTransformer
     }
 
     /**
-     * Normalize README data.
+     * Normalize README data to raw markdown content.
      *
      * @param array<string,mixed> $data Decoded README data
-     *
-     * @return array<string,mixed> Normalized README data
      */
-    public function normalizeReadmeData(array $data): array
+    public function normalizeReadmeData(array $data): string
     {
-        // No specific normalization needed currently
-        return $data;
+        if (isset($data['content']) && is_string($data['content'])) {
+            return $data['content'];
+        }
+
+        $legacyContent = reset($data);
+        if (is_string($legacyContent)) {
+            return $legacyContent;
+        }
+
+        $this->logger->warning('README response did not contain markdown content', [
+            'data_keys' => array_keys($data),
+        ]);
+
+        return '';
     }
 
     /**

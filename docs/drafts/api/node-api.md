@@ -467,17 +467,13 @@ Retrieve application README documentation.
 
 | Field | Type | Description |
 |-------|------|-------------|
-| `content` | string | README content (Markdown or plain text) |
-| `format` | string | Content format (markdown, text, html) |
-| `exists` | boolean | Whether README file exists |
+| `content` | string | Raw README.md content, normally Markdown |
 
 **Example Response:**
 
 ```json
 {
-  "content": "# E-Commerce Platform\n\n## Overview\n\nThis is the main e-commerce application...",
-  "format": "markdown",
-  "exists": true
+  "content": "# E-Commerce Platform\n\n## Overview\n\nThis is the main e-commerce application..."
 }
 ```
 
