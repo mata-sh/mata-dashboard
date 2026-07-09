@@ -140,8 +140,12 @@ class ApiResponseTransformer
                 $data[$appName]['logs'] = $this->normalizeLogSizes($appData['logs']);
             }
 
+            $data[$appName]['session'] = $this->normalizeSessionData(
+                isset($appData['session']) && is_array($appData['session']) ? $appData['session'] : []
+            );
+
             // Validate expected fields
-            $expectedAppFields = ['title', 'url', 'env', 'status'];
+            $expectedAppFields = ['title', 'url', 'env', 'status', 'description', 'session', 'cronjobs'];
             $missingFields = array_diff($expectedAppFields, array_keys($appData));
 
             if (!empty($missingFields)) {
@@ -155,6 +159,119 @@ class ApiResponseTransformer
     }
 
     /**
+     * Normalize session data.
+     *
+     * @param array<string,mixed> $session Decoded session data
+     *
+     * @return array<string,mixed> Normalized session data
+     */
+    public function normalizeSessionData(array $session): array
+    {
+        $validStatuses = ['ok', 'unconfigured', 'error', 'unsupported'];
+        $status = $session['status'] ?? null;
+        $type = $session['type'] ?? null;
+
+        if (!is_string($type) || $type === '' || !in_array($status, $validStatuses, true)) {
+            $this->logger->warning('Unrecognized session payload', [
+                'data_keys' => array_keys($session),
+                'type' => $type,
+                'status' => $status,
+            ]);
+
+            return [
+                'type' => 'unknown',
+                'status' => 'error',
+                'count_last_hour' => null,
+                'count_last_day' => null,
+                'count_total' => null,
+                'path' => null,
+                'size_kb' => null,
+                'error' => 'unrecognized session payload',
+            ];
+        }
+
+        $countLastHour = $session['count_last_hour'] ?? null;
+        $countLastDay = $session['count_last_day'] ?? null;
+        $countTotal = $session['count_total'] ?? null;
+        $path = $session['path'] ?? null;
+        $sizeKb = $session['size_kb'] ?? null;
+        $error = $session['error'] ?? null;
+
+        return [
+            'type' => $type,
+            'status' => $status,
+            'count_last_hour' => $countLastHour === null ? null : (int) $countLastHour,
+            'count_last_day' => $countLastDay === null ? null : (int) $countLastDay,
+            'count_total' => $countTotal === null ? null : (int) $countTotal,
+            'path' => $path === null ? null : (string) $path,
+            'size_kb' => $sizeKb === null ? null : (float) $sizeKb,
+            'error' => $error === null ? null : (string) $error,
+        ];
+    }
+
+    /**
+     * Normalize app sessions data.
+     *
+     * @param array<string,mixed> $data Decoded app sessions data
+     *
+     * @return array<string,mixed> Normalized app sessions data
+     */
+    public function normalizeAppSessions(array $data): array
+    {
+        return $this->normalizeSessionData($data);
+    }
+
+    /**
+     * Normalize app cronjobs data.
+     *
+     * @param array<mixed> $data Decoded app cronjobs data
+     *
+     * @return array<int,array<string,mixed>> Normalized app cronjobs data
+     */
+    public function normalizeAppCronjobs(array $data): array
+    {
+        if (!empty($data) && !$this->isSequentialArray($data)) {
+            $this->logger->warning('App cronjobs response is not a sequential array', [
+                'data_keys' => array_keys($data),
+            ]);
+
+            return [];
+        }
+
+        $normalized = [];
+        foreach ($data as $index => $entry) {
+            if (!is_array($entry)) {
+                $this->logger->warning('Invalid app cronjob entry, dropping', [
+                    'index' => $index,
+                    'type' => gettype($entry),
+                ]);
+
+                continue;
+            }
+
+            $entryIndex = $entry['index'] ?? null;
+            $path = $entry['path'] ?? null;
+            $mtime = $entry['mtime'] ?? null;
+            $ageSeconds = $entry['age_seconds'] ?? null;
+            $size = $entry['size'] ?? null;
+            $contentTail = $entry['content_tail'] ?? null;
+
+            $normalized[] = [
+                'index' => $entryIndex === null ? null : (int) $entryIndex,
+                'path' => $path === null ? null : (string) $path,
+                'exists' => (bool) ($entry['exists'] ?? false),
+                'mtime' => $mtime === null ? null : (int) $mtime,
+                'age_seconds' => $ageSeconds === null ? null : (int) $ageSeconds,
+                'size' => $size === null ? null : (int) $size,
+                'stale' => (bool) ($entry['stale'] ?? false),
+                'content_tail' => $contentTail === null ? null : (string) $contentTail,
+            ];
+        }
+
+        return $normalized;
+    }
+
+    /**
      * Normalize server system data.
      *
      * @param array<string,mixed> $data Decoded server system data
@@ -165,8 +282,12 @@ class ApiResponseTransformer
     {
         // Validate required server data fields
         $expectedFields = [
-            'cpu_usage', 'ram_capacity', 'ram_used',
-            'disk_space_capacity', 'disk_space_used', 'total_system_filecount',
+            'cpu_usage',
+            'ram_capacity',
+            'ram_used',
+            'disk_space_capacity',
+            'disk_space_used',
+            'total_system_filecount',
         ];
 
         $missingFields = array_diff($expectedFields, array_keys($data));
@@ -228,11 +349,6 @@ class ApiResponseTransformer
     {
         if (isset($data['content']) && is_string($data['content'])) {
             return $data['content'];
-        }
-
-        $legacyContent = reset($data);
-        if (is_string($legacyContent)) {
-            return $legacyContent;
         }
 
         $this->logger->warning('README response did not contain markdown content', [
@@ -314,6 +430,8 @@ class ApiResponseTransformer
             $path === 'apps' => $this->normalizeAppsData($data),
             $path === 'server-data' => $this->normalizeServerSystemData($data),
             $path === 'server-databases' => $this->normalizeDatabaseData($data),
+            str_ends_with($path, '/sessions') => $this->normalizeAppSessions($data),
+            str_ends_with($path, '/cronjobs') => $this->normalizeAppCronjobs($data),
             str_contains($path, '/logs/') || str_ends_with($path, '/logs') => $this->normalizeAppLogs($data),
             str_contains($path, '/readme') => $this->normalizeReadmeData($data),
             str_contains($path, '/libraries') => $this->normalizeLibrariesData($data),
