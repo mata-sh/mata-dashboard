@@ -31,7 +31,9 @@ abstract class TestCase extends BaseTestCase
     {
         $class = new ReflectionClass($obj);
         $method = $class->getMethod($name);
-        $method->setAccessible(true);
+        if (PHP_VERSION_ID < 80500) {
+            $method->setAccessible(true);
+        }
 
         return $method->invokeArgs($obj, $args);
     }
@@ -50,7 +52,9 @@ abstract class TestCase extends BaseTestCase
     {
         $class = new ReflectionClass($obj);
         $property = $class->getProperty($name);
-        $property->setAccessible(true);
+        if (PHP_VERSION_ID < 80500) {
+            $property->setAccessible(true);
+        }
 
         return $property->getValue($obj);
     }
@@ -68,7 +72,9 @@ abstract class TestCase extends BaseTestCase
     {
         $class = new ReflectionClass($obj);
         $property = $class->getProperty($name);
-        $property->setAccessible(true);
+        if (PHP_VERSION_ID < 80500) {
+            $property->setAccessible(true);
+        }
         $property->setValue($obj, $value);
     }
 

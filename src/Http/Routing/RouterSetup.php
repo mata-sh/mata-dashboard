@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Mata\Http\Routing;
 
 use Bramus\Router\Router;
-use InvalidArgumentException;
 use Mata\Controllers\DashboardController;
 use Mata\Controllers\LoginController;
 use Mata\Controllers\MetricsController;
@@ -14,6 +13,7 @@ use Mata\Core\App;
 use Mata\Http\Responses\Response;
 use Mata\Http\Responses\ResponseFactory;
 use Mata\Http\Security\CsrfGuard;
+use Mata\Http\Security\RouteParameter;
 
 /**
  * Centralizes routing configuration including authentication, rate limiting, and error handling.
@@ -63,10 +63,10 @@ class RouterSetup
         $this->setupHealthCheck();
         $this->setupRateLimiting();
         $this->setupIpWhitelist();
+        $this->setupLoginRoutes();
+        $this->setupProtectedRouteAuth();
         $this->setupCsrfProtection();
         $this->setupParameterValidation();
-        $this->setupLoginRoutes();
-        $this->setupWatchAuth();
         $this->setupWatchRoutes();
         $this->setupApiRoutes();
         $this->setupMetricsRoutes();
@@ -103,7 +103,7 @@ class RouterSetup
         }
 
         // Login routes - strictest limits (brute force protection)
-        $this->router->before('GET|POST', '/login', function () {
+        $this->router->before('*', '/login', function () {
             if ($this->app->rateLimiter->isRateLimited('login')) {
                 http_response_code(429);
 
@@ -111,7 +111,7 @@ class RouterSetup
             }
         });
 
-        $this->router->before('POST', '/logout', function () {
+        $this->router->before('*', '/logout', function () {
             if ($this->app->rateLimiter->isRateLimited('login')) {
                 http_response_code(429);
 
@@ -120,7 +120,7 @@ class RouterSetup
         });
 
         // Dashboard and watch routes - moderate limits
-        $this->router->before('GET|POST', '/watch/.*', function () {
+        $this->router->before('*', '/watch/.*', function () {
             if ($this->app->rateLimiter->isRateLimited('dashboard')) {
                 http_response_code(429);
 
@@ -128,9 +128,8 @@ class RouterSetup
             }
         });
 
-        // API routes - higher limits for data-heavy operations
-        // Covers both /api/* (events, alarms, libraries, logs) and /api/metrics/*
-        $this->router->before('GET|POST', '/api/.*', function () {
+        // API routes - /api/* (events, alarms, libraries, logs) and /api/metrics/*
+        $this->router->before('*', '/api/.*', function () {
             if ($this->app->rateLimiter->isRateLimited('api')) {
                 http_response_code(429);
                 header('Content-Type: application/json');
@@ -149,7 +148,7 @@ class RouterSetup
      */
     private function setupIpWhitelist(): void
     {
-        $this->router->before('GET|POST', '/login', function () {
+        $this->router->before('*', '/login', function () {
             $config = $this->app->config->general;
 
             if (!$config->ipWhitelistEnabled) {
@@ -193,33 +192,36 @@ class RouterSetup
     }
 
     /**
-     * Apply authentication to all /watch/* routes.
+     * Apply authentication to protected dashboard and API routes.
      */
-    private function setupWatchAuth(): void
+    private function setupProtectedRouteAuth(): void
     {
-        $this->router->before('GET|POST', '/watch/.*', function () {
+        $this->router->before('*', '/watch/.*', function () {
             if (!$this->app->auth->check()) {
                 $this->app->redirect('login');
             }
         });
 
-        $this->router->before('GET|POST', '/api/metrics/.*', function () {
-            if (!$this->app->auth->check()) {
-                $this->app->redirect('login');
+        $this->router->before('*', '/api/.*', function () {
+            $response = $this->createApiAuthFailureResponse();
+
+            if ($response === null) {
+                return;
             }
+
+            $response->send();
+
+            exit;
         });
     }
 
-    // /**
-    //  * Create middleware function that redirects unauthenticated users to login
-    //  */
-    protected function createAuthMiddleware(): callable
+    private function createApiAuthFailureResponse(): ?Response
     {
-        return function () {
-            if (!$this->app->auth->check()) {
-                $this->app->redirect('login');
-            }
-        };
+        if ($this->app->auth->check()) {
+            return null;
+        }
+
+        return ResponseFactory::unauthorized('Authentication required');
     }
 
     /**
@@ -404,87 +406,33 @@ class RouterSetup
     {
         // Validate server and app parameters for modal routes
         $this->router->before('GET', '/watch/modal/([^/]+)/([^/]+)/.*', function ($server, $app) {
-            // Validate server parameter using filter_var
-            if (
-                !filter_var($server, FILTER_VALIDATE_REGEXP, [
-                    'options' => ['regexp' => '/^[a-zA-Z0-9_\-\.]+$/'],
-                ])
-            ) {
-                throw new InvalidArgumentException('Invalid server parameter');
-            }
-
-            // Validate app parameter using filter_var
-            if (
-                !filter_var($app, FILTER_VALIDATE_REGEXP, [
-                    'options' => ['regexp' => '/^[a-zA-Z0-9_\-\.]+$/'],
-                ])
-            ) {
-                throw new InvalidArgumentException('Invalid app parameter');
-            }
+            RouteParameter::assertSafe($server, 'Invalid server parameter');
+            RouteParameter::assertSafe($app, 'Invalid app parameter');
         });
 
         // Validate server parameter for server-only modal routes
         $this->router->before('GET', '/watch/modal/([^/]+)/info.*', function ($server) {
-            // Validate server parameter using filter_var
-            if (
-                !filter_var($server, FILTER_VALIDATE_REGEXP, [
-                    'options' => ['regexp' => '/^[a-zA-Z0-9_\-\.]+$/'],
-                ])
-            ) {
-                throw new InvalidArgumentException('Invalid server parameter');
-            }
+            RouteParameter::assertSafe($server, 'Invalid server parameter');
         });
 
         // Validate process count modal route parameters
         $this->router->before('GET', '/watch/modal/([^/]+)/process-count', function ($server) {
-            if (
-                !filter_var($server, FILTER_VALIDATE_REGEXP, [
-                    'options' => ['regexp' => '/^[a-zA-Z0-9_\-\.]+$/'],
-                ])
-            ) {
-                throw new InvalidArgumentException('Invalid server parameter');
-            }
+            RouteParameter::assertSafe($server, 'Invalid server parameter');
         });
 
         // Validate metrics JSON route parameters
         $this->router->before('GET', '/api/metrics/([^/]+)/([^/]+)', function ($server, $metric) {
-            $serverValid = filter_var($server, FILTER_VALIDATE_REGEXP, [
-                'options' => ['regexp' => '/^[a-zA-Z0-9_\-\.]+$/'],
-            ]);
-
-            $metricValid = filter_var($metric, FILTER_VALIDATE_REGEXP, [
-                'options' => ['regexp' => '/^[a-zA-Z0-9_\-\.]+$/'],
-            ]);
-
-            if ($serverValid === false || $metricValid === false) {
-                throw new InvalidArgumentException('Invalid metrics route parameter');
-            }
+            RouteParameter::assertAllSafe([$server, $metric], 'Invalid metrics route parameter');
         });
 
         // Validate multi-metric comparison route parameters
         $this->router->before('GET', '/api/metrics/([^/]+)/compare', function ($server) {
-            if (
-                !filter_var($server, FILTER_VALIDATE_REGEXP, [
-                    'options' => ['regexp' => '/^[a-zA-Z0-9_\-\.]+$/'],
-                ])
-            ) {
-                throw new InvalidArgumentException('Invalid server parameter');
-            }
+            RouteParameter::assertSafe($server, 'Invalid server parameter');
         });
 
         // Validate logs and logs-status API route parameters
         $this->router->before('GET', '/api/(logs|logs-status)/([^/]+)/([^/]+)', function ($routeType, $server, $app) {
-            $serverValid = filter_var($server, FILTER_VALIDATE_REGEXP, [
-                'options' => ['regexp' => '/^[a-zA-Z0-9_\-\.]+$/'],
-            ]);
-
-            $appValid = filter_var($app, FILTER_VALIDATE_REGEXP, [
-                'options' => ['regexp' => '/^[a-zA-Z0-9_\-\.]+$/'],
-            ]);
-
-            if ($serverValid === false || $appValid === false) {
-                throw new InvalidArgumentException('Invalid API route parameter');
-            }
+            RouteParameter::assertAllSafe([$server, $app], 'Invalid API route parameter');
         });
     }
 
