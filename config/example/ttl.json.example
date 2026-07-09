@@ -6,5 +6,7 @@
     "serverData": 180,
     "databases": 10,
     "readme": -1,
-    "errorlog": 30
+    "errorlog": 30,
+    "sessions": 300,
+    "cronjobs": 300
 }

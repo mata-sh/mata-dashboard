@@ -339,6 +339,78 @@ class MockServerDataCollector implements ServerDataCollectorInterface
     }
 
     /**
+     * Fetch session status for a specific app.
+     *
+     * Returns the nested session object: `type`, `status`, `count_last_hour`,
+     * `count_last_day`, `count_total`, `path`, `size_kb`, and `error` when
+     * status is error/unsupported.
+     *
+     * @param string $app       App identifier
+     * @param string $cacheType Cache type key for TTL lookup (default: 'sessions')
+     *
+     * @return null|array<string,mixed> Session data or null on failure
+     */
+    public function fetchAppSessions(string $app, string $cacheType = 'sessions'): ?array
+    {
+        $ttlSeconds = $this->cacheManager->getTtl($cacheType);
+        $this->cacheTtl = $ttlSeconds;
+
+        $sessions = [
+            'type' => 'file',
+            'status' => 'ok',
+            'count_last_hour' => 42,
+            'count_last_day' => 512,
+            'count_total' => 8214,
+            'path' => '/var/lib/php/sessions',
+            'size_kb' => 1843.2,
+        ];
+
+        return $this->dataTransformer->normalizeApiResponse($sessions, $this->cacheAge, $ttlSeconds, false, path: "{$app}/sessions");
+    }
+
+    /**
+     * Fetch cronjob heartbeat entries for a specific app.
+     *
+     * Ordered list of entries with `index`, `path`, `exists`, `mtime`,
+     * `age_seconds`, `size`, `stale`, `content_tail`.
+     *
+     * @param string $app       App identifier
+     * @param string $cacheType Cache type key for TTL lookup (default: 'cronjobs')
+     *
+     * @return null|array<string,mixed> Normalized response with cronjob entries or null on failure
+     */
+    public function fetchAppCronjobs(string $app, string $cacheType = 'cronjobs'): ?array
+    {
+        $ttlSeconds = $this->cacheManager->getTtl($cacheType);
+        $this->cacheTtl = $ttlSeconds;
+
+        $cronjobs = [
+            [
+                'index' => 0,
+                'path' => 'cron/heartbeat/daily-report.log',
+                'exists' => true,
+                'mtime' => time() - 300,
+                'age_seconds' => 300,
+                'stale' => false,
+                'size' => 2048,
+                'content_tail' => "[ok] daily-report finished in 4.2s\n",
+            ],
+            [
+                'index' => 1,
+                'path' => 'cron/heartbeat/cache-warmup.log',
+                'exists' => true,
+                'mtime' => time() - 93600,
+                'age_seconds' => 93600,
+                'stale' => true,
+                'size' => 512,
+                'content_tail' => "[warn] cache warmup skipped: lock present\n",
+            ],
+        ];
+
+        return $this->dataTransformer->normalizeApiResponse($cronjobs, $this->cacheAge, $ttlSeconds, false, path: "{$app}/cronjobs");
+    }
+
+    /**
      * Mock cache age.
      */
     public function getCacheAge(): int

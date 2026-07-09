@@ -196,6 +196,39 @@ class ServerDataCollector implements ServerDataCollectorInterface
     }
 
     /**
+     * Fetch session status for a specific app.
+     *
+     * Returns the nested session object: `type`, `status`, `count_last_hour`,
+     * `count_last_day`, `count_total`, `path`, `size_kb`, and `error` when
+     * status is error/unsupported.
+     *
+     * @param string $app       App identifier
+     * @param string $cacheType Cache type key for TTL lookup (default: 'sessions')
+     *
+     * @return null|array<string,mixed> Session data or null on failure
+     */
+    public function fetchAppSessions(string $app, string $cacheType = 'sessions'): ?array
+    {
+        return $this->request('GET', "{$app}/sessions", $cacheType);
+    }
+
+    /**
+     * Fetch cronjob heartbeat entries for a specific app.
+     *
+     * Ordered list of entries with `index`, `path`, `exists`, `mtime`,
+     * `age_seconds`, `size`, `stale`, `content_tail`.
+     *
+     * @param string $app       App identifier
+     * @param string $cacheType Cache type key for TTL lookup (default: 'cronjobs')
+     *
+     * @return null|array<string,mixed> Normalized response with cronjob entries or null on failure
+     */
+    public function fetchAppCronjobs(string $app, string $cacheType = 'cronjobs'): ?array
+    {
+        return $this->request('GET', "{$app}/cronjobs", $cacheType);
+    }
+
+    /**
      * Execute HTTP request with caching support.
      *
      * Handles API requests with intelligent caching:
