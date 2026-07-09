@@ -190,8 +190,8 @@ class EventRepository
                 e.level,
                 e.context,
                 s.name AS server,
-                a.code AS app
-                a.app_env AS app_env,
+                a.code AS app,
+                a.app_env AS app_env
             FROM alarms AS dal
             LEFT JOIN events AS e ON e.id = dal.event_id
             LEFT JOIN servers AS s ON e.server_id = s.id
@@ -243,8 +243,8 @@ class EventRepository
             SELECT
                 e.*,
                 s.name AS server,
-                a.code AS app
-                a.app_env AS app_env,
+                a.code AS app,
+                a.app_env AS app_env
             FROM events AS e
             LEFT JOIN servers AS s ON e.server_id = s.id
             LEFT JOIN applications AS a ON e.application_id = a.id
@@ -274,8 +274,8 @@ class EventRepository
                 e.context,
                 dal.channel,
                 s.name AS server,
-                a.code AS app
-                a.app_env AS app_env,
+                a.code AS app,
+                a.app_env AS app_env
             FROM alarms AS dal
             LEFT JOIN events AS e ON dal.event_id = e.id
             LEFT JOIN servers AS s ON e.server_id = s.id
@@ -341,8 +341,8 @@ class EventRepository
                 e.application_id,
                 s.name AS server_name,
                 a.code AS app_code,
-                a.display_name AS app_name
-                a.app_env AS app_env,
+                a.display_name AS app_name,
+                a.app_env AS app_env
             FROM events AS e
             LEFT JOIN alarms AS al ON al.event_id = e.id
             LEFT JOIN servers AS s ON e.server_id = s.id
