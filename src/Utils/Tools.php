@@ -7,6 +7,7 @@ namespace Mata\Utils;
 use Psr\Log\LoggerInterface;
 use Psr\Log\NullLogger;
 use RuntimeException;
+use Throwable;
 
 /**
  * Common utility functions and helper methods.
@@ -21,6 +22,8 @@ use RuntimeException;
  */
 class Tools
 {
+    private const CIPHER = 'AES-256-CBC';
+
     private string $appPath;
     private string $publicPath;
     private LoggerInterface $logger;
@@ -188,8 +191,21 @@ class Tools
      */
     public function encrypt(string $plaintext, string $key): string
     {
-        $iv = openssl_random_pseudo_bytes(16);
-        $ciphertext = openssl_encrypt($plaintext, 'AES-256-CBC', $key, OPENSSL_RAW_DATA, $iv);
+        $ivLength = openssl_cipher_iv_length(self::CIPHER);
+        if ($ivLength === false || $ivLength <= 0) {
+            throw new RuntimeException('Encryption failed');
+        }
+
+        try {
+            $iv = random_bytes($ivLength);
+        } catch (Throwable $e) {
+            throw new RuntimeException('Encryption failed', 0, $e);
+        }
+
+        $ciphertext = openssl_encrypt($plaintext, self::CIPHER, $key, OPENSSL_RAW_DATA, $iv);
+        if ($ciphertext === false) {
+            throw new RuntimeException('Encryption failed');
+        }
 
         return base64_encode($iv . $ciphertext);
     }
@@ -199,14 +215,19 @@ class Tools
      */
     public function decrypt(string $encrypted, string $key): string
     {
-        $data = base64_decode($encrypted, true);
-        if ($data === false || strlen($data) <= 16) {
+        $ivLength = openssl_cipher_iv_length(self::CIPHER);
+        if ($ivLength === false || $ivLength <= 0) {
             throw new RuntimeException('Decryption failed');
         }
 
-        $iv = substr($data, 0, 16);
-        $ciphertext = substr($data, 16);
-        $result = openssl_decrypt($ciphertext, 'AES-256-CBC', $key, OPENSSL_RAW_DATA, $iv);
+        $data = base64_decode($encrypted, true);
+        if ($data === false || strlen($data) <= $ivLength) {
+            throw new RuntimeException('Decryption failed');
+        }
+
+        $iv = substr($data, 0, $ivLength);
+        $ciphertext = substr($data, $ivLength);
+        $result = openssl_decrypt($ciphertext, self::CIPHER, $key, OPENSSL_RAW_DATA, $iv);
         if ($result === false) {
             throw new RuntimeException('Decryption failed');
         }
