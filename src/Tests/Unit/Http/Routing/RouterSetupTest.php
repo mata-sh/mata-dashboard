@@ -19,6 +19,7 @@ use Mata\Http\Security\RouteParameter;
 use Mata\Tests\TestCase;
 use PHPUnit\Framework\Attributes\DataProvider;
 use ReflectionClass;
+use RuntimeException;
 
 /**
  * @covers \Mata\Http\Routing\RouterSetup
@@ -98,6 +99,58 @@ class RouterSetupTest extends TestCase
         $this->assertNull($apiMiddleware());
     }
 
+    public function testCsrfMiddlewareCoversUnsafeHttpMethods(): void
+    {
+        $csrfMiddleware = $this->collectCsrfMiddlewareCall();
+
+        $this->assertSame('POST|PUT|PATCH|DELETE', $csrfMiddleware['methods']);
+        $this->assertSame('/.*', $csrfMiddleware['pattern']);
+        $this->assertSame(['POST', 'PUT', 'PATCH', 'DELETE'], explode('|', $csrfMiddleware['methods']));
+    }
+
+    public function testCsrfMiddlewareAllowsValidUnsafeRequests(): void
+    {
+        $this->resetCsrfGlobals();
+        $csrfMiddleware = $this->collectCsrfMiddlewareCall()['handler'];
+
+        $_SESSION[CsrfGuard::SESSION_KEY] = 'session-token';
+        $_POST[CsrfGuard::FIELD_NAME] = 'session-token';
+
+        $this->assertNull($csrfMiddleware());
+    }
+
+    public function testCsrfMiddlewareRejectsBrowserRequestsWhenTokenFails(): void
+    {
+        $this->resetCsrfGlobals();
+
+        $csrfMiddleware = null;
+        $router = $this->createStub(Router::class);
+        $router->method('before')
+            ->willReturnCallback(function (string $methods, string $pattern, callable $handler) use (&$csrfMiddleware): void {
+                if ($methods === 'POST|PUT|PATCH|DELETE' && $pattern === '/.*') {
+                    $csrfMiddleware = $handler;
+                }
+            })
+        ;
+
+        $app = $this->createMock(App::class);
+        $app->expects($this->once())
+            ->method('redirect')
+            ->with('login')
+            ->willThrowException(new RuntimeException('csrf rejected'))
+        ;
+
+        $setup = $this->createRouterSetup(router: $router, app: $app);
+        $this->invokeMethod($setup, 'setupCsrfProtection');
+
+        $this->assertIsCallable($csrfMiddleware);
+
+        $this->expectException(RuntimeException::class);
+        $this->expectExceptionMessage('csrf rejected');
+
+        $csrfMiddleware();
+    }
+
     public function testRouteParameterValidationAcceptsSafeValues(): void
     {
         RouteParameter::assertSafe('server-01.example_org', 'Invalid route parameter');
@@ -131,6 +184,45 @@ class RouterSetupTest extends TestCase
         $this->invokeMethod($setup, 'setupProtectedRouteAuth');
 
         return $beforeCalls;
+    }
+
+    /**
+     * @return array{methods:string,pattern:string,handler:callable}
+     */
+    private function collectCsrfMiddlewareCall(): array
+    {
+        $csrfMiddleware = null;
+        $router = $this->createStub(Router::class);
+        $router->method('before')
+            ->willReturnCallback(function (string $methods, string $pattern, callable $handler) use (&$csrfMiddleware): void {
+                if ($methods === 'POST|PUT|PATCH|DELETE' && $pattern === '/.*') {
+                    $csrfMiddleware = [
+                        'methods' => $methods,
+                        'pattern' => $pattern,
+                        'handler' => $handler,
+                    ];
+                }
+            })
+        ;
+
+        $setup = $this->createRouterSetup($router);
+        $this->invokeMethod($setup, 'setupCsrfProtection');
+
+        $this->assertIsArray($csrfMiddleware);
+
+        return $csrfMiddleware;
+    }
+
+    private function resetCsrfGlobals(): void
+    {
+        $_SESSION = [];
+        $_POST = [];
+        unset(
+            $_SERVER['HTTP_ACCEPT'],
+            $_SERVER['HTTP_HX_REQUEST'],
+            $_SERVER['HTTP_X_CSRF_TOKEN'],
+            $_SERVER['REQUEST_URI']
+        );
     }
 
     /**

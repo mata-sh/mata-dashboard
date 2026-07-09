@@ -6,7 +6,10 @@ namespace Mata\Http;
 
 class SecurityHeaders
 {
-    public static function apply(): void
+    /**
+     * @return array<string,string>
+     */
+    public static function headers(): array
     {
         $contentSecurityPolicy = [
             "default-src 'self'",
@@ -21,13 +24,24 @@ class SecurityHeaders
             "connect-src 'self'",
         ];
 
-        header('X-Content-Type-Options: nosniff');
-        header('X-Frame-Options: DENY');
-        header('Referrer-Policy: strict-origin-when-cross-origin');
-        header('Content-Security-Policy: ' . implode('; ', $contentSecurityPolicy));
+        $headers = [
+            'X-Content-Type-Options' => 'nosniff',
+            'X-Frame-Options' => 'DENY',
+            'Referrer-Policy' => 'strict-origin-when-cross-origin',
+            'Content-Security-Policy' => implode('; ', $contentSecurityPolicy),
+        ];
 
         if (isset($_SERVER['HTTPS'])) {
-            header('Strict-Transport-Security: max-age=31536000; includeSubDomains');
+            $headers['Strict-Transport-Security'] = 'max-age=31536000; includeSubDomains';
+        }
+
+        return $headers;
+    }
+
+    public static function apply(): void
+    {
+        foreach (self::headers() as $name => $value) {
+            header($name . ': ' . $value);
         }
     }
 }
