@@ -7,6 +7,7 @@ namespace Mata\Views;
 use Exception;
 use Mata\Core\App;
 use Mata\Http\Routing\Endpoints;
+use Mata\Utils\Html;
 use Mata\Utils\Tools;
 use Monolog\Logger;
 use Twig\Environment;
@@ -386,10 +387,12 @@ class ServerRenderer extends BaseRenderer
                 'key' => $app,
                 'name' => $this->truncate($appData['title'], 19),
                 'url' => $appData['url'],
+                'url_tooltip' => Html::escapeTooltipValue($appData['url'] ?? ''),
                 'id' => $appDivId,
                 'server' => $server,
                 'env' => $appData['env'] ?? '',
                 'path' => $appData['path'],
+                'path_tooltip' => Html::escapeTooltipValue($appData['path'] ?? ''),
                 'ping' => $availabilityView['status'],
                 'ping_latency' => $availabilityView['tooltip'],
                 'status_count' => $logAnalysis['error_analysis']['show_events_count'],
@@ -591,7 +594,7 @@ class ServerRenderer extends BaseRenderer
 
         $segments = [];
         if ($error !== '') {
-            $segments[] = $error;
+            $segments[] = Html::escapeTooltipValue($error);
         }
         if ($httpCode) {
             $segments[] = "HTTP {$httpCode}";

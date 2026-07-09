@@ -13,6 +13,7 @@ use Mata\Services\Foundation\LogAnalyzer;
 use Mata\Services\Monitor\AppMonitorInterface;
 use Mata\Services\Monitor\Dto\EndpointTarget;
 use Mata\Services\Monitor\ServerMonitor;
+use Mata\Utils\Html;
 use Monolog\Logger;
 
 /**
@@ -275,7 +276,7 @@ class ServerViewBuilder
         $lastHour = (int) ($appData['session_count_last_hour'] ?? 0);
         $lastDay = (int) ($appData['session_count_last_day'] ?? 0);
         $total = (int) ($appData['session_count_total'] ?? 0);
-        $path = (string) ($appData['session_path'] ?? '');
+        $path = Html::escapeTooltipValue($appData['session_path'] ?? '');
 
         $tooltip = sprintf(
             '%s<br><strong>1 Hour:</strong> %d<br><strong>24 Hours:</strong> %d<br><strong>Total:</strong> %d<br>',

@@ -6,6 +6,7 @@ namespace Mata\Views;
 
 use Mata\Core\App;
 use Mata\Http\Routing\Endpoints;
+use Mata\Utils\Html;
 use Mata\Utils\Tools;
 use Monolog\Logger;
 use Twig\Environment;
@@ -70,7 +71,7 @@ abstract class BaseRenderer
      */
     protected function escape($content): string
     {
-        return htmlspecialchars((string) $content, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+        return Html::escape($content);
     }
 
     /**
