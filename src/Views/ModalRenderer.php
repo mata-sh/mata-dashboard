@@ -414,6 +414,93 @@ class ModalRenderer extends BaseRenderer
     }
 
     /**
+     * Build template data for server cronjobs modal.
+     *
+     * @param array<int,array<string,mixed>> $cronjobs  Cronjob entries
+     * @param string                         $server    Server name
+     * @param int                            $cacheAge  Cache age in seconds
+     * @param int                            $cacheTtl  Cache TTL in seconds
+     * @param array<string,mixed>            $endpoints Pre-built endpoint URLs
+     *
+     * @return array<string,mixed> Template data array
+     */
+    public function buildServerCronjobsModalData(
+        array $cronjobs,
+        string $server,
+        int $cacheAge,
+        int $cacheTtl,
+        array $endpoints
+    ): array {
+        $entries = [];
+        foreach ($cronjobs as $entry) {
+            if (!is_array($entry)) {
+                continue;
+            }
+
+            $exists = (bool) ($entry['exists'] ?? false);
+            $stale = (bool) ($entry['stale'] ?? false);
+            $ageSeconds = $entry['age_seconds'] ?? null;
+            $size = $entry['size'] ?? null;
+            $contentTail = $entry['content_tail'] ?? [];
+
+            $entries[] = [
+                'path' => $entry['path'] ?? null,
+                'status' => !$exists ? 'missing' : ($stale ? 'stale' : 'ok'),
+                'mtime' => $entry['mtime'] ?? null,
+                'age' => $ageSeconds === null ? null : $this->tools->formatDuration((int) $ageSeconds),
+                'size' => $size === null ? null : $this->tools->convertSize((int) $size),
+                'content_tail' => is_array($contentTail)
+                    ? array_values(array_filter($contentTail, static fn ($line): bool => is_string($line)))
+                    : [],
+            ];
+        }
+
+        return [
+            'server' => [
+                'name' => $server,
+            ],
+            'entries' => $entries,
+            'endpoints' => $endpoints,
+            'icons' => $this->getModalIcons(),
+            'cache' => [
+                'age' => $this->tools->formatDuration($cacheAge),
+                'ttl' => $this->tools->formatDuration($cacheTtl),
+            ],
+        ];
+    }
+
+    /**
+     * Render complete server cronjobs modal.
+     *
+     * @param array<int,array<string,mixed>> $cronjobs  Cronjob entries
+     * @param string                         $server    Server name
+     * @param int                            $cacheAge  Cache age in seconds
+     * @param int                            $cacheTtl  Cache TTL in seconds
+     * @param array<string,mixed>            $endpoints Pre-built endpoint URLs
+     *
+     * @return string Rendered modal HTML
+     */
+    public function renderServerCronjobsModal(
+        array $cronjobs,
+        string $server,
+        int $cacheAge,
+        int $cacheTtl,
+        array $endpoints
+    ): string {
+        $data = $this->buildServerCronjobsModalData($cronjobs, $server, $cacheAge, $cacheTtl, $endpoints);
+
+        try {
+            return $this->twig->render('partials/modals/cronjobs-modal.html.twig', $data);
+        } catch (Exception $e) {
+            $this->logError($e->getMessage(), 'ServerCronjobsModal', [
+                'server' => $server,
+            ]);
+
+            return '<div class="notification is-danger">Error rendering server cronjobs modal</div>';
+        }
+    }
+
+    /**
      * Get modal-specific icons.
      *
      * @return array<string,string> Icon name to HTML mapping

@@ -72,4 +72,16 @@ final class ModalCacheService
 
         return $collector->getServerInfo($cacheType);
     }
+
+    /**
+     * Fetch server cronjobs data with cache handling applied.
+     */
+    public function fetchServerCronjobs(
+        ServerDataCollectorInterface $collector,
+        bool $forceRefresh
+    ): ?array {
+        $cacheType = $this->cacheTypeResolver->resolve($forceRefresh, CacheTypes::CRONJOBS);
+
+        return $collector->fetchServerCronjobs($cacheType);
+    }
 }

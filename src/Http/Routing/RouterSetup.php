@@ -259,7 +259,6 @@ class RouterSetup
     /**
      * Configure watch dashboard routes including:
      * - Server monitoring
-     * - Cronjob tracking
      * - Event/alarm management
      * - Modal content endpoints
      */
@@ -270,7 +269,6 @@ class RouterSetup
             $dashboardRoutes = [
                 ['watch', '/', 'get', fn () => $this->dashboardController->index()],
                 ['servers_render', '/servers', 'get', fn () => $this->dashboardController->renderServersOverview()],
-                ['cronjobs_render', '/cronjobs', 'get', fn () => $this->dashboardController->renderCronjobsOverview()],
                 ['events_render', '/events', 'get', fn () => $this->dashboardController->renderEventsOverview()],
                 ['alarms_render', '/alarms', 'get', fn () => $this->dashboardController->renderAlarmsOverview()],
                 ['libraries_render', '/libraries', 'get', fn () => $this->dashboardController->renderLibrariesOverview()],
@@ -298,6 +296,8 @@ class RouterSetup
                 ['modal_app_logs_refresh', '/modal/{server}/{app}/logs/refresh', 'get', fn ($server, $app) => $this->modalController->renderAppLogs($server, $app, forceRefresh: true)],
                 ['modal_server_info_render', '/modal/{server}/info', 'get', fn ($server) => $this->modalController->renderServerInfo($server)],
                 ['modal_server_info_refresh', '/modal/{server}/info/refresh', 'get', fn ($server) => $this->modalController->renderServerInfo($server, forceRefresh: true)],
+                ['modal_server_cronjobs_render', '/modal/{server}/cronjobs', 'get', fn ($server) => $this->modalController->renderServerCronjobs($server)],
+                ['modal_server_cronjobs_refresh', '/modal/{server}/cronjobs/refresh', 'get', fn ($server) => $this->modalController->renderServerCronjobs($server, forceRefresh: true)],
             ];
 
             // Metrics-based modals with time-series charts handled by MetricsController

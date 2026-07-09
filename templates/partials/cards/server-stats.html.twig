@@ -7,5 +7,8 @@
                                     <br>Sql: {{ processes.sql }}
                                     <br>Total: {{ processes.total }}">{{ icons.activity|raw }} {{ processes.php }}</span>
   <span class="server-filecount count {{ files.count_level }}">{{ icons.file|raw }} {{ files.count }}</span>
+  {% if cronjobs.visible %}
+    <span class="server-cronjobs count {{ cronjobs.level }}" data-tippy-content="{{ cronjobs.tooltip }}" hx-get="{{ cronjobs.modal_endpoint }}" hx-target="#modal-container" hx-trigger="click" hx-toggle="modal">{{ icons.clock|raw }} {{ cronjobs.count }}</span>
+  {% endif %}
   <span class="server-refresh-stats-btn" data-tippy-content="Refresh Server System Stats" hx-swap="outerHTML" hx-target="#server-stats-{{ server.id }}" hx-get="/watch/refresh/serverstats/{{ server.name }}">{{ icons.refresh_ccw|raw }}</span>
 </div>

@@ -318,12 +318,37 @@ class ServerRenderer extends BaseRenderer
                 'count' => $this->formatNumber($serverData['total_system_filecount'] ?? 0),
                 'count_level' => $levels['total_system_filecount'],
             ],
+            'cronjobs' => $this->buildCronjobsStatsData($serverName, $serverMetrics),
             'icons' => $this->getCommonIcons(),
             'cache' => [
                 'age' => $this->tools->formatDuration((int) ($cacheInfo['age'] ?? 0)),
                 'ttl' => $this->tools->formatDuration((int) ($cacheInfo['ttl'] ?? 0)),
             ],
         ];
+    }
+
+    /**
+     * Build cronjobs stats template data.
+     *
+     * @param array<string,mixed> $serverMetrics Server metrics with cronjob badge data
+     *
+     * @return array<string,mixed> Cronjobs stats data
+     */
+    private function buildCronjobsStatsData(string $serverName, array $serverMetrics): array
+    {
+        $cronjobs = is_array($serverMetrics['cronjobs'] ?? null) ? $serverMetrics['cronjobs'] : [
+            'visible' => true,
+            'level' => 'alarm',
+            'count' => '!',
+            'tooltip' => 'Cronjob data unavailable',
+        ];
+
+        $cronjobs['modal_endpoint'] = $this->endpoints->url(
+            'modal_server_cronjobs_render',
+            ['server' => $serverName]
+        );
+
+        return $cronjobs;
     }
 
     /**

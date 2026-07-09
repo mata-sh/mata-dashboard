@@ -145,7 +145,7 @@ class ApiResponseTransformer
             );
 
             // Validate expected fields
-            $expectedAppFields = ['title', 'url', 'env', 'status', 'description', 'session', 'cronjobs'];
+            $expectedAppFields = ['title', 'url', 'env', 'status', 'description', 'session'];
             $missingFields = array_diff($expectedAppFields, array_keys($appData));
 
             if (!empty($missingFields)) {
@@ -222,16 +222,45 @@ class ApiResponseTransformer
     }
 
     /**
-     * Normalize app cronjobs data.
+     * Normalize server cronjob summary data.
      *
-     * @param array<mixed> $data Decoded app cronjobs data
+     * @param array<string,mixed> $cronjobs Decoded cronjob summary data
      *
-     * @return array<int,array<string,mixed>> Normalized app cronjobs data
+     * @return null|array<string,int> Normalized cronjob summary or null when unrecognized
      */
-    public function normalizeAppCronjobs(array $data): array
+    private function normalizeCronjobSummary(array $cronjobs): ?array
+    {
+        $requiredFields = ['total', 'working', 'stale', 'missing'];
+
+        foreach ($requiredFields as $field) {
+            if (!isset($cronjobs[$field]) || !is_numeric($cronjobs[$field])) {
+                $this->logger->warning('Unrecognized cronjob summary payload', [
+                    'data_keys' => array_keys($cronjobs),
+                ]);
+
+                return null;
+            }
+        }
+
+        return [
+            'total' => (int) $cronjobs['total'],
+            'working' => (int) $cronjobs['working'],
+            'stale' => (int) $cronjobs['stale'],
+            'missing' => (int) $cronjobs['missing'],
+        ];
+    }
+
+    /**
+     * Normalize server cronjobs data.
+     *
+     * @param array<mixed> $data Decoded server cronjobs data
+     *
+     * @return array<int,array<string,mixed>> Normalized server cronjobs data
+     */
+    public function normalizeServerCronjobs(array $data): array
     {
         if (!empty($data) && !$this->isSequentialArray($data)) {
-            $this->logger->warning('App cronjobs response is not a sequential array', [
+            $this->logger->warning('Server cronjobs response is not a sequential array', [
                 'data_keys' => array_keys($data),
             ]);
 
@@ -241,7 +270,7 @@ class ApiResponseTransformer
         $normalized = [];
         foreach ($data as $index => $entry) {
             if (!is_array($entry)) {
-                $this->logger->warning('Invalid app cronjob entry, dropping', [
+                $this->logger->warning('Invalid server cronjob entry, dropping', [
                     'index' => $index,
                     'type' => gettype($entry),
                 ]);
@@ -256,15 +285,21 @@ class ApiResponseTransformer
             $size = $entry['size'] ?? null;
             $contentTail = $entry['content_tail'] ?? null;
 
+            if (is_array($contentTail)) {
+                $contentTail = array_values(array_filter($contentTail, static fn ($line): bool => is_string($line)));
+            } else {
+                $contentTail = [];
+            }
+
             $normalized[] = [
                 'index' => $entryIndex === null ? null : (int) $entryIndex,
                 'path' => $path === null ? null : (string) $path,
                 'exists' => (bool) ($entry['exists'] ?? false),
-                'mtime' => $mtime === null ? null : (int) $mtime,
+                'mtime' => $mtime === null ? null : (string) $mtime,
                 'age_seconds' => $ageSeconds === null ? null : (int) $ageSeconds,
                 'size' => $size === null ? null : (int) $size,
                 'stale' => (bool) ($entry['stale'] ?? false),
-                'content_tail' => $contentTail === null ? null : (string) $contentTail,
+                'content_tail' => $contentTail,
             ];
         }
 
@@ -288,6 +323,7 @@ class ApiResponseTransformer
             'disk_space_capacity',
             'disk_space_used',
             'total_system_filecount',
+            'cronjobs',
         ];
 
         $missingFields = array_diff($expectedFields, array_keys($data));
@@ -297,6 +333,8 @@ class ApiResponseTransformer
                 'available_fields' => array_keys($data),
             ]);
         }
+
+        $data['cronjobs'] = $this->normalizeCronjobSummary(isset($data['cronjobs']) && is_array($data['cronjobs']) ? $data['cronjobs'] : []);
 
         return $data;
     }
@@ -431,7 +469,7 @@ class ApiResponseTransformer
             $path === 'server-data' => $this->normalizeServerSystemData($data),
             $path === 'server-databases' => $this->normalizeDatabaseData($data),
             str_ends_with($path, '/sessions') => $this->normalizeAppSessions($data),
-            str_ends_with($path, '/cronjobs') => $this->normalizeAppCronjobs($data),
+            str_ends_with($path, 'server-cronjobs') => $this->normalizeServerCronjobs($data),
             str_contains($path, '/logs/') || str_ends_with($path, '/logs') => $this->normalizeAppLogs($data),
             str_contains($path, '/readme') => $this->normalizeReadmeData($data),
             str_contains($path, '/libraries') => $this->normalizeLibrariesData($data),

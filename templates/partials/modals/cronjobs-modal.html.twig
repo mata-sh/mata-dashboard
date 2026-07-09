@@ -1,0 +1,56 @@
+<div id="modal" class="modal is-active cronjobs-modal" _="on closeModal add .closing then wait for animationend then remove me">
+  <div class="modal-background" _="on click trigger closeModal"></div>
+  <div class="modal-content box">
+    <div class="modal-top-bar">
+      <button class="button modal-close-button-top" _="on click trigger closeModal"><span class="icon is-small">{{ icons.close|raw }}</span></button>
+      <div class="title">
+        <strong>SERVER CRONJOBS</strong> ( {{ server.name }} )
+      </div>
+      <div class="title">last fetched: {{ cache.age }} ago</div>
+      <button class="button modal-refresh-button-top" hx-get="{{ endpoints.modal_server_cronjobs_refresh }}" hx-target="#modal-container" hx-trigger="click">{{ icons.refresh|raw }} Refresh</button>
+    </div>
+
+    <div class="content cronjobs-content">
+      {% if entries is empty %}
+        <div class="notification is-warning">No cronjob entries found.</div>
+      {% else %}
+        <table class="table is-fullwidth is-striped cronjobs-table">
+          <thead>
+            <tr>
+              <th>Path</th>
+              <th>Status</th>
+              <th>Last run</th>
+              <th>Age</th>
+              <th>Size</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for entry in entries %}
+              <tr>
+                <td>{{ entry.path ?? '–' }}</td>
+                <td><span class="tag">{{ entry.status }}</span></td>
+                <td>{{ entry.mtime ?? '–' }}</td>
+                <td>{{ entry.age ?? '–' }}</td>
+                <td>{{ entry.size ?? '–' }}</td>
+              </tr>
+              {% if entry.content_tail is not empty %}
+                <tr>
+                  <td colspan="5">
+                    <details>
+                      <summary>Log tail</summary>
+                      <pre>{% for line in entry.content_tail %}{{ line }}{% if not loop.last %}
+{% endif %}{% endfor %}</pre>
+                    </details>
+                  </td>
+                </tr>
+              {% endif %}
+            {% endfor %}
+          </tbody>
+        </table>
+      {% endif %}
+    </div>
+
+    <br />
+    <button class="button is-dark" _="on click trigger closeModal">Close</button>
+  </div>
+</div>

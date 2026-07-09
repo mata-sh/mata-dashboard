@@ -76,6 +76,7 @@ class MockServerDataCollector implements ServerDataCollectorInterface
             'load_average' => round(($baseMetrics['cpu'] / 100) * 4 + mt_rand(-50, 50) / 100, 2),
             'network_rx_bytes' => mt_rand(1000000000, 50000000000),
             'network_tx_bytes' => mt_rand(800000000, 40000000000),
+            'cronjobs' => ['total' => 5, 'working' => 3, 'stale' => 1, 'missing' => 1],
         ];
 
         return $this->dataTransformer->normalizeApiResponse($data, $this->cacheAge, $ttlSeconds, false);
@@ -369,17 +370,16 @@ class MockServerDataCollector implements ServerDataCollectorInterface
     }
 
     /**
-     * Fetch cronjob heartbeat entries for a specific app.
+     * Fetch server cronjob heartbeat entries.
      *
      * Ordered list of entries with `index`, `path`, `exists`, `mtime`,
      * `age_seconds`, `size`, `stale`, `content_tail`.
      *
-     * @param string $app       App identifier
      * @param string $cacheType Cache type key for TTL lookup (default: 'cronjobs')
      *
      * @return null|array<string,mixed> Normalized response with cronjob entries or null on failure
      */
-    public function fetchAppCronjobs(string $app, string $cacheType = 'cronjobs'): ?array
+    public function fetchServerCronjobs(string $cacheType = 'cronjobs'): ?array
     {
         $ttlSeconds = $this->cacheManager->getTtl($cacheType);
         $this->cacheTtl = $ttlSeconds;
@@ -387,27 +387,33 @@ class MockServerDataCollector implements ServerDataCollectorInterface
         $cronjobs = [
             [
                 'index' => 0,
-                'path' => 'cron/heartbeat/daily-report.log',
+                'path' => '/var/log/mata/cron/daily-report.log',
                 'exists' => true,
-                'mtime' => time() - 300,
+                'mtime' => date('Y-m-d H:i:s', time() - 300),
                 'age_seconds' => 300,
                 'stale' => false,
                 'size' => 2048,
-                'content_tail' => "[ok] daily-report finished in 4.2s\n",
+                'content_tail' => [
+                    '[2026-07-10 03:00:01] daily-report started',
+                    '[2026-07-10 03:00:05] daily-report finished in 4.2s',
+                ],
             ],
             [
                 'index' => 1,
-                'path' => 'cron/heartbeat/cache-warmup.log',
+                'path' => '/var/log/mata/cron/cache-warmup.log',
                 'exists' => true,
-                'mtime' => time() - 93600,
+                'mtime' => date('Y-m-d H:i:s', time() - 93600),
                 'age_seconds' => 93600,
                 'stale' => true,
                 'size' => 512,
-                'content_tail' => "[warn] cache warmup skipped: lock present\n",
+                'content_tail' => [
+                    '[2026-07-09 01:00:01] cache warmup started',
+                    '[2026-07-09 01:00:02] cache warmup skipped: lock present',
+                ],
             ],
         ];
 
-        return $this->dataTransformer->normalizeApiResponse($cronjobs, $this->cacheAge, $ttlSeconds, false, path: "{$app}/cronjobs");
+        return $this->dataTransformer->normalizeApiResponse($cronjobs, $this->cacheAge, $ttlSeconds, false, path: 'server-cronjobs');
     }
 
     /**

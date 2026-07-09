@@ -45,13 +45,6 @@ class MenuBuilder
 
         $menuItems = [
             [
-                'key' => 'cronjobs',
-                'label' => 'Cronjobs',
-                'icon' => $this->tools->icon('activity', 12),
-                'endpoint_key' => 'cronjobs_render',
-                'enabled' => false,
-            ],
-            [
                 'key' => 'events',
                 'label' => 'Events',
                 'icon' => $this->tools->icon('radio', 12),

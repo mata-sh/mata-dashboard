@@ -31,7 +31,6 @@ use Mata\Services\View\ServerViewBuilder;
 use Mata\Utils\Tools;
 use Mata\Utils\TypeConverter;
 use Mata\Views\AlarmsRenderer;
-use Mata\Views\CronjobRenderer;
 use Mata\Views\DatabaseRenderer;
 use Mata\Views\EventsRenderer;
 use Mata\Views\LibrariesRenderer;
@@ -66,7 +65,6 @@ class DashboardController extends BaseController
     private ServerRenderer $serverRenderer;
     private DatabaseRenderer $databaseRenderer;
     private LibrariesRenderer $librariesRenderer;
-    private CronjobRenderer $cronjobRenderer;
     private LogRenderer $logRenderer;
     private SettingsRenderer $settingsRenderer;
     private EventsRenderer $eventsRenderer;
@@ -142,7 +140,6 @@ class DashboardController extends BaseController
         $this->serverRenderer = new ServerRenderer($twig, $logger, $tools, $app, $endpoints, $this->logRenderer);
         $this->databaseRenderer = new DatabaseRenderer($twig, $logger, $tools, $app, $endpoints);
         $this->librariesRenderer = new LibrariesRenderer($twig, $logger, $tools, $app, $endpoints);
-        $this->cronjobRenderer = new CronjobRenderer($twig, $logger, $tools, $app, $endpoints);
         $this->settingsRenderer = new SettingsRenderer($twig, $logger, $tools, $app, $endpoints);
         $this->eventsRenderer = new EventsRenderer($twig, $logger, $tools, $app, $endpoints);
         $this->alarmsRenderer = new AlarmsRenderer($twig, $logger, $tools, $app, $endpoints);
@@ -387,25 +384,6 @@ class DashboardController extends BaseController
             },
             'Failed to load libraries overview',
             'Libraries container rendering'
-        );
-    }
-
-    /**
-     * Show cronjobs monitoring container.
-     */
-    public function renderCronjobsOverview(): Response
-    {
-        return $this->executeWithErrorHandling(
-            function () {
-                $html = $this->cronjobRenderer->renderContainer(
-                    $this->serversDataCollector,
-                    $this->serversConfig
-                );
-
-                return new HtmlResponse($html);
-            },
-            'Failed to load cronjobs overview',
-            'Cronjobs container rendering'
         );
     }
 

@@ -379,4 +379,55 @@ class ModalController extends BaseController
             "Server info for {$server}"
         );
     }
+
+    /**
+     * Fetch and render server cronjobs for a server.
+     *
+     * @param string $server       Server name
+     * @param bool   $forceRefresh Whether to bypass cache
+     *
+     * @return Response Rendered modal HTML response
+     */
+    public function renderServerCronjobs(
+        string $server,
+        bool $forceRefresh = false
+    ): Response {
+        return $this->executeWithErrorHandling(
+            function () use ($server, $forceRefresh) {
+                if (!isset($this->serverDataCollectors[$server])) {
+                    return $this->handleNotFound("Server '{$server}'", 'Server cronjobs request');
+                }
+                $serverData = $this->serverDataCollectors[$server];
+
+                $cronjobsResponse = $this->modalCacheService->fetchServerCronjobs($serverData, $forceRefresh);
+
+                if ($cronjobsResponse === null) {
+                    throw new Exception("Failed to fetch server cronjobs for {$server} via API");
+                }
+
+                $cronjobs = !empty($cronjobsResponse['result']) && is_array($cronjobsResponse['result'])
+                    ? $cronjobsResponse['result']
+                    : [];
+
+                $endpoints = [
+                    'modal_server_cronjobs_refresh' => $this->endpoints->url(
+                        'modal_server_cronjobs_refresh',
+                        ['server' => $server]
+                    ),
+                ];
+
+                $html = $this->modalRenderer->renderServerCronjobsModal(
+                    $cronjobs,
+                    $server,
+                    $cronjobsResponse['cache_age'] ?? 0,
+                    $cronjobsResponse['cache_ttl'] ?? 0,
+                    $endpoints
+                );
+
+                return new HtmlResponse($html);
+            },
+            'Failed to load server cronjobs',
+            "Server cronjobs for {$server}"
+        );
+    }
 }

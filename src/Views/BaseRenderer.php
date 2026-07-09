@@ -158,6 +158,7 @@ abstract class BaseRenderer
             'hard_drive' => $this->tools->icon('hard-drive', 12),
             'pie_chart' => $this->tools->icon('pie-chart', 12),
             'file' => $this->tools->icon('file', 12),
+            'clock' => $this->tools->icon('clock', 12),
             'database' => $this->tools->icon('database', 12),
             'check_circle' => $this->tools->icon('check-circle', 12),
             'info' => $this->tools->icon('info', 12),

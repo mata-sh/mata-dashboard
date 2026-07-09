@@ -148,7 +148,6 @@ class DashboardControllerTest extends TestCase
             'server_render_refresh' => '/api/servers/refresh',
             'metrics_render' => '/api/metrics/render',
             'metrics_dashboard_data' => '/api/metrics/data',
-            'cronjobs_render' => '/api/cronjobs/render',
             'alarms_render' => '/api/alarms/render',
             'libraries_render' => '/api/libraries/render',
             'database_render' => '/api/databases/render',
@@ -469,41 +468,6 @@ class DashboardControllerTest extends TestCase
 
         // Act
         $response = $this->controller->renderLibrariesOverview();
-
-        // Assert
-        $this->assertInstanceOf(HtmlResponse::class, $response);
-        $this->assertTrue($response->isSuccessful());
-    }
-
-    /**
-     * Test: Cronjobs overview renders successfully.
-     *
-     * Validates that:
-     * - Cronjob status is collected
-     * - Last run information is included
-     * - HTML response is returned
-     */
-    public function testRenderCronjobsOverviewSuccessfully(): void
-    {
-        // Arrange
-        $this->monitoringSettings['environment'] = 'demo';
-
-        $this->controller = new DashboardController(
-            $this->app,
-            $this->tools,
-            $this->twig,
-            $this->logger,
-            $this->appConfig,
-            $this->notificationManager,
-            $this->eventManager,
-            $this->cacheManager,
-            $this->endpoints,
-            $this->menuBuilder,
-            $this->monitoringSettings
-        );
-
-        // Act
-        $response = $this->controller->renderCronjobsOverview();
 
         // Assert
         $this->assertInstanceOf(HtmlResponse::class, $response);

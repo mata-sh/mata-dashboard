@@ -17,6 +17,11 @@
             "warn": 70,
             "critical": 80,
             "alarm": 90
+        },
+        "cronjobs_failed_percent": {
+            "good": -1,
+            "critical": 0,
+            "alarm": 99
         }
     },
     "app_data": {

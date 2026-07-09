@@ -64,6 +64,11 @@ final class CacheTypes
     public const SERVER_INFO = 'serverInfo';
 
     /**
+     * Server cronjob heartbeat entries.
+     */
+    public const CRONJOBS = 'cronjobs';
+
+    /**
      * Prevent instantiation - this is a constants-only class.
      */
     private function __construct() {}

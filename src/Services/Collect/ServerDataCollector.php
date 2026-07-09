@@ -213,19 +213,18 @@ class ServerDataCollector implements ServerDataCollectorInterface
     }
 
     /**
-     * Fetch cronjob heartbeat entries for a specific app.
+     * Fetch server cronjob heartbeat entries.
      *
      * Ordered list of entries with `index`, `path`, `exists`, `mtime`,
      * `age_seconds`, `size`, `stale`, `content_tail`.
      *
-     * @param string $app       App identifier
      * @param string $cacheType Cache type key for TTL lookup (default: 'cronjobs')
      *
      * @return null|array<string,mixed> Normalized response with cronjob entries or null on failure
      */
-    public function fetchAppCronjobs(string $app, string $cacheType = 'cronjobs'): ?array
+    public function fetchServerCronjobs(string $cacheType = 'cronjobs'): ?array
     {
-        return $this->request('GET', "{$app}/cronjobs", $cacheType);
+        return $this->request('GET', 'server-cronjobs', $cacheType);
     }
 
     /**

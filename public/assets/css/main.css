@@ -162,8 +162,7 @@ svg {
 }
 
 .events-section h3,
-.databases-section h3,
-.cronjobs-section h3 {
+.databases-section h3 {
     font-size: 1.2em;
 }
 
@@ -243,6 +242,10 @@ svg {
 
 .server-filecount {
     width: 81px;
+}
+
+.server-cronjobs {
+    cursor: pointer;
 }
 
 .server-refresh-btn,

@@ -82,8 +82,11 @@ class ServerMonitor
 
         $this->evaluateDiskUsageAlarm($diskSpaceUsed, $diskUsageLevel, $server);
 
+        $cronjobsData = $this->buildCronjobsData($serverData);
+
         return [
             'data' => $serverData,
+            'cronjobs' => $cronjobsData,
             'cache' => [
                 'age' => $cacheAge,
                 'ttl' => $cacheTtl,
@@ -94,6 +97,77 @@ class ServerMonitor
                 'total_system_filecount' => $filecountLevel,
                 'disk_space_usage_percent' => $diskUsageLevel,
             ],
+        ];
+    }
+
+    /**
+     * Build cronjobs badge view data.
+     *
+     * @param array<string,mixed> $serverData Server data array
+     *
+     * @return array{visible:bool,level:string,count:string,tooltip:string}
+     */
+    private function buildCronjobsData(array $serverData): array
+    {
+        $cronjobs = $serverData['cronjobs'] ?? null;
+
+        if (!is_array($cronjobs)) {
+            return [
+                'visible' => true,
+                'level' => 'alarm',
+                'count' => '!',
+                'tooltip' => 'Cronjob data unavailable',
+            ];
+        }
+
+        foreach (['total', 'working', 'stale', 'missing'] as $field) {
+            if (!isset($cronjobs[$field]) || !is_numeric($cronjobs[$field])) {
+                return [
+                    'visible' => true,
+                    'level' => 'alarm',
+                    'count' => '!',
+                    'tooltip' => 'Cronjob data unavailable',
+                ];
+            }
+        }
+
+        $total = (int) $cronjobs['total'];
+        $working = (int) $cronjobs['working'];
+        $stale = (int) $cronjobs['stale'];
+        $missing = (int) $cronjobs['missing'];
+
+        if ($total === 0) {
+            return [
+                'visible' => false,
+                'level' => '',
+                'count' => '',
+                'tooltip' => '',
+            ];
+        }
+
+        $failed = $total - $working;
+        if ($failed === 0) {
+            $percent = 0;
+        } elseif ($working === 0) {
+            $percent = 100;
+        } else {
+            $percent = max(1, min(99, (int) round($failed / $total * 100)));
+        }
+
+        $level = $this->eventManager->getServerDataThresholdLevel($percent, 'cronjobs_failed_percent');
+        $tooltip = "<strong>Working:</strong> {$working}";
+        if ($stale > 0) {
+            $tooltip .= "<br><strong>Stale:</strong> {$stale}";
+        }
+        if ($missing > 0) {
+            $tooltip .= "<br><strong>Missing:</strong> {$missing}";
+        }
+
+        return [
+            'visible' => true,
+            'level' => $level,
+            'count' => "{$working}/{$total}",
+            'tooltip' => $tooltip,
         ];
     }
 
