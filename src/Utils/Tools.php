@@ -199,7 +199,11 @@ class Tools
      */
     public function decrypt(string $encrypted, string $key): string
     {
-        $data = base64_decode($encrypted);
+        $data = base64_decode($encrypted, true);
+        if ($data === false || strlen($data) <= 16) {
+            throw new RuntimeException('Decryption failed');
+        }
+
         $iv = substr($data, 0, 16);
         $ciphertext = substr($data, 16);
         $result = openssl_decrypt($ciphertext, 'AES-256-CBC', $key, OPENSSL_RAW_DATA, $iv);

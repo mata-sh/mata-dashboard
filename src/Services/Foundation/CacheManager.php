@@ -117,7 +117,13 @@ class CacheManager
      */
     public function readCache(string $cacheFile, int $ttlSeconds): ?array
     {
-        $content = file_get_contents($cacheFile);
+        if (!is_readable($cacheFile)) {
+            $this->logger->warning("Failed to read cache file: {$cacheFile}");
+
+            return null;
+        }
+
+        $content = @file_get_contents($cacheFile);
         if ($content === false) {
             $this->logger->warning("Failed to read cache file: {$cacheFile}");
 
@@ -141,7 +147,14 @@ class CacheManager
      */
     public function writeCache(string $cacheFile, array $data): bool
     {
-        $result = file_put_contents($cacheFile, json_encode($data));
+        $directory = dirname($cacheFile);
+        if (!is_dir($directory) || !is_writable($directory)) {
+            $this->logger->warning("Failed to write cache file: {$cacheFile}");
+
+            return false;
+        }
+
+        $result = @file_put_contents($cacheFile, json_encode($data));
         if ($result === false) {
             $this->logger->warning("Failed to write cache file: {$cacheFile}");
 

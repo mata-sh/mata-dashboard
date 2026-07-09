@@ -131,7 +131,8 @@ class DashboardController extends BaseController
         $this->endpoints = $endpoints;
         $this->cacheManager = $cacheManager;
         $this->menuBuilder = $menuBuilder;
-        $this->serversConfig = is_array($monitoringSettings['servers']) ? $monitoringSettings['servers'] : [];
+        $serversConfig = $monitoringSettings['servers'] ?? [];
+        $this->serversConfig = is_array($serversConfig) ? $serversConfig : [];
         $this->ttlConfig = $monitoringSettings['ttl'] ?? [];
         $this->thresholdsConfig = $monitoringSettings['thresholds'] ?? [];
         $this->monitoringEnvironment = $monitoringSettings['environment'] ?? 'unset';

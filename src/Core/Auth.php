@@ -177,7 +177,9 @@ class Auth
             'id' => $user['id'] ?? uniqid('usr_'),
         ];
         $_SESSION['logged_in'] = true;
-        session_regenerate_id(true);
+        if (session_status() === PHP_SESSION_ACTIVE) {
+            session_regenerate_id(true);
+        }
 
         // Clear failed attempts
         if (isset($this->users[$username]['failed_attempts'])) {
@@ -382,7 +384,9 @@ class Auth
         }
 
         $_SESSION = [];
-        session_destroy();
+        if (session_status() === PHP_SESSION_ACTIVE) {
+            session_destroy();
+        }
         setcookie('remember_token', '', [
             'expires' => time() - 3600,
             'path' => '/',
