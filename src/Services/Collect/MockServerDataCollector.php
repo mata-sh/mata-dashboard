@@ -356,15 +356,47 @@ class MockServerDataCollector implements ServerDataCollectorInterface
         $ttlSeconds = $this->cacheManager->getTtl($cacheType);
         $this->cacheTtl = $ttlSeconds;
 
-        $sessions = [
-            'type' => 'file',
-            'status' => 'ok',
-            'count_last_hour' => 42,
-            'count_last_day' => 512,
-            'count_total' => 8214,
-            'path' => '/var/lib/php/sessions',
-            'size_kb' => 1843.2,
+        $sessionVariants = [
+            [
+                'type' => 'file',
+                'status' => 'ok',
+                'count_last_hour' => 42,
+                'count_last_day' => 512,
+                'count_total' => 8214,
+                'path' => '/var/lib/php/sessions',
+                'size_kb' => 1843.2,
+            ],
+            [
+                'type' => 'redis',
+                'status' => 'ok',
+                'count_last_hour' => null,
+                'count_last_day' => null,
+                'count_total' => 8214,
+                'path' => null,
+                'size_kb' => null,
+            ],
+            [
+                'type' => 'none',
+                'status' => 'unconfigured',
+                'count_last_hour' => null,
+                'count_last_day' => null,
+                'count_total' => null,
+                'path' => null,
+                'size_kb' => null,
+            ],
+            [
+                'type' => 'memcached',
+                'status' => 'unsupported',
+                'count_last_hour' => null,
+                'count_last_day' => null,
+                'count_total' => null,
+                'path' => null,
+                'size_kb' => null,
+                'error' => 'session handler memcached is not supported',
+            ],
         ];
+
+        $sessions = $sessionVariants[abs((int) crc32($app)) % count($sessionVariants)];
 
         return $this->dataTransformer->normalizeApiResponse($sessions, $this->cacheAge, $ttlSeconds, false, path: "{$app}/sessions");
     }
@@ -508,6 +540,7 @@ class MockServerDataCollector implements ServerDataCollectorInterface
         $appTemplates = [
             'ecommerce' => [
                 'title' => 'E-Commerce Platform',
+                'description' => 'Customer-facing commerce and checkout platform.',
                 'path' => 'ecommerce',
                 'environment' => 'live',
                 'maintenance' => 0,
@@ -518,6 +551,7 @@ class MockServerDataCollector implements ServerDataCollectorInterface
             ],
             'admin-panel' => [
                 'title' => 'Admin Dashboard',
+                'description' => 'Internal dashboard for administration and operations.',
                 'path' => 'admin',
                 'environment' => 'live',
                 'maintenance' => 0,
@@ -527,6 +561,7 @@ class MockServerDataCollector implements ServerDataCollectorInterface
             ],
             'api-gateway' => [
                 'title' => 'API Gateway',
+                'description' => 'Routes and authenticates requests for backend services.',
                 'path' => 'api',
                 'environment' => 'live',
                 'maintenance' => 0,
@@ -536,6 +571,7 @@ class MockServerDataCollector implements ServerDataCollectorInterface
             ],
             'user-portal' => [
                 'title' => 'Customer Portal',
+                'description' => 'Self-service portal for customers and account management.',
                 'path' => 'portal',
                 'environment' => 'test',
                 'maintenance' => 0,
@@ -545,6 +581,7 @@ class MockServerDataCollector implements ServerDataCollectorInterface
             ],
             'inventory-system' => [
                 'title' => 'Inventory Management',
+                'description' => 'Tracks inventory, stock levels, and fulfillment operations.',
                 'path' => 'inventory',
                 'environment' => 'live',
                 'maintenance' => 0,
@@ -554,6 +591,7 @@ class MockServerDataCollector implements ServerDataCollectorInterface
             ],
             'analytics-dashboard' => [
                 'title' => 'Analytics Dashboard',
+                'description' => 'Explores product and operational analytics.',
                 'path' => 'analytics',
                 'environment' => 'dev',
                 'maintenance' => 0,
@@ -564,6 +602,7 @@ class MockServerDataCollector implements ServerDataCollectorInterface
             ],
             'payment-processor' => [
                 'title' => 'Payment Gateway',
+                'description' => 'Processes payments and settlement workflows.',
                 'path' => 'payments',
                 'environment' => 'live',
                 'maintenance' => 0,
@@ -573,6 +612,7 @@ class MockServerDataCollector implements ServerDataCollectorInterface
             ],
             'notification-service' => [
                 'title' => 'Notification Service',
+                'description' => 'Delivers email, SMS, and application notifications.',
                 'path' => 'notifications',
                 'environment' => 'test',
                 'maintenance' => 0,
@@ -583,6 +623,7 @@ class MockServerDataCollector implements ServerDataCollectorInterface
             ],
             'warehouse-system' => [
                 'title' => 'Warenwirtschaft Backend',
+                'description' => 'Coordinates warehouse and enterprise resource operations.',
                 'path' => 'warenwirtschaft',
                 'environment' => 'live',
                 'maintenance' => 0,
@@ -592,6 +633,7 @@ class MockServerDataCollector implements ServerDataCollectorInterface
             ],
             'crm' => [
                 'title' => 'CRM Platform',
+                'description' => 'Manages customer relationships and account activity.',
                 'path' => 'crm',
                 'environment' => 'live',
                 'maintenance' => 0,
@@ -601,6 +643,7 @@ class MockServerDataCollector implements ServerDataCollectorInterface
             ],
             'search-service' => [
                 'title' => 'Search Service',
+                'description' => 'Indexes and serves application search queries.',
                 'path' => 'search',
                 'environment' => 'live',
                 'maintenance' => 0,
@@ -610,6 +653,7 @@ class MockServerDataCollector implements ServerDataCollectorInterface
             ],
             'load-balancer-node' => [
                 'title' => 'Load Balancer Node',
+                'description' => 'Balances traffic across application instances.',
                 'path' => 'load-balancer',
                 'environment' => 'live',
                 'maintenance' => 0,
@@ -619,6 +663,7 @@ class MockServerDataCollector implements ServerDataCollectorInterface
             ],
             'shared-storage-cluster' => [
                 'title' => 'Shared Storage Cluster',
+                'description' => 'Provides shared storage for distributed services.',
                 'path' => 'shared-storage',
                 'environment' => 'live',
                 'maintenance' => 0,
@@ -629,6 +674,7 @@ class MockServerDataCollector implements ServerDataCollectorInterface
             ],
             'ci-runner' => [
                 'title' => 'CI Runner',
+                'description' => 'Runs continuous integration and delivery pipelines.',
                 'path' => 'ci-runner',
                 'environment' => 'dev',
                 'maintenance' => 0,
@@ -639,6 +685,7 @@ class MockServerDataCollector implements ServerDataCollectorInterface
             ],
             'feature-flags' => [
                 'title' => 'Feature Flag Service',
+                'description' => 'Controls feature rollout and runtime configuration.',
                 'path' => 'feature-flags',
                 'environment' => 'dev',
                 'maintenance' => 0,
@@ -648,6 +695,7 @@ class MockServerDataCollector implements ServerDataCollectorInterface
             ],
             'email-gateway' => [
                 'title' => 'Email Gateway',
+                'description' => 'Relays outbound email and delivery events.',
                 'path' => 'email',
                 'environment' => 'live',
                 'maintenance' => 0,
@@ -657,6 +705,7 @@ class MockServerDataCollector implements ServerDataCollectorInterface
             ],
             'reporting-service' => [
                 'title' => 'Reporting Service',
+                'description' => 'Builds scheduled reports and data exports.',
                 'path' => 'reporting',
                 'environment' => 'stg',
                 'maintenance' => 0,
@@ -666,6 +715,7 @@ class MockServerDataCollector implements ServerDataCollectorInterface
             ],
             'qa-automation' => [
                 'title' => 'QA Automation Suite',
+                'description' => 'Executes automated quality and regression checks.',
                 'path' => 'qa-suite',
                 'environment' => 'test',
                 'maintenance' => 0,
@@ -676,6 +726,7 @@ class MockServerDataCollector implements ServerDataCollectorInterface
             ],
             'beta-portal' => [
                 'title' => 'Beta Customer Portal',
+                'description' => 'Preview customer portal for upcoming features.',
                 'path' => 'beta-portal',
                 'environment' => 'test',
                 'maintenance' => 0,
@@ -685,6 +736,7 @@ class MockServerDataCollector implements ServerDataCollectorInterface
             ],
             'catalog-service' => [
                 'title' => 'Catalog Service',
+                'description' => 'Maintains product catalog data and availability.',
                 'path' => 'catalog',
                 'environment' => 'live',
                 'maintenance' => 0,
@@ -694,6 +746,7 @@ class MockServerDataCollector implements ServerDataCollectorInterface
             ],
             'message-broker' => [
                 'title' => 'Message Broker',
+                'description' => 'Moves asynchronous messages between services.',
                 'path' => 'broker',
                 'environment' => 'live',
                 'maintenance' => 0,
@@ -703,6 +756,7 @@ class MockServerDataCollector implements ServerDataCollectorInterface
             ],
             'workflow-engine' => [
                 'title' => 'Workflow Engine',
+                'description' => 'Orchestrates multi-step business workflows.',
                 'path' => 'workflow',
                 'environment' => 'stg',
                 'maintenance' => 0,
@@ -1160,6 +1214,9 @@ class MockServerDataCollector implements ServerDataCollectorInterface
         $selectedAppKeys = $selectWeightedUnique($appWeights, $appCount);
 
         $apps = [];
+        $unconfiguredAssigned = false;
+        $errorSessionAssigned = false;
+        $lastAppKey = $selectedAppKeys[count($selectedAppKeys) - 1] ?? null;
 
         foreach ($selectedAppKeys as $appKey) {
             $template = $appTemplates[$appKey];
@@ -1229,6 +1286,53 @@ class MockServerDataCollector implements ServerDataCollectorInterface
             $sessionsDay = max($sessionsHour * mt_rand(12, 24), $randomFromRange($sessionProfile['day'], $sessionMultiplier));
             $sessionsTotal = max($sessionsDay * mt_rand(6, 12), $randomFromRange($sessionProfile['total'], $sessionMultiplier));
 
+            $session = [
+                'type' => 'file',
+                'status' => 'ok',
+                'count_last_hour' => $sessionsHour,
+                'count_last_day' => $sessionsDay,
+                'count_total' => $sessionsTotal,
+                'path' => '/var/lib/php/sessions',
+                'size_kb' => round($sessionsTotal * 1.8, 1),
+            ];
+
+            if ($environment === 'dev' && !$unconfiguredAssigned) {
+                $session = [
+                    'type' => 'none',
+                    'status' => 'unconfigured',
+                    'count_last_hour' => null,
+                    'count_last_day' => null,
+                    'count_total' => null,
+                    'path' => null,
+                    'size_kb' => null,
+                ];
+                $unconfiguredAssigned = true;
+            } elseif ($environment === 'live' && mt_rand(1, 100) <= 25) {
+                $session = [
+                    'type' => 'redis',
+                    'status' => 'ok',
+                    'count_last_hour' => null,
+                    'count_last_day' => null,
+                    'count_total' => $sessionsTotal,
+                    'path' => null,
+                    'size_kb' => null,
+                ];
+            }
+
+            if ($appKey === $lastAppKey && $session['status'] !== 'unconfigured') {
+                $session = [
+                    'type' => 'memcached',
+                    'status' => 'unsupported',
+                    'count_last_hour' => null,
+                    'count_last_day' => null,
+                    'count_total' => null,
+                    'path' => null,
+                    'size_kb' => null,
+                    'error' => 'session handler memcached is not supported',
+                ];
+                $errorSessionAssigned = true;
+            }
+
             $maintenanceProbability = $preset['maintenance_probability'] ?? 0.08;
             if (isset($template['maintenance_probability'])) {
                 $maintenanceProbability += $template['maintenance_probability'];
@@ -1256,6 +1360,7 @@ class MockServerDataCollector implements ServerDataCollectorInterface
 
             $apps[$appKey] = [
                 'title' => $template['title'],
+                'description' => $template['description'] ?? 'Application monitored by Mata.',
                 'path' => $template['path'],
                 'url' => rtrim($this->serverConfig['url'], '/') . '/' . $template['path'],
                 'environment' => $environment,
@@ -1266,12 +1371,31 @@ class MockServerDataCollector implements ServerDataCollectorInterface
                     'warnings' => $warningCount,
                     'total' => $statusTotal,
                 ],
-                'session_count_last_hour' => (string) $sessionsHour,
-                'session_count_last_day' => (string) $sessionsDay,
-                'session_count_total' => (string) $sessionsTotal,
-                'session_path' => '/var/lib/php/sessions',
+                'session' => $session,
                 'logs' => $logs,
             ];
+        }
+
+        if (!$errorSessionAssigned) {
+            foreach (array_reverse(array_keys($apps)) as $appKey) {
+                if (($apps[$appKey]['session']['status'] ?? null) === 'unconfigured') {
+                    continue;
+                }
+
+                $apps[$appKey]['session'] = [
+                    'type' => 'memcached',
+                    'status' => 'unsupported',
+                    'count_last_hour' => null,
+                    'count_last_day' => null,
+                    'count_total' => null,
+                    'path' => null,
+                    'size_kb' => null,
+                    'error' => 'session handler memcached is not supported',
+                ];
+                $errorSessionAssigned = true;
+
+                break;
+            }
         }
 
         $appKeys = array_keys($apps);

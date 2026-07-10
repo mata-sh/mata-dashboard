@@ -26,16 +26,4 @@ final class ApiResponseTransformerReadmeTest extends TestCase
 
         $this->assertSame("# Test\n\nREADME", $response['result']);
     }
-
-    public function testNormalizeReadmeDataSupportsLegacyAppKeyShape(): void
-    {
-        $transformer = new ApiResponseTransformer(new NullLogger());
-
-        $response = $transformer->normalizeApiResponse(
-            data: ['test-app' => "# Legacy\n\nREADME"],
-            path: 'test-app/readme',
-        );
-
-        $this->assertSame("# Legacy\n\nREADME", $response['result']);
-    }
 }

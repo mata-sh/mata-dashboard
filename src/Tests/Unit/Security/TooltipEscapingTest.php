@@ -42,16 +42,54 @@ class TooltipEscapingTest extends TestCase
         );
 
         $result = $this->invokePrivate($builder, 'formatSessionDataForView', [[
-            'session_count_last_hour' => 4,
-            'session_count_last_day' => 8,
-            'session_count_total' => 12,
-            'session_path' => '/tmp/sessions/<img src=x onerror=alert(1)>',
+            'session' => [
+                'type' => 'file',
+                'status' => 'ok',
+                'count_last_hour' => 4,
+                'count_last_day' => 8,
+                'count_total' => 12,
+                'path' => '/tmp/sessions/<img src=x onerror=alert(1)>',
+                'size_kb' => 12.5,
+                'error' => null,
+            ],
         ]]);
 
         $this->assertSame('good', $result['level']);
         $this->assertStringContainsString('&lt;img src=x onerror=alert(1)&gt;', $result['tooltip']);
         $this->assertStringNotContainsString('<img src=x onerror=alert(1)>', $result['tooltip']);
-        $this->assertStringContainsString('<br><strong>1 Hour:</strong> 4', $result['tooltip']);
+        $this->assertStringContainsString('<strong>1 Hour:</strong> 4', $result['tooltip']);
+    }
+
+    public function testSessionErrorTooltipEscapesRemoteErrorMessage(): void
+    {
+        $eventManager = $this->createStub(EventManager::class);
+        $builder = new ServerViewBuilder(
+            $this->createStub(ServerMonitor::class),
+            $this->createStub(LogAnalyzer::class),
+            $eventManager,
+            $this->createStub(Logger::class),
+            new CacheTypeResolver()
+        );
+
+        $result = $this->invokePrivate($builder, 'formatSessionDataForView', [[
+            'session' => [
+                'type' => '<b>evil</b>',
+                'status' => 'error',
+                'count_last_hour' => null,
+                'count_last_day' => null,
+                'count_total' => null,
+                'path' => null,
+                'size_kb' => null,
+                'error' => '<script>alert(1)</script>',
+            ],
+        ]]);
+
+        $this->assertSame('warning', $result['level']);
+        $this->assertSame('!', $result['formatted_count']);
+        $this->assertStringContainsString('&lt;b&gt;evil&lt;/b&gt;', $result['tooltip']);
+        $this->assertStringContainsString('&lt;script&gt;alert(1)&lt;/script&gt;', $result['tooltip']);
+        $this->assertStringNotContainsString('<b>evil</b>', $result['tooltip']);
+        $this->assertStringNotContainsString('<script>alert(1)</script>', $result['tooltip']);
     }
 
     public function testAvailabilityTooltipEscapesRemoteErrorButKeepsGeneratedText(): void
