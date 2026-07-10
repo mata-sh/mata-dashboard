@@ -13,6 +13,7 @@ use Mata\Services\Event\EventManager;
 use Mata\Services\Foundation\LogAnalyzer;
 use Mata\Services\Monitor\AppMonitorInterface;
 use Mata\Services\Monitor\Dto\EndpointTarget;
+use Mata\Services\Monitor\Dto\ServerDashboardServices;
 use Mata\Services\Monitor\NodeHealthMonitorInterface;
 use Mata\Services\Monitor\ServerMonitor;
 use Mata\Utils\Html;
@@ -54,40 +55,33 @@ class ServerViewBuilder
     /**
      * Build view data for all configured servers.
      *
-     * @param array<string,ServerDataCollectorInterface> $serversDataCollector
-     * @param array<string,AppMonitorInterface>          $appMonitors
-     * @param array<string,NodeHealthMonitorInterface>   $healthMonitors
-     * @param array<string,mixed>                        $serversConfig
+     * @param array<string,ServerDashboardServices> $dashboardServicesByServer
+     * @param array<string,mixed>                   $serversConfig
      *
      * @return array<int,array<string,mixed>>
      */
     public function buildServersViewData(
-        array $serversDataCollector,
-        array $appMonitors,
-        array $healthMonitors,
+        array $dashboardServicesByServer,
         array $serversConfig,
         bool $forceRefresh
     ): array {
         $serversViewData = [];
 
         foreach ($serversConfig as $server => $serverConfig) {
-            $healthMonitor = $healthMonitors[$server] ?? null;
+            $dashboardServices = $dashboardServicesByServer[$server] ?? null;
 
             try {
-                $collector = $serversDataCollector[$server] ?? null;
-                $appMonitor = $appMonitors[$server] ?? null;
-
-                if (!$collector instanceof ServerDataCollectorInterface || !$appMonitor instanceof AppMonitorInterface) {
+                if (!$dashboardServices instanceof ServerDashboardServices) {
                     throw new Exception("Monitoring services unavailable for server {$server}");
                 }
 
                 $serversViewData[] = $this->buildServerViewData(
                     $server,
                     $serverConfig,
-                    $collector,
-                    $appMonitor,
+                    $dashboardServices->collector,
+                    $dashboardServices->appMonitor,
                     $forceRefresh,
-                    $healthMonitor,
+                    $dashboardServices->healthMonitor,
                 );
             } catch (Exception $e) {
                 $this->logger->error("{$server}", [
@@ -100,7 +94,9 @@ class ServerViewBuilder
                     $server,
                     $serverConfig,
                     $e,
-                    $this->resolveNodeHealth($server, $healthMonitor)
+                    $dashboardServices instanceof ServerDashboardServices
+                        ? $this->resolveNodeHealth($server, $dashboardServices->healthMonitor)
+                        : $this->unknownHealth()
                 );
             }
         }

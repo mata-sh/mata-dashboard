@@ -24,11 +24,10 @@ use Mata\Services\Event\EventManager;
 use Mata\Services\Foundation\ApiClient;
 use Mata\Services\Foundation\LogAnalyzer;
 use Mata\Services\Monitor\AppMonitor;
-use Mata\Services\Monitor\AppMonitorInterface;
+use Mata\Services\Monitor\Dto\ServerDashboardServices;
 use Mata\Services\Monitor\MockAppMonitor;
 use Mata\Services\Monitor\MockNodeHealthMonitor;
 use Mata\Services\Monitor\NodeHealthMonitor;
-use Mata\Services\Monitor\NodeHealthMonitorInterface;
 use Mata\Services\Monitor\ServerMonitor;
 use Mata\Services\Navigation\MenuBuilder;
 use Mata\Services\Notification\NotificationManager;
@@ -86,14 +85,8 @@ class DashboardController extends BaseController
 
     private string $monitoringEnvironment;
 
-    /** @var array<string,ServerDataCollectorInterface> */
-    private array $serversDataCollector = [];
-
-    /** @var array<string,AppMonitorInterface> */
-    private array $appMonitors = [];
-
-    /** @var array<string,NodeHealthMonitorInterface> */
-    private array $nodeHealthMonitors = [];
+    /** @var array<string,ServerDashboardServices> */
+    private array $dashboardServicesByServer = [];
 
     /** @var array<string,mixed> */
     private array $serversConfig;
@@ -175,10 +168,7 @@ class DashboardController extends BaseController
         // Initialize per-server service classes
         foreach ($this->serversConfig as $server => $serverConfig) {
             try {
-                $services = $this->initializeServerMonitoring($server, $serverConfig);
-                $this->serversDataCollector[$server] = $services['collector'];
-                $this->appMonitors[$server] = $services['appMonitor'];
-                $this->nodeHealthMonitors[$server] = $services['healthMonitor'];
+                $this->dashboardServicesByServer[$server] = $this->initializeServerMonitoring($server, $serverConfig);
 
             } catch (Exception $e) {
                 $this->logger->error($server, [
@@ -201,26 +191,24 @@ class DashboardController extends BaseController
      *
      * @param string              $server       Server name
      * @param array<string,mixed> $serverConfig Server configuration
-     *
-     * @return array{collector: ServerDataCollectorInterface, appMonitor: AppMonitorInterface, healthMonitor: NodeHealthMonitorInterface}
      */
-    private function initializeServerMonitoring(string $server, array $serverConfig): array
+    private function initializeServerMonitoring(string $server, array $serverConfig): ServerDashboardServices
     {
         $environment = $this->appConfig->environment->env;
         $dataTransformer = new ApiResponseTransformer($this->logger);
 
         if ($environment === 'demo') {
-            return [
-                'collector' => new MockServerDataCollector(
+            return new ServerDashboardServices(
+                new MockServerDataCollector(
                     $this->logger,
                     $this->ttlResolver,
                     $dataTransformer,
                     $server,
                     $serverConfig
                 ),
-                'appMonitor' => new MockAppMonitor(),
-                'healthMonitor' => new MockNodeHealthMonitor(),
-            ];
+                new MockAppMonitor(),
+                new MockNodeHealthMonitor(),
+            );
         }
 
         if (!isset($serverConfig['api_key'], $serverConfig['api_url'])) {
@@ -244,8 +232,8 @@ class DashboardController extends BaseController
             $suppressHttpWarning
         );
 
-        return [
-            'collector' => new ServerDataCollector(
+        return new ServerDashboardServices(
+            new ServerDataCollector(
                 $this->logger,
                 $this->cacheStore,
                 $this->cacheKeyFactory,
@@ -253,7 +241,7 @@ class DashboardController extends BaseController
                 $apiClient,
                 $dataTransformer
             ),
-            'appMonitor' => new AppMonitor(
+            new AppMonitor(
                 $this->cacheStore,
                 $this->cacheKeyFactory,
                 $this->ttlResolver,
@@ -261,7 +249,7 @@ class DashboardController extends BaseController
                 $this->eventManager,
                 $this->logger
             ),
-            'healthMonitor' => new NodeHealthMonitor(
+            new NodeHealthMonitor(
                 $this->cacheStore,
                 $this->cacheKeyFactory,
                 $this->ttlResolver,
@@ -269,7 +257,29 @@ class DashboardController extends BaseController
                 $this->eventManager,
                 $this->logger
             ),
-        ];
+        );
+    }
+
+    /**
+     * @return array<string,ServerDataCollectorInterface>
+     */
+    private function dataCollectorsByServer(): array
+    {
+        $collectors = [];
+        foreach ($this->dashboardServicesByServer as $server => $dashboardServices) {
+            $collectors[$server] = $dashboardServices->collector;
+        }
+
+        return $collectors;
+    }
+
+    private function requireDashboardServices(string $server): ServerDashboardServices
+    {
+        if (!isset($this->dashboardServicesByServer[$server])) {
+            throw new InvalidArgumentException("Dashboard services unavailable for server: {$server}");
+        }
+
+        return $this->dashboardServicesByServer[$server];
     }
 
     /**
@@ -355,9 +365,7 @@ class DashboardController extends BaseController
                 }
 
                 $serversViewData = $this->serverViewBuilder->buildServersViewData(
-                    $this->serversDataCollector,
-                    $this->appMonitors,
-                    $this->nodeHealthMonitors,
+                    $this->dashboardServicesByServer,
                     $this->serversConfig,
                     $forceRefresh
                 );
@@ -387,7 +395,7 @@ class DashboardController extends BaseController
         return $this->executeWithErrorHandling(
             function () use ($forceRefresh) {
                 $html = $this->databaseRenderer->renderContainer(
-                    $this->serversDataCollector,
+                    $this->dataCollectorsByServer(),
                     $this->serversConfig,
                     $forceRefresh
                 );
@@ -499,13 +507,14 @@ class DashboardController extends BaseController
                     throw new InvalidArgumentException("Unknown server: {$server}");
                 }
 
+                $dashboardServices = $this->requireDashboardServices($server);
                 $serversViewData = $this->serverViewBuilder->buildServerViewData(
                     $server,
                     $this->serversConfig[$server],
-                    $this->serversDataCollector[$server],
-                    $this->appMonitors[$server],
+                    $dashboardServices->collector,
+                    $dashboardServices->appMonitor,
                     $forceRefresh,
-                    $this->nodeHealthMonitors[$server] ?? null
+                    $dashboardServices->healthMonitor
                 );
 
                 $html = $this->serverRenderer->renderServerCard(
@@ -534,10 +543,11 @@ class DashboardController extends BaseController
                     throw new InvalidArgumentException("Unknown server: {$server}");
                 }
 
+                $dashboardServices = $this->requireDashboardServices($server);
                 $serverStatsData = $this->serverViewBuilder->buildServerStatsData(
                     $server,
                     $this->serversConfig[$server],
-                    $this->serversDataCollector[$server],
+                    $dashboardServices->collector,
                     $forceRefresh
                 );
 
@@ -603,7 +613,7 @@ class DashboardController extends BaseController
         return $this->executeWithErrorHandling(
             function () {
                 $libraryRows = $this->librariesRenderer->prepareJsonData(
-                    $this->serversDataCollector,
+                    $this->dataCollectorsByServer(),
                     $this->serversConfig
                 );
 
