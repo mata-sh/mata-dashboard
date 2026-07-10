@@ -8,6 +8,7 @@ use GuzzleHttp\Client;
 use GuzzleHttp\Exception\RequestException;
 use Psr\Log\LoggerInterface;
 use RuntimeException;
+use Throwable;
 
 /**
  * HTTP API communication client.
@@ -189,6 +190,56 @@ class ApiClient
     public function delete(string $path, array $options = []): string
     {
         return $this->request('DELETE', $path, $options);
+    }
+
+    /**
+     * Get node health without treating an unhealthy (503) response as an exception.
+     *
+     * @return array<string,mixed>
+     */
+    public function getHealth(int $timeout = 3): array
+    {
+        $startTime = microtime(true);
+        $httpCode = null;
+
+        try {
+            $response = $this->client->request('GET', 'health', [
+                'timeout' => $timeout,
+                'http_errors' => false,
+            ]);
+            $latencyMs = (int) round((microtime(true) - $startTime) * 1000);
+            $httpCode = $response->getStatusCode();
+            $payload = json_decode((string) $response->getBody(), true, 512, JSON_THROW_ON_ERROR);
+
+            if (!is_array($payload)) {
+                throw new RuntimeException('Invalid health response payload');
+            }
+
+            $reportedStatus = $payload['status'] ?? null;
+            $isHealthy = $httpCode >= 200 && $httpCode < 300 && $reportedStatus === 'healthy';
+
+            return [
+                'status' => $isHealthy ? 'healthy' : 'unhealthy',
+                'httpCode' => $httpCode,
+                'maintenance_mode' => is_bool($payload['maintenance_mode'] ?? null) ? $payload['maintenance_mode'] : null,
+                'checks' => is_array($payload['checks'] ?? null) ? $payload['checks'] : null,
+                'node_timestamp' => $payload['timestamp'] ?? null,
+                'latency_ms' => $latencyMs,
+                'error' => null,
+                'checked_at' => time(),
+            ];
+        } catch (Throwable $e) {
+            return [
+                'status' => 'unreachable',
+                'httpCode' => $httpCode ?? ($e instanceof RequestException && $e->getCode() ? $e->getCode() : null),
+                'maintenance_mode' => null,
+                'checks' => null,
+                'node_timestamp' => null,
+                'latency_ms' => null,
+                'error' => $e->getMessage(),
+                'checked_at' => time(),
+            ];
+        }
     }
 
     /**

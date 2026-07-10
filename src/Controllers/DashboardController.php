@@ -26,6 +26,9 @@ use Mata\Services\Foundation\LogAnalyzer;
 use Mata\Services\Monitor\AppMonitor;
 use Mata\Services\Monitor\AppMonitorInterface;
 use Mata\Services\Monitor\MockAppMonitor;
+use Mata\Services\Monitor\MockNodeHealthMonitor;
+use Mata\Services\Monitor\NodeHealthMonitor;
+use Mata\Services\Monitor\NodeHealthMonitorInterface;
 use Mata\Services\Monitor\ServerMonitor;
 use Mata\Services\Navigation\MenuBuilder;
 use Mata\Services\Notification\NotificationManager;
@@ -88,6 +91,9 @@ class DashboardController extends BaseController
 
     /** @var array<string,AppMonitorInterface> */
     private array $appMonitors = [];
+
+    /** @var array<string,NodeHealthMonitorInterface> */
+    private array $nodeHealthMonitors = [];
 
     /** @var array<string,mixed> */
     private array $serversConfig;
@@ -172,6 +178,7 @@ class DashboardController extends BaseController
                 $services = $this->initializeServerMonitoring($server, $serverConfig);
                 $this->serversDataCollector[$server] = $services['collector'];
                 $this->appMonitors[$server] = $services['appMonitor'];
+                $this->nodeHealthMonitors[$server] = $services['healthMonitor'];
 
             } catch (Exception $e) {
                 $this->logger->error($server, [
@@ -195,7 +202,7 @@ class DashboardController extends BaseController
      * @param string              $server       Server name
      * @param array<string,mixed> $serverConfig Server configuration
      *
-     * @return array{collector: ServerDataCollectorInterface, appMonitor: AppMonitorInterface}
+     * @return array{collector: ServerDataCollectorInterface, appMonitor: AppMonitorInterface, healthMonitor: NodeHealthMonitorInterface}
      */
     private function initializeServerMonitoring(string $server, array $serverConfig): array
     {
@@ -212,6 +219,7 @@ class DashboardController extends BaseController
                     $serverConfig
                 ),
                 'appMonitor' => new MockAppMonitor(),
+                'healthMonitor' => new MockNodeHealthMonitor(),
             ];
         }
 
@@ -246,6 +254,14 @@ class DashboardController extends BaseController
                 $dataTransformer
             ),
             'appMonitor' => new AppMonitor(
+                $this->cacheStore,
+                $this->cacheKeyFactory,
+                $this->ttlResolver,
+                $apiClient,
+                $this->eventManager,
+                $this->logger
+            ),
+            'healthMonitor' => new NodeHealthMonitor(
                 $this->cacheStore,
                 $this->cacheKeyFactory,
                 $this->ttlResolver,
@@ -341,6 +357,7 @@ class DashboardController extends BaseController
                 $serversViewData = $this->serverViewBuilder->buildServersViewData(
                     $this->serversDataCollector,
                     $this->appMonitors,
+                    $this->nodeHealthMonitors,
                     $this->serversConfig,
                     $forceRefresh
                 );
@@ -487,7 +504,8 @@ class DashboardController extends BaseController
                     $this->serversConfig[$server],
                     $this->serversDataCollector[$server],
                     $this->appMonitors[$server],
-                    $forceRefresh
+                    $forceRefresh,
+                    $this->nodeHealthMonitors[$server] ?? null
                 );
 
                 $html = $this->serverRenderer->renderServerCard(

@@ -6,15 +6,18 @@ namespace Mata\Services\View;
 
 use Exception;
 use Mata\Constants\CacheTypes;
+use Mata\Constants\NodeHealthState;
 use Mata\Services\Cache\CacheTypeResolver;
 use Mata\Services\Collect\ServerDataCollectorInterface;
 use Mata\Services\Event\EventManager;
 use Mata\Services\Foundation\LogAnalyzer;
 use Mata\Services\Monitor\AppMonitorInterface;
 use Mata\Services\Monitor\Dto\EndpointTarget;
+use Mata\Services\Monitor\NodeHealthMonitorInterface;
 use Mata\Services\Monitor\ServerMonitor;
 use Mata\Utils\Html;
 use Monolog\Logger;
+use Throwable;
 
 /**
  * Server view data builder service.
@@ -53,6 +56,7 @@ class ServerViewBuilder
      *
      * @param array<string,ServerDataCollectorInterface> $serversDataCollector
      * @param array<string,AppMonitorInterface>          $appMonitors
+     * @param array<string,NodeHealthMonitorInterface>   $healthMonitors
      * @param array<string,mixed>                        $serversConfig
      *
      * @return array<int,array<string,mixed>>
@@ -60,12 +64,15 @@ class ServerViewBuilder
     public function buildServersViewData(
         array $serversDataCollector,
         array $appMonitors,
+        array $healthMonitors,
         array $serversConfig,
         bool $forceRefresh
     ): array {
         $serversViewData = [];
 
         foreach ($serversConfig as $server => $serverConfig) {
+            $healthMonitor = $healthMonitors[$server] ?? null;
+
             try {
                 $collector = $serversDataCollector[$server] ?? null;
                 $appMonitor = $appMonitors[$server] ?? null;
@@ -80,6 +87,7 @@ class ServerViewBuilder
                     $collector,
                     $appMonitor,
                     $forceRefresh,
+                    $healthMonitor,
                 );
             } catch (Exception $e) {
                 $this->logger->error("{$server}", [
@@ -88,7 +96,12 @@ class ServerViewBuilder
                     'line' => $e->getLine(),
                 ]);
 
-                $serversViewData[] = $this->buildServerErrorViewData($server, $serverConfig, $e);
+                $serversViewData[] = $this->buildServerErrorViewData(
+                    $server,
+                    $serverConfig,
+                    $e,
+                    $this->resolveNodeHealth($server, $healthMonitor)
+                );
             }
         }
 
@@ -144,6 +157,7 @@ class ServerViewBuilder
         ServerDataCollectorInterface $collector,
         AppMonitorInterface $appMonitor,
         bool $forceRefresh,
+        ?NodeHealthMonitorInterface $healthMonitor = null,
     ): array {
         // Get base server metrics
         $serverData = $this->buildServerStatsData($serverName, $serverConfig, $collector, $forceRefresh);
@@ -173,6 +187,7 @@ class ServerViewBuilder
             'age' => $appsCacheAge,
             'ttl' => $appsCacheTtl,
         ];
+        $serverData['health'] = $this->resolveNodeHealth($serverName, $healthMonitor);
 
         return $serverData;
     }
@@ -259,12 +274,52 @@ class ServerViewBuilder
     private function buildServerErrorViewData(
         string $serverName,
         array $serverConfig,
-        Exception $exception
+        Exception $exception,
+        array $nodeHealth
     ): array {
         return [
             'server' => $serverName,
             'config' => $serverConfig,
+            'health' => $nodeHealth,
             'error' => $exception->getMessage(),
+        ];
+    }
+
+    /**
+     * Health failures must not prevent server-card rendering.
+     *
+     * @return array<string,mixed>
+     */
+    private function resolveNodeHealth(string $serverName, ?NodeHealthMonitorInterface $healthMonitor): array
+    {
+        if ($healthMonitor === null) {
+            return $this->unknownHealth();
+        }
+
+        try {
+            return $healthMonitor->check($serverName);
+        } catch (Throwable $e) {
+            $this->logger->warning("Health check failed for {$serverName}", ['error' => $e->getMessage()]);
+
+            return $this->unknownHealth();
+        }
+    }
+
+    /**
+     * @return array<string,mixed>
+     */
+    private function unknownHealth(): array
+    {
+        return [
+            'status' => 'unreachable',
+            'state' => NodeHealthState::UNKNOWN,
+            'httpCode' => null,
+            'maintenance_mode' => null,
+            'checks' => null,
+            'node_timestamp' => null,
+            'latency_ms' => null,
+            'error' => null,
+            'checked_at' => time(),
         ];
     }
 

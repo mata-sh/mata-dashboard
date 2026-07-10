@@ -34,6 +34,11 @@ final class CacheTypes
     public const PING = 'ping';
 
     /**
+     * Node health endpoint results.
+     */
+    public const HEALTH = 'health';
+
+    /**
      * Application error logs.
      */
     public const ERROR_LOG = 'errorlog';

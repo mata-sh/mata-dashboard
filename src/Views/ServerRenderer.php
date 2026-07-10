@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace Mata\Views;
 
 use Exception;
+use Mata\Constants\AppAvailabilityStatus;
+use Mata\Constants\NodeHealthState;
 use Mata\Core\App;
 use Mata\Http\Routing\Endpoints;
 use Mata\Utils\Html;
@@ -23,12 +25,6 @@ use Twig\Environment;
  */
 class ServerRenderer extends BaseRenderer
 {
-    // Availability status constants
-    private const STATUS_MAINTENANCE = 'maintenance';
-    private const STATUS_PROTECTED = 'protected';
-    private const STATUS_ONLINE = 'online';
-    private const STATUS_OFFLINE = 'offline';
-
     private LogRenderer $logRenderer;
 
     public function __construct(
@@ -90,8 +86,9 @@ class ServerRenderer extends BaseRenderer
     public function renderServerCard(array $serverRenderData): string
     {
         $serverName = (string) ($serverRenderData['server'] ?? 'unknown');
-        $serverConfig = $serverRenderData['config'] ?? [];
         $serverId = $this->generateHtmlId($serverName, 'server');
+        $serverConfig = $serverRenderData['config'] ?? [];
+        $nodeHealth = $serverRenderData['health'] ?? [];
 
         if (isset($serverRenderData['error'])) {
             $errorMessage = is_array($serverRenderData['error'])
@@ -102,7 +99,8 @@ class ServerRenderer extends BaseRenderer
                 $serverConfig,
                 $serverId,
                 $errorMessage,
-                $serverRenderData['partial'] ?? null
+                $serverRenderData['partial'] ?? null,
+                $nodeHealth
             );
 
             return $this->twig->render('partials/cards/server-card.html.twig', $data);
@@ -124,7 +122,8 @@ class ServerRenderer extends BaseRenderer
             $metrics,
             $serverConfig,
             $serverId,
-            $appsHtml
+            $appsHtml,
+            $nodeHealth
         );
 
         return $this->twig->render('partials/cards/server-card.html.twig', $data);
@@ -269,9 +268,10 @@ class ServerRenderer extends BaseRenderer
         array $serverMetrics,
         array $serverConfig,
         string $serverId,
-        string $appsHtml
+        string $appsHtml,
+        array $nodeHealth = []
     ): array {
-        $data = $this->buildServerStatsData($serverName, $serverMetrics, $serverConfig, $serverId);
+        $data = $this->buildServerStatsData($serverName, $serverMetrics, $serverConfig, $serverId, $nodeHealth);
 
         $data['content'] = [
             'apps_status' => $appsHtml,
@@ -300,13 +300,14 @@ class ServerRenderer extends BaseRenderer
         string $serverName,
         array $serverMetrics,
         array $serverConfig,
-        string $serverId
+        string $serverId,
+        array $nodeHealth = []
     ): array {
         $serverData = $serverMetrics['data'];
         $levels = $serverMetrics['levels'];
         $cacheInfo = $serverMetrics['cache'] ?? ['age' => 0, 'ttl' => 0];
 
-        $basicServerData = $this->buildBasicServerData($serverConfig, $serverId, $serverData);
+        $basicServerData = $this->buildBasicServerData($serverConfig, $serverId, $serverData, $nodeHealth);
         $basicServerData['title'] = $this->truncate($basicServerData['title'], 20);
         $basicServerData['name'] = $this->truncate($serverName, 20);
 
@@ -365,9 +366,10 @@ class ServerRenderer extends BaseRenderer
         array $serverConfig,
         string $serverId,
         string $errorMsg,
-        ?array $serverData = null
+        ?array $serverData = null,
+        array $nodeHealth = []
     ): array {
-        $basicServerData = $this->buildBasicServerData($serverConfig, $serverId, $serverData);
+        $basicServerData = $this->buildBasicServerData($serverConfig, $serverId, $serverData, $nodeHealth);
         $basicServerData['title'] = $this->truncate($basicServerData['title']);
 
         return [
@@ -466,14 +468,107 @@ class ServerRenderer extends BaseRenderer
     private function buildBasicServerData(
         array $serverConfig,
         string $serverId,
-        ?array $serverData = null
+        ?array $serverData = null,
+        array $nodeHealth = []
     ): array {
         return [
             'id' => $serverId,
             'title' => $serverConfig['title'] ?? '',
             'primary_color' => $serverConfig['primary_color'] ?? '#fefefe',
             'cpu_usage' => $serverData['cpu_usage'] ?? 0,
+            'health' => $this->formatNodeHealth($nodeHealth),
         ];
+    }
+
+    /**
+     * Create safe, compact node-health data for the title indicator.
+     *
+     * @param array<string,mixed> $nodeHealth
+     *
+     * @return array{state:string,label:string,tooltip:string}
+     */
+    private function formatNodeHealth(array $nodeHealth): array
+    {
+        $health = match ($nodeHealth['state'] ?? null) {
+            NodeHealthState::HEALTHY => [
+                'state' => NodeHealthState::HEALTHY,
+                'label' => 'Healthy',
+            ],
+            NodeHealthState::UNHEALTHY => [
+                'state' => NodeHealthState::UNHEALTHY,
+                'label' => 'Unhealthy',
+            ],
+            NodeHealthState::UNREACHABLE => [
+                'state' => NodeHealthState::UNREACHABLE,
+                'label' => 'Unreachable',
+            ],
+            NodeHealthState::MAINTENANCE => [
+                'state' => NodeHealthState::MAINTENANCE,
+                'label' => 'Maintenance mode',
+            ],
+            default => [
+                'state' => NodeHealthState::UNKNOWN,
+                'label' => 'Health check failed',
+            ],
+        };
+        $health['tooltip'] = implode('<br>', $this->buildHealthTooltip(
+            $health['state'],
+            $health['label'],
+            $nodeHealth
+        ));
+
+        return $health;
+    }
+
+    /**
+     * @param array<string,mixed> $nodeHealth
+     *
+     * @return array<int,string>
+     */
+    private function buildHealthTooltip(string $state, string $label, array $nodeHealth): array
+    {
+        if ($nodeHealth === []) {
+            return [$label];
+        }
+
+        $tooltipParts = [$label];
+        $checks = $nodeHealth['checks'] ?? [];
+        if ($checks !== []) {
+            foreach ($checks as $check => $passed) {
+                $tooltipParts[] = sprintf(
+                    '%s %s',
+                    $passed === true ? '✓' : '✗',
+                    Html::escapeTooltipValue(str_replace('_', ' ', (string) $check))
+                );
+            }
+        }
+
+        $timing = [];
+        if (is_int($nodeHealth['latency_ms'] ?? null)) {
+            $timing[] = "latency {$nodeHealth['latency_ms']} ms";
+        }
+        if (is_numeric($nodeHealth['checked_at'] ?? null)) {
+            $age = max(0, time() - (int) $nodeHealth['checked_at']);
+            $timing[] = 'checked ' . $this->tools->formatDuration($age) . ' ago';
+        }
+        if ($timing !== []) {
+            $tooltipParts[] = implode(' · ', $timing);
+        }
+
+        if (in_array($state, [
+            NodeHealthState::UNHEALTHY,
+            NodeHealthState::UNREACHABLE,
+            NodeHealthState::UNKNOWN,
+        ], true)) {
+            if (!empty($nodeHealth['httpCode'])) {
+                $tooltipParts[] = 'HTTP ' . (int) $nodeHealth['httpCode'];
+            }
+            if (!empty($nodeHealth['error'])) {
+                $tooltipParts[] = Html::escapeTooltipValue((string) $nodeHealth['error']);
+            }
+        }
+
+        return $tooltipParts;
     }
 
     /**
@@ -557,7 +652,7 @@ class ServerRenderer extends BaseRenderer
     private function formatMaintenanceStatus(): array
     {
         return [
-            'status' => self::STATUS_MAINTENANCE,
+            'status' => AppAvailabilityStatus::MAINTENANCE,
             'tooltip' => 'Maintenance mode',
         ];
     }
@@ -570,7 +665,7 @@ class ServerRenderer extends BaseRenderer
     private function formatProtectedStatus(): array
     {
         return [
-            'status' => self::STATUS_PROTECTED,
+            'status' => AppAvailabilityStatus::PROTECTED,
             'tooltip' => 'No availability data',
         ];
     }
@@ -600,7 +695,7 @@ class ServerRenderer extends BaseRenderer
             : 'Online: ' . implode(' • ', $segments);
 
         return [
-            'status' => self::STATUS_ONLINE,
+            'status' => AppAvailabilityStatus::ONLINE,
             'tooltip' => $tooltip,
         ];
     }
@@ -630,7 +725,7 @@ class ServerRenderer extends BaseRenderer
             : implode(' • ', $segments);
 
         return [
-            'status' => self::STATUS_OFFLINE,
+            'status' => AppAvailabilityStatus::OFFLINE,
             'tooltip' => $tooltip,
         ];
     }
@@ -693,6 +788,11 @@ class ServerRenderer extends BaseRenderer
             'container_width' => 1344,
         ];
 
+        $layoutOverrides = array_filter(
+            $layout,
+            static fn ($value) => $value !== null
+        );
+
         return [
             'app_env' => $layout['app_env'] ?? 'prod',
             'ui' => [
@@ -712,10 +812,7 @@ class ServerRenderer extends BaseRenderer
             ],
             'endpoints' => $endpoints,
             'menu' => $menu,
-            'layout' => array_merge($layoutDefaults, array_filter(
-                $layout,
-                static fn ($value) => $value !== null
-            )),
+            'layout' => array_merge($layoutDefaults, $layoutOverrides),
         ];
     }
 
