@@ -18,6 +18,7 @@
     <button class="button" id="filter-clear">Clear Filter</button>
   </div>
 
+  <div id="libraries-errors" class="server-fetch-error" hidden></div>
   <div id="libraries-table"></div>
 </div>
 
@@ -29,10 +30,20 @@
     paginationSize: 40,
     paginationCounter: 'rows',
     ajaxResponse: function (url, params, response) {
+      var rows = Array.isArray(response) ? response : (response.data || [])
+      var errors = Array.isArray(response) ? [] : (response.errors || [])
+      var errorsElement = document.getElementById('libraries-errors')
+      errorsElement.replaceChildren()
+      errorsElement.hidden = errors.length === 0
+      errors.forEach(function (error) {
+        var line = document.createElement('div')
+        line.textContent = error.server + ': ' + error.message
+        errorsElement.appendChild(line)
+      })
       if (window.mataPopulateSelectFromRows) {
-        window.mataPopulateSelectFromRows('filter-app', response, 'app', 'All Apps')
+        window.mataPopulateSelectFromRows('filter-app', rows, 'app', 'All Apps')
       }
-      return response
+      return rows
     },
     columns: [
       { title: 'Name', field: 'name' },

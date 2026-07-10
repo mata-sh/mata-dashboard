@@ -293,6 +293,22 @@ class ServerDataCollector implements ServerDataCollectorInterface
                 );
             }
 
+            // 4. Surface a structured node error when the failed response carried one
+            $response = $e->getResponse();
+            if ($response !== null) {
+                $nodeError = $this->dataTransformer->normalizeNodeErrorResponse(
+                    (string) $response->getBody(),
+                    $path,
+                    $response->getStatusCode(),
+                );
+                if ($nodeError !== null) {
+                    return $this->dataTransformer->errorApiResponse(
+                        $nodeError,
+                        cacheTtl: $ttlSeconds,
+                    );
+                }
+            }
+
             return null;
         }
     }

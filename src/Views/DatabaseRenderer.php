@@ -74,18 +74,13 @@ class DatabaseRenderer extends BaseRenderer
                 }
 
                 $serverData = $serversData[$server];
-                $response = $serverData->getServerDatabases();
-                $databaseData = is_array($response) && isset($response['result']) ? $response['result'] : null;
+                [$databaseData, $endpointError] = $this->extractDatabaseResponse($serverData->getServerDatabases());
 
-                if ($databaseData === null) {
-                    throw new Exception('Failed to fetch databases data via API.');
-                }
-
-                // Build template data using own method
                 $renderData = $this->buildDatabaseCardData(
                     $databaseData,
                     $serverConfig,
-                    $serverId
+                    $serverId,
+                    $endpointError,
                 );
 
                 $databaseContainerHtml .= $this->twig->render(
@@ -99,8 +94,10 @@ class DatabaseRenderer extends BaseRenderer
                     'line' => $e->getLine(),
                 ]);
 
-                // Skip failed servers
-                continue;
+                $databaseContainerHtml .= $this->twig->render(
+                    'partials/cards/database-card.html.twig',
+                    $this->buildDatabaseCardData([], $serverConfig, $serverId, $e->getMessage())
+                );
             }
         }
 
@@ -122,18 +119,13 @@ class DatabaseRenderer extends BaseRenderer
     {
         $serverId = $this->generateHtmlId($server, 'server');
 
-        $response = $serverDataCollector->getServerDatabases();
-        $databaseData = is_array($response) && isset($response['result']) ? $response['result'] : null;
+        [$databaseData, $endpointError] = $this->extractDatabaseResponse($serverDataCollector->getServerDatabases());
 
-        if ($databaseData === null) {
-            throw new Exception('Failed to fetch databases data via API.');
-        }
-
-        // Build template data using own method
         $renderData = $this->buildDatabaseCardData(
             $databaseData,
             $serverConfig,
-            $serverId
+            $serverId,
+            $endpointError,
         );
 
         return $this->twig->render('partials/cards/database-card.html.twig', $renderData);
@@ -151,7 +143,8 @@ class DatabaseRenderer extends BaseRenderer
     public function buildDatabaseCardData(
         array $databaseData,
         array $serverConfig,
-        string $serverId
+        string $serverId,
+        ?string $errorMessage = null,
     ): array {
         return [
             'server' => [
@@ -164,8 +157,39 @@ class DatabaseRenderer extends BaseRenderer
                 'refresh_stats' => $this->tools->icon('refresh-ccw', 12),
             ],
             'system' => [
-                'processes_sql' => $databaseData['processes']['sql'] ?? 0,
+                'processes_sql' => $databaseData['processes']['sql'] ?? null,
+            ],
+            'ui' => [
+                'error_message' => $errorMessage,
             ],
         ];
+    }
+
+    /**
+     * Extract database payload and endpoint error from a collector response.
+     *
+     * @param null|array<string,mixed>|string $response Raw collector response
+     *
+     * @return array{0: array<string,mixed>, 1: null|string} [$databaseData, $endpointError]
+     *
+     * @throws Exception When the response carries neither data nor an error
+     */
+    private function extractDatabaseResponse(array|string|null $response): array
+    {
+        $endpointError = is_array($response)
+            && is_array($response['error'] ?? null)
+            && is_string($response['error']['message'] ?? null)
+            ? $response['error']['message']
+            : null;
+
+        $databaseData = is_array($response) && is_array($response['result'] ?? null)
+            ? $response['result']
+            : [];
+
+        if ($endpointError === null && $databaseData === []) {
+            throw new Exception('Failed to fetch databases data via API.');
+        }
+
+        return [$databaseData, $endpointError];
     }
 }

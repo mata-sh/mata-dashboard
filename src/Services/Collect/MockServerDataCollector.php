@@ -76,10 +76,15 @@ class MockServerDataCollector implements ServerDataCollectorInterface
             'load_average' => round(($baseMetrics['cpu'] / 100) * 4 + mt_rand(-50, 50) / 100, 2),
             'network_rx_bytes' => mt_rand(1000000000, 50000000000),
             'network_tx_bytes' => mt_rand(800000000, 40000000000),
+            'processes' => [
+                'total' => mt_rand(80, 240),
+                'php' => mt_rand(10, 40),
+                'sql' => mt_rand(2, 12),
+            ],
             'cronjobs' => ['total' => 5, 'working' => 3, 'stale' => 1, 'missing' => 1],
         ];
 
-        return $this->dataTransformer->normalizeApiResponse($data, $this->cacheAge, $ttlSeconds, false);
+        return $this->dataTransformer->normalizeApiResponse($data, $this->cacheAge, $ttlSeconds, false, false, 'server-data');
     }
 
     /**
@@ -202,6 +207,7 @@ class MockServerDataCollector implements ServerDataCollectorInterface
             'connections_max' => 150,
             'uptime_hours' => mt_rand(120, 1080),
             'queries_per_second' => mt_rand(10, 200),
+            'processes' => ['sql' => mt_rand(2, 12)],
             'databases' => [
                 'mata_dashboard' => ['tables' => 8, 'size_mb' => mt_rand(10, 100)],
                 'ecommerce_prod' => ['tables' => 45, 'size_mb' => mt_rand(800, 1500)],
@@ -211,7 +217,7 @@ class MockServerDataCollector implements ServerDataCollectorInterface
             ],
         ];
 
-        return $this->dataTransformer->normalizeApiResponse($data, $this->cacheAge, $ttlSeconds, false);
+        return $this->dataTransformer->normalizeApiResponse($data, $this->cacheAge, $ttlSeconds, false, false, 'server-databases');
     }
 
     /**
@@ -229,7 +235,7 @@ class MockServerDataCollector implements ServerDataCollectorInterface
             $libraries[$app] = $this->generateLibrariesForApp($app);
         }
 
-        return $this->dataTransformer->normalizeApiResponse($libraries, $this->cacheAge, $ttlSeconds, false);
+        return $this->dataTransformer->normalizeApiResponse($libraries, $this->cacheAge, $ttlSeconds, false, false, 'apps/libraries');
     }
 
     /**
@@ -241,7 +247,7 @@ class MockServerDataCollector implements ServerDataCollectorInterface
         $this->cacheTtl = $ttlSeconds;
         $data = $this->generateLibrariesForApp($app);
 
-        return $this->dataTransformer->normalizeApiResponse($data, $this->cacheAge, $ttlSeconds, false);
+        return $this->dataTransformer->normalizeApiResponse($data, $this->cacheAge, $ttlSeconds, false, false, "{$app}/libraries");
     }
 
     /**

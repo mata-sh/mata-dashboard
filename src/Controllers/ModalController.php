@@ -171,11 +171,10 @@ class ModalController extends BaseController
                 }
                 $serverData = $this->serverDataCollectors[$server];
 
-                $readmeResponse = $this->modalCacheService->fetchReadme($serverData, $app, $forceRefresh);
-
-                if ($readmeResponse === null) {
-                    throw new Exception("Failed to fetch README.md of {$app} on {$server} list via API.");
-                }
+                $readmeResponse = $this->requireValidResponse(
+                    $this->modalCacheService->fetchReadme($serverData, $app, $forceRefresh),
+                    "README of {$app} on {$server}"
+                );
 
                 $markdownContent = !empty($readmeResponse['result'])
                     ? $readmeResponse['result']
@@ -223,11 +222,10 @@ class ModalController extends BaseController
                 }
                 $serverData = $this->serverDataCollectors[$server];
 
-                $logsResponse = $this->modalCacheService->fetchLogs($serverData, $app, $forceRefresh);
-
-                if ($logsResponse === null) {
-                    throw new Exception("Failed to fetch logs of {$app} on {$server} via API");
-                }
+                $logsResponse = $this->requireValidResponse(
+                    $this->modalCacheService->fetchLogs($serverData, $app, $forceRefresh),
+                    "logs of {$app} on {$server}"
+                );
 
                 $endpoints = [
                     'app_logs_json' => $this->endpoints->url('app_logs_json', [
@@ -278,11 +276,10 @@ class ModalController extends BaseController
                 $serverData = $this->serverDataCollectors[$server];
 
                 // Fetch grouped logs from new API
-                $logsResponse = $this->modalCacheService->fetchLogs($serverData, $app, $forceRefresh);
-
-                if ($logsResponse === null) {
-                    throw new Exception("Failed to fetch logs for {$app} on {$server}");
-                }
+                $logsResponse = $this->requireValidResponse(
+                    $this->modalCacheService->fetchLogs($serverData, $app, $forceRefresh),
+                    "logs of {$app} on {$server}"
+                );
 
                 $groupedLogs = $logsResponse['result'] ?? [];
 
@@ -314,11 +311,10 @@ class ModalController extends BaseController
                 }
                 $serverData = $this->serverDataCollectors[$server];
 
-                $logsStatusResponse = $this->modalCacheService->fetchLogsStatus($serverData, $app, $forceRefresh);
-
-                if ($logsStatusResponse === null) {
-                    throw new Exception("Failed to fetch logs status for {$app} on {$server}");
-                }
+                $logsStatusResponse = $this->requireValidResponse(
+                    $this->modalCacheService->fetchLogsStatus($serverData, $app, $forceRefresh),
+                    "logs status of {$app} on {$server}"
+                );
 
                 $logsStatusData = $logsStatusResponse['result'] ?? [];
 
@@ -348,11 +344,10 @@ class ModalController extends BaseController
                 }
                 $serverData = $this->serverDataCollectors[$server];
 
-                $serverInfoResponse = $this->modalCacheService->fetchServerInfo($serverData, $forceRefresh);
-
-                if ($serverInfoResponse === null) {
-                    throw new Exception("Failed to fetch server info for {$server} via API");
-                }
+                $serverInfoResponse = $this->requireValidResponse(
+                    $this->modalCacheService->fetchServerInfo($serverData, $forceRefresh),
+                    "server info for {$server}"
+                );
 
                 $serverInfo = !empty($serverInfoResponse['result'])
                     ? $serverInfoResponse['result']
@@ -399,11 +394,10 @@ class ModalController extends BaseController
                 }
                 $serverData = $this->serverDataCollectors[$server];
 
-                $cronjobsResponse = $this->modalCacheService->fetchServerCronjobs($serverData, $forceRefresh);
-
-                if ($cronjobsResponse === null) {
-                    throw new Exception("Failed to fetch server cronjobs for {$server} via API");
-                }
+                $cronjobsResponse = $this->requireValidResponse(
+                    $this->modalCacheService->fetchServerCronjobs($serverData, $forceRefresh),
+                    "server cronjobs for {$server}"
+                );
 
                 $cronjobs = !empty($cronjobsResponse['result']) && is_array($cronjobsResponse['result'])
                     ? $cronjobsResponse['result']
@@ -429,5 +423,28 @@ class ModalController extends BaseController
             'Failed to load server cronjobs',
             "Server cronjobs for {$server}"
         );
+    }
+
+    /**
+     * Validate a collector response: non-null and free of node-reported errors.
+     *
+     * @param null|array<string,mixed> $response
+     *
+     * @return array<string,mixed> The validated response
+     *
+     * @throws Exception When the response is missing or carries a node error
+     */
+    private function requireValidResponse(?array $response, string $context): array
+    {
+        if ($response === null) {
+            throw new Exception("Failed to fetch {$context} via API.");
+        }
+
+        $error = $response['error'] ?? null;
+        if (is_array($error) && is_string($error['message'] ?? null)) {
+            throw new Exception($error['message']);
+        }
+
+        return $response;
     }
 }

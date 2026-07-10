@@ -44,46 +44,58 @@ class LibrariesRenderer extends BaseRenderer
      * @param array<string,ServerDataCollectorInterface> $serversData   Server API clients
      * @param array<string,mixed>                        $serversConfig Server configurations
      *
-     * @return array<int,array<string,string>> Formatted library data for JSON response
+     * @return array{data:array<int,array<string,string>>,errors:array<int,array{server:string,message:string}>}
      */
     public function prepareJsonData(array $serversData, array $serversConfig): array
     {
-        $libraryData = [];
         $libraryRows = [];
+        $errors = [];
 
         foreach ($serversConfig as $server => $serverConfig) {
             try {
                 if (!isset($serversData[$server])) {
+                    $errors[] = ['server' => $server, 'message' => 'Libraries service is unavailable.'];
+
                     continue;
                 }
                 $appsLibs = $serversData[$server]->getAppsLibraries();
-                if ($appsLibs) {
-                    $libraryData[$server] = $appsLibs['result'];
+                $endpointError = is_array($appsLibs)
+                    && is_array($appsLibs['error'] ?? null)
+                    && is_string($appsLibs['error']['message'] ?? null)
+                    ? $appsLibs['error']['message']
+                    : null;
+                if ($endpointError !== null) {
+                    $errors[] = ['server' => $server, 'message' => $endpointError];
+
+                    continue;
+                }
+                if (!is_array($appsLibs['result'] ?? null)) {
+                    $errors[] = ['server' => $server, 'message' => 'Failed to fetch libraries data via API.'];
+
+                    continue;
+                }
+                foreach ($appsLibs['result'] as $appName => $libArray) {
+                    foreach ($libArray as $lib) {
+                        $libraryRows[] = [
+                            'server' => $server,
+                            'app' => $appName,
+                            'name' => $lib['name'] ?? '',
+                            'version' => $lib['version'] ?? '',
+                            'type' => $lib['type'] ?? '',
+                            'description' => $lib['description'] ?? '',
+                        ];
+                    }
                 }
             } catch (Exception $e) {
                 $this->logError($e->getMessage(), 'LibrariesData', [
                     'server' => $server,
                 ]);
 
-                continue;
+                $errors[] = ['server' => $server, 'message' => $e->getMessage()];
             }
         }
 
-        foreach ($libraryData as $server => $apps) {
-            foreach ($apps as $appName => $libArray) {
-                foreach ($libArray as $lib) {
-                    $libraryRows[] = [
-                        'server' => $server,
-                        'app' => $appName,
-                        'name' => $lib['name'] ?? '',
-                        'version' => $lib['version'] ?? '',
-                        'type' => $lib['type'] ?? '',
-                        'description' => $lib['description'] ?? '',
-                    ];
-                }
-            }
-        }
 
-        return $libraryRows;
+        return ['data' => $libraryRows, 'errors' => $errors];
     }
 }

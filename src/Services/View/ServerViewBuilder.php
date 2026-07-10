@@ -151,6 +151,10 @@ class ServerViewBuilder
         // Fetch apps list
         $appsCacheType = $this->cacheTypeResolver->resolve($forceRefresh, CacheTypes::APPS);
         $appsApiResponse = $collector->getApps($appsCacheType);
+        $appsError = is_array($appsApiResponse) ? ($appsApiResponse['error'] ?? null) : null;
+        if (is_array($appsError) && is_string($appsError['message'] ?? null)) {
+            throw new Exception($appsError['message']);
+        }
 
         if ($appsApiResponse === null || !isset($appsApiResponse['result']) || !is_array($appsApiResponse['result'])) {
             throw new Exception('Failed to fetch apps list via API.');

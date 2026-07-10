@@ -48,9 +48,13 @@ class ServerMonitor
         string $cacheType = 'serverData'
     ): array {
         $response = $serverDataCollector->getServerSystemData($cacheType);
-        $serverData = $response['result'] ?? null;
+        $error = is_array($response) ? ($response['error'] ?? null) : null;
+        if (is_array($error) && is_string($error['message'] ?? null)) {
+            throw new Exception($error['message']);
+        }
 
-        if ($serverData === null) {
+        $serverData = $response['result'] ?? null;
+        if (!is_array($serverData)) {
             $this->logger->error("Failed to fetch server data via API for server: {$server}");
 
             throw new Exception('Failed to fetch server data via API.');
