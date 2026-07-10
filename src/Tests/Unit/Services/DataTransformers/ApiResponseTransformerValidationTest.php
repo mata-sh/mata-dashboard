@@ -69,22 +69,22 @@ final class ApiResponseTransformerValidationTest extends TestCase
     {
         $response = $this->transformer->normalizeApiResponse([
             'cpu_usage' => 'not-a-number',
-        ], path: 'server-data');
+        ], path: 'server/data');
 
         $this->assertNull($response['result']);
         $this->assertSame('invalid_payload', $response['error']['kind']);
-        $this->assertSame('server-data', $response['error']['endpoint']);
+        $this->assertSame('server/data', $response['error']['endpoint']);
     }
 
     public function testInvalidDatabaseAndLibrariesPayloadsAreExplicitErrors(): void
     {
-        $databaseResponse = $this->transformer->normalizeApiResponse([], path: 'server-databases');
+        $databaseResponse = $this->transformer->normalizeApiResponse([], path: 'server/databases');
         $librariesResponse = $this->transformer->normalizeApiResponse([
             'shop' => [['name' => 'vendor/package']],
         ], path: 'apps/libraries');
 
         $this->assertNull($databaseResponse['result']);
-        $this->assertSame('server-databases', $databaseResponse['error']['endpoint']);
+        $this->assertSame('server/databases', $databaseResponse['error']['endpoint']);
         $this->assertNull($librariesResponse['result']);
         $this->assertSame('libraries', $librariesResponse['error']['endpoint']);
     }

@@ -82,7 +82,7 @@ class MockServerDataCollector implements ServerDataCollectorInterface
             'cronjobs' => ['total' => 5, 'working' => 3, 'stale' => 1, 'missing' => 1],
         ];
 
-        return $this->dataTransformer->normalizeApiResponse($data, $this->cacheAge, $ttlSeconds, false, false, 'server-data');
+        return $this->dataTransformer->normalizeApiResponse($data, $this->cacheAge, $ttlSeconds, false, false, 'server/data');
     }
 
     /**
@@ -211,7 +211,7 @@ class MockServerDataCollector implements ServerDataCollectorInterface
             ],
         ];
 
-        return $this->dataTransformer->normalizeApiResponse($data, $this->cacheAge, $ttlSeconds, false, false, 'server-databases');
+        return $this->dataTransformer->normalizeApiResponse($data, $this->cacheAge, $ttlSeconds, false, false, 'server/databases');
     }
 
     /**
@@ -438,7 +438,7 @@ class MockServerDataCollector implements ServerDataCollectorInterface
             ],
         ];
 
-        return $this->dataTransformer->normalizeApiResponse($cronjobs, $this->cacheAge, $ttlSeconds, false, path: 'server-cronjobs');
+        return $this->dataTransformer->normalizeApiResponse($cronjobs, $this->cacheAge, $ttlSeconds, false, path: 'server/cronjobs');
     }
 
     /**

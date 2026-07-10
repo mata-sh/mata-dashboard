@@ -73,7 +73,7 @@ class ServerDataCollector implements ServerDataCollectorInterface
      */
     public function getServerSystemData(string $cacheType = 'serverData'): ?array
     {
-        return $this->request('GET', 'server-data', $cacheType);
+        return $this->request('GET', 'server/data', $cacheType);
     }
 
     /**
@@ -90,7 +90,7 @@ class ServerDataCollector implements ServerDataCollectorInterface
      */
     public function getServerInfo(string $cacheType = 'serverInfo'): ?array
     {
-        return $this->request('GET', 'server-info', $cacheType);
+        return $this->request('GET', 'server/info', $cacheType);
     }
 
     /**
@@ -102,7 +102,7 @@ class ServerDataCollector implements ServerDataCollectorInterface
      */
     public function getServerPhpProcesses(string $cacheType = 'serverProcesses'): ?array
     {
-        return $this->request('GET', 'server-php', $cacheType);
+        return $this->request('GET', 'server/php', $cacheType);
     }
 
     /**
@@ -114,7 +114,7 @@ class ServerDataCollector implements ServerDataCollectorInterface
      */
     public function getServerDatabases(string $cacheType = 'databases'): array|string|null
     {
-        return $this->request('GET', 'server-databases', $cacheType);
+        return $this->request('GET', 'server/databases', $cacheType);
     }
 
     /**
@@ -234,7 +234,7 @@ class ServerDataCollector implements ServerDataCollectorInterface
      */
     public function fetchServerCronjobs(string $cacheType = 'cronjobs'): ?array
     {
-        return $this->request('GET', 'server-cronjobs', $cacheType);
+        return $this->request('GET', 'server/cronjobs', $cacheType);
     }
 
     /**

@@ -25,6 +25,38 @@ use Psr\Log\NullLogger;
  */
 final class ServerDataCollectorTest extends TestCase
 {
+    public function testServerRoutesUseTheNewNamespace(): void
+    {
+        $cache = $this->createMock(CacheStoreInterface::class);
+        $paths = ['server/data', 'server/info', 'server/php', 'server/databases', 'server/cronjobs'];
+        $apiClient = $this->createMock(ApiClient::class);
+        $apiClient->method('getApiBase')->willReturn('https://node.example.test/api');
+        $apiClient->expects($this->exactly(5))
+            ->method('request')
+            ->willReturnCallback(function (string $method, string $path) use (&$paths): never {
+                $this->assertSame('GET', $method);
+                $this->assertSame(array_shift($paths), $path);
+
+                throw new RequestException('Unavailable', new Request($method, $path));
+            });
+
+        $collector = new ServerDataCollector(
+            new NullLogger(),
+            $cache,
+            new ApiCacheKeyFactory(),
+            new CacheTtlResolver([]),
+            $apiClient,
+            new ApiResponseTransformer(new NullLogger()),
+        );
+
+        $this->assertNull($collector->getServerSystemData());
+        $this->assertNull($collector->getServerInfo());
+        $this->assertNull($collector->getServerPhpProcesses());
+        $this->assertNull($collector->getServerDatabases());
+        $this->assertNull($collector->fetchServerCronjobs());
+        $this->assertSame([], $paths);
+    }
+
     public function testFreshEntryReportsItsOwnCacheAge(): void
     {
         $cache = $this->createMock(CacheStoreInterface::class);

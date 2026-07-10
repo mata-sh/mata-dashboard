@@ -69,14 +69,14 @@ class ApiResponseTransformer
             $normalized = match (true) {
                 !is_array($data), $path === '' => $data,
                 $path === 'apps' => $this->normalizeAppsData($data),
-                $path === 'server-data' => $this->normalizeServerSystemData($data),
-                $path === 'server-databases' => $this->normalizeDatabaseData($data),
+                $path === 'server/data' => $this->normalizeServerSystemData($data),
+                $path === 'server/databases' => $this->normalizeDatabaseData($data),
                 str_ends_with($path, '/sessions') => $this->normalizeAppSessions($data),
-                str_ends_with($path, 'server-cronjobs') => $this->normalizeServerCronjobs($data),
+                str_ends_with($path, 'server/cronjobs') => $this->normalizeServerCronjobs($data),
                 str_contains($path, '/logs/') || str_ends_with($path, '/logs') => $this->normalizeAppLogs($data),
                 str_contains($path, '/readme') => $this->normalizeReadmeData($data),
                 str_contains($path, '/libraries') => $this->normalizeLibrariesData($data),
-                $path === 'server-php' => $this->normalizePhpProcesses($data),
+                $path === 'server/php' => $this->normalizePhpProcesses($data),
                 default => $data,
             };
         } catch (InvalidNodePayloadException $e) {
@@ -248,13 +248,13 @@ class ApiResponseTransformer
     public function normalizeServerCronjobs(array $data): array
     {
         if (!$this->isSequentialArray($data)) {
-            throw new InvalidNodePayloadException('Node returned an invalid cronjob list.', 'server-cronjobs');
+            throw new InvalidNodePayloadException('Node returned an invalid cronjob list.', 'server/cronjobs');
         }
 
         $normalized = [];
         foreach ($data as $entry) {
             if (!is_array($entry)) {
-                throw new InvalidNodePayloadException('Node returned an invalid cronjob entry.', 'server-cronjobs');
+                throw new InvalidNodePayloadException('Node returned an invalid cronjob entry.', 'server/cronjobs');
             }
 
             $exists = TypeConverter::toBool($entry['exists'] ?? null);
@@ -270,7 +270,7 @@ class ApiResponseTransformer
                 || ($entry['path'] ?? null) !== null && $path === null || ($entry['mtime'] ?? null) !== null && $mtime === null
                 || ($entry['age_seconds'] ?? null) !== null && $age === null || ($entry['size'] ?? null) !== null && $size === null
                 || !is_array($tail) || array_filter($tail, static fn (mixed $line): bool => !is_string($line)) !== []) {
-                throw new InvalidNodePayloadException('Node returned invalid cronjob monitoring data.', 'server-cronjobs');
+                throw new InvalidNodePayloadException('Node returned invalid cronjob monitoring data.', 'server/cronjobs');
             }
 
             $normalized[] = [
@@ -293,19 +293,19 @@ class ApiResponseTransformer
         foreach (['cpu_usage' => 'float', 'ram_capacity' => 'int', 'ram_used' => 'int', 'disk_space_capacity' => 'int', 'disk_space_used' => 'int', 'total_system_filecount' => 'int'] as $field => $type) {
             $value = $type === 'float' ? TypeConverter::toFloat($data[$field] ?? null) : TypeConverter::toInt($data[$field] ?? null);
             if ($value === null || $value < 0) {
-                throw new InvalidNodePayloadException("Node returned invalid {$field} data.", 'server-data');
+                throw new InvalidNodePayloadException("Node returned invalid {$field} data.", 'server/data');
             }
             $normalized[$field] = $value;
         }
 
         $processes = $data['processes'] ?? null;
         if (!is_array($processes)) {
-            throw new InvalidNodePayloadException('Node returned invalid process data.', 'server-data');
+            throw new InvalidNodePayloadException('Node returned invalid process data.', 'server/data');
         }
         foreach (['total', 'php', 'sql'] as $field) {
             $value = TypeConverter::toInt($processes[$field] ?? null);
             if ($value === null || $value < 0) {
-                throw new InvalidNodePayloadException("Node returned invalid process {$field} data.", 'server-data');
+                throw new InvalidNodePayloadException("Node returned invalid process {$field} data.", 'server/data');
             }
             $normalized['processes'][$field] = $value;
         }
@@ -327,7 +327,7 @@ class ApiResponseTransformer
         $processes = $data['processes'] ?? null;
         $sql = is_array($processes) ? TypeConverter::toInt($processes['sql'] ?? null) : null;
         if ($sql === null || $sql < 0) {
-            throw new InvalidNodePayloadException('Node returned invalid database process data.', 'server-databases');
+            throw new InvalidNodePayloadException('Node returned invalid database process data.', 'server/databases');
         }
 
         $data['processes']['sql'] = $sql;
