@@ -139,20 +139,6 @@ interface ServerDataCollectorInterface
     public function fetchServerCronjobs(string $cacheType = 'cronjobs'): ?array;
 
     /**
-     * Get the age of the last cached response.
-     *
-     * @return int Cache age timestamp or 0 if not set
-     */
-    public function getCacheAge(): int;
-
-    /**
-     * Get the TTL (Time To Live) of the current cache.
-     *
-     * @return int Cache TTL in seconds
-     */
-    public function getCacheTtl(): int;
-
-    /**
      * Validate if a string contains valid JSON array data.
      *
      * @param string $json JSON string to validate

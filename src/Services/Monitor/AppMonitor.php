@@ -5,9 +5,11 @@ declare(strict_types=1);
 namespace Mata\Services\Monitor;
 
 use Mata\Constants\CacheTypes;
+use Mata\Services\Cache\ApiCacheKeyFactory;
+use Mata\Services\Cache\CacheStoreInterface;
+use Mata\Services\Cache\CacheTtlResolver;
 use Mata\Services\Event\EventManager;
 use Mata\Services\Foundation\ApiClient;
-use Mata\Services\Foundation\CacheManager;
 use Mata\Services\Monitor\Dto\EndpointTarget;
 use Psr\Log\LoggerInterface;
 
@@ -22,7 +24,9 @@ class AppMonitor implements AppMonitorInterface
     private const DEFAULT_AVAILABILITY_TIMEOUT = 5;
 
     public function __construct(
-        private CacheManager $cacheManager,
+        private CacheStoreInterface $cacheStore,
+        private ApiCacheKeyFactory $cacheKeyFactory,
+        private CacheTtlResolver $ttlResolver,
         private ApiClient $apiClient,
         private EventManager $eventManager,
         private LoggerInterface $logger
@@ -60,34 +64,22 @@ class AppMonitor implements AppMonitorInterface
      */
     private function resolveAvailability(string $url, string $cacheType, ?int $timeout = null): array
     {
-        $ttlSeconds = $this->cacheManager->getTtl($cacheType);
-        $this->cacheManager->setCacheTtl($ttlSeconds);
-
+        $ttlSeconds = $this->ttlResolver->get($cacheType);
         $effectiveTimeout = $timeout ?? self::DEFAULT_AVAILABILITY_TIMEOUT;
-        $cacheFile = null;
+        $cacheKey = $this->cacheKeyFactory->createAvailabilityKey(
+            $this->apiClient->getApiBase(),
+            $cacheType,
+            $url,
+            $effectiveTimeout
+        );
 
-        if ($ttlSeconds !== 0 && $this->cacheManager->isCachingEnabled()) {
-            $cacheKey = $this->cacheManager->urlToKey("{$url}|timeout_{$effectiveTimeout}");
-            $cachePath = "ping/{$cacheType}/timeout_{$effectiveTimeout}/{$cacheKey}";
-            $cacheFile = $this->cacheManager->generateCachePath(
-                $this->apiClient->getApiBase(),
-                'HEAD',
-                $cachePath
-            );
-
-            if ($cacheFile && $this->cacheManager->isFreshCache($cacheFile, $ttlSeconds)) {
-                $cached = $this->cacheManager->readCache($cacheFile, $ttlSeconds);
-                if (is_array($cached)) {
-                    return $cached;
-                }
-            }
+        $cached = $this->cacheStore->get($cacheKey, $ttlSeconds);
+        if ($cached !== null) {
+            return $cached->value;
         }
 
         $result = $this->apiClient->checkAvailability($url, $effectiveTimeout);
-
-        if ($cacheFile) {
-            $this->cacheManager->writeCache($cacheFile, $result);
-        }
+        $this->cacheStore->put($cacheKey, $result);
 
         return $result;
     }

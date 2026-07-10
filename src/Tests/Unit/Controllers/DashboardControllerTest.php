@@ -11,9 +11,11 @@ use Mata\Core\App;
 use Mata\Http\Responses\HtmlResponse;
 use Mata\Http\Responses\JsonResponse;
 use Mata\Http\Routing\Endpoints;
+use Mata\Services\Cache\ApiCacheKeyFactory;
+use Mata\Services\Cache\CacheStoreInterface;
+use Mata\Services\Cache\CacheTtlResolver;
 use Mata\Services\Event\EventAggregatorServiceInterface;
 use Mata\Services\Event\EventManager;
-use Mata\Services\Foundation\CacheManager;
 use Mata\Services\Navigation\MenuBuilder;
 use Mata\Services\Notification\NotificationManager;
 use Mata\Tests\Helpers\ApplicationConfigFactory;
@@ -57,7 +59,9 @@ class DashboardControllerTest extends TestCase
     private ApplicationConfig $appConfig;
     private NotificationManager $notificationManager;
     private EventManager $eventManager;
-    private CacheManager $cacheManager;
+    private CacheStoreInterface $cacheStore;
+    private ApiCacheKeyFactory $cacheKeyFactory;
+    private CacheTtlResolver $ttlResolver;
     private Endpoints $endpoints;
     private MenuBuilder $menuBuilder;
     private array $monitoringSettings;
@@ -83,7 +87,9 @@ class DashboardControllerTest extends TestCase
         // NotificationManager is final, so we create a real instance with NullDatabase
         $this->notificationManager = NotificationManagerFactory::create($this->logger);
         $this->eventManager = $this->createMock(EventManager::class);
-        $this->cacheManager = $this->createMock(CacheManager::class);
+        $this->cacheStore = $this->createMock(CacheStoreInterface::class);
+        $this->cacheKeyFactory = new ApiCacheKeyFactory();
+        $this->ttlResolver = new CacheTtlResolver([]);
         $this->endpoints = $this->createMock(Endpoints::class);
         $this->menuBuilder = $this->createMock(MenuBuilder::class);
         $this->twig->method('render')->willReturn('<html></html>');
@@ -178,7 +184,9 @@ class DashboardControllerTest extends TestCase
             $this->appConfig,
             $this->notificationManager,
             $this->eventManager,
-            $this->cacheManager,
+            $this->cacheStore,
+            $this->cacheKeyFactory,
+            $this->ttlResolver,
             $this->endpoints,
             $this->menuBuilder,
             $this->monitoringSettings
@@ -220,7 +228,9 @@ class DashboardControllerTest extends TestCase
             $this->appConfig,
             $this->notificationManager,
             $this->eventManager,
-            $this->cacheManager,
+            $this->cacheStore,
+            $this->cacheKeyFactory,
+            $this->ttlResolver,
             $this->endpoints,
             $this->menuBuilder,
             $this->monitoringSettings
@@ -273,7 +283,9 @@ class DashboardControllerTest extends TestCase
             $this->appConfig,
             $this->notificationManager,
             $this->eventManager,
-            $this->cacheManager,
+            $this->cacheStore,
+            $this->cacheKeyFactory,
+            $this->ttlResolver,
             $this->endpoints,
             $this->menuBuilder,
             $this->monitoringSettings
@@ -309,7 +321,9 @@ class DashboardControllerTest extends TestCase
             $this->appConfig,
             $this->notificationManager,
             $this->eventManager,
-            $this->cacheManager,
+            $this->cacheStore,
+            $this->cacheKeyFactory,
+            $this->ttlResolver,
             $this->endpoints,
             $this->menuBuilder,
             $this->monitoringSettings
@@ -349,7 +363,9 @@ class DashboardControllerTest extends TestCase
             $this->appConfig,
             $this->notificationManager,
             $this->eventManager,
-            $this->cacheManager,
+            $this->cacheStore,
+            $this->cacheKeyFactory,
+            $this->ttlResolver,
             $this->endpoints,
             $this->menuBuilder,
             $this->monitoringSettings
@@ -390,7 +406,9 @@ class DashboardControllerTest extends TestCase
             $this->appConfig,
             $this->notificationManager,
             $this->eventManager,
-            $this->cacheManager,
+            $this->cacheStore,
+            $this->cacheKeyFactory,
+            $this->ttlResolver,
             $this->endpoints,
             $this->menuBuilder,
             $this->monitoringSettings
@@ -425,7 +443,9 @@ class DashboardControllerTest extends TestCase
             $this->appConfig,
             $this->notificationManager,
             $this->eventManager,
-            $this->cacheManager,
+            $this->cacheStore,
+            $this->cacheKeyFactory,
+            $this->ttlResolver,
             $this->endpoints,
             $this->menuBuilder,
             $this->monitoringSettings
@@ -460,7 +480,9 @@ class DashboardControllerTest extends TestCase
             $this->appConfig,
             $this->notificationManager,
             $this->eventManager,
-            $this->cacheManager,
+            $this->cacheStore,
+            $this->cacheKeyFactory,
+            $this->ttlResolver,
             $this->endpoints,
             $this->menuBuilder,
             $this->monitoringSettings
@@ -496,7 +518,9 @@ class DashboardControllerTest extends TestCase
             $this->appConfig,
             $this->notificationManager,
             $this->eventManager,
-            $this->cacheManager,
+            $this->cacheStore,
+            $this->cacheKeyFactory,
+            $this->ttlResolver,
             $this->endpoints,
             $this->menuBuilder,
             $this->monitoringSettings
@@ -528,7 +552,9 @@ class DashboardControllerTest extends TestCase
             $this->appConfig,
             $this->notificationManager,
             $this->eventManager,
-            $this->cacheManager,
+            $this->cacheStore,
+            $this->cacheKeyFactory,
+            $this->ttlResolver,
             $this->endpoints,
             $this->menuBuilder,
             $this->monitoringSettings
@@ -568,7 +594,9 @@ class DashboardControllerTest extends TestCase
             $this->appConfig,
             $this->notificationManager,
             $this->eventManager,
-            $this->cacheManager,
+            $this->cacheStore,
+            $this->cacheKeyFactory,
+            $this->ttlResolver,
             $this->endpoints,
             $this->menuBuilder,
             $this->monitoringSettings
@@ -620,7 +648,9 @@ class DashboardControllerTest extends TestCase
             $this->appConfig,
             $this->notificationManager,
             $this->eventManager,
-            $this->cacheManager,
+            $this->cacheStore,
+            $this->cacheKeyFactory,
+            $this->ttlResolver,
             $this->endpoints,
             $this->menuBuilder,
             $this->monitoringSettings
@@ -686,7 +716,9 @@ class DashboardControllerTest extends TestCase
             $this->appConfig,
             $this->notificationManager,
             $this->eventManager,
-            $this->cacheManager,
+            $this->cacheStore,
+            $this->cacheKeyFactory,
+            $this->ttlResolver,
             $this->endpoints,
             $this->menuBuilder,
             $this->monitoringSettings
@@ -736,7 +768,9 @@ class DashboardControllerTest extends TestCase
             $this->appConfig,
             $this->notificationManager,
             $this->eventManager,
-            $this->cacheManager,
+            $this->cacheStore,
+            $this->cacheKeyFactory,
+            $this->ttlResolver,
             $this->endpoints,
             $this->menuBuilder,
             $this->monitoringSettings
@@ -806,7 +840,9 @@ class DashboardControllerTest extends TestCase
             $this->appConfig,
             $this->notificationManager,
             $this->eventManager,
-            $this->cacheManager,
+            $this->cacheStore,
+            $this->cacheKeyFactory,
+            $this->ttlResolver,
             $this->endpoints,
             $this->menuBuilder,
             $this->monitoringSettings
@@ -845,7 +881,9 @@ class DashboardControllerTest extends TestCase
             $this->appConfig,
             $this->notificationManager,
             $this->eventManager,
-            $this->cacheManager,
+            $this->cacheStore,
+            $this->cacheKeyFactory,
+            $this->ttlResolver,
             $this->endpoints,
             $this->menuBuilder,
             $this->monitoringSettings
@@ -885,7 +923,9 @@ class DashboardControllerTest extends TestCase
             $this->appConfig,
             $this->notificationManager,
             $this->eventManager,
-            $this->cacheManager,
+            $this->cacheStore,
+            $this->cacheKeyFactory,
+            $this->ttlResolver,
             $this->endpoints,
             $this->menuBuilder,
             $this->monitoringSettings
@@ -928,7 +968,9 @@ class DashboardControllerTest extends TestCase
             $this->appConfig,
             $this->notificationManager,
             $this->eventManager,
-            $this->cacheManager,
+            $this->cacheStore,
+            $this->cacheKeyFactory,
+            $this->ttlResolver,
             $this->endpoints,
             $this->menuBuilder,
             $this->monitoringSettings
@@ -961,7 +1003,9 @@ class DashboardControllerTest extends TestCase
             $this->appConfig,
             $this->notificationManager,
             $this->eventManager,
-            $this->cacheManager,
+            $this->cacheStore,
+            $this->cacheKeyFactory,
+            $this->ttlResolver,
             $this->endpoints,
             $this->menuBuilder,
             $this->monitoringSettings
@@ -992,7 +1036,9 @@ class DashboardControllerTest extends TestCase
             $this->appConfig,
             $this->notificationManager,
             $this->eventManager,
-            $this->cacheManager,
+            $this->cacheStore,
+            $this->cacheKeyFactory,
+            $this->ttlResolver,
             $this->endpoints,
             $this->menuBuilder,
             [] // Empty monitoring settings
@@ -1034,7 +1080,9 @@ class DashboardControllerTest extends TestCase
             $this->appConfig,
             $this->notificationManager,
             $this->eventManager,
-            $this->cacheManager,
+            $this->cacheStore,
+            $this->cacheKeyFactory,
+            $this->ttlResolver,
             $this->endpoints,
             $this->menuBuilder,
             $invalidSettings
@@ -1056,7 +1104,9 @@ class DashboardControllerTest extends TestCase
                 $this->appConfig,
                 $this->notificationManager,
                 $this->eventManager,
-                $this->cacheManager,
+                $this->cacheStore,
+                $this->cacheKeyFactory,
+                $this->ttlResolver,
                 $this->endpoints,
                 $this->menuBuilder,
                 $this->monitoringSettings

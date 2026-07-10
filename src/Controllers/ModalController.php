@@ -12,6 +12,9 @@ use Mata\Http\Responses\HtmlResponse;
 use Mata\Http\Responses\JsonResponse;
 use Mata\Http\Responses\Response;
 use Mata\Http\Routing\Endpoints;
+use Mata\Services\Cache\ApiCacheKeyFactory;
+use Mata\Services\Cache\CacheStoreInterface;
+use Mata\Services\Cache\CacheTtlResolver;
 use Mata\Services\Cache\CacheTypeResolver;
 use Mata\Services\Cache\ModalCacheService;
 use Mata\Services\Collect\MockServerDataCollector;
@@ -20,7 +23,6 @@ use Mata\Services\Collect\ServerDataCollectorInterface;
 use Mata\Services\DataTransformers\ApiResponseTransformer;
 use Mata\Services\DataTransformers\LogDataTransformer;
 use Mata\Services\Foundation\ApiClient;
-use Mata\Services\Foundation\CacheManager;
 use Mata\Utils\Tools;
 use Mata\Utils\TypeConverter;
 use Mata\Views\ModalRenderer;
@@ -41,7 +43,9 @@ use Twig\Environment;
 class ModalController extends BaseController
 {
     private Tools $tools;
-    private CacheManager $cacheManager;
+    private CacheStoreInterface $cacheStore;
+    private ApiCacheKeyFactory $cacheKeyFactory;
+    private CacheTtlResolver $ttlResolver;
     private ModalRenderer $modalRenderer;
     private ModalCacheService $modalCacheService;
     private LogDataTransformer $logTransformer;
@@ -58,11 +62,13 @@ class ModalController extends BaseController
     /**
      * Initialize modal controller with dependencies.
      *
-     * @param ApplicationConfig   $appConfig      Application configuration DTO
-     * @param array<string,mixed> $serversConfig  Server configuration array
-     * @param CacheManager        $cacheManager   Cache management service with TTL configuration
-     * @param LogDataTransformer  $logTransformer Log data transformation service
-     * @param Endpoints           $endpoints      Route endpoints for URL generation
+     * @param ApplicationConfig   $appConfig       Application configuration DTO
+     * @param array<string,mixed> $serversConfig   Server configuration array
+     * @param CacheStoreInterface $cacheStore      Cache persistence service
+     * @param ApiCacheKeyFactory  $cacheKeyFactory API cache key factory
+     * @param CacheTtlResolver    $ttlResolver     Cache TTL configuration lookup
+     * @param LogDataTransformer  $logTransformer  Log data transformation service
+     * @param Endpoints           $endpoints       Route endpoints for URL generation
      */
     public function __construct(
         App $app,
@@ -70,7 +76,9 @@ class ModalController extends BaseController
         Environment $twig,
         Logger $logger,
         ApplicationConfig $appConfig,
-        CacheManager $cacheManager,
+        CacheStoreInterface $cacheStore,
+        ApiCacheKeyFactory $cacheKeyFactory,
+        CacheTtlResolver $ttlResolver,
         LogDataTransformer $logTransformer,
         Endpoints $endpoints,
         array $serversConfig
@@ -78,7 +86,9 @@ class ModalController extends BaseController
         $this->tools = $tools;
         $this->logger = $logger;
         $this->appConfig = $appConfig;
-        $this->cacheManager = $cacheManager;
+        $this->cacheStore = $cacheStore;
+        $this->cacheKeyFactory = $cacheKeyFactory;
+        $this->ttlResolver = $ttlResolver;
         $this->logTransformer = $logTransformer;
         $this->endpoints = $endpoints;
         $this->serversConfig = $serversConfig;
@@ -116,7 +126,7 @@ class ModalController extends BaseController
 
             return new MockServerDataCollector(
                 $this->logger,
-                $this->cacheManager,
+                $this->ttlResolver,
                 $dataTransformer,
                 $server,
                 $serverConfig
@@ -145,7 +155,9 @@ class ModalController extends BaseController
 
         return new ServerDataCollector(
             $this->logger,
-            $this->cacheManager,
+            $this->cacheStore,
+            $this->cacheKeyFactory,
+            $this->ttlResolver,
             $apiClient,
             $dataTransformer
         );

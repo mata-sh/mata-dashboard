@@ -27,6 +27,10 @@ use Mata\Models\AlertQueueRepository;
 use Mata\Models\ConfigSyncRepository;
 use Mata\Models\EventRepository;
 use Mata\Services\Alert\AlertManager;
+use Mata\Services\Cache\ApiCacheKeyFactory;
+use Mata\Services\Cache\CacheStoreInterface;
+use Mata\Services\Cache\CacheTtlResolver;
+use Mata\Services\Cache\FileCacheStore;
 use Mata\Services\Cache\MetricsCacheService;
 use Mata\Services\DataTransformers\ChartDataTransformer;
 use Mata\Services\DataTransformers\LogDataTransformer;
@@ -34,7 +38,6 @@ use Mata\Services\Event\EventAggregatorService;
 use Mata\Services\Event\EventManager;
 use Mata\Services\Event\EventRecorderService;
 use Mata\Services\Event\MockEventAggregatorService;
-use Mata\Services\Foundation\CacheManager;
 use Mata\Services\Foundation\IdResolver;
 use Mata\Services\Foundation\SettingsDatabaseSync;
 use Mata\Services\Navigation\MenuBuilder;
@@ -339,9 +342,12 @@ try {
     ];
 }
 // ************************************************************************************************
-// CacheManager & Endpoints
+// Cache & Endpoints
 // ************************************************************************************************
-$cacheManager = new CacheManager($log, $paths->tempPath . '/api-cache', $monitoringSettings['ttl']);
+/** @var CacheStoreInterface $cacheStore */
+$cacheStore = new FileCacheStore($log, $paths->tempPath . '/api-cache');
+$cacheKeyFactory = new ApiCacheKeyFactory();
+$ttlResolver = new CacheTtlResolver($monitoringSettings['ttl']);
 $endpoints = new Endpoints();
 $menuBuilder = new MenuBuilder($endpoints, $tools);
 
@@ -357,7 +363,9 @@ $dashboardController = new DashboardController(
     $appConfig,
     $notificationManager,
     $eventManager,
-    $cacheManager,
+    $cacheStore,
+    $cacheKeyFactory,
+    $ttlResolver,
     $endpoints,
     $menuBuilder,
     $monitoringSettings,
@@ -371,7 +379,9 @@ $modalController = new ModalController(
     $twig,
     $log,
     $appConfig,
-    $cacheManager,
+    $cacheStore,
+    $cacheKeyFactory,
+    $ttlResolver,
     $logDataTransformer,
     $endpoints,
     $monitoringSettings['servers'],
@@ -394,7 +404,8 @@ $metricsDashboardTtl = isset($monitoringSettings['ttl']['serverMetricsChart'])
 
 // Metrics Services
 $metricsCacheService = new MetricsCacheService(
-    $cacheManager,
+    $cacheStore,
+    $cacheKeyFactory,
     $log,
     $monitoringSettings['servers'] ?? []
 );

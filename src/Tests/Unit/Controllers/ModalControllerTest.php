@@ -12,9 +12,11 @@ use Mata\Core\App;
 use Mata\Http\Responses\HtmlResponse;
 use Mata\Http\Responses\JsonResponse;
 use Mata\Http\Routing\Endpoints;
+use Mata\Services\Cache\ApiCacheKeyFactory;
+use Mata\Services\Cache\CacheStoreInterface;
+use Mata\Services\Cache\CacheTtlResolver;
 use Mata\Services\Collect\ServerDataCollectorInterface;
 use Mata\Services\DataTransformers\LogDataTransformer;
-use Mata\Services\Foundation\CacheManager;
 use Mata\Tests\Helpers\ApplicationConfigFactory;
 use Mata\Tests\TestCase;
 use Mata\Utils\Tools;
@@ -47,7 +49,9 @@ class ModalControllerTest extends TestCase
     private MockObject&Tools $mockTools;
     private Environment&MockObject $mockTwig;
     private Logger $logger;
-    private CacheManager&MockObject $mockCacheManager;
+    private CacheStoreInterface&MockObject $mockCacheStore;
+    private ApiCacheKeyFactory $cacheKeyFactory;
+    private CacheTtlResolver $ttlResolver;
     private LogDataTransformer&MockObject $mockLogTransformer;
     private Endpoints&MockObject $mockEndpoints;
     private ApplicationConfig $appConfig;
@@ -61,7 +65,9 @@ class ModalControllerTest extends TestCase
         $this->mockTools = $this->createMock(Tools::class);
         $this->mockTwig = $this->createMock(Environment::class);
         $this->logger = new Logger('test', [new TestHandler()]);
-        $this->mockCacheManager = $this->createMock(CacheManager::class);
+        $this->mockCacheStore = $this->createMock(CacheStoreInterface::class);
+        $this->cacheKeyFactory = new ApiCacheKeyFactory();
+        $this->ttlResolver = new CacheTtlResolver([]);
         $this->mockLogTransformer = $this->createMock(LogDataTransformer::class);
         $this->mockEndpoints = $this->createMock(Endpoints::class);
 
@@ -108,7 +114,9 @@ class ModalControllerTest extends TestCase
             $this->mockTwig,
             $this->logger,
             $this->appConfig,
-            $this->mockCacheManager,
+            $this->mockCacheStore,
+            $this->cacheKeyFactory,
+            $this->ttlResolver,
             $this->mockLogTransformer,
             $this->mockEndpoints,
             $this->serversConfig
@@ -148,7 +156,9 @@ class ModalControllerTest extends TestCase
             $this->mockTwig,
             $this->logger,
             $demoConfig,
-            $this->mockCacheManager,
+            $this->mockCacheStore,
+            $this->cacheKeyFactory,
+            $this->ttlResolver,
             $this->mockLogTransformer,
             $this->mockEndpoints,
             $this->serversConfig
@@ -951,7 +961,9 @@ MARKDOWN;
             $this->mockTwig,
             $mockLogger,
             $this->appConfig,
-            $this->mockCacheManager,
+            $this->mockCacheStore,
+            $this->cacheKeyFactory,
+            $this->ttlResolver,
             $this->mockLogTransformer,
             $this->mockEndpoints,
             $invalidServersConfig
@@ -1029,7 +1041,9 @@ MARKDOWN;
             $this->mockTwig,
             $this->logger,
             $this->appConfig,
-            $this->mockCacheManager,
+            $this->mockCacheStore,
+            $this->cacheKeyFactory,
+            $this->ttlResolver,
             $this->mockLogTransformer,
             $this->mockEndpoints,
             $specialConfig

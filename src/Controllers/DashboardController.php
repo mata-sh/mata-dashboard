@@ -12,6 +12,9 @@ use Mata\Http\Responses\HtmlResponse;
 use Mata\Http\Responses\JsonResponse;
 use Mata\Http\Responses\Response;
 use Mata\Http\Routing\Endpoints;
+use Mata\Services\Cache\ApiCacheKeyFactory;
+use Mata\Services\Cache\CacheStoreInterface;
+use Mata\Services\Cache\CacheTtlResolver;
 use Mata\Services\Cache\CacheTypeResolver;
 use Mata\Services\Collect\MockServerDataCollector;
 use Mata\Services\Collect\ServerDataCollector;
@@ -19,7 +22,6 @@ use Mata\Services\Collect\ServerDataCollectorInterface;
 use Mata\Services\DataTransformers\ApiResponseTransformer;
 use Mata\Services\Event\EventManager;
 use Mata\Services\Foundation\ApiClient;
-use Mata\Services\Foundation\CacheManager;
 use Mata\Services\Foundation\LogAnalyzer;
 use Mata\Services\Monitor\AppMonitor;
 use Mata\Services\Monitor\AppMonitorInterface;
@@ -60,7 +62,9 @@ class DashboardController extends BaseController
     private Endpoints $endpoints;
     private ServerMonitor $serverMonitor;
     private LogAnalyzer $logAnalyzer;
-    private CacheManager $cacheManager;
+    private CacheStoreInterface $cacheStore;
+    private ApiCacheKeyFactory $cacheKeyFactory;
+    private CacheTtlResolver $ttlResolver;
     private ServerViewBuilder $serverViewBuilder;
     private ServerRenderer $serverRenderer;
     private DatabaseRenderer $databaseRenderer;
@@ -103,7 +107,9 @@ class DashboardController extends BaseController
      * @param ApplicationConfig   $appConfig           Application configuration DTO
      * @param NotificationManager $notificationManager System notification management
      * @param EventManager        $eventManager        Server alert and threshold management
-     * @param CacheManager        $cacheManager        Cache management service with TTL configuration
+     * @param CacheStoreInterface $cacheStore          Cache persistence service
+     * @param ApiCacheKeyFactory  $cacheKeyFactory     API cache key factory
+     * @param CacheTtlResolver    $ttlResolver         Cache TTL configuration lookup
      * @param Endpoints           $endpoints           Route endpoints for template access
      * @param MenuBuilder         $menuBuilder         Navigation menu builder service
      * @param array<string,mixed> $monitoringSettings  Complete monitoring configuration metadata
@@ -116,7 +122,9 @@ class DashboardController extends BaseController
         ApplicationConfig $appConfig,
         NotificationManager $notificationManager,
         EventManager $eventManager,
-        CacheManager $cacheManager,
+        CacheStoreInterface $cacheStore,
+        ApiCacheKeyFactory $cacheKeyFactory,
+        CacheTtlResolver $ttlResolver,
         Endpoints $endpoints,
         MenuBuilder $menuBuilder,
         array $monitoringSettings = [],
@@ -127,7 +135,9 @@ class DashboardController extends BaseController
         $this->notificationManager = $notificationManager;
         $this->eventManager = $eventManager;
         $this->endpoints = $endpoints;
-        $this->cacheManager = $cacheManager;
+        $this->cacheStore = $cacheStore;
+        $this->cacheKeyFactory = $cacheKeyFactory;
+        $this->ttlResolver = $ttlResolver;
         $this->menuBuilder = $menuBuilder;
         $serversConfig = $monitoringSettings['servers'] ?? [];
         $this->serversConfig = is_array($serversConfig) ? $serversConfig : [];
@@ -196,7 +206,7 @@ class DashboardController extends BaseController
             return [
                 'collector' => new MockServerDataCollector(
                     $this->logger,
-                    $this->cacheManager,
+                    $this->ttlResolver,
                     $dataTransformer,
                     $server,
                     $serverConfig
@@ -229,12 +239,16 @@ class DashboardController extends BaseController
         return [
             'collector' => new ServerDataCollector(
                 $this->logger,
-                $this->cacheManager,
+                $this->cacheStore,
+                $this->cacheKeyFactory,
+                $this->ttlResolver,
                 $apiClient,
                 $dataTransformer
             ),
             'appMonitor' => new AppMonitor(
-                $this->cacheManager,
+                $this->cacheStore,
+                $this->cacheKeyFactory,
+                $this->ttlResolver,
                 $apiClient,
                 $this->eventManager,
                 $this->logger

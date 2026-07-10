@@ -7,7 +7,7 @@ namespace Mata\Constants;
 /**
  * Cache type constants used across the application.
  *
- * Defines standard cache type identifiers for the CacheManager service.
+ * Defines standard cache type identifiers for cache services.
  * These constants ensure consistent cache type naming throughout controllers
  * and services.
  */

@@ -5,9 +5,11 @@ declare(strict_types=1);
 namespace Mata\Services\Collect;
 
 use GuzzleHttp\Exception\RequestException;
+use Mata\Services\Cache\ApiCacheKeyFactory;
+use Mata\Services\Cache\CacheStoreInterface;
+use Mata\Services\Cache\CacheTtlResolver;
 use Mata\Services\DataTransformers\ApiResponseTransformer;
 use Mata\Services\Foundation\ApiClient;
-use Mata\Services\Foundation\CacheManager;
 use Psr\Log\LoggerInterface;
 use RuntimeException;
 
@@ -16,14 +18,16 @@ use RuntimeException;
  *
  * Coordinates data collection from remote server nodes:
  * - Orchestrates API communication via ApiClient
- * - Manages response caching with TTL via CacheManager
+ * - Manages response caching with TTL via CacheStoreInterface
  * - Transforms responses via DataTransformer
  * - Provides low-level data fetching primitives for monitors
  */
 class ServerDataCollector implements ServerDataCollectorInterface
 {
     private LoggerInterface $logger;
-    private CacheManager $cacheManager;
+    private CacheStoreInterface $cacheStore;
+    private ApiCacheKeyFactory $cacheKeyFactory;
+    private CacheTtlResolver $ttlResolver;
     private ApiClient $apiClient;
     private ApiResponseTransformer $dataTransformer;
 
@@ -31,18 +35,24 @@ class ServerDataCollector implements ServerDataCollectorInterface
      * Initialize server data collector with coordinated services.
      *
      * @param LoggerInterface        $logger          PSR-3 logger for system logging and debugging
-     * @param CacheManager           $cacheManager    Cache management service
+     * @param CacheStoreInterface    $cacheStore      Cache persistence service
+     * @param ApiCacheKeyFactory     $cacheKeyFactory API cache key factory
+     * @param CacheTtlResolver       $ttlResolver     Cache TTL configuration lookup
      * @param ApiClient              $apiClient       HTTP communication client
      * @param ApiResponseTransformer $dataTransformer Response parsing and transformation service
      */
     public function __construct(
         LoggerInterface $logger,
-        CacheManager $cacheManager,
+        CacheStoreInterface $cacheStore,
+        ApiCacheKeyFactory $cacheKeyFactory,
+        CacheTtlResolver $ttlResolver,
         ApiClient $apiClient,
         ApiResponseTransformer $dataTransformer,
     ) {
         $this->logger = $logger;
-        $this->cacheManager = $cacheManager;
+        $this->cacheStore = $cacheStore;
+        $this->cacheKeyFactory = $cacheKeyFactory;
+        $this->ttlResolver = $ttlResolver;
         $this->apiClient = $apiClient;
         $this->dataTransformer = $dataTransformer;
     }
@@ -244,19 +254,15 @@ class ServerDataCollector implements ServerDataCollectorInterface
      */
     private function request(string $method, string $path, string $cacheType = ''): ?array
     {
-        $ttlSeconds = $this->cacheManager->getTtl($cacheType);
-        $this->cacheManager->setCacheTtl($ttlSeconds);
-
-        $cacheFile = $this->cacheManager->generateCachePath($this->apiClient->getApiBase(), $method, $path);
+        $ttlSeconds = $this->ttlResolver->get($cacheType);
+        $cacheKey = $this->cacheKeyFactory->createApiRequestKey($this->apiClient->getApiBase(), $method, $path);
 
         // 1. Try fresh cache
-        if ($cacheFile && $this->cacheManager->isFreshCache($cacheFile, $ttlSeconds)) {
-            $cachedData = $this->cacheManager->readCache($cacheFile, $ttlSeconds);
-            $cacheAge = time() - $this->cacheManager->getCacheAge();
-
+        $cachedEntry = $this->cacheStore->get($cacheKey, $ttlSeconds);
+        if ($cachedEntry !== null) {
             return $this->dataTransformer->normalizeApiResponse(
-                data: $cachedData,
-                cacheAge: $cacheAge,
+                data: $cachedEntry->value,
+                cacheAge: max(0, time() - $cachedEntry->storedAt),
                 cacheTtl: $ttlSeconds,
                 fromCache: true,
                 path: $path,
@@ -266,9 +272,7 @@ class ServerDataCollector implements ServerDataCollectorInterface
         // 2. Try fresh API
         try {
             $rawData = $this->fetchFromApi($method, $path);
-            if ($cacheFile) {
-                $this->cacheManager->writeCache($cacheFile, $rawData);
-            }
+            $this->cacheStore->put($cacheKey, $rawData);
 
             return $this->dataTransformer->normalizeApiResponse(
                 data: $rawData,
@@ -279,13 +283,11 @@ class ServerDataCollector implements ServerDataCollectorInterface
             $this->logger->warning("Fetching data failed trying stale cache: {$e->getMessage()}");
 
             // 3. Try stale cache
-            if ($cacheFile && file_exists($cacheFile)) {
-                $staleData = $this->cacheManager->readCache($cacheFile, 0);
-                $cacheAge = time() - $this->cacheManager->getCacheAge();
-
+            $staleEntry = $this->cacheStore->getStale($cacheKey, $ttlSeconds);
+            if ($staleEntry !== null) {
                 return $this->dataTransformer->normalizeApiResponse(
-                    data: $staleData,
-                    cacheAge: $cacheAge,
+                    data: $staleEntry->value,
+                    cacheAge: max(0, time() - $staleEntry->storedAt),
                     cacheTtl: $ttlSeconds,
                     fromCache: true,
                     staleCache: true,
@@ -329,26 +331,6 @@ class ServerDataCollector implements ServerDataCollectorInterface
         $responseBody = $this->apiClient->request($method, $path);
 
         return $this->dataTransformer->transformResponse($responseBody, $path);
-    }
-
-    /**
-     * Get the age of the last cached response.
-     *
-     * @return int Cache age timestamp or 0 if not set
-     */
-    public function getCacheAge(): int
-    {
-        return $this->cacheManager->getCacheAge();
-    }
-
-    /**
-     * Get the TTL (Time To Live) of the current cache.
-     *
-     * @return int Cache TTL in seconds
-     */
-    public function getCacheTtl(): int
-    {
-        return $this->cacheManager->getCacheTtl();
     }
 
     /**

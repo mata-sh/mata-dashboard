@@ -7,10 +7,14 @@ namespace Mata\Tests\Unit\Services;
 use GuzzleHttp\Exception\RequestException;
 use GuzzleHttp\Psr7\Request;
 use GuzzleHttp\Psr7\Response;
+use Mata\Services\Cache\ApiCacheKeyFactory;
+use Mata\Services\Cache\CacheEntry;
+use Mata\Services\Cache\CacheStoreInterface;
+use Mata\Services\Cache\CacheTtlResolver;
+use Mata\Services\Cache\FileCacheStore;
 use Mata\Services\Collect\ServerDataCollector;
 use Mata\Services\DataTransformers\ApiResponseTransformer;
 use Mata\Services\Foundation\ApiClient;
-use Mata\Services\Foundation\CacheManager;
 use PHPUnit\Framework\TestCase;
 use Psr\Log\NullLogger;
 
@@ -21,11 +25,113 @@ use Psr\Log\NullLogger;
  */
 final class ServerDataCollectorTest extends TestCase
 {
+    public function testFreshEntryReportsItsOwnCacheAge(): void
+    {
+        $cache = $this->createMock(CacheStoreInterface::class);
+        $cache->expects($this->once())->method('get')->willReturn(new CacheEntry(['cpu_usage' => 12], time() - 5));
+        $apiClient = $this->createMock(ApiClient::class);
+        $apiClient->method('getApiBase')->willReturn('https://node.example.test/api');
+        $apiClient->expects($this->never())->method('request');
+
+        $collector = new ServerDataCollector(
+            new NullLogger(),
+            $cache,
+            new ApiCacheKeyFactory(),
+            new CacheTtlResolver(['serverData' => 60]),
+            $apiClient,
+            new ApiResponseTransformer(new NullLogger()),
+        );
+
+        $response = $collector->getServerSystemData();
+
+        $this->assertTrue($response['from_cache']);
+        $this->assertGreaterThanOrEqual(5, $response['cache_age']);
+        $this->assertSame(60, $response['cache_ttl']);
+    }
+
+    public function testFailedRequestUsesStaleEntryUnlessTtlIsZero(): void
+    {
+        $cache = $this->createMock(CacheStoreInterface::class);
+        $cache->method('get')->willReturn(null);
+        $cache->expects($this->once())->method('getStale')->willReturn(new CacheEntry(['apps' => []], time() - 120));
+        $apiClient = $this->createMock(ApiClient::class);
+        $apiClient->method('getApiBase')->willReturn('https://node.example.test/api');
+        $apiClient->method('request')->willThrowException(new RequestException('Unavailable', new Request('GET', 'apps')));
+
+        $collector = new ServerDataCollector(
+            new NullLogger(),
+            $cache,
+            new ApiCacheKeyFactory(),
+            new CacheTtlResolver(['apps' => 60]),
+            $apiClient,
+            new ApiResponseTransformer(new NullLogger()),
+        );
+
+        $response = $collector->getApps();
+
+        $this->assertTrue($response['from_cache']);
+        $this->assertTrue($response['stale_cache']);
+        $this->assertGreaterThanOrEqual(120, $response['cache_age']);
+    }
+
+    public function testNoneTtlWritesFreshApiResponseWithoutReadingCache(): void
+    {
+        $directory = sys_get_temp_dir() . '/mata-collector-cache-' . bin2hex(random_bytes(8));
+        $cache = new FileCacheStore(new NullLogger(), $directory);
+        $keys = new ApiCacheKeyFactory();
+        $key = $keys->createApiRequestKey('https://node.example.test/api', 'GET', 'apps');
+        $cache->put($key, ['apps' => ['old']]);
+        $path = $directory . '/node_example_test/GET/apps.json';
+        touch($path, time() - 60);
+        clearstatcache(true, $path);
+        $oldStoredAt = filemtime($path);
+        $apiClient = $this->createMock(ApiClient::class);
+        $apiClient->method('getApiBase')->willReturn('https://node.example.test/api');
+        $apiClient->expects($this->once())->method('request')->willReturn('{"apps":["fresh"]}');
+
+        $collector = new ServerDataCollector(
+            new NullLogger(),
+            $cache,
+            $keys,
+            new CacheTtlResolver(['none' => 0]),
+            $apiClient,
+            new ApiResponseTransformer(new NullLogger()),
+        );
+
+        $response = $collector->getApps('none');
+        $entry = $cache->getStale($key, 60);
+
+        $this->assertFalse($response['from_cache']);
+        $this->assertSame(['apps' => ['fresh']], $entry?->value);
+        $this->assertGreaterThan($oldStoredAt, $entry?->storedAt);
+    }
+
+    public function testNoneTtlDoesNotFallBackToAnExistingStaleEntry(): void
+    {
+        $directory = sys_get_temp_dir() . '/mata-collector-cache-' . bin2hex(random_bytes(8));
+        $cache = new FileCacheStore(new NullLogger(), $directory);
+        $key = (new ApiCacheKeyFactory())->createApiRequestKey('https://node.example.test/api', 'GET', 'apps');
+        $cache->put($key, ['apps' => ['old']]);
+        $apiClient = $this->createMock(ApiClient::class);
+        $apiClient->method('getApiBase')->willReturn('https://node.example.test/api');
+        $apiClient->method('request')->willThrowException(new RequestException('Unavailable', new Request('GET', 'apps')));
+
+        $collector = new ServerDataCollector(
+            new NullLogger(),
+            $cache,
+            new ApiCacheKeyFactory(),
+            new CacheTtlResolver(['none' => 0]),
+            $apiClient,
+            new ApiResponseTransformer(new NullLogger()),
+        );
+
+        $this->assertNull($collector->getApps('none'));
+        $this->assertSame(['apps' => ['old']], $cache->getStale($key, 60)?->value);
+    }
+
     public function testNodeJsonHttpErrorReturnsAnErrorEnvelope(): void
     {
-        $cache = $this->createMock(CacheManager::class);
-        $cache->method('getTtl')->willReturn(60);
-        $cache->method('generateCachePath')->willReturn(null);
+        $cache = $this->createMock(CacheStoreInterface::class);
 
         $apiClient = $this->createMock(ApiClient::class);
         $apiClient->method('getApiBase')->willReturn('https://node.example.test/api');
@@ -38,6 +144,8 @@ final class ServerDataCollectorTest extends TestCase
         $collector = new ServerDataCollector(
             new NullLogger(),
             $cache,
+            new ApiCacheKeyFactory(),
+            new CacheTtlResolver(['apps' => 60]),
             $apiClient,
             new ApiResponseTransformer(new NullLogger()),
         );

@@ -446,7 +446,7 @@ class MetricsControllerTest extends TestCase
         $this->mockCacheService
             ->expects($this->once())
             ->method('writeDashboardCache')
-            ->with('cache-key', $freshPayload, 60)
+            ->with('cache-key', $freshPayload)
         ;
 
         // Act: Fetch with force refresh
@@ -911,8 +911,7 @@ class MetricsControllerTest extends TestCase
                 $this->callback(function ($payload) {
                     return isset($payload['filters'], $payload['series'], $payload['cache'])
                         && isset($payload['series']['data']);
-                }),
-                300 // TTL
+                })
             )
         ;
 
@@ -1127,8 +1126,7 @@ class MetricsControllerTest extends TestCase
                 $this->callback(function ($payload) {
                     return isset($payload['filters'], $payload['series'], $payload['cache'])
                         && isset($payload['filters']['metrics']);
-                }),
-                300
+                })
             )
         ;
 

@@ -5,10 +5,12 @@ declare(strict_types=1);
 
 use Mata\Models\ServerMetrics\Dto\ServerMetricRawSnapshot;
 use Mata\Models\ServerMetrics\ServerMetricsRepository;
+use Mata\Services\Cache\ApiCacheKeyFactory;
+use Mata\Services\Cache\CacheTtlResolver;
+use Mata\Services\Cache\FileCacheStore;
 use Mata\Services\Collect\ServerDataCollector;
-use Mata\Services\Foundation\ApiClient;
-use Mata\Services\Foundation\CacheManager;
 use Mata\Services\DataTransformers\ApiResponseTransformer;
+use Mata\Services\Foundation\ApiClient;
 use Mata\Services\Monitor\ServerMetricsHealthMonitor;
 use Mata\Services\Monitor\ServerMonitor;
 use Mata\Utils\TypeConverter;
@@ -30,11 +32,9 @@ try {
     $dataRetentionConfig = $monitoringSettings['data_retention'] ?? [];
 
     $cacheDir = $paths->tempPath . '/server-metrics';
-    if (!is_dir($cacheDir)) {
-        mkdir($cacheDir, 0777, true);
-    }
-
-    $cacheManager = new CacheManager($log, $cacheDir, $monitoringSettings['ttl'] ?? []);
+    $cacheStore = new FileCacheStore($log, $cacheDir);
+    $cacheKeyFactory = new ApiCacheKeyFactory();
+    $ttlResolver = new CacheTtlResolver($monitoringSettings['ttl'] ?? []);
     $dataTransformer = new ApiResponseTransformer($log);
     $repository = new ServerMetricsRepository($db, $idResolver, $configSyncRepository);
     $serverMonitor = new ServerMonitor($log, $eventManager);
@@ -110,7 +110,14 @@ try {
             $suppressHttpWarning = TypeConverter::toBool($serverConfig['suppress_http_warning'] ?? null) ?? false;
 
             $apiClient = new ApiClient($log, $apiUrl, $token, 10, true, $allowHttp, $suppressHttpWarning);
-            $collector = new ServerDataCollector($log, $cacheManager, $apiClient, $dataTransformer);
+            $collector = new ServerDataCollector(
+                $log,
+                $cacheStore,
+                $cacheKeyFactory,
+                $ttlResolver,
+                $apiClient,
+                $dataTransformer
+            );
 
             $metricsPayload = $serverMonitor->collectServerHealthData($collector, (string) $serverName);
 

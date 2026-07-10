@@ -74,9 +74,9 @@ final class MetricsController extends BaseController
         $this->validator = $validator;
         $this->chartViewBuilder = $chartViewBuilder;
         $this->serversConfig = $serversConfig;
-        $this->cacheTtlSeconds = $cacheTtlSeconds !== null ? max(0, $cacheTtlSeconds) : 300;
+        $this->cacheTtlSeconds = $cacheTtlSeconds ?? 300;
         $this->dashboardChartConfig = $this->chartViewBuilder->buildChartConfig($dashboardChartConfig);
-        $this->dashboardCacheTtl = $dashboardCacheTtl !== null ? max(0, $dashboardCacheTtl) : 60;
+        $this->dashboardCacheTtl = $dashboardCacheTtl ?? 60;
     }
 
     /**
@@ -160,7 +160,7 @@ final class MetricsController extends BaseController
                     $this->dashboardChartConfig
                 );
 
-                $this->cacheService->writeDashboardCache($cacheKey, $payload, $this->dashboardCacheTtl);
+                $this->cacheService->writeDashboardCache($cacheKey, $payload);
 
                 return new JsonResponse($payload);
             },
@@ -534,7 +534,7 @@ final class MetricsController extends BaseController
             'cache' => $this->cacheService->buildCacheMetadata(false),
         ];
 
-        $this->cacheService->writeSeriesCache($server, $metric, $range, $granularity, $payload, $this->cacheTtlSeconds);
+        $this->cacheService->writeSeriesCache($server, $metric, $range, $granularity, $payload);
 
         return $payload;
     }
@@ -594,7 +594,7 @@ final class MetricsController extends BaseController
             'cache' => $this->cacheService->buildCacheMetadata(false),
         ];
 
-        $this->cacheService->writeSeriesCache($server, $metricsKey, $range, $granularity, $payload, $this->cacheTtlSeconds);
+        $this->cacheService->writeSeriesCache($server, $metricsKey, $range, $granularity, $payload);
 
         return $payload;
     }

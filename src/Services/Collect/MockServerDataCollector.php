@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Mata\Services\Collect;
 
+use Mata\Services\Cache\CacheTtlResolver;
 use Mata\Services\DataTransformers\ApiResponseTransformer;
-use Mata\Services\Foundation\CacheManager;
 use Psr\Log\LoggerInterface;
 
 /**
@@ -20,34 +20,33 @@ use Psr\Log\LoggerInterface;
 class MockServerDataCollector implements ServerDataCollectorInterface
 {
     private LoggerInterface $logger;
-    private CacheManager $cacheManager;
+    private CacheTtlResolver $ttlResolver;
     private ApiResponseTransformer $dataTransformer;
     private string $serverName;
 
     /** @var array<string,mixed> */
     private array $serverConfig;
     private int $cacheAge = 0;
-    private int $cacheTtl = 300;
     private ?string $projectReadme = null;
 
     /**
      * Initialize mock server data collector.
      *
      * @param LoggerInterface        $logger          PSR-3 logger for demo logging
-     * @param CacheManager           $cacheManager    Cache manager for demo caching
+     * @param CacheTtlResolver       $ttlResolver     Cache TTL configuration lookup
      * @param ApiResponseTransformer $dataTransformer Data transformer for response normalization
      * @param string                 $serverName      Server identifier for demo data generation
      * @param array<string,mixed>    $serverConfig    Server configuration from demo-servers.json
      */
     public function __construct(
         LoggerInterface $logger,
-        CacheManager $cacheManager,
+        CacheTtlResolver $ttlResolver,
         ApiResponseTransformer $dataTransformer,
         string $serverName,
         array $serverConfig
     ) {
         $this->logger = $logger;
-        $this->cacheManager = $cacheManager;
+        $this->ttlResolver = $ttlResolver;
         $this->dataTransformer = $dataTransformer;
         $this->serverName = $serverName;
         $this->serverConfig = $serverConfig;
@@ -59,8 +58,7 @@ class MockServerDataCollector implements ServerDataCollectorInterface
      */
     public function getServerSystemData(string $cacheType = 'serverData'): ?array
     {
-        $ttlSeconds = $this->cacheManager->getTtl($cacheType);
-        $this->cacheTtl = $ttlSeconds;
+        $ttlSeconds = $this->ttlResolver->get($cacheType);
 
         // Generate realistic metrics based on server type
         $baseMetrics = $this->getBaseMetricsForServerType($this->serverName);
@@ -92,8 +90,7 @@ class MockServerDataCollector implements ServerDataCollectorInterface
      */
     public function getServerInfo(string $cacheType = 'serverInfo'): ?array
     {
-        $ttlSeconds = $this->cacheManager->getTtl($cacheType);
-        $this->cacheTtl = $ttlSeconds;
+        $ttlSeconds = $this->ttlResolver->get($cacheType);
 
         $osOptions = [
             'Ubuntu 22.04.3 LTS',
@@ -149,8 +146,7 @@ class MockServerDataCollector implements ServerDataCollectorInterface
      */
     public function getApps(string $cacheType = 'apps'): ?array
     {
-        $ttlSeconds = $this->cacheManager->getTtl($cacheType);
-        $this->cacheTtl = $ttlSeconds;
+        $ttlSeconds = $this->ttlResolver->get($cacheType);
         $data = $this->generateDemoApps();
 
         return $this->dataTransformer->normalizeApiResponse(
@@ -168,8 +164,7 @@ class MockServerDataCollector implements ServerDataCollectorInterface
      */
     public function getServerPhpProcesses(string $cacheType = 'serverProcesses'): ?array
     {
-        $ttlSeconds = $this->cacheManager->getTtl($cacheType);
-        $this->cacheTtl = $ttlSeconds;
+        $ttlSeconds = $this->ttlResolver->get($cacheType);
 
         $processes = [];
         $processCount = mt_rand(15, 40);
@@ -194,8 +189,7 @@ class MockServerDataCollector implements ServerDataCollectorInterface
      */
     public function getServerDatabases(string $cacheType = 'databases'): array|string|null
     {
-        $ttlSeconds = $this->cacheManager->getTtl($cacheType);
-        $this->cacheTtl = $ttlSeconds;
+        $ttlSeconds = $this->ttlResolver->get($cacheType);
 
         $data = [
             'mysql_version' => '8.0.' . mt_rand(25, 35),
@@ -225,8 +219,7 @@ class MockServerDataCollector implements ServerDataCollectorInterface
      */
     public function getAppsLibraries(string $cacheType = 'apps'): ?array
     {
-        $ttlSeconds = $this->cacheManager->getTtl($cacheType);
-        $this->cacheTtl = $ttlSeconds;
+        $ttlSeconds = $this->ttlResolver->get($cacheType);
 
         $apps = array_keys($this->generateDemoApps());
         $libraries = [];
@@ -243,8 +236,7 @@ class MockServerDataCollector implements ServerDataCollectorInterface
      */
     public function getAppLibraries(string $app, string $cacheType = 'apps'): ?array
     {
-        $ttlSeconds = $this->cacheManager->getTtl($cacheType);
-        $this->cacheTtl = $ttlSeconds;
+        $ttlSeconds = $this->ttlResolver->get($cacheType);
         $data = $this->generateLibrariesForApp($app);
 
         return $this->dataTransformer->normalizeApiResponse($data, $this->cacheAge, $ttlSeconds, false, false, "{$app}/libraries");
@@ -255,8 +247,7 @@ class MockServerDataCollector implements ServerDataCollectorInterface
      */
     public function fetchAppReadme(string $app, string $cacheType = 'readme'): ?array
     {
-        $ttlSeconds = $this->cacheManager->getTtl($cacheType);
-        $this->cacheTtl = $ttlSeconds;
+        $ttlSeconds = $this->ttlResolver->get($cacheType);
 
         $readmeContent = $this->generateReadmeContent($app);
 
@@ -268,8 +259,7 @@ class MockServerDataCollector implements ServerDataCollectorInterface
      */
     public function fetchAppLogs(string $app, string $cacheType = 'appLogs'): ?array
     {
-        $ttlSeconds = $this->cacheManager->getTtl($cacheType);
-        $this->cacheTtl = $ttlSeconds;
+        $ttlSeconds = $this->ttlResolver->get($cacheType);
 
         $logFiles = [
             "{$app}/logs/error.log",
@@ -321,8 +311,7 @@ class MockServerDataCollector implements ServerDataCollectorInterface
      */
     public function fetchAppLogsStatus(string $app, string $cacheType = 'appLogs'): ?array
     {
-        $ttlSeconds = $this->cacheManager->getTtl($cacheType);
-        $this->cacheTtl = $ttlSeconds;
+        $ttlSeconds = $this->ttlResolver->get($cacheType);
 
         $logsStatus = [
             "{$app}/logs/error.log" => [
@@ -359,8 +348,7 @@ class MockServerDataCollector implements ServerDataCollectorInterface
      */
     public function fetchAppSessions(string $app, string $cacheType = 'sessions'): ?array
     {
-        $ttlSeconds = $this->cacheManager->getTtl($cacheType);
-        $this->cacheTtl = $ttlSeconds;
+        $ttlSeconds = $this->ttlResolver->get($cacheType);
 
         $sessionVariants = [
             [
@@ -419,8 +407,7 @@ class MockServerDataCollector implements ServerDataCollectorInterface
      */
     public function fetchServerCronjobs(string $cacheType = 'cronjobs'): ?array
     {
-        $ttlSeconds = $this->cacheManager->getTtl($cacheType);
-        $this->cacheTtl = $ttlSeconds;
+        $ttlSeconds = $this->ttlResolver->get($cacheType);
 
         $cronjobs = [
             [
@@ -452,22 +439,6 @@ class MockServerDataCollector implements ServerDataCollectorInterface
         ];
 
         return $this->dataTransformer->normalizeApiResponse($cronjobs, $this->cacheAge, $ttlSeconds, false, path: 'server-cronjobs');
-    }
-
-    /**
-     * Mock cache age.
-     */
-    public function getCacheAge(): int
-    {
-        return $this->cacheAge;
-    }
-
-    /**
-     * Mock cache TTL.
-     */
-    public function getCacheTtl(): int
-    {
-        return $this->cacheTtl;
     }
 
     /**

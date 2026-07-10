@@ -3,10 +3,12 @@
 
 declare(strict_types=1);
 
+use Mata\Services\Cache\ApiCacheKeyFactory;
+use Mata\Services\Cache\CacheTtlResolver;
+use Mata\Services\Cache\FileCacheStore;
 use Mata\Services\Collect\ServerDataCollector;
-use Mata\Services\Foundation\ApiClient;
-use Mata\Services\Foundation\CacheManager;
 use Mata\Services\DataTransformers\ApiResponseTransformer;
+use Mata\Services\Foundation\ApiClient;
 use Mata\Utils\TypeConverter;
 
 $requiresDatabase = true;
@@ -24,7 +26,9 @@ $cron->log('Started');
 try {
     // All event/alert infrastructure now loaded via bootstrap_events.php
     $dataTransformer = new ApiResponseTransformer($log);
-    $cacheManager = new CacheManager($log);
+    $cacheStore = new FileCacheStore($log);
+    $cacheKeyFactory = new ApiCacheKeyFactory();
+    $ttlResolver = new CacheTtlResolver($monitoringSettings['ttl'] ?? []);
 
     foreach ($monitoringSettings['servers'] as $server => $data) {
         try {
@@ -35,7 +39,14 @@ try {
             $suppressHttpWarning = TypeConverter::toBool($data['suppress_http_warning'] ?? null) ?? false;
 
             $apiClient = new ApiClient($log, $data['api_url'], $token, 10, true, $allowHttp, $suppressHttpWarning);
-            $serversApi[$server] = new ServerDataCollector($log, $cacheManager, $apiClient, $dataTransformer);
+            $serversApi[$server] = new ServerDataCollector(
+                $log,
+                $cacheStore,
+                $cacheKeyFactory,
+                $ttlResolver,
+                $apiClient,
+                $dataTransformer
+            );
         } catch (Exception $e) {
             $log->error("{$server}: " . $e->getMessage());
         }
