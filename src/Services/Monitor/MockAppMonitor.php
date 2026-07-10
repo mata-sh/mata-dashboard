@@ -20,7 +20,7 @@ class MockAppMonitor implements AppMonitorInterface
     /**
      * @param array<string,EndpointTarget> $targets
      */
-    public function checkMultipleEndpoints(array $targets, int $timeout = 2, string $cacheType = CacheTypes::PING, bool $async = false): array
+    public function checkMultipleEndpoints(array $targets, int $timeout = 2, string $cacheType = CacheTypes::PING): array
     {
         if ($targets === []) {
             return [];

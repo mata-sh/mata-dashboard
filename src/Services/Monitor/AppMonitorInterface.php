@@ -32,9 +32,8 @@ interface AppMonitorInterface
      * @param array<int|string, EndpointTarget> $targets   endpoint targets keyed by identifier
      * @param int                               $timeout   timeout in seconds (default: 2)
      * @param string                            $cacheType cache key for TTL lookup (default: CacheTypes::PING)
-     * @param bool                              $async     whether asynchronous execution is requested (default: false)
      *
-     * @return array<string,array<string,mixed>> results keyed by identifier
+     * @return array<int|string,array<string,mixed>> results keyed by identifier
      */
-    public function checkMultipleEndpoints(array $targets, int $timeout = 2, string $cacheType = CacheTypes::PING, bool $async = false): array;
+    public function checkMultipleEndpoints(array $targets, int $timeout = 2, string $cacheType = CacheTypes::PING): array;
 }

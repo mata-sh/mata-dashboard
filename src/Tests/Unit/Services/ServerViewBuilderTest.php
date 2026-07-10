@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Mata\Tests\Unit\Services;
 
+use GuzzleHttp\Promise\Create;
 use Mata\Constants\CacheTypes;
 use Mata\Constants\NodeHealthState;
 use Mata\Services\Cache\CacheTypeResolver;
@@ -48,12 +49,12 @@ final class ServerViewBuilderTest extends TestCase
 
         $healthMonitor = $this->createMock(NodeHealthMonitorInterface::class);
         $healthMonitor->expects($this->once())
-            ->method('check')
+            ->method('checkAsync')
             ->with('server-a')
-            ->willReturn([
+            ->willReturn(Create::promiseFor([
                 'status' => 'healthy',
                 'state' => NodeHealthState::HEALTHY,
-            ]);
+            ]));
 
         $builder = new ServerViewBuilder(
             $serverMonitor,

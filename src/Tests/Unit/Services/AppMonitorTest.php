@@ -4,6 +4,10 @@ declare(strict_types=1);
 
 namespace Mata\Tests\Unit\Services;
 
+use GuzzleHttp\Client;
+use GuzzleHttp\Handler\MockHandler;
+use GuzzleHttp\HandlerStack;
+use GuzzleHttp\Psr7\Response;
 use Mata\Constants\CacheTypes;
 use Mata\Services\Cache\ApiCacheKeyFactory;
 use Mata\Services\Cache\CacheEntry;
@@ -11,6 +15,7 @@ use Mata\Services\Cache\CacheStoreInterface;
 use Mata\Services\Cache\CacheTtlResolver;
 use Mata\Services\Event\EventManager;
 use Mata\Services\Foundation\ApiClient;
+use Mata\Services\Foundation\ProbeClient;
 use Mata\Services\Monitor\AppMonitor;
 use Mata\Services\Monitor\Dto\EndpointTarget;
 use PHPUnit\Framework\TestCase;
@@ -28,20 +33,10 @@ final class AppMonitorTest extends TestCase
         $store = $this->createMock(CacheStoreInterface::class);
         $store->expects($this->once())->method('get')->willReturn(new CacheEntry(['reachable' => true], time() - 1));
         $store->expects($this->never())->method('put');
-        $client = $this->createMock(ApiClient::class);
-        $client->method('getApiBase')->willReturn('https://node.example.test/api');
-        $client->expects($this->never())->method('checkAvailability');
 
-        $monitor = new AppMonitor(
-            $store,
-            new ApiCacheKeyFactory(),
-            new CacheTtlResolver([CacheTypes::PING => 60]),
-            $client,
-            $this->createMock(EventManager::class),
-            new NullLogger(),
-        );
-
-        $this->assertSame(['reachable' => true], $monitor->checkEndpoint(new EndpointTarget('app', 'https://app.example.test')));
+        $this->assertSame(['reachable' => true], $this->monitor($store, new ProbeClient())->checkEndpoint(
+            new EndpointTarget('app', 'https://app.example.test')
+        ));
     }
 
     public function testTtlZeroStillProbesAndWritesThroughToStore(): void
@@ -49,19 +44,67 @@ final class AppMonitorTest extends TestCase
         $store = $this->createMock(CacheStoreInterface::class);
         $store->expects($this->once())->method('get')->with($this->isType('string'), 0)->willReturn(null);
         $store->expects($this->once())->method('put')->with($this->isType('string'), $this->isType('array'))->willReturn(true);
-        $client = $this->createMock(ApiClient::class);
-        $client->method('getApiBase')->willReturn('https://node.example.test/api');
-        $client->expects($this->once())->method('checkAvailability')->willReturn(['reachable' => false]);
+        $probe = $this->probe(new Response(503));
 
-        $monitor = new AppMonitor(
-            $store,
-            new ApiCacheKeyFactory(),
-            new CacheTtlResolver([CacheTypes::NONE => 0]),
-            $client,
-            $this->createMock(EventManager::class),
-            new NullLogger(),
+        $result = $this->monitor($store, $probe, CacheTypes::NONE)->checkEndpoint(
+            new EndpointTarget('app', 'https://app.example.test'),
+            2,
+            CacheTypes::NONE
         );
 
-        $this->assertSame(['reachable' => false], $monitor->checkEndpoint(new EndpointTarget('app', 'https://app.example.test'), 2, CacheTypes::NONE));
+        $this->assertFalse($result['reachable']);
+        $this->assertSame(503, $result['httpCode']);
+    }
+
+    public function testMixedCacheBatchPreservesOrderAndRecordsCachedFailures(): void
+    {
+        $store = $this->createMock(CacheStoreInterface::class);
+        $store->method('get')->willReturnOnConsecutiveCalls(
+            new CacheEntry(['reachable' => false, 'httpCode' => null, 'error' => 'cached'], time()),
+            null,
+            null,
+        );
+        $store->expects($this->exactly(2))->method('put');
+        $events = $this->createMock(EventManager::class);
+        $events->expects($this->exactly(2))->method('handleEvent')->willReturn([]);
+        $monitor = $this->monitor($store, $this->probe(new Response(200), new Response(503)), CacheTypes::PING, $events);
+
+        $results = $monitor->checkMultipleEndpoints([
+            'cached' => new EndpointTarget('cached', 'https://cached.example.test'),
+            'healthy' => new EndpointTarget('healthy', 'https://healthy.example.test'),
+            'down' => new EndpointTarget('down', 'https://down.example.test'),
+        ]);
+
+        $this->assertSame(['cached', 'healthy', 'down'], array_keys($results));
+        $this->assertFalse($results['cached']['reachable']);
+        $this->assertTrue($results['healthy']['reachable']);
+        $this->assertFalse($results['down']['reachable']);
+    }
+
+    private function monitor(
+        CacheStoreInterface $store,
+        ProbeClient $probe,
+        string $cacheType = CacheTypes::PING,
+        ?EventManager $events = null,
+    ): AppMonitor {
+        $apiClient = $this->createMock(ApiClient::class);
+        $apiClient->method('getApiBase')->willReturn('https://node.example.test/api');
+
+        return new AppMonitor(
+            $store,
+            new ApiCacheKeyFactory(),
+            new CacheTtlResolver([$cacheType => $cacheType === CacheTypes::NONE ? 0 : 60]),
+            $apiClient,
+            $probe,
+            $events ?? $this->createMock(EventManager::class),
+            new NullLogger(),
+        );
+    }
+
+    private function probe(Response ...$responses): ProbeClient
+    {
+        return new ProbeClient(true, new Client([
+            'handler' => HandlerStack::create(new MockHandler($responses)),
+        ]));
     }
 }

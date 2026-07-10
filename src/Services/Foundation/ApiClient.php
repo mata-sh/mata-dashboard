@@ -8,7 +8,6 @@ use GuzzleHttp\Client;
 use GuzzleHttp\Exception\RequestException;
 use Psr\Log\LoggerInterface;
 use RuntimeException;
-use Throwable;
 
 /**
  * HTTP API communication client.
@@ -193,56 +192,6 @@ class ApiClient
     }
 
     /**
-     * Get node health without treating an unhealthy (503) response as an exception.
-     *
-     * @return array<string,mixed>
-     */
-    public function getHealth(int $timeout = 3): array
-    {
-        $startTime = microtime(true);
-        $httpCode = null;
-
-        try {
-            $response = $this->client->request('GET', 'health', [
-                'timeout' => $timeout,
-                'http_errors' => false,
-            ]);
-            $latencyMs = (int) round((microtime(true) - $startTime) * 1000);
-            $httpCode = $response->getStatusCode();
-            $payload = json_decode((string) $response->getBody(), true, 512, JSON_THROW_ON_ERROR);
-
-            if (!is_array($payload)) {
-                throw new RuntimeException('Invalid health response payload');
-            }
-
-            $reportedStatus = $payload['status'] ?? null;
-            $isHealthy = $httpCode >= 200 && $httpCode < 300 && $reportedStatus === 'healthy';
-
-            return [
-                'status' => $isHealthy ? 'healthy' : 'unhealthy',
-                'httpCode' => $httpCode,
-                'maintenance_mode' => is_bool($payload['maintenance_mode'] ?? null) ? $payload['maintenance_mode'] : null,
-                'checks' => is_array($payload['checks'] ?? null) ? $payload['checks'] : null,
-                'node_timestamp' => $payload['timestamp'] ?? null,
-                'latency_ms' => $latencyMs,
-                'error' => null,
-                'checked_at' => time(),
-            ];
-        } catch (Throwable $e) {
-            return [
-                'status' => 'unreachable',
-                'httpCode' => $httpCode ?? ($e instanceof RequestException && $e->getCode() ? $e->getCode() : null),
-                'maintenance_mode' => null,
-                'checks' => null,
-                'node_timestamp' => null,
-                'latency_ms' => null,
-                'error' => $e->getMessage(),
-                'checked_at' => time(),
-            ];
-        }
-    }
-
-    /**
      * Get the base API URL.
      *
      * @return string Base API URL
@@ -250,81 +199,5 @@ class ApiClient
     public function getApiBase(): string
     {
         return $this->apiBase;
-    }
-
-    /**
-     * Check if a URL is reachable via HTTP HEAD request.
-     *
-     * @param string $url     URL to check
-     * @param int    $timeout Timeout in seconds (default: 5)
-     *
-     * @return bool True if reachable (HTTP 2xx or 3xx), false otherwise
-     */
-    public function isUrlReachable(string $url, int $timeout = 5): bool
-    {
-        try {
-            $response = $this->client->request('HEAD', $url, [
-                'timeout' => $timeout,
-                'allow_redirects' => true,
-                'headers' => [], // Don't use auth headers for external URLs
-            ]);
-
-            $httpCode = $response->getStatusCode();
-
-            return $httpCode >= 200 && $httpCode < 400;
-        } catch (RequestException $e) {
-            $this->logger->debug("URL not reachable: {$url}", [
-                'error' => $e->getMessage(),
-            ]);
-
-            return false;
-        }
-    }
-
-    /**
-     * Check availability of a URL with performance metrics.
-     *
-     * @param string $url     URL to check
-     * @param int    $timeout Timeout in seconds (default: 5)
-     *
-     * @return array<string,mixed> Availability data with reachable, httpCode, latency_ms, error
-     */
-    public function checkAvailability(string $url, int $timeout = 5): array
-    {
-        $startTime = microtime(true);
-
-        try {
-            $response = $this->client->request('HEAD', $url, [
-                'timeout' => $timeout,
-                'allow_redirects' => true,
-                'headers' => [], // Don't use auth headers for external URLs
-            ]);
-
-            $endTime = microtime(true);
-            $latencyMs = round(($endTime - $startTime) * 1000);
-            $httpCode = $response->getStatusCode();
-            $reachable = $httpCode >= 200 && $httpCode < 400;
-
-            return [
-                'reachable' => $reachable,
-                'httpCode' => $httpCode,
-                'latency_ms' => $reachable ? $latencyMs : null,
-                'error' => null,
-                'url' => $url,
-                'checked_at' => time(),
-            ];
-        } catch (RequestException $e) {
-            $endTime = microtime(true);
-            $latencyMs = round(($endTime - $startTime) * 1000);
-
-            return [
-                'reachable' => false,
-                'httpCode' => $e->getCode() ?: null,
-                'latency_ms' => null,
-                'error' => $e->getMessage(),
-                'url' => $url,
-                'checked_at' => time(),
-            ];
-        }
     }
 }

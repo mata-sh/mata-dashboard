@@ -4,12 +4,14 @@ declare(strict_types=1);
 
 namespace Mata\Services\Monitor;
 
+use GuzzleHttp\Promise\PromiseInterface;
 use Mata\Constants\CacheTypes;
 use Mata\Services\Cache\ApiCacheKeyFactory;
 use Mata\Services\Cache\CacheStoreInterface;
 use Mata\Services\Cache\CacheTtlResolver;
 use Mata\Services\Event\EventManager;
 use Mata\Services\Foundation\ApiClient;
+use Mata\Services\Foundation\ProbeClient;
 use Psr\Log\LoggerInterface;
 
 /**
@@ -17,30 +19,54 @@ use Psr\Log\LoggerInterface;
  */
 class NodeHealthMonitor implements NodeHealthMonitorInterface
 {
+    private const HEALTH_TIMEOUT = 3;
+
     public function __construct(
         private CacheStoreInterface $cacheStore,
         private ApiCacheKeyFactory $cacheKeyFactory,
         private CacheTtlResolver $ttlResolver,
         private ApiClient $apiClient,
+        private ProbeClient $probeClient,
         private EventManager $eventManager,
         private LoggerInterface $logger
     ) {}
 
-    public function check(string $serverName, string $cacheType = CacheTypes::HEALTH): array
+    public function checkOrWait(string $serverName, string $cacheType = CacheTypes::HEALTH): array
     {
-        $ttlSeconds = $this->ttlResolver->get($cacheType);
+        $result = $this->checkAsync($serverName, $cacheType);
+
+        // @var array<string,mixed> $result
+        return is_array($result) ? $result : $result->wait();
+    }
+
+    public function checkAsync(string $serverName, string $cacheType = CacheTypes::HEALTH): array|PromiseInterface
+    {
         $cacheKey = $this->cacheKeyFactory->createApiRequestKey(
             $this->apiClient->getApiBase(),
             'GET',
             'health'
         );
-        $cached = $this->cacheStore->get($cacheKey, $ttlSeconds);
-
+        $cached = $this->cacheStore->get($cacheKey, $this->ttlResolver->get($cacheType));
         if ($cached !== null) {
             return $cached->value;
         }
 
-        $result = $this->apiClient->getHealth();
+        $healthUrl = rtrim($this->apiClient->getApiBase(), '/') . '/health';
+        $healthPromise = $this->probeClient->getHealthAsync($healthUrl, self::HEALTH_TIMEOUT);
+
+        // Cache and emit events after the health probe resolves.
+        return $healthPromise->then(
+            fn (array $health): array => $this->completeCheck($serverName, $cacheKey, $health)
+        );
+    }
+
+    /**
+     * @param array<string,mixed> $result
+     *
+     * @return array<string,mixed>
+     */
+    private function completeCheck(string $serverName, string $cacheKey, array $result): array
+    {
         $result['state'] = NodeHealthStateResolver::resolve($result);
         $this->cacheStore->put($cacheKey, $result);
         $this->recordHealthEvent($serverName, $result);

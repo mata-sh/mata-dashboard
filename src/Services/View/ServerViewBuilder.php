@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace Mata\Services\View;
 
 use Exception;
+use GuzzleHttp\Promise\PromiseInterface;
+use GuzzleHttp\Promise\Utils;
 use Mata\Constants\CacheTypes;
 use Mata\Constants\NodeHealthState;
 use Mata\Services\Cache\CacheTypeResolver;
@@ -66,6 +68,7 @@ class ServerViewBuilder
         bool $forceRefresh
     ): array {
         $serversViewData = [];
+        $healthByServer = $this->resolveNodeHealthByServer($dashboardServicesByServer, $serversConfig);
 
         foreach ($serversConfig as $server => $serverConfig) {
             $dashboardServices = $dashboardServicesByServer[$server] ?? null;
@@ -82,6 +85,7 @@ class ServerViewBuilder
                     $dashboardServices->appMonitor,
                     $forceRefresh,
                     $dashboardServices->healthMonitor,
+                    $healthByServer[$server],
                 );
             } catch (Exception $e) {
                 $this->logger->error("{$server}", [
@@ -94,9 +98,7 @@ class ServerViewBuilder
                     $server,
                     $serverConfig,
                     $e,
-                    $dashboardServices instanceof ServerDashboardServices
-                        ? $this->resolveNodeHealth($server, $dashboardServices->healthMonitor)
-                        : $this->unknownHealth()
+                    $healthByServer[$server] ?? $this->unknownHealth()
                 );
             }
         }
@@ -154,6 +156,7 @@ class ServerViewBuilder
         AppMonitorInterface $appMonitor,
         bool $forceRefresh,
         ?NodeHealthMonitorInterface $healthMonitor = null,
+        ?array $resolvedHealth = null,
     ): array {
         // Get base server metrics
         $serverData = $this->buildServerStatsData($serverName, $serverConfig, $collector, $forceRefresh);
@@ -183,7 +186,7 @@ class ServerViewBuilder
             'age' => $appsCacheAge,
             'ttl' => $appsCacheTtl,
         ];
-        $serverData['health'] = $this->resolveNodeHealth($serverName, $healthMonitor);
+        $serverData['health'] = $resolvedHealth ?? $this->resolveNodeHealth($serverName, $healthMonitor);
 
         return $serverData;
     }
@@ -282,6 +285,62 @@ class ServerViewBuilder
     }
 
     /**
+     * Resolve node health for every configured server.
+     *
+     * Cached values return immediately; cache misses are settled together.
+     *
+     * @param array<string,ServerDashboardServices> $dashboardServicesByServer
+     * @param array<string,mixed>                   $serversConfig
+     *
+     * @return array<string,array<string,mixed>>
+     */
+    private function resolveNodeHealthByServer(array $dashboardServicesByServer, array $serversConfig): array
+    {
+        $healthByServer = [];
+        $pending = [];
+
+        foreach (array_keys($serversConfig) as $server) {
+            $services = $dashboardServicesByServer[$server] ?? null;
+            if (!$services instanceof ServerDashboardServices) {
+                $healthByServer[$server] = $this->unknownHealth();
+
+                continue;
+            }
+
+            try {
+                $result = $services->healthMonitor->checkAsync($server);
+                if ($result instanceof PromiseInterface) {
+                    $pending[$server] = $result;
+                } else {
+                    $healthByServer[$server] = $result;
+                }
+            } catch (Throwable $e) {
+                $this->logger->warning("Health check failed for {$server}", ['error' => $e->getMessage()]);
+                $healthByServer[$server] = $this->unknownHealth();
+            }
+        }
+
+        if ($pending === []) {
+            return $healthByServer;
+        }
+
+        foreach (Utils::settle($pending)->wait() as $server => $outcome) {
+            if ($outcome['state'] === 'fulfilled' && is_array($outcome['value'])) {
+                $healthByServer[$server] = $outcome['value'];
+
+                continue;
+            }
+
+            $reason = $outcome['reason'] ?? null;
+            $message = $reason instanceof Throwable ? $reason->getMessage() : 'Unknown health probe failure';
+            $this->logger->warning("Health check failed for {$server}", ['error' => $message]);
+            $healthByServer[$server] = $this->unknownHealth();
+        }
+
+        return $healthByServer;
+    }
+
+    /**
      * Health failures must not prevent server-card rendering.
      *
      * @return array<string,mixed>
@@ -293,7 +352,7 @@ class ServerViewBuilder
         }
 
         try {
-            return $healthMonitor->check($serverName);
+            return $healthMonitor->checkOrWait($serverName);
         } catch (Throwable $e) {
             $this->logger->warning("Health check failed for {$serverName}", ['error' => $e->getMessage()]);
 

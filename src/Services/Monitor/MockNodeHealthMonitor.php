@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Mata\Services\Monitor;
 
+use GuzzleHttp\Promise\PromiseInterface;
 use Mata\Constants\CacheTypes;
 
 /**
@@ -16,7 +17,7 @@ class MockNodeHealthMonitor implements NodeHealthMonitorInterface
      */
     public function __construct(private array $variants = []) {}
 
-    public function check(string $serverName, string $cacheType = CacheTypes::HEALTH): array
+    public function checkOrWait(string $serverName, string $cacheType = CacheTypes::HEALTH): array
     {
         if (isset($this->variants[$serverName])) {
             return $this->withState($this->variants[$serverName]);
@@ -59,6 +60,11 @@ class MockNodeHealthMonitor implements NodeHealthMonitorInterface
             'error' => null,
             'checked_at' => time(),
         ]);
+    }
+
+    public function checkAsync(string $serverName, string $cacheType = CacheTypes::HEALTH): array|PromiseInterface
+    {
+        return $this->checkOrWait($serverName, $cacheType);
     }
 
     /**

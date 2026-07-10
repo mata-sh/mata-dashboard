@@ -23,6 +23,7 @@ use Mata\Services\DataTransformers\ApiResponseTransformer;
 use Mata\Services\Event\EventManager;
 use Mata\Services\Foundation\ApiClient;
 use Mata\Services\Foundation\LogAnalyzer;
+use Mata\Services\Foundation\ProbeClient;
 use Mata\Services\Monitor\AppMonitor;
 use Mata\Services\Monitor\Dto\ServerDashboardServices;
 use Mata\Services\Monitor\MockAppMonitor;
@@ -92,6 +93,7 @@ class DashboardController extends BaseController
     private array $serversConfig;
 
     private ApplicationConfig $appConfig;
+    private ?ProbeClient $probeClient = null;
 
     /**
      * Initialize dashboard controller with dependencies.
@@ -169,7 +171,6 @@ class DashboardController extends BaseController
         foreach ($this->serversConfig as $server => $serverConfig) {
             try {
                 $this->dashboardServicesByServer[$server] = $this->initializeServerMonitoring($server, $serverConfig);
-
             } catch (Exception $e) {
                 $this->logger->error($server, [
                     'error' => $e->getMessage(),
@@ -183,7 +184,6 @@ class DashboardController extends BaseController
                 );
             }
         }
-
     }
 
     /**
@@ -232,6 +232,8 @@ class DashboardController extends BaseController
             $suppressHttpWarning
         );
 
+        $probeClient = $this->probeClient ??= new ProbeClient();
+
         return new ServerDashboardServices(
             new ServerDataCollector(
                 $this->logger,
@@ -246,6 +248,7 @@ class DashboardController extends BaseController
                 $this->cacheKeyFactory,
                 $this->ttlResolver,
                 $apiClient,
+                $probeClient,
                 $this->eventManager,
                 $this->logger
             ),
@@ -254,6 +257,7 @@ class DashboardController extends BaseController
                 $this->cacheKeyFactory,
                 $this->ttlResolver,
                 $apiClient,
+                $probeClient,
                 $this->eventManager,
                 $this->logger
             ),

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Mata\Services\Monitor;
 
+use GuzzleHttp\Promise\PromiseInterface;
 use Mata\Constants\CacheTypes;
 
 /**
@@ -16,5 +17,12 @@ interface NodeHealthMonitorInterface
      *
      * @return array<string,mixed>
      */
-    public function check(string $serverName, string $cacheType = CacheTypes::HEALTH): array;
+    public function checkOrWait(string $serverName, string $cacheType = CacheTypes::HEALTH): array;
+
+    /**
+     * Return cached health immediately or a cache-miss probe promise.
+     *
+     * @return array<string,mixed>|PromiseInterface
+     */
+    public function checkAsync(string $serverName, string $cacheType = CacheTypes::HEALTH): array|PromiseInterface;
 }
