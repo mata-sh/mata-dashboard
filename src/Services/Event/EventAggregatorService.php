@@ -151,9 +151,35 @@ class EventAggregatorService implements EventAggregatorServiceInterface
     }
 
     /** @return array<int,array<string,mixed>> */
-    public function getLatestAlarms(int $limit = self::DEFAULT_LATEST_ALARMS_LIMIT): array
+    public function getLatestAlarms(int $limit = self::DEFAULT_LATEST_ALARMS_LIMIT, bool $unacknowledgedOnly = false): array
     {
-        return $this->repository->getLatestAlarms($limit);
+        return $this->repository->getLatestAlarms($limit, $unacknowledgedOnly);
+    }
+
+    /**
+     * Count unacknowledged alarms grouped by severity level.
+     *
+     * @return array<string,int> level => count
+     */
+    public function getUnacknowledgedAlarmCounts(): array
+    {
+        return $this->repository->getUnacknowledgedAlarmCounts();
+    }
+
+    /**
+     * Acknowledge a single alarm for a user.
+     */
+    public function acknowledgeAlarm(int $alarmId, string $user): bool
+    {
+        return $this->repository->acknowledgeAlarm($alarmId, $user);
+    }
+
+    /**
+     * Acknowledge all unacknowledged alarms for a user.
+     */
+    public function acknowledgeAllAlarms(string $user): int
+    {
+        return $this->repository->acknowledgeAllAlarms($user);
     }
 
     /**

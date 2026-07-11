@@ -278,7 +278,8 @@ class RouterSetup
                 ['libraries_render', '/libraries', 'get', fn () => $this->dashboardController->renderLibrariesOverview()],
                 ['databases_render', '/databases', 'get', fn () => $this->dashboardController->renderDatabasesOverview()],
                 ['settings_render', '/settings', 'get', fn () => $this->dashboardController->renderSettingsOverview()],
-                ['database_notice_ack', '/database-notice/ack', 'post', fn () => $this->dashboardController->acknowledgeDatabaseNotice()],
+                ['notification_bell_render', '/notification-bell', 'get', fn () => $this->dashboardController->renderNotificationBell()],
+                ['notification_bell_ack_all', '/notification-bell/ack-all', 'post', fn () => $this->dashboardController->acknowledgeAllAlarms()],
             ];
 
             $refreshRoutes = [
@@ -351,11 +352,16 @@ class RouterSetup
     {
         $this->mount('/api', function () {
             $apiRoutes = [
+                // Data reads (JSON twins of the /watch pages)
                 ['events_json', '/events', 'get', fn () => $this->dashboardController->getEventsJson()],
                 ['alarms_json', '/alarms', 'get', fn () => $this->dashboardController->getAlarmsJson()],
                 ['libraries_json', '/libraries', 'get', fn () => $this->dashboardController->getLibrariesJson()],
                 ['app_logs_json', '/logs/{server}/{app}', 'get', fn ($server, $app) => $this->modalController->getAppLogsJson($server, $app, forceRefresh: true)],
                 ['app_logs_status_json', '/logs-status/{server}/{app}', 'get', fn ($server, $app) => $this->modalController->getAppLogsStatusJson($server, $app, forceRefresh: true)],
+
+                // Mutations
+                ['alarms_ack', '/alarms/{alarmId}/ack', 'post', fn ($alarmId) => $this->dashboardController->acknowledgeAlarm($alarmId)],
+                ['database_notice_ack', '/database-notice/ack', 'post', fn () => $this->dashboardController->acknowledgeDatabaseNotice()],
             ];
 
             foreach ($apiRoutes as [$name, $path, $method, $handler]) {

@@ -184,7 +184,7 @@ class EventRepository
                 dal.channel,
                 dal.status,
                 dal.created_at,
-                dal.seen_at,
+                dal.processed_at,
                 e.type,
                 e.message,
                 e.level,
@@ -258,11 +258,15 @@ class EventRepository
     }
 
     /**
+     * @param int  $limit              Maximum number of rows
+     * @param bool $unacknowledgedOnly Only alarms no user has acknowledged yet
+     *
      * @return array<int,array<string,mixed>>
      */
-    public function getLatestAlarms(int $limit = 50): array
+    public function getLatestAlarms(int $limit = 50, bool $unacknowledgedOnly = false): array
     {
         $limit = max(1, (int) $limit);
+        $whereClause = $unacknowledgedOnly ? 'WHERE dal.acknowledged_at IS NULL' : '';
 
         $sql = <<<SQL
             SELECT
@@ -280,6 +284,7 @@ class EventRepository
             LEFT JOIN events AS e ON dal.event_id = e.id
             LEFT JOIN servers AS s ON e.server_id = s.id
             LEFT JOIN applications AS a ON e.application_id = a.id
+            {$whereClause}
             ORDER BY dal.created_at DESC
             LIMIT {$limit}
         SQL;
@@ -287,6 +292,71 @@ class EventRepository
         $result = $this->db->runQuery($sql);
 
         return is_array($result) ? $result : [];
+    }
+
+    /**
+     * Count unacknowledged alarms grouped by the underlying event's severity level.
+     *
+     * Hot path: polled by the topbar notification bell of every open dashboard.
+     * Alarms without a joined event count as 'info'.
+     *
+     * @return array<string,int> level => count
+     */
+    public function getUnacknowledgedAlarmCounts(): array
+    {
+        $sql = <<<'SQL'
+            SELECT COALESCE(e.level, 'info') AS level, COUNT(*) AS cnt
+            FROM alarms AS dal
+            LEFT JOIN events AS e ON dal.event_id = e.id
+            WHERE dal.acknowledged_at IS NULL
+            GROUP BY COALESCE(e.level, 'info')
+        SQL;
+
+        $result = $this->db->runQuery($sql);
+
+        $counts = [];
+        if (is_array($result)) {
+            foreach ($result as $row) {
+                $counts[(string) $row['level']] = (int) $row['cnt'];
+            }
+        }
+
+        return $counts;
+    }
+
+    /**
+     * Acknowledge a single alarm for a user.
+     *
+     * The acknowledged_at IS NULL guard keeps the first acknowledger on record
+     * when two users act concurrently.
+     *
+     * @return bool True if the alarm was newly acknowledged
+     */
+    public function acknowledgeAlarm(int $alarmId, string $user): bool
+    {
+        $sql = <<<'SQL'
+            UPDATE alarms
+               SET acknowledged_at = NOW(), acknowledged_by = ?
+             WHERE id = ? AND acknowledged_at IS NULL
+        SQL;
+
+        return (int) $this->db->runQuery($sql, [$user, $alarmId]) > 0;
+    }
+
+    /**
+     * Acknowledge all unacknowledged alarms for a user.
+     *
+     * @return int Number of alarms acknowledged
+     */
+    public function acknowledgeAllAlarms(string $user): int
+    {
+        $sql = <<<'SQL'
+            UPDATE alarms
+               SET acknowledged_at = NOW(), acknowledged_by = ?
+             WHERE acknowledged_at IS NULL
+        SQL;
+
+        return (int) $this->db->runQuery($sql, [$user]);
     }
 
     /**
@@ -348,7 +418,7 @@ class EventRepository
             LEFT JOIN servers AS s ON e.server_id = s.id
             LEFT JOIN applications AS a ON e.application_id = a.id
             WHERE al.id IS NULL
-              AND e.seen_at IS NULL
+              AND e.evaluated_at IS NULL
               {$levelClause}
             ORDER BY e.datetime ASC
             LIMIT {$limit}
@@ -361,7 +431,7 @@ class EventRepository
 
     public function markEventEvaluated(int $eventId): void
     {
-        // Reuse seen_at as the alert-decision marker to avoid reprocessing.
-        $this->db->runQuery('UPDATE events SET seen_at = NOW() WHERE id = ?', [$eventId]);
+        // Reuse evaluated_at as the alert-decision marker to avoid reprocessing.
+        $this->db->runQuery('UPDATE events SET evaluated_at = NOW() WHERE id = ?', [$eventId]);
     }
 }

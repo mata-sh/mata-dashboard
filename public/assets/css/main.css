@@ -1396,3 +1396,99 @@ svg {
 .tag.sev-unknown { background: rgba(154, 154, 154, .12); border: 1px solid #9a9a9a; }
 .tag.sev-none { background: rgba(102, 102, 102, .12); border: 1px solid #666; }
 .chip-error { color: #ff4d4d; border-color: #ff4d4d; }
+
+/* ── Notification bell (topbar) ──────────────────────────────── */
+.navbar-item.notification-bell {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: .5rem;
+}
+.notification-pills {
+    display: inline-flex;
+    gap: .3rem;
+}
+.notification-pill {
+    display: inline-flex;
+    align-items: center;
+    padding: 2px 8px;
+    font-size: .7rem;
+    font-weight: 700;
+    line-height: 1.2;
+    border-radius: 9999px;
+}
+.notification-pill.level-warning { background: rgba(255, 210, 77, .15); border: 1px solid #ffd24d; color: #ffd24d; }
+.notification-pill.level-error { background: rgba(255, 140, 66, .15); border: 1px solid #ff8c42; color: #ff8c42; }
+.notification-pill.level-critical { background: rgba(255, 77, 77, .15); border: 1px solid #ff4d4d; color: #ff4d4d; }
+.notification-bell-trigger {
+    display: inline-flex;
+    align-items: center;
+    cursor: pointer;
+    color: #9a9a9a;
+}
+.notification-bell-trigger.has-unacknowledged { color: #ffd24d; }
+.notification-bell-menu {
+    display: none;
+    position: absolute;
+    top: 100%;
+    right: 0;
+    min-width: 12rem;
+    padding: .25rem 0;
+    background: var(--bulma-scheme-main, #fff);
+    border: 1px solid rgba(154, 154, 154, .35);
+    border-radius: 6px;
+    box-shadow: 0 8px 16px rgba(0, 0, 0, .15);
+    z-index: 40;
+}
+.notification-bell:hover .notification-bell-menu,
+.notification-bell:focus-within .notification-bell-menu {
+    display: block;
+}
+.notification-bell-summary {
+    padding: .4rem .9rem;
+    font-size: .75rem;
+    color: #9a9a9a;
+    border-bottom: 1px solid rgba(154, 154, 154, .25);
+}
+.notification-bell-menu-item {
+    display: block;
+    padding: .45rem .9rem;
+    font-size: .85rem;
+    cursor: pointer;
+    white-space: nowrap;
+}
+.notification-bell-menu-item:hover {
+    background: rgba(154, 154, 154, .12);
+}
+
+/* ── Section title help icon ─────────────────────────────────── */
+.section-help-icon {
+    display: inline-flex;
+    align-items: center;
+    margin-right: .4rem;
+    color: #9a9a9a;
+    cursor: help;
+    vertical-align: middle;
+}
+
+.filter-unacknowledged-label {
+    display: inline-flex;
+    align-items: center;
+    gap: .35rem;
+    color: white;
+    font-size: .85em;
+    white-space: nowrap;
+}
+
+.filter-unacknowledged-label input {
+    width: auto;
+    margin: 0;
+    padding: 0;
+    accent-color: #ffffff;
+}
+
+.alarm-ack-btn {
+    padding: .15rem .4rem;
+    font-size: .72rem;
+    line-height: 1.2;
+}

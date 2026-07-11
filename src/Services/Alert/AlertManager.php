@@ -97,6 +97,7 @@ class AlertManager
     {
         return match ($level) {
             AlertLevel::Critical => 10,
+            AlertLevel::Error => 30,
             AlertLevel::Warning => 60,
             AlertLevel::Info => 100,
         };

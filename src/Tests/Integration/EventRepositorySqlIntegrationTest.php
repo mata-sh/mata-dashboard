@@ -94,7 +94,7 @@ final class EventRepositorySqlIntegrationTest extends TestCase
                 context TEXT,
                 level TEXT NOT NULL,
                 datetime TEXT NOT NULL,
-                seen_at TEXT
+                evaluated_at TEXT
             );
 
             CREATE TABLE alarms (
@@ -102,8 +102,10 @@ final class EventRepositorySqlIntegrationTest extends TestCase
                 event_id INTEGER,
                 channel TEXT,
                 status TEXT NOT NULL,
-                seen_at TEXT,
-                created_at TEXT
+                processed_at TEXT,
+                created_at TEXT,
+                acknowledged_at TEXT,
+                acknowledged_by TEXT
             );
             SQL);
     }
@@ -117,12 +119,12 @@ final class EventRepositorySqlIntegrationTest extends TestCase
             INSERT INTO applications (id, code, display_name, app_env)
             VALUES (10, 'app-a', 'App A', 'prod');
 
-            INSERT INTO events (id, server_id, application_id, type, message, context, level, datetime, seen_at)
+            INSERT INTO events (id, server_id, application_id, type, message, context, level, datetime, evaluated_at)
             VALUES
                 (1, 1, 10, 'cpu', 'CPU high', '{"metric":"cpu"}', 'warning', '2026-01-01 00:00:00', NULL),
                 (2, 1, 10, 'disk', 'Disk full', '{"metric":"disk"}', 'critical', '2026-01-01 00:01:00', NULL);
 
-            INSERT INTO alarms (id, event_id, channel, status, seen_at, created_at)
+            INSERT INTO alarms (id, event_id, channel, status, processed_at, created_at)
             VALUES (100, 1, 'mail', 'sent', NULL, '2026-01-01 00:02:00');
             SQL);
     }

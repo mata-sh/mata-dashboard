@@ -28,6 +28,9 @@ class EventsRenderer extends BaseRenderer
             'endpoints' => [
                 'events_json' => $endpoints->url('events_json'),
             ],
+            'icons' => [
+                'help' => $this->tools->icon('help-circle', 14),
+            ],
         ]);
     }
 }

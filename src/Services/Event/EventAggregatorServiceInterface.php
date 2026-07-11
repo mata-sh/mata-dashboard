@@ -57,7 +57,28 @@ interface EventAggregatorServiceInterface
     public function getLatestEvents(int $limit = 50): array;
 
     /** @return array<int,array<string,mixed>> */
-    public function getLatestAlarms(int $limit = 50): array;
+    public function getLatestAlarms(int $limit = 50, bool $unacknowledgedOnly = false): array;
+
+    /**
+     * Count unacknowledged alarms grouped by severity level.
+     *
+     * @return array<string,int> level => count
+     */
+    public function getUnacknowledgedAlarmCounts(): array;
+
+    /**
+     * Acknowledge a single alarm for a user.
+     *
+     * @return bool True if the alarm was newly acknowledged
+     */
+    public function acknowledgeAlarm(int $alarmId, string $user): bool;
+
+    /**
+     * Acknowledge all unacknowledged alarms for a user.
+     *
+     * @return int Number of alarms acknowledged
+     */
+    public function acknowledgeAllAlarms(string $user): int;
 
     /**
      * Remove alarm records older than specified days.

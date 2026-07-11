@@ -33,6 +33,7 @@ use Mata\Services\Monitor\MockNodeHealthMonitor;
 use Mata\Services\Monitor\NodeHealthMonitor;
 use Mata\Services\Monitor\ServerMonitor;
 use Mata\Services\Navigation\MenuBuilder;
+use Mata\Services\Navigation\NotificationCenter;
 use Mata\Services\Notification\NotificationManager;
 use Mata\Services\View\LibrariesViewBuilder;
 use Mata\Services\View\ServerViewBuilder;
@@ -43,6 +44,7 @@ use Mata\Views\DatabaseRenderer;
 use Mata\Views\EventsRenderer;
 use Mata\Views\LibrariesRenderer;
 use Mata\Views\LogRenderer;
+use Mata\Views\NotificationCenterRenderer;
 use Mata\Views\ServerRenderer;
 use Mata\Views\SettingsRenderer;
 use Monolog\Logger;
@@ -80,7 +82,10 @@ class DashboardController extends BaseController
     private SettingsRenderer $settingsRenderer;
     private EventsRenderer $eventsRenderer;
     private AlarmsRenderer $alarmsRenderer;
+    private NotificationCenterRenderer $notificationCenterRenderer;
+    private NotificationCenter $notificationCenter;
     private MenuBuilder $menuBuilder;
+    private App $app;
 
     /** @var array<string,float|int> */
     private array $ttlConfig = [];
@@ -158,6 +163,9 @@ class DashboardController extends BaseController
         $this->settingsRenderer = new SettingsRenderer($twig, $logger, $tools, $app, $endpoints);
         $this->eventsRenderer = new EventsRenderer($twig, $logger, $tools, $app, $endpoints);
         $this->alarmsRenderer = new AlarmsRenderer($twig, $logger, $tools, $app, $endpoints);
+        $this->notificationCenterRenderer = new NotificationCenterRenderer($twig, $logger, $tools, $app, $endpoints);
+        $this->notificationCenter = new NotificationCenter($eventManager);
+        $this->app = $app;
 
         // Initialize Libraries service classes
         $auditRowEnricher = new AuditRowEnricher(new AuditAggregator());
@@ -336,6 +344,7 @@ class DashboardController extends BaseController
                 $endpoints = [
                     'server_render' => $this->endpoints->url('servers_render'),
                     'database_notice_ack' => $this->endpoints->url('database_notice_ack'),
+                    'notification_bell_render' => $this->endpoints->url('notification_bell_render'),
                 ];
 
                 $layout = [
@@ -606,12 +615,76 @@ class DashboardController extends BaseController
     {
         return $this->executeWithErrorHandling(
             function () {
-                $alarms = $this->eventManager->aggregator->getLatestAlarms();
+                $unacknowledgedOnly = ($_GET['unacknowledged'] ?? '') === '1';
+                $alarms = $this->eventManager->aggregator->getLatestAlarms(
+                    unacknowledgedOnly: $unacknowledgedOnly
+                );
 
                 return new JsonResponse($alarms);
             },
             'Failed to retrieve alarms',
             'Alarms JSON API request'
+        );
+    }
+
+    /**
+     * Render the topbar notification bell fragment (polled via htmx).
+     */
+    public function renderNotificationBell(): Response
+    {
+        return $this->executeWithErrorHandling(
+            function () {
+                $html = $this->notificationCenterRenderer->renderBell(
+                    $this->notificationCenter->getUnacknowledgedCounts()
+                );
+
+                return new HtmlResponse($html);
+            },
+            'Failed to render notification bell',
+            'Notification bell fragment rendering'
+        );
+    }
+
+    /**
+     * Acknowledge a single alarm and return the acknowledgement result.
+     *
+     * @param string $alarmId Alarm identifier from the route
+     */
+    public function acknowledgeAlarm(string $alarmId): Response
+    {
+        return $this->executeWithErrorHandling(
+            function () use ($alarmId) {
+                $user = $this->app->auth->getUsername() ?? 'unknown';
+                $acknowledged = $this->notificationCenter->acknowledge((int) $alarmId, $user);
+
+                return new JsonResponse([
+                    'success' => true,
+                    'acknowledged' => $acknowledged,
+                ]);
+            },
+            'Failed to acknowledge alarm',
+            'Alarm acknowledgement'
+        );
+    }
+
+    /**
+     * Acknowledge all unacknowledged alarms and return the refreshed bell fragment.
+     */
+    public function acknowledgeAllAlarms(): Response
+    {
+        return $this->executeWithErrorHandling(
+            function () {
+                $user = $this->app->auth->getUsername() ?? 'unknown';
+                $this->notificationCenter->acknowledgeAll($user);
+
+                $html = $this->notificationCenterRenderer->renderBell(
+                    $this->notificationCenter->getUnacknowledgedCounts()
+                );
+
+                return new HtmlResponse($html);
+            },
+            'Failed to acknowledge alarms',
+            'Alarm bulk acknowledgement'
         );
     }
 

@@ -231,10 +231,17 @@ final class MockEventAggregatorService implements EventAggregatorServiceInterfac
     /**
      * @return array<int,array<string,mixed>>
      */
-    public function getLatestAlarms(int $limit = self::DEFAULT_LATEST_ALARMS_LIMIT): array
+    public function getLatestAlarms(int $limit = self::DEFAULT_LATEST_ALARMS_LIMIT, bool $unacknowledgedOnly = false): array
     {
         $limit = max(1, (int) $limit);
         $alarms = $this->sortByTime($this->alarms, 'created_at', false);
+
+        if ($unacknowledgedOnly) {
+            $alarms = array_values(array_filter(
+                $alarms,
+                static fn (array $alarm): bool => empty($alarm['acknowledged_at'])
+            ));
+        }
 
         $alarms = array_slice($alarms, 0, $limit);
 
@@ -245,6 +252,51 @@ final class MockEventAggregatorService implements EventAggregatorServiceInterfac
         ]);
 
         return $alarms;
+    }
+
+    /**
+     * @return array<string,int> level => count
+     */
+    public function getUnacknowledgedAlarmCounts(): array
+    {
+        $counts = [];
+        foreach ($this->alarms as $alarm) {
+            if (!empty($alarm['acknowledged_at'])) {
+                continue;
+            }
+            $level = (string) ($alarm['level'] ?? 'info');
+            $counts[$level] = ($counts[$level] ?? 0) + 1;
+        }
+
+        return $counts;
+    }
+
+    public function acknowledgeAlarm(int $alarmId, string $user): bool
+    {
+        foreach ($this->alarms as &$alarm) {
+            if ((int) ($alarm['id'] ?? 0) === $alarmId && empty($alarm['acknowledged_at'])) {
+                $alarm['acknowledged_at'] = date('Y-m-d H:i:s');
+                $alarm['acknowledged_by'] = $user;
+
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    public function acknowledgeAllAlarms(string $user): int
+    {
+        $count = 0;
+        foreach ($this->alarms as &$alarm) {
+            if (empty($alarm['acknowledged_at'])) {
+                $alarm['acknowledged_at'] = date('Y-m-d H:i:s');
+                $alarm['acknowledged_by'] = $user;
+                ++$count;
+            }
+        }
+
+        return $count;
     }
 
     public function clearOldAlarms(int $days = 365): void

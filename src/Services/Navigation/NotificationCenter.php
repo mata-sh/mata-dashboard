@@ -4,120 +4,85 @@ declare(strict_types=1);
 
 namespace Mata\Services\Navigation;
 
-// use Monolog\Logger;
-// use Mata\Core\Database;
+use LogicException;
+use Mata\Services\Event\EventAggregatorServiceInterface;
+use Mata\Services\Event\EventManager;
 
 /**
- * Manages user-specific notifications in the dashboard.
+ * Dashboard notification bell backed by alarm acknowledgements.
  *
- * Handles personal notification inbox functionality including:
- * - Fetching user notifications with read/unread status
- * - Marking notifications as read
- * - Deleting notifications
- * - Getting unread notification counts for badge display
+ * Acknowledgement is global, not per-user: the bell answers "has anyone
+ * dealt with this alarm yet". The acting username is recorded in
+ * `alarms.acknowledged_by` as an audit trail.
  *
  * This is distinct from NotificationManager which handles system-wide
  * notifications like database availability banners.
  */
 class NotificationCenter
 {
-    // private Logger $logger;
-    // private Database $database;
+    /** Severity levels shown as bell pills, in display order. */
+    public const PILL_LEVELS = ['warning', 'error', 'critical'];
 
-    /**
-     * //  * @param Logger   $logger   PSR-3 logger for notification operations
-     * //  * @param Database $database Database connection for notification storage
-     */
-    public function __construct(
-        // Logger $logger,
-        // Database $database
-    ) {
-        // $this->logger = $logger;
-        // $this->database = $database;
+    private EventManager $eventManager;
+
+    public function __construct(EventManager $eventManager)
+    {
+        $this->eventManager = $eventManager;
     }
 
     /**
-     * Get notifications for a specific user.
+     * Get unacknowledged alarm counts per severity level, zero-filled.
      *
-     * @param int  $userId     User identifier
-     * @param bool $unreadOnly Only return unread notifications
+     * Used for the topbar bell pills. Levels outside PILL_LEVELS (info)
+     * are included under their own key so API consumers still see them.
      *
-     * @return array<int,array{id:int,message:string,type:string,created_at:string,is_read:bool}>
+     * @return array<string,int> level => count
      */
-    public function getUserNotifications(int $userId, bool $unreadOnly = false): array
+    public function getUnacknowledgedCounts(): array
     {
-        // TODO: Implement database query to fetch user notifications
-        return [];
+        $raw = $this->aggregator()->getUnacknowledgedAlarmCounts();
+
+        $counts = ['info' => 0, 'warning' => 0, 'error' => 0, 'critical' => 0];
+        foreach ($raw as $level => $count) {
+            $counts[$level] = ($counts[$level] ?? 0) + $count;
+        }
+
+        return $counts;
     }
 
     /**
-     * Get count of unread notifications for a user.
+     * Acknowledge a single alarm.
      *
-     * Used for displaying badge count on notification bell icon.
+     * @param int    $alarmId Alarm identifier
+     * @param string $user    Username performing the acknowledgement
      *
-     * @param int $userId User identifier
-     *
-     * @return int Number of unread notifications
+     * @return bool True if the alarm was newly acknowledged
      */
-    public function getUnreadCount(int $userId): int
+    public function acknowledge(int $alarmId, string $user): bool
     {
-        // TODO: Implement unread count query
-        return 0;
+        return $this->aggregator()->acknowledgeAlarm($alarmId, $user);
     }
 
     /**
-     * Mark a notification as read.
+     * Acknowledge all unacknowledged alarms.
      *
-     * @param int $notificationId Notification identifier
-     * @param int $userId         User identifier for authorization check
+     * @param string $user Username performing the acknowledgement
      *
-     * @return bool True if marked successfully, false otherwise
+     * @return int Number of alarms acknowledged
      */
-    public function markAsRead(int $notificationId, int $userId): bool
+    public function acknowledgeAll(string $user): int
     {
-        // TODO: Implement mark as read logic with user authorization check
-        return false;
+        return $this->aggregator()->acknowledgeAllAlarms($user);
     }
 
-    /**
-     * Mark all notifications as read for a user.
-     *
-     * @param int $userId User identifier
-     *
-     * @return bool True if marked successfully, false otherwise
-     */
-    public function markAllAsRead(int $userId): bool
+    private function aggregator(): EventAggregatorServiceInterface
     {
-        // TODO: Implement mark all as read logic
-        return false;
-    }
+        if ($this->eventManager->aggregator === null) {
+            throw new LogicException(
+                'EventAggregator not initialized. Call setEventAggregator() on EventManager before using NotificationCenter.'
+            );
+        }
 
-    /**
-     * Delete a notification.
-     *
-     * @param int $notificationId Notification identifier
-     * @param int $userId         User identifier for authorization check
-     *
-     * @return bool True if deleted successfully, false otherwise
-     */
-    public function deleteNotification(int $notificationId, int $userId): bool
-    {
-        // TODO: Implement delete logic with user authorization check
-        return false;
-    }
-
-    /**
-     * Create a new notification for a user.
-     *
-     * @param int    $userId  User identifier
-     * @param string $message Notification message
-     * @param string $type    Notification type (info, warning, error, success)
-     *
-     * @return bool True if created successfully, false otherwise
-     */
-    public function createNotification(int $userId, string $message, string $type = 'info'): bool
-    {
-        // TODO: Implement notification creation logic
-        return false;
+        return $this->eventManager->aggregator;
     }
 }

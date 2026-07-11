@@ -1,0 +1,30 @@
+{# Inner content of the #notification-bell navbar item.
+   The wrapper in topbar.html.twig polls this fragment via htmx, so all
+   markup here is replaced on every refresh. #}
+<span class="notification-pills">
+  {% for pill in pills %}
+    {% if pill.count > 0 %}
+      <span class="notification-pill level-{{ pill.level }}"
+            data-tippy-content="{{ pill.count }} unacknowledged {{ pill.level }} alarm{{ pill.count == 1 ? '' : 's' }}">{{ pill.count }}</span>
+    {% endif %}
+  {% endfor %}
+</span>
+
+<span class="notification-bell-trigger {{ total > 0 ? 'has-unacknowledged' : '' }}" aria-label="Notifications" aria-haspopup="true">
+  {{ icons.bell|raw }}
+</span>
+
+<div class="notification-bell-menu" role="menu">
+  <div class="notification-bell-summary">
+    {{ total }} unacknowledged alarm{{ total == 1 ? '' : 's' }}
+  </div>
+  <a class="notification-bell-menu-item"
+     hx-post="{{ endpoints.ack_all }}"
+     hx-target="#notification-bell"
+     hx-swap="innerHTML">Acknowledge all</a>
+  <a class="notification-bell-menu-item"
+     href="#"
+     hx-get="{{ endpoints.alarms_render }}"
+     hx-target="#main-section"
+     hx-swap="innerHTML">Go to alarms</a>
+</div>

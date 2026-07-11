@@ -33,7 +33,7 @@ class AlertQueueRepository
     {
         $sql = <<<'SQL'
             INSERT INTO alarms
-                (event_id, channel, status, priority, attempts, created_at, seen_at, next_retry_at, error_payload)
+                (event_id, channel, status, priority, attempts, created_at, processed_at, next_retry_at, error_payload)
             VALUES
                 (?, ?, 'pending', ?, 0, NOW(), NULL, NULL, NULL)
         SQL;
@@ -91,7 +91,7 @@ class AlertQueueRepository
         $updateSql = <<<SQL
             UPDATE alarms
                SET status = 'processing',
-                   seen_at = ?
+                   processed_at = ?
              WHERE id IN ({$placeholders})
         SQL;
 
@@ -127,15 +127,15 @@ class AlertQueueRepository
             SELECT
                 LOWER(COALESCE(s.name, 'global')) AS server_key,
                 LOWER(al.channel) AS channel,
-                SUM(CASE WHEN al.seen_at >= :minute_threshold THEN 1 ELSE 0 END) AS minute_count,
-                SUM(CASE WHEN al.seen_at >= :hour_threshold THEN 1 ELSE 0 END) AS hour_count,
+                SUM(CASE WHEN al.processed_at >= :minute_threshold THEN 1 ELSE 0 END) AS minute_count,
+                SUM(CASE WHEN al.processed_at >= :hour_threshold THEN 1 ELSE 0 END) AS hour_count,
                 COUNT(*) AS day_count
             FROM alarms AS al
             LEFT JOIN events AS e ON e.id = al.event_id
             LEFT JOIN servers AS s ON e.server_id = s.id
             WHERE al.status = 'sent'
-              AND al.seen_at IS NOT NULL
-              AND al.seen_at >= :day_threshold
+              AND al.processed_at IS NOT NULL
+              AND al.processed_at >= :day_threshold
             GROUP BY server_key, channel
         SQL;
 
@@ -178,7 +178,7 @@ class AlertQueueRepository
     {
         $sql = <<<'SQL'
             UPDATE alarms
-               SET error_payload = ?, seen_at = NOW()
+               SET error_payload = ?, processed_at = NOW()
              WHERE id = ?
         SQL;
 
@@ -199,7 +199,7 @@ class AlertQueueRepository
                SET status = ?,
                    attempts = ?,
                    next_retry_at = ?,
-                   seen_at = NOW()
+                   processed_at = NOW()
              WHERE id = ?
         SQL;
 

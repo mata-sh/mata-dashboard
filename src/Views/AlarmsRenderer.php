@@ -24,9 +24,17 @@ class AlarmsRenderer extends BaseRenderer
      */
     public function renderContainer(Endpoints $endpoints): string
     {
+        // Raw registered path (keeps the {alarmId} placeholder for JS substitution);
+        // relative like every other endpoint URL in the templates.
+        $alarmsAckUrl = $endpoints->all()['alarms_ack'] ?? '';
+
         return $this->twig->render('partials/containers/alarms-container.html.twig', [
             'endpoints' => [
                 'alarms_json' => $endpoints->url('alarms_json'),
+                'alarms_ack' => $alarmsAckUrl,
+            ],
+            'icons' => [
+                'help' => $this->tools->icon('help-circle', 14),
             ],
         ]);
     }

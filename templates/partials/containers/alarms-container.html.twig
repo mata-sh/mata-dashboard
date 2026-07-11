@@ -1,5 +1,5 @@
 <div class="events-section">
-    <h3>Alarms</h3>
+    <h3><span class="section-help-icon" data-tippy-content="Alarms: events that crossed alert policy thresholds. They appear in the notification bell and may trigger email notifications. Acknowledge them once handled.">{{ icons.help|raw }}</span>Alarms</h3>
 
     <div class="filter-menu">
         <input id="filter-time" type="text" placeholder="2025.05.08 20:00:00">
@@ -10,6 +10,7 @@
             <option value="critical">Critical</option>
             <option value="warning">Warning</option>
         </select>
+        <label class="filter-unacknowledged-label"><input type="checkbox" id="filter-unacknowledged"> Unacknowledged only</label>
         <select id="filter-app">
             <option value="">All Apps</option>
         </select>
@@ -76,8 +77,70 @@
         {title: "Message", field: "message", sorter: "string"},
         {title: "Context", field: "context", sorter: "string"},
         {title: "Channel", field: "channel", sorter: "string", hozAlign:"center"},
-        {title: "Status", field: "status", sorter: "string", hozAlign:"center"}
+        {title: "Status", field: "status", sorter: "string", hozAlign:"center"},
+        {title: "Acknowledged", field: "acknowledged_by", hozAlign:"center", formatter:function(cell){
+            var rowData = cell.getRow().getData();
+            if (!rowData.acknowledged_at) {
+                return "—";
+            }
+
+            var escapeHtml = function(value) {
+                var element = document.createElement("span");
+                element.textContent = String(value || "");
+                return element.innerHTML;
+            };
+            var acknowledgedAt = escapeHtml(rowData.acknowledged_at);
+            var acknowledgedBy = escapeHtml(rowData.acknowledged_by);
+
+            return "<span data-tippy-content=\"Acknowledged at " + acknowledgedAt + "\">✓ " + acknowledgedBy + "</span>";
+        }},
+        {title: "", field: "actions", headerSort:false, sorter:false, hozAlign:"center", formatter:function(cell){
+            if (cell.getRow().getData().acknowledged_at) {
+                return "";
+            }
+
+            return "<button type=\"button\" class=\"button is-small alarm-ack-btn\">Acknowledge</button>";
+        }, cellClick:function(event, cell){
+            if (!event.target.closest(".alarm-ack-btn")) {
+                return;
+            }
+
+            var csrfToken = document.querySelector('meta[name="csrf-token"]');
+            if (!csrfToken) {
+                return;
+            }
+
+            var rowData = cell.getRow().getData();
+            fetch("{{ endpoints.alarms_ack }}".replace("{alarmId}", encodeURIComponent(rowData.id)), {
+                method: "POST",
+                headers: { "X-CSRF-Token": csrfToken.content }
+            })
+                .then(function(response) {
+                    if (!response.ok) {
+                        throw new Error("Could not acknowledge alarm");
+                    }
+
+                    return response.json();
+                })
+                .then(function(response) {
+                    if (!response.success) {
+                        return;
+                    }
+
+                    var unacknowledgedOnly = document.getElementById("filter-unacknowledged").checked;
+                    table.setData("{{ endpoints.alarms_json }}" + (unacknowledgedOnly ? "?unacknowledged=1" : ""));
+                    document.body.dispatchEvent(new Event("bell-refresh"));
+                })
+                .catch(function(error) {
+                    console.error(error);
+                });
+        }}
         ],
+        renderComplete: function () {
+            tippy('#alarms-table [data-tippy-content]', {
+                allowHTML: true,
+            });
+        },
     });
 
     Tabulator.extendModule("filter", "filters", {
@@ -129,6 +192,9 @@
         document.getElementById(id).addEventListener("input", applyFilters);
     });
     document.getElementById("filter-level").addEventListener("change", applyFilters);
+    document.getElementById("filter-unacknowledged").addEventListener("change", function(event) {
+        table.setData("{{ endpoints.alarms_json }}" + (event.target.checked ? "?unacknowledged=1" : ""));
+    });
     ["filter-app","filter-server"].forEach(id=>{
         document.getElementById(id).addEventListener("change", applyFilters);
     });
@@ -139,8 +205,10 @@
             document.getElementById(id).value = "";
         });
         document.getElementById("filter-level").value = "";
+        document.getElementById("filter-unacknowledged").checked = false;
         document.getElementById("filter-app").value = "";
         document.getElementById("filter-server").value = "";
         table.clearFilter();
+        table.setData("{{ endpoints.alarms_json }}");
     });
 </script>

@@ -11,6 +11,7 @@ enum AlertLevel: string
 {
     case Info = 'info';
     case Warning = 'warning';
+    case Error = 'error';
     case Critical = 'critical';
 
     /**
@@ -20,6 +21,7 @@ enum AlertLevel: string
     {
         return match ($this) {
             self::Critical => '🔴',
+            self::Error => '🟡',
             self::Warning => '🟠',
             self::Info => '🔵',
         };
@@ -32,6 +34,7 @@ enum AlertLevel: string
     {
         return match (strtolower($level)) {
             'critical' => self::Critical,
+            'error' => self::Error,
             'warning' => self::Warning,
             'info' => self::Info,
             default => self::Info,
