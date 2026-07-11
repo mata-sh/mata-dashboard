@@ -785,6 +785,20 @@ class DashboardControllerTest extends TestCase
                 'threshold' => 10,
                 'current_value' => 4.2,
                 'timestamp' => time() - 600,
+                'deliveries' => [
+                    'email' => [
+                        'status' => 'sent',
+                        'attempts' => 1,
+                        'processed_at' => '2026-07-11 12:00:00',
+                        'next_retry_at' => null,
+                    ],
+                    'slack' => [
+                        'status' => 'retry',
+                        'attempts' => 2,
+                        'processed_at' => '2026-07-11 12:00:01',
+                        'next_retry_at' => '2026-07-11 12:05:00',
+                    ],
+                ],
             ],
             [
                 'id' => 2,
@@ -817,6 +831,8 @@ class DashboardControllerTest extends TestCase
         $this->assertIsArray($responseData);
         $this->assertCount(2, $responseData);
         $this->assertEquals('critical', $responseData[0]['severity']);
+        $this->assertSame('sent', $responseData[0]['deliveries']['email']['status']);
+        $this->assertSame('retry', $responseData[0]['deliveries']['slack']['status']);
     }
 
     /**

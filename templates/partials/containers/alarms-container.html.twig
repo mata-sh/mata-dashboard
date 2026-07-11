@@ -30,6 +30,21 @@
 </div>
 <script>
 
+    var escapeHtml = function(value) {
+        var element = document.createElement("span");
+        element.textContent = String(value || "");
+        return element.innerHTML;
+    };
+    var deliveryStyles = {
+        sent: "is-success",
+        pending: "is-info",
+        processing: "is-info",
+        retry: "is-warning",
+        throttled: "is-warning",
+        failed: "is-danger",
+        discarded: "is-danger"
+    };
+
     var table = new Tabulator("#alarms-table", {
         ajaxURL: "{{ endpoints.alarms_json }}",
         layout:"fitDataStretch",
@@ -56,19 +71,34 @@
         }},
         {title: "Message", field: "message", sorter: "string"},
         {title: "Context", field: "context", sorter: "string"},
-        {title: "Channel", field: "channel", sorter: "string", hozAlign:"center"},
-        {title: "Status", field: "status", sorter: "string", hozAlign:"center"},
+        {title: "Deliveries", field: "deliveries", hozAlign:"center", formatter:function(cell){
+            var deliveries = cell.getValue();
+            if (!deliveries || typeof deliveries !== "object" || Array.isArray(deliveries)) {
+                return "—";
+            }
+
+            var channels = Object.keys(deliveries).sort();
+            if (channels.length === 0) {
+                return "—";
+            }
+
+            return channels.map(function(channel) {
+                var delivery = deliveries[channel] || {};
+                var status = String(delivery.status || "").toLowerCase();
+                var label = status ? status.charAt(0).toUpperCase() + status.slice(1) : "Unknown";
+                var style = deliveryStyles[status] || "is-light";
+
+                return "<div><span class=\"tag " + style + "\">" +
+                    escapeHtml(channel) + ": " + escapeHtml(label) +
+                    "</span></div>";
+            }).join("");
+        }},
         {title: "Acknowledged", field: "acknowledged_by", hozAlign:"center", formatter:function(cell){
             var rowData = cell.getRow().getData();
             if (!rowData.acknowledged_at) {
                 return "—";
             }
 
-            var escapeHtml = function(value) {
-                var element = document.createElement("span");
-                element.textContent = String(value || "");
-                return element.innerHTML;
-            };
             var acknowledgedAt = escapeHtml(rowData.acknowledged_at);
             var acknowledgedBy = escapeHtml(rowData.acknowledged_by);
 

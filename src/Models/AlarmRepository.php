@@ -54,24 +54,64 @@ final class AlarmRepository
                 e.context,
                 COALESCE(s.name, '') AS server,
                 COALESCE(a.code, '') AS app,
-                a.app_env,
-                COALESCE(GROUP_CONCAT(DISTINCT ad.channel), '') AS channel,
-                COALESCE(GROUP_CONCAT(DISTINCT ad.status), '') AS status
+                a.app_env
             FROM alarms AS al
             LEFT JOIN events AS e ON e.id = al.event_id
             LEFT JOIN servers AS s ON s.id = e.server_id
             LEFT JOIN applications AS a ON a.id = e.application_id
-            LEFT JOIN alarm_deliveries AS ad ON ad.alarm_id = al.id
             {$where}
-            GROUP BY al.id, al.event_id, al.created_at, al.acknowledged_at, al.acknowledged_by,
-                e.datetime, e.type, e.message, e.level, e.context, s.name, a.code, a.app_env
             ORDER BY al.created_at DESC
             LIMIT {$limit}
         SQL;
 
-        $result = $this->db->runQuery($sql);
+        $alarms = $this->db->runQuery($sql);
+        if (!is_array($alarms) || $alarms === []) {
+            return [];
+        }
 
-        return is_array($result) ? $result : [];
+        $alarmIds = array_map(static fn (array $alarm) => (int) $alarm['id'], $alarms);
+        $deliveriesByAlarm = $this->fetchDeliveriesByAlarm($alarmIds);
+
+        foreach ($alarms as &$alarm) {
+            // (object) keeps empty deliveries encoding as {} instead of [] in JSON.
+            $alarm['deliveries'] = $deliveriesByAlarm[(int) $alarm['id']] ?? (object) [];
+        }
+        unset($alarm);
+
+        return $alarms;
+    }
+
+    /**
+     * @param array<int,int> $alarmIds
+     *
+     * @return array<int,array<string,array<string,mixed>>> deliveries grouped by alarm id, keyed by channel
+     */
+    private function fetchDeliveriesByAlarm(array $alarmIds): array
+    {
+        $placeholders = implode(', ', array_fill(0, count($alarmIds), '?'));
+        $deliveries = $this->db->runQuery(<<<SQL
+            SELECT alarm_id, channel, status, attempts, processed_at, next_retry_at
+            FROM alarm_deliveries
+            WHERE alarm_id IN ({$placeholders})
+            ORDER BY alarm_id, channel
+            SQL, $alarmIds);
+
+        $grouped = [];
+        foreach (is_array($deliveries) ? $deliveries : [] as $delivery) {
+            $channel = strtolower(trim((string) $delivery['channel']));
+            if ($channel === '') {
+                continue;
+            }
+
+            $grouped[(int) $delivery['alarm_id']][$channel] = [
+                'status' => (string) $delivery['status'],
+                'attempts' => (int) $delivery['attempts'],
+                'processed_at' => $delivery['processed_at'] === null ? null : (string) $delivery['processed_at'],
+                'next_retry_at' => $delivery['next_retry_at'] === null ? null : (string) $delivery['next_retry_at'],
+            ];
+        }
+
+        return $grouped;
     }
 
     /** @return array<string,int> */

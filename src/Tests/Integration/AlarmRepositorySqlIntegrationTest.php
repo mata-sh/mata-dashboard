@@ -10,6 +10,7 @@ use Mata\Models\AlarmDeliveryRepository;
 use Mata\Models\AlarmRepository;
 use Mata\Tests\TestCase;
 use PDO;
+use stdClass;
 
 /**
  * @internal
@@ -52,6 +53,75 @@ final class AlarmRepositorySqlIntegrationTest extends TestCase
         $this->assertSame('server-a', $rows[0]['server']);
         $this->assertSame('app-a', $rows[0]['app']);
         $this->assertSame('prod', $rows[0]['app_env']);
+        $this->assertSame('sent', $rows[0]['deliveries']['mail']['status']);
+    }
+
+    public function testGetLatestBuildsOneRowWithPairedDeliveries(): void
+    {
+        $alarmId = $this->repository->createForEvent(2);
+        $this->deliveryRepository->enqueue($alarmId, 'email', 10);
+        $this->deliveryRepository->enqueue($alarmId, 'slack', 10);
+        $this->db->pdo()->exec(<<<SQL
+            UPDATE alarm_deliveries
+            SET status = 'sent', attempts = 1, processed_at = '2026-01-01 00:03:00'
+            WHERE alarm_id = {$alarmId} AND channel = 'email';
+
+            UPDATE alarm_deliveries
+            SET status = 'retry', attempts = 2, processed_at = '2026-01-01 00:03:01',
+                next_retry_at = '2026-01-01 00:08:00'
+            WHERE alarm_id = {$alarmId} AND channel = 'slack';
+            SQL);
+
+        $this->db->resetQueryLog();
+        $rows = $this->repository->getLatest(2);
+
+        $this->assertCount(2, $rows);
+        $this->assertSame($alarmId, (int) $rows[0]['id']);
+        $this->assertSame('sent', $rows[0]['deliveries']['email']['status']);
+        $this->assertSame('retry', $rows[0]['deliveries']['slack']['status']);
+        $this->assertSame(2, $rows[0]['deliveries']['slack']['attempts']);
+        $this->assertSame('2026-01-01 00:03:01', $rows[0]['deliveries']['slack']['processed_at']);
+        $this->assertSame('2026-01-01 00:08:00', $rows[0]['deliveries']['slack']['next_retry_at']);
+
+        $queries = $this->db->queryLog();
+        $this->assertCount(2, $queries);
+        $this->assertStringContainsString('FROM alarm_deliveries', $queries[1]['sql']);
+        $this->assertSame([(int) $rows[0]['id'], (int) $rows[1]['id']], $queries[1]['params']);
+    }
+
+    public function testGetLatestKeepsNoDeliveriesAsJsonObjectAndSkipsSecondQueryWhenEmpty(): void
+    {
+        $this->db->pdo()->exec('DELETE FROM alarm_deliveries; DELETE FROM alarms;');
+        $this->db->resetQueryLog();
+
+        $this->assertSame([], $this->repository->getLatest());
+        $this->assertCount(1, $this->db->queryLog());
+
+        $alarmId = $this->repository->createForEvent(2);
+        $rows = $this->repository->getLatest();
+
+        $this->assertSame($alarmId, (int) $rows[0]['id']);
+        $this->assertInstanceOf(stdClass::class, $rows[0]['deliveries']);
+        $this->assertSame('{"deliveries":{}}', json_encode(['deliveries' => $rows[0]['deliveries']]));
+    }
+
+    public function testGetLatestLimitsAndFiltersLogicalAlarmsBeforeLoadingDeliveries(): void
+    {
+        $alarmId = $this->repository->createForEvent(2);
+        $this->deliveryRepository->enqueue($alarmId, 'email', 10);
+        $this->deliveryRepository->enqueue($alarmId, 'slack', 10);
+
+        $rows = $this->repository->getLatest(1);
+        $this->assertCount(1, $rows);
+        $this->assertSame($alarmId, (int) $rows[0]['id']);
+        $this->assertCount(2, $rows[0]['deliveries']);
+
+        $this->assertTrue($this->repository->acknowledge($alarmId, 'operator'));
+        $unacknowledged = $this->repository->getLatest(1, true);
+
+        $this->assertCount(1, $unacknowledged);
+        $this->assertSame(100, (int) $unacknowledged[0]['id']);
+        $this->assertSame('sent', $unacknowledged[0]['deliveries']['mail']['status']);
     }
 
     public function testLogicalAlarmCountsOnceWithTwoDeliveries(): void
@@ -61,7 +131,7 @@ final class AlarmRepositorySqlIntegrationTest extends TestCase
         $this->deliveryRepository->enqueue($alarmId, 'slack', 10);
 
         $this->assertSame($alarmId, $this->repository->createForEvent(2));
-        $this->assertCount(2, $this->repository->getLatest(10));
+        $this->assertCount(2, $this->repository->getLatest(2));
         $this->assertEqualsCanonicalizing(
             ['critical' => 1, 'warning' => 1],
             $this->repository->getUnacknowledgedCounts()
@@ -215,6 +285,9 @@ final class SqliteAlarmRepositoryDatabase implements DatabaseInterface
 {
     private PDO $pdo;
 
+    /** @var array<int,array{sql:string,params:array<int|string,mixed>}> */
+    private array $queryLog = [];
+
     public function __construct()
     {
         $this->pdo = new PDO('sqlite::memory:');
@@ -227,8 +300,20 @@ final class SqliteAlarmRepositoryDatabase implements DatabaseInterface
         return $this->pdo;
     }
 
+    /** @return array<int,array{sql:string,params:array<int|string,mixed>}> */
+    public function queryLog(): array
+    {
+        return $this->queryLog;
+    }
+
+    public function resetQueryLog(): void
+    {
+        $this->queryLog = [];
+    }
+
     public function runQuery(string $sql, array $params = []): array|int
     {
+        $this->queryLog[] = ['sql' => $sql, 'params' => $params];
         $stmt = $this->pdo->prepare($sql);
         $stmt->execute($params);
 

@@ -405,6 +405,28 @@ final class MockEventAggregatorService implements EventAggregatorServiceInterfac
             $alarm['app_code'] = $alarm['app'];
         }
 
+        $rawDeliveries = $alarm['deliveries'] ?? [];
+        if (!is_array($rawDeliveries)) {
+            $rawDeliveries = [];
+        }
+
+        $deliveries = [];
+        foreach ($rawDeliveries as $channel => $delivery) {
+            $channel = strtolower(trim((string) $channel));
+            if ($channel === '' || !is_array($delivery)) {
+                continue;
+            }
+
+            $deliveries[$channel] = [
+                'status' => (string) ($delivery['status'] ?? 'pending'),
+                'attempts' => (int) ($delivery['attempts'] ?? 0),
+                'processed_at' => isset($delivery['processed_at']) ? (string) $delivery['processed_at'] : null,
+                'next_retry_at' => isset($delivery['next_retry_at']) ? (string) $delivery['next_retry_at'] : null,
+            ];
+        }
+        $alarm['deliveries'] = $deliveries === [] ? (object) [] : $deliveries;
+        unset($alarm['channel'], $alarm['status']);
+
         return $alarm;
     }
 
