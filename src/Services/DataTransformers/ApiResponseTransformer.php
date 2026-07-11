@@ -157,7 +157,7 @@ class ApiResponseTransformer
                 $status = $appData['status'] ?? null;
                 $logs = $appData['logs'] ?? null;
 
-                if ($title === null || $path === null || $url === null || !in_array($env, ['dev', 'test', 'live'], true)
+                if ($title === null || $path === null || $url === null || !in_array($env, ['dev', 'test', 'stg', 'live'], true)
                     || $maintenance === null || !is_array($status) || !is_array($logs)) {
                     throw new InvalidNodePayloadException("Node returned an invalid application payload for {$appName}.", 'apps');
                 }

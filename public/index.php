@@ -310,6 +310,9 @@ $useMockEvents = (getenv('MATA_EVENTS_MOCK') === '1' || $appConfig->environment-
 if ($useMockEvents) {
     $demoDataPath = getenv('MATA_EVENTS_MOCK_DATA_PATH') ?: $paths->appPath . '/config/demo/events.json';
     $demoData = MockEventAggregatorService::loadDemoData($demoDataPath, $log);
+    if ($appConfig->environment->env === 'demo') {
+        $demoData = MockEventAggregatorService::withNotificationShowcase($demoData);
+    }
     $eventAggregator = new MockEventAggregatorService($log, $demoData);
     $log->info('Using mock event aggregator for demo data.', ['path' => $demoDataPath]);
 } else {

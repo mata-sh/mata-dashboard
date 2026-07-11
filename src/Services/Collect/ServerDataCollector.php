@@ -123,7 +123,7 @@ class ServerDataCollector implements ServerDataCollectorInterface
      *
      * Retrieves comprehensive app information including:
      * - App titles and paths
-     * - URLs and environments (dev, test, live)
+     * - URLs and environments (dev, test, stg, live)
      * - Maintenance status
      * - Error/warning counts and log file sizes
      * - Session statistics

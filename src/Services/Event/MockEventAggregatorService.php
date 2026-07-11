@@ -47,6 +47,68 @@ final class MockEventAggregatorService implements EventAggregatorServiceInterfac
     }
 
     /**
+     * Add enough unacknowledged alarms to demonstrate every bell severity.
+     *
+     * Existing demo alarms are preserved. Missing severity levels receive one
+     * recent sample alarm so the bell is never empty or limited to one pill.
+     *
+     * @param array<string,mixed> $demoData
+     *
+     * @return array<string,mixed>
+     */
+    public static function withNotificationShowcase(array $demoData): array
+    {
+        $events = is_array($demoData['events'] ?? null) ? $demoData['events'] : [];
+        $alarms = is_array($demoData['alarms'] ?? null) ? $demoData['alarms'] : [];
+        $levels = [];
+        foreach ($alarms as $alarm) {
+            if (is_array($alarm) && is_string($alarm['level'] ?? null)) {
+                $levels[strtolower($alarm['level'])] = true;
+            }
+        }
+
+        $samples = [
+            'warning' => ['id' => 990001, 'event_id' => 980001, 'type' => 'library_outdated', 'message' => 'A dependency update is available'],
+            'error' => ['id' => 990002, 'event_id' => 980002, 'type' => 'upstream_latency', 'message' => 'Checkout API latency exceeded 1.5s'],
+            'critical' => ['id' => 990003, 'event_id' => 980003, 'type' => 'disk_usage', 'message' => 'Disk usage exceeded 90% on /var'],
+        ];
+        $timestamp = gmdate(DATE_ATOM);
+
+        foreach ($samples as $level => $sample) {
+            if (isset($levels[$level])) {
+                continue;
+            }
+
+            $events[] = [
+                'id' => $sample['event_id'],
+                'datetime' => $timestamp,
+                'type' => $sample['type'],
+                'message' => $sample['message'],
+                'level' => $level,
+                'server' => 'demo-server',
+                'app' => 'demo-app',
+            ];
+            $alarms[] = [
+                'id' => $sample['id'],
+                'event_id' => $sample['event_id'],
+                'created_at' => $timestamp,
+                'datetime' => $timestamp,
+                'type' => $sample['type'],
+                'message' => $sample['message'],
+                'level' => $level,
+                'server' => 'demo-server',
+                'app' => 'demo-app',
+                'deliveries' => [],
+            ];
+        }
+
+        $demoData['events'] = $events;
+        $demoData['alarms'] = $alarms;
+
+        return $demoData;
+    }
+
+    /**
      * Load demo event data from a JSON file.
      *
      * @return array<string,mixed>

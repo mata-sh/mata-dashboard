@@ -54,6 +54,33 @@ final class ApiResponseTransformerValidationTest extends TestCase
         $this->assertNull($response['result']['shop']['session']['count_last_day']);
     }
 
+    public function testAppsPayloadSupportsStagingEnvironment(): void
+    {
+        $response = $this->transformer->normalizeApiResponse([
+            'staging-shop' => [
+                'title' => 'Staging Shop',
+                'path' => '/var/www/staging-shop',
+                'url' => 'https://staging-shop.example.test',
+                'env' => 'stg',
+                'maintenance' => false,
+                'status' => ['fatal' => 0, 'warnings' => 0, 'total' => 0],
+                'logs' => ['logs/error.log' => 0],
+                'session' => [
+                    'type' => 'file',
+                    'status' => 'ok',
+                    'count_last_hour' => 0,
+                    'count_last_day' => 0,
+                    'count_total' => 0,
+                    'path' => '/var/lib/php/sessions',
+                    'size_kb' => 0,
+                ],
+            ],
+        ], path: 'apps');
+
+        $this->assertNull($response['error']);
+        $this->assertSame('stg', $response['result']['staging-shop']['env']);
+    }
+
     public function testInvalidAppsPayloadIsAnExplicitError(): void
     {
         $response = $this->transformer->normalizeApiResponse([

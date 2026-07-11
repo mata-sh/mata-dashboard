@@ -15,6 +15,24 @@ use stdClass;
  */
 final class MockEventAggregatorServiceTest extends TestCase
 {
+    public function testNotificationShowcaseFillsMissingBellLevels(): void
+    {
+        $data = MockEventAggregatorService::withNotificationShowcase([
+            'alarms' => [
+                ['id' => 1, 'level' => 'critical'],
+            ],
+        ]);
+        $service = new MockEventAggregatorService(demoData: $data);
+
+        $this->assertSame([
+            'critical' => 1,
+            'warning' => 1,
+            'error' => 1,
+        ], $service->getUnacknowledgedAlarmCounts());
+        $this->assertCount(3, $service->getLatestAlarms());
+        $this->assertCount(2, $service->getLatestEvents());
+    }
+
     public function testNormalizesAlarmDeliveriesToTheReadModelContract(): void
     {
         $service = new MockEventAggregatorService(demoData: [
