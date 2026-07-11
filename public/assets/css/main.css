@@ -1597,17 +1597,23 @@ label.audit-chip:hover { filter: brightness(1.25); }
     gap: .3rem;
 }
 .notification-pill {
+    box-sizing: border-box;
     display: inline-flex;
     align-items: center;
-    padding: 2px 8px;
-    font-size: .7rem;
+    justify-content: center;
+    min-width: 1.4rem;
+    height: 1.4rem;
+    padding: 0 .3rem;
+    font-size: .72rem;
     font-weight: 700;
-    line-height: 1.2;
+    line-height: 1;
+    color: #fff;
+    border: 1px solid transparent;
     border-radius: 9999px;
 }
-.notification-pill.level-warning { background: rgba(255, 210, 77, .15); border: 1px solid #ffd24d; color: #ffd24d; }
-.notification-pill.level-error { background: rgba(255, 140, 66, .15); border: 1px solid #ff8c42; color: #ff8c42; }
-.notification-pill.level-critical { background: rgba(255, 77, 77, .15); border: 1px solid #ff4d4d; color: #ff4d4d; }
+.notification-pill.level-warning { background: #9c7c14; border-color: #c4a53a; }
+.notification-pill.level-error { background: #c05a1d; border-color: #e0854a; }
+.notification-pill.level-critical { background: #c22a35; border-color: #e05561; }
 .notification-bell-trigger {
     display: inline-flex;
     align-items: center;
