@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Mata\Models;
 
+use DateInterval;
+use DateTimeImmutable;
 use Mata\Core\DatabaseInterface;
 use PDOException;
 
@@ -109,7 +111,10 @@ final class AlarmRepository
 
     public function clearOld(int $days): void
     {
-        $this->db->runQuery('DELETE FROM alarms WHERE created_at < NOW() - INTERVAL :days DAY', ['days' => $days]);
+        $cutoff = (new DateTimeImmutable('now'))
+            ->sub(new DateInterval(sprintf('P%dD', $days)))
+            ->format('Y-m-d H:i:s');
+        $this->db->runQuery('DELETE FROM alarms WHERE created_at < :cutoff', ['cutoff' => $cutoff]);
     }
 
     /** @return array<int,array<string,mixed>> */
@@ -142,8 +147,10 @@ final class AlarmRepository
             }
         }
         if ($maxAgeMinutes > 0) {
-            $where[] = 'al.created_at >= NOW() - INTERVAL ? MINUTE';
-            $params[] = $maxAgeMinutes;
+            $where[] = 'al.created_at >= ?';
+            $params[] = (new DateTimeImmutable('now'))
+                ->sub(new DateInterval(sprintf('PT%dM', $maxAgeMinutes)))
+                ->format('Y-m-d H:i:s');
         }
         if ($where !== []) {
             $sql .= ' WHERE ' . implode(' AND ', $where);

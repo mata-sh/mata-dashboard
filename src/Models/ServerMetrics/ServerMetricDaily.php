@@ -74,6 +74,8 @@ final class ServerMetricDaily
         return $dateTime->format('Y-m-d');
     }
 
+    // NOTE: MySQL-only `ON DUPLICATE KEY UPDATE` upsert (SQLite uses
+    // `ON CONFLICT ... DO UPDATE`); not runnable against the SQLite test harness.
     private static function sql(): string
     {
         return <<<'SQL'

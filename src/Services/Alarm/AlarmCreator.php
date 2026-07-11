@@ -29,8 +29,8 @@ final class AlarmCreator
 
         try {
             $alarmId = $this->alarms->createForEvent($eventId);
-            foreach (array_unique(array_map(static fn (string $channel): string => strtolower(trim($channel)), $readyChannels)) as $channel) {
-                if ($channel !== '') {
+            foreach ($readyChannels as $channel) {
+                if (trim($channel) !== '') {
                     $this->deliveries->enqueue($alarmId, $channel, $priority);
                 }
             }

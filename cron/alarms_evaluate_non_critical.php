@@ -51,7 +51,7 @@ try {
         if (!$shouldAlarm) {
             $eventAggregator->markEventEvaluated((int) $event['id']);
             ++$stats['skipped'];
-            $log->debug('alarm_decision.threshold_not_met', [
+            $log->debug('routine_alarm_decision.threshold_not_met', [
                 'event_id' => $event['id'] ?? null,
                 'type' => $event['type'] ?? null,
             ]);
@@ -63,7 +63,7 @@ try {
             $decision = $alarmDecisionService->decide($event, $supportedChannels);
         } catch (Throwable $exception) {
             ++$stats['failed'];
-            $log->error('alarm_decision.opa_failed', [
+            $log->error('routine_alarm_decision.opa_failed', [
                 'event_id' => $event['id'] ?? null,
                 'error' => $exception->getMessage(),
             ]);
@@ -76,7 +76,7 @@ try {
             ++$stats['skipped'];
 
             if ($decision->reason !== null) {
-                $log->info('alarm_decision.skipped', [
+                $log->info('routine_alarm_decision.skipped', [
                     'event_id' => $event['id'] ?? null,
                     'reason' => $decision->reason,
                 ]);
@@ -87,7 +87,7 @@ try {
 
         if ($decision->enrich) {
             ++$stats['enrich_requested'];
-            $log->info('alarm_decision.enrichment_requested', [
+            $log->info('routine_alarm_decision.enrichment_requested', [
                 'event_id' => $event['id'] ?? null,
                 'channels' => $decision->channels,
             ]);
@@ -123,11 +123,11 @@ try {
             $eventAggregator->markEventEvaluated((int) $event['id']);
             $stats['enqueued'] += count($readyChannels);
             if ($readyChannels === []) {
-                $log->debug('alarm_decision.no_ready_channels', ['event_id' => $event['id'] ?? null]);
+                $log->debug('routine_alarm_decision.no_ready_channels', ['event_id' => $event['id'] ?? null]);
             }
         } catch (Throwable $exception) {
             ++$stats['failed'];
-            $log->error('alarm_decision.enqueue_failed', [
+            $log->error('routine_alarm_decision.enqueue_failed', [
                 'event_id' => $event['id'] ?? null,
                 'error' => $exception->getMessage(),
             ]);
@@ -148,7 +148,7 @@ try {
 
 } catch (Throwable $exception) {
     $cron->log('ERROR: ' . $exception->getMessage());
-    $log->critical('evaluate_alarm_decisions.unhandled_exception', [
+    $log->critical('evaluate_routine_alarms.unhandled_exception', [
         'error' => $exception->getMessage(),
     ]);
 } finally {

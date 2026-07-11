@@ -82,6 +82,8 @@ final class ServerMetricRaw
         return $dateTime->format('Y-m-d H:i:s') . '.' . $fraction;
     }
 
+    // NOTE: MySQL-only `ON DUPLICATE KEY UPDATE` upsert (SQLite uses
+    // `ON CONFLICT ... DO UPDATE`); not runnable against the SQLite test harness.
     private static function sql(): string
     {
         return <<<'SQL'

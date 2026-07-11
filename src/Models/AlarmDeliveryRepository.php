@@ -18,17 +18,19 @@ final class AlarmDeliveryRepository
     /** @throws PDOException */
     public function enqueue(int $alarmId, string $channel, int $priority = 100): int
     {
+        $channel = strtolower(trim($channel));
+
         try {
             return (int) $this->db->runQuery(
                 "INSERT INTO alarm_deliveries
                     (alarm_id, channel, status, priority, attempts, created_at, processed_at, next_retry_at, error_payload)
                  VALUES (?, ?, 'pending', ?, 0, CURRENT_TIMESTAMP, NULL, NULL, NULL)",
-                [$alarmId, strtolower(trim($channel)), $priority]
+                [$alarmId, $channel, $priority]
             );
         } catch (PDOException $exception) {
             $rows = $this->db->runQuery(
                 'SELECT id FROM alarm_deliveries WHERE alarm_id = ? AND channel = ?',
-                [$alarmId, strtolower(trim($channel))]
+                [$alarmId, $channel]
             );
             if (is_array($rows) && isset($rows[0]['id'])) {
                 return (int) $rows[0]['id'];

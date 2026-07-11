@@ -32,7 +32,7 @@ class EventRepository
             INSERT INTO events
                 (`type`, `message`, `level`, `context`, `server_id`, `application_id`, `datetime`)
             VALUES
-                (?, ?, ?, ?, ?, ?, NOW())
+                (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
         SQL;
 
         $result = $this->db->runQuery($sql, [
@@ -57,7 +57,7 @@ class EventRepository
             SELECT 1
             FROM cooldowns
             WHERE cooldown_hash = ?
-              AND cooldown_until > NOW()
+              AND cooldown_until > CURRENT_TIMESTAMP
             LIMIT 1
         SQL;
 
@@ -66,6 +66,9 @@ class EventRepository
         return is_array($result) && !empty($result);
     }
 
+    // NOTE: uses MySQL-only `ON DUPLICATE KEY UPDATE` upsert syntax (SQLite uses
+    // `ON CONFLICT ... DO UPDATE`), so this method cannot run against the SQLite
+    // integration harness without a dialect-aware upsert abstraction.
     public function upsertCooldown(string $cooldownHash, int $cooldownMinutes): void
     {
         if ($cooldownHash === '') {
@@ -84,10 +87,10 @@ class EventRepository
 
         $sql = <<<'SQL'
             INSERT INTO cooldowns (cooldown_hash, cooldown_until, created_at, updated_at)
-            VALUES (?, ?, NOW(), NOW())
+            VALUES (?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
             ON DUPLICATE KEY UPDATE
                 cooldown_until = VALUES(cooldown_until),
-                updated_at = NOW()
+                updated_at = CURRENT_TIMESTAMP
         SQL;
 
         $this->db->runQuery($sql, [$cooldownHash, $expiry]);
@@ -110,7 +113,7 @@ class EventRepository
             SELECT cooldown_hash
             FROM cooldowns
             WHERE cooldown_hash IN ({$placeholders})
-              AND cooldown_until > NOW()
+              AND cooldown_until > CURRENT_TIMESTAMP
         SQL;
 
         $result = $this->db->runQuery($sql, $alarmHashes);
@@ -153,8 +156,10 @@ class EventRepository
             $params[] = $context;
         }
         if ($maxAgeMinutes > 0) {
-            $where[] = 'e.`datetime` >= NOW() - INTERVAL ? MINUTE';
-            $params[] = $maxAgeMinutes;
+            $where[] = 'e.`datetime` >= ?';
+            $params[] = (new DateTimeImmutable('now'))
+                ->sub(new DateInterval(sprintf('PT%dM', $maxAgeMinutes)))
+                ->format('Y-m-d H:i:s');
         }
 
         if ($where) {
@@ -198,8 +203,11 @@ class EventRepository
      */
     public function clearOldEvents(int $days = 180): void
     {
-        $sql = 'DELETE FROM events WHERE datetime < NOW() - INTERVAL :days DAY AND NOT EXISTS (SELECT 1 FROM alarms WHERE alarms.event_id = events.id)';
-        $this->db->runQuery($sql, ['days' => $days]);
+        $cutoff = (new DateTimeImmutable('now'))
+            ->sub(new DateInterval(sprintf('P%dD', $days)))
+            ->format('Y-m-d H:i:s');
+        $sql = 'DELETE FROM events WHERE datetime < :cutoff AND NOT EXISTS (SELECT 1 FROM alarms WHERE alarms.event_id = events.id)';
+        $this->db->runQuery($sql, ['cutoff' => $cutoff]);
     }
 
     /**
@@ -257,6 +265,6 @@ class EventRepository
     public function markEventEvaluated(int $eventId): void
     {
         // Reuse evaluated_at as the alarm-decision marker to avoid reprocessing.
-        $this->db->runQuery('UPDATE events SET evaluated_at = NOW() WHERE id = ?', [$eventId]);
+        $this->db->runQuery('UPDATE events SET evaluated_at = CURRENT_TIMESTAMP WHERE id = ?', [$eventId]);
     }
 }

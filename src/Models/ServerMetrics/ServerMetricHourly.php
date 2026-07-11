@@ -78,6 +78,8 @@ final class ServerMetricHourly
         return $dateTime?->format('Y-m-d H:i:s');
     }
 
+    // NOTE: MySQL-only `ON DUPLICATE KEY UPDATE` upsert (SQLite uses
+    // `ON CONFLICT ... DO UPDATE`); not runnable against the SQLite test harness.
     private static function sql(): string
     {
         return <<<'SQL'
