@@ -7,6 +7,7 @@
     <span class="tag sev-medium">{{ summary.totals.medium }} medium</span>
     <span class="tag sev-low">{{ summary.totals.low }} low</span>
     {% if summary.totals.unknown > 0 %}<span class="tag sev-unknown">{{ summary.totals.unknown }} unknown</span>{% endif %}
+    {% if summary.abandoned_packages > 0 %}<span class="tag tag-abandoned">{{ summary.abandoned_packages }} abandoned</span>{% endif %}
     <span class="audit-meta">{{ summary.affected_apps }} affected apps</span>
     {% for server, info in summary.servers %}
       {% if info.last_audited_label %}

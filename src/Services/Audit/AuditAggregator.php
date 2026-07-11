@@ -25,8 +25,11 @@ final class AuditAggregator
             'audited_apps' => 0,
             'error_apps' => 0,
             'never_audited_apps' => 0,
+            'abandoned_packages' => 0,
             'servers' => [],
         ];
+
+        $abandonedPackages = [];
 
         foreach ($serverAppAudits as $server => $appAudits) {
             $serverSummary = [
@@ -43,6 +46,7 @@ final class AuditAggregator
                         'counts' => $this->emptyCounts(),
                         'worst_severity' => null,
                         'cache_age' => null,
+                        'abandoned' => 0,
                     ];
 
                     continue;
@@ -53,6 +57,7 @@ final class AuditAggregator
                 $isOk = !$hasError && ($result['status'] ?? null) === 'ok';
                 $counts = $this->normalizeCounts($result['counts'] ?? []);
                 $cacheAge = is_int($entry['cache_age'] ?? null) ? max(0, $entry['cache_age']) : null;
+                $abandoned = $isOk ? $this->normalizeAbandoned($result['abandoned'] ?? []) : [];
 
                 if (!$isOk) {
                     ++$summary['error_apps'];
@@ -61,6 +66,7 @@ final class AuditAggregator
                         'counts' => $counts,
                         'worst_severity' => $this->worstSeverity($counts),
                         'cache_age' => $cacheAge,
+                        'abandoned' => 0,
                     ];
 
                     continue;
@@ -72,6 +78,9 @@ final class AuditAggregator
                 }
                 foreach ($totals as $severity => $_) {
                     $totals[$severity] += $counts[$severity];
+                }
+                foreach ($abandoned as $package => $_) {
+                    $abandonedPackages[$package] = true;
                 }
 
                 if ($cacheAge !== null) {
@@ -85,6 +94,7 @@ final class AuditAggregator
                     'counts' => $counts,
                     'worst_severity' => $this->worstSeverity($counts),
                     'cache_age' => $cacheAge,
+                    'abandoned' => count($abandoned),
                 ];
             }
 
@@ -92,6 +102,7 @@ final class AuditAggregator
         }
 
         $summary['totals'] = $totals;
+        $summary['abandoned_packages'] = count($abandonedPackages);
 
         return $summary;
     }
@@ -163,6 +174,23 @@ final class AuditAggregator
     private function emptyCounts(): array
     {
         return array_fill_keys(Severities::ORDER, 0) + ['total' => 0];
+    }
+
+    /** @return array<string,true> */
+    private function normalizeAbandoned(mixed $abandoned): array
+    {
+        if (!is_array($abandoned)) {
+            return [];
+        }
+
+        $normalized = [];
+        foreach ($abandoned as $package => $_) {
+            if (is_string($package) && $package !== '') {
+                $normalized[$package] = true;
+            }
+        }
+
+        return $normalized;
     }
 
     private function normalizeCounts(mixed $counts): array

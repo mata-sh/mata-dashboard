@@ -48,6 +48,7 @@ class AuditRenderer extends BaseRenderer
         $isError = $response === null || $error !== null || ($result['status'] ?? 'error') !== 'ok';
         $counts = is_array($result['counts'] ?? null) ? $result['counts'] : [];
         $total = max(0, (int) ($counts['total'] ?? 0));
+        $abandoned = $isError ? 0 : $this->abandonedCount($result['abandoned'] ?? []);
 
         return $this->twig->render('partials/audit/audit-chip-result.html.twig', [
             'server' => $server,
@@ -56,6 +57,7 @@ class AuditRenderer extends BaseRenderer
             'message' => $message ?? 'node unreachable',
             'total' => $total,
             'counts' => $counts,
+            'abandoned' => $abandoned,
             'worst_severity' => $isError ? null : $this->worstSeverity($counts),
         ]);
     }
@@ -77,6 +79,22 @@ class AuditRenderer extends BaseRenderer
         $summary['servers'] = $servers;
 
         return $summary;
+    }
+
+    private function abandonedCount(mixed $abandoned): int
+    {
+        if (!is_array($abandoned)) {
+            return 0;
+        }
+
+        $count = 0;
+        foreach ($abandoned as $package => $_) {
+            if (is_string($package) && $package !== '') {
+                ++$count;
+            }
+        }
+
+        return $count;
     }
 
     /** @param array<string,mixed> $counts */

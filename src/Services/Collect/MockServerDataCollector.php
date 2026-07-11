@@ -1530,10 +1530,17 @@ class MockServerDataCollector implements ServerDataCollectorInterface
                 $advisories[$library['name']] = $packageAdvisories;
             }
 
+            $abandoned = [];
+            $abandonedSeed = abs((int) crc32($this->serverName . ':' . $app));
+            if ($libraries !== [] && $abandonedSeed % 4 === 0) {
+                $library = $libraries[$abandonedSeed % count($libraries)];
+                $abandoned[$library['name']] = $abandonedSeed % 8 === 0 ? 'replacement/package' : null;
+            }
+
             return [
                 'status' => 'ok',
                 'exit_code' => $advisories === [] ? 0 : 1,
-                'audit' => ['advisories' => $advisories, 'abandoned' => []],
+                'audit' => ['advisories' => $advisories, 'abandoned' => $abandoned],
             ];
         } finally {
             mt_srand();

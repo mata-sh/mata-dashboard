@@ -7,6 +7,14 @@
     {% include 'partials/audit/audit-summary.html.twig' %}
   </div>
   <form id="audit-targets" class="audit-targets">
+    <button type="button" class="audit-select-toggle"
+            _="on click repeat for checkbox in <#audit-targets input[type='checkbox']/>
+                 set checkbox.checked to true
+               end">all</button>
+    <button type="button" class="audit-select-toggle"
+            _="on click repeat for checkbox in <#audit-targets input[type='checkbox']/>
+                 set checkbox.checked to false
+               end">none</button>
     {% for server, s in summary.servers %}
       <div class="audit-server-group">
         <span class="audit-server-label">{{ server }}</span>
@@ -21,7 +29,10 @@
     {% endfor %}
     <button class="button is-small audit-run-button" type="button"
             hx-post="{{ endpoints.audit_run }}" hx-include="#audit-targets"
-            hx-target="#audit-run-results" hx-swap="innerHTML">Run audit</button>
+            hx-target="#audit-run-results" hx-swap="innerHTML"
+            hx-indicator="#audit-run-indicator" hx-disabled-elt="this">
+      Run audit <span id="audit-run-indicator" class="htmx-indicator spinner"></span>
+    </button>
   </form>
   <div id="audit-run-results" class="audit-run-results"></div>
 </div>

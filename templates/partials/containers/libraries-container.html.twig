@@ -60,12 +60,17 @@
         formatter: function (cell) {
           var d = cell.getRow().getData()
           if (!d.audited) return ''
-          if (!d.vulns) return '<span class="tag sev-none">ok</span>'
-          return '<span class="tag sev-' + d.severity + '">' + d.severity + ' · ' + d.vulns + '</span>'
+          var output = !d.vulns
+            ? '<span class="tag sev-none">ok</span>'
+            : '<span class="tag sev-' + d.severity + '">' + d.severity + ' · ' + d.vulns + '</span>'
+          if (d.abandoned) output += ' <span class="tag tag-abandoned">abandoned</span>'
+          return output
         },
         cellClick: function (e, cell) {
           var data = cell.getRow().getData()
-          if (!data.advisories || !data.advisories.length) return
+          var advisories = Array.isArray(data.advisories) ? data.advisories : []
+          var replacement = typeof data.abandoned === 'string' && data.abandoned !== ''
+          if (!advisories.length && !replacement) return
 
           var rowElement = cell.getRow().getElement()
           var existing = rowElement.querySelector('.advisory-details')
@@ -76,7 +81,7 @@
 
           var details = document.createElement('div')
           details.className = 'advisory-details'
-          data.advisories.forEach(function (advisory) {
+          advisories.forEach(function (advisory) {
             var item = document.createElement('div')
             var cve = document.createElement('a')
             cve.className = 'advisory-cve'
@@ -95,6 +100,11 @@
             item.appendChild(affectedVersions)
             details.appendChild(item)
           })
+          if (replacement) {
+            var abandoned = document.createElement('div')
+            abandoned.textContent = 'abandoned — replaced by ' + data.abandoned
+            details.appendChild(abandoned)
+          }
           rowElement.appendChild(details)
         }
       },

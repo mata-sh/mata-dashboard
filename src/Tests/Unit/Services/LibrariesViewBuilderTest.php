@@ -162,12 +162,13 @@ final class LibrariesViewBuilderTest extends TestCase
         $collector->method('getCachedAppComposerAudit')->willReturn(['result' => [
             'status' => 'ok',
             'advisories' => [['package' => 'vulnerable', 'severity' => 'high', 'id' => 'CVE-1']],
+            'abandoned' => ['vulnerable' => 'replacement/package'],
         ]]);
 
         $result = $this->builder()->buildLibrariesViewData(['server-a' => $collector], ['server-a' => []]);
 
         $this->assertSame(
-            '{"data":[{"server":"server-a","app":"app","name":"vulnerable","version":"1","type":"library","description":"Vulnerable","audited":true,"vulns":1,"severity":"high","advisories":[{"package":"vulnerable","severity":"high","id":"CVE-1"}]},{"server":"server-a","app":"app","name":"safe","version":"2","type":"library","description":"Safe","audited":true,"vulns":0,"severity":null}],"errors":[]}',
+            '{"data":[{"server":"server-a","app":"app","name":"vulnerable","version":"1","type":"library","description":"Vulnerable","audited":true,"vulns":1,"severity":"high","advisories":[{"package":"vulnerable","severity":"high","id":"CVE-1"}],"abandoned":"replacement\/package"},{"server":"server-a","app":"app","name":"safe","version":"2","type":"library","description":"Safe","audited":true,"vulns":0,"severity":null}],"errors":[]}',
             json_encode($result),
         );
     }

@@ -1,5 +1,5 @@
 {% if error %}
   <span class="audit-chip chip-error" data-tippy-content="{{ message }}">{{ server }}/{{ app }} · error</span>
 {% else %}
-  <span class="audit-chip done sev-{{ worst_severity ?? 'none' }}">{{ server }}/{{ app }} · {% if total > 0 %}{{ total }} vulns{% else %}clean{% endif %}{% if total > 0 %}{% for severity in ['critical', 'high', 'medium', 'low', 'unknown'] %}{% if (counts[severity] ?? 0) > 0 %} <small>{{ counts[severity] }} {{ severity }}</small>{% endif %}{% endfor %}{% endif %}</span>
+  <span class="audit-chip done sev-{{ worst_severity ?? 'none' }}">{{ server }}/{{ app }} · {% if total > 0 %}{{ total }} vulns{% else %}clean{% endif %}{% if total > 0 %}{% for severity in ['critical', 'high', 'medium', 'low', 'unknown'] %}{% if (counts[severity] ?? 0) > 0 %} <small>{{ counts[severity] }} {{ severity }}</small>{% endif %}{% endfor %}{% endif %}{% if abandoned > 0 %} · {{ abandoned }} abandoned{% endif %}</span>
 {% endif %}

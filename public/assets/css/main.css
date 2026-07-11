@@ -1356,6 +1356,19 @@ svg {
 .audit-server-group { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem; }
 .audit-summary { margin-bottom: .75rem; }
 .audit-targets { align-items: flex-end; }
+.audit-select-toggle {
+    padding: 0;
+    color: #9a9a9a;
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: .75rem;
+    text-transform: lowercase;
+}
+.audit-select-toggle:hover {
+    color: #fff;
+    background: none;
+}
 .audit-server-group { gap: .4rem; }
 .audit-server-label { color: #9a9a9a; font-size: .7rem; letter-spacing: .08em; text-transform: uppercase; }
 .audit-chip {
@@ -1380,6 +1393,13 @@ svg {
     border-right-color: transparent;
     border-radius: 50%;
 }
+.audit-run-button .spinner {
+    width: 12px;
+    height: 12px;
+    border: 2px solid currentColor;
+    border-right-color: transparent;
+    border-radius: 50%;
+}
 .audit-run-results { margin-top: .75rem; }
 .audit-empty,
 .audit-meta { color: #9a9a9a; font-size: .8rem; }
@@ -1395,6 +1415,7 @@ svg {
 .tag.sev-low { background: rgba(123, 216, 143, .12); border: 1px solid #7bd88f; }
 .tag.sev-unknown { background: rgba(154, 154, 154, .12); border: 1px solid #9a9a9a; }
 .tag.sev-none { background: rgba(102, 102, 102, .12); border: 1px solid #666; }
+.tag-abandoned { color: #9a9a9a; background: rgba(154, 154, 154, .08); border: 1px dashed #777; }
 .chip-error { color: #ff4d4d; border-color: #ff4d4d; }
 
 /* ── Notification bell (topbar) ──────────────────────────────── */

@@ -56,12 +56,60 @@ final class AuditRowEnricherTest extends TestCase
         $this->assertSame([['package' => 'vendor/package', 'severity' => 'high', 'id' => 'CVE-1']], $row['advisories']);
     }
 
+    public function testAbandonedPackagesAreNormalizedAndAppendedAfterAdvisories(): void
+    {
+        $collector = $this->createStub(ServerDataCollectorInterface::class);
+        $collector->method('getCachedAppComposerAudit')->willReturn(['result' => [
+            'status' => 'ok',
+            'advisories' => [['package' => 'vendor/replaced', 'severity' => 'high']],
+            'abandoned' => [
+                'vendor/replaced' => 'replacement/package',
+                'vendor/no-replacement' => null,
+                'vendor/malformed' => ['invalid'],
+                '' => 'ignored/package',
+                123 => null,
+            ],
+        ]]);
+        $enricher = $this->enricher();
+        $audit = $enricher->appAudit($collector, 'app');
+
+        $this->assertSame([
+            'audited' => true,
+            'packages' => [
+                'vendor/replaced' => [
+                    'worst_severity' => 'high',
+                    'count' => 1,
+                    'advisories' => [['package' => 'vendor/replaced', 'severity' => 'high']],
+                ],
+            ],
+            'abandoned' => [
+                'vendor/replaced' => 'replacement/package',
+                'vendor/no-replacement' => null,
+                'vendor/malformed' => null,
+            ],
+        ], $audit);
+        $this->assertSame([
+            'name' => 'vendor/replaced',
+            'audited' => true,
+            'vulns' => 1,
+            'severity' => 'high',
+            'advisories' => [['package' => 'vendor/replaced', 'severity' => 'high']],
+            'abandoned' => 'replacement/package',
+        ], $enricher->enrichRow(['name' => 'vendor/replaced', 'audited' => true], $audit));
+        $this->assertSame(true, $enricher->enrichRow(['name' => 'vendor/no-replacement'], $audit)['abandoned']);
+        $this->assertSame(true, $enricher->enrichRow(['name' => 'vendor/malformed'], $audit)['abandoned']);
+        $this->assertArrayNotHasKey('abandoned', $enricher->enrichRow(['name' => 'vendor/healthy'], $audit));
+    }
+
     public function testErrorStatusIsNotAudited(): void
     {
         $collector = $this->createStub(ServerDataCollectorInterface::class);
         $collector->method('getCachedAppComposerAudit')->willReturn(['result' => ['status' => 'error', 'advisories' => []]]);
 
-        $this->assertFalse($this->enricher()->appAudit($collector, 'app')['audited']);
+        $audit = $this->enricher()->appAudit($collector, 'app');
+
+        $this->assertFalse($audit['audited']);
+        $this->assertSame([], $audit['abandoned']);
     }
 
     public function testMissingStatusIsNotAudited(): void
