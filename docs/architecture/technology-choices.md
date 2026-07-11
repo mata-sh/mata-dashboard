@@ -962,7 +962,7 @@ public function collectServerData(string $serverId, bool $forceRefresh = false):
 4. **Real-Time Requirements**
    - Sub-minute monitoring intervals
    - Live streaming metrics
-   - Instant alerting (<5 seconds)
+   - Instant alarm handling (<5 seconds)
 
 5. **Multi-Region Deployments**
    - File-based cache doesn't sync

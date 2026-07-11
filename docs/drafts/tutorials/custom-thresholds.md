@@ -1,10 +1,10 @@
-# Configuring Custom Alert Thresholds
+# Configuring Custom Alarm Thresholds
 
-This tutorial explains how to configure custom alert thresholds for server monitoring and application health checks in MATA Dashboard.
+This tutorial explains how to configure custom alarm thresholds for server monitoring and application health checks in MATA Dashboard.
 
 ## Overview
 
-MATA Dashboard uses a sophisticated threshold-based alerting system with four severity levels. This tutorial will teach you how to:
+MATA Dashboard uses a sophisticated threshold-based alarm handling system with four severity levels. This tutorial will teach you how to:
 
 - Understand the threshold level system
 - Configure server monitoring thresholds
@@ -156,7 +156,7 @@ Each metric follows this pattern:
 
 ### 3.1 Disk Space Usage
 
-Configure when to alert on disk space:
+Configure when to alarm on disk space:
 
 ```json
 "server_data": {
@@ -441,7 +441,7 @@ This means:
 | Issue Type | Event Count | Interval | Reasoning |
 |------------|-------------|----------|-----------|
 | Transient network issues | 3 | 60 min | Avoid false alarms |
-| Disk space critical | 1 | 180 min | Immediate alert, infrequent reminders |
+| Disk space critical | 1 | 180 min | Immediate alarm, infrequent reminders |
 | Fatal application errors | 1 | 1440 min (24h) | Critical but one notification per day |
 | Missing cron heartbeat | 1 | 360 min (6h) | Check for missed jobs |
 
@@ -507,7 +507,7 @@ Look for entries like:
 
 **WARNING: Only do this on test/development servers**
 
-Create a large file to trigger disk alerts:
+Create a large file to trigger disk alarms:
 
 ```bash
 # Create a 1GB test file
@@ -526,7 +526,7 @@ rm /tmp/test_disk_fill.img
 2. Navigate to the test server card
 3. Observe status changes:
    - Disk usage indicator color changes (green → yellow → orange → red)
-   - Alert notification appears if alarm threshold exceeded
+   - Alarm notification appears if alarm threshold exceeded
 
 ### 8.3 Verify Event Logging
 
@@ -546,15 +546,15 @@ Or via Dashboard UI:
 
 ### 8.4 Test Email Notifications
 
-If configured, check for email alerts:
+If configured, check for email alarms:
 
 1. Verify `config/mail.config.env` is properly configured
-2. Check `MAIL_ALERT_RECIPIENTS` contains your email
+2. Check `MAIL_ALARM_RECIPIENTS` contains your email
 3. Look for email with subject: `[MATA ALARM] Disk Space Critical - server-name`
 
 ---
 
-## Step 9: Configure Email Alerts
+## Step 9: Configure Email Alarms
 
 ### 9.1 Email Configuration File
 
@@ -564,11 +564,11 @@ Edit mail configuration:
 nano config/mail.config.env
 ```
 
-Set alert recipients:
+Set alarm recipients:
 
 ```bash
-# Alert recipients (receives threshold violation notifications)
-MAIL_ALERT_RECIPIENTS=alerts@your-domain.com,sysadmin@your-domain.com,oncall@your-domain.com
+# Alarm recipients (receives threshold violation notifications)
+MAIL_ALARM_RECIPIENTS=alarms@your-domain.com,sysadmin@your-domain.com,oncall@your-domain.com
 ```
 
 ### 9.2 SMTP Settings
@@ -579,7 +579,7 @@ Configure your email provider:
 # Symfony Mailer DSN (recommended for production)
 SYM_MAILER_DSN=smtp://username:password@smtp.mailprovider.com:587
 SYM_FROM_EMAIL=noreply@your-domain.com
-SYM_FROM_NAME=MATA Dashboard Alerts
+SYM_FROM_NAME=MATA Dashboard Alarms
 ```
 
 **Common SMTP Providers:**
@@ -607,9 +607,9 @@ Test email sending:
 php /path/to/mata-dashboard/scripts/test_email.php
 ```
 
-Or trigger a test alert through the Dashboard UI:
+Or trigger a test alarm through the Dashboard UI:
 - Navigate to **Settings** → **Notifications**
-- Click **Send Test Alert**
+- Click **Send Test Alarm**
 
 ---
 
@@ -692,19 +692,19 @@ Maintain a changelog in your repository:
 - Approved by: Database Team
 ```
 
-### 5. Set Up Alert Escalation
+### 5. Set Up Alarm Escalation
 
 Configure multiple recipient groups:
 
 ```bash
 # Tier 1: First responders (immediate)
-MAIL_ALERT_RECIPIENTS=oncall@company.com,sysadmin@company.com
+MAIL_ALARM_RECIPIENTS=oncall@company.com,sysadmin@company.com
 
 # Tier 2: Management (for persistent alarms)
 MAIL_CRITICAL_ESCALATION=manager@company.com,director@company.com
 
 # Tier 3: External monitoring service
-MAIL_EXTERNAL_MONITORING=alerts@monitoring-service.com
+MAIL_EXTERNAL_MONITORING=alarms@monitoring-service.com
 ```
 
 ### 6. Regular Review Cycle
@@ -866,7 +866,7 @@ Review metrics:
 
 1. **Verify mail configuration:**
    ```bash
-   grep MAIL_ALERT_RECIPIENTS config/mail.config.env
+   grep MAIL_ALARM_RECIPIENTS config/mail.config.env
    ```
 
 2. **Check alarm event count:**
@@ -917,10 +917,10 @@ Review metrics:
 
 3. **Lengthen notification interval:**
    ```json
-   // Before: Alert every hour
+   // Before: Alarm every hour
    "min_alarm_interval_minutes": 60
 
-   // After: Alert every 4 hours
+   // After: Alarm every 4 hours
    "min_alarm_interval_minutes": 240
    ```
 
@@ -956,7 +956,7 @@ Review metrics:
 
 ## Next Steps
 
-You've successfully configured custom alert thresholds! Here's what to do next:
+You've successfully configured custom alarm thresholds! Here's what to do next:
 
 1. **Monitor for 1-2 weeks:** Observe actual threshold violations and adjust as needed
 2. **Set up on-call rotation:** Configure PagerDuty, Opsgenie, or similar for alarm escalation

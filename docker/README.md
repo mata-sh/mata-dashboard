@@ -550,7 +550,7 @@ docker-compose up web
 6. **Monitoring**
    - Set up health check endpoints
    - Use monitoring tools (Prometheus, Grafana)
-   - Alert on container failures
+   - Alarm on container failures
    - Track resource usage
 
 ---

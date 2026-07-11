@@ -2,20 +2,20 @@
 
 declare(strict_types=1);
 
-namespace Mata\Services\Alert;
+namespace Mata\Services\Alarm;
 
 use GuzzleHttp\Client;
 use GuzzleHttp\Exception\GuzzleException;
-use Mata\Services\Alert\Dto\AlertDecision;
-use Mata\Services\Alert\Dto\OpaAlertDecisionConfig;
+use Mata\Services\Alarm\Dto\AlarmDecision;
+use Mata\Services\Alarm\Dto\OpaAlarmDecisionConfig;
 use RuntimeException;
 
-final class OpaAlertDecisionService implements AlertDecisionServiceInterface
+final class OpaAlarmDecisionService implements AlarmDecisionServiceInterface
 {
     private Client $client;
-    private OpaAlertDecisionConfig $config;
+    private OpaAlarmDecisionConfig $config;
 
-    public function __construct(OpaAlertDecisionConfig $config, ?Client $client = null)
+    public function __construct(OpaAlarmDecisionConfig $config, ?Client $client = null)
     {
         $this->config = $config;
         $this->client = $client ?? new Client([
@@ -33,7 +33,7 @@ final class OpaAlertDecisionService implements AlertDecisionServiceInterface
      *
      * @throws GuzzleException
      */
-    public function decide(array $event, array $supportedChannels = ['email']): AlertDecision
+    public function decide(array $event, array $supportedChannels = ['email']): AlarmDecision
     {
         $payload = [
             'input' => $this->buildInput($event, $supportedChannels),
@@ -147,7 +147,7 @@ final class OpaAlertDecisionService implements AlertDecisionServiceInterface
     {
         $counts = [];
         $lastEventAt = null;
-        $lastAlertAt = null;
+        $lastAlarmAt = null;
 
         if (is_array($metrics)) {
             $countsSource = $metrics['counts']['same_type_level_or_higher'] ?? $metrics['same_type_level_or_higher'] ?? null;
@@ -163,8 +163,8 @@ final class OpaAlertDecisionService implements AlertDecisionServiceInterface
             if (is_string($metrics['last_event_at'] ?? null)) {
                 $lastEventAt = $metrics['last_event_at'];
             }
-            if (is_string($metrics['last_alert_at'] ?? null)) {
-                $lastAlertAt = $metrics['last_alert_at'];
+            if (is_string($metrics['last_alarm_at'] ?? null)) {
+                $lastAlarmAt = $metrics['last_alarm_at'];
             }
         }
 
@@ -173,7 +173,7 @@ final class OpaAlertDecisionService implements AlertDecisionServiceInterface
                 'same_type_level_or_higher' => $counts,
             ],
             'last_event_at' => $lastEventAt,
-            'last_alert_at' => $lastAlertAt,
+            'last_alarm_at' => $lastAlarmAt,
         ];
     }
 
@@ -227,7 +227,7 @@ final class OpaAlertDecisionService implements AlertDecisionServiceInterface
         array $response,
         array $event,
         array $supportedChannels
-    ): AlertDecision {
+    ): AlarmDecision {
         $result = $response['result'] ?? null;
         $data = is_array($result) ? $result : [];
         $reason = null;
@@ -236,8 +236,8 @@ final class OpaAlertDecisionService implements AlertDecisionServiceInterface
             is_bool($result) => $result,
             array_key_exists('allow', $data) => (bool) $data['allow'],
             array_key_exists('enqueue', $data) => (bool) $data['enqueue'],
-            array_key_exists('alert', $data) => (bool) $data['alert'],
-            array_key_exists('should_alert', $data) => (bool) $data['should_alert'],
+            array_key_exists('alarm', $data) => (bool) $data['alarm'],
+            array_key_exists('should_alarm', $data) => (bool) $data['should_alarm'],
             default => false,
         };
 
@@ -275,6 +275,6 @@ final class OpaAlertDecisionService implements AlertDecisionServiceInterface
             $reason = 'no_supported_channels';
         }
 
-        return new AlertDecision($allow, $channels, $priority, $enrich, $reason);
+        return new AlarmDecision($allow, $channels, $priority, $enrich, $reason);
     }
 }

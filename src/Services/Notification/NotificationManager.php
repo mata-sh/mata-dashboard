@@ -12,7 +12,7 @@ use Mata\Utils\PathResolver;
 use Psr\Log\LoggerInterface;
 
 /**
- * Notification management system for application alerts and warnings.
+ * Notification management system for application alarms and warnings.
  *
  * Provides comprehensive notification handling with:
  * - Database-backed notification storage
@@ -455,7 +455,7 @@ final class NotificationManager
             'id' => 'db-connection-unavailable',
             'type' => 'warning',
             'title' => 'Database connection unavailable',
-            'message' => 'The dashboard is running without a database connection. Historical data, alerts and notifications may be incomplete until the database becomes reachable again.',
+            'message' => 'The dashboard is running without a database connection. Historical data, alarms and notifications may be incomplete until the database becomes reachable again.',
             'actions' => [
                 [
                     'label' => "Don't show again",

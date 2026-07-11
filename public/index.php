@@ -2,7 +2,7 @@
 <?php
 
 use Bramus\Router\Router;
-use Mata\Config\AlertLimitsLoader;
+use Mata\Config\AlarmLimitsLoader;
 use Mata\Config\DatabaseIntegrityChecker;
 use Mata\Config\EnvConfigFatalException;
 use Mata\Config\EnvConfigManager;
@@ -24,10 +24,12 @@ use Mata\Http\Routing\Endpoints;
 use Mata\Http\Routing\RouterSetup;
 use Mata\Http\Security\CsrfGuard;
 use Mata\Http\SecurityHeaders;
-use Mata\Models\AlertQueueRepository;
+use Mata\Models\AlarmDeliveryRepository;
+use Mata\Models\AlarmRepository;
 use Mata\Models\ConfigSyncRepository;
 use Mata\Models\EventRepository;
-use Mata\Services\Alert\AlertManager;
+use Mata\Services\Alarm\AlarmCreator;
+use Mata\Services\Alarm\AlarmManager;
 use Mata\Services\Cache\ApiCacheKeyFactory;
 use Mata\Services\Cache\CacheStoreInterface;
 use Mata\Services\Cache\CacheTtlResolver;
@@ -273,7 +275,7 @@ $mailer = new Mailer($transport);
 $mailCfg = [
     'from_email' => $appConfig->mail->fromEmail,
     'from_name' => $appConfig->mail->fromName,
-    'recipients' => $appConfig->mail->alertRecipients,
+    'recipients' => $appConfig->mail->alarmRecipients,
 ];
 
 // ************************************************************************************************
@@ -282,7 +284,9 @@ $mailCfg = [
 
 // --- Repositories ---
 $configSyncRepository = new ConfigSyncRepository($db);
-$queueRepository = new AlertQueueRepository($db);
+$alarmRepository = new AlarmRepository($db);
+$deliveryRepository = new AlarmDeliveryRepository($db);
+$alarmCreator = new AlarmCreator($db, $alarmRepository, $deliveryRepository);
 
 // --- Settings Sync ---
 $settingsSync = new SettingsDatabaseSync($db, $log, $configSyncRepository);
@@ -291,12 +295,12 @@ $settingsSync = new SettingsDatabaseSync($db, $log, $configSyncRepository);
 $idResolver = new IdResolver($configSyncRepository);
 
 // --- Limits & Locking ---
-$lockManager = new ChannelLockManager($paths->tempPath . '/alert-locks', $log);
-$limitsLoader = new AlertLimitsLoader($log);
+$lockManager = new ChannelLockManager($paths->tempPath . '/alarm-locks', $log);
+$limitsLoader = new AlarmLimitsLoader($log);
 $limitsConfig = $limitsLoader->load($paths->appPath . '/config/limits.json');
 
-// --- Alert Manager ---
-$alertManager = new AlertManager($queueRepository, $limitsConfig, $lockManager, $log);
+// --- Alarm Manager ---
+$alarmManager = new AlarmManager($alarmCreator, $limitsConfig, $lockManager, $log);
 
 // --- Event Manager ---
 $eventRepository = new EventRepository($db);
@@ -309,17 +313,17 @@ if ($useMockEvents) {
     $eventAggregator = new MockEventAggregatorService($log, $demoData);
     $log->info('Using mock event aggregator for demo data.', ['path' => $demoDataPath]);
 } else {
-    $eventAggregator = new EventAggregatorService($eventRepository, $idResolver, $log);
+    $eventAggregator = new EventAggregatorService($eventRepository, $alarmRepository, $idResolver, $log);
 }
 
-$eventManager = (new EventManager($appConfig, $alertManager))
+$eventManager = (new EventManager($appConfig, $alarmManager))
     ->setEventRecorder($eventRecorder)
     ->setEventAggregator($eventAggregator);
 
 // ************************************************************************************************
 // Monitoring Configuration
 // ************************************************************************************************
-$monitoringSettingsLoader = new MonitoringSettingsLoader($eventManager->recorder, $alertManager, $db, $settingsSync);
+$monitoringSettingsLoader = new MonitoringSettingsLoader($eventManager->recorder, $alarmManager, $db, $settingsSync);
 
 try {
     $configPath = $paths->appPath . '/config';

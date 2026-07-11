@@ -20,7 +20,7 @@ interface EventAggregatorServiceInterface
      *
      * @return array<int,array<string,mixed>>
      */
-    public function getAlertDecisionCandidates(
+    public function getAlarmDecisionCandidates(
         int $limit = 100,
         array|string|null $levelFilter = null
     ): array;

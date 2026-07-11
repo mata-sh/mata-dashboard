@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-namespace Mata\Services\Alert\Dto;
+namespace Mata\Services\Alarm\Dto;
 
 /**
- * Alert severity levels with display representations.
+ * Alarm severity levels with display representations.
  */
-enum AlertLevel: string
+enum AlarmLevel: string
 {
     case Info = 'info';
     case Warning = 'warning';
@@ -21,8 +21,8 @@ enum AlertLevel: string
     {
         return match ($this) {
             self::Critical => '🔴',
-            self::Error => '🟡',
-            self::Warning => '🟠',
+            self::Error => '🟠',
+            self::Warning => '🟡',
             self::Info => '🔵',
         };
     }

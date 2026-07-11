@@ -8,6 +8,7 @@
         <select id="filter-level">
             <option value="">Level</option>
             <option value="critical">Critical</option>
+            <option value="error">Error</option>
             <option value="warning">Warning</option>
         </select>
         <select id="filter-app">
@@ -52,13 +53,14 @@
         var value = cell.getValue();
         switch (value) {
             case "critical":
-                return "<span style='color:red; font-weight:bold;'>" + value + "</span>";
+                return "<span style='color:#ff4d4d; font-weight:bold;'>" + value + "</span>";
 
                 break;
+            case "error":
+                return "<span style='color:#ff8c42; font-weight:bold;'>" + value + "</span>";
+
             case "warning":
-                return "<span style='color:orange; font-weight:bold;'>" + value + "</span>";
-
-                break;
+                return "<span style='color:#ffd24d; font-weight:bold;'>" + value + "</span>";
             case "info":
                 return "<span style='color:#3FB449; font-weight:bold;'>" + value + "</span>";
 

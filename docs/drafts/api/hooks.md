@@ -349,7 +349,7 @@ $this->serverRenderer = new CustomServerRenderer($twig, $logger, $tools, $app, $
 
 ### EventManager Customization
 
-Extend alert evaluation and threshold management.
+Extend alarm evaluation and threshold management.
 
 **Location:** `src/Services/Foundation/EventManager.php`
 
@@ -421,45 +421,45 @@ use Watcher\Services\Foundation\NotificationManager;
 
 class MultiChannelNotificationManager extends NotificationManager
 {
-    public function sendAlert(array $alert): void
+    public function sendDelivery(array $alarm): void
     {
         // Send to multiple channels based on severity
-        switch ($alert['level']) {
+        switch ($alarm['level']) {
             case 'critical':
-                $this->sendToEmail($alert);
-                $this->sendToSMS($alert);
-                $this->sendToPagerDuty($alert);
+                $this->sendToEmail($alarm);
+                $this->sendToSMS($alarm);
+                $this->sendToPagerDuty($alarm);
                 break;
 
             case 'warning':
-                $this->sendToEmail($alert);
-                $this->sendToSlack($alert);
+                $this->sendToEmail($alarm);
+                $this->sendToSlack($alarm);
                 break;
 
             case 'info':
-                $this->sendToSlack($alert);
+                $this->sendToSlack($alarm);
                 break;
         }
     }
 
-    private function sendToSlack(array $alert): void
+    private function sendToSlack(array $alarm): void
     {
         // Slack webhook integration
         $this->slackClient->sendMessage([
-            'channel' => $this->getSlackChannel($alert),
-            'text' => $alert['message'],
-            'attachments' => $this->formatSlackAttachment($alert),
+            'channel' => $this->getSlackChannel($alarm),
+            'text' => $alarm['message'],
+            'attachments' => $this->formatSlackAttachment($alarm),
         ]);
     }
 
-    private function sendToPagerDuty(array $alert): void
+    private function sendToPagerDuty(array $alarm): void
     {
         // PagerDuty API integration
         $this->pagerDutyClient->createIncident([
-            'title' => $alert['subject'],
-            'body' => $alert['message'],
+            'title' => $alarm['subject'],
+            'body' => $alarm['message'],
             'urgency' => 'high',
-            'service_id' => $this->getPagerDutyService($alert),
+            'service_id' => $this->getPagerDutyService($alarm),
         ]);
     }
 }
@@ -771,19 +771,19 @@ class SlackNotifier
         $this->webhookUrl = $webhookUrl;
     }
 
-    public function sendServerAlert(array $serverData, string $alertType): void
+    public function sendServerAlarm(array $serverData, string $alarmType): void
     {
-        $message = $this->formatMessage($serverData, $alertType);
+        $message = $this->formatMessage($serverData, $alarmType);
         $this->send($message);
     }
 
-    private function formatMessage(array $serverData, string $alertType): array
+    private function formatMessage(array $serverData, string $alarmType): array
     {
         return [
-            'text' => "Server Alert: {$alertType}",
+            'text' => "Server Alarm: {$alarmType}",
             'attachments' => [
                 [
-                    'color' => $this->getColor($alertType),
+                    'color' => $this->getColor($alarmType),
                     'fields' => [
                         [
                             'title' => 'Server',
@@ -811,9 +811,9 @@ class SlackNotifier
         curl_close($ch);
     }
 
-    private function getColor(string $alertType): string
+    private function getColor(string $alarmType): string
     {
-        return match ($alertType) {
+        return match ($alarmType) {
             'critical' => 'danger',
             'warning' => 'warning',
             default => 'good',

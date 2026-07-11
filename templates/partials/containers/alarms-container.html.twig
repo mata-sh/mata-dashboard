@@ -1,5 +1,5 @@
 <div class="events-section">
-    <h3><span class="section-help-icon" data-tippy-content="Alarms: events that crossed alert policy thresholds. They appear in the notification bell and may trigger email notifications. Acknowledge them once handled.">{{ icons.help|raw }}</span>Alarms</h3>
+    <h3><span class="section-help-icon" data-tippy-content="Alarms: events that crossed alarm policy thresholds. They appear in the notification bell and may trigger email notifications. Acknowledge them once handled.">{{ icons.help|raw }}</span>Alarms</h3>
 
     <div class="filter-menu">
         <input id="filter-time" type="text" placeholder="2025.05.08 20:00:00">
@@ -8,6 +8,7 @@
         <select id="filter-level">
             <option value="">Level</option>
             <option value="critical">Critical</option>
+            <option value="error">Error</option>
             <option value="warning">Warning</option>
         </select>
         <label class="filter-unacknowledged-label"><input type="checkbox" id="filter-unacknowledged"> Unacknowledged only</label>
@@ -53,13 +54,14 @@
         var value = cell.getValue();
         switch (value) {
             case "critical":
-                return "<span style='color:red; font-weight:bold;'>" + value + "</span>";
+                return "<span style='color:#ff4d4d; font-weight:bold;'>" + value + "</span>";
 
                 break;
+            case "error":
+                return "<span style='color:#ff8c42; font-weight:bold;'>" + value + "</span>";
+
             case "warning":
-                return "<span style='color:orange; font-weight:bold;'>" + value + "</span>";
-
-                break;
+                return "<span style='color:#ffd24d; font-weight:bold;'>" + value + "</span>";
             case "info":
                 return "<span style='color:#3FB449; font-weight:bold;'>" + value + "</span>";
 

@@ -56,7 +56,7 @@ class EventRecorderService
         string $level = 'info',
         int|string|null $server = null,
         int|string|null $app = null,
-        bool $forceAlert = false,
+        bool $forceAlarm = false,
         ?string $cooldownHash = null,
         int $cooldownMinutes = 0,
     ): EventRecordResult {

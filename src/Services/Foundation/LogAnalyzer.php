@@ -12,7 +12,7 @@ use Mata\Utils\Tools;
  * Application log analysis and processing service.
  *
  * Handles:
- * - Log file size monitoring and alerting
+ * - Log file size monitoring and alarm evaluation
  * - Error and warning count analysis
  * - Raw data structure generation for rendering
  * - Fatal error detection and alarm triggering

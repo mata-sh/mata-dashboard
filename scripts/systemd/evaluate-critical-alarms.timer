@@ -1,6 +1,6 @@
 [Unit]
-Description=Run critical alert evaluation every minute
-Requires=evaluate-critical-alerts.service
+Description=Run critical alarm evaluation every minute
+Requires=evaluate-critical-alarms.service
 
 [Timer]
 OnBootSec=1min

@@ -29,21 +29,21 @@
 */15 * * * * cd /var/www/html && /usr/local/bin/php cron/servers_metrics_aggregate.php >> /var/www/html/logs/cron_metrics_aggregate.log 2>&1
 
 # ============================================================================
-# ALERT EVALUATION (critical: every 1 min, non-critical: every 5 min)
+# ALARM EVALUATION (critical: every 1 min, non-critical: every 5 min)
 # ============================================================================
 
-# Evaluate critical alerts every minute
-* * * * * cd /var/www/html && /usr/local/bin/php cron/alerts_evaluate_critical.php >> /var/www/html/logs/cron_alerts_critical.log 2>&1
+# Evaluate critical alarms every minute
+* * * * * cd /var/www/html && /usr/local/bin/php cron/alarms_evaluate_critical.php >> /var/www/html/logs/cron_alarms_critical.log 2>&1
 
-# Evaluate non-critical alerts every 5 minutes
-*/5 * * * * cd /var/www/html && /usr/local/bin/php cron/alerts_evaluate_non_critical.php >> /var/www/html/logs/cron_alerts_non_critical.log 2>&1
+# Evaluate non-critical alarms every 5 minutes
+*/5 * * * * cd /var/www/html && /usr/local/bin/php cron/alarms_evaluate_non_critical.php >> /var/www/html/logs/cron_alarms_non_critical.log 2>&1
 
 # ============================================================================
-# ALERT DISPATCH (every 1 minute)
+# ALARM DELIVERY DISPATCH (every 1 minute)
 # ============================================================================
 
-# Dispatch queued alerts every minute
-* * * * * cd /var/www/html && /usr/local/bin/php cron/alerts_dispatch.php >> /var/www/html/logs/cron_alerts_dispatch.log 2>&1
+# Dispatch pending alarm deliveries every minute
+* * * * * cd /var/www/html && /usr/local/bin/php cron/alarms_dispatch.php >> /var/www/html/logs/cron_alarms_dispatch.log 2>&1
 
 # ============================================================================
 # CLEANUP & MAINTENANCE

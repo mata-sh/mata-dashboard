@@ -5,7 +5,7 @@
 
 MATA uses a **dashboard → node** pull model. The dashboard polls each node over HTTPS and authenticates using HMAC-signed tokens with timestamp validation. The node verifies the HMAC and **rejects expired tokens** (short TTL) to limit replay.
 
-Nodes do not call back into the dashboard. All alerting logic (email, escalation, notification routing) lives exclusively in the dashboard.
+Nodes do not call back into the dashboard. All alarm handling logic (email, escalation, notification routing) lives exclusively in the dashboard.
 
 ## Read-Only Operations
 
@@ -64,7 +64,7 @@ Assumptions:
 Impact and containment:
 - Node APIs are **read-only** and **stateless**. They cannot send emails, mutate dashboard configuration, or execute remote actions.
 - The dashboard treats node responses as **untrusted input** and validates/sanitizes data before display.
-- If a node is compromised, the attacker’s capabilities are limited to **exposing/forging monitoring data** for that node (e.g. misleading metrics/log excerpts). They do not gain the ability to trigger email alerts or pivot into the dashboard through “push” traffic.
+- If a node is compromised, the attacker’s capabilities are limited to **exposing/forging monitoring data** for that node (e.g. misleading metrics/log excerpts). They do not gain the ability to trigger email alarms or pivot into the dashboard through “push” traffic.
 
 Recommended response:
 - Rotate the affected node secret.

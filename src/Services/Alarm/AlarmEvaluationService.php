@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Mata\Services\Alert;
+namespace Mata\Services\Alarm;
 
 use Mata\Config\Dto\ApplicationConfig;
 use Mata\Services\Event\Dto\EventContext;
@@ -10,7 +10,7 @@ use Mata\Services\Event\EventAggregatorServiceInterface;
 use Mata\Services\Event\EventRecorderService;
 
 /**
- * Alert evaluation service for alarm decision logic.
+ * Alarm evaluation service for alarm decision logic.
  *
  * Responsible for:
  * - Determining if events should trigger alarms (threshold evaluation)
@@ -19,21 +19,21 @@ use Mata\Services\Event\EventRecorderService;
  * - Generating cooldown hashes for alarm deduplication
  *
  * ## Architecture:
- * - **AlertEvaluationService** (this): Alarm decision logic, threshold checks, cooldown management
- * - **AlertManager**: Alert queueing and priority resolution
+ * - **AlarmEvaluationService** (this): Alarm decision logic, threshold checks, cooldown management
+ * - **AlarmManager**: Alarm delivery creation and priority resolution
  * - **EventManager**: Event creation and event-specific logic
  *
  * ## Usage in cronjobs:
  * ```php
  * // Check if event should trigger alarm
- * $shouldAlarm = $alertEvaluator->shouldTriggerAlarmForEvent(
+ * $shouldAlarm = $alarmEvaluator->shouldTriggerAlarmForEvent(
  *     type: $event['type'],
  *     server: $event['server_id'],
  *     app: $event['application_id']
  * );
  *
  * // Filter channels not on cooldown
- * $readyChannels = $alertEvaluator->filterReadyChannels(
+ * $readyChannels = $alarmEvaluator->filterReadyChannels(
  *     type: $event['type'],
  *     requestedChannels: ['email', 'sms'],
  *     server: $event['server_id'],
@@ -42,7 +42,7 @@ use Mata\Services\Event\EventRecorderService;
  * );
  * ```
  */
-class AlertEvaluationService
+class AlarmEvaluationService
 {
     /** @var array<string,mixed> Alarm threshold configuration */
     private array $alarmThresholds = [];
@@ -55,7 +55,7 @@ class AlertEvaluationService
     private ApplicationConfig $appConfig;
 
     /**
-     * Initialize alert evaluation service.
+     * Initialize alarm evaluation service.
      *
      * @param EventAggregatorServiceInterface $aggregator Event querying service for threshold checks
      * @param EventRecorderService            $recorder   Event recorder for cooldown tracking

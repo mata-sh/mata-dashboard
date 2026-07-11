@@ -37,7 +37,7 @@ config/
 ├── servers.json.example      # Example servers config
 ├── users.json                # User authentication data
 ├── users.json.example        # Example users
-├── thresholds.json           # Alert thresholds (optional)
+├── thresholds.json           # Alarm thresholds (optional)
 ├── ttl.json                  # Cache TTL settings (optional)
 ├── data_retention.json       # Metrics retention (optional)
 └── mysql.mata.env           # Database config (optional)
@@ -84,7 +84,7 @@ src/Services/
 │   └── ServerMetricsHealthMonitor.php  # Metrics health checks
 ├── Foundation/
 │   ├── CacheManager.php             # Cache management
-│   ├── EventManager.php             # Alert/event management
+│   ├── EventManager.php             # Alarm/event management
 │   ├── NotificationManager.php      # Email notifications
 │   ├── LogAnalyzer.php              # Log file analysis
 │   ├── ApiClient.php                # HTTP API client

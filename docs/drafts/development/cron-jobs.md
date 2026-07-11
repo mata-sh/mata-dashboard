@@ -28,7 +28,7 @@ Collects raw server metrics every 5 minutes.
 2. Calls ServerDataCollector to fetch metrics
 3. Stores raw metrics in database
 4. Evaluates thresholds
-5. Generates events/alerts if needed
+5. Generates events/alarms if needed
 
 **Output:** Logs to `temp/logs/cron-collect.log`
 

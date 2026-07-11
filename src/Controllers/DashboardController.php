@@ -116,7 +116,7 @@ class DashboardController extends BaseController
      * @param Logger              $logger              PSR-3 logger for system logging
      * @param ApplicationConfig   $appConfig           Application configuration DTO
      * @param NotificationManager $notificationManager System notification management
-     * @param EventManager        $eventManager        Server alert and threshold management
+     * @param EventManager        $eventManager        Server alarm and threshold management
      * @param CacheStoreInterface $cacheStore          Cache persistence service
      * @param ApiCacheKeyFactory  $cacheKeyFactory     API cache key factory
      * @param CacheTtlResolver    $ttlResolver         Cache TTL configuration lookup

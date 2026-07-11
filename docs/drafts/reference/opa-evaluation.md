@@ -16,8 +16,8 @@ conftest test config/example/*.json.example -p policy
 ## alarm evaluation
 
 - cooldowns have a short debounce (seconds/minutes) to avoid bursts determined by the intervals.json
-- the alert cooldowns per event (type+level) are determineb by the intervals.json
-- opa decides if the event should be alerted based on alerts.rego
+- the alarm cooldowns per event (type+level) are determineb by the intervals.json
+- opa decides if the event should create an alarm based on alarms.rego
 
   {
     "input": {
@@ -29,7 +29,7 @@ conftest test config/example/*.json.example -p policy
           "same_type_level_or_higher": { "1h": 1, "4h": 4 }
         },
           "last_event_at": "2024-01-01T11:10:00Z",s
-          "last_alert_at": "2024-01-01T10:00:00Z"
+          "last_alarm_at": "2024-01-01T10:00:00Z"
       },
       "channels": ["email", "messenger"]
     }

@@ -4,7 +4,10 @@ declare(strict_types=1);
 
 namespace Mata\Tests\Integration;
 
+use DateTimeImmutable;
 use Mata\Core\DatabaseInterface;
+use Mata\Models\AlarmDeliveryRepository;
+use Mata\Models\AlarmRepository;
 use Mata\Models\EventRepository;
 use Mata\Tests\TestCase;
 use PDO;
@@ -18,6 +21,8 @@ final class EventRepositorySqlIntegrationTest extends TestCase
 {
     private SqliteEventRepositoryDatabase $db;
     private EventRepository $repository;
+    private AlarmRepository $alarmRepository;
+    private AlarmDeliveryRepository $deliveryRepository;
 
     protected function setUp(): void
     {
@@ -27,11 +32,13 @@ final class EventRepositorySqlIntegrationTest extends TestCase
         $this->createSchema();
         $this->seedData();
         $this->repository = new EventRepository($this->db);
+        $this->alarmRepository = new AlarmRepository($this->db);
+        $this->deliveryRepository = new AlarmDeliveryRepository($this->db);
     }
 
     public function testGetLastAlarmsByContextExecutesSelectWithAppEnv(): void
     {
-        $rows = $this->repository->getLastAlarmsByContext('cpu', 'CPU high', 1, 10, 0);
+        $rows = $this->alarmRepository->getLastByContext('cpu', 'CPU high', 1, 10, 0);
 
         $this->assertCount(1, $rows);
         $this->assertSame('server-a', $rows[0]['server']);
@@ -50,7 +57,7 @@ final class EventRepositorySqlIntegrationTest extends TestCase
 
     public function testGetLatestAlarmsExecutesSelectWithAppEnv(): void
     {
-        $rows = $this->repository->getLatestAlarms(10);
+        $rows = $this->alarmRepository->getLatest(10);
 
         $this->assertCount(1, $rows);
         $this->assertSame('server-a', $rows[0]['server']);
@@ -58,9 +65,42 @@ final class EventRepositorySqlIntegrationTest extends TestCase
         $this->assertSame('prod', $rows[0]['app_env']);
     }
 
-    public function testGetAlertDecisionCandidatesExecutesSelectWithAppEnv(): void
+    public function testLogicalAlarmCountsOnceWithTwoDeliveries(): void
     {
-        $rows = $this->repository->getAlertDecisionCandidates(10, 'critical');
+        $alarmId = $this->alarmRepository->createForEvent(2);
+        $this->deliveryRepository->enqueue($alarmId, 'email', 10);
+        $this->deliveryRepository->enqueue($alarmId, 'slack', 10);
+
+        $this->assertSame($alarmId, $this->alarmRepository->createForEvent(2));
+        $this->assertCount(2, $this->alarmRepository->getLatest(10));
+        $this->assertSame(['critical' => 1, 'warning' => 1], $this->alarmRepository->getUnacknowledgedCounts());
+    }
+
+    public function testPendingClaimsUseLogicalAlarmEventPayload(): void
+    {
+        $alarmId = $this->alarmRepository->createForEvent(2);
+        $this->deliveryRepository->enqueue($alarmId, 'email', 10);
+
+        $deliveries = $this->deliveryRepository->claimPending(new DateTimeImmutable('2026-01-01 00:03:00'));
+
+        $this->assertCount(1, $deliveries);
+        $this->assertSame(2, $deliveries[0]->eventId);
+        $this->assertSame('critical', $deliveries[0]->level);
+        $this->assertSame('email', $deliveries[0]->channel);
+    }
+
+    public function testAcknowledgementPreservesFirstUserAndBulkSkipsAcknowledged(): void
+    {
+        $this->assertTrue($this->alarmRepository->acknowledge(100, 'first'));
+        $this->assertFalse($this->alarmRepository->acknowledge(100, 'second'));
+        $row = $this->db->pdo()->query('SELECT acknowledged_by FROM alarms WHERE id = 100')->fetch();
+        $this->assertSame('first', $row['acknowledged_by']);
+        $this->assertSame(0, $this->alarmRepository->acknowledgeAll('bulk'));
+    }
+
+    public function testGetAlarmDecisionCandidatesExecutesSelectWithAppEnv(): void
+    {
+        $rows = $this->repository->getAlarmDecisionCandidates(10, 'critical');
 
         $this->assertCount(1, $rows);
         $this->assertSame(2, (int) $rows[0]['id']);
@@ -99,13 +139,24 @@ final class EventRepositorySqlIntegrationTest extends TestCase
 
             CREATE TABLE alarms (
                 id INTEGER PRIMARY KEY,
-                event_id INTEGER,
-                channel TEXT,
-                status TEXT NOT NULL,
-                processed_at TEXT,
-                created_at TEXT,
+                event_id INTEGER UNIQUE NOT NULL,
+                created_at TEXT NOT NULL,
                 acknowledged_at TEXT,
                 acknowledged_by TEXT
+            );
+
+            CREATE TABLE alarm_deliveries (
+                id INTEGER PRIMARY KEY,
+                alarm_id INTEGER NOT NULL,
+                channel TEXT NOT NULL,
+                status TEXT NOT NULL,
+                priority INTEGER NOT NULL DEFAULT 100,
+                attempts INTEGER NOT NULL DEFAULT 0,
+                processed_at TEXT,
+                next_retry_at TEXT,
+                error_payload TEXT,
+                created_at TEXT NOT NULL,
+                UNIQUE (alarm_id, channel)
             );
             SQL);
     }
@@ -124,8 +175,11 @@ final class EventRepositorySqlIntegrationTest extends TestCase
                 (1, 1, 10, 'cpu', 'CPU high', '{"metric":"cpu"}', 'warning', '2026-01-01 00:00:00', NULL),
                 (2, 1, 10, 'disk', 'Disk full', '{"metric":"disk"}', 'critical', '2026-01-01 00:01:00', NULL);
 
-            INSERT INTO alarms (id, event_id, channel, status, processed_at, created_at)
-            VALUES (100, 1, 'mail', 'sent', NULL, '2026-01-01 00:02:00');
+            INSERT INTO alarms (id, event_id, created_at)
+            VALUES (100, 1, '2026-01-01 00:02:00');
+
+            INSERT INTO alarm_deliveries (id, alarm_id, channel, status, created_at)
+            VALUES (200, 100, 'mail', 'sent', '2026-01-01 00:02:00');
             SQL);
     }
 }

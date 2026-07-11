@@ -4,22 +4,22 @@ declare(strict_types=1);
 
 namespace Mata\Utils;
 
-use Mata\Services\Alert\Dto\AlertLimit;
+use Mata\Services\Alarm\Dto\AlarmLimit;
 
 /**
- * Helper utilities for working with {@see AlertLimit} windows.
+ * Helper utilities for working with {@see AlarmLimit} windows.
  */
-final class AlertLimitHelper
+final class AlarmLimitHelper
 {
     private function __construct() {}
 
     /**
-     * Calculate minimum spacing between alerts when only filesystem locks are available.
+     * Calculate minimum spacing between alarms when only filesystem locks are available.
      *
      * Returns the largest spacing derived from per-minute/hour/day limits to
      * ensure none of the windows are exceeded.
      */
-    public static function calculateSpacingSeconds(AlertLimit $limit): int
+    public static function calculateSpacingSeconds(AlarmLimit $limit): int
     {
         $minute = $limit->getPerMinute() > 0 ? (int) max(1, floor(60 / $limit->getPerMinute())) : 0;
         $hour = $limit->getPerHour() > 0 ? (int) max(1, floor(3600 / $limit->getPerHour())) : 0;

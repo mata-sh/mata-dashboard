@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace Mata\Services\Alert;
+namespace Mata\Services\Alarm;
 
-use Mata\Services\Alert\Dto\Alert;
+use Mata\Services\Alarm\Dto\Alarm;
 use Psr\Log\LoggerInterface;
 use Psr\Log\NullLogger;
 use RuntimeException;
@@ -12,9 +12,9 @@ use Symfony\Component\Mailer\MailerInterface;
 use Symfony\Component\Mime\Email;
 
 /**
- * Channel-specific email sender for alert dispatch.
+ * Channel-specific email sender for alarm delivery dispatch.
  */
-final class AlertEmailSender
+final class AlarmEmailSender
 {
     private MailerInterface $mailer;
     private LoggerInterface $logger;
@@ -38,56 +38,56 @@ final class AlertEmailSender
     /**
      * @throws RuntimeException when configuration is incomplete
      */
-    public function send(Alert $alert): void
+    public function send(Alarm $alarm): void
     {
-        $this->logger->debug('Preparing alert email.', [
-            'type' => $alert->type,
-            'level' => $alert->level->value,
-            'server' => $alert->server,
-            'app' => $alert->app,
-            'message' => $alert->message,
-            'context' => $alert->context,
+        $this->logger->debug('Preparing alarm email.', [
+            'type' => $alarm->type,
+            'level' => $alarm->level->value,
+            'server' => $alarm->server,
+            'app' => $alarm->app,
+            'message' => $alarm->message,
+            'context' => $alarm->context,
         ]);
 
         $recipients = $this->mailConfig['recipients'] ?? [];
         if (!is_array($recipients) || $recipients === []) {
-            $this->logger->warning('Alert email recipients not configured.', [
+            $this->logger->warning('Alarm email recipients not configured.', [
                 'recipients' => $recipients,
             ]);
 
-            throw new RuntimeException('Alert email recipients not configured.');
+            throw new RuntimeException('Alarm email recipients not configured.');
         }
 
         $fromEmail = (string) ($this->mailConfig['from_email'] ?? '');
         $fromName = (string) ($this->mailConfig['from_name'] ?? 'Monitoring Dashboard');
         if ($fromEmail === '') {
-            $this->logger->warning('Alert email sender address not configured.', [
+            $this->logger->warning('Alarm email sender address not configured.', [
                 'from_email' => $fromEmail,
                 'from_name' => $fromName,
             ]);
 
-            throw new RuntimeException('Alert email sender address not configured.');
+            throw new RuntimeException('Alarm email sender address not configured.');
         }
 
-        $serverLabel = $alert->server ?? '';
-        $appLabel = $alert->app ?? '';
+        $serverLabel = $alarm->server ?? '';
+        $appLabel = $alarm->app ?? '';
 
         // 🔴 shop.points [fatal_errors_occuring]
         $subject = sprintf(
             '%s %s.%s | [%s]',
-            $alert->level->getEmoji(),
+            $alarm->level->getEmoji(),
             $appLabel !== '' ? $appLabel : '*',
             $serverLabel !== '' ? $serverLabel : '*',
-            strtolower($alert->type),
+            strtolower($alarm->type),
         );
 
-        $context = $alert->context ?? '';
+        $context = $alarm->context ?? '';
         $content = <<<HTML
-            <strong>type</strong>: {$alert->type}<br>
-            <strong>level</strong>: {$alert->level->value}<br>
+            <strong>type</strong>: {$alarm->type}<br>
+            <strong>level</strong>: {$alarm->level->value}<br>
             <strong>server</strong>: {$serverLabel}<br>
             <strong>app</strong>: {$appLabel}<br>
-            <strong>message</strong>:<br>{$alert->message}<br><br>
+            <strong>message</strong>:<br>{$alarm->message}<br><br>
             <strong>context</strong>:<br>{$context}<br><br>
         HTML;
 
@@ -97,7 +97,7 @@ final class AlertEmailSender
             ->subject($subject)
             ->html($content)
         ;
-        $this->logger->debug('Sending alert email.', [
+        $this->logger->debug('Sending alarm email.', [
             'subject' => $subject,
             'recipients' => $recipients,
             'from_email' => $fromEmail,

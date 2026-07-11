@@ -1,0 +1,72 @@
+---
+title: Alarm Limiting & Dispatch
+---
+
+# Alarm Limiting & Dispatch
+
+This document describes the alarm limiting workflow introduced in `ALARM_LIMITING.md`. It covers configuration, runtime behaviour, and operational procedures for the alarm queue and dispatcher.
+
+## Overview
+- Alarms are recorded via `EventManager`, stored in `events`, and enqueued through `AlarmManager`.
+- `alarms` now represents a delivery queue with statuses `pending`, `processing`, `sent`, `retry`, `failed`, `throttled`, and `discarded`.
+- A dedicated cron job (`cron/alarms_dispatch.php`) processes queued alarms, honours per-channel rate limits, and updates retry metadata.
+- When the database is unavailable, filesystem locks under `temp/alarm-locks/` prevent runaway alarm fan-out.
+
+## Configuration
+- Limits live in `config/limits.json`. Structure:
+  ```json
+  {
+    "channels": {
+      "email": {"per_minute": 30, "per_hour": 200, "per_day": 1000},
+      "default": {"per_minute": 20, "per_hour": 120, "per_day": 500}
+    },
+    "overrides": {
+      "server-alpha": {
+        "email": {"per_minute": 10, "per_hour": 80, "per_day": 300}
+      }
+    }
+  }
+  ```
+- Override keys must match server names defined in `config/<env>/servers.json`.
+- Adjust limits per environment by copying `config/limits.json` alongside other environment-specific config files.
+- Update `data_retention.json` to control how long sent/terminal alarms are kept (default 30 days).
+
+## Runtime Components
+- **AlarmManager**: Persists queue entries and falls back to filesystem locks when DB writes fail.
+- **AlarmDispatcher**: Fetches pending alarms, enforces limits via `AlarmRateLimiter`, dispatches through `AlarmEmailSender`, and updates statuses.
+- **ChannelLockManager**: Maintains per `(server, channel)` timestamps on disk (`temp/alarm-locks/<server>/<channel>.lock`).
+- **AlarmRateLimiter**: Applies per-minute/hour/day ceilings using historical send counts.
+
+## Operational Procedures
+1. **Queue Processing Cron**  
+   Schedule `cron/alarms_dispatch.php` to run every minute (or faster) alongside existing monitoring jobs. It is self-locking and safe to run concurrently with other cron scripts.
+
+2. **Monitoring**  
+   - Track cron logs under `logs/cron/dispatch_alarms.log`.  
+   - Metrics are emitted via log context (`status`, `channel`, `server`) and can be scraped by existing log aggregation.
+   - When the dispatcher throttles alarms, it leaves entries in `pending` with an updated `next_retry_at`.
+
+3. **Backlog Inspection**  
+   - Pending alarms:  
+     ```sql
+     SELECT * FROM alarms WHERE status IN ('pending','retry') ORDER BY created_at;
+     ```
+   - Failed alarms include diagnostic payloads in `error_payload`.
+
+4. **Fallback Behaviour**  
+   - If MySQL is unavailable, AlarmManager writes timestamps to `temp/alarm-locks`. Clearing the lock files resets throttling once service is restored.
+   - Dispatcher resumes automatically; no manual steps needed beyond ensuring cron job is running.
+
+5. **Retention & Cleanup**  
+   - Terminal statuses (`sent`, `failed`, `discarded`) are removed after the retention period defined in `config/data_retention.json`.
+   - Consider a nightly job to prune old queue rows if not already configured.
+
+## Validation & Testing
+- `composer phpunit --filter ChannelLockManagerTest` covers filesystem lock semantics.
+- `composer phpunit --filter AlarmLimitHelperTest` validates limit spacing calculations.
+- `composer phpunit --filter AlarmRateLimiterTest` validates enforcement of per-channel counters.
+
+## Migration Notes
+- Run the migration `20251104120000_update_dashboard_alarm_log_queue.php` after deploying code.
+- Ensure `config/limits.json` is deployed before enabling the dispatcher cron.
+- Review `ALARM_LIMITING.md` for the implementation plan and outstanding open questions.

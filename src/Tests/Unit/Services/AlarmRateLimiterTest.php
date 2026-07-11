@@ -4,23 +4,23 @@ declare(strict_types=1);
 
 namespace Mata\Tests\Unit\Services;
 
-use Mata\Config\Dto\AlertLimitsConfig;
-use Mata\Services\Alert\AlertRateLimiter;
-use Mata\Services\Alert\Dto\AlertLimit;
+use Mata\Config\Dto\AlarmLimitsConfig;
+use Mata\Services\Alarm\AlarmRateLimiter;
+use Mata\Services\Alarm\Dto\AlarmLimit;
 use Mata\Tests\TestCase;
 
 /**
- * @covers \Mata\Services\Alert\AlertRateLimiter
+ * @covers \Mata\Services\Alarm\AlarmRateLimiter
  *
  * @internal
  */
-final class AlertRateLimiterTest extends TestCase
+final class AlarmRateLimiterTest extends TestCase
 {
     public function testAllowHonoursLimits(): void
     {
-        $default = new AlertLimit(perMinute: 2, perHour: 5, perDay: 10);
-        $config = new AlertLimitsConfig($default, ['email' => $default]);
-        $limiter = new AlertRateLimiter($config);
+        $default = new AlarmLimit(perMinute: 2, perHour: 5, perDay: 10);
+        $config = new AlarmLimitsConfig($default, ['email' => $default]);
+        $limiter = new AlarmRateLimiter($config);
 
         $this->assertTrue($limiter->allow('srv-1', 'email'));
         $limiter->recordSend('srv-1', 'email');
@@ -32,9 +32,9 @@ final class AlertRateLimiterTest extends TestCase
 
     public function testPreloadInitialisesCounters(): void
     {
-        $default = new AlertLimit(perMinute: 3, perHour: 5, perDay: 6);
-        $config = new AlertLimitsConfig($default, ['email' => $default]);
-        $limiter = new AlertRateLimiter($config);
+        $default = new AlarmLimit(perMinute: 3, perHour: 5, perDay: 6);
+        $config = new AlarmLimitsConfig($default, ['email' => $default]);
+        $limiter = new AlarmRateLimiter($config);
 
         $limiter->preload([
             'srv-1' => [

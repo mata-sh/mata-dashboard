@@ -2,23 +2,23 @@
 
 declare(strict_types=1);
 
-namespace Mata\Services\Alert;
+namespace Mata\Services\Alarm;
 
-use Mata\Config\Dto\AlertLimitsConfig;
+use Mata\Config\Dto\AlarmLimitsConfig;
 
 /**
- * In-memory helper to enforce per-server/channel alert limits during dispatch.
+ * In-memory helper to enforce per-server/channel alarm limits during dispatch.
  */
-final class AlertRateLimiter
+final class AlarmRateLimiter
 {
-    private AlertLimitsConfig $limitsConfig;
+    private AlarmLimitsConfig $limitsConfig;
 
     /**
      * @var array<string,array<string,array{minute:int,hour:int,day:int}>>
      */
     private array $counters = [];
 
-    public function __construct(AlertLimitsConfig $limitsConfig)
+    public function __construct(AlarmLimitsConfig $limitsConfig)
     {
         $this->limitsConfig = $limitsConfig;
     }

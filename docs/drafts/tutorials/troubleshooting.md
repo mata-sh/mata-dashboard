@@ -8,7 +8,7 @@ This troubleshooting guide covers:
 
 - Server connectivity and communication issues
 - Metrics collection and display problems
-- Alert and notification failures
+- Alarm and notification failures
 - Cron job execution issues
 - Database connection problems
 - Permission and access errors
@@ -19,7 +19,7 @@ This troubleshooting guide covers:
 
 - [Server Shows as Disconnected](#server-shows-as-disconnected)
 - [Metrics Not Updating](#metrics-not-updating)
-- [Alerts Not Received](#alerts-not-received)
+- [Alarms Not Received](#alarms-not-received)
 - [Cron Jobs Not Running](#cron-jobs-not-running)
 - [Database Connection Issues](#database-connection-issues)
 - [Permission Errors](#permission-errors)
@@ -440,7 +440,7 @@ tail -f logs/app.log | grep -i "ServerDataCollector"
 
 ---
 
-## Alerts Not Received
+## Alarms Not Received
 
 ### Symptoms
 
@@ -456,12 +456,12 @@ tail -f logs/app.log | grep -i "ServerDataCollector"
 Check mail config file exists:
 
 ```bash
-cat config/mail.config.env | grep MAIL_ALERT_RECIPIENTS
+cat config/mail.config.env | grep MAIL_ALARM_RECIPIENTS
 ```
 
 Expected:
 ```bash
-MAIL_ALERT_RECIPIENTS=admin@domain.com,alerts@domain.com
+MAIL_ALARM_RECIPIENTS=admin@domain.com,alarms@domain.com
 ```
 
 #### 2. Test Email System
@@ -546,7 +546,7 @@ nano config/mail.config.env
 
 Set recipients:
 ```bash
-MAIL_ALERT_RECIPIENTS=admin@your-domain.com,oncall@your-domain.com
+MAIL_ALARM_RECIPIENTS=admin@your-domain.com,oncall@your-domain.com
 ```
 
 Save and test:
@@ -1588,7 +1588,7 @@ sudo chmod -R 755 temp/ logs/
 |------|---------|
 | `config/config.env` | Main application configuration |
 | `config/servers.json` | Server endpoints and API keys |
-| `config/thresholds.json` | Alert thresholds |
+| `config/thresholds.json` | Alarm thresholds |
 | `config/ttl.json` | Cache TTL settings |
 | `config/mail.config.env` | Email/SMTP configuration |
 

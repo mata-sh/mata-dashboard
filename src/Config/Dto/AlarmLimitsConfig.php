@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Mata\Config\Dto;
 
-use Mata\Services\Alert\Dto\AlertLimit;
+use Mata\Services\Alarm\Dto\AlarmLimit;
 
 /**
  * Aggregates channel-level defaults and per-server overrides.
@@ -13,22 +13,22 @@ use Mata\Services\Alert\Dto\AlertLimit;
  * `(server, channel)` pair using the cascading fallback:
  * server override → channel default → global default.
  */
-final class AlertLimitsConfig
+final class AlarmLimitsConfig
 {
-    /** @var array<string,AlertLimit> */
+    /** @var array<string,AlarmLimit> */
     private array $channelLimits;
 
-    /** @var array<string,array<string,AlertLimit>> */
+    /** @var array<string,array<string,AlarmLimit>> */
     private array $serverOverrides;
 
-    private AlertLimit $globalDefault;
+    private AlarmLimit $globalDefault;
 
     /**
-     * @param AlertLimit                             $globalDefault   Global fallback limits
-     * @param array<string,AlertLimit>               $channelLimits   Limits keyed by channel name
-     * @param array<string,array<string,AlertLimit>> $serverOverrides Overrides keyed by server name, then channel
+     * @param AlarmLimit                             $globalDefault   Global fallback limits
+     * @param array<string,AlarmLimit>               $channelLimits   Limits keyed by channel name
+     * @param array<string,array<string,AlarmLimit>> $serverOverrides Overrides keyed by server name, then channel
      */
-    public function __construct(AlertLimit $globalDefault, array $channelLimits, array $serverOverrides = [])
+    public function __construct(AlarmLimit $globalDefault, array $channelLimits, array $serverOverrides = [])
     {
         $this->globalDefault = $globalDefault;
         $this->channelLimits = $channelLimits;
@@ -38,7 +38,7 @@ final class AlertLimitsConfig
     /**
      * Resolve limit for the given server/channel combination.
      */
-    public function resolve(string $server, string $channel): AlertLimit
+    public function resolve(string $server, string $channel): AlarmLimit
     {
         $channelKey = strtolower($channel);
         $serverKey = strtolower($server);
@@ -57,7 +57,7 @@ final class AlertLimitsConfig
     /**
      * Return all configured channels.
      *
-     * @return array<string,AlertLimit>
+     * @return array<string,AlarmLimit>
      */
     public function getChannelLimits(): array
     {
@@ -67,14 +67,14 @@ final class AlertLimitsConfig
     /**
      * Return per-server overrides.
      *
-     * @return array<string,array<string,AlertLimit>>
+     * @return array<string,array<string,AlarmLimit>>
      */
     public function getServerOverrides(): array
     {
         return $this->serverOverrides;
     }
 
-    public function getGlobalDefault(): AlertLimit
+    public function getGlobalDefault(): AlarmLimit
     {
         return $this->globalDefault;
     }

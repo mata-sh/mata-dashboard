@@ -273,7 +273,7 @@ MONOLOG_LEVEL=debug
 **Array Values (comma-separated):**
 ```env
 ALLOWED_IPS=192.168.1.1,192.168.1.2,10.0.0.1
-MAIL_ALERT_RECIPIENTS=ops@example.com,dev@example.com
+MAIL_ALARM_RECIPIENTS=ops@example.com,dev@example.com
 ```
 
 ### Additional Supported Values
@@ -719,10 +719,10 @@ Configuration is re-read every time `getShopInfo()` is called (typically every 5
 Use the dashboard's "Refresh" button to force immediate config reload.
 
 **Change Detection:**
-Dashboard can detect and alert on configuration changes if enabled:
+Dashboard can detect and alarm on configuration changes if enabled:
 ```json
 {
-  "alerts": {
+  "alarms": {
     "config_changed": {
       "enabled": true,
       "notify_on": ["SHOP_ENV", "MAINTENANCE_ENABLED"]
@@ -782,7 +782,7 @@ cat config/shops.json | jq '.myshop.configs'
 
 **Problem:**
 ```env
-MAIL_ALERT_RECIPIENTS=ops@example.com,dev@example.com
+MAIL_ALARM_RECIPIENTS=ops@example.com,dev@example.com
 # Dashboard shows: "ops@example.com,dev@example.com" (string, not array)
 ```
 

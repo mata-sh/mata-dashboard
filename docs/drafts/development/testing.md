@@ -87,7 +87,7 @@ Before deploying changes, verify:
 6. Test session count display
 ```
 
-#### Alert Testing
+#### Alarm Testing
 
 **Threshold Violations:**
 
@@ -335,7 +335,7 @@ When updating dependencies or PHP version:
 2. Test authentication flow
 3. Verify dashboard loads
 4. Check data collection works
-5. Test alerting
+5. Test alarm handling
 6. Verify email sending
 7. Check cron jobs run
 8. Review error logs
@@ -362,11 +362,11 @@ Monitoring:
 [ ] Data collection runs
 [ ] Metrics stored correctly
 [ ] Thresholds evaluated
-[ ] Alerts generated
+[ ] Alarms generated
 
 Email:
 [ ] SMTP connection works
-[ ] Alert emails sent
+[ ] Alarm emails sent
 [ ] Email format correct
 
 Cron Jobs:
@@ -595,7 +595,7 @@ When adding automated tests:
 Aim for coverage of:
 
 - **Critical paths**: Authentication, data collection
-- **Business logic**: Threshold evaluation, alerting
+- **Business logic**: Threshold evaluation, alarm handling
 - **Security**: Input validation, authorization
 - **Edge cases**: Empty data, max values, errors
 

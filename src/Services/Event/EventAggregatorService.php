@@ -7,6 +7,7 @@ namespace Mata\Services\Event;
 use DateInterval;
 use DateTimeImmutable;
 use DateTimeInterface;
+use Mata\Models\AlarmRepository;
 use Mata\Models\EventRepository;
 use Mata\Services\Foundation\IdResolver;
 use Psr\Log\LoggerInterface;
@@ -18,7 +19,7 @@ use Throwable;
  */
 class EventAggregatorService implements EventAggregatorServiceInterface
 {
-    private const DEFAULT_ALERT_DECISION_LIMIT = 100;
+    private const DEFAULT_ALARM_DECISION_LIMIT = 100;
     private const DEFAULT_LATEST_EVENTS_LIMIT = 50;
     private const DEFAULT_LATEST_ALARMS_LIMIT = 50;
     private const DEFAULT_CLEAR_ALARMS_DAYS = 365;
@@ -31,12 +32,14 @@ class EventAggregatorService implements EventAggregatorServiceInterface
         '72h' => 4320,
     ];
     private const LEVEL_RANKS = [
-        'critical' => 3,
+        'critical' => 4,
+        'error' => 3,
         'warning' => 2,
         'info' => 1,
     ];
 
     private EventRepository $repository;
+    private AlarmRepository $alarmRepository;
     private IdResolver $idResolver;
     private LoggerInterface $logger;
 
@@ -48,11 +51,13 @@ class EventAggregatorService implements EventAggregatorServiceInterface
      */
     public function __construct(
         EventRepository $repository,
+        AlarmRepository $alarmRepository,
         IdResolver $idResolver,
         ?LoggerInterface $logger = null,
         ?array $decisionCountSpans = null
     ) {
         $this->repository = $repository;
+        $this->alarmRepository = $alarmRepository;
         $this->idResolver = $idResolver;
         $this->logger = $logger ?? new NullLogger();
         $this->decisionCountSpans = $this->normalizeDecisionCountSpans(
@@ -68,11 +73,11 @@ class EventAggregatorService implements EventAggregatorServiceInterface
      *
      * @return array<int,array<string,mixed>>
      */
-    public function getAlertDecisionCandidates(
-        int $limit = self::DEFAULT_ALERT_DECISION_LIMIT,
+    public function getAlarmDecisionCandidates(
+        int $limit = self::DEFAULT_ALARM_DECISION_LIMIT,
         array|string|null $levelFilter = null
     ): array {
-        $events = $this->repository->getAlertDecisionCandidates($limit, $levelFilter);
+        $events = $this->repository->getAlarmDecisionCandidates($limit, $levelFilter);
 
         if ($events === []) {
             return [];
@@ -135,7 +140,7 @@ class EventAggregatorService implements EventAggregatorServiceInterface
         }
         [$serverId, $applicationId] = $contextIds;
 
-        return $this->repository->getLastAlarmsByContext(
+        return $this->alarmRepository->getLastByContext(
             type: $type,
             message: $message,
             serverId: $serverId,
@@ -153,7 +158,7 @@ class EventAggregatorService implements EventAggregatorServiceInterface
     /** @return array<int,array<string,mixed>> */
     public function getLatestAlarms(int $limit = self::DEFAULT_LATEST_ALARMS_LIMIT, bool $unacknowledgedOnly = false): array
     {
-        return $this->repository->getLatestAlarms($limit, $unacknowledgedOnly);
+        return $this->alarmRepository->getLatest($limit, $unacknowledgedOnly);
     }
 
     /**
@@ -163,7 +168,7 @@ class EventAggregatorService implements EventAggregatorServiceInterface
      */
     public function getUnacknowledgedAlarmCounts(): array
     {
-        return $this->repository->getUnacknowledgedAlarmCounts();
+        return $this->alarmRepository->getUnacknowledgedCounts();
     }
 
     /**
@@ -171,7 +176,7 @@ class EventAggregatorService implements EventAggregatorServiceInterface
      */
     public function acknowledgeAlarm(int $alarmId, string $user): bool
     {
-        return $this->repository->acknowledgeAlarm($alarmId, $user);
+        return $this->alarmRepository->acknowledge($alarmId, $user);
     }
 
     /**
@@ -179,7 +184,7 @@ class EventAggregatorService implements EventAggregatorServiceInterface
      */
     public function acknowledgeAllAlarms(string $user): int
     {
-        return $this->repository->acknowledgeAllAlarms($user);
+        return $this->alarmRepository->acknowledgeAll($user);
     }
 
     /**
@@ -187,7 +192,7 @@ class EventAggregatorService implements EventAggregatorServiceInterface
      */
     public function clearOldAlarms(int $days = self::DEFAULT_CLEAR_ALARMS_DAYS): void
     {
-        $this->repository->clearOldAlarms($days);
+        $this->alarmRepository->clearOld($days);
     }
 
     /**
@@ -212,14 +217,14 @@ class EventAggregatorService implements EventAggregatorServiceInterface
                 'same_type_level_or_higher' => $metrics['counts'],
             ],
             'last_event_at' => $metrics['last_event_at'],
-            'last_alert_at' => $metrics['last_alert_at'],
+            'last_alarm_at' => $metrics['last_alarm_at'],
         ];
     }
 
     /**
      * @param array<string,mixed> $event
      *
-     * @return array{counts: array<string,int>, last_event_at: null|string, last_alert_at: null|string}
+     * @return array{counts: array<string,int>, last_event_at: null|string, last_alarm_at: null|string}
      */
     private function buildSameTypeLevelOrHigherMetrics(array $event): array
     {
@@ -228,7 +233,7 @@ class EventAggregatorService implements EventAggregatorServiceInterface
             return [
                 'counts' => [],
                 'last_event_at' => null,
-                'last_alert_at' => null,
+                'last_alarm_at' => null,
             ];
         }
 
@@ -349,7 +354,7 @@ class EventAggregatorService implements EventAggregatorServiceInterface
             maxAgeMinutes: $maxAgeMinutes
         );
 
-        $recentAlarms = $this->repository->getLastAlarmsByContext(
+        $recentAlarms = $this->alarmRepository->getLastByContext(
             type: $type,
             message: null,
             serverId: $serverId,
@@ -364,7 +369,7 @@ class EventAggregatorService implements EventAggregatorServiceInterface
      * @param array<int,array<string,mixed>> $recentEvents
      * @param array<int,array<string,mixed>> $recentAlarms
      *
-     * @return array{counts: array<string,int>, last_event_at: null|string, last_alert_at: null|string}
+     * @return array{counts: array<string,int>, last_event_at: null|string, last_alarm_at: null|string}
      */
     private function aggregateSameTypeLevelOrHigherMetrics(
         array $recentEvents,
@@ -394,26 +399,26 @@ class EventAggregatorService implements EventAggregatorServiceInterface
             $this->updateSpanCounts($eventTime, $spanThresholds, $spanCounts);
         }
 
-        $lastAlertAt = null;
+        $lastAlarmAt = null;
         foreach ($recentAlarms as $recentAlarm) {
             if ($this->levelRank((string) ($recentAlarm['level'] ?? 'info')) < $levelRank) {
                 continue;
             }
 
-            $alertTime = $this->parseEventTime($recentAlarm['created_at'] ?? null);
-            if ($alertTime === null) {
+            $alarmTime = $this->parseEventTime($recentAlarm['created_at'] ?? null);
+            if ($alarmTime === null) {
                 continue;
             }
 
-            if ($lastAlertAt === null || $alertTime > $lastAlertAt) {
-                $lastAlertAt = $alertTime;
+            if ($lastAlarmAt === null || $alarmTime > $lastAlarmAt) {
+                $lastAlarmAt = $alarmTime;
             }
         }
 
         return [
             'counts' => $spanCounts,
             'last_event_at' => $lastEventAt?->format(DateTimeInterface::ATOM),
-            'last_alert_at' => $lastAlertAt?->format(DateTimeInterface::ATOM),
+            'last_alarm_at' => $lastAlarmAt?->format(DateTimeInterface::ATOM),
         ];
     }
 

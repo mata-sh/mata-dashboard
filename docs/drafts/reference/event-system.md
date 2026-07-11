@@ -590,7 +590,7 @@ Urgent events requiring immediate attention.
 - Immediate notification
 - Requires action within hours
 - Long retention period (365 days)
-- Real-time alerts
+- Real-time alarms
 
 ---
 
@@ -615,7 +615,7 @@ Urgent events requiring immediate attention.
          │
          ▼
 ┌─────────────────┐
-│ Send Alert      │
+│ Send Alarm      │
 └────────┬────────┘
          │
          ▼
@@ -796,12 +796,12 @@ Alarms trigger email notifications when:
 
 **Subject:**
 ```
-[MATA Alert] {severity} - {alarm_type} - {server_id}
+[MATA Alarm] {severity} - {alarm_type} - {server_id}
 ```
 
 **Body Template:**
 ```
-MATA Dashboard Alert
+MATA Dashboard Alarm
 
 Severity: CRITICAL
 Alarm Type: disk_space_low
@@ -832,16 +832,16 @@ View Alarm: https://mata.example.com/alarms/123
 
 **Recipients (mail.config.env):**
 ```env
-# Alert recipients
-MAIL_ALERT_RECIPIENTS=alerts@example.com,admin@example.com
+# Alarm recipients
+MAIL_ALARM_RECIPIENTS=alarms@example.com,admin@example.com
 ```
 
 **Severity-Based Routing:**
 ```env
-# Critical alerts
+# Critical alarms
 MAIL_CRITICAL_RECIPIENTS=oncall@example.com,admin@example.com
 
-# Warning alerts
+# Warning alarms
 MAIL_WARNING_RECIPIENTS=team@example.com
 
 # Info (disabled by default)

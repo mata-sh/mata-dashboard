@@ -465,7 +465,7 @@ Use this checklist before going live:
 
 - [ ] Cron jobs configured and running
 - [ ] First server added and monitoring
-- [ ] Email alerts tested and working
+- [ ] Email alarms tested and working
 - [ ] Logs being written correctly
 
 ### Performance

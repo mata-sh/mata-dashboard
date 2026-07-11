@@ -5,7 +5,7 @@
 </div>
 <div align="center">
 
-<strong>Monitoring Anomalies & Tracking Alerts</strong>
+<strong>Monitoring Anomalies & Tracking Alarms</strong>
 </div>
 <div align="center">
     <img src="images/screenshot.jpg" alt="MATA Screenshot" width="600">
@@ -14,7 +14,7 @@
 
 ## What is MATA?
 
-MATA Dashboard is a PHP-based monitoring platform for centralized visibility across multiple servers and hosted applications. It provides real-time checks, intelligent alerting, and structured event logging.
+MATA Dashboard is a PHP-based monitoring platform for centralized visibility across multiple servers and hosted applications. It provides real-time checks, intelligent alarm handling, and structured event logging.
 
 - Minimal dependencies
 - Resilient under failure
@@ -31,7 +31,7 @@ MATA Dashboard is a PHP-based monitoring platform for centralized visibility acr
 
 <!-- - Server monitoring: CPU, RAM, disk, and processes -->
 - Application health: HTTP checks, logs, session tracking
-- Intelligent alerting: threshold rules with notifications
+- Intelligent alarm handling: threshold rules with notifications
 - Security: HMAC-signed API, rate limits, read-only nodes
 - Event logging: configurable retention and severity
 

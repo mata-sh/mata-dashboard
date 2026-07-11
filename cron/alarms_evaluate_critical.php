@@ -3,9 +3,9 @@
 
 declare(strict_types=1);
 
-use Mata\Services\Foundation\Dto\EventContext;
-use Mata\Services\Foundation\Dto\OpaAlertDecisionConfig;
-use Mata\Services\Foundation\OpaAlertDecisionService;
+use Mata\Services\Event\Dto\EventContext;
+use Mata\Services\Alarm\Dto\OpaAlarmDecisionConfig;
+use Mata\Services\Alarm\OpaAlarmDecisionService;
 
 $requiresDatabase = true;
 
@@ -21,8 +21,8 @@ $cron->log('Started');
 
 try {
     // --- OPA Decision Service ---
-    $opaConfig = OpaAlertDecisionConfig::fromEnv();
-    $alertDecisionService = new OpaAlertDecisionService($opaConfig);
+    $opaConfig = OpaAlarmDecisionConfig::fromEnv();
+    $alarmDecisionService = new OpaAlarmDecisionService($opaConfig);
 
     $supportedChannels = ['email'];
     $stats = [
@@ -34,15 +34,15 @@ try {
     ];
 
     // Fetch CRITICAL events only
-    $events = $eventAggregator->getAlertDecisionCandidates(
-        $alertDecisionService->getBatchLimit(),
+    $events = $eventAggregator->getAlarmDecisionCandidates(
+        $alarmDecisionService->getBatchLimit(),
         'critical'
     );
     foreach ($events as $event) {
         ++$stats['considered'];
 
         // Evaluate threshold: check if event count meets alarm trigger criteria
-        $shouldAlarm = $alertEvaluator->shouldTriggerAlarmForEvent(
+        $shouldAlarm = $alarmEvaluator->shouldTriggerAlarmForEvent(
             type: $event['type'],
             server: $event['server_id'],
             app: $event['application_id']
@@ -51,7 +51,7 @@ try {
         if (!$shouldAlarm) {
             $eventAggregator->markEventEvaluated((int) $event['id']);
             ++$stats['skipped'];
-            $log->debug('critical_alert_decision.threshold_not_met', [
+            $log->debug('critical_alarm_decision.threshold_not_met', [
                 'event_id' => $event['id'] ?? null,
                 'type' => $event['type'] ?? null,
             ]);
@@ -60,10 +60,10 @@ try {
         }
 
         try {
-            $decision = $alertDecisionService->decide($event, $supportedChannels);
+            $decision = $alarmDecisionService->decide($event, $supportedChannels);
         } catch (Throwable $exception) {
             ++$stats['failed'];
-            $log->error('critical_alert_decision.opa_failed', [
+            $log->error('critical_alarm_decision.opa_failed', [
                 'event_id' => $event['id'] ?? null,
                 'error' => $exception->getMessage(),
             ]);
@@ -76,7 +76,7 @@ try {
             ++$stats['skipped'];
 
             if ($decision->reason !== null) {
-                $log->info('critical_alert_decision.skipped', [
+                $log->info('critical_alarm_decision.skipped', [
                     'event_id' => $event['id'] ?? null,
                     'reason' => $decision->reason,
                 ]);
@@ -87,7 +87,7 @@ try {
 
         if ($decision->enrich) {
             ++$stats['enrich_requested'];
-            $log->info('critical_alert_decision.enrichment_requested', [
+            $log->info('critical_alarm_decision.enrichment_requested', [
                 'event_id' => $event['id'] ?? null,
                 'channels' => $decision->channels,
             ]);
@@ -95,7 +95,7 @@ try {
 
         // Filter channels based on alarm cooldowns
         $eventContext = EventContext::fromArray(json_decode($event['context'] ?? '{}', true) ?: []);
-        $readyChannels = $alertEvaluator->filterReadyChannels(
+        $readyChannels = $alarmEvaluator->filterReadyChannels(
             type: $event['type'],
             requestedChannels: $decision->channels,
             server: $event['server_id'],
@@ -103,48 +103,31 @@ try {
             context: $eventContext
         );
 
-        if (empty($readyChannels)) {
-            $eventAggregator->markEventEvaluated((int) $event['id']);
-            ++$stats['skipped'];
-            $log->debug('critical_alert_decision.all_channels_on_cooldown', [
-                'event_id' => $event['id'] ?? null,
-                'requested_channels' => $decision->channels,
-            ]);
-
-            continue;
-        }
-
         try {
-            $db->beginTransaction();
+            $alarmCreator->create((int) $event['id'], $readyChannels, $decision->priority);
 
-            // Enqueue alerts for ready channels only
             foreach ($readyChannels as $channel) {
-                $alertQueueRepository->enqueue((int) $event['id'], $channel, $decision->priority);
-
-                // Set alarm cooldown for this channel
-                $alarmHash = $alertEvaluator->generateCooldownHash(
+                $alarmHash = $alarmEvaluator->generateCooldownHash(
                     type: $event['type'],
                     server: $event['server_id'],
                     app: $event['application_id'],
                     context: $eventContext,
                     channel: $channel
                 );
-                $alarmCooldownMinutes = $alertEvaluator->getAlarmIntervalMinutes($event['type']);
-                $eventRecorder->upsertAlarmCooldown($alarmHash, $alarmCooldownMinutes);
-
-                ++$stats['enqueued'];
+                $eventRecorder->upsertAlarmCooldown(
+                    $alarmHash,
+                    $alarmEvaluator->getAlarmIntervalMinutes($event['type'])
+                );
             }
 
             $eventAggregator->markEventEvaluated((int) $event['id']);
-            $db->commit();
-        } catch (Throwable $exception) {
-            try {
-                $db->rollback();
-            } catch (Throwable) {
-                // noop
+            $stats['enqueued'] += count($readyChannels);
+            if ($readyChannels === []) {
+                $log->debug('alarm_decision.no_ready_channels', ['event_id' => $event['id'] ?? null]);
             }
+        } catch (Throwable $exception) {
             ++$stats['failed'];
-            $log->error('critical_alert_decision.enqueue_failed', [
+            $log->error('alarm_decision.enqueue_failed', [
                 'event_id' => $event['id'] ?? null,
                 'error' => $exception->getMessage(),
             ]);
@@ -165,7 +148,7 @@ try {
 
 } catch (Throwable $exception) {
     $cron->log('ERROR: ' . $exception->getMessage());
-    $log->critical('evaluate_critical_alerts.unhandled_exception', [
+    $log->critical('evaluate_critical_alarms.unhandled_exception', [
         'error' => $exception->getMessage(),
     ]);
 } finally {

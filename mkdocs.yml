@@ -37,7 +37,7 @@ nav:
 #     - Event System: reference/event-system.md
 #     - Configuration: reference/configuration-reference.md
 #     - Thresholds: reference/thresholds.md
-#     - Alerts: reference/alerts.md
+#     - Alarms: reference/alarms.md
 #     - API:
 #         - Node API: api/node-api.md
 #         - Dashboard Endpoints: api/dashboard-endpoints.md

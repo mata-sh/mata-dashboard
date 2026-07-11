@@ -3,10 +3,10 @@
 
 declare(strict_types=1);
 
-use Mata\Config\AlertLimitsLoader;
-use Mata\Models\AlertQueueRepository;
-use Mata\Services\Alert\AlertDispatcher;
-use Mata\Services\Alert\AlertEmailSender;
+use Mata\Config\AlarmLimitsLoader;
+use Mata\Models\AlarmDeliveryRepository;
+use Mata\Services\Alarm\AlarmDispatcher;
+use Mata\Services\Alarm\AlarmEmailSender;
 
 $requiresDatabase = true;
 
@@ -21,24 +21,24 @@ $cron->log('Started');
 
 try {
     // --- Repositories ---
-    $queueRepository = new AlertQueueRepository($db);
+    $deliveryRepository = new AlarmDeliveryRepository($db);
 
-    // --- Alert Limits ---
-    $limitsLoader = new AlertLimitsLoader($log);
+    // --- Alarm Limits ---
+    $limitsLoader = new AlarmLimitsLoader($log);
     $limitsConfig = $limitsLoader->load($paths->appPath . '/config/limits.json');
 
     // --- Mail Configuration ---
     $mailConfig = [
         'from_email' => $appConfig->mail->fromEmail,
         'from_name' => $appConfig->mail->fromName,
-        'recipients' => $appConfig->mail->alertRecipients,
+        'recipients' => $appConfig->mail->alarmRecipients,
     ];
 
     // --- Senders & Dispatchers ---
-    $emailSender = new AlertEmailSender($mailer, $mailConfig, $log);
-    $dispatcher = new AlertDispatcher($queueRepository, $limitsConfig, $emailSender, $log);
+    $emailSender = new AlarmEmailSender($mailer, $mailConfig, $log);
+    $dispatcher = new AlarmDispatcher($deliveryRepository, $limitsConfig, $emailSender, $log);
 
-    // --- Dispatch Alerts ---
+    // --- Dispatch Alarm Deliveries ---
     $dispatcher->dispatch(new DateTimeImmutable('now'), 100);
 
     $cron->log("Finished in {$cron->endTimer()}s, memory: {$cron->memoryUsage()}");

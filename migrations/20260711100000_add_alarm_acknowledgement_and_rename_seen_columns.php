@@ -8,7 +8,7 @@ use Phinx\Migration\AbstractMigration;
  * Alarm acknowledgement + column semantics cleanup.
  *
  * - Adds user-facing acknowledgement columns to `alarms` (the notification
- *   bell and "unseen" filtering are driven by `acknowledged_at IS NULL`).
+ *   bell and unacknowledged filtering are driven by `acknowledged_at IS NULL`).
  * - Renames the two machine-bookkeeping `seen_at` columns so they can no
  *   longer be mistaken for user-facing seen state:
  *   - `events.seen_at`  -> `evaluated_at`  (alert-decision cron marker)

@@ -29,7 +29,7 @@ Modern, lightweight node and application monitoring with the needs of PHP develo
 <!-- ABOUT THE PROJECT -->
 <p>
 <strong>MATA</strong> is a PHP-native monitoring solution for environments where full observability stacks are impractical.
-Deploy read-only nodes on each monitored environment, manage alerts and logs from one lightweight dashboard. Works on shared hosting, constrained VPS, anywhere PHP 8.3+ runs.</p>
+Deploy read-only nodes on each monitored environment, manage alarms and logs from one lightweight dashboard. Works on shared hosting, constrained VPS, anywhere PHP 8.3+ runs.</p>
 
 ## Mental Model
 
@@ -37,7 +37,7 @@ Deploy read-only nodes on each monitored environment, manage alerts and logs fro
 - **Nodes never initiate connections.**
 - **Nodes are stateless and read-only.**
 
-MATA consists of one dashboard and one or more nodes. The dashboard polls each node for snapshots and evaluates alerts centrally. Nodes expose read-only endpoints and do not send data anywhere on their own.
+MATA consists of one dashboard and one or more nodes. The dashboard polls each node for snapshots and evaluates alarms centrally. Nodes expose read-only endpoints and do not send data anywhere on their own.
 
 <div align="center">
 
@@ -51,7 +51,7 @@ User: **demo** | Password: **demo**
 ## Core Features
 
 - **Application Health:** HTTP ping monitoring, error log parsing, and session tracking
-- **Alerting:** Threshold-based alarm system with email notifications
+- **Alarm handling:** Threshold-based alarm system with email notifications
 - **Node Monitoring:** Real-time tracking of CPU/RAM/disk and system processes
 - **PHP Dev Toolset:** Supports reading PHP logs and installed Composer packages.
 
@@ -59,7 +59,7 @@ User: **demo** | Password: **demo**
 
 - **Multi-Node Visibility:** One dashboard for many nodes and apps
 - **Works where you can only run PHP:** Shared hosting / constrained VPS (no root, no daemons, no system packages)
-- **Alerting:** Threshold-based alerts with email notifications
+- **Alarm handling:** Threshold-based alarms with email notifications
 - **Least privilege by design:** Lightweight, read-only nodes with proper deployment and network isolation
 - **PHP-first insights:** Error logs, Composer inventory, session monitoring
 - **Resilient:** Dashboard can run in degraded mode without a DB
@@ -67,21 +67,21 @@ User: **demo** | Password: **demo**
 
 ## Security model
 
-- **Read-only nodes:** stateless endpoints; no alerting, no emails, no remote actions.
+- **Read-only nodes:** stateless endpoints; no alarm handling, no emails, no remote actions.
 - **Pull-only traffic:** communication is **dashboard → node** only.
 - **Auth (HMAC + short TTL):** per-node shared secret; each pull request includes a timestamped HMAC token with a short TTL.
 - **TLS required:** nodes accept **HTTPS only**.
 - **Network controls:** optional IP allowlists for dashboard and node endpoints.
 - **Abuse resistance:** rate limiting on dashboard and node APIs.
 - **Account security:** CLI-driven user management with CLI-only audit logs.
-- **Retention & thresholds:** configurable retention for events/logs and configurable alert thresholds.
+- **Retention & thresholds:** configurable retention for events/logs and configurable alarm thresholds.
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
 ## Architecture Overview
 
 ### **Dashboard**
-The monitoring hub with web interface and alerting system. It pulls snapshots from nodes and can run without a database by utilizing filesystem fallback mode.
+The monitoring hub with web interface and alarm handling system. It pulls snapshots from nodes and can run without a database by utilizing filesystem fallback mode.
 
 ### **Nodes**
 Lightweight, stateless applications offering **read-only** API endpoints. They never initiate connections and are easily deployed with minimal dependencies.

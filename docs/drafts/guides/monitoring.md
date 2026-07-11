@@ -13,7 +13,7 @@ MATA Dashboard provides comprehensive monitoring for:
 - **Server Metrics**: CPU, RAM, disk space, file count, processes
 - **Application Health**: HTTP ping, error logs, session tracking
 - **Event Logging**: Comprehensive audit trail with severity levels
-- **Alert Management**: Intelligent alerting with email notifications
+- **Alarm Management**: Intelligent alarm handling with email notifications
 
 ## Dashboard Interface
 
@@ -184,7 +184,7 @@ Each monitored application displays:
 - PHP notices
 - Log file size
 
-**Alert triggers:**
+**Alarm triggers:**
 
 - New fatal errors detected
 - Log file exceeds size threshold
@@ -246,35 +246,35 @@ Access event logs from the dashboard:
 3. View detailed event information
 4. Track event resolution
 
-## Alert Management
+## Alarm Management
 
-### Alert Configuration
+### Alarm Configuration
 
-Alerts are configured through threshold settings in `config/thresholds.json`.
+Alarms are configured through threshold settings in `config/thresholds.json`.
 
 **Threshold levels:**
 
-- **Good**: Normal operation (no alert)
-- **Warning**: Monitor situation (no alert)
-- **Critical**: Issue detected (no alert)
-- **Alarm**: Send notification (email alert)
+- **Good**: Normal operation (no alarm)
+- **Warning**: Monitor situation (no alarm)
+- **Critical**: Issue detected (no alarm)
+- **Alarm**: Send notification (email alarm)
 
 ### Email Notifications
 
-**When alerts are sent:**
+**When alarms are sent:**
 
 - Metric exceeds alarm threshold
 - Not sent within cooldown period
 - Intelligent deduplication active
 
-**Alert email contains:**
+**Alarm email contains:**
 
 - Server name and affected metric
 - Current value vs. threshold
 - Timestamp of detection
 - Link to dashboard
 
-### Configuring Alert Intervals
+### Configuring Alarm Intervals
 
 Prevent notification spam with cooldown periods:
 
@@ -289,12 +289,12 @@ Prevent notification spam with cooldown periods:
 }
 ```
 
-### Alert Best Practices
+### Alarm Best Practices
 
 1. **Set appropriate thresholds** for your environment
 2. **Use cooldown periods** to prevent spam
-3. **Review alerts regularly** and adjust thresholds
-4. **Test alert delivery** periodically
+3. **Review alarms regularly** and adjust thresholds
+4. **Test alarm delivery** periodically
 5. **Document escalation procedures**
 
 ## Threshold Configuration
@@ -393,7 +393,7 @@ Events and alarms can be configured with retention policies:
 ### Daily Operations
 
 1. **Check dashboard** at start of day
-2. **Review any alerts** received overnight
+2. **Review any alarms** received overnight
 3. **Verify cron jobs** are running
 4. **Check server connectivity** status
 
@@ -408,7 +408,7 @@ Events and alarms can be configured with retention policies:
 
 1. **Review storage trends**
 2. **Plan capacity upgrades** if needed
-3. **Audit alert effectiveness**
+3. **Audit alarm effectiveness**
 4. **Update documentation**
 
 ### Proactive Monitoring
@@ -451,7 +451,7 @@ Events and alarms can be configured with retention policies:
 3. Force refresh from dashboard
 4. Clear cache manually if needed
 
-### Alerts Not Received
+### Alarms Not Received
 
 **Possible causes:**
 

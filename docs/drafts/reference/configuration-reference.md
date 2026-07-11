@@ -56,7 +56,7 @@ Application environment mode.
 | **Location** | `.env` (root directory) |
 
 **Values:**
-- `prod` (production): Full monitoring, real API calls, high alert sensitivity
+- `prod` (production): Full monitoring, real API calls, high alarm sensitivity
 - `dev` (development): Debug enabled, development settings
 - `demo`: Uses MockServerDataCollector with demo data
 
@@ -251,7 +251,7 @@ Monolog log level.
 | Field | Value |
 |-------|-------|
 | **Type** | String |
-| **Options** | `debug`, `info`, `notice`, `warning`, `error`, `critical`, `alert`, `emergency` |
+| **Options** | `debug`, `info`, `notice`, `warning`, `error`, `critical`, `alarm`, `emergency` |
 | **Default** | `debug` |
 | **Required** | No |
 
@@ -654,8 +654,8 @@ Test email recipients for testing functionality.
 MAIL_TEST_RECIPIENTS=admin@example.com,test@example.com
 ```
 
-#### MAIL_ALERT_RECIPIENTS
-Alert recipients for monitoring notifications.
+#### MAIL_ALARM_RECIPIENTS
+Alarm recipients for monitoring notifications.
 
 | Field | Value |
 |-------|-------|
@@ -665,7 +665,7 @@ Alert recipients for monitoring notifications.
 
 **Example:**
 ```env
-MAIL_ALERT_RECIPIENTS=alerts@example.com,admin@example.com
+MAIL_ALARM_RECIPIENTS=alarms@example.com,admin@example.com
 ```
 
 #### MAIL_DEV_RECIPIENTS

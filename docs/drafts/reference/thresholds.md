@@ -4,7 +4,7 @@ Complete reference for monitoring thresholds and alarm configuration in MATA Das
 
 ## Overview
 
-MATA Dashboard uses threshold-based monitoring to detect and alert on resource usage, application errors, and system anomalies. Thresholds are configured in `config/thresholds.json` and control when warnings, critical alerts, and alarms are triggered.
+MATA Dashboard uses threshold-based monitoring to detect and alarm on resource usage, application errors, and system anomalies. Thresholds are configured in `config/thresholds.json` and control when warnings, critical alarms, and alarms are triggered.
 
 ## Threshold Levels
 
@@ -551,7 +551,7 @@ Application HTTP ping failure alarm.
     }
 }
 ```
-*Immediate alert on first failure*
+*Immediate alarm on first failure*
 
 **Development Environment:**
 ```json
@@ -591,7 +591,7 @@ PHP fatal error detection alarm.
 - Fatal errors are always critical
 - Single occurrence requires investigation
 - 12-hour window catches intermittent errors
-- 24-hour notification prevents alert fatigue
+- 24-hour notification prevents alarm fatigue
 
 ---
 
@@ -846,7 +846,7 @@ Missing cronjob execution alarm.
 ### Baseline Establishment
 
 **Step 1: Monitor Normal Operation**
-- Run system for 7-14 days without alerts
+- Run system for 7-14 days without alarms
 - Collect baseline metrics
 - Identify normal ranges
 
@@ -862,16 +862,16 @@ Missing cronjob execution alarm.
 - Alarm: Average + 60%
 
 **Step 4: Iterate and Refine**
-- Review alerts weekly
+- Review alarms weekly
 - Adjust thresholds to reduce false positives
 - Ensure critical events trigger alarms
 
 ### False Positive Reduction
 
 **Symptoms:**
-- Too many warning alerts
-- Alerts during known peak times
-- Alerts for normal operation
+- Too many warning alarms
+- Alarms during known peak times
+- Alarms for normal operation
 
 **Solutions:**
 
@@ -918,7 +918,7 @@ Missing cronjob execution alarm.
 
 **Symptoms:**
 - Critical issues not triggering alarms
-- Alerts arriving too late
+- Alarms arriving too late
 - Missing important events
 
 **Solutions:**
@@ -968,7 +968,7 @@ Missing cronjob execution alarm.
 
 **Characteristics:**
 - Low tolerance for issues
-- Immediate critical alerts
+- Immediate critical alarms
 - Conservative thresholds
 
 ```json
@@ -995,7 +995,7 @@ Missing cronjob execution alarm.
 
 **Characteristics:**
 - Moderate tolerance
-- Aggregated alerts
+- Aggregated alarms
 - Balanced thresholds
 
 ```json
@@ -1022,7 +1022,7 @@ Missing cronjob execution alarm.
 
 **Characteristics:**
 - High tolerance for issues
-- Infrequent alerts
+- Infrequent alarms
 - Relaxed thresholds
 
 ```json
@@ -1057,28 +1057,28 @@ Missing cronjob execution alarm.
 ### 2. Document Changes
 - Keep change log for threshold adjustments
 - Document reasons for changes
-- Track impact on alert frequency
+- Track impact on alarm frequency
 
 ### 3. Regular Review
 - Review thresholds quarterly
 - Adjust for business growth
 - Update based on infrastructure changes
 
-### 4. Test Alerts
+### 4. Test Alarms
 - Manually trigger thresholds in staging
 - Verify notification delivery
-- Confirm alert content and clarity
+- Confirm alarm content and clarity
 
-### 5. Monitor Alert Fatigue
-- Track alert frequency
-- Identify noisy alerts
+### 5. Monitor Alarm Fatigue
+- Track alarm frequency
+- Identify noisy alarms
 - Adjust to maintain team engagement
 
 ---
 
 ## Troubleshooting
 
-### No Alerts Triggering
+### No Alarms Triggering
 
 **Check:**
 1. Thresholds configuration file exists and is valid JSON
@@ -1087,7 +1087,7 @@ Missing cronjob execution alarm.
 4. Database connection is working
 5. Cron jobs are running
 
-### Too Many Alerts
+### Too Many Alarms
 
 **Solutions:**
 1. Increase threshold values (good, warn, critical, alarm)
@@ -1095,7 +1095,7 @@ Missing cronjob execution alarm.
 3. Increase `min_event_interval_minutes`
 4. Increase `min_alarm_interval_minutes`
 
-### Alerts Not Reaching Email
+### Alarms Not Reaching Email
 
 **Check:**
 1. Email configuration in `mail.config.env`

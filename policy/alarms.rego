@@ -1,4 +1,4 @@
-package alerts
+package alarms
 
 import rego.v1
 

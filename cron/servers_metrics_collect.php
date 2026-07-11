@@ -28,7 +28,7 @@ $cron->startTimer();
 $cron->log('Started');
 
 try {
-    // All event/alert infrastructure now loaded via bootstrap_events.php
+    // All event/alarm infrastructure now loaded via bootstrap_events.php
     $dataRetentionConfig = $monitoringSettings['data_retention'] ?? [];
 
     $cacheDir = $paths->tempPath . '/server-metrics';

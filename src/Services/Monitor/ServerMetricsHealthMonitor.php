@@ -17,7 +17,7 @@ use Psr\Log\LoggerInterface;
  * - Capture pre/post-run raw sample counters
  * - Detect stalls based on configurable lag thresholds
  * - Rotate health log files and append structured JSON entries
- * - Emit monitoring events for dashboards and alerts
+ * - Emit monitoring events for dashboards and alarms
  */
 final class ServerMetricsHealthMonitor
 {
@@ -204,7 +204,7 @@ final class ServerMetricsHealthMonitor
     }
 
     /**
-     * Emit monitoring events for dashboards and alerting.
+     * Emit monitoring events for dashboards and alarm evaluation.
      *
      * @param array{
      *     generated_at: string,

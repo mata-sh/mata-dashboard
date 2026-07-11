@@ -26,7 +26,7 @@ final class MonitoringSettingsLoaderTest extends TestCase
 
         $this->eventRecorder = $this->createMock(EventRecorderService::class);
 
-        // MonitoringSettingsLoader accepts optional parameters for alertManager, db, and settingsSync
+        // MonitoringSettingsLoader accepts optional parameters for alarmManager, db, and settingsSync
         // We only need eventRecorder for validation tests
         $this->loader = new MonitoringSettingsLoader($this->eventRecorder);
     }

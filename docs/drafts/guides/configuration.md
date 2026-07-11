@@ -55,7 +55,7 @@ RATE_LIMIT_WINDOW=60
 
 ## Mail Configuration (mail.config.env)
 
-SMTP settings for email alerts and notifications.
+SMTP settings for email alarms and notifications.
 
 ```bash
 # SMTP Server Settings
@@ -66,8 +66,8 @@ MAIL_USERNAME=your-email@gmail.com
 MAIL_PASSWORD=your-app-password
 
 # Email Addresses
-MAIL_FROM_ADDRESS=alerts@yourdomain.com
-MAIL_FROM_NAME="MATA Alerts"
+MAIL_FROM_ADDRESS=alarms@yourdomain.com
+MAIL_FROM_NAME="MATA Alarms"
 MAIL_TO_ADDRESS=admin@yourdomain.com
 ```
 
@@ -165,14 +165,14 @@ Follow the prompts to enter a password and receive the bcrypt hash.
 
 ## Threshold Configuration (thresholds.json)
 
-Configure alert thresholds for different metrics.
+Configure alarm thresholds for different metrics.
 
 ### Threshold Levels
 
 - **good**: Normal operation (green)
 - **warn**: Warning level (yellow)
 - **critical**: Critical level (orange)
-- **alarm**: Alert level (red - triggers notifications)
+- **alarm**: Alarm level (red - triggers notifications)
 
 ### Server Metrics Thresholds
 
@@ -243,7 +243,7 @@ Define how many events must occur before triggering an alarm notification.
 **How it works:**
 - Events are logged when thresholds are exceeded
 - Alarms are sent only after event count reaches threshold
-- Use `1` for immediate alerts, higher values to reduce noise
+- Use `1` for immediate alarms, higher values to reduce noise
 
 See [Thresholds Reference](../reference/thresholds.md) for complete threshold configuration options.
 

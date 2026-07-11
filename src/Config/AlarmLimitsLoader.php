@@ -5,18 +5,18 @@ declare(strict_types=1);
 namespace Mata\Config;
 
 use JsonException;
-use Mata\Config\Dto\AlertLimitsConfig;
-use Mata\Services\Alert\Dto\AlertLimit;
+use Mata\Config\Dto\AlarmLimitsConfig;
+use Mata\Services\Alarm\Dto\AlarmLimit;
 use Psr\Log\LoggerInterface;
 use Psr\Log\NullLogger;
 
 /**
- * Loader for alert throttling configuration stored in limits.json.
+ * Loader for alarm throttling configuration stored in limits.json.
  *
  * Understands the cascading precedence described in ALARM_LIMITING.md:
  * server override → channel default → global default.
  */
-final class AlertLimitsLoader
+final class AlarmLimitsLoader
 {
     private LoggerInterface $logger;
 
@@ -26,24 +26,24 @@ final class AlertLimitsLoader
     }
 
     /**
-     * Load alert limits configuration.
+     * Load alarm limits configuration.
      *
      * Server overrides for unknown servers are loaded but validation happens at runtime
-     * when alerts are actually dispatched, allowing for flexible configuration.
+     * when alarm deliveries are actually dispatched, allowing for flexible configuration.
      *
      * @param string $limitsFile Absolute path to limits.json
      */
-    public function load(string $limitsFile): AlertLimitsConfig
+    public function load(string $limitsFile): AlarmLimitsConfig
     {
         $payload = $this->decodeFile($limitsFile);
 
         $channels = $payload['channels'] ?? [];
-        $globalDefault = AlertLimit::fromArray(
+        $globalDefault = AlarmLimit::fromArray(
             $channels['default'] ?? [],
-            new AlertLimit(
-                AlertLimit::DEFAULT_PER_MINUTE,
-                AlertLimit::DEFAULT_PER_HOUR,
-                AlertLimit::DEFAULT_PER_DAY
+            new AlarmLimit(
+                AlarmLimit::DEFAULT_PER_MINUTE,
+                AlarmLimit::DEFAULT_PER_HOUR,
+                AlarmLimit::DEFAULT_PER_DAY
             )
         );
 
@@ -58,7 +58,7 @@ final class AlertLimitsLoader
                 continue;
             }
 
-            $channelLimits[strtolower($channel)] = AlertLimit::fromArray($channelConfig, $globalDefault);
+            $channelLimits[strtolower($channel)] = AlarmLimit::fromArray($channelConfig, $globalDefault);
         }
 
         $serverOverrides = [];
@@ -85,7 +85,7 @@ final class AlertLimitsLoader
                     }
 
                     $channelLower = strtolower((string) $channelKey);
-                    $serverOverrides[$serverKeyLower][$channelLower] = AlertLimit::fromArray(
+                    $serverOverrides[$serverKeyLower][$channelLower] = AlarmLimit::fromArray(
                         $channelOverride,
                         $channelLimits[$channelLower] ?? $globalDefault
                     );
@@ -93,7 +93,7 @@ final class AlertLimitsLoader
             }
         }
 
-        return new AlertLimitsConfig($globalDefault, $channelLimits, $serverOverrides);
+        return new AlarmLimitsConfig($globalDefault, $channelLimits, $serverOverrides);
     }
 
     /**
@@ -104,14 +104,14 @@ final class AlertLimitsLoader
     private function decodeFile(string $limitsFile): array
     {
         if ($limitsFile === '' || !is_file($limitsFile)) {
-            $this->logger->warning("Alert limits file missing; falling back to defaults [file={$limitsFile}]");
+            $this->logger->warning("Alarm limits file missing; falling back to defaults [file={$limitsFile}]");
 
             return [];
         }
 
         $contents = file_get_contents($limitsFile);
         if ($contents === false) {
-            $this->logger->warning("Alert limits file unreadable; falling back to defaults [file={$limitsFile}]");
+            $this->logger->warning("Alarm limits file unreadable; falling back to defaults [file={$limitsFile}]");
 
             return [];
         }
@@ -120,7 +120,7 @@ final class AlertLimitsLoader
             $decoded = json_decode($contents, true, flags: JSON_THROW_ON_ERROR);
         } catch (JsonException $exception) {
             $this->logger->warning(
-                "Alert limits file malformed; falling back to defaults [file={$limitsFile}, error={$exception->getMessage()}]"
+                "Alarm limits file malformed; falling back to defaults [file={$limitsFile}, error={$exception->getMessage()}]"
             );
 
             return [];

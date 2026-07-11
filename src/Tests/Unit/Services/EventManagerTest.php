@@ -16,7 +16,7 @@ use Mata\Config\Dto\PhpConfig;
 use Mata\Config\Dto\RateLimitingConfig;
 use Mata\Config\Dto\TemplateConfig;
 use Mata\Models\Dto\EventRecordResult;
-use Mata\Services\Alert\AlertManager;
+use Mata\Services\Alarm\AlarmManager;
 use Mata\Services\Event\Dto\EventContext;
 use Mata\Services\Event\EventAggregatorServiceInterface;
 use Mata\Services\Event\EventManager;
@@ -33,7 +33,7 @@ final class EventManagerTest extends TestCase
 {
     private EventRecorderService&MockObject $eventRecorder;
     private EventAggregatorServiceInterface&MockObject $eventAggregator;
-    private AlertManager&MockObject $alertManager;
+    private AlarmManager&MockObject $alarmManager;
 
     protected function setUp(): void
     {
@@ -41,7 +41,7 @@ final class EventManagerTest extends TestCase
 
         $this->eventRecorder = $this->createMock(EventRecorderService::class);
         $this->eventAggregator = $this->createMock(EventAggregatorServiceInterface::class);
-        $this->alertManager = $this->createMock(AlertManager::class);
+        $this->alarmManager = $this->createMock(AlarmManager::class);
     }
 
     public function testHandleEventRecordsEventOnly(): void
@@ -68,7 +68,7 @@ final class EventManagerTest extends TestCase
             ))
         ;
 
-        $this->alertManager->expects($this->never())->method('handleAlert');
+        $this->alarmManager->expects($this->never())->method('handleAlarm');
 
         $result = $manager->handleEvent(
             type: 'test_event',
@@ -148,7 +148,7 @@ final class EventManagerTest extends TestCase
         $manager = $this->createManager(eventsEnabled: false, alarmsEnabled: false);
 
         $this->eventRecorder->expects($this->never())->method('recordEvent');
-        $this->alertManager->expects($this->never())->method('handleAlert');
+        $this->alarmManager->expects($this->never())->method('handleAlarm');
 
         $result = $manager->handleEvent(
             type: 'test_event',
@@ -209,7 +209,7 @@ final class EventManagerTest extends TestCase
             ))
         ;
 
-        $this->alertManager->expects($this->never())->method('handleAlert');
+        $this->alarmManager->expects($this->never())->method('handleAlarm');
 
         $result = $manager->handleEvent(
             type: 'test_event',
@@ -232,7 +232,7 @@ final class EventManagerTest extends TestCase
     ): EventManager {
         $manager = new EventManager(
             $this->createConfig($alarmsEnabled, $eventsEnabled),
-            $this->alertManager,
+            $this->alarmManager,
             $this->eventRecorder,
             $this->eventAggregator
         );
@@ -261,8 +261,8 @@ final class EventManagerTest extends TestCase
             mail: new MailConfig(
                 dsn: null,
                 fromEmail: 'alerts@example.com',
-                fromName: 'Alerts',
-                alertRecipients: ['ops@example.com'],
+                fromName: 'Alarms',
+                alarmRecipients: ['ops@example.com'],
                 testRecipients: [],
                 devRecipients: [],
                 mailerApp: 'symfony/mailer',

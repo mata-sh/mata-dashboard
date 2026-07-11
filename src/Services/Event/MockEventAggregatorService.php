@@ -17,7 +17,7 @@ use Throwable;
  */
 final class MockEventAggregatorService implements EventAggregatorServiceInterface
 {
-    private const DEFAULT_ALERT_DECISION_LIMIT = 100;
+    private const DEFAULT_ALARM_DECISION_LIMIT = 100;
     private const DEFAULT_LATEST_EVENTS_LIMIT = 50;
     private const DEFAULT_LATEST_ALARMS_LIMIT = 50;
 
@@ -85,8 +85,8 @@ final class MockEventAggregatorService implements EventAggregatorServiceInterfac
     /**
      * @return array<int,array<string,mixed>>
      */
-    public function getAlertDecisionCandidates(
-        int $limit = self::DEFAULT_ALERT_DECISION_LIMIT,
+    public function getAlarmDecisionCandidates(
+        int $limit = self::DEFAULT_ALARM_DECISION_LIMIT,
         array|string|null $levelFilter = null
     ): array {
         $limit = max(1, (int) $limit);
@@ -114,7 +114,7 @@ final class MockEventAggregatorService implements EventAggregatorServiceInterfac
             }
         }
 
-        $this->logger->debug('Mock alert decision candidates fetched.', [
+        $this->logger->debug('Mock alarm decision candidates fetched.', [
             'count' => count($candidates),
             'types' => $this->summarizeTypes($candidates, 'type'),
             'limit' => $limit,
@@ -438,7 +438,7 @@ final class MockEventAggregatorService implements EventAggregatorServiceInterfac
                 ],
             ],
             'last_event_at' => $datetime,
-            'last_alert_at' => null,
+            'last_alarm_at' => null,
         ];
     }
 

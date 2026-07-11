@@ -2,14 +2,12 @@
 
 declare(strict_types=1);
 
-namespace Mata\Services\Alert\Dto;
+namespace Mata\Services\Alarm\Dto;
 
 use DateTimeImmutable;
 
-/**
- * Represents a queued alert ready for dispatch processing.
- */
-final readonly class QueuedAlert
+/** A channel-specific delivery queued for a logical alarm. */
+final readonly class QueuedAlarmDelivery
 {
     public function __construct(
         public int $id,

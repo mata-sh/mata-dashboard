@@ -496,14 +496,14 @@ tail -f /path/to/mata-dashboard/logs/cron/collect_server_metrics_health.log
 Here's what you can do next:
 
 1. **Add More Servers:** Repeat this process to monitor additional servers
-2. **Configure Alert Thresholds:** Set up custom thresholds for CPU, RAM, and disk usage
-3. **Set Up Email Alerts:** Configure email notifications for critical events
+2. **Configure Alarm Thresholds:** Set up custom thresholds for CPU, RAM, and disk usage
+3. **Set Up Email Alarms:** Configure email notifications for critical events
 4. **Explore Application Monitoring:** Add individual PHP applications within your server
 5. **Review Historical Data:** Check metrics trends and server performance over time
 
 ### Related Tutorials
 
-- [Configuring Custom Alert Thresholds](../tutorials/custom-thresholds.md)
+- [Configuring Custom Alarm Thresholds](../tutorials/custom-thresholds.md)
 - [Setting Up Email Notifications](../guides/configuration.md)
 - [Understanding Server Metrics](../reference/server-metrics.md)
 

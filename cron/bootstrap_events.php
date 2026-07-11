@@ -3,19 +3,19 @@
 declare(strict_types=1);
 
 /**
- * Event & Alert Management Bootstrap for Cronjobs.
+ * Event & Alarm Management Bootstrap for Cronjobs.
  *
- * Provides common event/alert infrastructure used by multiple cronjobs.
+ * Provides common event/alarm infrastructure used by multiple cronjobs.
  * Include this AFTER bootstrap.php for cronjobs that need EventManager.
  *
  * Exports:
- * - $alertQueueRepository  Alert queue persistence
+ * - $deliveryRepository  Alarm delivery persistence
  * - $configSyncRepository  Config synchronization
  * - $eventRepository       Event persistence
- * - $lockManager           Channel-based locking for alerts
- * - $alertLimits           Rate limiting configuration
- * - $alertManager          Alert delivery orchestrator
- * - $alertEvaluator        Alert evaluation service (alarm decision logic)
+ * - $lockManager           Channel-based locking for alarms
+ * - $alarmLimits           Rate limiting configuration
+ * - $alarmManager          Alarm delivery orchestrator
+ * - $alarmEvaluator        Alarm evaluation service (alarm decision logic)
  * - $idResolver            Server/app ID resolution
  * - $eventRecorder         Event recording service
  * - $eventAggregator       Event querying service
@@ -27,13 +27,15 @@ declare(strict_types=1);
  *   extract(require_once __DIR__ . '/bootstrap_events.php');
  */
 
-use Mata\Config\AlertLimitsLoader;
+use Mata\Config\AlarmLimitsLoader;
 use Mata\Config\MonitoringSettingsLoader;
-use Mata\Models\AlertQueueRepository;
+use Mata\Models\AlarmDeliveryRepository;
+use Mata\Models\AlarmRepository;
 use Mata\Models\ConfigSyncRepository;
 use Mata\Models\EventRepository;
-use Mata\Services\Alert\AlertEvaluationService;
-use Mata\Services\Alert\AlertManager;
+use Mata\Services\Alarm\AlarmEvaluationService;
+use Mata\Services\Alarm\AlarmCreator;
+use Mata\Services\Alarm\AlarmManager;
 use Mata\Services\Event\EventAggregatorService;
 use Mata\Services\Event\EventManager;
 use Mata\Services\Event\EventRecorderService;
@@ -49,23 +51,25 @@ if (!isset($db, $appConfig, $paths, $log)) {
 // ************************************************************************************************
 // Repositories
 // ************************************************************************************************
-$alertQueueRepository = new AlertQueueRepository($db);
+$alarmRepository = new AlarmRepository($db);
+$deliveryRepository = new AlarmDeliveryRepository($db);
+$alarmCreator = new AlarmCreator($db, $alarmRepository, $deliveryRepository);
 $configSyncRepository = new ConfigSyncRepository($db);
 $eventRepository = new EventRepository($db);
 
 // ************************************************************************************************
 // Limits & Locking
 // ************************************************************************************************
-$lockManager = new ChannelLockManager($paths->tempPath . '/alert-locks', $log);
-$limitsLoader = new AlertLimitsLoader($log);
-$alertLimits = $limitsLoader->load($paths->appPath . '/config/limits.json');
+$lockManager = new ChannelLockManager($paths->tempPath . '/alarm-locks', $log);
+$limitsLoader = new AlarmLimitsLoader($log);
+$alarmLimits = $limitsLoader->load($paths->appPath . '/config/limits.json');
 
 // ************************************************************************************************
-// Alert Manager
+// Alarm Manager
 // ************************************************************************************************
-$alertManager = new AlertManager(
-    $alertQueueRepository,
-    $alertLimits,
+$alarmManager = new AlarmManager(
+    $alarmCreator,
+    $alarmLimits,
     $lockManager,
     $log
 );
@@ -83,17 +87,17 @@ if ($useMockEvents) {
     $eventAggregator = new MockEventAggregatorService($log, $demoData);
     $log->info('Using mock event aggregator for demo data.', ['path' => $demoDataPath]);
 } else {
-    $eventAggregator = new EventAggregatorService($eventRepository, $idResolver, $log);
+    $eventAggregator = new EventAggregatorService($eventRepository, $alarmRepository, $idResolver, $log);
 }
 
-$eventManager = (new EventManager($appConfig, $alertManager))
+$eventManager = (new EventManager($appConfig, $alarmManager))
     ->setEventRecorder($eventRecorder)
     ->setEventAggregator($eventAggregator);
 
 // ************************************************************************************************
-// Alert Evaluation Service
+// Alarm Evaluation Service
 // ************************************************************************************************
-$alertEvaluator = new AlertEvaluationService(
+$alarmEvaluator = new AlarmEvaluationService(
     $eventAggregator,
     $eventRecorder,
     $appConfig
@@ -102,13 +106,13 @@ $alertEvaluator = new AlertEvaluationService(
 // ************************************************************************************************
 // Monitoring Settings
 // ************************************************************************************************
-$monitoringSettingsLoader = new MonitoringSettingsLoader($eventRecorder, $alertManager);
+$monitoringSettingsLoader = new MonitoringSettingsLoader($eventRecorder, $alarmManager);
 $monitoringSettings = $monitoringSettingsLoader->loadAllConfigs(
     $paths->appPath . '/config',
     $appConfig->environment->env
 );
 $eventManager->setMonitoringSettings($monitoringSettings);
-$alertEvaluator->setMonitoringSettings($monitoringSettings);
+$alarmEvaluator->setMonitoringSettings($monitoringSettings);
 
 // ************************************************************************************************
 // Final ID Resolution Sync
@@ -116,13 +120,15 @@ $alertEvaluator->setMonitoringSettings($monitoringSettings);
 $idResolver->refreshFromRepository($monitoringSettings['servers'] ?? []);
 
 return compact(
-    'alertQueueRepository',
+    'deliveryRepository',
+    'alarmRepository',
+    'alarmCreator',
     'configSyncRepository',
     'eventRepository',
     'lockManager',
-    'alertLimits',
-    'alertManager',
-    'alertEvaluator',
+    'alarmLimits',
+    'alarmManager',
+    'alarmEvaluator',
     'idResolver',
     'eventRecorder',
     'eventAggregator',

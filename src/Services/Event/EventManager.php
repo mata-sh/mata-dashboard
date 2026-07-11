@@ -6,9 +6,9 @@ namespace Mata\Services\Event;
 
 use LogicException;
 use Mata\Config\Dto\ApplicationConfig;
-use Mata\Services\Alert\AlertManager;
-use Mata\Services\Alert\Dto\Alert;
-use Mata\Services\Alert\Dto\AlertLevel;
+use Mata\Services\Alarm\AlarmManager;
+use Mata\Services\Alarm\Dto\Alarm;
+use Mata\Services\Alarm\Dto\AlarmLevel;
 use Mata\Services\Event\Dto\EventContext;
 use PDOException;
 
@@ -53,12 +53,12 @@ use PDOException;
  *
  * ### Component Responsibilities:
  * - **EventManager** (this): Event business logic, threshold evaluation, event cooldown management
- * - **AlertEvaluationService**: Alarm decision logic, alarm cooldown management, channel filtering
+ * - **AlarmEvaluationService**: Alarm decision logic, alarm cooldown management, channel filtering
  * - **EventRecorderService**: Low-level event/alarm persistence and cooldown tracking
  * - **EventAggregatorService**: Event/alarm querying, reporting, cleanup operations
- * - **AlertManager**: Alert queueing and priority resolution
+ * - **AlarmManager**: Alarm delivery creation and priority resolution
  *
- * @see AlertEvaluationService For alarm decision logic
+ * @see AlarmEvaluationService For alarm decision logic
  * @see EventRecorderService For direct event persistence (rarely used directly)
  * @see EventAggregatorServiceInterface For read-only event querying
  */
@@ -79,7 +79,7 @@ class EventManager
     /** @var array<string,int> Event type to interval minutes mapping */
     private array $eventIntervals = [];
 
-    private ?AlertManager $alertManager;
+    private ?AlarmManager $alarmManager;
     private ApplicationConfig $appConfig;
 
     /**
@@ -102,18 +102,18 @@ class EventManager
      *
      * Use setMonitoringSettings() to configure thresholds and intervals after initialization.
      *
-     * @param AlertManager                         $alertManager    Alert delivery orchestrator
+     * @param AlarmManager                         $alarmManager    Alarm delivery orchestrator
      * @param ApplicationConfig                    $appConfig       Application configuration for alarm/event settings
      * @param null|EventRecorderService            $eventRecorder   Optional event recorder (can be set later via setEventRecorder)
      * @param null|EventAggregatorServiceInterface $eventAggregator Optional event aggregator (can be set later via setEventAggregator)
      */
     public function __construct(
         ApplicationConfig $appConfig,
-        ?AlertManager $alertManager = null,
+        ?AlarmManager $alarmManager = null,
         ?EventRecorderService $eventRecorder = null,
         ?EventAggregatorServiceInterface $eventAggregator = null
     ) {
-        $this->alertManager = $alertManager;
+        $this->alarmManager = $alarmManager;
         $this->appConfig = $appConfig;
         $this->recorder = $eventRecorder;
         $this->aggregator = $eventAggregator;
@@ -265,7 +265,7 @@ class EventManager
      * @param string                  $level      Severity level (info, warning, critical)
      * @param null|int|string         $server     Server context (name or ID)
      * @param null|int|string         $app        Application context (code or ID)
-     * @param mixed                   $forceAlert
+     * @param mixed                   $forceAlarm
      *
      * @return array{eventRecorded: bool, eventId:?int}
      */
@@ -276,7 +276,7 @@ class EventManager
         string $level = 'info',
         int|string|null $server = null,
         int|string|null $app = null,
-        $forceAlert = false
+        $forceAlarm = false
     ): array {
         $eventContext = EventContext::fromArray($context);
 
@@ -313,16 +313,16 @@ class EventManager
                 cooldownMinutes: $cooldownMinutes
             );
 
-            if ($forceAlert && $this->alertManager !== null) {
-                $alert = new Alert(
+            if ($forceAlarm && $this->alarmManager !== null) {
+                $alarm = new Alarm(
                     type: $type,
                     message: $message,
-                    level: AlertLevel::fromString($level),
+                    level: AlarmLevel::fromString($level),
                     server: $eventRecordResult->serverLabel,
                     app: $eventRecordResult->appLabel,
                     channels: ['email']
                 );
-                $this->alertManager->handleAlert($alert, $eventRecordResult);
+                $this->alarmManager->handleAlarm($alarm, $eventRecordResult);
             }
 
             return [
@@ -372,7 +372,7 @@ class EventManager
      * Hash format: SHA256(type|server|app|context|channel)
      *
      * NOTE: For event cooldowns, channel should always be empty string.
-     * For alarm cooldowns, use AlertEvaluationService::generateCooldownHash() instead.
+     * For alarm cooldowns, use AlarmEvaluationService::generateCooldownHash() instead.
      *
      * @param string          $type    Event type identifier
      * @param null|int|string $server  Server context

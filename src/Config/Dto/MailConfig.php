@@ -13,7 +13,7 @@ namespace Mata\Config\Dto;
 final class MailConfig
 {
     /**
-     * @param array<int,string> $alertRecipients List of email addresses for alert notifications
+     * @param array<int,string> $alarmRecipients List of email addresses for alarm notifications
      * @param array<int,string> $testRecipients  List of email addresses for test emails
      * @param array<int,string> $devRecipients   List of email addresses for development notifications
      */
@@ -21,7 +21,7 @@ final class MailConfig
         public readonly ?string $dsn,
         public readonly ?string $fromEmail,
         public readonly ?string $fromName,
-        public readonly array $alertRecipients,
+        public readonly array $alarmRecipients,
         public readonly array $testRecipients,
         public readonly array $devRecipients,
         public readonly string $mailerApp,

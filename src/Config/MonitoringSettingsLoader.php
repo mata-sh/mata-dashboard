@@ -7,9 +7,9 @@ namespace Mata\Config;
 use Exception;
 use Mata\Core\DatabaseInterface;
 use Mata\Core\NullDatabase;
-use Mata\Services\Alert\AlertManager;
-use Mata\Services\Alert\Dto\Alert;
-use Mata\Services\Alert\Dto\AlertLevel;
+use Mata\Services\Alarm\AlarmManager;
+use Mata\Services\Alarm\Dto\Alarm;
+use Mata\Services\Alarm\Dto\AlarmLevel;
 use Mata\Services\Event\EventRecorderService;
 use Mata\Services\Foundation\SettingsDatabaseSync;
 use Mata\Utils\TypeConverter;
@@ -21,7 +21,7 @@ use RuntimeException;
  * Handles comprehensive monitoring settings loading with:
  * - Server configuration with validation and event logging
  * - TTL configuration with fallback defaults
- * - Threshold configuration for alerts and monitoring
+ * - Threshold configuration for alarms and monitoring
  * - Structured error handling and validation
  * - Event logging integration for configuration failures
  * - Automatic database synchronization when config files change
@@ -31,24 +31,24 @@ use RuntimeException;
 final class MonitoringSettingsLoader
 {
     private EventRecorderService $eventRecorder;
-    private ?AlertManager $alertManager;
+    private ?AlarmManager $alarmManager;
     private ?DatabaseInterface $db;
     private ?SettingsDatabaseSync $settingsSync;
 
     /**
      * @param EventRecorderService      $eventRecorder Event recorder for logging configuration failures
-     * @param null|AlertManager         $alertManager  Optional alert manager for critical notifications
+     * @param null|AlarmManager         $alarmManager  Optional alarm manager for critical notifications
      * @param null|DatabaseInterface    $db            Optional database connection for settings sync
      * @param null|SettingsDatabaseSync $settingsSync  Optional settings sync service
      */
     public function __construct(
         EventRecorderService $eventRecorder,
-        ?AlertManager $alertManager = null,
+        ?AlarmManager $alarmManager = null,
         ?DatabaseInterface $db = null,
         ?SettingsDatabaseSync $settingsSync = null
     ) {
         $this->eventRecorder = $eventRecorder;
-        $this->alertManager = $alertManager;
+        $this->alarmManager = $alarmManager;
         $this->db = $db;
         $this->settingsSync = $settingsSync;
     }
@@ -89,7 +89,7 @@ final class MonitoringSettingsLoader
                     type: 'servers_config_validation_error',
                     message: $error,
                     level: 'warning',
-                    forceAlert: false
+                    forceAlarm: false
                 );
             }
         }
@@ -103,7 +103,7 @@ final class MonitoringSettingsLoader
                     type: 'settings_sync_error',
                     message: 'Failed to sync servers settings to database: ' . $e->getMessage(),
                     level: 'warning',
-                    forceAlert: false
+                    forceAlarm: false
                 );
             }
         }
@@ -134,7 +134,7 @@ final class MonitoringSettingsLoader
     }
 
     /**
-     * Load threshold configuration for monitoring alerts.
+     * Load threshold configuration for monitoring alarms.
      *
      * Loads the thresholds.json configuration file containing monitoring thresholds.
      *
@@ -366,7 +366,7 @@ final class MonitoringSettingsLoader
                     . "(api_url: {$serverConfig['api_url']}). "
                     . 'Recommendation: Use HTTPS for production environments.',
                 level: 'warning',
-                forceAlert: false
+                forceAlarm: false
             );
         }
 
@@ -660,7 +660,7 @@ final class MonitoringSettingsLoader
                 type: $type,
                 message: $message,
                 level: $level,
-                forceAlert: $throwOnError
+                forceAlarm: $throwOnError
             );
 
             if ($throwOnError) {
@@ -682,7 +682,7 @@ final class MonitoringSettingsLoader
                 type: $type,
                 message: $message,
                 level: $level,
-                forceAlert: $throwOnError
+                forceAlarm: $throwOnError
             );
 
             if ($throwOnError) {
@@ -705,7 +705,7 @@ final class MonitoringSettingsLoader
                 type: $type,
                 message: $message,
                 level: $level,
-                forceAlert: $throwOnError
+                forceAlarm: $throwOnError
             );
 
             if ($throwOnError) {
@@ -719,7 +719,7 @@ final class MonitoringSettingsLoader
     }
 
     /**
-     * Persist configuration events and optionally dispatch alerts.
+     * Persist configuration events and optionally dispatch alarms.
      *
      * @param string $type    Event type identifier
      * @param string $message Human readable message
@@ -729,25 +729,25 @@ final class MonitoringSettingsLoader
         string $type,
         string $message,
         string $level = 'info',
-        bool $forceAlert = false
+        bool $forceAlarm = false
     ): void {
         $recordResult = $this->eventRecorder->recordEvent(
             type: $type,
             message: $message,
             level: $level,
-            forceAlert: $forceAlert
+            forceAlarm: $forceAlarm
         );
 
-        if ($forceAlert && $this->alertManager !== null) {
-            $alert = new Alert(
+        if ($forceAlarm && $this->alarmManager !== null) {
+            $alarm = new Alarm(
                 type: $type,
                 message: $message,
-                level: AlertLevel::fromString($level),
+                level: AlarmLevel::fromString($level),
                 server: $recordResult->serverLabel,
                 app: $recordResult->appLabel,
                 channels: ['email']
             );
-            $this->alertManager->handleAlert($alert, $recordResult);
+            $this->alarmManager->handleAlarm($alarm, $recordResult);
         }
     }
 }

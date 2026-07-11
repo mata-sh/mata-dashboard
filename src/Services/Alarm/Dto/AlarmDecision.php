@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace Mata\Services\Alert\Dto;
+namespace Mata\Services\Alarm\Dto;
 
-final class AlertDecision
+final class AlarmDecision
 {
     /**
      * @param array<int,string> $channels

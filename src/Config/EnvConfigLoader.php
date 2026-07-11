@@ -158,7 +158,7 @@ final class EnvConfigLoader
             dsn: $this->getEnv('SYM_MAILER_DSN'),
             fromEmail: $this->getEnv('SYM_FROM_EMAIL'),
             fromName: $this->getEnv('SYM_FROM_NAME'),
-            alertRecipients: $this->parseCommaSeparated($this->getEnv('MAIL_ALERT_RECIPIENTS', '')),
+            alarmRecipients: $this->parseCommaSeparated($this->getEnv('MAIL_ALARM_RECIPIENTS', '')),
             testRecipients: $this->parseCommaSeparated($this->getEnv('MAIL_TEST_RECIPIENTS', '')),
             devRecipients: $this->parseCommaSeparated($this->getEnv('MAIL_DEV_RECIPIENTS', '')),
             mailerApp: $this->getEnv('MAILER_APP', 'sendgrid'),

@@ -24,7 +24,7 @@ $cron->startTimer();
 $cron->log('Started');
 
 try {
-    // All event/alert infrastructure now loaded via bootstrap_events.php
+    // All event/alarm infrastructure now loaded via bootstrap_events.php
     $dataTransformer = new ApiResponseTransformer($log);
     $cacheStore = new FileCacheStore($log);
     $cacheKeyFactory = new ApiCacheKeyFactory();

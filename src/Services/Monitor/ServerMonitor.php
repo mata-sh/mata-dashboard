@@ -15,7 +15,7 @@ use Monolog\Logger;
  * Handles:
  * - Server system data retrieval and caching
  * - Threshold evaluation for system metrics
- * - Alert triggering for critical conditions
+ * - Alarm triggering for critical conditions
  * - File count and disk usage monitoring
  */
 class ServerMonitor

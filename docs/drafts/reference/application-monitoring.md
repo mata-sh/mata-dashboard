@@ -33,7 +33,7 @@ MATA Dashboard provides comprehensive application-level monitoring for PHP appli
 
 ### Environment Detection
 - Development vs production identification
-- Environment-specific alerting
+- Environment-specific alarm handling
 - Deployment safety checks
 
 ---
@@ -157,7 +157,7 @@ Track response time trends to identify:
 - Common name matching
 - Self-signed certificate detection
 
-**Alert Thresholds:**
+**Alarm Thresholds:**
 - **30 days before expiry**: Warning
 - **14 days before expiry**: Critical
 - **7 days before expiry**: Alarm
@@ -167,7 +167,7 @@ Track response time trends to identify:
 ## Error Log Analysis
 
 ### Overview
-MATA analyzes application error logs to detect and alert on PHP errors, warnings, and notices.
+MATA analyzes application error logs to detect and alarm on PHP errors, warnings, and notices.
 
 ### Supported Log Formats
 
@@ -265,7 +265,7 @@ error_rate = total_errors / (time_period_hours)
 - Class/function not found errors
 - Syntax errors (in production)
 
-**Alert Configuration:**
+**Alarm Configuration:**
 ```json
 {
     "alarms": {
@@ -291,7 +291,7 @@ Monitors growth rate and absolute size of error logs.
 | **Critical** | 100-250 MB | Implement rotation |
 | **Alarm** | > 250 MB | Immediate action |
 
-**Alert Configuration:**
+**Alarm Configuration:**
 ```json
 {
     "server_data": {
@@ -456,7 +456,7 @@ High Session Count (>1000) + High CPU (>80%) + Slow Response (>3s)
 ## Maintenance Mode Detection
 
 ### Overview
-Detect when applications are in maintenance mode to suppress unnecessary alerts.
+Detect when applications are in maintenance mode to suppress unnecessary alarms.
 
 ### Detection Methods
 
@@ -492,21 +492,21 @@ Retry-After: 3600
 }
 ```
 
-### Alert Suppression
+### Alarm Suppression
 
 **During Maintenance:**
 - HTTP ping failures: Suppressed
-- Error log alerts: Reduced sensitivity
-- Session count alerts: Disabled
-- Performance alerts: Informational only
+- Error log alarms: Reduced sensitivity
+- Session count alarms: Disabled
+- Performance alarms: Informational only
 
 **Configuration:**
 ```json
 {
     "maintenance_mode": {
-        "suppress_ping_alerts": true,
-        "suppress_error_alerts": false,
-        "suppress_session_alerts": true,
+        "suppress_ping_alarms": true,
+        "suppress_error_alarms": false,
+        "suppress_session_alarms": true,
         "notify_on_start": true,
         "notify_on_end": true
     }
@@ -518,18 +518,18 @@ Retry-After: 3600
 **Before Maintenance:**
 1. Enable maintenance mode in application
 2. MATA detects maintenance status
-3. Adjusts alerting thresholds
+3. Adjusts alarm handling thresholds
 4. Notifies administrators (optional)
 
 **During Maintenance:**
 - Continue monitoring (data collection)
-- Suppress non-critical alerts
+- Suppress non-critical alarms
 - Track maintenance duration
 
 **After Maintenance:**
 1. Disable maintenance mode
 2. MATA detects normal status
-3. Restore standard alerting
+3. Restore standard alarm handling
 4. Verify application health
 5. Notify administrators (optional)
 
@@ -538,7 +538,7 @@ Retry-After: 3600
 ## Environment Detection
 
 ### Overview
-Identify application environment (development, staging, production) for environment-specific monitoring and alerting.
+Identify application environment (development, staging, production) for environment-specific monitoring and alarm handling.
 
 ### Environment Identification
 
@@ -561,10 +561,10 @@ Identify application environment (development, staging, production) for environm
 
 ### Environment Types
 
-| Environment | Monitoring Profile | Alert Sensitivity |
+| Environment | Monitoring Profile | Alarm Sensitivity |
 |-------------|-------------------|-------------------|
-| **Production** | Full monitoring | High - immediate alerts |
-| **Staging** | Full monitoring | Medium - aggregated alerts |
+| **Production** | Full monitoring | High - immediate alarms |
+| **Staging** | Full monitoring | Medium - aggregated alarms |
 | **Development** | Basic monitoring | Low - informational only |
 | **Testing** | Basic monitoring | None - logging only |
 
@@ -579,7 +579,7 @@ Identify application environment (development, staging, production) for environm
         "error_sensitivity": "high",
         "session_tracking": true,
         "performance_tracking": true,
-        "alert_immediately": true
+        "alarm_immediately": true
     }
 }
 ```
@@ -593,8 +593,8 @@ Identify application environment (development, staging, production) for environm
         "error_sensitivity": "medium",
         "session_tracking": true,
         "performance_tracking": true,
-        "alert_immediately": false,
-        "aggregate_alerts": true
+        "alarm_immediately": false,
+        "aggregate_alarms": true
     }
 }
 ```
@@ -608,7 +608,7 @@ Identify application environment (development, staging, production) for environm
         "error_sensitivity": "low",
         "session_tracking": false,
         "performance_tracking": false,
-        "alert_immediately": false,
+        "alarm_immediately": false,
         "log_only": true
     }
 }
@@ -622,14 +622,14 @@ Identify application environment (development, staging, production) for environm
 - Detailed error messages exposed
 - Development tools accessible
 
-**Alert Configuration:**
+**Alarm Configuration:**
 ```json
 {
-    "security_alerts": {
+    "security_alarms": {
         "debug_mode_in_production": {
             "enabled": true,
             "severity": "critical",
-            "immediate_alert": true
+            "immediate_alarm": true
         }
     }
 }
@@ -775,7 +775,7 @@ POST /api/app/{app_name}/refresh
 ### 2. Error Log Monitoring
 - Implement log rotation to prevent huge files
 - Use structured logging (JSON) for easier parsing
-- Set up fatal error immediate alerts
+- Set up fatal error immediate alarms
 - Review error patterns weekly
 
 ### 3. Session Management
@@ -792,7 +792,7 @@ POST /api/app/{app_name}/refresh
 
 ### 5. Environment Configuration
 - Never enable debug mode in production
-- Use environment-specific alert thresholds
+- Use environment-specific alarm thresholds
 - Test monitoring in staging before production
 - Document environment differences
 

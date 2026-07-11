@@ -37,7 +37,7 @@ Real-time processor utilization across all cores.
 | **Data Type** | Float (0.00 - 100.00) |
 | **Unit** | Percentage |
 | **Update Frequency** | Every 5 minutes (via cron) |
-| **Alerting** | Threshold-based |
+| **Alarm handling** | Threshold-based |
 
 **Interpretation:**
 - **0-50%**: Normal operation
@@ -92,7 +92,7 @@ Current RAM consumption and availability.
 | **Data Type** | Integer (bytes) |
 | **Unit** | Bytes (converted to MB/GB in UI) |
 | **Update Frequency** | Every 5 minutes |
-| **Alerting** | Threshold-based on percentage |
+| **Alarm handling** | Threshold-based on percentage |
 
 **Example Response:**
 ```json
@@ -138,7 +138,7 @@ Storage utilization for all mounted filesystems.
 | **Data Type** | Float (0.00 - 100.00) |
 | **Unit** | Percentage |
 | **Update Frequency** | Every 5 minutes |
-| **Alerting** | Configurable thresholds |
+| **Alarm handling** | Configurable thresholds |
 | **Default Thresholds** | Good: <60%, Warn: 70%, Critical: 80%, Alarm: 90% |
 
 **Example Response:**
@@ -195,7 +195,7 @@ Total number of files across the entire filesystem.
 | **Data Type** | Integer |
 | **Unit** | File count |
 | **Update Frequency** | Hourly (expensive operation) |
-| **Alerting** | Threshold-based |
+| **Alarm handling** | Threshold-based |
 | **Default Thresholds** | Good: <500k, Warn: 700k, Critical: 850k, Alarm: 900k |
 
 **Example Response:**
@@ -323,7 +323,7 @@ Active user sessions for monitored applications.
 | **Data Type** | Integer |
 | **Unit** | Session count |
 | **Update Frequency** | Every minute |
-| **Alerting** | Application-specific thresholds |
+| **Alarm handling** | Application-specific thresholds |
 | **Default Thresholds** | Good: <100, Warn: 500, Critical: 2500, Alarm: 50000 |
 
 **Example Response:**
@@ -358,7 +358,7 @@ Size of application log files.
 | **Data Type** | Integer |
 | **Unit** | Kilobytes |
 | **Update Frequency** | Every 5 minutes |
-| **Alerting** | Threshold-based |
+| **Alarm handling** | Threshold-based |
 | **Default Thresholds** | Good: <10MB, Warn: 100MB, Critical: 250MB, Alarm: 500MB |
 
 **Example Response:**
@@ -553,7 +553,7 @@ GET /api/server/processes
 
 ---
 
-## Alerting on Metrics
+## Alarm handling on Metrics
 
 ### Threshold Evaluation
 Metrics are evaluated against configured thresholds in `config/thresholds.json`.
@@ -562,7 +562,7 @@ Metrics are evaluated against configured thresholds in `config/thresholds.json`.
 - Real-time: On each data collection
 - Batch: Hourly aggregation review
 
-### Alert Levels
+### Alarm Levels
 
 | Level | Color | Action |
 |-------|-------|--------|
@@ -571,14 +571,14 @@ Metrics are evaluated against configured thresholds in `config/thresholds.json`.
 | **Critical** | Orange | Investigate and plan |
 | **Alarm** | Red | Immediate action required |
 
-### Alert Notification Flow
+### Alarm Notification Flow
 
 1. **Metric Collection**: Data collected from node
 2. **Threshold Check**: Compare against configured thresholds
 3. **Event Recording**: Log threshold violation
 4. **Deduplication**: Check against recent events
 5. **Alarm Trigger**: Create alarm if threshold exceeded
-6. **Notification**: Send email alert to configured recipients
+6. **Notification**: Send email alarm to configured recipients
 
 ---
 

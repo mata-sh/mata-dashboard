@@ -8,7 +8,7 @@ namespace Mata\Services\Event\Dto;
  * Immutable wrapper for structured event context payloads.
  *
  * Provides deterministic JSON encoding to ensure consistent hashing,
- * storage, and alert rendering across the monitoring pipeline.
+ * storage, and alarm rendering across the monitoring pipeline.
  */
 final class EventContext
 {

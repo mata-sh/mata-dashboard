@@ -11,7 +11,7 @@ namespace Mata\Views;
  * - Configuration file metadata and existence checks
  * - Server configuration summaries with masked secrets
  * - TTL (cache timeout) configuration display
- * - Threshold configuration for monitoring alerts
+ * - Threshold configuration for monitoring alarms
  */
 class SettingsRenderer extends BaseRenderer
 {
@@ -75,7 +75,7 @@ class SettingsRenderer extends BaseRenderer
             ],
             [
                 'name' => 'thresholds.json',
-                'description' => 'Configures alert thresholds and escalation rules.',
+                'description' => 'Configures alarm thresholds and escalation rules.',
             ],
         ];
 

@@ -15,7 +15,7 @@
 - Display server status and metrics
 - Interactive dashboard updates
 - User authentication interface
-- Alert configuration UI
+- Alarm configuration UI
 
 ### 2. Application Layer
 
@@ -32,7 +32,7 @@ Handle HTTP requests and coordinate responses:
 Business logic and core functionality:
 
 - `ServerDataCollector`: API communication with nodes
-- `EventManager`: Alert generation and processing
+- `EventManager`: Alarm generation and processing
 - `NotificationManager`: Email notification handling
 - `CacheManager`: Cache management with TTL
 - `ServerMonitor`: Metric evaluation and thresholds
@@ -121,7 +121,7 @@ Evaluate Thresholds
     ↓
 Generate Events (if needed)
     ↓
-Trigger Alerts (if threshold exceeded)
+Trigger Alarms (if threshold exceeded)
     ↓
 Send Email Notifications
 ```
