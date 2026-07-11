@@ -123,11 +123,11 @@ try {
             $eventAggregator->markEventEvaluated((int) $event['id']);
             $stats['enqueued'] += count($readyChannels);
             if ($readyChannels === []) {
-                $log->debug('alarm_decision.no_ready_channels', ['event_id' => $event['id'] ?? null]);
+                $log->debug('critical_alarm_decision.no_ready_channels', ['event_id' => $event['id'] ?? null]);
             }
         } catch (Throwable $exception) {
             ++$stats['failed'];
-            $log->error('alarm_decision.enqueue_failed', [
+            $log->error('critical_alarm_decision.enqueue_failed', [
                 'event_id' => $event['id'] ?? null,
                 'error' => $exception->getMessage(),
             ]);
