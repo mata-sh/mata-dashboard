@@ -1,5 +1,5 @@
 <div class="events-section">
-    <h3><span class="section-help-icon" data-tippy-content="Alarms: events that crossed alarm policy thresholds. They appear in the notification bell and may trigger email notifications. Acknowledge them once handled.">{{ icons.help|raw }}</span>Alarms</h3>
+    <h3>Alarms<span class="section-help-icon" data-tippy-content="Alarms: events that crossed alarm policy thresholds. They appear in the notification bell and may trigger email notifications. Acknowledge them once handled.">{{ icons.help|raw }}</span></h3>
 
     <div class="filter-menu">
         <input id="filter-time" type="text" placeholder="2025.05.08 20:00:00">
@@ -11,7 +11,7 @@
             <option value="error">Error</option>
             <option value="warning">Warning</option>
         </select>
-        <label class="filter-unacknowledged-label"><input type="checkbox" id="filter-unacknowledged"> Unacknowledged only</label>
+        <button type="button" class="button" id="filter-unacknowledged" aria-pressed="false">Unacknowledged only</button>
         <select id="filter-app">
             <option value="">All Apps</option>
         </select>
@@ -137,7 +137,7 @@
                         return;
                     }
 
-                    var unacknowledgedOnly = document.getElementById("filter-unacknowledged").checked;
+                    var unacknowledgedOnly = document.getElementById("filter-unacknowledged").getAttribute("aria-pressed") === "true";
                     table.setData("{{ endpoints.alarms_json }}" + (unacknowledgedOnly ? "?unacknowledged=1" : ""));
                     document.body.dispatchEvent(new Event("bell-refresh"));
                 })
@@ -202,8 +202,11 @@
         document.getElementById(id).addEventListener("input", applyFilters);
     });
     document.getElementById("filter-level").addEventListener("change", applyFilters);
-    document.getElementById("filter-unacknowledged").addEventListener("change", function(event) {
-        table.setData("{{ endpoints.alarms_json }}" + (event.target.checked ? "?unacknowledged=1" : ""));
+    document.getElementById("filter-unacknowledged").addEventListener("click", function(event) {
+        var enabled = event.currentTarget.getAttribute("aria-pressed") !== "true";
+        event.currentTarget.setAttribute("aria-pressed", enabled);
+        event.currentTarget.classList.toggle("is-active", enabled);
+        table.setData("{{ endpoints.alarms_json }}" + (enabled ? "?unacknowledged=1" : ""));
     });
     ["filter-app","filter-server"].forEach(id=>{
         document.getElementById(id).addEventListener("change", applyFilters);
@@ -215,7 +218,8 @@
             document.getElementById(id).value = "";
         });
         document.getElementById("filter-level").value = "";
-        document.getElementById("filter-unacknowledged").checked = false;
+        document.getElementById("filter-unacknowledged").setAttribute("aria-pressed", "false");
+        document.getElementById("filter-unacknowledged").classList.remove("is-active");
         document.getElementById("filter-app").value = "";
         document.getElementById("filter-server").value = "";
         table.clearFilter();

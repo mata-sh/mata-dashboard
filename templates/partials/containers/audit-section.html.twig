@@ -1,38 +1,80 @@
 <div class="audit-section" id="audit-section">
-  <h3>Composer Audit</h3>
+  <h3 class="audit-title" role="button" tabindex="0" aria-controls="audit-details"
+      _="on click or keydown[key=='Enter'] toggle .is-open on #audit-section">
+    Composer Audit <span class="audit-caret" aria-hidden="true">&#9656;</span>
+  </h3>
   <div id="audit-summary-wrap"
        hx-get="{{ endpoints.audit_section }}?part=summary"
        hx-trigger="auditChipDone from:body delay:500ms"
        hx-swap="innerHTML">
     {% include 'partials/audit/audit-summary.html.twig' %}
   </div>
-  <form id="audit-targets" class="audit-targets">
-    <button type="button" class="audit-select-toggle"
-            _="on click repeat for checkbox in <#audit-targets input[type='checkbox']/>
-                 set checkbox.checked to true
-               end">all</button>
-    <button type="button" class="audit-select-toggle"
-            _="on click repeat for checkbox in <#audit-targets input[type='checkbox']/>
-                 set checkbox.checked to false
-               end">none</button>
-    {% for server, s in summary.servers %}
-      <div class="audit-server-group">
-        <span class="audit-server-label">{{ server }}</span>
-        {% for app, info in s.apps %}
-          <label class="audit-chip {% if info.worst_severity %}sev-{{ info.worst_severity }}{% endif %} {% if info.status == 'error' %}chip-error{% endif %}">
-            <input type="checkbox" name="targets[]" value="{{ server }}|{{ app }}" checked>
-            <span class="chip-name">{{ app }}</span>
-            {% if (info.counts.total ?? 0) > 0 %}<span class="chip-count">{{ info.counts.total }}</span>{% endif %}
-          </label>
-        {% endfor %}
+  <div class="audit-details" id="audit-details">
+    <form id="audit-targets" class="audit-targets">
+      {% for server, s in summary.servers %}
+        <div class="audit-server-row">
+          <div class="audit-server-info">
+            <span class="audit-server-label">{{ server }}</span>
+            <span class="audit-server-meta">
+              {%- if s.last_audited_label -%}
+                audited {{ s.last_audited_label }} ago{% if s.stale %} &middot; stale{% endif %}
+              {%- else -%}
+                never audited
+              {%- endif -%}
+            </span>
+          </div>
+          <div class="audit-server-apps">
+            {% for app, info in s.apps %}
+              <label class="audit-chip {% if info.worst_severity %}sev-{{ info.worst_severity }}{% endif %} {% if info.status == 'error' %}chip-error{% endif %}">
+                <input type="checkbox" name="targets[]" value="{{ server }}|{{ app }}" checked>
+                <span class="chip-name">{{ app }}</span>
+                {% if (info.counts.total ?? 0) > 0 %}<span class="chip-count">{{ info.counts.total }}</span>{% endif %}
+              </label>
+            {% else %}
+              <span class="audit-server-meta">no applications</span>
+            {% endfor %}
+          </div>
+        </div>
+      {% endfor %}
+      <div class="audit-actions">
+        <button type="button" class="button is-small audit-select-toggle"
+                _="on click repeat for checkbox in <#audit-targets input[type='checkbox']/>
+                     set checkbox.checked to true
+                   end">All</button>
+        <button type="button" class="button is-small audit-select-toggle"
+                _="on click repeat for checkbox in <#audit-targets input[type='checkbox']/>
+                     set checkbox.checked to false
+                   end">None</button>
+        <span id="audit-progress" class="audit-progress" aria-live="polite"></span>
+        <button class="button is-small audit-run-button" type="button"
+                hx-post="{{ endpoints.audit_run }}" hx-include="#audit-targets"
+                hx-target="#audit-run-results" hx-swap="innerHTML"
+                hx-indicator="#audit-run-indicator" hx-disabled-elt="this"
+                _="on click
+                     set :total to (<#audit-targets input[type='checkbox']:checked/>).length
+                     set :done to 0
+                     remove .is-done from #audit-progress
+                     if :total is 0
+                       put 'no applications selected' into #audit-progress
+                     else
+                       put 'Composer Audit running&hellip; 0/' + :total + ' applications processed' into #audit-progress
+                     end
+                   end
+                   on auditChipDone from body
+                     if :total is not null
+                       increment :done
+                       if :done is less than :total
+                         put 'Composer Audit running&hellip; ' + :done + '/' + :total + ' applications processed' into #audit-progress
+                       else
+                         put 'Composer Audit complete &middot; ' + :done + '/' + :total + ' applications processed' into #audit-progress
+                         add .is-done to #audit-progress
+                       end
+                     end
+                   end">
+          Run audit <span id="audit-run-indicator" class="htmx-indicator spinner"></span>
+        </button>
       </div>
-    {% endfor %}
-    <button class="button is-small audit-run-button" type="button"
-            hx-post="{{ endpoints.audit_run }}" hx-include="#audit-targets"
-            hx-target="#audit-run-results" hx-swap="innerHTML"
-            hx-indicator="#audit-run-indicator" hx-disabled-elt="this">
-      Run audit <span id="audit-run-indicator" class="htmx-indicator spinner"></span>
-    </button>
-  </form>
-  <div id="audit-run-results" class="audit-run-results"></div>
+    </form>
+    <div id="audit-run-results" class="audit-run-results"></div>
+  </div>
 </div>

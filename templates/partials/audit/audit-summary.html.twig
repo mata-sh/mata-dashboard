@@ -1,18 +1,16 @@
 <div class="audit-summary">
   {% if summary.audited_apps == 0 %}
-    <span class="audit-empty">No audit data yet — select apps and run an audit.</span>
+    <span class="audit-empty">No audit data yet &mdash; select apps and run an audit.</span>
   {% else %}
-    <span class="tag sev-critical">{{ summary.totals.critical }} critical</span>
-    <span class="tag sev-high">{{ summary.totals.high }} high</span>
-    <span class="tag sev-medium">{{ summary.totals.medium }} medium</span>
-    <span class="tag sev-low">{{ summary.totals.low }} low</span>
-    {% if summary.totals.unknown > 0 %}<span class="tag sev-unknown">{{ summary.totals.unknown }} unknown</span>{% endif %}
-    {% if summary.abandoned_packages > 0 %}<span class="tag tag-abandoned">{{ summary.abandoned_packages }} abandoned</span>{% endif %}
-    <span class="audit-meta">{{ summary.affected_apps }} affected apps</span>
-    {% for server, info in summary.servers %}
-      {% if info.last_audited_label %}
-        <span class="audit-meta">{{ server }}: last audited {{ info.last_audited_label }} ago{% if info.stale %} (stale){% endif %}</span>
-      {% endif %}
+    {% for severity in ['critical', 'high', 'medium', 'low'] %}
+      <span class="audit-pill sev-{{ severity }}{% if summary.totals[severity] == 0 %} is-zero{% endif %}"><b>{{ summary.totals[severity] }}</b> {{ severity }}</span>
     {% endfor %}
+    {% if summary.totals.unknown > 0 %}
+      <span class="audit-pill sev-unknown"><b>{{ summary.totals.unknown }}</b> unknown</span>
+    {% endif %}
+    {% if summary.abandoned_packages > 0 %}
+      <span class="audit-pill pill-abandoned"><b>{{ summary.abandoned_packages }}</b> abandoned</span>
+    {% endif %}
+    <span class="audit-pill pill-meta"><b>{{ summary.affected_apps }}</b> affected apps</span>
   {% endif %}
 </div>
