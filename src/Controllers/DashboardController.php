@@ -12,6 +12,8 @@ use Mata\Http\Responses\HtmlResponse;
 use Mata\Http\Responses\JsonResponse;
 use Mata\Http\Responses\Response;
 use Mata\Http\Routing\Endpoints;
+use Mata\Services\Audit\AuditAggregator;
+use Mata\Services\Audit\AuditRowEnricher;
 use Mata\Services\Cache\ApiCacheKeyFactory;
 use Mata\Services\Cache\CacheStoreInterface;
 use Mata\Services\Cache\CacheTtlResolver;
@@ -32,6 +34,7 @@ use Mata\Services\Monitor\NodeHealthMonitor;
 use Mata\Services\Monitor\ServerMonitor;
 use Mata\Services\Navigation\MenuBuilder;
 use Mata\Services\Notification\NotificationManager;
+use Mata\Services\View\LibrariesViewBuilder;
 use Mata\Services\View\ServerViewBuilder;
 use Mata\Utils\Tools;
 use Mata\Utils\TypeConverter;
@@ -72,6 +75,7 @@ class DashboardController extends BaseController
     private ServerRenderer $serverRenderer;
     private DatabaseRenderer $databaseRenderer;
     private LibrariesRenderer $librariesRenderer;
+    private LibrariesViewBuilder $librariesViewBuilder;
     private LogRenderer $logRenderer;
     private SettingsRenderer $settingsRenderer;
     private EventsRenderer $eventsRenderer;
@@ -155,7 +159,11 @@ class DashboardController extends BaseController
         $this->eventsRenderer = new EventsRenderer($twig, $logger, $tools, $app, $endpoints);
         $this->alarmsRenderer = new AlarmsRenderer($twig, $logger, $tools, $app, $endpoints);
 
-        // Initialize service classes
+        // Initialize Libraries service classes
+        $auditRowEnricher = new AuditRowEnricher(new AuditAggregator());
+        $this->librariesViewBuilder = new LibrariesViewBuilder($logger, $auditRowEnricher);
+
+        // Initialize Monitoring service classes
         $this->serverMonitor = new ServerMonitor($logger, $eventManager);
         $this->logAnalyzer = new LogAnalyzer($tools, $eventManager);
         $cacheTypeResolver = new CacheTypeResolver();
@@ -616,10 +624,7 @@ class DashboardController extends BaseController
     {
         return $this->executeWithErrorHandling(
             function () {
-                $libraryRows = $this->librariesRenderer->prepareJsonData(
-                    $this->dataCollectorsByServer(),
-                    $this->serversConfig
-                );
+                $libraryRows = $this->librariesViewBuilder->buildLibrariesViewData($this->dataCollectorsByServer(), $this->serversConfig);
 
                 return new JsonResponse($libraryRows);
             },

@@ -4,18 +4,10 @@ declare(strict_types=1);
 
 namespace Mata\Views;
 
-use Exception;
 use Mata\Http\Routing\Endpoints;
-use Mata\Services\Audit\AuditAggregator;
-use Mata\Services\Collect\ServerDataCollectorInterface;
 
 /**
- * Libraries rendering service.
- *
- * Handles libraries-related view rendering:
- * - Libraries container generation
- * - Library listings and tables
- * - JSON data formatting for libraries
+ * Libraries container rendering service.
  */
 class LibrariesRenderer extends BaseRenderer
 {
@@ -37,99 +29,5 @@ class LibrariesRenderer extends BaseRenderer
                 'servers' => $this->buildServerDropdownOptions($serversConfig),
             ],
         ]);
-    }
-
-    // Todo: not sure about having this logic inside of the renderer
-    /**
-     * Prepare libraries data for JSON API responses.
-     *
-     * @param array<string,ServerDataCollectorInterface> $serversData   Server API clients
-     * @param array<string,mixed>                        $serversConfig Server configurations
-     *
-     * @return array{data:array<int,array<string,mixed>>,errors:array<int,array{server:string,message:string}>}
-     */
-    public function prepareJsonData(array $serversData, array $serversConfig): array
-    {
-        $libraryRows = [];
-        $errors = [];
-
-        foreach ($serversConfig as $server => $serverConfig) {
-            try {
-                if (!isset($serversData[$server])) {
-                    $errors[] = ['server' => $server, 'message' => 'Libraries service is unavailable.'];
-
-                    continue;
-                }
-                $appsLibs = $serversData[$server]->getAppsLibraries();
-                $endpointError = is_array($appsLibs)
-                    && is_array($appsLibs['error'] ?? null)
-                    && is_string($appsLibs['error']['message'] ?? null)
-                    ? $appsLibs['error']['message']
-                    : null;
-                if ($endpointError !== null) {
-                    $errors[] = ['server' => $server, 'message' => $endpointError];
-
-                    continue;
-                }
-                if (!is_array($appsLibs['result'] ?? null)) {
-                    $errors[] = ['server' => $server, 'message' => 'Failed to fetch libraries data via API.'];
-
-                    continue;
-                }
-                $auditAggregator = new AuditAggregator();
-                $appAudits = [];
-                foreach ($appsLibs['result'] as $appName => $libArray) {
-                    $app = (string) $appName;
-                    if (!array_key_exists($app, $appAudits)) {
-                        $auditResponse = $serversData[$server]->getCachedAppComposerAudit($app);
-                        $packages = [];
-                        $audited = false;
-                        if ($auditResponse !== null && is_array($auditResponse['result'] ?? null)) {
-                            $packages = $auditAggregator->advisoriesByPackage($auditResponse['result']);
-                            $audited = ($auditResponse['result']['status'] ?? null) === 'ok';
-                        }
-                        $appAudits[$app] = ['audited' => $audited, 'packages' => $packages];
-                    }
-
-                    foreach ($libArray as $lib) {
-                        $packageAudit = $appAudits[$app]['audited']
-                            ? ($appAudits[$app]['packages'][$lib['name'] ?? ''] ?? null)
-                            : null;
-                        $vulns = is_array($packageAudit) ? (int) ($packageAudit['count'] ?? 0) : 0;
-                        $severity = $vulns > 0 && is_array($packageAudit)
-                            ? ($packageAudit['worst_severity'] ?? null)
-                            : null;
-                        $advisories = is_array($packageAudit) && is_array($packageAudit['advisories'] ?? null)
-                            ? $packageAudit['advisories']
-                            : [];
-
-                        $row = [
-                            'server' => $server,
-                            'app' => $app,
-                            'name' => $lib['name'] ?? '',
-                            'version' => $lib['version'] ?? '',
-                            'type' => $lib['type'] ?? '',
-                            'description' => $lib['description'] ?? '',
-                            'audited' => $appAudits[$app]['audited'],
-                            'vulns' => $vulns,
-                            'severity' => $severity,
-                        ];
-                        if ($advisories !== []) {
-                            $row['advisories'] = $advisories;
-                        }
-                        $libraryRows[] = $row;
-                    }
-                }
-            } catch (Exception $e) {
-                $this->logError($e->getMessage(), 'LibrariesData', [
-                    'server' => $server,
-                ]);
-
-                $errors[] = ['server' => $server, 'message' => $e->getMessage()];
-            }
-        }
-
-
-        return ['data' => $libraryRows, 'errors' => $errors];
     }
 }
