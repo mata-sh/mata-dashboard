@@ -1,0 +1,6 @@
+{% for t in targets %}
+<span class="audit-chip running" id="audit-chip-{{ t.server }}-{{ t.app }}"
+      hx-get="{{ t.url }}" hx-trigger="load" hx-swap="outerHTML">
+  <span class="chip-name">{{ t.server }}/{{ t.app }}</span><span class="spinner"></span>
+</span>
+{% endfor %}

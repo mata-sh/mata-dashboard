@@ -1336,3 +1336,63 @@ svg {
     border-radius: 3px;
     color: white;
 }
+
+/* --- libraries advisory details --- */
+.advisory-details {
+    background: #101010;
+    border: 1px solid #353a46;
+    padding: .5rem .75rem;
+    font-size: .8em;
+}
+
+.advisory-cve {
+    font-family: monospace;
+}
+/* --- Composer audit --- */
+.audit-section { margin-bottom: 2rem; }
+.audit-summary,
+.audit-targets,
+.audit-run-results,
+.audit-server-group { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem; }
+.audit-summary { margin-bottom: .75rem; }
+.audit-targets { align-items: flex-end; }
+.audit-server-group { gap: .4rem; }
+.audit-server-label { color: #9a9a9a; font-size: .7rem; letter-spacing: .08em; text-transform: uppercase; }
+.audit-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: .4rem;
+    padding: .25rem .75rem;
+    color: inherit;
+    background: #151515;
+    border: 1px solid #494949;
+    border-radius: 999px;
+    cursor: pointer;
+    user-select: none;
+}
+.audit-chip input { position: absolute; opacity: 0; pointer-events: none; }
+.audit-chip:has(input:checked) { background: #1f1f1f; border-color: #8a8a8a; }
+.audit-chip:has(input:not(:checked)) { opacity: .45; }
+.audit-chip.running .spinner {
+    width: 12px;
+    height: 12px;
+    border: 2px solid currentColor;
+    border-right-color: transparent;
+    border-radius: 50%;
+}
+.audit-run-results { margin-top: .75rem; }
+.audit-empty,
+.audit-meta { color: #9a9a9a; font-size: .8rem; }
+.sev-critical { color: #ff4d4d; }
+.sev-high { color: #ff8c42; }
+.sev-medium { color: #ffd24d; }
+.sev-low { color: #7bd88f; }
+.sev-unknown { color: #9a9a9a; }
+.sev-none { color: #666; }
+.tag.sev-critical { background: rgba(255, 77, 77, .12); border: 1px solid #ff4d4d; }
+.tag.sev-high { background: rgba(255, 140, 66, .12); border: 1px solid #ff8c42; }
+.tag.sev-medium { background: rgba(255, 210, 77, .12); border: 1px solid #ffd24d; }
+.tag.sev-low { background: rgba(123, 216, 143, .12); border: 1px solid #7bd88f; }
+.tag.sev-unknown { background: rgba(154, 154, 154, .12); border: 1px solid #9a9a9a; }
+.tag.sev-none { background: rgba(102, 102, 102, .12); border: 1px solid #666; }
+.chip-error { color: #ff4d4d; border-color: #ff4d4d; }

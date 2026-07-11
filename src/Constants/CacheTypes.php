@@ -74,6 +74,11 @@ final class CacheTypes
     public const CRONJOBS = 'cronjobs';
 
     /**
+     * Composer audit results; long-lived, refreshed explicitly by Run audit.
+     */
+    public const AUDIT = 'audit';
+
+    /**
      * Prevent instantiation - this is a constants-only class.
      */
     private function __construct() {}

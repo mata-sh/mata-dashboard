@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Mata\Services\DataTransformers;
 
+use Mata\Constants\Severities;
 use Mata\Utils\TypeConverter;
 use Psr\Log\LoggerInterface;
 use RuntimeException;
@@ -75,6 +76,7 @@ class ApiResponseTransformer
                 str_ends_with($path, 'server/cronjobs') => $this->normalizeServerCronjobs($data),
                 str_contains($path, '/logs/') || str_ends_with($path, '/logs') => $this->normalizeAppLogs($data),
                 str_contains($path, '/readme') => $this->normalizeReadmeData($data),
+                str_ends_with($path, 'composer-audit') => $this->normalizeComposerAuditData($data),
                 str_contains($path, '/libraries') => $this->normalizeLibrariesData($data),
                 $path === 'server/php' => $this->normalizePhpProcesses($data),
                 default => $data,
@@ -396,6 +398,95 @@ class ApiResponseTransformer
         }
 
         return $normalized;
+    }
+
+    /**
+     * Normalize Composer audit data for one app or an app map.
+     */
+    public function normalizeComposerAuditData(mixed $data): array
+    {
+        if (!is_array($data)) {
+            return $this->normalizeComposerAuditPayload([]);
+        }
+
+        if (is_string($data['status'] ?? null)) {
+            return $this->normalizeComposerAuditPayload($data);
+        }
+
+        $normalized = [];
+        foreach ($data as $app => $payload) {
+            $normalized[$app] = $this->normalizeComposerAuditPayload($payload);
+        }
+
+        return $normalized;
+    }
+
+    /** @return array<string,mixed> */
+    private function normalizeComposerAuditPayload(mixed $payload): array
+    {
+        $counts = array_fill_keys(Severities::ORDER, 0) + ['total' => 0];
+        if (!is_array($payload) || ($payload['status'] ?? null) !== 'ok') {
+            return [
+                'status' => 'error',
+                'message' => is_array($payload) ? $this->nullableString($payload['message'] ?? null) : null,
+                'advisories' => [],
+                'abandoned' => [],
+                'counts' => $counts,
+            ];
+        }
+
+        $audit = is_array($payload['audit'] ?? null) ? $payload['audit'] : [];
+        $abandoned = is_array($audit['abandoned'] ?? null) ? $audit['abandoned'] : [];
+        $advisories = [];
+        $rawAdvisories = $audit['advisories'] ?? [];
+        if (is_array($rawAdvisories)) {
+            foreach ($rawAdvisories as $package => $packageAdvisories) {
+                if (!is_string($package) || !is_array($packageAdvisories)) {
+                    continue;
+                }
+
+                foreach ($packageAdvisories as $advisory) {
+                    if (is_array($advisory)) {
+                        $advisories[] = $this->normalizeAdvisory($package, $advisory);
+                    }
+                }
+            }
+        }
+
+        foreach ($advisories as $advisory) {
+            ++$counts[$advisory['severity']];
+            ++$counts['total'];
+        }
+
+        return [
+            'status' => 'ok',
+            'message' => null,
+            'advisories' => $advisories,
+            'abandoned' => $abandoned,
+            'counts' => $counts,
+        ];
+    }
+
+    private function normalizeSeverity(mixed $value): string
+    {
+        $severity = strtolower($this->nullableString($value) ?? 'unknown');
+
+        return in_array($severity, Severities::ORDER, true) ? $severity : 'unknown';
+    }
+
+    /** @param array<string,mixed> $advisory */
+    private function normalizeAdvisory(string $package, array $advisory): array
+    {
+        return [
+            'package' => $package,
+            'advisory_id' => $this->nullableString($advisory['advisoryId'] ?? null),
+            'cve' => $this->nullableString($advisory['cve'] ?? null),
+            'title' => $this->nullableString($advisory['title'] ?? null),
+            'link' => $this->nullableString($advisory['link'] ?? null),
+            'affected_versions' => $this->nullableString($advisory['affectedVersions'] ?? null),
+            'severity' => $this->normalizeSeverity($advisory['severity'] ?? null),
+            'reported_at' => $this->nullableString($advisory['reportedAt'] ?? null),
+        ];
     }
 
     /** @param array<string,mixed> $data */

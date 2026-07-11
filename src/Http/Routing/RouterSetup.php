@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Mata\Http\Routing;
 
 use Bramus\Router\Router;
+use Mata\Controllers\AuditController;
 use Mata\Controllers\DashboardController;
 use Mata\Controllers\LoginController;
 use Mata\Controllers\MetricsController;
@@ -24,6 +25,7 @@ class RouterSetup
     private App $app;
     private LoginController $loginController;
     private DashboardController $dashboardController;
+    private AuditController $auditController;
     private ModalController $modalController;
     private MetricsController $metricsController;
     private Endpoints $endpoints;
@@ -40,6 +42,7 @@ class RouterSetup
         App $app,
         LoginController $loginController,
         DashboardController $dashboardController,
+        AuditController $auditController,
         ModalController $modalController,
         MetricsController $metricsController,
         Endpoints $endpoints,
@@ -49,6 +52,7 @@ class RouterSetup
         $this->app = $app;
         $this->loginController = $loginController;
         $this->dashboardController = $dashboardController;
+        $this->auditController = $auditController;
         $this->modalController = $modalController;
         $this->metricsController = $metricsController;
         $this->endpoints = $endpoints;
@@ -288,6 +292,12 @@ class RouterSetup
                 ['metrics_render', '/metrics', 'get', fn () => $this->metricsController->renderMetricsOverview()],
             ];
 
+            $auditRoutes = [
+                ['audit_section_render', '/audit/section', 'get', fn () => $this->auditController->renderAuditSection()],
+                ['audit_run_render', '/audit/run', 'post', fn () => $this->auditController->runAudit()],
+                ['audit_run_app_render', '/audit/run/{server}/{app}', 'get', fn ($server, $app) => $this->auditController->runAuditApp($server, $app)],
+            ];
+
             // Content-based modals handled by ModalController
             $contentModalRoutes = [
                 ['modal_app_readme_render', '/modal/{server}/{app}/readme', 'get', fn ($server, $app) => $this->modalController->renderAppReadme($server, $app)],
@@ -316,6 +326,10 @@ class RouterSetup
             }
 
             foreach ($metricsRoutes as [$name, $path, $method, $handler]) {
+                $this->registerRoute($name, $path, $method, $handler);
+            }
+
+            foreach ($auditRoutes as [$name, $path, $method, $handler]) {
                 $this->registerRoute($name, $path, $method, $handler);
             }
 
@@ -402,6 +416,11 @@ class RouterSetup
         // Validate server parameter for server-only modal routes
         $this->router->before('GET', '/watch/modal/([^/]+)/info.*', function ($server) {
             RouteParameter::assertSafe($server, 'Invalid server parameter');
+        });
+
+        // Validate Composer audit route parameters
+        $this->router->before('GET', '/watch/audit/run/([^/]+)/([^/]+)', function ($server, $app) {
+            RouteParameter::assertAllSafe([$server, $app], 'Invalid audit route parameter');
         });
 
         // Validate process count modal route parameters

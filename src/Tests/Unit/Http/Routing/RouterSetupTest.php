@@ -6,6 +6,7 @@ namespace Mata\Tests\Unit\Http\Routing;
 
 use Bramus\Router\Router;
 use InvalidArgumentException;
+use Mata\Controllers\AuditController;
 use Mata\Controllers\DashboardController;
 use Mata\Controllers\LoginController;
 use Mata\Controllers\MetricsController;
@@ -262,6 +263,7 @@ class RouterSetupTest extends TestCase
             $app ?? $this->createAppStub(),
             $this->createStub(LoginController::class),
             $this->createStub(DashboardController::class),
+            $this->createStub(AuditController::class),
             $this->createStub(ModalController::class),
             $this->createMetricsController(),
             new Endpoints(),

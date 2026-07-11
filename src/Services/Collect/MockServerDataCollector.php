@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Mata\Services\Collect;
 
+use Mata\Constants\CacheTypes;
 use Mata\Services\Cache\CacheTtlResolver;
 use Mata\Services\DataTransformers\ApiResponseTransformer;
 use Psr\Log\LoggerInterface;
@@ -393,6 +394,45 @@ class MockServerDataCollector implements ServerDataCollectorInterface
         $sessions = $sessionVariants[abs((int) crc32($app)) % count($sessionVariants)];
 
         return $this->dataTransformer->normalizeApiResponse($sessions, $this->cacheAge, $ttlSeconds, false, path: "{$app}/sessions");
+    }
+
+    /**
+     * Generate demo Composer audit results for a specific app.
+     *
+     * @return null|array<string,mixed> Normalized Composer audit response
+     */
+    public function fetchAppComposerAudit(string $app, string $cacheType = CacheTypes::AUDIT): ?array
+    {
+        $ttlSeconds = $this->ttlResolver->get($cacheType);
+
+        return $this->dataTransformer->normalizeApiResponse(
+            $this->generateComposerAuditForApp($app),
+            $this->cacheAge,
+            $ttlSeconds,
+            false,
+            false,
+            "{$app}/composer-audit",
+        );
+    }
+
+    /**
+     * Return demo Composer audit results with a simulated older cache age.
+     *
+     * @return null|array<string,mixed> Normalized cached Composer audit response
+     */
+    public function getCachedAppComposerAudit(string $app): ?array
+    {
+        $ttlSeconds = $this->ttlResolver->get(CacheTypes::AUDIT);
+        $cacheAge = 14400 + (abs((int) crc32($this->serverName . $app)) % 14400);
+
+        return $this->dataTransformer->normalizeApiResponse(
+            $this->generateComposerAuditForApp($app),
+            $cacheAge,
+            $ttlSeconds,
+            true,
+            false,
+            "{$app}/composer-audit",
+        );
     }
 
     /**
@@ -1446,6 +1486,58 @@ class MockServerDataCollector implements ServerDataCollectorInterface
         unset($app);
 
         return $apps;
+    }
+
+    /**
+     * Generate deterministic raw node-shaped Composer audit data for an app.
+     *
+     * @return array<string,mixed>
+     */
+    private function generateComposerAuditForApp(string $app): array
+    {
+        mt_srand((int) crc32($this->serverName . $app));
+
+        try {
+            if (mt_rand(1, 6) === 1) {
+                return ['status' => 'error', 'message' => 'composer audit timed out'];
+            }
+
+            $libraries = $this->generateLibrariesForApp($app);
+            shuffle($libraries);
+            $packageCount = mt_rand(0, min(3, count($libraries)));
+            $advisories = [];
+            $titles = [
+                'SQL injection in query builder',
+                'XSS in template rendering',
+                'Path traversal in file handler',
+            ];
+            $severities = ['low', 'low', 'medium', 'medium', 'medium', 'high', 'critical'];
+
+            foreach (array_slice($libraries, 0, $packageCount) as $library) {
+                $packageAdvisories = [];
+                for ($i = 0; $i < mt_rand(1, 2); ++$i) {
+                    $number = mt_rand(10000, 99999);
+                    $packageAdvisories[] = [
+                        'advisoryId' => 'PKSA-' . mt_rand(1000, 9999),
+                        'cve' => "CVE-2025-{$number}",
+                        'title' => $titles[array_rand($titles)],
+                        'link' => 'https://github.com/advisories/GHSA-' . substr(strtoupper(dechex(mt_rand())), 0, 8),
+                        'affectedVersions' => '>=1.0,<1.4.2',
+                        'severity' => $severities[array_rand($severities)],
+                        'reportedAt' => sprintf('2025-%02d-%02dT12:00:00+00:00', mt_rand(1, 12), mt_rand(1, 28)),
+                    ];
+                }
+                $advisories[$library['name']] = $packageAdvisories;
+            }
+
+            return [
+                'status' => 'ok',
+                'exit_code' => $advisories === [] ? 0 : 1,
+                'audit' => ['advisories' => $advisories, 'abandoned' => []],
+            ];
+        } finally {
+            mt_srand();
+        }
     }
 
     /**

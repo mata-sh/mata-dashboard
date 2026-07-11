@@ -6,6 +6,7 @@ namespace Mata\Views;
 
 use Exception;
 use Mata\Http\Routing\Endpoints;
+use Mata\Services\Audit\AuditAggregator;
 use Mata\Services\Collect\ServerDataCollectorInterface;
 
 /**
@@ -30,6 +31,7 @@ class LibrariesRenderer extends BaseRenderer
         return $this->twig->render('partials/containers/libraries-container.html.twig', [
             'endpoints' => [
                 'libraries_json' => $endpoints->url('libraries_json'),
+                'audit_section' => $endpoints->url('audit_section_render'),
             ],
             'filters' => [
                 'servers' => $this->buildServerDropdownOptions($serversConfig),
@@ -44,7 +46,7 @@ class LibrariesRenderer extends BaseRenderer
      * @param array<string,ServerDataCollectorInterface> $serversData   Server API clients
      * @param array<string,mixed>                        $serversConfig Server configurations
      *
-     * @return array{data:array<int,array<string,string>>,errors:array<int,array{server:string,message:string}>}
+     * @return array{data:array<int,array<string,mixed>>,errors:array<int,array{server:string,message:string}>}
      */
     public function prepareJsonData(array $serversData, array $serversConfig): array
     {
@@ -74,16 +76,48 @@ class LibrariesRenderer extends BaseRenderer
 
                     continue;
                 }
+                $auditAggregator = new AuditAggregator();
+                $appAudits = [];
                 foreach ($appsLibs['result'] as $appName => $libArray) {
+                    $app = (string) $appName;
+                    if (!array_key_exists($app, $appAudits)) {
+                        $auditResponse = $serversData[$server]->getCachedAppComposerAudit($app);
+                        $packages = [];
+                        $audited = false;
+                        if ($auditResponse !== null && is_array($auditResponse['result'] ?? null)) {
+                            $packages = $auditAggregator->advisoriesByPackage($auditResponse['result']);
+                            $audited = ($auditResponse['result']['status'] ?? null) === 'ok';
+                        }
+                        $appAudits[$app] = ['audited' => $audited, 'packages' => $packages];
+                    }
+
                     foreach ($libArray as $lib) {
-                        $libraryRows[] = [
+                        $packageAudit = $appAudits[$app]['audited']
+                            ? ($appAudits[$app]['packages'][$lib['name'] ?? ''] ?? null)
+                            : null;
+                        $vulns = is_array($packageAudit) ? (int) ($packageAudit['count'] ?? 0) : 0;
+                        $severity = $vulns > 0 && is_array($packageAudit)
+                            ? ($packageAudit['worst_severity'] ?? null)
+                            : null;
+                        $advisories = is_array($packageAudit) && is_array($packageAudit['advisories'] ?? null)
+                            ? $packageAudit['advisories']
+                            : [];
+
+                        $row = [
                             'server' => $server,
-                            'app' => $appName,
+                            'app' => $app,
                             'name' => $lib['name'] ?? '',
                             'version' => $lib['version'] ?? '',
                             'type' => $lib['type'] ?? '',
                             'description' => $lib['description'] ?? '',
+                            'audited' => $appAudits[$app]['audited'],
+                            'vulns' => $vulns,
+                            'severity' => $severity,
                         ];
+                        if ($advisories !== []) {
+                            $row['advisories'] = $advisories;
+                        }
+                        $libraryRows[] = $row;
                     }
                 }
             } catch (Exception $e) {

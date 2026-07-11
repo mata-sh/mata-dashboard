@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Mata\Services\Collect;
 
 use GuzzleHttp\Exception\RequestException;
+use Mata\Constants\CacheTypes;
 use Mata\Services\Cache\ApiCacheKeyFactory;
 use Mata\Services\Cache\CacheStoreInterface;
 use Mata\Services\Cache\CacheTtlResolver;
@@ -223,6 +224,50 @@ class ServerDataCollector implements ServerDataCollectorInterface
     }
 
     /**
+     * Fetch Composer audit results for a specific app.
+     *
+     * The HTTP timeout exceeds the node's internal 60-second Composer timeout.
+     *
+     * @return null|array<string,mixed> Normalized Composer audit response or null on failure
+     */
+    public function fetchAppComposerAudit(string $app, string $cacheType = CacheTypes::AUDIT): ?array
+    {
+        return $this->request('GET', "{$app}/composer-audit", $cacheType, ['timeout' => 90]);
+    }
+
+    /**
+     * Return cached Composer audit results for a specific app without requesting the node.
+     *
+     * @return null|array<string,mixed> Normalized cached Composer audit response or null when unavailable
+     */
+    public function getCachedAppComposerAudit(string $app): ?array
+    {
+        $ttlSeconds = $this->ttlResolver->get(CacheTypes::AUDIT);
+        $path = "{$app}/composer-audit";
+        $cacheKey = $this->cacheKeyFactory->createApiRequestKey($this->apiClient->getApiBase(), 'GET', $path);
+
+        $entry = $this->cacheStore->get($cacheKey, $ttlSeconds);
+        $staleCache = false;
+        if ($entry === null) {
+            $entry = $this->cacheStore->getStale($cacheKey, $ttlSeconds);
+            $staleCache = $entry !== null;
+        }
+
+        if ($entry === null) {
+            return null;
+        }
+
+        return $this->dataTransformer->normalizeApiResponse(
+            data: $entry->value,
+            cacheAge: max(0, time() - $entry->storedAt),
+            cacheTtl: $ttlSeconds,
+            fromCache: true,
+            staleCache: $staleCache,
+            path: $path,
+        );
+    }
+
+    /**
      * Fetch server cronjob heartbeat entries.
      *
      * Ordered list of entries with `index`, `path`, `exists`, `mtime`,
@@ -246,13 +291,14 @@ class ServerDataCollector implements ServerDataCollectorInterface
      * - Automatically creates cache directories
      * - Validates JSON responses
      *
-     * @param string $method    HTTP method (GET, POST, etc.)
-     * @param string $path      API endpoint path
-     * @param string $cacheType Cache Type in seconds (0 = no cache, -1 = permanent cache)
+     * @param string              $method         HTTP method (GET, POST, etc.)
+     * @param string              $path           API endpoint path
+     * @param string              $cacheType      Cache Type in seconds (0 = no cache, -1 = permanent cache)
+     * @param array<string,mixed> $requestOptions Guzzle request options
      *
      * @return null|array<string,mixed> Response data or null on failure
      */
-    private function request(string $method, string $path, string $cacheType = ''): ?array
+    private function request(string $method, string $path, string $cacheType = '', array $requestOptions = []): ?array
     {
         $ttlSeconds = $this->ttlResolver->get($cacheType);
         $cacheKey = $this->cacheKeyFactory->createApiRequestKey($this->apiClient->getApiBase(), $method, $path);
@@ -271,7 +317,7 @@ class ServerDataCollector implements ServerDataCollectorInterface
 
         // 2. Try fresh API
         try {
-            $rawData = $this->fetchFromApi($method, $path);
+            $rawData = $this->fetchFromApi($method, $path, $requestOptions);
             $this->cacheStore->put($cacheKey, $rawData);
 
             return $this->dataTransformer->normalizeApiResponse(
@@ -318,17 +364,18 @@ class ServerDataCollector implements ServerDataCollectorInterface
     /**
      * Fetch data from API and decode JSON response.
      *
-     * @param string $method HTTP method
-     * @param string $path   API endpoint path
+     * @param string              $method         HTTP method
+     * @param string              $path           API endpoint path
+     * @param array<string,mixed> $requestOptions Guzzle request options
      *
      * @return array<string,mixed> Decoded JSON response
      *
      * @throws RequestException When HTTP request fails
      * @throws RuntimeException When response transformation fails
      */
-    private function fetchFromApi(string $method, string $path): array
+    private function fetchFromApi(string $method, string $path, array $requestOptions = []): array
     {
-        $responseBody = $this->apiClient->request($method, $path);
+        $responseBody = $this->apiClient->request($method, $path, $requestOptions);
 
         return $this->dataTransformer->transformResponse($responseBody, $path);
     }

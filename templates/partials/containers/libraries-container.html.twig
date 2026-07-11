@@ -1,4 +1,5 @@
 <div class="libraries-section">
+  <div id="audit-section" hx-get="{{ endpoints.audit_section }}" hx-trigger="load" hx-swap="outerHTML"></div>
   <h3>Libraries</h3>
   {{ LIBRARIES_CONTAINER }}
 
@@ -15,6 +16,7 @@
       {% endfor %}
     </select>
     <input id="filter-description" type="text" placeholder="Description" />
+    <label class="checkbox filter-vulnerable"><input type="checkbox" id="filter-vulnerable"> vulnerable only</label>
     <button class="button" id="filter-clear">Clear Filter</button>
   </div>
 
@@ -46,6 +48,56 @@
       return rows
     },
     columns: [
+      {
+        title: 'CVE',
+        field: 'severity',
+        width: 110,
+        headerSort: true,
+        sorter: function (a, b, aRow, bRow) {
+          var rank = {critical: 5, high: 4, medium: 3, low: 2, unknown: 1}
+          return (rank[a] || 0) - (rank[b] || 0)
+        },
+        formatter: function (cell) {
+          var d = cell.getRow().getData()
+          if (!d.audited) return ''
+          if (!d.vulns) return '<span class="tag sev-none">ok</span>'
+          return '<span class="tag sev-' + d.severity + '">' + d.severity + ' · ' + d.vulns + '</span>'
+        },
+        cellClick: function (e, cell) {
+          var data = cell.getRow().getData()
+          if (!data.advisories || !data.advisories.length) return
+
+          var rowElement = cell.getRow().getElement()
+          var existing = rowElement.querySelector('.advisory-details')
+          if (existing) {
+            existing.remove()
+            return
+          }
+
+          var details = document.createElement('div')
+          details.className = 'advisory-details'
+          data.advisories.forEach(function (advisory) {
+            var item = document.createElement('div')
+            var cve = document.createElement('a')
+            cve.className = 'advisory-cve'
+            cve.target = '_blank'
+            cve.rel = 'noopener'
+            if (advisory.link) cve.href = advisory.link
+            cve.textContent = advisory.cve || advisory.advisory_id || 'Unknown advisory'
+            item.appendChild(cve)
+
+            var title = document.createElement('span')
+            title.textContent = ' ' + (advisory.title || '')
+            item.appendChild(title)
+
+            var affectedVersions = document.createElement('span')
+            affectedVersions.textContent = ' ' + (advisory.affected_versions || '')
+            item.appendChild(affectedVersions)
+            details.appendChild(item)
+          })
+          rowElement.appendChild(details)
+        }
+      },
       { title: 'Name', field: 'name' },
       { title: 'Version', field: 'version' },
       { title: 'Server', field: 'server' },
@@ -70,12 +122,14 @@
     const appVal = document.getElementById('filter-app').value
     const serverVal = document.getElementById('filter-server').value
     const descriptionVal = document.getElementById('filter-description').value.trim()
+    const vulnerableOnly = document.getElementById('filter-vulnerable').checked
   
     if (nameVal) filters.push({ field: 'name', type: 'like', value: nameVal })
     if (versionVal) filters.push({ field: 'version', type: 'like', value: versionVal })
     if (appVal) filters.push({ field: 'app', type: 'like', value: appVal })
     if (serverVal) filters.push({ field: 'server', type: 'like', value: serverVal })
     if (descriptionVal) filters.push({ field: 'description', type: 'like', value: descriptionVal })
+    if (vulnerableOnly) filters.push({ field: 'vulns', type: '>', value: 0 })
   
     librariesTable.setFilter(filters)
   }
@@ -84,7 +138,7 @@
   ;['filter-name', 'filter-version', 'filter-description'].forEach((id) => {
     document.getElementById(id).addEventListener('input', applyLibrariesFilters)
   })
-  ;['filter-app', 'filter-server'].forEach((id) => {
+  ;['filter-app', 'filter-server', 'filter-vulnerable'].forEach((id) => {
     document.getElementById(id).addEventListener('change', applyLibrariesFilters)
   })
   
@@ -96,6 +150,7 @@
     ;['filter-app', 'filter-server'].forEach((id) => {
       document.getElementById(id).value = ''
     })
+    document.getElementById('filter-vulnerable').checked = false
     librariesTable.clearFilter()
   })
 </script>

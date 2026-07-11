@@ -8,6 +8,7 @@ use Mata\Config\EnvConfigFatalException;
 use Mata\Config\EnvConfigManager;
 use Mata\Config\LogConfigurator;
 use Mata\Config\MonitoringSettingsLoader;
+use Mata\Controllers\AuditController;
 use Mata\Controllers\DashboardController;
 use Mata\Controllers\LoginController;
 use Mata\Controllers\MetricsController;
@@ -373,6 +374,19 @@ $dashboardController = new DashboardController(
 
 $logDataTransformer = new LogDataTransformer($log);
 
+$auditController = new AuditController(
+    $app,
+    $tools,
+    $twig,
+    $log,
+    $appConfig,
+    $cacheStore,
+    $cacheKeyFactory,
+    $ttlResolver,
+    $endpoints,
+    $monitoringSettings['servers'],
+);
+
 $modalController = new ModalController(
     $app,
     $tools,
@@ -441,6 +455,7 @@ $routerSetup = new RouterSetup(
     $app,
     $loginController,
     $dashboardController,
+    $auditController,
     $modalController,
     $metricsController,
     $endpoints,

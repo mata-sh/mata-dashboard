@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Mata\Services\Collect;
 
+use Mata\Constants\CacheTypes;
+
 /**
  * Server data collection interface.
  *
@@ -125,6 +127,20 @@ interface ServerDataCollectorInterface
      * @return null|array<string,mixed> Session data or null on failure
      */
     public function fetchAppSessions(string $app, string $cacheType = 'sessions'): ?array;
+
+    /**
+     * Fetch Composer audit results for a specific app.
+     *
+     * @return null|array<string,mixed> Normalized Composer audit response or null on failure
+     */
+    public function fetchAppComposerAudit(string $app, string $cacheType = CacheTypes::AUDIT): ?array;
+
+    /**
+     * Return cached Composer audit results for a specific app without requesting the node.
+     *
+     * @return null|array<string,mixed> Normalized cached Composer audit response or null when unavailable
+     */
+    public function getCachedAppComposerAudit(string $app): ?array;
 
     /**
      * Fetch server cronjob heartbeat entries.

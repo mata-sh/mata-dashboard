@@ -8,5 +8,6 @@
     "readme": -1,
     "errorlog": 30,
     "sessions": 300,
-    "cronjobs": 300
+    "cronjobs": 300,
+    "audit": 86400
 }
