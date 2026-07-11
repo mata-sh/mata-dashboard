@@ -200,3 +200,22 @@ function mataPopulateSelectFromRows(selectId, rows, field, placeholder) {
 }
 
 window.mataPopulateSelectFromRows = mataPopulateSelectFromRows;
+
+const mataLevelColors = Object.freeze({
+    critical: '#ff4d4d',
+    error: '#ff8c42',
+    warning: '#ffd24d',
+    info: '#3FB449',
+});
+
+function mataFormatLevel(cell) {
+    const value = cell.getValue();
+
+    if (!Object.prototype.hasOwnProperty.call(mataLevelColors, value)) {
+        return value;
+    }
+
+    return `<span style="color:${mataLevelColors[value]}; font-weight:bold;">${value}</span>`;
+}
+
+window.mataFormatLevel = mataFormatLevel;

@@ -1,72 +1,81 @@
 ---
-title: Alarm Limiting & Dispatch
+title: Alarm Decision and Delivery Flow
 ---
 
-# Alarm Limiting & Dispatch
+# Alarm Decision and Delivery Flow
 
-This document describes the alarm limiting workflow introduced in `ALARM_LIMITING.md`. It covers configuration, runtime behaviour, and operational procedures for the alarm queue and dispatcher.
+## Pipeline
 
-## Overview
-- Alarms are recorded via `EventManager`, stored in `events`, and enqueued through `AlarmManager`.
-- `alarms` now represents a delivery queue with statuses `pending`, `processing`, `sent`, `retry`, `failed`, `throttled`, and `discarded`.
-- A dedicated cron job (`cron/alarms_dispatch.php`) processes queued alarms, honours per-channel rate limits, and updates retry metadata.
-- When the database is unavailable, filesystem locks under `temp/alarm-locks/` prevent runaway alarm fan-out.
+```text
+thresholds.json -> OPA -> intervals.json -> queue -> limits.json -> transport
+```
 
-## Configuration
-- Limits live in `config/limits.json`. Structure:
-  ```json
-  {
-    "channels": {
-      "email": {"per_minute": 30, "per_hour": 200, "per_day": 1000},
-      "default": {"per_minute": 20, "per_hour": 120, "per_day": 500}
-    },
-    "overrides": {
-      "server-alpha": {
-        "email": {"per_minute": 10, "per_hour": 80, "per_day": 300}
-      }
-    }
-  }
-  ```
-- Override keys must match server names defined in `config/<env>/servers.json`.
-- Adjust limits per environment by copying `config/limits.json` alongside other environment-specific config files.
-- Update `data_retention.json` to control how long sent/terminal alarms are kept (default 30 days).
+The stages run in this order:
 
-## Runtime Components
-- **AlarmManager**: Persists queue entries and falls back to filesystem locks when DB writes fail.
-- **AlarmDispatcher**: Fetches pending alarms, enforces limits via `AlarmRateLimiter`, dispatches through `AlarmEmailSender`, and updates statuses.
-- **ChannelLockManager**: Maintains per `(server, channel)` timestamps on disk (`temp/alarm-locks/<server>/<channel>.lock`).
-- **AlarmRateLimiter**: Applies per-minute/hour/day ceilings using historical send counts.
+| Layer | Responsibility |
+|---|---|
+| `thresholds.json` | Decides whether an event pattern is an alarm candidate. PHP applies count-based candidate thresholds. |
+| OPA | Decides whether a candidate becomes a logical alarm, selects supported channels, and assigns delivery priority. It returns `allow`, `channels`, `priority`, `enrich`, and `reason`. |
+| `intervals.json` | Deduplicates equivalent channel deliveries. |
+| Queue | Persists the logical alarm and every selected, non-deduplicated channel delivery. |
+| `limits.json` | Applies per-server, per-channel transport rate limits to queued deliveries. |
+| Transport | Sends a due delivery through its channel. |
 
-## Operational Procedures
-1. **Queue Processing Cron**  
-   Schedule `cron/alarms_dispatch.php` to run every minute (or faster) alongside existing monitoring jobs. It is self-locking and safe to run concurrently with other cron scripts.
+OPA does not perform cooldown or transport rate-limit logic. PHP owns candidate thresholds, delivery deduplication, queue persistence, and transport rate limiting.
 
-2. **Monitoring**  
-   - Track cron logs under `logs/cron/dispatch_alarms.log`.  
-   - Metrics are emitted via log context (`status`, `channel`, `server`) and can be scraped by existing log aggregation.
-   - When the dispatcher throttles alarms, it leaves entries in `pending` with an updated `next_retry_at`.
+## Logical alarms and deliveries
 
-3. **Backlog Inspection**  
-   - Pending alarms:  
-     ```sql
-     SELECT * FROM alarms WHERE status IN ('pending','retry') ORDER BY created_at;
-     ```
-   - Failed alarms include diagnostic payloads in `error_payload`.
+A **logical alarm** is the policy result for one event. It remains visible in the dashboard even when it has no channel deliveries.
 
-4. **Fallback Behaviour**  
-   - If MySQL is unavailable, AlarmManager writes timestamps to `temp/alarm-locks`. Clearing the lock files resets throttling once service is restored.
-   - Dispatcher resumes automatically; no manual steps needed beyond ensuring cron job is running.
+A **delivery** is one queued attempt for a selected channel. A logical alarm can have multiple deliveries, one per channel. Queue state and retry metadata belong to deliveries, not logical alarms.
 
-5. **Retention & Cleanup**  
-   - Terminal statuses (`sent`, `failed`, `discarded`) are removed after the retention period defined in `config/data_retention.json`.
-   - Consider a nightly job to prune old queue rows if not already configured.
+`intervals.json` deduplicates a delivery before it enters the queue. Its identity is:
 
-## Validation & Testing
-- `composer phpunit --filter ChannelLockManagerTest` covers filesystem lock semantics.
-- `composer phpunit --filter AlarmLimitHelperTest` validates limit spacing calculations.
-- `composer phpunit --filter AlarmRateLimiterTest` validates enforcement of per-channel counters.
+```text
+event type + server + application + context + channel
+```
 
-## Migration Notes
-- Run the migration `20251104120000_update_dashboard_alarm_log_queue.php` after deploying code.
-- Ensure `config/limits.json` is deployed before enabling the dispatcher cron.
-- Review `ALARM_LIMITING.md` for the implementation plan and outstanding open questions.
+A matching delivery inside `alarms.min_alarm_interval_minutes` is permanently omitted. It is not queued, deferred, or sent after the interval ends.
+
+`limits.json` applies after queueing. If transport rate limiting rejects a delivery, the delivery remains `pending`, keeps its current `attempts` value, and receives a future `next_retry_at`. It is claimable only at or after that timestamp. This is a delay, not deduplication.
+
+## `intervals.json` legacy name
+
+`alarms.min_alarm_interval_minutes` is a legacy name. It is a per-channel delivery-deduplication window; it does not delay a logical alarm or a queued delivery.
+
+A future configuration migration should rename it to:
+
+```text
+alarms.delivery_deduplication_interval_minutes
+```
+
+The current key remains supported to avoid a configuration migration. JSON configuration files remain strict JSON; document the meaning outside the JSON rather than adding comments to them.
+
+## Examples
+
+### OPA allows an alarm, but email is deduplicated
+
+At 10:00, an event produces a logical alarm and an email delivery. `intervals.json` sets `app_unreachable` to 60 minutes.
+
+At 10:20, an equivalent `app_unreachable` event for the same server, application, context, and `email` channel reaches OPA. OPA returns `allow: true` and selects `email`. PHP creates the second logical alarm, but finds the matching email cooldown. The email delivery is omitted permanently.
+
+The dashboard shows both logical alarms. Only the first has an email delivery.
+
+### Queued email is delayed by `limits.json`
+
+`limits.json` allows one email per server per minute. At 10:00:30, a queued email is claimed, but an email for that server was already sent at 10:00:00. The rate limiter rejects it.
+
+The dispatcher leaves the delivery `pending`, does not increment `attempts`, and sets `next_retry_at` to 10:01:30. A dispatcher run before 10:01:30 does not claim it. At or after 10:01:30, it becomes eligible for another transport attempt.
+
+## Operations
+
+Schedule `cron/alarms_dispatch.php` at least once per minute. To inspect delayed deliveries:
+
+```sql
+SELECT id, alarm_id, channel, status, attempts, next_retry_at
+FROM alarm_deliveries
+WHERE status IN ('pending', 'retry')
+ORDER BY next_retry_at, created_at;
+```
+
+Terminal delivery states are `sent`, `failed`, and `discarded`. `processing` is an active claim and must not be claimed again.

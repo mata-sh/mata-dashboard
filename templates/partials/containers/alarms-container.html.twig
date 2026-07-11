@@ -49,29 +49,7 @@
         {title: "Datetime", field: "datetime", sorter: "datetime", hozAlign:"center"},
         {title: "Server", field: "server", sorter: "string", hozAlign:"center"},
         {title: "App", field: "app", sorter: "string", hozAlign:"center"},
-        {title:"Level", field:"level", hozAlign:"center", formatter:function(cell, formatterParams){
-
-        var value = cell.getValue();
-        switch (value) {
-            case "critical":
-                return "<span style='color:#ff4d4d; font-weight:bold;'>" + value + "</span>";
-
-                break;
-            case "error":
-                return "<span style='color:#ff8c42; font-weight:bold;'>" + value + "</span>";
-
-            case "warning":
-                return "<span style='color:#ffd24d; font-weight:bold;'>" + value + "</span>";
-            case "info":
-                return "<span style='color:#3FB449; font-weight:bold;'>" + value + "</span>";
-
-                break;
-
-            default:
-                return value
-                break;
-        }
-        }},
+        {title:"Level", field:"level", hozAlign:"center", formatter: window.mataFormatLevel},
         {title: "Type", field: "type", sorter: "string",  formatter:function(cell, formatterParams){
         var value = cell.getValue();
         return "<span style='font-weight:bold;'>" + value + "</span>";

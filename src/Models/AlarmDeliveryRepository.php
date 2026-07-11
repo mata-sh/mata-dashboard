@@ -13,6 +13,8 @@ use PDOException;
 /** Persistence operations for channel-specific alarm deliveries. */
 final class AlarmDeliveryRepository
 {
+    private const SQL_DATETIME = 'Y-m-d H:i:s';
+
     public function __construct(private DatabaseInterface $db) {}
 
     /** @throws PDOException */
@@ -28,24 +30,17 @@ final class AlarmDeliveryRepository
                 [$alarmId, $channel, $priority]
             );
         } catch (PDOException $exception) {
-            $rows = $this->db->runQuery(
-                'SELECT id FROM alarm_deliveries WHERE alarm_id = ? AND channel = ?',
-                [$alarmId, $channel]
-            );
-            if (is_array($rows) && isset($rows[0]['id'])) {
-                return (int) $rows[0]['id'];
-            }
-
-            throw $exception;
+            // Unique (alarm_id, channel) violation: the delivery is already queued.
+            return $this->findExistingId($alarmId, $channel) ?? throw $exception;
         }
     }
 
     /** @return array<int,QueuedAlarmDelivery> */
     public function claimPending(DateTimeImmutable $now, int $limit = 50): array
     {
-        $cutoff = $now->format('Y-m-d H:i:s');
+        $nowSql = $now->format(self::SQL_DATETIME);
         $limit = max(1, $limit);
-        $rows = $this->db->runQuery(<<<SQL
+        $rows = $this->runSelect(<<<SQL
             SELECT ad.id, al.event_id, ad.channel, ad.priority, ad.attempts, ad.next_retry_at, ad.created_at,
                 e.type, e.message, e.level, e.context,
                 COALESCE(s.name, '') AS server_name,
@@ -55,12 +50,12 @@ final class AlarmDeliveryRepository
             LEFT JOIN events AS e ON e.id = al.event_id
             LEFT JOIN servers AS s ON s.id = e.server_id
             LEFT JOIN applications AS a ON a.id = e.application_id
-            WHERE ad.status = 'pending'
-               OR (ad.status = 'retry' AND (ad.next_retry_at IS NULL OR ad.next_retry_at <= ?))
+            WHERE ad.status IN ('pending', 'retry')
+              AND (ad.next_retry_at IS NULL OR ad.next_retry_at <= ?)
             ORDER BY ad.priority ASC, ad.created_at ASC
             LIMIT {$limit}
-            SQL, [$cutoff]);
-        if (!is_array($rows) || $rows === []) {
+            SQL, [$nowSql]);
+        if ($rows === []) {
             return [];
         }
 
@@ -68,7 +63,7 @@ final class AlarmDeliveryRepository
         $placeholders = implode(',', array_fill(0, count($ids), '?'));
         $this->db->runQuery(
             "UPDATE alarm_deliveries SET status = 'processing', processed_at = ? WHERE id IN ({$placeholders})",
-            array_merge([$cutoff], $ids)
+            array_merge([$nowSql], $ids)
         );
 
         return array_map(fn (array $row): QueuedAlarmDelivery => $this->hydrate($row), $rows);
@@ -84,7 +79,7 @@ final class AlarmDeliveryRepository
         if ($pairs === []) {
             return [];
         }
-        $rows = $this->db->runQuery(<<<'SQL'
+        $rows = $this->runSelect(<<<'SQL'
             SELECT LOWER(COALESCE(s.name, 'global')) AS server_key, LOWER(ad.channel) AS channel,
                 SUM(CASE WHEN ad.processed_at >= :minute_threshold THEN 1 ELSE 0 END) AS minute_count,
                 SUM(CASE WHEN ad.processed_at >= :hour_threshold THEN 1 ELSE 0 END) AS hour_count,
@@ -97,16 +92,16 @@ final class AlarmDeliveryRepository
               AND ad.processed_at >= :day_threshold
             GROUP BY server_key, channel
             SQL, [
-            ':minute_threshold' => $now->sub(new DateInterval('PT1M'))->format('Y-m-d H:i:s'),
-            ':hour_threshold' => $now->sub(new DateInterval('PT1H'))->format('Y-m-d H:i:s'),
-            ':day_threshold' => $now->sub(new DateInterval('P1D'))->format('Y-m-d H:i:s'),
+            ':minute_threshold' => $now->sub(new DateInterval('PT1M'))->format(self::SQL_DATETIME),
+            ':hour_threshold' => $now->sub(new DateInterval('PT1H'))->format(self::SQL_DATETIME),
+            ':day_threshold' => $now->sub(new DateInterval('P1D'))->format(self::SQL_DATETIME),
         ]);
 
         $lookup = [];
         foreach ($pairs as $pair) {
             $lookup[strtolower($pair['server'])][strtolower($pair['channel'])] = ['minute' => 0, 'hour' => 0, 'day' => 0];
         }
-        foreach (is_array($rows) ? $rows : [] as $row) {
+        foreach ($rows as $row) {
             $server = (string) ($row['server_key'] ?? 'global');
             $channel = (string) ($row['channel'] ?? '');
             if (isset($lookup[$server][$channel])) {
@@ -133,8 +128,30 @@ final class AlarmDeliveryRepository
     {
         $this->db->runQuery(
             'UPDATE alarm_deliveries SET status = ?, attempts = ?, next_retry_at = ?, processed_at = CURRENT_TIMESTAMP WHERE id = ?',
-            [$status, $attempts, $nextRetryAt?->format('Y-m-d H:i:s'), $deliveryId]
+            [$status, $attempts, $nextRetryAt?->format(self::SQL_DATETIME), $deliveryId]
         );
+    }
+
+    private function findExistingId(int $alarmId, string $channel): ?int
+    {
+        $rows = $this->runSelect(
+            'SELECT id FROM alarm_deliveries WHERE alarm_id = ? AND channel = ?',
+            [$alarmId, $channel]
+        );
+
+        return isset($rows[0]['id']) ? (int) $rows[0]['id'] : null;
+    }
+
+    /**
+     * @param array<int|string,mixed> $params
+     *
+     * @return array<int,array<string,mixed>>
+     */
+    private function runSelect(string $sql, array $params = []): array
+    {
+        $rows = $this->db->runQuery($sql, $params);
+
+        return is_array($rows) ? $rows : [];
     }
 
     /** @param array<string,mixed> $row */

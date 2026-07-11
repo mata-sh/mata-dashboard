@@ -206,7 +206,15 @@ class EventRepository
         $cutoff = (new DateTimeImmutable('now'))
             ->sub(new DateInterval(sprintf('P%dD', $days)))
             ->format('Y-m-d H:i:s');
-        $sql = 'DELETE FROM events WHERE datetime < :cutoff AND NOT EXISTS (SELECT 1 FROM alarms WHERE alarms.event_id = events.id)';
+        $sql = <<<'SQL'
+            DELETE FROM events
+            WHERE datetime < :cutoff
+              AND NOT EXISTS (
+                  SELECT 1
+                  FROM alarms
+                  WHERE alarms.event_id = events.id
+              )
+        SQL;
         $this->db->runQuery($sql, ['cutoff' => $cutoff]);
     }
 

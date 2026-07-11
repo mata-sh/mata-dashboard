@@ -25,7 +25,6 @@ fatal_prod_app_error := result if {
         "channels": configured_channels(),
         "priority": 90,
         "enrich": false,
-        "interval_minutes": 60,
         "reason": "fatal_errors_prod",
     }
 }
@@ -39,7 +38,6 @@ disk_usage_critical := result if {
         "channels": ["email", "messenger"],
         "priority": 90,
         "enrich": false,
-        "interval_minutes": 60,
         "reason": "disk_over_80_critical",
     }
 }
@@ -53,7 +51,6 @@ disk_usage_warning := result if {
         "channels": ["email"],
         "priority": 30,
         "enrich": false,
-        "interval_minutes": 240,
         "reason": "disk_over_80_warning",
     }
 }
@@ -67,7 +64,6 @@ cpu_usage_over_80_4h := result if {
         "channels": ["email"],
         "priority": 40,
         "enrich": false,
-        "interval_minutes": 240,
         "reason": "cpu_over_80_4h",
     }
 }
@@ -79,7 +75,6 @@ library_outdated_security := result if {
         "channels": ["email"],
         "priority": 75,
         "enrich": false,
-        "interval_minutes": 1440,
         "reason": "library_outdated_security",
     }
 }

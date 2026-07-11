@@ -14,7 +14,7 @@ MATA Dashboard uses several configuration files located in the `config/` directo
 | `servers.json` | Monitored servers definition | Yes |
 | `users.json` | User authentication data | Yes |
 | `thresholds.json` | Metric thresholds and alarm triggers | No (uses defaults) |
-| `intervals.json` | Event/alarm cooldown intervals | No (uses defaults) |
+| `intervals.json` | Event cooldowns and alarm delivery-deduplication windows | No (uses defaults) |
 | `ttl.json` | Cache TTL settings | No (uses defaults) |
 | `data_retention.json` | Metrics retention settings | No (uses defaults) |
 
@@ -268,9 +268,9 @@ Control how often the same event can be logged (in minutes).
 }
 ```
 
-### Alarm Cooldown Intervals
+### Alarm Delivery-Deduplication Intervals
 
-Control how often the same alarm notification can be sent (in minutes).
+`alarms.min_alarm_interval_minutes` is a legacy-named per-channel delivery-deduplication window, in minutes. It omits matching deliveries; it does not delay them.
 
 ```json
 {
@@ -293,21 +293,23 @@ Control how often the same alarm notification can be sent (in minutes).
 | `alarms._default` | 1440 min (24h) | Fallback for unconfigured alarm types |
 | Per-event/alarm | Custom | Override default for specific event types |
 
-**How cooldowns work:**
+**How intervals work:**
 
-1. **Event Cooldown**: Prevents logging duplicate events within the interval
-   - Example: `app_unreachable: 15` = log event at most once every 15 minutes
-   - Events use hash of `type|server|app|context` for deduplication
+1. **Event cooldown**: Prevents logging duplicate events within the interval.
+   - Example: `app_unreachable: 15` logs an event at most once every 15 minutes.
+   - Events use `type|server|app|context` for deduplication.
 
-2. **Alarm Cooldown**: Prevents sending duplicate notifications within the interval
-   - Example: `app_unreachable: 60` = send alarm at most once per hour
-   - Alarms use hash of `type|server|app|context|channel` for per-channel tracking
-   - Email and SMS cooldowns are independent
+2. **Alarm delivery deduplication**: Omits a matching channel delivery inside the interval.
+   - Example: `app_unreachable: 60` omits an equivalent email delivery for one hour.
+   - Deliveries use `type|server|app|context|channel`; email and SMS are independent.
+   - The delivery is omitted permanently. It is not delayed until the window ends.
+
+`min_alarm_interval_minutes` is retained for compatibility. A future configuration migration should rename it to `delivery_deduplication_interval_minutes`. Transport rate limiting is configured separately in `limits.json`; it retains queued deliveries and schedules a later retry. See the [Alarm Decision and Delivery Flow reference](../reference/alarms.md).
 
 **Best practices:**
-- Set event intervals short (15-60 min) to capture state changes
-- Set alarm intervals longer (60-1440 min) to avoid notification fatigue
-- Use `_default` values for consistent baseline behavior
+- Set event intervals short (15-60 min) to capture state changes.
+- Set delivery-deduplication intervals longer (60-1440 min) to avoid notification fatigue.
+- Use `_default` values for a consistent baseline.
 
 ## Cache TTL Configuration (ttl.json)
 

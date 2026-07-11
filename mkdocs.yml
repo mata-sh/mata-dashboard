@@ -31,17 +31,8 @@ nav:
 #     - Monitoring: guides/monitoring.md
 #     - Deployment: guides/deployment.md
 
-# - Reference:
-#     - Server Metrics: reference/server-metrics.md
-#     - Application Monitoring: reference/application-monitoring.md
-#     - Event System: reference/event-system.md
-#     - Configuration: reference/configuration-reference.md
-#     - Thresholds: reference/thresholds.md
-#     - Alarms: reference/alarms.md
-#     - API:
-#         - Node API: api/node-api.md
-#         - Dashboard Endpoints: api/dashboard-endpoints.md
-#         - Hooks: api/hooks.md
+  - Reference:
+      - Alarm Decision and Delivery Flow: drafts/reference/alarms.md
 
   - Architecture:
     - Security: architecture/security.md
