@@ -94,6 +94,7 @@ final class EnvConfigLoader
             alarmsEnabled: $this->getEnvBool('ALARMS_ENABLED', true),
             eventsEnabled: $this->getEnvBool('EVENTS_ENABLED', true),
             appName: $this->getEnv('APP_NAME', 'MATA'),
+            securityHeadersEnabled: $this->getEnvBool('SECURITY_HEADERS_ENABLED', true),
         );
     }
 

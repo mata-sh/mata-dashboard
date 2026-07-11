@@ -30,9 +30,12 @@ CLI_STRICT_USER_CHECK=ON
 
 # whitelist of allowed users comma separated: user1,user2..
 CLI_ALLOWED_USERS=www-data
+
+# browser security headers (CSP, HSTS, clickjacking protection)
+SECURITY_HEADERS_ENABLED=ON
 ```
 
-`ON`/`OFF` values are valid for this application's `.env` parser.
+`ON`/`OFF` values are valid for this application's `.env` parser. Set `SECURITY_HEADERS_ENABLED=OFF` only for local browser-integration debugging.
 
 
 ## API Key Authentication

@@ -9,8 +9,12 @@ class SecurityHeaders
     /**
      * @return array<string,string>
      */
-    public static function headers(): array
+    public static function headers(bool $enabled = true): array
     {
+        if (!$enabled) {
+            return [];
+        }
+
         $contentSecurityPolicy = [
             "default-src 'self'",
             "base-uri 'self'",
@@ -39,9 +43,9 @@ class SecurityHeaders
         return $headers;
     }
 
-    public static function apply(): void
+    public static function apply(bool $enabled = true): void
     {
-        foreach (self::headers() as $name => $value) {
+        foreach (self::headers($enabled) as $name => $value) {
             header($name . ': ' . $value);
         }
     }

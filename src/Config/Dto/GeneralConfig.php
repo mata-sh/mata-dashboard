@@ -8,7 +8,7 @@ namespace Mata\Config\Dto;
  * Immutable DTO representing general application configuration.
  *
  * Contains application-wide settings including maintenance mode,
- * IP whitelisting, access control settings, and monitoring flags.
+ * IP whitelisting, access control settings, monitoring flags, and security headers.
  */
 final class GeneralConfig
 {
@@ -23,5 +23,6 @@ final class GeneralConfig
         public readonly bool $alarmsEnabled,
         public readonly bool $eventsEnabled,
         public readonly string $appName = 'MATA',
+        public readonly bool $securityHeadersEnabled = true,
     ) {}
 }

@@ -22,6 +22,11 @@ class SecurityHeadersTest extends TestCase
         parent::tearDown();
     }
 
+    public function testHeadersAreEmptyWhenDisabled(): void
+    {
+        $this->assertSame([], SecurityHeaders::headers(false));
+    }
+
     public function testHeadersIncludeExpectedBrowserSecurityPolicy(): void
     {
         unset($_SERVER['HTTPS']);

@@ -35,6 +35,25 @@ class EnvConfigLoaderTest extends TestCase
         $this->assertInstanceOf(EnvConfigLoader::class, $this->configLoader);
     }
 
+    public function testItLoadsSecurityHeadersSetting(): void
+    {
+        $previousSetting = $_ENV['SECURITY_HEADERS_ENABLED'] ?? null;
+        $_ENV['SECURITY_HEADERS_ENABLED'] = 'OFF';
+
+        try {
+            $configPath = __DIR__ . '/../../Fixtures/config-minimal';
+            $config = $this->configLoader->load(['config.env'], $configPath);
+
+            $this->assertFalse($config->general->securityHeadersEnabled);
+        } finally {
+            if ($previousSetting === null) {
+                unset($_ENV['SECURITY_HEADERS_ENABLED']);
+            } else {
+                $_ENV['SECURITY_HEADERS_ENABLED'] = $previousSetting;
+            }
+        }
+    }
+
     /**
      * @test
      *
