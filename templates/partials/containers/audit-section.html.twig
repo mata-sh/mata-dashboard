@@ -13,7 +13,14 @@
     <form id="audit-targets" class="audit-targets">
       {% for server, s in summary.servers %}
         <div class="audit-server-row">
-          <div class="audit-server-info">
+          <div class="audit-server-info" title="toggle all apps on this server"
+               _="on click
+                    set row to closest .audit-server-row
+                    set boxes to <input[type='checkbox']/> in row
+                    set checkedBoxes to <input[type='checkbox']:checked/> in row
+                    repeat for box in boxes
+                      set box.checked to (checkedBoxes.length is 0)
+                    end">
             <span class="audit-server-label">{{ server }}</span>
             <span class="audit-server-meta">
               {%- if s.last_audited_label -%}

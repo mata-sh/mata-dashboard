@@ -16,7 +16,11 @@
       {% endfor %}
     </select>
     <input id="filter-description" type="text" placeholder="Description" />
-    <label class="checkbox filter-vulnerable"><input type="checkbox" id="filter-vulnerable"> vulnerable only</label>
+    <label class="toggle filter-vulnerable">
+      <input type="checkbox" id="filter-vulnerable">
+      <span class="toggle-track"></span>
+      <span class="toggle-text">vulnerable only</span>
+    </label>
     <button class="button" id="filter-clear">Clear Filter</button>
   </div>
 
@@ -60,10 +64,12 @@
         formatter: function (cell) {
           var d = cell.getRow().getData()
           if (!d.audited) return ''
+          var checkIcon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>'
+          var archiveIcon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="21 8 21 21 3 21 3 8"></polyline><rect x="1" y="3" width="22" height="5"></rect><line x1="10" y1="12" x2="14" y2="12"></line></svg>'
           var output = !d.vulns
-            ? '<span class="tag sev-none">ok</span>'
-            : '<span class="tag sev-' + d.severity + '">' + d.severity + ' · ' + d.vulns + '</span>'
-          if (d.abandoned) output += ' <span class="tag tag-abandoned">abandoned</span>'
+            ? '<span class="cve-badge cve-ok" title="no known vulnerabilities">' + checkIcon + '</span>'
+            : '<span class="cve-badge cve-' + d.severity + '" title="' + d.severity + ': ' + d.vulns + ' advisories">' + d.vulns + '</span>'
+          if (d.abandoned) output += ' <span class="cve-badge cve-abandoned" title="abandoned package">' + archiveIcon + '</span>'
           return output
         },
         cellClick: function (e, cell) {
