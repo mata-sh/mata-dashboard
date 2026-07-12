@@ -334,7 +334,88 @@ class ApiResponseTransformer
 
         $data['processes']['sql'] = $sql;
 
+        if (array_key_exists('databases', $data)) {
+            if ($data['databases'] === null) {
+                unset($data['databases']);
+            } elseif (!is_array($data['databases'])) {
+                throw new InvalidNodePayloadException('Node returned an invalid databases map.', 'server/databases');
+            } else {
+                $databases = [];
+                foreach ($data['databases'] as $databaseName => $entry) {
+                    $databases[$databaseName] = $this->normalizeDatabaseEntry((string) $databaseName, $entry);
+                }
+                $data['databases'] = $databases;
+            }
+        }
+
         return $data;
+    }
+
+    /**
+     * @return array{
+     *     database:null|string,
+     *     configured_database:null|string,
+     *     host:null|string,
+     *     port:null|int,
+     *     description:null|string,
+     *     max_connections:null|int,
+     *     active_threads:null|int,
+     *     active_processes:null|int,
+     *     process_list:array<int,array<string,mixed>>,
+     *     connection_error:string
+     * }
+     */
+    private function normalizeDatabaseEntry(string $name, mixed $entry): array
+    {
+        if (!is_array($entry) || (array_key_exists('connection_error', $entry)
+            && $entry['connection_error'] !== null && !is_scalar($entry['connection_error']))) {
+            $this->logger->warning('Malformed database entry from node', [
+                'endpoint' => 'server/databases',
+                'database' => $name,
+            ]);
+
+            return [
+                'database' => null,
+                'configured_database' => null,
+                'host' => null,
+                'port' => null,
+                'description' => null,
+                'max_connections' => null,
+                'active_threads' => null,
+                'active_processes' => null,
+                'process_list' => [],
+                'connection_error' => 'Malformed entry from node',
+            ];
+        }
+
+        $port = TypeConverter::toInt($entry['port'] ?? null);
+        if ($port === null || $port < 1 || $port > 65535) {
+            $port = null;
+        }
+
+        $counts = [];
+        foreach (['max_connections', 'active_threads', 'active_processes'] as $field) {
+            $count = TypeConverter::toInt($entry[$field] ?? null);
+            $counts[$field] = $count === null || $count < 0 ? null : $count;
+        }
+
+        $processList = $entry['process_list'] ?? null;
+        if (!is_array($processList)) {
+            $processList = [];
+        }
+
+        return [
+            'database' => TypeConverter::toString($entry['database'] ?? null),
+            'configured_database' => TypeConverter::toString($entry['configured_database'] ?? null),
+            'host' => TypeConverter::toString($entry['host'] ?? null),
+            'port' => $port,
+            'description' => TypeConverter::toString($entry['description'] ?? null),
+            'max_connections' => $counts['max_connections'],
+            'active_threads' => $counts['active_threads'],
+            'active_processes' => $counts['active_processes'],
+            'process_list' => array_values(array_filter($processList, static fn (mixed $row): bool => is_array($row))),
+            'connection_error' => TypeConverter::toString($entry['connection_error'] ?? null) ?? '',
+        ];
     }
 
     /** @param array<string,mixed> $data */

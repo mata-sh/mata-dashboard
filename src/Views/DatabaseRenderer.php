@@ -6,7 +6,6 @@ namespace Mata\Views;
 
 use Exception;
 use Mata\Services\Collect\ServerDataCollectorInterface;
-use Mata\Utils\TypeConverter;
 
 /**
  * Database rendering service.
@@ -151,7 +150,7 @@ class DatabaseRenderer extends BaseRenderer
     }
 
     /**
-     * Normalize database entries for display.
+     * Build database entries for display.
      *
      * @param array<string,mixed> $databaseData Database data from API
      *
@@ -168,22 +167,15 @@ class DatabaseRenderer extends BaseRenderer
         $entries = [];
 
         foreach ($databases as $databaseName => $entry) {
-            if (!is_array($entry)) {
-                $this->logError('Invalid database entry.', 'DatabaseCard', [
-                    'database' => (string) $databaseName,
-                ]);
+            $database = $entry['database'];
+            $name = (string) $databaseName;
+            $name = $name !== '' ? $name : ($database ?? '');
+            $configuredDatabase = $entry['configured_database'];
+            $host = $entry['host'];
+            $port = $entry['port'];
+            $connectionError = $entry['connection_error'];
 
-                continue;
-            }
-
-            $database = TypeConverter::toString($entry['database'] ?? null);
-            $name = TypeConverter::toString($databaseName) ?? $database ?? '';
-            $configuredDatabase = TypeConverter::toString($entry['configured_database'] ?? null);
-            $host = TypeConverter::toString($entry['host'] ?? null);
-            $port = TypeConverter::toString($entry['port'] ?? null);
-            $connectionError = TypeConverter::toString($entry['connection_error'] ?? null);
-
-            if ($connectionError !== null) {
+            if ($connectionError !== '') {
                 $this->logError($connectionError, 'DatabaseCard', [
                     'database' => $name,
                 ]);
@@ -193,13 +185,13 @@ class DatabaseRenderer extends BaseRenderer
                 'name' => $name,
                 'configured_database' => $configuredDatabase !== $database ? $configuredDatabase : null,
                 'endpoint' => $host === null ? '' : $host . ($port === null ? '' : ':' . $port),
-                'description' => $this->escape(TypeConverter::toString($entry['description'] ?? null) ?? ''),
-                'max_connections' => $this->formatCount($entry['max_connections'] ?? null),
-                'active_threads' => $this->formatCount($entry['active_threads'] ?? null),
-                'active_processes' => $this->formatCount($entry['active_processes'] ?? null),
-                'process_count' => is_array($entry['process_list'] ?? null) ? count($entry['process_list']) : 0,
-                'status' => $connectionError === null ? 'ok' : 'error',
-                'status_tooltip' => $connectionError === null
+                'description' => $this->escape($entry['description'] ?? ''),
+                'max_connections' => $this->formatCount($entry['max_connections']),
+                'active_threads' => $this->formatCount($entry['active_threads']),
+                'active_processes' => $this->formatCount($entry['active_processes']),
+                'process_count' => count($entry['process_list']),
+                'status' => $connectionError === '' ? 'ok' : 'error',
+                'status_tooltip' => $connectionError === ''
                     ? 'Connected'
                     : $this->truncate($this->escape($connectionError), 160),
             ];
@@ -211,15 +203,13 @@ class DatabaseRenderer extends BaseRenderer
     /**
      * Format a node-supplied count for display.
      *
-     * @param mixed $value Raw count value from the node payload
+     * @param null|int $value Count value from the normalized node payload
      *
-     * @return null|string Formatted number, or null when the value is not numeric
+     * @return null|string Formatted number, or null when unavailable
      */
-    private function formatCount(mixed $value): ?string
+    private function formatCount(?int $value): ?string
     {
-        $count = TypeConverter::toInt($value);
-
-        return $count === null ? null : $this->formatNumber($count);
+        return $value === null ? null : $this->formatNumber($value);
     }
 
     /**
