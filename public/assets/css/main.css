@@ -379,22 +379,25 @@ svg {
 
 .warn,
 .warn svg {
-    color: white;
-    stroke: white;
+    color: #ffd24d;
+    stroke: currentColor;
 }
 
 .critical,
 .critical svg {
-    color: gold;
-    stroke: gold;
-
+    color: #ff4d4d;
+    stroke: currentColor;
 }
 
-.alarm,
-.alarm svg {
-    color: red;
-    stroke: red;
+.alarm {
+    color: #fff;
+    background-color: #e53935;
     font-weight: bold;
+}
+
+.alarm svg {
+    color: inherit;
+    stroke: currentColor;
 }
 
 
@@ -812,6 +815,22 @@ svg {
 .app-title .app-url-btn:focus-visible,
 .app-title .app-readme-btn.modal-trigger:focus-visible {
     box-shadow: 0 0 0 2px rgba(63, 147, 166, .2);
+}
+
+.server-cronjobs.modal-trigger.alarm,
+.server-metric-trigger.modal-trigger.alarm {
+    color: #fff;
+    background-color: #e53935;
+    border-color: #ff6b66;
+}
+
+.server-cronjobs.modal-trigger.alarm:hover,
+.server-cronjobs.modal-trigger.alarm:focus-visible,
+.server-metric-trigger.modal-trigger.alarm:hover,
+.server-metric-trigger.modal-trigger.alarm:focus-visible {
+    color: #fff;
+    background-color: #f04440;
+    border-color: #ff8984;
 }
 
 .server-stats .server-cronjobs.modal-trigger,
