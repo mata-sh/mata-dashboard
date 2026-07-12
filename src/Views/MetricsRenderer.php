@@ -5,12 +5,7 @@ declare(strict_types=1);
 namespace Mata\Views;
 
 use Exception;
-use Mata\Core\App;
 use Mata\Http\Responses\JsonResponse;
-use Mata\Http\Routing\Endpoints;
-use Mata\Utils\Tools;
-use Monolog\Logger;
-use Twig\Environment;
 
 /**
  * Metrics renderer for visualization payloads.
@@ -20,16 +15,6 @@ use Twig\Environment;
  */
 class MetricsRenderer extends BaseRenderer
 {
-    public function __construct(
-        Environment $twig,
-        Logger $logger,
-        Tools $tools,
-        App $app,
-        Endpoints $endpoints
-    ) {
-        parent::__construct($twig, $logger, $tools, $app, $endpoints);
-    }
-
     /**
      * Render the metrics dashboard container with chart controls.
      *

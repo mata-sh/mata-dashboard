@@ -54,6 +54,17 @@ final class DatabaseRendererTest extends TestCase
         ]], $entries);
     }
 
+    public function testRoundsFloatCounts(): void
+    {
+        $entries = $this->buildEntries([
+            'databases' => [
+                'main' => ['active_threads' => 1.6],
+            ],
+        ]);
+
+        $this->assertSame('2', $entries[0]['active_threads']);
+    }
+
     public function testEscapesConnectionErrorTooltip(): void
     {
         $entries = $this->buildEntries([

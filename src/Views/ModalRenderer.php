@@ -5,12 +5,7 @@ declare(strict_types=1);
 namespace Mata\Views;
 
 use Exception;
-use Mata\Core\App;
-use Mata\Http\Routing\Endpoints;
 use Mata\Utils\Markdown;
-use Mata\Utils\Tools;
-use Monolog\Logger;
-use Twig\Environment;
 
 /**
  * Modal rendering service.
@@ -23,16 +18,6 @@ use Twig\Environment;
  */
 class ModalRenderer extends BaseRenderer
 {
-    public function __construct(
-        Environment $twig,
-        Logger $logger,
-        Tools $tools,
-        App $app,
-        Endpoints $endpoints
-    ) {
-        parent::__construct($twig, $logger, $tools, $app, $endpoints);
-    }
-
     /**
      * Build template data for README modal.
      *

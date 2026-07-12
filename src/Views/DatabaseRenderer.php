@@ -5,13 +5,8 @@ declare(strict_types=1);
 namespace Mata\Views;
 
 use Exception;
-use Mata\Core\App;
-use Mata\Http\Routing\Endpoints;
 use Mata\Services\Collect\ServerDataCollectorInterface;
-use Mata\Utils\Tools;
 use Mata\Utils\TypeConverter;
-use Monolog\Logger;
-use Twig\Environment;
 
 /**
  * Database rendering service.
@@ -23,16 +18,6 @@ use Twig\Environment;
  */
 class DatabaseRenderer extends BaseRenderer
 {
-    public function __construct(
-        Environment $twig,
-        Logger $logger,
-        Tools $tools,
-        App $app,
-        Endpoints $endpoints
-    ) {
-        parent::__construct($twig, $logger, $tools, $app, $endpoints);
-    }
-
     /**
      * Render complete database container with wrapper template.
      *
@@ -153,10 +138,7 @@ class DatabaseRenderer extends BaseRenderer
                 'primary_color' => $serverConfig['primary_color'],
                 'id' => $serverId,
             ],
-            'icons' => $this->getCommonIcons() + [
-                'refresh_server' => $this->tools->icon('refresh-ccw', 12),
-                'refresh_stats' => $this->tools->icon('refresh-ccw', 12),
-            ],
+            'icons' => $this->getCommonIcons(),
             'system' => [
                 'processes_sql' => $databaseData['processes']['sql'] ?? null,
             ],
