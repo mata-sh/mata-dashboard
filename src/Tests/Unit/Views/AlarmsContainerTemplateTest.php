@@ -13,6 +13,17 @@ use PHPUnit\Framework\TestCase;
  */
 final class AlarmsContainerTemplateTest extends TestCase
 {
+    public function testRendersAcknowledgementStatusAsSuccessBadge(): void
+    {
+        $template = (string) file_get_contents(__DIR__ . '/../../../../templates/partials/containers/alarms-container.html.twig');
+
+        $this->assertSame(1, substr_count($template, 'title: "Acknowledged"'));
+        $this->assertStringContainsString('field: "acknowledged_at"', $template);
+        $this->assertStringContainsString('badge.className = "cve-badge cve-ok";', $template);
+        $this->assertStringContainsString('badge.dataset.tippyContent = "Acknowledged by "', $template);
+        $this->assertStringContainsString('<polyline points="20 6 9 17 4 12"></polyline>', $template);
+    }
+
     public function testRendersOneEscapedDeliveriesColumn(): void
     {
         $template = (string) file_get_contents(__DIR__ . '/../../../../templates/partials/containers/alarms-container.html.twig');

@@ -97,16 +97,19 @@
                     "</span></div>";
             }).join("");
         }},
-        {title: "Acknowledged", field: "acknowledged_by", hozAlign:"center", formatter:function(cell){
+        {title: "Acknowledged", field: "acknowledged_at", width:130, hozAlign:"center", sorter:"string", formatter:function(cell){
             var rowData = cell.getRow().getData();
             if (!rowData.acknowledged_at) {
                 return "—";
             }
 
-            var acknowledgedAt = escapeHtml(rowData.acknowledged_at);
-            var acknowledgedBy = escapeHtml(rowData.acknowledged_by);
+            var badge = document.createElement("span");
+            badge.className = "cve-badge cve-ok";
+            badge.dataset.tippyContent = "Acknowledged by " + (rowData.acknowledged_by || "unknown") + " at " + rowData.acknowledged_at;
+            badge.setAttribute("aria-label", badge.dataset.tippyContent);
+            badge.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"></polyline></svg>';
 
-            return "<span data-tippy-content=\"Acknowledged at " + acknowledgedAt + "\">✓ " + acknowledgedBy + "</span>";
+            return badge;
         }},
         {title: "", field: "actions", headerSort:false, sorter:false, hozAlign:"center", formatter:function(cell){
             if (cell.getRow().getData().acknowledged_at) {
