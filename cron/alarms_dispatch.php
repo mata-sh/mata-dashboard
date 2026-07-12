@@ -6,7 +6,10 @@ declare(strict_types=1);
 use Mata\Config\AlarmLimitsLoader;
 use Mata\Models\AlarmDeliveryRepository;
 use Mata\Services\Alarm\AlarmDispatcher;
+use Mata\Services\Alarm\AlarmEmailFactory;
 use Mata\Services\Alarm\AlarmEmailSender;
+use Twig\Environment;
+use Twig\Loader\FilesystemLoader;
 
 $requiresDatabase = true;
 
@@ -27,15 +30,13 @@ try {
     $limitsLoader = new AlarmLimitsLoader($log);
     $limitsConfig = $limitsLoader->load($paths->appPath . '/config/limits.json');
 
-    // --- Mail Configuration ---
-    $mailConfig = [
-        'from_email' => $appConfig->mail->fromEmail,
-        'from_name' => $appConfig->mail->fromName,
-        'recipients' => $appConfig->mail->alarmRecipients,
-    ];
-
     // --- Senders & Dispatchers ---
-    $emailSender = new AlarmEmailSender($mailer, $mailConfig, $log);
+    $twig = new Environment(
+        new FilesystemLoader($paths->appPath . '/templates'),
+        ['autoescape' => 'name'],
+    );
+    $emailFactory = new AlarmEmailFactory($twig, $appConfig->mail, $appConfig->general->appName);
+    $emailSender = new AlarmEmailSender($mailer, $emailFactory, $log);
     $dispatcher = new AlarmDispatcher($deliveryRepository, $limitsConfig, $emailSender, $log);
 
     // --- Dispatch Alarm Deliveries ---

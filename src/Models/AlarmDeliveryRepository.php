@@ -41,7 +41,8 @@ final class AlarmDeliveryRepository
         $nowSql = $now->format(self::SQL_DATETIME);
         $limit = max(1, $limit);
         $rows = $this->runSelect(<<<SQL
-            SELECT ad.id, al.event_id, ad.channel, ad.priority, ad.attempts, ad.next_retry_at, ad.created_at,
+            SELECT ad.id, al.id AS alarm_id, al.created_at AS alarm_created_at, al.event_id,
+                ad.channel, ad.priority, ad.attempts, ad.next_retry_at, ad.created_at,
                 e.type, e.message, e.level, e.context,
                 COALESCE(s.name, '') AS server_name,
                 COALESCE(a.display_name, a.code, '') AS app_name
@@ -159,6 +160,10 @@ final class AlarmDeliveryRepository
     {
         return new QueuedAlarmDelivery(
             id: (int) $row['id'],
+            alarmId: (int) ($row['alarm_id'] ?? 0),
+            alarmCreatedAt: empty($row['alarm_created_at'])
+                ? new DateTimeImmutable()
+                : new DateTimeImmutable((string) $row['alarm_created_at']),
             eventId: (int) ($row['event_id'] ?? 0),
             channel: strtolower((string) $row['channel']),
             priority: (int) $row['priority'],

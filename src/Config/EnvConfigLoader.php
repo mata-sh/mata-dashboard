@@ -166,6 +166,7 @@ final class EnvConfigLoader
             mailerDev: $this->getEnv('MAILER_DEV', 'phpmailer'),
             charset: $this->getEnv('MAIL_CHARSET', 'utf-8'),
             wordWrap: (int) $this->getEnv('MAIL_WORD_WRAP', '50'),
+            dashboardUrl: $this->normalizeOptionalEnvValue($this->getEnv('MAIL_DASHBOARD_URL')),
         );
     }
 
@@ -234,6 +235,13 @@ final class EnvConfigLoader
     private function getEnv(string $key, ?string $default = null): ?string
     {
         return $_ENV[$key] ?? getenv($key) ?: $default;
+    }
+
+    private function normalizeOptionalEnvValue(?string $value): ?string
+    {
+        $value = trim((string) $value);
+
+        return $value === '' ? null : $value;
     }
 
     /**

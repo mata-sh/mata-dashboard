@@ -1,0 +1,189 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Mata\Tests\Unit\Services;
+
+use DateTimeImmutable;
+use Mata\Config\Dto\MailConfig;
+use Mata\Services\Alarm\AlarmEmailFactory;
+use Mata\Services\Alarm\Dto\Alarm;
+use Mata\Services\Alarm\Dto\AlarmEmailView;
+use Mata\Services\Alarm\Dto\AlarmLevel;
+use Mata\Tests\TestCase;
+use RuntimeException;
+use Twig\Environment;
+use Twig\Loader\FilesystemLoader;
+
+/**
+ * @covers \Mata\Services\Alarm\AlarmEmailFactory
+ *
+ * @internal
+ */
+final class AlarmEmailFactoryTest extends TestCase
+{
+    public function testItBuildsTheExistingSubjectShape(): void
+    {
+        $email = $this->factory()->create($this->view());
+
+        $this->assertSame('🔴 Shop.Api-1 | [fatal_errors]', $email->getSubject());
+    }
+
+    public function testItUsesAsterisksForMissingSubjectLabels(): void
+    {
+        $view = $this->view(new Alarm(server: null, app: null, type: 'DISK_FULL', message: 'Disk full'));
+
+        $this->assertSame('🔵 *.* | [disk_full]', $this->factory()->create($view)->getSubject());
+    }
+
+    public function testItSetsSenderRecipientsAndConfiguredCharsets(): void
+    {
+        $email = $this->factory()->create($this->view());
+
+        $this->assertSame('alerts@example.com', $email->getFrom()[0]->getAddress());
+        $this->assertSame('MATA Alerts', $email->getFrom()[0]->getName());
+        $this->assertSame(['ops@example.com', 'oncall@example.com'], array_map(
+            static fn ($address): string => $address->getAddress(),
+            $email->getTo(),
+        ));
+        $this->assertSame('UTF-8', $email->getHtmlCharset());
+        $this->assertSame('UTF-8', $email->getTextCharset());
+    }
+
+    public function testItRendersCompleteHtmlAndPlainTextBodies(): void
+    {
+        $email = $this->factory()->create($this->view());
+        $html = (string) $email->getHtmlBody();
+        $text = (string) $email->getTextBody();
+
+        $this->assertStringContainsString('Alarm ID</td><td', $html);
+        $this->assertStringContainsString('123', $html);
+        $this->assertStringContainsString('2026-07-11 17:20:00 UTC', $html);
+        $this->assertStringContainsString('Critical', $html);
+        $this->assertStringContainsString('fatal_errors', $html);
+        $this->assertStringContainsString('Api-1', $html);
+        $this->assertStringContainsString('Shop', $html);
+        $this->assertStringContainsString('Database is unavailable', $html);
+        $this->assertStringContainsString('connection refused', $html);
+        $this->assertStringContainsString('#dc2626', $html);
+        $this->assertStringContainsString('[CRITICAL] Shop on Api-1', $text);
+        $this->assertStringContainsString('Alarm ID: 123', $text);
+        $this->assertStringContainsString('Created: 2026-07-11 17:20:00 UTC', $text);
+        $this->assertStringContainsString('Context:', $text);
+        $this->assertStringNotContainsString('<table', $text);
+    }
+
+    public function testItEscapesHtmlPayloadsAndPreservesLineBreaks(): void
+    {
+        $payload = "first line\n<img src=x onerror=alert(1)>";
+        $view = $this->view(new Alarm('type', $payload, $payload, AlarmLevel::Warning, 'server', 'app'));
+        $email = $this->factory()->create($view);
+        $html = (string) $email->getHtmlBody();
+
+        $this->assertStringContainsString('&lt;img src=x onerror=alert(1)&gt;', $html);
+        $this->assertStringNotContainsString('<img src=x onerror=alert(1)>', $html);
+        $this->assertStringContainsString('first line' . "\n" . '&lt;img', $html);
+        $this->assertStringContainsString('white-space:pre-wrap', $html);
+    }
+
+    public function testItNormalizesControlCharactersInSubjectFields(): void
+    {
+        $view = $this->view(new Alarm("TYPE\r\nInjected", 'Message', null, AlarmLevel::Info, "server\r\nB", "app\nA"));
+        $subject = $this->factory()->create($view)->getSubject();
+
+        $this->assertSame('🔵 app A.server B | [type injected]', $subject);
+        $this->assertStringNotContainsString("\r", $subject);
+        $this->assertStringNotContainsString("\n", $subject);
+    }
+
+    public function testItRendersFallbackContentForEmptyFields(): void
+    {
+        $view = $this->view(new Alarm('type', 'Message', '', AlarmLevel::Info, '', ''));
+        $html = (string) $this->factory()->create($view)->getHtmlBody();
+
+        $this->assertStringContainsString('>Global</td>', $html);
+        $this->assertStringContainsString('>All applications</td>', $html);
+        $this->assertStringContainsString('No additional context', $html);
+    }
+
+    public function testItRendersDashboardCtaForAValidUrl(): void
+    {
+        $email = $this->factory('https://mata.example.com/')->create($this->view());
+
+        $this->assertStringContainsString('href="https://mata.example.com"', (string) $email->getHtmlBody());
+        $this->assertStringContainsString('Open dashboard: https://mata.example.com', (string) $email->getTextBody());
+    }
+
+    public function testItOmitsDashboardCtaWhenUnset(): void
+    {
+        $email = $this->factory()->create($this->view());
+
+        $this->assertStringNotContainsString('Open dashboard', (string) $email->getHtmlBody());
+        $this->assertStringNotContainsString('Open dashboard', (string) $email->getTextBody());
+    }
+
+    public function testItRejectsInvalidDashboardUrlsDuringCreation(): void
+    {
+        $factory = $this->factory('https://user:pass@mata.example.com');
+
+        $this->expectException(RuntimeException::class);
+        $this->expectExceptionMessage('dashboard URL');
+        $factory->create($this->view());
+    }
+
+    public function testItRejectsMissingRecipients(): void
+    {
+        $factory = $this->factory(alarmRecipients: []);
+
+        $this->expectException(RuntimeException::class);
+        $this->expectExceptionMessage('recipients not configured');
+        $factory->create($this->view());
+    }
+
+    public function testItRejectsMissingSenderAddress(): void
+    {
+        $factory = $this->factory(fromEmail: null);
+
+        $this->expectException(RuntimeException::class);
+        $this->expectExceptionMessage('sender address not configured');
+        $factory->create($this->view());
+    }
+
+    public function testItUsesTheApplicationNameWhenSenderNameIsMissing(): void
+    {
+        $email = $this->factory(fromName: null)->create($this->view());
+
+        $this->assertSame('MATA Dashboard', $email->getFrom()[0]->getName());
+    }
+
+    public function testItRendersEveryAlarmLevel(): void
+    {
+        foreach (AlarmLevel::cases() as $level) {
+            $email = $this->factory()->create($this->view(new Alarm('type', 'Message', null, $level, 'server', 'app')));
+
+            $this->assertStringContainsString(ucfirst($level->value), (string) $email->getHtmlBody());
+        }
+    }
+
+    private function factory(
+        ?string $dashboardUrl = null,
+        ?string $fromEmail = 'alerts@example.com',
+        ?string $fromName = 'MATA Alerts',
+        array $alarmRecipients = ['ops@example.com', 'oncall@example.com'],
+    ): AlarmEmailFactory {
+        return new AlarmEmailFactory(
+            new Environment(new FilesystemLoader(dirname(__DIR__, 4) . '/templates'), ['autoescape' => 'name']),
+            new MailConfig(null, $fromEmail, $fromName, $alarmRecipients, [], [], 'mailer', 'mailer', 'UTF-8', 78, $dashboardUrl),
+            'MATA',
+        );
+    }
+
+    private function view(?Alarm $alarm = null): AlarmEmailView
+    {
+        return new AlarmEmailView(
+            $alarm ?? new Alarm('fatal_errors', 'Database is unavailable', 'connection refused', AlarmLevel::Critical, 'Api-1', 'Shop'),
+            123,
+            new DateTimeImmutable('2026-07-11 17:20:00 UTC'),
+        );
+    }
+}

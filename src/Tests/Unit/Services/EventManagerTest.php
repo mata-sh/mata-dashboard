@@ -268,7 +268,8 @@ final class EventManagerTest extends TestCase
                 mailerApp: 'symfony/mailer',
                 mailerDev: 'symfony/mailer-dev',
                 charset: 'UTF-8',
-                wordWrap: 78
+                wordWrap: 78,
+                dashboardUrl: null
             ),
             cliSecurity: new CliSecurityConfig(false, ['root', 'http']),
             rateLimiting: new RateLimitingConfig(false, 'file', '/tmp/rate_limit_test.json', null, 6379, null, 0, 5, 300, 60, 60, 100, 60)

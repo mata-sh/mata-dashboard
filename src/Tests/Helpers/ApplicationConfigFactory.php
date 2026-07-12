@@ -130,6 +130,7 @@ class ApplicationConfigFactory
         string $mailerDev = 'phpmailer',
         string $charset = 'utf-8',
         int $wordWrap = 50,
+        ?string $dashboardUrl = null,
     ): MailConfig {
         return new MailConfig(
             $dsn,
@@ -142,6 +143,7 @@ class ApplicationConfigFactory
             $mailerDev,
             $charset,
             $wordWrap,
+            $dashboardUrl,
         );
     }
 

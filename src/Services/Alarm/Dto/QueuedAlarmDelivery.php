@@ -11,6 +11,8 @@ final readonly class QueuedAlarmDelivery
 {
     public function __construct(
         public int $id,
+        public int $alarmId,
+        public DateTimeImmutable $alarmCreatedAt,
         public int $eventId,
         public string $channel,
         public int $priority,

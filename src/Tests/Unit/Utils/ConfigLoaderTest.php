@@ -54,6 +54,55 @@ class EnvConfigLoaderTest extends TestCase
         }
     }
 
+    public function testItLoadsAnUnsetDashboardUrlAsNull(): void
+    {
+        $previous = $_ENV['MAIL_DASHBOARD_URL'] ?? null;
+        unset($_ENV['MAIL_DASHBOARD_URL']);
+
+        try {
+            $config = $this->configLoader->load(['config.env'], __DIR__ . '/../../Fixtures/config-minimal');
+            $this->assertNull($config->mail->dashboardUrl);
+        } finally {
+            if ($previous !== null) {
+                $_ENV['MAIL_DASHBOARD_URL'] = $previous;
+            }
+        }
+    }
+
+    public function testItLoadsAnEmptyDashboardUrlAsNull(): void
+    {
+        $previous = $_ENV['MAIL_DASHBOARD_URL'] ?? null;
+        $_ENV['MAIL_DASHBOARD_URL'] = '';
+
+        try {
+            $config = $this->configLoader->load(['config.env'], __DIR__ . '/../../Fixtures/config-minimal');
+            $this->assertNull($config->mail->dashboardUrl);
+        } finally {
+            if ($previous === null) {
+                unset($_ENV['MAIL_DASHBOARD_URL']);
+            } else {
+                $_ENV['MAIL_DASHBOARD_URL'] = $previous;
+            }
+        }
+    }
+
+    public function testItPassesConfiguredDashboardUrlThroughWithoutValidation(): void
+    {
+        $previous = $_ENV['MAIL_DASHBOARD_URL'] ?? null;
+        $_ENV['MAIL_DASHBOARD_URL'] = 'not-a-url';
+
+        try {
+            $config = $this->configLoader->load(['config.env'], __DIR__ . '/../../Fixtures/config-minimal');
+            $this->assertSame('not-a-url', $config->mail->dashboardUrl);
+        } finally {
+            if ($previous === null) {
+                unset($_ENV['MAIL_DASHBOARD_URL']);
+            } else {
+                $_ENV['MAIL_DASHBOARD_URL'] = $previous;
+            }
+        }
+    }
+
     /**
      * @test
      *

@@ -28,5 +28,6 @@ final class MailConfig
         public readonly string $mailerDev,
         public readonly string $charset,
         public readonly int $wordWrap,
+        public readonly ?string $dashboardUrl,
     ) {}
 }

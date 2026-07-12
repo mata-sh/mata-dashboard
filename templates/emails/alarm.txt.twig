@@ -1,0 +1,13 @@
+[{{ severity.value|upper }}] {{ target.app }} on {{ target.server }}
+
+{{ alarm.message }}
+
+Alarm ID: {{ alarm.id }}
+Type: {{ alarm.type }}
+Created: {{ alarm.created_at }}
+Context:
+{{ alarm.context ?: 'No additional context' }}
+{% if dashboard_url %}
+
+Open dashboard: {{ dashboard_url }}
+{% endif %}

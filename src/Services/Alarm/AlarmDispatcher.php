@@ -9,6 +9,7 @@ use DateTimeImmutable;
 use Mata\Config\Dto\AlarmLimitsConfig;
 use Mata\Models\AlarmDeliveryRepository;
 use Mata\Services\Alarm\Dto\Alarm;
+use Mata\Services\Alarm\Dto\AlarmEmailView;
 use Mata\Services\Alarm\Dto\AlarmLevel;
 use Mata\Services\Alarm\Dto\QueuedAlarmDelivery;
 use Mata\Utils\AlarmLimitHelper;
@@ -142,7 +143,11 @@ final class AlarmDispatcher
             channels: [$channel]
         );
         match ($channel) {
-            'email' => $this->emailSender->send($alarm),
+            'email' => $this->emailSender->send(new AlarmEmailView(
+                alarm: $alarm,
+                alarmId: $queuedDelivery->alarmId,
+                alarmCreatedAt: $queuedDelivery->alarmCreatedAt,
+            )),
             default => throw new RuntimeException("Unsupported alarm delivery channel: {$channel}"),
         };
     }
