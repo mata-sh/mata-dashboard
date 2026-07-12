@@ -830,11 +830,6 @@ svg {
     /* position: relative; */
 }
 
-.readme-modal>.modal-content {
-    width: 80%;
-    max-width: 1000px;
-}
-
 .readme-markdown-notice {
     text-align: center;
     background: #1f1f1f;
@@ -866,32 +861,6 @@ svg {
 
 .modal-content p {
     margin: 6px 5px 6px 5px
-}
-
-.modal-close-button-top {
-    position: absolute;
-    right: 0px;
-}
-
-.modal-refresh-button-top svg {
-    margin-right: 10px;
-}
-
-.modal-close-button-top svg {
-    stroke-width: 1.6;
-    stroke: white;
-    width: 23px;
-    height: 23px;
-}
-
-.modal-content .title {
-    background-color: #14161a;
-    width: fit-content;
-    padding: 8px 21px;
-    border-radius: 4px;
-    color: #bcbcbc;
-    border: 2px solid #353a46;
-    margin-right: 12px;
 }
 
 .modal-content pre {
@@ -1902,9 +1871,9 @@ label.audit-chip:hover { filter: brightness(1.25); }
     line-height: 1.2;
 }
 
-/* ── Cronjobs modal ──────────────────────────────────────────── */
-/* Floating-card treatment; #modal.cronjobs-modal beats #modal>.modal-content */
-#modal.cronjobs-modal > .modal-content {
+/* ── Modal card (shared shell, see partials/modals/modal-shell.html.twig) ── */
+/* #modal.mata-modal beats the legacy #modal>.modal-content rule */
+#modal.mata-modal > .modal-content {
     width: min(90%, 1000px);
     height: auto;
     max-height: 80%;
@@ -1916,7 +1885,11 @@ label.audit-chip:hover { filter: brightness(1.25); }
     box-shadow: 0 12px 28px rgba(0, 0, 0, .45);
 }
 
-.cronjobs-top-bar {
+#modal.mata-modal.modal-wide > .modal-content {
+    width: min(94%, 1280px);
+}
+
+.mata-modal .modal-top-bar {
     align-items: center;
     gap: .75rem;
     margin-bottom: 0;
@@ -1925,14 +1898,14 @@ label.audit-chip:hover { filter: brightness(1.25); }
     border-bottom: 1px solid #2f6f7d;
 }
 
-.cronjobs-heading {
+.modal-heading {
     display: flex;
     align-items: baseline;
     gap: .55rem;
     margin-right: auto;
 }
 
-.cronjobs-heading-title {
+.modal-heading-title {
     font-size: .85rem;
     font-weight: 700;
     text-transform: uppercase;
@@ -1940,17 +1913,17 @@ label.audit-chip:hover { filter: brightness(1.25); }
     color: #e8eaf0;
 }
 
-.cronjobs-heading-server {
+.modal-heading-context {
     font-size: .8rem;
     color: #7fe3f0;
 }
 
-.cronjobs-heading-meta {
+.modal-heading-meta {
     font-size: .72rem;
     color: #5a6172;
 }
 
-.cronjobs-modal .modal-refresh-button-top {
+.mata-modal .modal-refresh-button-top {
     height: 30px;
     padding: 0 .7rem;
     background: #14171d;
@@ -1961,20 +1934,20 @@ label.audit-chip:hover { filter: brightness(1.25); }
     transition: border-color .15s ease, color .15s ease;
 }
 
-.cronjobs-modal .modal-refresh-button-top:hover {
+.mata-modal .modal-refresh-button-top:hover {
     background: #14171d;
     border-color: #3f93a6;
     color: #9fe8f2;
 }
 
-.cronjobs-modal .modal-refresh-button-top svg {
+.mata-modal .modal-refresh-button-top svg {
     width: 12px;
     height: 12px;
     margin-right: 8px;
     stroke: currentColor;
 }
 
-.cronjobs-modal .modal-close-button-top {
+.mata-modal .modal-close-button-top {
     position: static;
     box-sizing: border-box;
     width: 30px;
@@ -1987,27 +1960,27 @@ label.audit-chip:hover { filter: brightness(1.25); }
     transition: border-color .15s ease, color .15s ease;
 }
 
-.cronjobs-modal .modal-close-button-top:hover {
+.mata-modal .modal-close-button-top:hover {
     background: #14171d;
     border-color: #3f93a6;
     color: #9fe8f2;
 }
 
-.cronjobs-modal .modal-close-button-top svg {
+.mata-modal .modal-close-button-top svg {
     width: 14px;
     height: 14px;
     stroke: currentColor;
     stroke-width: 2;
 }
 
-.cronjobs-content {
+.mata-modal .modal-body {
     flex: 1;
     min-height: 0;
     overflow-y: auto;
     padding: 1rem 1.1rem;
 }
 
-.cronjobs-empty {
+.modal-empty {
     padding: 1.5rem;
     border: 1px dashed #2a3040;
     border-radius: 6px;
@@ -2016,19 +1989,43 @@ label.audit-chip:hover { filter: brightness(1.25); }
     color: #5a6172;
 }
 
-.cronjobs-table-shell {
+.mata-modal .modal-footer-bar {
+    padding: .7rem 1.1rem;
+    background: #0e1015;
+    border-top: 1px solid #1f242e;
+}
+
+.modal-footer-close {
+    width: 100%;
+    height: 32px;
+    background: #14171d;
+    border: 1px solid #262c38;
+    border-radius: 4px;
+    font-size: .82rem;
+    color: #c9cfda;
+    transition: border-color .15s ease, color .15s ease;
+}
+
+.modal-footer-close:hover {
+    background: #14171d;
+    border-color: #3f93a6;
+    color: #9fe8f2;
+}
+
+/* ── Modal data table ────────────────────────────────────────── */
+.modal-table-shell {
     overflow-x: auto;
     background: #0b0d12;
     border: 1px solid #1f242e;
     border-radius: 6px;
 }
 
-.cronjobs-table {
+.modal-table {
     width: 100%;
     border-collapse: collapse;
 }
 
-.cronjobs-table th {
+.modal-table th {
     padding: .5rem .75rem;
     background: #0e1015;
     border-bottom: 1px solid #2f6f7d;
@@ -2041,33 +2038,99 @@ label.audit-chip:hover { filter: brightness(1.25); }
     white-space: nowrap;
 }
 
-.cronjobs-table td {
+.modal-table td {
     padding: .45rem .75rem;
     font-size: .9rem;
     color: #c9cfda;
     vertical-align: middle;
 }
 
-.cronjobs-table td:not(:first-child) {
-    white-space: nowrap;
-}
-
-.cronjobs-row:not(:first-child) td {
+.modal-table tr.modal-row:not(:first-child) td {
     border-top: 1px solid #151a22;
 }
 
-.cronjobs-path {
-    width: 99%;
-    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-    font-size: .85rem;
-    color: #e8eaf0;
-}
-
-.cronjobs-mtime {
+/* cell utilities */
+.modal-table .cell-mono,
+.modal-kv .cell-mono {
     font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
     font-size: .85rem;
 }
 
+.modal-table .cell-bright { color: #e8eaf0; }
+.modal-table .cell-grow { width: 99%; }
+.modal-table .cell-nowrap { white-space: nowrap; }
+
+/* ── Modal content sections (server info etc.) ───────────────── */
+.modal-section-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: .6rem;
+}
+
+.modal-section-grid .modal-section.is-full {
+    grid-column: 1 / -1;
+}
+
+.modal-section {
+    padding: .7rem .9rem;
+    background: #0e1015;
+    border: 1px solid #1f242e;
+    border-left: 2px solid #2f6f7d;
+    border-radius: 4px;
+}
+
+.modal-section-title {
+    margin-bottom: .5rem;
+    font-size: .72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .07em;
+    color: #8b93a5;
+}
+
+.modal-kv {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.modal-kv th {
+    padding: .3rem .75rem .3rem 0;
+    font-size: .72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .07em;
+    text-align: left;
+    color: #8b93a5;
+    white-space: nowrap;
+    width: 1%;
+}
+
+.modal-kv td {
+    padding: .3rem 0;
+    font-size: .9rem;
+    color: #c9cfda;
+}
+
+.modal-kv tr:not(:first-child) th,
+.modal-kv tr:not(:first-child) td {
+    border-top: 1px solid #151a22;
+}
+
+.modal-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .3rem;
+}
+
+.modal-chip {
+    padding: .12rem .5rem;
+    border: 1px solid #2a3040;
+    border-radius: 4px;
+    font-size: .78rem;
+    color: #8b93a5;
+}
+
+/* ── Cronjobs modal specifics ────────────────────────────────── */
 .cronjobs-status {
     display: inline-block;
     padding: .12rem .5rem;
@@ -2143,27 +2206,4 @@ label.audit-chip:hover { filter: brightness(1.25); }
     font-size: .78rem;
     line-height: 1.5;
     color: #c9cfda;
-}
-
-.cronjobs-footer {
-    padding: .7rem 1.1rem;
-    background: #0e1015;
-    border-top: 1px solid #1f242e;
-}
-
-.cronjobs-close-button {
-    width: 100%;
-    height: 32px;
-    background: #14171d;
-    border: 1px solid #262c38;
-    border-radius: 4px;
-    font-size: .82rem;
-    color: #c9cfda;
-    transition: border-color .15s ease, color .15s ease;
-}
-
-.cronjobs-close-button:hover {
-    background: #14171d;
-    border-color: #3f93a6;
-    color: #9fe8f2;
 }

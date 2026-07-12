@@ -1,59 +1,47 @@
-<div id="modal" class="modal is-active cronjobs-modal" _="on closeModal add .closing then wait for animationend then remove me">
-  <div class="modal-background" _="on click trigger closeModal"></div>
-  <div class="modal-content box">
-    <div class="modal-top-bar cronjobs-top-bar">
-      <div class="cronjobs-heading">
-        <span class="cronjobs-heading-title">Server Cronjobs</span>
-        <span class="cronjobs-heading-server">{{ server.name }}</span>
-      </div>
-      <span class="cronjobs-heading-meta">last fetched {{ cache.age }} ago</span>
-      <button class="button modal-refresh-button-top" hx-get="{{ endpoints.modal_server_cronjobs_refresh }}" hx-target="#modal-container" hx-trigger="click">{{ icons.refresh|raw }} Refresh</button>
-      <button class="button modal-close-button-top" _="on click trigger closeModal"><span class="icon is-small">{{ icons.close|raw }}</span></button>
-    </div>
-
-    <div class="cronjobs-content">
-      {% if entries is empty %}
-        <div class="cronjobs-empty">No cronjob entries found.</div>
-      {% else %}
-        <div class="cronjobs-table-shell">
-          <table class="cronjobs-table">
-            <thead>
-              <tr>
-                <th>Path</th>
-                <th>Status</th>
-                <th>Last run</th>
-                <th>Age</th>
-                <th>Size</th>
+{% embed "partials/modals/modal-shell.html.twig" with {
+    modal_class: 'cronjobs-modal',
+    modal_title: 'Server Cronjobs',
+    modal_context: server.name,
+    refresh_endpoint: endpoints.modal_server_cronjobs_refresh
+} %}
+  {% block modal_body %}
+    {% if entries is empty %}
+      <div class="modal-empty">No cronjob entries found.</div>
+    {% else %}
+      <div class="modal-table-shell">
+        <table class="modal-table">
+          <thead>
+            <tr>
+              <th>Path</th>
+              <th>Status</th>
+              <th>Last run</th>
+              <th>Age</th>
+              <th>Size</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for entry in entries %}
+              <tr class="modal-row">
+                <td class="cell-mono cell-bright cell-grow">{{ entry.path ?? '–' }}</td>
+                <td class="cell-nowrap"><span class="cronjobs-status status-{{ entry.status }}">{{ entry.status }}</span></td>
+                <td class="cell-mono cell-nowrap">{{ entry.mtime ?? '–' }}</td>
+                <td class="cell-nowrap">{{ entry.age ?? '–' }}</td>
+                <td class="cell-nowrap">{{ entry.size ?? '–' }}</td>
               </tr>
-            </thead>
-            <tbody>
-              {% for entry in entries %}
-                <tr class="cronjobs-row">
-                  <td class="cronjobs-path">{{ entry.path ?? '–' }}</td>
-                  <td><span class="cronjobs-status status-{{ entry.status }}">{{ entry.status }}</span></td>
-                  <td class="cronjobs-mtime">{{ entry.mtime ?? '–' }}</td>
-                  <td>{{ entry.age ?? '–' }}</td>
-                  <td>{{ entry.size ?? '–' }}</td>
+              {% if entry.content_tail is not empty %}
+                <tr class="cronjobs-tail-row">
+                  <td colspan="5">
+                    <details class="cronjobs-tail">
+                      <summary>Log tail <span class="cronjobs-tail-count">{{ entry.content_tail|length }} line{{ entry.content_tail|length > 1 ? 's' : '' }}</span></summary>
+                      <pre>{{ entry.content_tail|join("\n") }}</pre>
+                    </details>
+                  </td>
                 </tr>
-                {% if entry.content_tail is not empty %}
-                  <tr class="cronjobs-tail-row">
-                    <td colspan="5">
-                      <details class="cronjobs-tail">
-                        <summary>Log tail <span class="cronjobs-tail-count">{{ entry.content_tail|length }} line{{ entry.content_tail|length > 1 ? 's' : '' }}</span></summary>
-                        <pre>{{ entry.content_tail|join("\n") }}</pre>
-                      </details>
-                    </td>
-                  </tr>
-                {% endif %}
-              {% endfor %}
-            </tbody>
-          </table>
-        </div>
-      {% endif %}
-    </div>
-
-    <div class="cronjobs-footer">
-      <button class="button cronjobs-close-button" _="on click trigger closeModal">Close</button>
-    </div>
-  </div>
-</div>
+              {% endif %}
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% endif %}
+  {% endblock %}
+{% endembed %}

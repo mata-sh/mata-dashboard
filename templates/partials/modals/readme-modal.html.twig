@@ -1,17 +1,10 @@
-<div id="modal" class="modal is-active readme-modal" _="on closeModal add .closing then wait for animationend then remove me">
-  <div class="modal-background" _="on click trigger closeModal"></div>
-  <div class="modal-content box">
-    <div class="modal-top-bar">
-      <button class="button modal-close-button-top" _="on click trigger closeModal"><span class="icon is-small">{{ icons.close|raw }}</span></button>
-      <div class="title">
-        <strong>README.MD</strong> ( {{ app.name }} on {{ app.server }} )
-      </div>
-      <div class="title">last fetched: {{ cache.age }} ago</div>
-      <button class="button modal-refresh-button-top" hx-get="{{ endpoints.modal_app_readme_refresh }}" hx-target="#modal-container" hx-trigger="click">{{ icons.refresh|raw }} Refresh</button>
-    </div>
-
+{% embed "partials/modals/modal-shell.html.twig" with {
+    modal_class: 'readme-modal',
+    modal_title: 'README.md',
+    modal_context: app.name ~ ' on ' ~ app.server,
+    refresh_endpoint: endpoints.modal_app_readme_refresh
+} %}
+  {% block modal_body %}
     {{ content.modal_content|raw }}
-    <br />
-    <button class="button is-dark" _="on click trigger closeModal">Close</button>
-  </div>
-</div>
+  {% endblock %}
+{% endembed %}

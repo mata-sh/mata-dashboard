@@ -1,53 +1,44 @@
-<div id="modal" class="modal is-active database-processes-modal" _="on closeModal add .closing then wait for animationend then remove me">
-  <div class="modal-background" _="on click trigger closeModal"></div>
-  <div class="modal-content box">
-    <div class="modal-top-bar">
-      <button class="button modal-close-button-top" _="on click trigger closeModal"><span class="icon is-small">{{ icons.close|raw }}</span></button>
-      <div class="title">
-        <strong>DATABASE PROCESSES</strong> ( {{ server.name }} / {{ database.name }} )
-      </div>
-      <div class="title">last fetched: {{ cache.age }} ago</div>
-      <button class="button modal-refresh-button-top" hx-get="{{ endpoints.modal_db_processes_refresh }}" hx-target="#modal-container" hx-trigger="click">{{ icons.refresh|raw }} Refresh</button>
-    </div>
-
-    <div class="content database-processes-content">
-      {% if processes is empty %}
-        <div class="notification is-info">No process-list entries found.</div>
-      {% else %}
-        <div class="table-container">
-          <table class="table is-fullwidth is-striped database-processes-table">
-            <thead>
-              <tr>
-                <th>ID</th>
-                <th>User</th>
-                <th>Host</th>
-                <th>Database</th>
-                <th>Command</th>
-                <th>Time</th>
-                <th>State</th>
-                <th>Info</th>
+{% embed "partials/modals/modal-shell.html.twig" with {
+    modal_class: 'database-processes-modal',
+    modal_title: 'Database Processes',
+    modal_context: server.name ~ ' / ' ~ database.name,
+    refresh_endpoint: endpoints.modal_db_processes_refresh,
+    wide: true
+} %}
+  {% block modal_body %}
+    {% if processes is empty %}
+      <div class="modal-empty">No process-list entries found.</div>
+    {% else %}
+      <div class="modal-table-shell">
+        <table class="modal-table">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>User</th>
+              <th>Host</th>
+              <th>Database</th>
+              <th>Command</th>
+              <th>Time</th>
+              <th>State</th>
+              <th>Info</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for process in processes %}
+              <tr class="modal-row">
+                <td class="cell-mono cell-nowrap">{{ process.id ?? '–' }}</td>
+                <td class="cell-nowrap">{{ process.user ?? '–' }}</td>
+                <td class="cell-mono cell-nowrap">{{ process.host ?? '–' }}</td>
+                <td class="cell-nowrap">{{ process.db ?? '–' }}</td>
+                <td class="cell-nowrap">{{ process.command ?? '–' }}</td>
+                <td class="cell-mono cell-nowrap">{{ process.time ?? '–' }}</td>
+                <td class="cell-nowrap">{{ process.state ?? '–' }}</td>
+                <td class="cell-mono cell-grow">{{ process.info ?? '–' }}</td>
               </tr>
-            </thead>
-            <tbody>
-              {% for process in processes %}
-                <tr>
-                  <td>{{ process.id ?? '–' }}</td>
-                  <td>{{ process.user ?? '–' }}</td>
-                  <td>{{ process.host ?? '–' }}</td>
-                  <td>{{ process.db ?? '–' }}</td>
-                  <td>{{ process.command ?? '–' }}</td>
-                  <td>{{ process.time ?? '–' }}</td>
-                  <td>{{ process.state ?? '–' }}</td>
-                  <td>{{ process.info ?? '–' }}</td>
-                </tr>
-              {% endfor %}
-            </tbody>
-          </table>
-        </div>
-      {% endif %}
-    </div>
-
-    <br />
-    <button class="button is-dark" _="on click trigger closeModal">Close</button>
-  </div>
-</div>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% endif %}
+  {% endblock %}
+{% endembed %}

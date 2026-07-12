@@ -1,0 +1,44 @@
+{#
+  Shared modal shell — floating card per the UI styleguide.
+
+  Use with embed:
+
+    {% embed "partials/modals/modal-shell.html.twig" with {
+        modal_class: 'cronjobs-modal',          (optional) extra class on the modal root
+        modal_title: 'Server Cronjobs',         uppercase card title
+        modal_context: server.name,             (optional) cyan context next to the title
+        modal_meta: 'Range: 24h',               (optional) meta text; defaults to cache age
+        refresh_endpoint: endpoints.foo,        (optional) renders the Refresh button
+        wide: true                              (optional) wider card for dense tables
+    } %}
+      {% block modal_body %}…{% endblock %}
+    {% endembed %}
+#}
+<div id="modal" class="modal is-active mata-modal{{ wide|default(false) ? ' modal-wide' }}{{ modal_class|default('') ? ' ' ~ modal_class }}" _="on closeModal add .closing then wait for animationend then remove me">
+  <div class="modal-background" _="on click trigger closeModal"></div>
+  <div class="modal-content box">
+    <div class="modal-top-bar">
+      <div class="modal-heading">
+        <span class="modal-heading-title">{{ modal_title }}</span>
+        {% if modal_context|default('') %}<span class="modal-heading-context">{{ modal_context }}</span>{% endif %}
+      </div>
+      {% if modal_meta is defined %}
+        <span class="modal-heading-meta">{{ modal_meta }}</span>
+      {% elseif cache.age is defined %}
+        <span class="modal-heading-meta">last fetched {{ cache.age }} ago</span>
+      {% endif %}
+      {% if refresh_endpoint|default('') %}
+        <button class="button modal-refresh-button-top" hx-get="{{ refresh_endpoint }}" hx-target="#modal-container" hx-trigger="click">{{ icons.refresh|raw }} Refresh</button>
+      {% endif %}
+      <button class="button modal-close-button-top" _="on click trigger closeModal"><span class="icon is-small">{{ icons.close|raw }}</span></button>
+    </div>
+
+    <div class="modal-body">
+      {% block modal_body %}{% endblock %}
+    </div>
+
+    <div class="modal-footer-bar">
+      <button class="button modal-footer-close" _="on click trigger closeModal">Close</button>
+    </div>
+  </div>
+</div>
