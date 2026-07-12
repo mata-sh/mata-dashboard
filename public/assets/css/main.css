@@ -125,42 +125,36 @@ svg {
 .server-title .node-health-status {
     display: inline-flex;
     align-items: center;
-    gap: 4px;
     margin-left: 8px;
-    padding: 0;
-    background: transparent;
-    color: #f09595;
-    font-size: 0.8em;
-    font-weight: 500;
-    text-transform: none;
+    padding: .18rem .55rem;
+    border: 1px solid transparent;
+    border-radius: 4px;
+    background: #4a5060;
+    color: #fff;
+    font-size: .68rem;
+    font-weight: 600;
+    letter-spacing: .04em;
+    text-transform: uppercase;
     white-space: nowrap;
     cursor: help;
 }
 
-.server-title .node-health-status-dot {
-    display: block;
-    width: 7px;
-    height: 7px;
-    padding: 0;
-    border-radius: 50%;
-    flex: 0 0 auto;
-    background-color: red;
-}
-
 .server-title .node-health-status.node-health-healthy {
+    background: transparent;
+    border-color: #2a3040;
     color: #7fd49a;
 }
 
-.server-title .node-health-status.node-health-healthy .node-health-status-dot {
-    background-color: greenyellow;
+.server-title .node-health-status.node-health-unhealthy {
+    background: #c05a1d;
+}
+
+.server-title .node-health-status.node-health-unreachable {
+    background: #c22a35;
 }
 
 .server-title .node-health-status.node-health-maintenance {
-    color: #e3c778;
-}
-
-.server-title .node-health-status.node-health-maintenance .node-health-status-dot {
-    background-color: orange;
+    background: #9c7c14;
 }
 
 .section {
@@ -860,7 +854,39 @@ svg {
 }
 
 .server-metrics-modal__controls select {
-    max-width: 130px;
+    box-sizing: border-box;
+    max-width: 150px;
+    padding: 8px 12px;
+    background: #10131a;
+    border: 1px solid #262c38;
+    border-radius: 4px;
+    color: #e8eaf0;
+    font-size: .9rem;
+    color-scheme: dark;
+    transition: border-color .15s ease, box-shadow .15s ease;
+}
+
+.server-metrics-modal__controls select:hover {
+    border-color: #333c4d;
+}
+
+.server-metrics-modal__controls select:focus {
+    outline: none;
+    border-color: #3f93a6;
+    box-shadow: 0 0 0 2px rgba(63, 147, 166, .2);
+}
+
+.server-metrics-modal__controls .button {
+    background: #14171d;
+    border: 1px solid #262c38;
+    color: #c5cad6;
+    font-size: .9rem;
+}
+
+.server-metrics-modal__controls .button:hover,
+.server-metrics-modal__controls .button:focus-visible {
+    border-color: #3f93a6;
+    color: #9fe8f2;
 }
 
 .server-metrics-modal .metrics-chart-wrapper {
