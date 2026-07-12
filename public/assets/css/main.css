@@ -470,6 +470,10 @@ svg {
 
 }
 
+.app-container .app-env {
+    width: 35px;
+}
+
 .app-env.dev {
     background-color: #207bdc;
 }
