@@ -16,8 +16,10 @@ use Mata\Services\Monitor\Dto\ServerDashboardServices;
 use Mata\Services\Monitor\NodeHealthMonitorInterface;
 use Mata\Services\Monitor\ServerMonitor;
 use Mata\Services\View\ServerViewBuilder;
+use Mata\Utils\Tools;
 use Monolog\Logger;
 use PHPUnit\Framework\TestCase;
+use ReflectionMethod;
 
 /**
  * @covers \Mata\Services\View\ServerViewBuilder
@@ -58,10 +60,11 @@ final class ServerViewBuilderTest extends TestCase
 
         $builder = new ServerViewBuilder(
             $serverMonitor,
-            $this->createMock(LogAnalyzer::class),
-            $this->createMock(EventManager::class),
+            $this->createStub(LogAnalyzer::class),
+            $this->createStub(EventManager::class),
             new Logger('test'),
             new CacheTypeResolver(),
+            new Tools(__DIR__),
         );
 
         $result = $builder->buildServersViewData(
@@ -75,14 +78,43 @@ final class ServerViewBuilderTest extends TestCase
         $this->assertSame(NodeHealthState::HEALTHY, $result[0]['health']['state']);
     }
 
+    public function testCompactsSessionCountOnAppCards(): void
+    {
+        $builder = new ServerViewBuilder(
+            $this->createStub(ServerMonitor::class),
+            $this->createStub(LogAnalyzer::class),
+            $this->createStub(EventManager::class),
+            new Logger('test'),
+            new CacheTypeResolver(),
+            new Tools(__DIR__),
+        );
+        $method = new ReflectionMethod($builder, 'formatSessionDataForView');
+
+        $result = $method->invoke($builder, [
+            'session' => [
+                'type' => 'file',
+                'status' => 'ok',
+                'count_last_hour' => 236234,
+                'count_last_day' => 236234,
+                'count_total' => 236234,
+                'path' => null,
+                'size_kb' => null,
+                'error' => null,
+            ],
+        ]);
+
+        $this->assertSame('236k', $result['formatted_count']);
+    }
+
     public function testMissingBundleBuildsAnErrorCard(): void
     {
         $builder = new ServerViewBuilder(
-            $this->createMock(ServerMonitor::class),
-            $this->createMock(LogAnalyzer::class),
-            $this->createMock(EventManager::class),
+            $this->createStub(ServerMonitor::class),
+            $this->createStub(LogAnalyzer::class),
+            $this->createStub(EventManager::class),
             new Logger('test'),
             new CacheTypeResolver(),
+            new Tools(__DIR__),
         );
 
         $result = $builder->buildServersViewData([], ['server-a' => []], false);

@@ -180,7 +180,8 @@ class DashboardController extends BaseController
             $this->logAnalyzer,
             $eventManager,
             $logger,
-            $cacheTypeResolver
+            $cacheTypeResolver,
+            $tools
         );
 
         // Initialize per-server service classes

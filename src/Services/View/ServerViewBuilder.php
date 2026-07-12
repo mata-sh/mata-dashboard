@@ -19,6 +19,7 @@ use Mata\Services\Monitor\Dto\ServerDashboardServices;
 use Mata\Services\Monitor\NodeHealthMonitorInterface;
 use Mata\Services\Monitor\ServerMonitor;
 use Mata\Utils\Html;
+use Mata\Utils\Tools;
 use Monolog\Logger;
 use Throwable;
 
@@ -39,19 +40,22 @@ class ServerViewBuilder
     private EventManager $eventManager;
     private Logger $logger;
     private CacheTypeResolver $cacheTypeResolver;
+    private Tools $tools;
 
     public function __construct(
         ServerMonitor $serverMonitor,
         LogAnalyzer $logAnalyzer,
         EventManager $eventManager,
         Logger $logger,
-        CacheTypeResolver $cacheTypeResolver
+        CacheTypeResolver $cacheTypeResolver,
+        Tools $tools
     ) {
         $this->serverMonitor = $serverMonitor;
         $this->logAnalyzer = $logAnalyzer;
         $this->eventManager = $eventManager;
         $this->logger = $logger;
         $this->cacheTypeResolver = $cacheTypeResolver;
+        $this->tools = $tools;
     }
 
     /**
@@ -418,7 +422,7 @@ class ServerViewBuilder
 
             return [
                 'level' => $this->eventManager->getAppDataThresholdLevel($lastHour, 'session_count'),
-                'formatted_count' => $this->formatNumber($lastHour),
+                'formatted_count' => $this->tools->formatCompactNumber($lastHour),
                 'tooltip' => implode('<br>', $tooltipParts),
             ];
         }
@@ -428,7 +432,7 @@ class ServerViewBuilder
 
             return [
                 'level' => '',
-                'formatted_count' => $this->formatNumber($total),
+                'formatted_count' => $this->tools->formatCompactNumber($total),
                 'tooltip' => sprintf(
                     '<strong>Type:</strong> %s<br><strong>Total:</strong> %s<br>Hourly/daily counts not available',
                     Html::escapeTooltipValue($session['type']),
