@@ -676,8 +676,13 @@ svg {
     color: #fff;
 }
 
-.section .table th {
+.section .table th,
+.modal-card .table th {
+    font-size: .78rem;
+    font-weight: 700;
     text-transform: uppercase;
+    letter-spacing: .07em;
+    color: #8b93a5;
 }
 
 
@@ -882,95 +887,147 @@ svg {
 
 /* TABLE */
 .tabulator {
-    background-color: #252525;
-}
-
-.tabulator .tabulator-footer {
-    background-color: #14161a;
-}
-
-.tabulator .tabulator-footer .tabulator-page {
-    border: none;
-    color: white;
-}
-
-.tabulator-page {
-    background: rgb(242, 230, 230);
-    color: black;
+    font-size: .95rem;
+    padding: 0;
+    background: #0b0d12;
+    border: 1px solid #1f242e;
+    border-radius: 6px;
+    overflow: hidden;
 }
 
 .tabulator .tabulator-header {
+    background: #0e1015;
     border: none;
-    background-color: #000;
+    border-bottom: 1px solid #2f6f7d;
+    color: #8b93a5;
 }
 
+.tabulator .tabulator-header .tabulator-col {
+    background: transparent;
+    border: none;
+}
 
-.tabulator-row {
-    background-color: #000;
+.tabulator .tabulator-header .tabulator-col .tabulator-col-title {
+    font-size: .72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .07em;
+    color: #8b93a5;
+}
+
+.tabulator .tabulator-tableholder {
+    background: #0b0d12;
 }
 
 .tabulator .tabulator-tableholder .tabulator-table {
     white-space: nowrap;
-    color: white;
+    background: transparent;
+    color: #c9cfda;
+}
+
+.tabulator-row {
+    background: transparent;
+    border-bottom: 1px solid #151a22;
 }
 
 .tabulator-row.tabulator-row-even {
-    background-color: #101010;
+    background: #0f1218;
 }
 
-.tabulator .tabulator-header .tabulator-col {
-    background-color: black;
-
-}
-
-.tabulator .tabulator-header {
-    color: #eee;
-}
-
-.tabulator {
-    font-size: 1.1em;
-    padding: 0;
-    border: none;
+.tabulator-row:hover,
+.tabulator-row.tabulator-row-even:hover,
+.tabulator-row.tabulator-selectable:hover {
+    background: #131c26;
 }
 
 .tabulator-row .tabulator-cell {
-    border-right: 1px solid #444;
+    border-right: none;
+    padding: 8px 12px;
 }
 
-.tabulator .tabulator-header .tabulator-col {
-    border: none;
+.tabulator .tabulator-footer {
+    background: #0e1015;
+    border-top: 1px solid #1f242e;
+    color: #8b93a5;
 }
 
 .tabulator .tabulator-footer .tabulator-page {
     background: none;
+    border: 1px solid transparent;
+    border-radius: 4px;
+    margin: 0 1px;
+    color: #8b93a5;
+}
+
+.tabulator .tabulator-footer .tabulator-page:not(.disabled):hover {
+    background: #182029;
+    color: #e8eaf0;
+}
+
+.tabulator .tabulator-footer .tabulator-page.active {
+    background: #10262b;
+    border-color: #2f6f7d;
+    color: #9fe8f2;
+}
+
+.tabulator .tabulator-footer .tabulator-page-counter {
+    color: #5a6172;
 }
 
 
-/* Events */
+/* Table filter bar */
 .filter-menu {
-    background-color: #383838;
-    padding: 6px;
-    margin: 8px 0px;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: .45rem;
+    align-items: center;
+    padding: 10px;
+    margin: 8px 0;
+    background: #0e1015;
+    border: 1px solid #1f242e;
+    border-left: 2px solid #2f6f7d;
     border-radius: 6px;
 }
 
 .filter-menu select,
 .filter-menu input {
-    background-color: #010101;
-    border: none;
-    color: white;
-    font-weight: bold;
-    font-size: 1em;
-    border-radius: 3px;
-    padding: 7px 14px;
+    box-sizing: border-box;
+    padding: 8px 12px;
+    background: #10131a;
+    border: 1px solid #262c38;
+    border-radius: 4px;
+    color: #e8eaf0;
+    font-size: .9rem;
+    color-scheme: dark;
+    transition: border-color .15s ease, box-shadow .15s ease;
 }
 
-.filter-menu {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-    gap: 0.25rem 0.45rem;
-    /* row-gap col-gap */
-    align-items: center;
+.filter-menu input::placeholder {
+    color: #5a6172;
+}
+
+.filter-menu select:hover,
+.filter-menu input:hover {
+    border-color: #333c4d;
+}
+
+.filter-menu select:focus,
+.filter-menu input:focus {
+    outline: none;
+    border-color: #3f93a6;
+    box-shadow: 0 0 0 2px rgba(63, 147, 166, .2);
+}
+
+.filter-menu .button {
+    background: #14171d;
+    border: 1px solid #262c38;
+    color: #c5cad6;
+    font-size: .9rem;
+}
+
+.filter-menu .button:hover {
+    border-color: #3f93a6;
+    color: #9fe8f2;
 }
 
 /* Make long fields span more space */
@@ -981,7 +1038,7 @@ svg {
 @media (hover: hover) and (pointer: fine) {
     .tabulator .tabulator-header .tabulator-col.tabulator-sortable.tabulator-col-sorter-element:hover {
         cursor: pointer;
-        background-color: #2f2f2f;
+        background-color: #131a22;
     }
 }
 
@@ -1285,11 +1342,6 @@ svg {
 .settings-empty {
     color: #6f7684;
     font-size: 0.85em;
-}
-
-/* Tabulator */
-.tabulator-row {
-    /* background-color: #3d3a3a; */
 }
 
 .error-section {
