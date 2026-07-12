@@ -1,4 +1,8 @@
 <div id="server-stats-{{ server.id }}" class="server-stats">
+  <span class="node-health-status node-health-{{ server.health.state }}" data-tippy-content="{{ server.health.tooltip }}">
+    <span class="node-health-status-dot" aria-hidden="true"></span>
+    {{ server.health.label }}
+  </span>
   <span class="server-cpu count">{{ icons.cpu|raw }} {{ server.cpu_usage }}%</span>
   <span class="server-ram count" data-tippy-content="RAM: {{ storage.ram_used }} / {{ storage.ram_capacity }}">{{ icons.pie_chart|raw }} {{ storage.ram_percent }}%</span>
   <span class="server-space count {{ storage.disk_usage_level }}" data-tippy-content="Disk: {{ storage.disk_used }} / {{ storage.disk_capacity }}">{{ icons.hard_drive|raw }} {{ storage.disk_percent }}%</span>

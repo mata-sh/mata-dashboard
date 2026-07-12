@@ -113,7 +113,7 @@ svg {
     align-items: center;
     flex-grow: 1;
     cursor: pointer;
-    font-size: 1.15em;
+    font-size: 0.85em;
     padding: 5px 12px 5px 0;
 }
 
@@ -122,36 +122,38 @@ svg {
     margin-left: 4px;
 }
 
-/* Colors are shared with the .app-ping indicator (see .app-ping rules). */
-.node-health-dot {
-    align-self: stretch;
-    width: 5px;
-    /* bleed through the title's vertical padding to span the full header height */
-    margin: -5px 12px -5px 0;
-    padding: 0 !important;
-    background-color: red;
-    opacity: 0.8;
+.server-stats .node-health-status {
+    gap: 4px;
+    color: #f09595;
+    font-weight: 500;
+    opacity: 1;
     cursor: help;
 }
 
-.node-health-dot.node-health-unhealthy,
-.node-health-dot.node-health-unreachable,
-.node-health-dot.node-health-unknown {
-    animation: node-health-pulse 1.8s ease-in-out infinite;
+.server-stats .node-health-status-dot {
+    width: 7px;
+    height: 7px;
+    padding: 0;
+    border-radius: 50%;
+    flex: 0 0 auto;
+    background-color: red;
+    opacity: 1;
 }
 
-@keyframes node-health-pulse {
-    50% {
-        opacity: 0.45;
-    }
+.server-stats .node-health-status.node-health-healthy {
+    color: #7fd49a;
 }
 
-@media (prefers-reduced-motion: reduce) {
-    .node-health-dot.node-health-unhealthy,
-    .node-health-dot.node-health-unreachable,
-    .node-health-dot.node-health-unknown {
-        animation: none;
-    }
+.server-stats .node-health-status.node-health-healthy .node-health-status-dot {
+    background-color: greenyellow;
+}
+
+.server-stats .node-health-status.node-health-maintenance {
+    color: #e3c778;
+}
+
+.server-stats .node-health-status.node-health-maintenance .node-health-status-dot {
+    background-color: orange;
 }
 
 .section {
@@ -376,20 +378,15 @@ svg {
     opacity: 0.8;
 }
 
-.app-ping.online,
-.node-health-dot.node-health-healthy {
+.app-ping.online {
     background-color: greenyellow;
 }
 
-.app-ping.offline,
-.node-health-dot.node-health-unhealthy,
-.node-health-dot.node-health-unreachable,
-.node-health-dot.node-health-unknown {
+.app-ping.offline {
     background-color: red;
 }
 
-.app-ping.maintenance,
-.node-health-dot.node-health-maintenance {
+.app-ping.maintenance {
     background-color: orange;
 }
 

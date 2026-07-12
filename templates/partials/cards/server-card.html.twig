@@ -1,7 +1,6 @@
 <div id="server-{{ server.id }}" class="server-container">
   <div class="server-header" style="border-color: {{ server.primary_color }}">
     <h3 class="server-title" data-tippy-content="Server Updated: {{ cache.age }} s ago (TTL: {{ cache.ttl }} s)">
-      <span class="node-health-dot node-health-{{ server.health.state }}" aria-label="{{ server.health.label }}" data-tippy-content="{{ server.health.tooltip }}"></span>
       {{ server.title }}
       <a class="server-info-btn" hx-get="{{ endpoints.modal_server_info_render }}" hx-target="#modal-container" hx-trigger="click" hx-toggle="modal">{{ icons.info|raw }}</a>
       <a class="server-refresh-btn" data-tippy-content="Refresh Server" hx-swap="innerHTML" hx-target="#server-{{ server.id }}" hx-get="/watch/refresh/server/{{ server.name }}">{{ icons.refresh_ccw|raw }}</a>

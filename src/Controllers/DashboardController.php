@@ -570,7 +570,8 @@ class DashboardController extends BaseController
                     $server,
                     $this->serversConfig[$server],
                     $dashboardServices->collector,
-                    $forceRefresh
+                    $forceRefresh,
+                    $dashboardServices->healthMonitor
                 );
 
                 $html = $this->serverRenderer->renderServerStats(
