@@ -21,7 +21,11 @@
         {{ db.active_processes ?? '–' }} / {{ db.max_connections ?? '–' }}
       </span>
       <span class="db-metric" data-tippy-content="Active threads">{{ db.active_threads ?? '–' }} thr</span>
-      <span class="db-metric" data-tippy-content="Process list entries">{{ db.process_count }} {{ icons.activity|raw }}</span>
+      {% if db.process_modal_url %}
+        <span class="db-metric db-process-list" data-tippy-content="Process list entries" hx-get="{{ db.process_modal_url }}" hx-target="#modal-container" hx-trigger="click" hx-toggle="modal">{{ db.process_count }} {{ icons.activity|raw }}</span>
+      {% else %}
+        <span class="db-metric" data-tippy-content="Process list entries">{{ db.process_count }} {{ icons.activity|raw }}</span>
+      {% endif %}
       <span class="tag is-light {{ db.status == 'ok' ? 'is-success' : 'is-danger' }}" data-tippy-content="{{ db.status_tooltip }}">
         {% if db.status == 'ok' %}{{ icons.check_circle|raw }} OK{% else %}{{ icons.alert|raw }} ERR{% endif %}
       </span>

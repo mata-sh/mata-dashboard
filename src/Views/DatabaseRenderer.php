@@ -66,6 +66,7 @@ class DatabaseRenderer extends BaseRenderer
                     $serverConfig,
                     $serverId,
                     $endpointError,
+                    $server,
                 );
 
                 $databaseContainerHtml .= $this->twig->render(
@@ -81,7 +82,7 @@ class DatabaseRenderer extends BaseRenderer
 
                 $databaseContainerHtml .= $this->twig->render(
                     'partials/cards/database-card.html.twig',
-                    $this->buildDatabaseCardData([], $serverConfig, $serverId, $e->getMessage())
+                    $this->buildDatabaseCardData([], $serverConfig, $serverId, $e->getMessage(), $server)
                 );
             }
         }
@@ -111,6 +112,7 @@ class DatabaseRenderer extends BaseRenderer
             $serverConfig,
             $serverId,
             $endpointError,
+            $server,
         );
 
         return $this->twig->render('partials/cards/database-card.html.twig', $renderData);
@@ -130,6 +132,7 @@ class DatabaseRenderer extends BaseRenderer
         array $serverConfig,
         string $serverId,
         ?string $errorMessage = null,
+        ?string $server = null,
     ): array {
         return [
             'server' => [
@@ -141,7 +144,7 @@ class DatabaseRenderer extends BaseRenderer
             'system' => [
                 'processes_sql' => $databaseData['processes']['sql'] ?? null,
             ],
-            'databases' => $this->buildDatabaseEntries($databaseData),
+            'databases' => $this->buildDatabaseEntries($databaseData, $server),
             'databases_available' => is_array($databaseData['databases'] ?? null),
             'ui' => [
                 'error_message' => $errorMessage,
@@ -156,7 +159,7 @@ class DatabaseRenderer extends BaseRenderer
      *
      * @return array<int,array<string,mixed>> Display-ready database entries
      */
-    private function buildDatabaseEntries(array $databaseData): array
+    private function buildDatabaseEntries(array $databaseData, ?string $server = null): array
     {
         $databases = $databaseData['databases'] ?? null;
 
@@ -190,6 +193,12 @@ class DatabaseRenderer extends BaseRenderer
                 'active_threads' => $this->formatCount($entry['active_threads']),
                 'active_processes' => $this->formatCount($entry['active_processes']),
                 'process_count' => count($entry['process_list']),
+                'process_modal_url' => $server === null
+                    ? null
+                    : $this->endpoints->url('modal_db_processes_render', [
+                        'server' => $server,
+                        'database' => $name,
+                    ]),
                 'status' => $connectionError === '' ? 'ok' : 'error',
                 'status_tooltip' => $connectionError === ''
                     ? 'Connected'

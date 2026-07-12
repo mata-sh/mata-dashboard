@@ -388,6 +388,61 @@ class ModalController extends BaseController
     }
 
     /**
+     * Fetch and render the process list for a database.
+     *
+     * @return Response Rendered modal HTML response
+     */
+    public function renderDatabaseProcesses(
+        string $server,
+        string $database,
+        bool $forceRefresh = false
+    ): Response {
+        return $this->executeWithErrorHandling(
+            function () use ($server, $database, $forceRefresh) {
+                if (!isset($this->serverDataCollectors[$server])) {
+                    return $this->handleNotFound("Server '{$server}'", 'Database process request');
+                }
+
+                $databaseResponse = $this->requireValidResponse(
+                    $this->modalCacheService->fetchServerDatabases(
+                        $this->serverDataCollectors[$server],
+                        $forceRefresh
+                    ),
+                    "database processes for {$database} on {$server}"
+                );
+                $databases = $databaseResponse['result']['databases'] ?? null;
+
+                if (!is_array($databases) || !isset($databases[$database]) || !is_array($databases[$database])) {
+                    return $this->handleNotFound("Database '{$database}'", "process request on {$server}");
+                }
+
+                $processList = $databases[$database]['process_list'] ?? [];
+                $processList = is_array($processList) ? $processList : [];
+
+                $endpoints = [
+                    'modal_db_processes_refresh' => $this->endpoints->url(
+                        'modal_db_processes_refresh',
+                        ['server' => $server, 'database' => $database]
+                    ),
+                ];
+
+                $html = $this->modalRenderer->renderDatabaseProcessesModal(
+                    $processList,
+                    $server,
+                    $database,
+                    $databaseResponse['cache_age'] ?? 0,
+                    $databaseResponse['cache_ttl'] ?? 0,
+                    $endpoints
+                );
+
+                return new HtmlResponse($html);
+            },
+            'Failed to load database processes',
+            "Database processes for {$database} on {$server}"
+        );
+    }
+
+    /**
      * Fetch and render server cronjobs for a server.
      *
      * @param string $server       Server name
@@ -440,15 +495,15 @@ class ModalController extends BaseController
     /**
      * Validate a collector response: non-null and free of node-reported errors.
      *
-     * @param null|array<string,mixed> $response
+     * @param null|array<string,mixed>|string $response
      *
      * @return array<string,mixed> The validated response
      *
      * @throws Exception When the response is missing or carries a node error
      */
-    private function requireValidResponse(?array $response, string $context): array
+    private function requireValidResponse(array|string|null $response, string $context): array
     {
-        if ($response === null) {
+        if (!is_array($response)) {
             throw new Exception("Failed to fetch {$context} via API.");
         }
 

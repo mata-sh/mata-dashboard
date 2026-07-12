@@ -167,6 +167,27 @@ class RouterSetupTest extends TestCase
         ];
     }
 
+    public function testRegistersDatabaseProcessModalRoutes(): void
+    {
+        $router = $this->createStub(Router::class);
+        $router->method('mount')
+            ->willReturnCallback(static fn (string $path, callable $callback) => $callback())
+        ;
+        $endpoints = new Endpoints();
+        $setup = $this->createRouterSetup(router: $router, endpoints: $endpoints);
+
+        $this->invokeMethod($setup, 'setupWatchRoutes');
+
+        $this->assertSame(
+            'watch/modal/{server}/database/{database}/processes',
+            $endpoints->get('modal_db_processes_render')
+        );
+        $this->assertSame(
+            'watch/modal/{server}/database/{database}/processes/refresh',
+            $endpoints->get('modal_db_processes_refresh')
+        );
+    }
+
     public function testRouteParameterValidationAcceptsSafeValues(): void
     {
         RouteParameter::assertSafe('server-01.example_org', 'Invalid route parameter');
@@ -256,8 +277,11 @@ class RouterSetupTest extends TestCase
         return false;
     }
 
-    private function createRouterSetup(?Router $router = null, ?App $app = null): RouterSetup
-    {
+    private function createRouterSetup(
+        ?Router $router = null,
+        ?App $app = null,
+        ?Endpoints $endpoints = null
+    ): RouterSetup {
         return new RouterSetup(
             $router ?? $this->createStub(Router::class),
             $app ?? $this->createAppStub(),
@@ -266,7 +290,7 @@ class RouterSetupTest extends TestCase
             $this->createStub(AuditController::class),
             $this->createStub(ModalController::class),
             $this->createMetricsController(),
-            new Endpoints(),
+            $endpoints ?? new Endpoints(),
             new CsrfGuard()
         );
     }

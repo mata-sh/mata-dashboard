@@ -62,6 +62,20 @@ final class ModalCacheService
     }
 
     /**
+     * Fetch database data with cache handling applied.
+     *
+     * @return null|array<string,mixed>|string
+     */
+    public function fetchServerDatabases(
+        ServerDataCollectorInterface $collector,
+        bool $forceRefresh
+    ): array|string|null {
+        $cacheType = $this->cacheTypeResolver->resolve($forceRefresh, CacheTypes::DATABASES);
+
+        return $collector->getServerDatabases($cacheType);
+    }
+
+    /**
      * Fetch server info data with cache handling applied.
      */
     public function fetchServerInfo(

@@ -50,9 +50,30 @@ final class DatabaseRendererTest extends TestCase
             'active_threads' => '12',
             'active_processes' => '34',
             'process_count' => 2,
+            'process_modal_url' => null,
             'status' => 'ok',
             'status_tooltip' => 'Connected',
         ]], $entries);
+    }
+
+    public function testAddsProcessListModalUrl(): void
+    {
+        $endpoints = new Endpoints();
+        $endpoints->register(
+            'modal_db_processes_render',
+            '/watch/modal/{server}/database/{database}/processes'
+        );
+        $data = $this->createRenderer($endpoints)->buildDatabaseCardData(
+            ['databases' => ['main db' => $this->databaseEntry()]],
+            $this->serverConfig(),
+            'server-id',
+            server: 'server-01'
+        );
+
+        $this->assertSame(
+            '/watch/modal/server-01/database/main%20db/processes',
+            $data['databases'][0]['process_modal_url']
+        );
     }
 
     public function testFallsBackToReportedDatabaseName(): void
@@ -209,14 +230,14 @@ final class DatabaseRendererTest extends TestCase
         ];
     }
 
-    private function createRenderer(): DatabaseRenderer
+    private function createRenderer(?Endpoints $endpoints = null): DatabaseRenderer
     {
         return new DatabaseRenderer(
             $this->createStub(Environment::class),
             $this->createStub(Logger::class),
             $this->createStub(Tools::class),
             $this->createStub(App::class),
-            $this->createStub(Endpoints::class),
+            $endpoints ?? $this->createStub(Endpoints::class),
         );
     }
 }

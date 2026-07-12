@@ -77,7 +77,7 @@ class MenuBuilder
                 'label' => 'Databases',
                 'icon' => $this->tools->icon('database', 12),
                 'endpoint_key' => 'databases_render',
-                'enabled' => false,
+                'enabled' => true,
             ],
             [
                 'key' => 'force_refresh',

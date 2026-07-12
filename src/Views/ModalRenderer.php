@@ -399,6 +399,87 @@ class ModalRenderer extends BaseRenderer
     }
 
     /**
+     * Build template data for a database process-list modal.
+     *
+     * Values remain plain strings so Twig escapes every node-supplied cell.
+     *
+     * @param array<int,array<string,mixed>> $processList Process-list rows
+     * @param array<string,mixed>            $endpoints   Pre-built endpoint URLs
+     *
+     * @return array<string,mixed> Template data array
+     */
+    public function buildDatabaseProcessesModalData(
+        array $processList,
+        string $server,
+        string $database,
+        int $cacheAge,
+        int $cacheTtl,
+        array $endpoints
+    ): array {
+        $processes = [];
+
+        foreach ($processList as $process) {
+            if (!is_array($process)) {
+                continue;
+            }
+
+            $row = [];
+            foreach (['id', 'user', 'host', 'db', 'command', 'time', 'state', 'info'] as $field) {
+                $value = $process[$field] ?? null;
+                $row[$field] = is_scalar($value) ? (string) $value : null;
+            }
+            $processes[] = $row;
+        }
+
+        return [
+            'server' => ['name' => $server],
+            'database' => ['name' => $database],
+            'processes' => $processes,
+            'endpoints' => $endpoints,
+            'icons' => $this->getModalIcons(),
+            'cache' => [
+                'age' => $this->tools->formatDuration($cacheAge),
+                'ttl' => $this->tools->formatDuration($cacheTtl),
+            ],
+        ];
+    }
+
+    /**
+     * Render a database process-list modal.
+     *
+     * @param array<int,array<string,mixed>> $processList Process-list rows
+     * @param array<string,mixed>            $endpoints   Pre-built endpoint URLs
+     */
+    public function renderDatabaseProcessesModal(
+        array $processList,
+        string $server,
+        string $database,
+        int $cacheAge,
+        int $cacheTtl,
+        array $endpoints
+    ): string {
+        $data = $this->buildDatabaseProcessesModalData(
+            $processList,
+            $server,
+            $database,
+            $cacheAge,
+            $cacheTtl,
+            $endpoints
+        );
+
+        try {
+            return $this->twig->render('partials/modals/database-processes-modal.html.twig', $data);
+        } catch (Exception $e) {
+            $this->logError($e->getMessage(), 'DatabaseProcessesModal', [
+                'server' => $server,
+                'database' => $database,
+            ]);
+
+            return '<div class="notification is-danger">Error rendering database processes modal</div>';
+        }
+    }
+
+    /**
      * Build template data for server cronjobs modal.
      *
      * @param array<int,array<string,mixed>> $cronjobs  Cronjob entries

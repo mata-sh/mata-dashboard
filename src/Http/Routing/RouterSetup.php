@@ -305,6 +305,8 @@ class RouterSetup
                 ['modal_app_readme_refresh', '/modal/{server}/{app}/readme/refresh', 'get', fn ($server, $app) => $this->modalController->renderAppReadme($server, $app, forceRefresh: true)],
                 ['modal_app_logs_render', '/modal/{server}/{app}/logs', 'get', fn ($server, $app) => $this->modalController->renderAppLogs($server, $app)],
                 ['modal_app_logs_refresh', '/modal/{server}/{app}/logs/refresh', 'get', fn ($server, $app) => $this->modalController->renderAppLogs($server, $app, forceRefresh: true)],
+                ['modal_db_processes_render', '/modal/{server}/database/{database}/processes', 'get', fn ($server, $database) => $this->modalController->renderDatabaseProcesses($server, $database)],
+                ['modal_db_processes_refresh', '/modal/{server}/database/{database}/processes/refresh', 'get', fn ($server, $database) => $this->modalController->renderDatabaseProcesses($server, $database, forceRefresh: true)],
                 ['modal_server_info_render', '/modal/{server}/info', 'get', fn ($server) => $this->modalController->renderServerInfo($server)],
                 ['modal_server_info_refresh', '/modal/{server}/info/refresh', 'get', fn ($server) => $this->modalController->renderServerInfo($server, forceRefresh: true)],
                 ['modal_server_cronjobs_render', '/modal/{server}/cronjobs', 'get', fn ($server) => $this->modalController->renderServerCronjobs($server)],
@@ -413,6 +415,11 @@ class RouterSetup
      */
     private function setupParameterValidation(): void
     {
+        // Validate server and database parameters for database process-list modal routes
+        $this->router->before('GET', '/watch/modal/([^/]+)/database/([^/]+)/processes.*', function ($server, $database) {
+            RouteParameter::assertAllSafe([$server, $database], 'Invalid database process route parameter');
+        });
+
         // Validate server and app parameters for modal routes
         $this->router->before('GET', '/watch/modal/([^/]+)/([^/]+)/.*', function ($server, $app) {
             RouteParameter::assertSafe($server, 'Invalid server parameter');
