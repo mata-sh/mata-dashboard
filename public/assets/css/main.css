@@ -112,7 +112,8 @@ svg {
     /* border-left: 10px solid; */
     flex-grow: 1;
     cursor: pointer;
-    font-size: 0.9em;
+    font-size: 1em;
+    padding: 5px 12px;
 }
 
 .server-title svg {
@@ -210,6 +211,25 @@ svg {
 @media (max-width: 1400px) {
     .server-section {
         grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 645px) {
+    .server-section {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-height: calc(100vh - 80px);
+        color: #fff;
+        text-align: center;
+    }
+
+    .server-section::before {
+        content: "Dashboard requires at least 646px.";
+    }
+
+    .server-container {
+        display: none;
     }
 }
 
