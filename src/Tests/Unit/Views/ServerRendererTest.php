@@ -48,7 +48,7 @@ final class ServerRendererTest extends TestCase
 
         yield 'maintenance' => [[
             'state' => NodeHealthState::MAINTENANCE,
-        ], NodeHealthState::MAINTENANCE, 'Maintenance mode'];
+        ], NodeHealthState::MAINTENANCE, 'Maintenance'];
 
         yield 'unhealthy' => [[
             'state' => NodeHealthState::UNHEALTHY,

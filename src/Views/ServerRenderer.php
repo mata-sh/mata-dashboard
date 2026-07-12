@@ -196,14 +196,12 @@ class ServerRenderer extends BaseRenderer
         $serverId = $this->generateHtmlId($serverName, 'server');
 
         $metrics = $serverRenderData['metrics'] ?? [];
-        $nodeHealth = is_array($serverRenderData['health'] ?? null) ? $serverRenderData['health'] : [];
 
         $data = $this->buildServerStatsData(
             $serverName,
             $metrics,
             $serverConfig,
             $serverId,
-            $nodeHealth,
         );
 
         return $this->twig->render('partials/cards/server-stats.html.twig', $data);
@@ -484,7 +482,7 @@ class ServerRenderer extends BaseRenderer
     }
 
     /**
-     * Create safe, compact node-health data for the metrics status.
+     * Create safe, compact node-health data for the title status.
      *
      * @param array<string,mixed> $nodeHealth
      *
@@ -507,7 +505,7 @@ class ServerRenderer extends BaseRenderer
             ],
             NodeHealthState::MAINTENANCE => [
                 'state' => NodeHealthState::MAINTENANCE,
-                'label' => 'Maintenance mode',
+                'label' => 'Maintenance',
             ],
             default => [
                 'state' => NodeHealthState::UNKNOWN,

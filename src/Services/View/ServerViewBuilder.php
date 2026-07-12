@@ -125,8 +125,7 @@ class ServerViewBuilder
         string $serverName,
         array $serverConfig,
         ServerDataCollectorInterface $collector,
-        bool $forceRefresh,
-        ?NodeHealthMonitorInterface $healthMonitor = null,
+        bool $forceRefresh
     ): array {
         // Fetch server metrics only
         $metricsCacheType = $this->cacheTypeResolver->resolve($forceRefresh, CacheTypes::SERVER_DATA);
@@ -136,17 +135,11 @@ class ServerViewBuilder
             $metricsCacheType
         );
 
-        $viewData = [
+        return [
             'server' => $serverName,
             'config' => $serverConfig,
             'metrics' => $serverMetrics,
         ];
-
-        if ($healthMonitor !== null) {
-            $viewData['health'] = $this->resolveNodeHealth($serverName, $healthMonitor);
-        }
-
-        return $viewData;
     }
 
     /**
