@@ -109,11 +109,12 @@ svg {
 }
 
 .server-title {
-    /* border-left: 10px solid; */
+    display: flex;
+    align-items: center;
     flex-grow: 1;
     cursor: pointer;
-    font-size: 1em;
-    padding: 5px 12px;
+    font-size: 1.15em;
+    padding: 5px 12px 5px 0;
 }
 
 .server-title svg {
@@ -123,12 +124,11 @@ svg {
 
 /* Colors are shared with the .app-ping indicator (see .app-ping rules). */
 .node-health-dot {
-    display: inline-block;
-    width: 10px;
-    height: 10px;
-    margin-right: 6px;
+    align-self: stretch;
+    width: 5px;
+    /* bleed through the title's vertical padding to span the full header height */
+    margin: -5px 12px -5px 0;
     padding: 0 !important;
-    border-radius: 999px;
     background-color: red;
     opacity: 0.8;
     cursor: help;
