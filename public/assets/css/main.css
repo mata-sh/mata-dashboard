@@ -18,12 +18,13 @@ h3 {
     font-style: normal;
     text-transform: uppercase;
     color: #fff;
-    padding: 4px;
+    /* padding: 4px; */
     /* background-color: #000; */
     /* border: 1px solid #323232; */
     /* font-family: bebas neue; */
     font-weight: bold;
-    padding: 6px 11px;
+    /* padding: 6px 11px; */
+    padding: 0 0 6px;
 }
 
 .htmx-indicator {
@@ -1349,7 +1350,10 @@ svg {
     font-family: monospace;
 }
 /* --- Composer audit --- */
-.audit-section { margin-bottom: 2rem; }
+.audit-section {
+    /* margin-bottom: 2rem; */
+    margin-bottom: 1rem;
+}
 
 /* collapsible header */
 .audit-title {
