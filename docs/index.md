@@ -48,6 +48,7 @@ MATA Dashboard is a PHP-based monitoring platform for centralized visibility acr
 - [Alarm Decision and Delivery Flow](drafts/reference/alarms.md)
 - [Security](guides/secure-application.md)
 - [Setup Dev](development/setup-development.md)
+- [UI Styleguide](development/ui-styleguide.md)
 
 ## Contact
 
