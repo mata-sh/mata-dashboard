@@ -280,16 +280,39 @@ docker-compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
 
 ### Cron Jobs (`docker/cron/crontab`)
 
-**Data Collection**:
-- Every 5 min: Fetch server data
-- Every 15 min: Check cronjob heartbeats
+The image installs this manifest as the `www-data` user crontab. Inspect it with:
 
-**Cleanup Tasks**:
-- 2 AM daily: Delete logs older than 30 days
-- 3 AM daily: Delete cache older than 7 days
-- 4 AM daily: Delete sessions older than 1 day
-- 5 AM Sunday: Delete template cache older than 7 days
-- 6 AM Sunday: Compress and rotate logs
+```bash
+docker compose exec web crontab -l
+```
+
+| Schedule | Script |
+|----------|--------|
+| `*/5 * * * *` | `servers_data_fetch.php` |
+| `*/5 * * * *` | `servers_metrics_collect.php` |
+| `*/15 * * * *` | `servers_metrics_aggregate.php` |
+| `* * * * *` | `alarms_evaluate_critical.php` |
+| `*/5 * * * *` | `alarms_evaluate_non_critical.php` |
+| `* * * * *` | `alarms_dispatch.php` |
+| `25 2 * * *` | `retention_cleanup.php` |
+
+Cron execution logs, including launcher failures before bootstrap, are in
+`/var/www/html/logs/cron/app-<job-name>.log`. PHP runtime errors are in
+`/var/www/html/logs/cron/php-error.log`; heartbeat history is in
+`/var/www/html/logs/cron/heartbeat-<job-name>.jsonl`. The separate ingestion
+health report is `/var/www/html/logs/cron/collect_server_metrics_health.log`.
+
+```bash
+tail -f logs/cron/app-servers-metrics-collect.log
+tail -f logs/cron/collect_server_metrics_health.log
+```
+
+Active cron logs and their compressed archives are deleted after 30 days; active
+logs are compressed weekly. The ingestion health report has application-managed
+rotation and is excluded from shell rotation.
+
+For host or native installations, substitute the application root and PHP path
+while retaining these schedules and `logs/cron/` destinations.
 
 ## Architecture Details
 

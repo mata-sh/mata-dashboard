@@ -11,7 +11,7 @@ mkdir -p \
     /var/www/html/temp/api-cache \
     /var/www/html/temp/sessions \
     /var/www/html/temp/templates-cache \
-    /var/www/html/logs \
+    /var/www/html/logs/cron \
     /var/www/html/config \
     /var/www/html/public/branding
 

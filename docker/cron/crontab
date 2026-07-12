@@ -1,70 +1,38 @@
-# MATA Dashboard Cron Jobs
-# These jobs collect monitoring data from remote servers
-# FORMAT (User Crontab - NO username field):
-# ┌───────────── minute (0-59)
-# │ ┌───────────── hour (0-23)
-# │ │ ┌───────────── day of month (1-31)
-# │ │ │ ┌───────────── month (1-12)
-# │ │ │ │ ┌───────────── day of week (0-6, Sunday=0)
-# │ │ │ │ │
-# * * * * * command-to-execute
-#
-# Example (runs every 5 minutes):
-# */5 * * * * cd /var/www/html && /usr/local/bin/php cron/servers_data_fetch.php >> /var/www/html/logs/cron_servers.log 2>&1
-#
-# IMPORTANT: Do NOT include username (www-data) - this is a user crontab, not a system crontab
-# Jobs will run as www-data user automatically.
+# MATA Dashboard cron manifest (installed as the www-data user crontab)
+# User crontab format: five schedule fields followed directly by the command. No username.
+SHELL=/bin/sh
+PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+APP_ROOT=/var/www/html
+PHP_BIN=/usr/local/bin/php
+CRON_LOG_DIR=/var/www/html/logs/cron
 
-# ============================================================================
-# METRICS COLLECTION (every 5 minutes)
-# ============================================================================
+# Job output uses the application log. The redirect also captures shell, parse, and
+# other failures before PHP bootstrap configures Monolog.
+# Heartbeat history: $CRON_LOG_DIR/heartbeat-<job-name>.jsonl
+# PHP runtime errors: $CRON_LOG_DIR/php-error.log
+# Metrics ingestion health: $CRON_LOG_DIR/collect_server_metrics_health.log
+# (the health report has application-managed rotation and is excluded below).
 
-# Fetch server data every 5 minutes
-*/5 * * * * cd /var/www/html && /usr/local/bin/php cron/servers_data_fetch.php >> /var/www/html/logs/cron_servers.log 2>&1
+# Data collection
+*/5 * * * * cd "$APP_ROOT" && "$PHP_BIN" cron/servers_data_fetch.php >> "$CRON_LOG_DIR/app-servers-data-fetch.log" 2>&1
+*/5 * * * * cd "$APP_ROOT" && "$PHP_BIN" cron/servers_metrics_collect.php >> "$CRON_LOG_DIR/app-servers-metrics-collect.log" 2>&1
+*/15 * * * * cd "$APP_ROOT" && "$PHP_BIN" cron/servers_metrics_aggregate.php >> "$CRON_LOG_DIR/app-servers-metrics-aggregate.log" 2>&1
 
-# Collect raw server metrics every 5 minutes
-*/5 * * * * cd /var/www/html && /usr/local/bin/php cron/servers_metrics_collect.php >> /var/www/html/logs/cron_metrics_collect.log 2>&1
+# Alarm evaluation and delivery
+* * * * * cd "$APP_ROOT" && "$PHP_BIN" cron/alarms_evaluate_critical.php >> "$CRON_LOG_DIR/app-alarms-evaluate-critical.log" 2>&1
+*/5 * * * * cd "$APP_ROOT" && "$PHP_BIN" cron/alarms_evaluate_non_critical.php >> "$CRON_LOG_DIR/app-alarms-evaluate-non-critical.log" 2>&1
+* * * * * cd "$APP_ROOT" && "$PHP_BIN" cron/alarms_dispatch.php >> "$CRON_LOG_DIR/app-alarms-dispatch.log" 2>&1
 
-# Aggregate metrics every 15 minutes (hourly/daily rollups)
-*/15 * * * * cd /var/www/html && /usr/local/bin/php cron/servers_metrics_aggregate.php >> /var/www/html/logs/cron_metrics_aggregate.log 2>&1
+# Database retention
+25 2 * * * cd "$APP_ROOT" && "$PHP_BIN" cron/retention_cleanup.php >> "$CRON_LOG_DIR/app-retention-cleanup.log" 2>&1
 
-# ============================================================================
-# ALARM EVALUATION (critical: every 1 min, non-critical: every 5 min)
-# ============================================================================
-
-# Evaluate critical alarms every minute
-* * * * * cd /var/www/html && /usr/local/bin/php cron/alarms_evaluate_critical.php >> /var/www/html/logs/cron_alarms_critical.log 2>&1
-
-# Evaluate non-critical alarms every 5 minutes
-*/5 * * * * cd /var/www/html && /usr/local/bin/php cron/alarms_evaluate_non_critical.php >> /var/www/html/logs/cron_alarms_non_critical.log 2>&1
-
-# ============================================================================
-# ALARM DELIVERY DISPATCH (every 1 minute)
-# ============================================================================
-
-# Dispatch pending alarm deliveries every minute
-* * * * * cd /var/www/html && /usr/local/bin/php cron/alarms_dispatch.php >> /var/www/html/logs/cron_alarms_dispatch.log 2>&1
-
-# ============================================================================
-# CLEANUP & MAINTENANCE
-# ============================================================================
-
-# Run database retention cleanup daily at 2:25 AM
-25 2 * * * cd /var/www/html && /usr/local/bin/php cron/retention_cleanup.php >> /var/www/html/logs/cron_retention_cleanup.log 2>&1
-
-# Clean up old log files daily at 2 AM
-0 2 * * * find /var/www/html/logs -name "*.log" -mtime +30 -delete 2>/dev/null
-
-# Clean up old cache files daily at 3 AM
-0 3 * * * find /var/www/html/temp/api-cache -name "*.json" -mtime +7 -delete 2>/dev/null
-
-# Clean up old session files daily at 4 AM
-0 4 * * * find /var/www/html/temp/sessions -name "sess_*" -mtime +1 -delete 2>/dev/null
-
-# Clean up old template cache files weekly on Sunday at 5 AM
-0 5 * * 0 find /var/www/html/temp/templates-cache -name "*.php" -mtime +7 -delete 2>/dev/null
-
-# Log rotation - compress old logs weekly on Sunday at 6 AM
-0 6 * * 0 cd /var/www/html/logs && for file in *.log; do [ -f "$file" ] && gzip -c "$file" > "${file}.$(date +\%Y\%m\%d).gz" && > "$file"; done 2>/dev/null
-
-# Empty line required at end of crontab file
+# Maintenance
+# Retain cron logs and their compressed archives for 30 days. Heartbeats are JSONL
+# and have no retention policy here. The ingestion health report manages itself.
+0 2 * * * find "$CRON_LOG_DIR" -type f -name "*.log" ! -name "collect_server_metrics_health.log" -mtime +30 -delete 2>/dev/null
+0 2 * * * find "$CRON_LOG_DIR" -type f -name "*.log.*.gz" ! -name "collect_server_metrics_health.log.*.gz" -mtime +30 -delete 2>/dev/null
+0 3 * * * find "$APP_ROOT/temp/api-cache" -name "*.json" -mtime +7 -delete 2>/dev/null
+0 4 * * * find "$APP_ROOT/temp/sessions" -name "sess_*" -mtime +1 -delete 2>/dev/null
+0 5 * * 0 find "$APP_ROOT/temp/templates-cache" -name "*.php" -mtime +7 -delete 2>/dev/null
+# Rotate cron logs recursively; escaped percent signs are required by cron.
+0 6 * * 0 find "$CRON_LOG_DIR" -type f -name "*.log" ! -name "collect_server_metrics_health.log" -exec sh -c 'for file do gzip -c "$file" > "${file}.$(date +\%Y\%m\%d).gz" && : > "$file"; done' sh {} + 2>/dev/null

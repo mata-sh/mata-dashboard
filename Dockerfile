@@ -94,7 +94,7 @@ RUN mkdir -p \
     /var/www/html/temp/api-cache \
     /var/www/html/temp/sessions \
     /var/www/html/temp/templates-cache \
-    /var/www/html/logs \
+    /var/www/html/logs/cron \
     /var/www/html/config \
     && chown -R www-data:www-data /var/www/html \
     && chmod -R 755 /var/www/html \

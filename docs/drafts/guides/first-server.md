@@ -322,21 +322,24 @@ Click the **Refresh** button to force an immediate data collection from your ser
 
 ## Step 5: Configure Automated Data Collection
 
-To enable continuous monitoring, set up the cron jobs on the Dashboard server. When running in docker, the crontab in `mata-dashboard/docker/cron/crontab` is used.
+To enable continuous monitoring, set up the cron jobs on the Dashboard server. Docker installs `mata-dashboard/docker/cron/crontab` as the `www-data` user crontab. Native installations must use the same seven schedules in the [Cron Jobs Runbook](../cronjobs.md), substituting their application root and PHP path.
 
-### 5.1 Edit Crontab manually
+### 5.1 Inspect or Edit Crontab
 
 ```bash
-crontab -e
-```
+# Docker
+docker compose exec web crontab -l
 
-> **Important:** Replace `/path/to/mata-dashboard` with your actual installation path.
+# Native installation
+sudo crontab -u www-data -e
+```
 
 ### 5.2 Create Log Directory
 
 ```bash
-sudo mkdir -p /path/to/mata-dashboard/logs
-sudo chown www-data:www-data /path/to/mata-dashboard/logs/cron/
+sudo mkdir -p /path/to/mata-dashboard/logs/cron
+sudo chown -R www-data:www-data /path/to/mata-dashboard/logs/cron
+sudo chmod -R 770 /path/to/mata-dashboard/logs/cron
 ```
 
 ### 5.3 Verify Cron Execution
@@ -344,9 +347,9 @@ sudo chown www-data:www-data /path/to/mata-dashboard/logs/cron/
 Wait 5 minutes, then check if the cron job ran successfully:
 
 ```bash
-# cronjob logs
-tail -f /path/to/mata-dashboard/logs/cron/collect_server_metrics.log
-# payload health log
+# Cron job execution log
+tail -f /path/to/mata-dashboard/logs/cron/app-servers-metrics-collect.log
+# Separate ingestion health report
 tail -f /path/to/mata-dashboard/logs/cron/collect_server_metrics_health.log
 ```
 

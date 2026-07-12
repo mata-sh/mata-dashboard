@@ -380,31 +380,19 @@ docker-compose up -d
 
 ## Cron Jobs Setup
 
-Set up automated data collection:
-
-### Production Cron Configuration
-
-```bash
-# Edit crontab
-crontab -e
-
-# Add these entries:
-
-# Collect raw server metrics every 5 minutes
-*/5 * * * * /usr/bin/php /path/to/mata-dashboard/cron/servers_metrics_collect.php >> /path/to/mata-dashboard/temp/logs/cron-collect.log 2>&1
-
-# Aggregate server metrics hourly (at 5 minutes past each hour)
-5 * * * * /usr/bin/php /path/to/mata-dashboard/cron/servers_metrics_aggregate.php >> /path/to/mata-dashboard/temp/logs/cron-aggregate.log 2>&1
-```
-
-### Verify Cron Jobs
+Use all seven schedules in the [Cron Jobs Runbook](../cronjobs.md). For a native
+installation, substitute `/path/to/mata-dashboard` and the PHP binary path, but
+keep the schedules and `logs/cron/app-<job-name>.log` destinations.
 
 ```bash
-# View current crontab
-crontab -l
+# Edit the www-data user crontab
+sudo crontab -u www-data -e
 
-# Monitor cron execution
-tail -f /path/to/mata-dashboard/temp/logs/cron-collect.log
+# Verify the installed manifest
+sudo crontab -u www-data -l
+
+# Monitor collection execution
+tail -f /path/to/mata-dashboard/logs/cron/app-servers-metrics-collect.log
 ```
 
 ### Cron Job Monitoring
@@ -524,7 +512,7 @@ tail -f /var/log/apache2/mata-error.log
 tail -f /var/log/nginx/error.log
 
 # Cron job logs
-tail -f temp/logs/cron-collect.log
+tail -f logs/cron/app-servers-metrics-collect.log
 ```
 
 ## Troubleshooting

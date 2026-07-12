@@ -1,11 +1,55 @@
 # Cron Jobs Runbook
 
+`docker/cron/crontab` is the production cron manifest. Docker installs it as the
+`www-data` user crontab; entries do not contain a username.
+
+## Schedule
+
+| Schedule | Script | Execution log | Heartbeat history |
+|----------|--------|---------------|-------------------|
+| `*/5 * * * *` | `servers_data_fetch.php` | `logs/cron/app-servers-data-fetch.log` | `logs/cron/heartbeat-servers-data-fetch.jsonl` |
+| `*/5 * * * *` | `servers_metrics_collect.php` | `logs/cron/app-servers-metrics-collect.log` | `logs/cron/heartbeat-servers-metrics-collect.jsonl` |
+| `*/15 * * * *` | `servers_metrics_aggregate.php` | `logs/cron/app-servers-metrics-aggregate.log` | `logs/cron/heartbeat-servers-metrics-aggregate.jsonl` |
+| `* * * * *` | `alarms_evaluate_critical.php` | `logs/cron/app-alarms-evaluate-critical.log` | `logs/cron/heartbeat-alarms-evaluate-critical.jsonl` |
+| `*/5 * * * *` | `alarms_evaluate_non_critical.php` | `logs/cron/app-alarms-evaluate-non-critical.log` | `logs/cron/heartbeat-alarms-evaluate-non-critical.jsonl` |
+| `* * * * *` | `alarms_dispatch.php` | `logs/cron/app-alarms-dispatch.log` | `logs/cron/heartbeat-alarms-dispatch.jsonl` |
+| `25 2 * * *` | `retention_cleanup.php` | `logs/cron/app-retention-cleanup.log` | `logs/cron/heartbeat-retention-cleanup.jsonl` |
+
+## Logs and inspection
+
+Execution logs also receive launcher stdout and stderr, including failures before
+PHP bootstrap configures logging. PHP runtime errors are written to
+`logs/cron/php-error.log`. Heartbeats are JSONL execution history; they are not
+removed by cron log maintenance.
+
+`logs/cron/collect_server_metrics_health.log` is a separate ingestion-health
+report written only by `servers_metrics_collect.php`. It is not that job's
+execution log and has application-managed rotation.
+
+```bash
+# Docker: inspect the installed www-data manifest
+docker compose exec web crontab -l
+
+# Follow collection execution and ingestion health
+tail -f logs/cron/app-servers-metrics-collect.log
+tail -f logs/cron/collect_server_metrics_health.log
+```
+
+Cron removes active cron logs and their compressed archives after 30 days, and
+compresses active logs weekly. It excludes the ingestion-health report from shell
+rotation.
+
+For host or native installations, substitute the application root and PHP path
+in the manifest while retaining the schedules and `logs/cron/` destinations.
+
 ## Monitoring Ingestion Health
+
 - Check `logs/cron/collect_server_metrics_health.log` after each run for inserts, last sample timestamp, and computed lag per server.
 - Stalled servers emit a dashboard event with type `server_metrics.ingestion_stall`.
 - Tune stall/retention thresholds in `config/data_retention.json` under `ingestion_health` (default window is 15 minutes).
 
 ## Manual Backfill / Rehydration
+
 - Fix the upstream node, then rerun `php cron/servers_metrics_collect.php` to repopulate raw samples.
 - If raw samples exist but hourly/daily aggregates are missing, run the targeted backfill below:
 
