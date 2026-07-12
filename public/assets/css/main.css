@@ -595,14 +595,75 @@ svg {
     cursor: pointer;
 }
 
-.db-row {
-    margin-top: 4px;
-    gap: 8px;
+.sqlstats-container.db-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(140px, 230px) 90px 64px 52px 40px;
     align-items: center;
+    gap: 10px;
+    margin-top: 4px;
+    text-align: left;
+}
+
+.db-endpoint {
+    overflow: hidden;
+    color: #8b93a5;
+    font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+    font-size: 0.85em;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 .db-metric {
+    color: #e8eaf0;
+    font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+    font-size: 0.9em;
+    font-variant-numeric: tabular-nums;
+    text-align: right;
     white-space: nowrap;
+}
+
+.db-metric em {
+    font-style: normal;
+    color: #5a6172;
+}
+
+.db-row .db-process-list.modal-trigger {
+    justify-self: end;
+}
+
+.db-status {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 1.6rem;
+    padding: .14rem .4rem;
+    border: 1px solid transparent;
+    border-radius: 5px;
+    color: #fff;
+    justify-self: end;
+}
+
+.db-status svg {
+    width: 12px;
+    height: 12px;
+    stroke: currentColor;
+}
+
+.db-status.is-ok {
+    background: #2e7d43;
+    border-color: #4da767;
+}
+
+.db-status.is-error {
+    background: #c22a35;
+    border-color: #e05561;
+}
+
+@media screen and (max-width: 900px) {
+    .sqlstats-container.db-row {
+        grid-template-columns: minmax(0, 1fr) minmax(0, 150px) 76px 56px 46px 36px;
+        gap: 8px;
+    }
 }
 
 .db-row-empty {
@@ -677,7 +738,8 @@ svg {
 }
 
 .server-cronjobs.modal-trigger,
-.db-process-list.modal-trigger {
+.db-process-list.modal-trigger,
+.server-metric-trigger.modal-trigger {
     box-sizing: border-box;
     padding: 0 3px;
     border: 1px solid #262c38;
@@ -690,7 +752,8 @@ svg {
 }
 
 .server-cronjobs.modal-trigger svg,
-.db-process-list.modal-trigger svg {
+.db-process-list.modal-trigger svg,
+.server-metric-trigger.modal-trigger svg {
     stroke: currentColor;
 }
 
@@ -709,17 +772,68 @@ svg {
 }
 
 .server-cronjobs.modal-trigger:hover,
-.server-cronjobs.modal-trigger:focus-visible {
+.server-cronjobs.modal-trigger:focus-visible,
+.server-metric-trigger.modal-trigger:hover,
+.server-metric-trigger.modal-trigger:focus-visible {
+    border-color: #3f93a6;
     background: #182029;
+    color: #9fe8f2;
     outline: none;
 }
 
 .server-cronjobs.modal-trigger:focus-visible,
+.server-metric-trigger.modal-trigger:focus-visible,
 .db-process-list.modal-trigger:focus-visible,
 .server-info-btn.modal-trigger:focus-visible,
 .app-title .app-url-btn:focus-visible,
 .app-title .app-readme-btn.modal-trigger:focus-visible {
     box-shadow: 0 0 0 2px rgba(63, 147, 166, .2);
+}
+
+.server-metrics-modal__content {
+    min-width: 0;
+}
+
+.server-metrics-modal__controls,
+.metrics-chart-stats {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: end;
+    margin-bottom: 12px;
+}
+
+.server-metrics-modal__controls label,
+.metrics-chart-stats > div {
+    display: grid;
+    gap: 3px;
+    color: #aeb7c5;
+    font-size: .75rem;
+}
+
+.server-metrics-modal__controls select {
+    max-width: 130px;
+}
+
+.server-metrics-modal .metrics-chart-wrapper {
+    position: relative;
+    min-height: 260px;
+}
+
+.server-metrics-modal .metrics-chart-wrapper canvas {
+    max-height: 300px;
+}
+
+.metrics-chart-stats dd {
+    margin: 0;
+    color: #fff;
+    font-weight: 700;
+}
+
+@media (max-width: 520px) {
+    .server-metrics-modal__controls > * {
+        flex: 1 1 42%;
+    }
 }
 
 .login-container>div {

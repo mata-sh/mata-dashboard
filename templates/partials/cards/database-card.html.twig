@@ -18,16 +18,16 @@
       </span>
       <span class="db-endpoint" {% if db.description %}data-tippy-content="{{ db.description }}"{% endif %}>{{ db.endpoint }}</span>
       <span class="db-metric" data-tippy-content="Active processes / max connections">
-        {{ db.active_processes ?? '–' }} / {{ db.max_connections ?? '–' }}
+        {{ db.active_processes ?? '–' }} <em>/ {{ db.max_connections ?? '–' }}</em>
       </span>
-      <span class="db-metric" data-tippy-content="Active threads">{{ db.active_threads ?? '–' }} thr</span>
+      <span class="db-metric" data-tippy-content="Active threads">{{ db.active_threads ?? '–' }} <em>thr</em></span>
       {% if db.process_modal_url %}
         <button type="button" class="db-metric db-process-list modal-trigger" aria-label="Open database process list" aria-haspopup="dialog" data-tippy-content="Process list entries" hx-get="{{ db.process_modal_url }}" hx-target="#modal-container" hx-trigger="click" hx-toggle="modal">{{ db.process_count }} {{ icons.activity|raw }}</button>
       {% else %}
         <span class="db-metric" data-tippy-content="Process list entries">{{ db.process_count }} {{ icons.activity|raw }}</span>
       {% endif %}
-      <span class="tag is-light {{ db.status == 'ok' ? 'is-success' : 'is-danger' }}" data-tippy-content="{{ db.status_tooltip }}">
-        {% if db.status == 'ok' %}{{ icons.check_circle|raw }} OK{% else %}{{ icons.alert|raw }} ERR{% endif %}
+      <span class="db-status {{ db.status == 'ok' ? 'is-ok' : 'is-error' }}" role="img" aria-label="{{ db.status == 'ok' ? 'Database OK' : 'Database error' }}" data-tippy-content="{{ db.status_tooltip }}">
+        {% if db.status == 'ok' %}{{ icons.check_circle|raw }}{% else %}{{ icons.alert|raw }}{% endif %}
       </span>
     </div>
   {% endfor %}
