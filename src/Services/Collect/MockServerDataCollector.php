@@ -78,7 +78,7 @@ class MockServerDataCollector implements ServerDataCollectorInterface
             'processes' => [
                 'total' => mt_rand(80, 240),
                 'php' => mt_rand(10, 40),
-                'sql' => mt_rand(2, 12),
+                'sql' => mt_rand(12, 20),
             ],
             'cronjobs' => ['total' => 5, 'working' => 3, 'stale' => 1, 'missing' => 1],
         ];
@@ -202,7 +202,7 @@ class MockServerDataCollector implements ServerDataCollectorInterface
             'connections_max' => 150,
             'uptime_hours' => mt_rand(120, 1080),
             'queries_per_second' => mt_rand(10, 200),
-            'processes' => ['sql' => mt_rand(2, 12)],
+            'processes' => ['sql' => mt_rand(12, 20)],
             'databases' => [
                 'mata_dashboard' => [
                     'database' => 'mata_dashboard',
