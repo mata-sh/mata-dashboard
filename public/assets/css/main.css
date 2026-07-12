@@ -184,6 +184,31 @@ svg {
     color: hsl(0, 0%, 100%);
 }
 
+.navbar-mobile-actions {
+    display: none;
+}
+
+@media screen and (max-width: 1023px) {
+    .navbar-mobile-actions {
+        display: flex;
+        align-items: center;
+        gap: .25rem;
+        margin-left: auto;
+    }
+
+    .navbar-mobile-actions .navbar-burger {
+        margin-left: 0;
+    }
+
+    .navbar-mobile-actions .notification-bell {
+        padding: 0;
+    }
+
+    .navbar-menu .notification-bell {
+        display: none;
+    }
+}
+
 .navbar-menu.is-active .navbar-item svg {
     margin-right: 9px;
 }

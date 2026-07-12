@@ -1,4 +1,4 @@
-{# Inner content of the #notification-bell navbar item.
+{# Inner content of a notification-bell navbar item.
    The wrapper in topbar.html.twig polls this fragment via htmx, so all
    markup here is replaced on every refresh. #}
 <span class="notification-bell-trigger {{ total > 0 ? 'has-unacknowledged' : '' }}"
@@ -35,7 +35,7 @@
     <div class="notification-bell-foot">
       <a class="notification-ack-all"
          hx-post="{{ endpoints.ack_all }}"
-         hx-target="#notification-bell"
+         hx-target="closest .notification-bell"
          hx-swap="innerHTML">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 12l5 5l10 -10"></path><path d="M2 12l5 5m5 -5l5 -5"></path></svg>
         Mark all as acknowledged
