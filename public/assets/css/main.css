@@ -113,7 +113,7 @@ svg {
     align-items: center;
     flex-grow: 1;
     cursor: pointer;
-    font-size: 0.85em;
+    font-size: 0.8em;
     padding: 5px 12px 5px 8px;
 }
 
@@ -132,7 +132,7 @@ svg {
     border: 1px solid #2a3040;
     border-radius: 4px;
     color: #8b93a5;
-    font-size: .62rem;
+    font-size: .55rem;
     font-weight: 600;
     letter-spacing: .04em;
     text-transform: uppercase;
@@ -410,7 +410,7 @@ svg {
 
 .alarm {
     color: #fff;
-    background-color: #e53935;
+    background-color: #e50000;
     font-weight: bold;
 }
 
@@ -839,8 +839,8 @@ svg {
 .server-cronjobs.modal-trigger.alarm,
 .server-metric-trigger.modal-trigger.alarm {
     color: #fff;
-    background-color: #e53935;
-    border-color: #ff6b66;
+    background-color: #e50000;
+    border-color: #ff5c5c;
 }
 
 .server-cronjobs.modal-trigger.alarm:hover,
@@ -848,8 +848,8 @@ svg {
 .server-metric-trigger.modal-trigger.alarm:hover,
 .server-metric-trigger.modal-trigger.alarm:focus-visible {
     color: #fff;
-    background-color: #f04440;
-    border-color: #ff8984;
+    background-color: #b80000;
+    border-color: #ff8585;
 }
 
 .server-stats .server-cronjobs.modal-trigger,

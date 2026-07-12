@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Mata\Tests\Unit\Services;
 
 use Mata\Services\Cache\CacheTtlResolver;
+use Mata\Services\Collect\DemoAlarmMetricScenario;
 use Mata\Services\Collect\MockServerDataCollector;
 use Mata\Services\DataTransformers\ApiResponseTransformer;
 use PHPUnit\Framework\TestCase;
@@ -58,19 +59,22 @@ final class MockServerDataCollectorTest extends TestCase
         }
     }
 
-    public function testDemoSystemDataIncludesOneRandomAlarmMetric(): void
+    public function testDemoDashboardIncludesOneRandomAlarmMetric(): void
     {
         $logger = new NullLogger();
-        $collector = new MockServerDataCollector(
-            $logger,
-            new CacheTtlResolver([]),
-            new ApiResponseTransformer($logger),
-            'staging-server',
-            ['url' => 'https://staging-server.example.test'],
-        );
-
+        $servers = ['production-web', 'database-server', 'staging-server', 'development-server', 'backup-server'];
+        $scenario = new DemoAlarmMetricScenario($servers);
         $alarmMetrics = [];
-        for ($i = 0; $i < 20; ++$i) {
+
+        foreach ($servers as $server) {
+            $collector = new MockServerDataCollector(
+                $logger,
+                new CacheTtlResolver([]),
+                new ApiResponseTransformer($logger),
+                $server,
+                ['url' => 'https://' . $server . '.example.test'],
+                $scenario,
+            );
             $data = $collector->getServerSystemData()['result'];
             $failedCronjobs = $data['cronjobs']['total'] - $data['cronjobs']['working'];
             $metrics = [
@@ -81,12 +85,12 @@ final class MockServerDataCollectorTest extends TestCase
                 'cronjobs' => $failedCronjobs / $data['cronjobs']['total'] * 100 >= 90,
             ];
 
-            $active = array_keys(array_filter($metrics));
-            $this->assertCount(1, $active);
-            $alarmMetrics[$active[0]] = true;
+            foreach (array_keys(array_filter($metrics)) as $metric) {
+                $alarmMetrics[] = $server . ':' . $metric;
+            }
         }
 
-        $this->assertGreaterThan(1, count($alarmMetrics));
+        $this->assertCount(1, $alarmMetrics);
     }
 
     public function testDemoAppsAlwaysMatchTheAppsResponseContract(): void

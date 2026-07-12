@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Mata\Services\Collect;
 
+use LogicException;
 use Mata\Constants\CacheTypes;
 use Mata\Services\Cache\CacheTtlResolver;
 use Mata\Services\DataTransformers\ApiResponseTransformer;
@@ -24,6 +25,7 @@ class MockServerDataCollector implements ServerDataCollectorInterface
     private CacheTtlResolver $ttlResolver;
     private ApiResponseTransformer $dataTransformer;
     private string $serverName;
+    private DemoAlarmMetricScenario $alarmMetricScenario;
 
     /** @var array<string,mixed> */
     private array $serverConfig;
@@ -33,24 +35,27 @@ class MockServerDataCollector implements ServerDataCollectorInterface
     /**
      * Initialize mock server data collector.
      *
-     * @param LoggerInterface        $logger          PSR-3 logger for demo logging
-     * @param CacheTtlResolver       $ttlResolver     Cache TTL configuration lookup
-     * @param ApiResponseTransformer $dataTransformer Data transformer for response normalization
-     * @param string                 $serverName      Server identifier for demo data generation
-     * @param array<string,mixed>    $serverConfig    Server configuration from demo-servers.json
+     * @param LoggerInterface              $logger              PSR-3 logger for demo logging
+     * @param CacheTtlResolver             $ttlResolver         Cache TTL configuration lookup
+     * @param ApiResponseTransformer       $dataTransformer     Data transformer for response normalization
+     * @param string                       $serverName          Server identifier for demo data generation
+     * @param array<string,mixed>          $serverConfig        Server configuration from demo-servers.json
+     * @param null|DemoAlarmMetricScenario $alarmMetricScenario Shared dashboard alarm scenario
      */
     public function __construct(
         LoggerInterface $logger,
         CacheTtlResolver $ttlResolver,
         ApiResponseTransformer $dataTransformer,
         string $serverName,
-        array $serverConfig
+        array $serverConfig,
+        ?DemoAlarmMetricScenario $alarmMetricScenario = null,
     ) {
         $this->logger = $logger;
         $this->ttlResolver = $ttlResolver;
         $this->dataTransformer = $dataTransformer;
         $this->serverName = $serverName;
         $this->serverConfig = $serverConfig;
+        $this->alarmMetricScenario = $alarmMetricScenario ?? new DemoAlarmMetricScenario([$serverName]);
         $this->cacheAge = mt_rand(10, 180); // Simulate cache age
     }
 
@@ -85,23 +90,25 @@ class MockServerDataCollector implements ServerDataCollectorInterface
             'cronjobs' => ['total' => 5, 'working' => 5, 'stale' => 0, 'missing' => 0],
         ];
 
-        $this->applyRandomAlarmMetric($data);
+        $this->applyAlarmMetricScenario($data);
 
         return $this->dataTransformer->normalizeApiResponse($data, $this->cacheAge, $ttlSeconds, false, false, 'server/data');
     }
 
     /**
-     * Add one alarm-level metric to each generated demo server response.
+     * Add the selected dashboard alarm metric.
      *
-     * Values match the alarm thresholds in config/demo/thresholds.json. The
-     * selected metric changes per refresh so the dashboard demonstrates every
-     * alarm state instead of always highlighting the same card.
+     * The scenario is shared by all demo collectors, so one metric across the
+     * dashboard reaches alarm level on each refresh.
      *
      * @param array<string,mixed> $data
      */
-    private function applyRandomAlarmMetric(array &$data): void
+    private function applyAlarmMetricScenario(array &$data): void
     {
-        $metric = ['cpu', 'ram', 'disk', 'filecount', 'cronjobs'][array_rand(['cpu', 'ram', 'disk', 'filecount', 'cronjobs'])];
+        $metric = $this->alarmMetricScenario->metricFor($this->serverName);
+        if ($metric === null) {
+            return;
+        }
 
         match ($metric) {
             'cpu' => $data['cpu_usage'] = 97,
@@ -109,6 +116,7 @@ class MockServerDataCollector implements ServerDataCollectorInterface
             'disk' => $data['disk_space_used'] = (int) round($data['disk_space_capacity'] * 0.95),
             'filecount' => $data['total_system_filecount'] = 950000,
             'cronjobs' => $data['cronjobs'] = ['total' => 5, 'working' => 0, 'stale' => 5, 'missing' => 0],
+            default => throw new LogicException("Unsupported demo alarm metric: {$metric}"),
         };
     }
 

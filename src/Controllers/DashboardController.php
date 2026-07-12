@@ -18,6 +18,7 @@ use Mata\Services\Cache\ApiCacheKeyFactory;
 use Mata\Services\Cache\CacheStoreInterface;
 use Mata\Services\Cache\CacheTtlResolver;
 use Mata\Services\Cache\CacheTypeResolver;
+use Mata\Services\Collect\DemoAlarmMetricScenario;
 use Mata\Services\Collect\MockServerDataCollector;
 use Mata\Services\Collect\ServerDataCollector;
 use Mata\Services\Collect\ServerDataCollectorInterface;
@@ -184,10 +185,18 @@ class DashboardController extends BaseController
             $tools
         );
 
+        $demoAlarmMetricScenario = $this->appConfig->environment->env === 'demo' && $this->serversConfig !== []
+            ? new DemoAlarmMetricScenario(array_keys($this->serversConfig))
+            : null;
+
         // Initialize per-server service classes
         foreach ($this->serversConfig as $server => $serverConfig) {
             try {
-                $this->dashboardServicesByServer[$server] = $this->initializeServerMonitoring($server, $serverConfig);
+                $this->dashboardServicesByServer[$server] = $this->initializeServerMonitoring(
+                    $server,
+                    $serverConfig,
+                    $demoAlarmMetricScenario,
+                );
             } catch (Exception $e) {
                 $this->logger->error($server, [
                     'error' => $e->getMessage(),
@@ -209,8 +218,11 @@ class DashboardController extends BaseController
      * @param string              $server       Server name
      * @param array<string,mixed> $serverConfig Server configuration
      */
-    private function initializeServerMonitoring(string $server, array $serverConfig): ServerDashboardServices
-    {
+    private function initializeServerMonitoring(
+        string $server,
+        array $serverConfig,
+        ?DemoAlarmMetricScenario $demoAlarmMetricScenario = null,
+    ): ServerDashboardServices {
         $environment = $this->appConfig->environment->env;
         $dataTransformer = new ApiResponseTransformer($this->logger);
 
@@ -221,7 +233,8 @@ class DashboardController extends BaseController
                     $this->ttlResolver,
                     $dataTransformer,
                     $server,
-                    $serverConfig
+                    $serverConfig,
+                    $demoAlarmMetricScenario,
                 ),
                 new MockAppMonitor(),
                 new MockNodeHealthMonitor(),
