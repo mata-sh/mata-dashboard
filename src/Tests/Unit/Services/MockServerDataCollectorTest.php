@@ -58,6 +58,37 @@ final class MockServerDataCollectorTest extends TestCase
         }
     }
 
+    public function testDemoSystemDataIncludesOneRandomAlarmMetric(): void
+    {
+        $logger = new NullLogger();
+        $collector = new MockServerDataCollector(
+            $logger,
+            new CacheTtlResolver([]),
+            new ApiResponseTransformer($logger),
+            'staging-server',
+            ['url' => 'https://staging-server.example.test'],
+        );
+
+        $alarmMetrics = [];
+        for ($i = 0; $i < 20; ++$i) {
+            $data = $collector->getServerSystemData()['result'];
+            $failedCronjobs = $data['cronjobs']['total'] - $data['cronjobs']['working'];
+            $metrics = [
+                'cpu' => $data['cpu_usage'] >= 95,
+                'ram' => $data['ram_used'] / $data['ram_capacity'] * 100 >= 95,
+                'disk' => $data['disk_space_used'] / $data['disk_space_capacity'] * 100 >= 90,
+                'filecount' => $data['total_system_filecount'] >= 900000,
+                'cronjobs' => $failedCronjobs / $data['cronjobs']['total'] * 100 >= 90,
+            ];
+
+            $active = array_keys(array_filter($metrics));
+            $this->assertCount(1, $active);
+            $alarmMetrics[$active[0]] = true;
+        }
+
+        $this->assertGreaterThan(1, count($alarmMetrics));
+    }
+
     public function testDemoAppsAlwaysMatchTheAppsResponseContract(): void
     {
         $logger = new NullLogger();

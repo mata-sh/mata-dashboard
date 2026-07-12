@@ -85,7 +85,31 @@ class MockServerDataCollector implements ServerDataCollectorInterface
             'cronjobs' => ['total' => 5, 'working' => 5, 'stale' => 0, 'missing' => 0],
         ];
 
+        $this->applyRandomAlarmMetric($data);
+
         return $this->dataTransformer->normalizeApiResponse($data, $this->cacheAge, $ttlSeconds, false, false, 'server/data');
+    }
+
+    /**
+     * Add one alarm-level metric to each generated demo server response.
+     *
+     * Values match the alarm thresholds in config/demo/thresholds.json. The
+     * selected metric changes per refresh so the dashboard demonstrates every
+     * alarm state instead of always highlighting the same card.
+     *
+     * @param array<string,mixed> $data
+     */
+    private function applyRandomAlarmMetric(array &$data): void
+    {
+        $metric = ['cpu', 'ram', 'disk', 'filecount', 'cronjobs'][array_rand(['cpu', 'ram', 'disk', 'filecount', 'cronjobs'])];
+
+        match ($metric) {
+            'cpu' => $data['cpu_usage'] = 97,
+            'ram' => $data['ram_used'] = (int) round($data['ram_capacity'] * 0.97),
+            'disk' => $data['disk_space_used'] = (int) round($data['disk_space_capacity'] * 0.95),
+            'filecount' => $data['total_system_filecount'] = 950000,
+            'cronjobs' => $data['cronjobs'] = ['total' => 5, 'working' => 0, 'stale' => 5, 'missing' => 0],
+        };
     }
 
     /**
