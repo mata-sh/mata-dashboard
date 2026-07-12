@@ -46,7 +46,20 @@
         },
         columns: [
         {title: "ID", field: "id", sorter: "number", hozAlign:"center", },
-        {title: "Datetime", field: "datetime", sorter: "datetime", hozAlign:"center"},
+        {title: "Datetime", field: "datetime", sorter: "datetime", hozAlign:"center", formatter:function(cell){
+            var value = String(cell.getValue() || "");
+            var isoValue = value.includes("T") ? value : value.replace(" ", "T");
+            if (!/(?:Z|[+-]\d{2}:?\d{2})$/i.test(isoValue)) {
+                isoValue += "Z";
+            }
+
+            var date = new Date(isoValue);
+            if (Number.isNaN(date.getTime())) {
+                return value;
+            }
+
+            return date.toISOString().slice(0, 16).replace("T", " ") + " UTC";
+        },
         {title: "Server", field: "server", sorter: "string", hozAlign:"center"},
         {title: "App", field: "app", sorter: "string", hozAlign:"center"},
         {title:"Level", field:"level", hozAlign:"center", formatter: window.mataFormatLevel},
