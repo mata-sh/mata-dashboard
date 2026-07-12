@@ -125,13 +125,14 @@ svg {
 .server-title .node-health-status {
     display: inline-flex;
     align-items: center;
+    gap: 5px;
     margin-left: 8px;
-    padding: .18rem .55rem;
-    border: 1px solid transparent;
+    padding: .12rem .5rem;
+    background: transparent;
+    border: 1px solid #2a3040;
     border-radius: 4px;
-    background: #4a5060;
-    color: #fff;
-    font-size: .68rem;
+    color: #8b93a5;
+    font-size: .62rem;
     font-weight: 600;
     letter-spacing: .04em;
     text-transform: uppercase;
@@ -139,22 +140,46 @@ svg {
     cursor: help;
 }
 
+.server-title .node-health-status-dot {
+    display: block;
+    width: 6px;
+    height: 6px;
+    padding: 0;
+    border-radius: 50%;
+    flex: 0 0 auto;
+    background-color: #6b7280;
+}
+
 .server-title .node-health-status.node-health-healthy {
-    background: transparent;
-    border-color: #2a3040;
     color: #7fd49a;
 }
 
-.server-title .node-health-status.node-health-unhealthy {
-    background: #c05a1d;
-}
-
-.server-title .node-health-status.node-health-unreachable {
-    background: #c22a35;
+.server-title .node-health-status.node-health-healthy .node-health-status-dot {
+    background-color: #4da767;
 }
 
 .server-title .node-health-status.node-health-maintenance {
-    background: #9c7c14;
+    color: #e3c778;
+}
+
+.server-title .node-health-status.node-health-maintenance .node-health-status-dot {
+    background-color: #c4a53a;
+}
+
+.server-title .node-health-status.node-health-unhealthy {
+    color: #e0854a;
+}
+
+.server-title .node-health-status.node-health-unhealthy .node-health-status-dot {
+    background-color: #e0854a;
+}
+
+.server-title .node-health-status.node-health-unreachable {
+    color: #f09595;
+}
+
+.server-title .node-health-status.node-health-unreachable .node-health-status-dot {
+    background-color: #e05561;
 }
 
 .section {
