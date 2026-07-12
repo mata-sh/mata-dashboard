@@ -320,6 +320,10 @@ svg {
     opacity: 0;
 }
 
+.server-stats > .warn {
+    opacity: 0.35;
+}
+
 .server-stats > .critical {
     opacity: 0.5;
 }
@@ -698,12 +702,18 @@ svg {
 }
 
 .modal-trigger,
+.server-title .server-refresh-btn,
+.server-refresh-stats-btn,
+.app-title .app-refresh-btn,
 .app-title .app-url-btn {
     cursor: pointer;
     transition: border-color .15s ease, background-color .15s ease, color .15s ease, opacity .15s ease;
 }
 
 .server-info-btn.modal-trigger,
+.server-title .server-refresh-btn,
+.server-refresh-stats-btn,
+.app-title .app-refresh-btn,
 .app-title .app-url-btn,
 .app-title .app-readme-btn.modal-trigger {
     display: inline-flex;
@@ -724,11 +734,16 @@ svg {
     margin-left: 4px;
 }
 
+.server-title .server-refresh-btn,
+.app-title .app-refresh-btn,
 .app-title .app-readme-btn.modal-trigger {
     margin-left: 2px;
 }
 
 .server-info-btn.modal-trigger svg,
+.server-title .server-refresh-btn svg,
+.server-refresh-stats-btn svg,
+.app-title .app-refresh-btn svg,
 .app-title .app-url-btn svg,
 .app-title .app-readme-btn.modal-trigger svg {
     width: 12px;
@@ -774,7 +789,13 @@ svg {
 .server-cronjobs.modal-trigger:hover,
 .server-cronjobs.modal-trigger:focus-visible,
 .server-metric-trigger.modal-trigger:hover,
-.server-metric-trigger.modal-trigger:focus-visible {
+.server-metric-trigger.modal-trigger:focus-visible,
+.server-title .server-refresh-btn:hover,
+.server-title .server-refresh-btn:focus-visible,
+.server-refresh-stats-btn:hover,
+.server-refresh-stats-btn:focus-visible,
+.app-title .app-refresh-btn:hover,
+.app-title .app-refresh-btn:focus-visible {
     border-color: #3f93a6;
     background: #182029;
     color: #9fe8f2;
@@ -785,9 +806,17 @@ svg {
 .server-metric-trigger.modal-trigger:focus-visible,
 .db-process-list.modal-trigger:focus-visible,
 .server-info-btn.modal-trigger:focus-visible,
+.server-title .server-refresh-btn:focus-visible,
+.server-refresh-stats-btn:focus-visible,
+.app-title .app-refresh-btn:focus-visible,
 .app-title .app-url-btn:focus-visible,
 .app-title .app-readme-btn.modal-trigger:focus-visible {
     box-shadow: 0 0 0 2px rgba(63, 147, 166, .2);
+}
+
+.server-stats .server-cronjobs.modal-trigger,
+.server-stats .server-metric-trigger.modal-trigger {
+    font-size: .6em;
 }
 
 .server-metrics-modal__content {

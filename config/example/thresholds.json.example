@@ -1,5 +1,17 @@
 {
     "server_data": {
+        "cpu_usage": {
+            "good": 0,
+            "warn": 70,
+            "critical": 85,
+            "alarm": 95
+        },
+        "ram_usage_percent": {
+            "good": 0,
+            "warn": 70,
+            "critical": 85,
+            "alarm": 95
+        },
         "log_filesize_kb": {
             "good": 10240,
             "warn": 102400,

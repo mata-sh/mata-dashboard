@@ -1,7 +1,7 @@
 <div id="server-stats-{{ server.id }}" class="server-stats">
   <button
     type="button"
-    class="server-cpu count modal-trigger server-metric-trigger"
+    class="server-cpu count {{ server.cpu_usage_level }} modal-trigger server-metric-trigger"
     aria-label="Open CPU metric history"
     aria-haspopup="dialog"
     hx-get="{{ metrics_modal_endpoints.cpu }}"
@@ -13,7 +13,7 @@
   </button>
   <button
     type="button"
-    class="server-ram count modal-trigger server-metric-trigger"
+    class="server-ram count {{ storage.ram_usage_level }} modal-trigger server-metric-trigger"
     aria-label="Open RAM metric history"
     aria-haspopup="dialog"
     data-tippy-content="RAM: {{ storage.ram_used }} / {{ storage.ram_capacity }}"
@@ -57,5 +57,5 @@
   {% if cronjobs.visible %}
     <button type="button" class="server-cronjobs count {{ cronjobs.level }} modal-trigger" aria-label="Open cronjob details" aria-haspopup="dialog" data-tippy-content="{{ cronjobs.tooltip }}" hx-get="{{ cronjobs.modal_endpoint }}" hx-target="#modal-container" hx-trigger="click" hx-toggle="modal">{{ icons.clock|raw }} {{ cronjobs.count }}</button>
   {% endif %}
-  <span class="server-refresh-stats-btn" data-tippy-content="Refresh Server System Stats" hx-swap="outerHTML" hx-target="#server-stats-{{ server.id }}" hx-get="/watch/refresh/serverstats/{{ server.name }}">{{ icons.refresh_ccw|raw }}</span>
+  <button type="button" class="server-refresh-stats-btn" aria-label="Refresh server system stats" data-tippy-content="Refresh Server System Stats" hx-swap="outerHTML" hx-target="#server-stats-{{ server.id }}" hx-get="/watch/refresh/serverstats/{{ server.name }}">{{ icons.refresh_ccw|raw }}</button>
 </div>

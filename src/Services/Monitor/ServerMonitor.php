@@ -65,10 +65,23 @@ class ServerMonitor
         $fromCache = (bool) ($response['from_cache'] ?? false);
         $staleCache = (bool) ($response['stale_cache'] ?? false);
 
-        // Calculate disk usage percentage
+        // Calculate usage percentages.
         $diskSpaceUsed = $serverData['disk_space_capacity'] != 0
         ? ($serverData['disk_space_used'] / $serverData['disk_space_capacity'] * 100)
         : 0;
+        $ramCapacity = (int) ($serverData['ram_capacity'] ?? 0);
+        $ramUsagePercent = $ramCapacity !== 0
+            ? ((int) ($serverData['ram_used'] ?? 0) / $ramCapacity * 100)
+            : 0;
+
+        $cpuUsageLevel = $this->eventManager->getServerDataThresholdLevel(
+            (int) ($serverData['cpu_usage'] ?? 0),
+            'cpu_usage'
+        );
+        $ramUsageLevel = $this->eventManager->getServerDataThresholdLevel(
+            (int) $ramUsagePercent,
+            'ram_usage_percent'
+        );
 
         // Evaluate file count thresholds
         $filecountLevel = $this->eventManager->getServerDataThresholdLevel(
@@ -98,6 +111,8 @@ class ServerMonitor
                 'stale' => $staleCache,
             ],
             'levels' => [
+                'cpu_usage' => $cpuUsageLevel,
+                'ram_usage_percent' => $ramUsageLevel,
                 'total_system_filecount' => $filecountLevel,
                 'disk_space_usage_percent' => $diskUsageLevel,
             ],

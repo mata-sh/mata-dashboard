@@ -57,7 +57,7 @@ final class ServerMonitorTest extends TestCase
         ;
 
         $this->eventManager
-            ->expects($this->exactly(2))
+            ->expects($this->exactly(4))
             ->method('getServerDataThresholdLevel')
             ->willReturn('')
         ;
@@ -91,9 +91,9 @@ final class ServerMonitorTest extends TestCase
         ;
 
         $this->eventManager
-            ->expects($this->exactly(2))
+            ->expects($this->exactly(4))
             ->method('getServerDataThresholdLevel')
-            ->willReturnOnConsecutiveCalls('alarm', '')
+            ->willReturnOnConsecutiveCalls('', '', 'alarm', '')
         ;
 
         $this->eventManager
@@ -132,9 +132,9 @@ final class ServerMonitorTest extends TestCase
         ;
 
         $this->eventManager
-            ->expects($this->exactly(2))
+            ->expects($this->exactly(4))
             ->method('getServerDataThresholdLevel')
-            ->willReturnOnConsecutiveCalls('', 'alarm')
+            ->willReturnOnConsecutiveCalls('', '', '', 'alarm')
         ;
 
         $this->eventManager

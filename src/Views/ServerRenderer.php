@@ -308,6 +308,7 @@ class ServerRenderer extends BaseRenderer
         $cacheInfo = $serverMetrics['cache'] ?? ['age' => 0, 'ttl' => 0];
 
         $basicServerData = $this->buildBasicServerData($serverConfig, $serverId, $serverData, $nodeHealth);
+        $basicServerData['cpu_usage_level'] = $levels['cpu_usage'] ?? 'good';
         $basicServerData['title'] = $this->truncate($basicServerData['title'], 20);
         $basicServerData['name'] = $this->truncate($serverName, 20);
 
@@ -616,6 +617,7 @@ class ServerRenderer extends BaseRenderer
             'ram_capacity' => $this->formatSize($ramCapacity),
             'ram_used' => $this->formatSize($ramUsed),
             'ram_percent' => $this->calculateUsagePercent($ramUsed, $ramCapacity),
+            'ram_usage_level' => $levels['ram_usage_percent'] ?? 'good',
         ];
     }
 

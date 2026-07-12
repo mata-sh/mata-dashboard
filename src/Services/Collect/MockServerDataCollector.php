@@ -65,7 +65,9 @@ class MockServerDataCollector implements ServerDataCollectorInterface
         $baseMetrics = $this->getBaseMetricsForServerType($this->serverName);
 
         $data = [
-            'cpu_usage' => $baseMetrics['cpu'] + mt_rand(-5, 15),
+            'cpu_usage' => $this->serverName === 'production-web'
+                ? 90
+                : $baseMetrics['cpu'] + mt_rand(-5, 15),
             'ram_capacity' => $baseMetrics['ram_capacity'],
             'ram_used' => $baseMetrics['ram_used'] + mt_rand(-200, 500),
             'disk_space_capacity' => $baseMetrics['disk_capacity'],
@@ -80,7 +82,7 @@ class MockServerDataCollector implements ServerDataCollectorInterface
                 'php' => mt_rand(10, 40),
                 'sql' => mt_rand(12, 20),
             ],
-            'cronjobs' => ['total' => 5, 'working' => 3, 'stale' => 1, 'missing' => 1],
+            'cronjobs' => ['total' => 5, 'working' => 5, 'stale' => 0, 'missing' => 0],
         ];
 
         return $this->dataTransformer->normalizeApiResponse($data, $this->cacheAge, $ttlSeconds, false, false, 'server/data');
@@ -552,7 +554,7 @@ class MockServerDataCollector implements ServerDataCollectorInterface
             'production-web' => [
                 'cpu' => 45,
                 'ram_capacity' => 16384,
-                'ram_used' => 12000,
+                'ram_used' => 11000,
                 'disk_capacity' => 500000,
                 'disk_used' => 280000,
             ],
