@@ -215,7 +215,7 @@ class ServerRenderer extends BaseRenderer
      *
      * @return string Generated HTML for error container
      */
-    public function renderErrorContainer(string $message, array $layoutConfig)
+    public function renderErrorContainer(string $message, array $layoutConfig): string
     {
         return $this->twig->render('partials/containers/errors-container.html.twig', [
             'content' => [
@@ -408,7 +408,7 @@ class ServerRenderer extends BaseRenderer
         array $availability = []
     ): array {
         $appDivId = bin2hex(random_bytes(3));
-        $availabilityView = $this->formatAvailability($availability, $appData);
+        $availabilityView = $this->buildAvailabilityData($availability);
 
         return [
             'app' => [
@@ -477,7 +477,7 @@ class ServerRenderer extends BaseRenderer
             'title' => $serverConfig['title'] ?? '',
             'primary_color' => $serverConfig['primary_color'] ?? '#fefefe',
             'cpu_usage' => $serverData['cpu_usage'] ?? 0,
-            'health' => $this->formatNodeHealth($nodeHealth),
+            'health' => $this->buildNodeHealthData($nodeHealth),
         ];
     }
 
@@ -488,7 +488,7 @@ class ServerRenderer extends BaseRenderer
      *
      * @return array{state:string,label:string,tooltip:string}
      */
-    private function formatNodeHealth(array $nodeHealth): array
+    private function buildNodeHealthData(array $nodeHealth): array
     {
         $health = match ($nodeHealth['state'] ?? null) {
             NodeHealthState::HEALTHY => [
@@ -512,7 +512,7 @@ class ServerRenderer extends BaseRenderer
                 'label' => 'Health check failed',
             ],
         };
-        $health['tooltip'] = implode('<br>', $this->buildHealthTooltip(
+        $health['tooltip'] = implode('<br>', $this->buildHealthTooltipLines(
             $health['state'],
             $health['label'],
             $nodeHealth
@@ -526,7 +526,7 @@ class ServerRenderer extends BaseRenderer
      *
      * @return array<int,string>
      */
-    private function buildHealthTooltip(string $state, string $label, array $nodeHealth): array
+    private function buildHealthTooltipLines(string $state, string $label, array $nodeHealth): array
     {
         if ($nodeHealth === []) {
             return [$label];
@@ -627,28 +627,27 @@ class ServerRenderer extends BaseRenderer
      * Convert availability data into template-ready status and tooltip.
      *
      * @param array<string,mixed> $availability
-     * @param array<string,mixed> $appData
      *
      * @return array{status:string,tooltip:string}
      */
-    private function formatAvailability(array $availability, array $appData): array
+    private function buildAvailabilityData(array $availability): array
     {
-        if (!empty($appData['maintenance'])) {
-            return $this->formatMaintenanceStatus();
+        if (($availability['maintenance_mode'] ?? false) === true) {
+            return $this->buildMaintenanceAvailabilityData();
         }
 
         if (!$this->hasAvailabilityData($availability)) {
-            return $this->formatProtectedStatus();
+            return $this->buildProtectedAvailabilityData();
         }
 
         $isReachable = $availability['reachable'] ?? null;
         if ($isReachable === null) {
-            return $this->formatProtectedStatus();
+            return $this->buildProtectedAvailabilityData();
         }
 
         return $isReachable
-            ? $this->formatOnlineStatus($availability)
-            : $this->formatOfflineStatus($availability);
+            ? $this->buildOnlineAvailabilityData($availability)
+            : $this->buildOfflineAvailabilityData($availability);
     }
 
     /**
@@ -666,7 +665,7 @@ class ServerRenderer extends BaseRenderer
      *
      * @return array{status:string,tooltip:string}
      */
-    private function formatMaintenanceStatus(): array
+    private function buildMaintenanceAvailabilityData(): array
     {
         return [
             'status' => AppAvailabilityStatus::MAINTENANCE,
@@ -679,7 +678,7 @@ class ServerRenderer extends BaseRenderer
      *
      * @return array{status:string,tooltip:string}
      */
-    private function formatProtectedStatus(): array
+    private function buildProtectedAvailabilityData(): array
     {
         return [
             'status' => AppAvailabilityStatus::PROTECTED,
@@ -694,7 +693,7 @@ class ServerRenderer extends BaseRenderer
      *
      * @return array{status:string,tooltip:string}
      */
-    private function formatOnlineStatus(array $availability): array
+    private function buildOnlineAvailabilityData(array $availability): array
     {
         $latency = (int) ($availability['latency_ms'] ?? 0);
         $httpCode = $availability['httpCode'] ?? null;
@@ -724,7 +723,7 @@ class ServerRenderer extends BaseRenderer
      *
      * @return array{status:string,tooltip:string}
      */
-    private function formatOfflineStatus(array $availability): array
+    private function buildOfflineAvailabilityData(array $availability): array
     {
         $error = trim((string) ($availability['error'] ?? 'Unavailable'));
         $httpCode = $availability['httpCode'] ?? null;
@@ -790,7 +789,7 @@ class ServerRenderer extends BaseRenderer
         if (isset($notification['actions']) && is_array($notification['actions'])) {
             foreach ($notification['actions'] as $action) {
                 if (is_array($action)) {
-                    $notificationActions[] = $this->mapNotificationAction($action, $endpoints);
+                    $notificationActions[] = $this->normalizeNotificationAction($action, $endpoints);
                 }
             }
         }
@@ -841,7 +840,7 @@ class ServerRenderer extends BaseRenderer
      *
      * @return array<string,mixed>
      */
-    private function mapNotificationAction(array $action, array $endpoints): array
+    private function normalizeNotificationAction(array $action, array $endpoints): array
     {
         if (!isset($action['endpoint']) || !is_string($action['endpoint'])) {
             return $action;

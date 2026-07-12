@@ -52,7 +52,7 @@ class NodeHealthMonitor implements NodeHealthMonitorInterface
         }
 
         $healthUrl = rtrim($this->apiClient->getApiBase(), '/') . '/health';
-        $healthPromise = $this->probeClient->getHealthAsync($healthUrl, self::HEALTH_TIMEOUT);
+        $healthPromise = $this->probeClient->checkHealthAsync($healthUrl, self::HEALTH_TIMEOUT);
 
         // Cache and emit events after the health probe resolves.
         return $healthPromise->then(

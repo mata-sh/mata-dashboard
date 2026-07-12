@@ -98,7 +98,7 @@ class TooltipEscapingTest extends TestCase
     {
         $renderer = $this->createServerRenderer();
 
-        $result = $this->invokePrivate($renderer, 'formatOfflineStatus', [[
+        $result = $this->invokePrivate($renderer, 'buildOfflineAvailabilityData', [[
             'reachable' => false,
             'error' => '<script>alert(1)</script>',
             'httpCode' => 503,

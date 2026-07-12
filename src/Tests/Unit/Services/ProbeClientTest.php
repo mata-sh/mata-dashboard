@@ -50,6 +50,58 @@ final class ProbeClientTest extends TestCase
         $this->assertSame('Connection refused', $result['error']);
     }
 
+    public function testStatusProbeReportsMaintenanceEvenWhenEndpointReturns503(): void
+    {
+        $history = [];
+        $probe = $this->probe([new Response(503, [], '{"maintenance_mode":true}')], $history);
+
+        $result = $probe->checkStatusAsync('https://app.example.test/status.php', 2)->wait();
+
+        $this->assertFalse($result['reachable']);
+        $this->assertTrue($result['maintenance_mode']);
+        $this->assertSame(503, $result['httpCode']);
+        $this->assertSame('GET', $history[0]['request']->getMethod());
+        $this->assertSame('application/json', $history[0]['request']->getHeaderLine('Accept'));
+        $this->assertFalse($history[0]['request']->hasHeader('X-Mata-Auth'));
+    }
+
+    public function testStatusProbeDefaultsMissingMaintenanceModeToFalse(): void
+    {
+        $probe = $this->probe([new Response(200, [], '{"status":"ok"}')]);
+
+        $result = $probe->checkStatusAsync('https://app.example.test/health/', 2)->wait();
+
+        $this->assertTrue($result['reachable']);
+        $this->assertFalse($result['maintenance_mode']);
+    }
+
+    public function testStatusProbeRejectsOversizedBody(): void
+    {
+        $probe = $this->probe([new Response(200, [], str_repeat(' ', 65537))]);
+
+        $result = $probe->checkStatusAsync('https://app.example.test/health/', 2)->wait();
+
+        $this->assertFalse($result['reachable']);
+        $this->assertSame('Invalid status endpoint response', $result['error']);
+    }
+
+    public function testStatusProbeRejectsInvalidPayloadAndRedirect(): void
+    {
+        $probe = $this->probe([
+            new Response(200, [], '{"maintenance_mode":"true"}'),
+            new Response(302, ['Location' => 'https://login.example.test']),
+        ]);
+
+        $invalid = $probe->checkStatusAsync('https://app.example.test/health/', 2)->wait();
+        $redirect = $probe->checkStatusAsync('https://app.example.test/health/', 2)->wait();
+
+        $this->assertFalse($invalid['reachable']);
+        $this->assertFalse($invalid['maintenance_mode']);
+        $this->assertSame('Invalid status endpoint response', $invalid['error']);
+        $this->assertFalse($redirect['reachable']);
+        $this->assertSame(302, $redirect['httpCode']);
+    }
+
     public function testHealthNormalizesHealthyUnhealthyAndMalformedResponses(): void
     {
         $probe = $this->probe([
@@ -58,9 +110,9 @@ final class ProbeClientTest extends TestCase
             new Response(200, [], '{invalid'),
         ]);
 
-        $healthy = $probe->getHealthAsync('https://node-a.example.test/api/health', 3)->wait();
-        $unhealthy = $probe->getHealthAsync('https://node-b.example.test/api/health', 3)->wait();
-        $malformed = $probe->getHealthAsync('https://node-c.example.test/api/health', 3)->wait();
+        $healthy = $probe->checkHealthAsync('https://node-a.example.test/api/health', 3)->wait();
+        $unhealthy = $probe->checkHealthAsync('https://node-b.example.test/api/health', 3)->wait();
+        $malformed = $probe->checkHealthAsync('https://node-c.example.test/api/health', 3)->wait();
 
         $this->assertSame('healthy', $healthy['status']);
         $this->assertSame('unhealthy', $unhealthy['status']);

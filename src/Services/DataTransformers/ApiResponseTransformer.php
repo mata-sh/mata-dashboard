@@ -149,16 +149,16 @@ class ApiResponseTransformer
                     throw new InvalidNodePayloadException('Node returned an invalid application entry.', 'apps');
                 }
 
-                $title = $this->nullableString($appData['title'] ?? null);
-                $path = $this->nullableString($appData['path'] ?? null);
-                $url = $this->nullableString($appData['url'] ?? null);
-                $env = $this->nullableString($appData['env'] ?? null);
-                $maintenance = TypeConverter::toBool($appData['maintenance'] ?? null);
+                $title = TypeConverter::toString($appData['title'] ?? null);
+                $path = TypeConverter::toString($appData['path'] ?? null);
+                $url = TypeConverter::toString($appData['url'] ?? null);
+                $env = TypeConverter::toString($appData['env'] ?? null);
+                $statusUrl = $this->normalizeOptionalStatusUrl($appData);
                 $status = $appData['status'] ?? null;
                 $logs = $appData['logs'] ?? null;
 
                 if ($title === null || $path === null || $url === null || !in_array($env, ['dev', 'test', 'stg', 'live'], true)
-                    || $maintenance === null || !is_array($status) || !is_array($logs)) {
+                    || $statusUrl === false || !is_array($status) || !is_array($logs)) {
                     throw new InvalidNodePayloadException("Node returned an invalid application payload for {$appName}.", 'apps');
                 }
 
@@ -170,17 +170,18 @@ class ApiResponseTransformer
                     throw new InvalidNodePayloadException("Node returned invalid monitoring data for {$appName}.", 'apps');
                 }
 
-                $description = $this->nullableString($appData['description'] ?? null);
+                $description = TypeConverter::toString($appData['description'] ?? null);
                 if (array_key_exists('description', $appData) && $appData['description'] !== null && $description === null) {
                     throw new InvalidNodePayloadException("Node returned an invalid description for {$appName}.", 'apps');
                 }
 
-                $normalized[$appName] = array_merge($appData, [
+                $normalizedApp = $appData;
+                unset($normalizedApp['maintenance']);
+                $normalized[$appName] = array_merge($normalizedApp, [
                     'title' => $title,
                     'path' => $path,
                     'url' => $url,
                     'env' => $env,
-                    'maintenance' => $maintenance,
                     'description' => $description,
                     'status' => ['fatal' => $fatal, 'warnings' => $warnings, 'total' => $total],
                     'logs' => $normalizedLogs,
@@ -188,6 +189,9 @@ class ApiResponseTransformer
                         isset($appData['session']) && is_array($appData['session']) ? $appData['session'] : []
                     ),
                 ]);
+                if ($statusUrl !== null) {
+                    $normalized[$appName]['status_url'] = $statusUrl;
+                }
             }
 
             return $normalized;
@@ -203,17 +207,17 @@ class ApiResponseTransformer
     /** @param array<string,mixed> $session */
     public function normalizeSessionData(array $session): array
     {
-        $type = $this->nullableString($session['type'] ?? null);
+        $type = TypeConverter::toString($session['type'] ?? null);
         $status = $session['status'] ?? null;
         $validStatuses = ['ok', 'unconfigured', 'error', 'unsupported'];
         $counts = [
-            'count_last_hour' => $this->nullableInt($session['count_last_hour'] ?? null),
-            'count_last_day' => $this->nullableInt($session['count_last_day'] ?? null),
-            'count_total' => $this->nullableInt($session['count_total'] ?? null),
+            'count_last_hour' => TypeConverter::toInt($session['count_last_hour'] ?? null),
+            'count_last_day' => TypeConverter::toInt($session['count_last_day'] ?? null),
+            'count_total' => TypeConverter::toInt($session['count_total'] ?? null),
         ];
-        $path = $this->nullableString($session['path'] ?? null);
-        $sizeKb = $this->nullableFloat($session['size_kb'] ?? null);
-        $error = $this->nullableString($session['error'] ?? null);
+        $path = TypeConverter::toString($session['path'] ?? null);
+        $sizeKb = TypeConverter::toFloat($session['size_kb'] ?? null);
+        $error = TypeConverter::toString($session['error'] ?? null);
 
         if ($type === null || !is_string($status) || !in_array($status, $validStatuses, true)
             || ($session['count_last_hour'] ?? null) !== null && $counts['count_last_hour'] === null
@@ -261,11 +265,11 @@ class ApiResponseTransformer
 
             $exists = TypeConverter::toBool($entry['exists'] ?? null);
             $stale = TypeConverter::toBool($entry['stale'] ?? null);
-            $index = $this->nullableInt($entry['index'] ?? null);
-            $path = $this->nullableString($entry['path'] ?? null);
-            $mtime = $this->nullableString($entry['mtime'] ?? null);
-            $age = $this->nullableInt($entry['age_seconds'] ?? null);
-            $size = $this->nullableInt($entry['size'] ?? null);
+            $index = TypeConverter::toInt($entry['index'] ?? null);
+            $path = TypeConverter::toString($entry['path'] ?? null);
+            $mtime = TypeConverter::toString($entry['mtime'] ?? null);
+            $age = TypeConverter::toInt($entry['age_seconds'] ?? null);
+            $size = TypeConverter::toInt($entry['size'] ?? null);
             $tail = $entry['content_tail'] ?? [];
 
             if ($exists === null || $stale === null || ($entry['index'] ?? null) !== null && $index === null
@@ -466,10 +470,10 @@ class ApiResponseTransformer
                 if (!is_array($library)) {
                     throw new InvalidNodePayloadException("Node returned an invalid library for {$app}.", 'libraries');
                 }
-                $name = $this->nullableString($library['name'] ?? null);
-                $version = $this->nullableString($library['version'] ?? null);
-                $description = $this->nullableString($library['description'] ?? null);
-                $type = $this->nullableString($library['type'] ?? null);
+                $name = TypeConverter::toString($library['name'] ?? null);
+                $version = TypeConverter::toString($library['version'] ?? null);
+                $description = TypeConverter::toString($library['description'] ?? null);
+                $type = TypeConverter::toString($library['type'] ?? null);
                 if ($name === null || $version === null || ($library['description'] ?? null) !== null && $description === null
                     || ($library['type'] ?? null) !== null && $type === null) {
                     throw new InvalidNodePayloadException("Node returned invalid library data for {$app}.", 'libraries');
@@ -509,7 +513,7 @@ class ApiResponseTransformer
         if (!is_array($payload) || ($payload['status'] ?? null) !== 'ok') {
             return [
                 'status' => 'error',
-                'message' => is_array($payload) ? $this->nullableString($payload['message'] ?? null) : null,
+                'message' => is_array($payload) ? TypeConverter::toString($payload['message'] ?? null) : null,
                 'advisories' => [],
                 'abandoned' => [],
                 'counts' => $counts,
@@ -550,7 +554,7 @@ class ApiResponseTransformer
 
     private function normalizeSeverity(mixed $value): string
     {
-        $severity = strtolower($this->nullableString($value) ?? 'unknown');
+        $severity = strtolower(TypeConverter::toString($value) ?? 'unknown');
 
         return in_array($severity, Severities::ORDER, true) ? $severity : 'unknown';
     }
@@ -560,13 +564,13 @@ class ApiResponseTransformer
     {
         return [
             'package' => $package,
-            'advisory_id' => $this->nullableString($advisory['advisoryId'] ?? null),
-            'cve' => $this->nullableString($advisory['cve'] ?? null),
-            'title' => $this->nullableString($advisory['title'] ?? null),
-            'link' => $this->nullableString($advisory['link'] ?? null),
-            'affected_versions' => $this->nullableString($advisory['affectedVersions'] ?? null),
+            'advisory_id' => TypeConverter::toString($advisory['advisoryId'] ?? null),
+            'cve' => TypeConverter::toString($advisory['cve'] ?? null),
+            'title' => TypeConverter::toString($advisory['title'] ?? null),
+            'link' => TypeConverter::toString($advisory['link'] ?? null),
+            'affected_versions' => TypeConverter::toString($advisory['affectedVersions'] ?? null),
             'severity' => $this->normalizeSeverity($advisory['severity'] ?? null),
-            'reported_at' => $this->nullableString($advisory['reportedAt'] ?? null),
+            'reported_at' => TypeConverter::toString($advisory['reportedAt'] ?? null),
         ];
     }
 
@@ -674,18 +678,28 @@ class ApiResponseTransformer
         return $array === [] || array_keys($array) === range(0, count($array) - 1);
     }
 
-    private function nullableInt(mixed $value): ?int
+    /**
+     * @param array<string,mixed> $appData
+     *
+     * @return null|false|string false denotes an invalid configured value
+     */
+    private function normalizeOptionalStatusUrl(array $appData): false|string|null
     {
-        return $value === null ? null : TypeConverter::toInt($value);
+        if (!array_key_exists('status_url', $appData)) {
+            return null;
+        }
+
+        $statusUrl = TypeConverter::toString($appData['status_url']);
+        if ($statusUrl === null || !filter_var($statusUrl, FILTER_VALIDATE_URL)) {
+            return false;
+        }
+
+        $parts = parse_url($statusUrl);
+        if ($parts === false || !isset($parts['host']) || !in_array(strtolower($parts['scheme'] ?? ''), ['http', 'https'], true)) {
+            return false;
+        }
+
+        return $statusUrl;
     }
 
-    private function nullableFloat(mixed $value): ?float
-    {
-        return $value === null ? null : TypeConverter::toFloat($value);
-    }
-
-    private function nullableString(mixed $value): ?string
-    {
-        return $value === null ? null : TypeConverter::toString($value);
-    }
 }

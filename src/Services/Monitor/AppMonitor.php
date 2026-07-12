@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Mata\Services\Monitor;
 
+use GuzzleHttp\Promise\PromiseInterface;
 use Mata\Constants\CacheTypes;
 use Mata\Services\Cache\ApiCacheKeyFactory;
 use Mata\Services\Cache\CacheStoreInterface;
@@ -31,14 +32,14 @@ class AppMonitor implements AppMonitorInterface
 
     public function checkEndpoint(EndpointTarget $target, int $timeout = 2, string $cacheType = CacheTypes::PING): array
     {
-        $cacheKey = $this->availabilityCacheKey($target->url, $cacheType, $timeout);
+        $cacheKey = $this->availabilityCacheKey($target->resolveProbeUrl(), $cacheType, $timeout);
         $cached = $this->cacheStore->get($cacheKey, $this->ttlResolver->get($cacheType));
         if ($cached !== null) {
             return $cached->value;
         }
 
         /** @var array<string,mixed> $result */
-        $result = $this->probeClient->checkAvailabilityAsync($target->url, $timeout)->wait();
+        $result = $this->probeTargetAsync($target, $timeout)->wait();
         $this->cacheStore->put($cacheKey, $result);
 
         return $result;
@@ -61,7 +62,7 @@ class AppMonitor implements AppMonitorInterface
         $pending = [];
 
         foreach ($targets as $identifier => $target) {
-            $cacheKey = $this->availabilityCacheKey($target->url, $cacheType, $timeout);
+            $cacheKey = $this->availabilityCacheKey($target->resolveProbeUrl(), $cacheType, $timeout);
             $cached = $this->cacheStore->get($cacheKey, $ttlSeconds);
             if ($cached !== null) {
                 $results[$identifier] = $cached->value;
@@ -70,7 +71,7 @@ class AppMonitor implements AppMonitorInterface
             }
 
             $cacheKeys[$identifier] = $cacheKey;
-            $pending[$identifier] = $this->probeClient->checkAvailabilityAsync($target->url, $timeout);
+            $pending[$identifier] = $this->probeTargetAsync($target, $timeout);
         }
 
         foreach ($this->probeClient->settle($pending) as $identifier => $result) {
@@ -88,6 +89,13 @@ class AppMonitor implements AppMonitorInterface
         return $orderedResults;
     }
 
+    private function probeTargetAsync(EndpointTarget $target, int $timeout): PromiseInterface
+    {
+        return $target->statusUrl === null
+            ? $this->probeClient->checkAvailabilityAsync($target->url, $timeout)
+            : $this->probeClient->checkStatusAsync($target->statusUrl, $timeout);
+    }
+
     private function availabilityCacheKey(string $url, string $cacheType, int $timeout): string
     {
         return $this->cacheKeyFactory->createAvailabilityKey(
@@ -103,13 +111,13 @@ class AppMonitor implements AppMonitorInterface
      */
     private function recordUnreachableTarget(EndpointTarget $target, array $result): void
     {
-        if ($result['reachable'] ?? false) {
+        if (($result['reachable'] ?? false) || ($result['maintenance_mode'] ?? false) === true) {
             return;
         }
 
         $ctx = [
             'identifier' => $target->identifier,
-            'url' => $target->url,
+            'url' => $target->resolveProbeUrl(),
             'server' => $target->serverId ?? $target->serverName,
             'app' => $target->applicationId,
         ];

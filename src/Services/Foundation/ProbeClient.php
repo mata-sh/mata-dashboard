@@ -18,6 +18,8 @@ use Throwable;
  */
 class ProbeClient
 {
+    private const MAX_STATUS_RESPONSE_BYTES = 65536;
+
     private ClientInterface $client;
 
     public function __construct(bool $verifySsl = true, ?ClientInterface $client = null)
@@ -28,6 +30,7 @@ class ProbeClient
         ]);
     }
 
+    /** HEAD probe: treats any 2xx/3xx response as reachable. */
     public function checkAvailabilityAsync(string $url, int $timeout): PromiseInterface
     {
         $startedAt = microtime(true);
@@ -41,7 +44,24 @@ class ProbeClient
         );
     }
 
-    public function getHealthAsync(string $url, int $timeout): PromiseInterface
+    /** GET status probe: requires a valid JSON payload and reads maintenance mode. */
+    public function checkStatusAsync(string $url, int $timeout): PromiseInterface
+    {
+        $startedAt = microtime(true);
+
+        return $this->client->requestAsync('GET', $url, [
+            'timeout' => $timeout,
+            'http_errors' => false,
+            'allow_redirects' => false,
+            'headers' => ['Accept' => 'application/json'],
+        ])->then(
+            fn (ResponseInterface $response): array => $this->statusFromResponse($url, $startedAt, $response),
+            fn (mixed $reason): array => $this->statusFromFailure($url, $reason),
+        );
+    }
+
+    /** GET health probe: normalizes node health, checks, and maintenance state. */
+    public function checkHealthAsync(string $url, int $timeout): PromiseInterface
     {
         $startedAt = microtime(true);
 
@@ -92,6 +112,7 @@ class ProbeClient
             'latency_ms' => $reachable ? (int) round((microtime(true) - $startedAt) * 1000) : null,
             'error' => null,
             'url' => $url,
+            'maintenance_mode' => false,
             'checked_at' => time(),
         ];
     }
@@ -109,8 +130,96 @@ class ProbeClient
             'latency_ms' => null,
             'error' => $exception->getMessage(),
             'url' => $url,
+            'maintenance_mode' => false,
             'checked_at' => time(),
         ];
+    }
+
+    /**
+     * @return array<string,mixed>
+     */
+    private function statusFromResponse(string $url, float $startedAt, ResponseInterface $response): array
+    {
+        $httpCode = $response->getStatusCode();
+
+        try {
+            if ($httpCode >= 300 && $httpCode < 400) {
+                throw new RuntimeException('Status endpoint redirected');
+            }
+
+            $payload = json_decode($this->readStatusResponseBody($response), false, 512, JSON_THROW_ON_ERROR);
+            if (!is_object($payload)) {
+                throw new RuntimeException('Invalid status endpoint response');
+            }
+
+            $payload = get_object_vars($payload);
+            if (array_key_exists('maintenance_mode', $payload) && !is_bool($payload['maintenance_mode'])) {
+                throw new RuntimeException('Invalid status endpoint response');
+            }
+
+            $reachable = $httpCode >= 200 && $httpCode < 400;
+
+            return [
+                'reachable' => $reachable,
+                'httpCode' => $httpCode,
+                'latency_ms' => $reachable ? (int) round((microtime(true) - $startedAt) * 1000) : null,
+                'error' => null,
+                'url' => $url,
+                'maintenance_mode' => $payload['maintenance_mode'] ?? false,
+                'checked_at' => time(),
+            ];
+        } catch (Throwable) {
+            return [
+                'reachable' => false,
+                'httpCode' => $httpCode,
+                'latency_ms' => null,
+                'error' => 'Invalid status endpoint response',
+                'url' => $url,
+                'maintenance_mode' => false,
+                'checked_at' => time(),
+            ];
+        }
+    }
+
+    /**
+     * @return array<string,mixed>
+     */
+    private function statusFromFailure(string $url, mixed $reason): array
+    {
+        $exception = $this->asThrowable($reason);
+
+        return [
+            'reachable' => false,
+            'httpCode' => $this->httpCodeFromFailure($exception),
+            'latency_ms' => null,
+            'error' => $exception->getMessage(),
+            'url' => $url,
+            'maintenance_mode' => false,
+            'checked_at' => time(),
+        ];
+    }
+
+    private function readStatusResponseBody(ResponseInterface $response): string
+    {
+        $contentLength = $response->getHeaderLine('Content-Length');
+        if ($contentLength !== '' && ctype_digit($contentLength) && (int) $contentLength > self::MAX_STATUS_RESPONSE_BYTES) {
+            throw new RuntimeException('Status endpoint response is too large');
+        }
+
+        $body = $response->getBody();
+        if (($body->getSize() ?? 0) > self::MAX_STATUS_RESPONSE_BYTES) {
+            throw new RuntimeException('Status endpoint response is too large');
+        }
+
+        $content = '';
+        while (!$body->eof()) {
+            $content .= $body->read(min(8192, self::MAX_STATUS_RESPONSE_BYTES + 1 - strlen($content)));
+            if (strlen($content) > self::MAX_STATUS_RESPONSE_BYTES) {
+                throw new RuntimeException('Status endpoint response is too large');
+            }
+        }
+
+        return $content;
     }
 
     /**

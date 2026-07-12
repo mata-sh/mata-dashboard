@@ -41,13 +41,15 @@ class MockAppMonitor implements AppMonitorInterface
      */
     private function generateMockResult(string $url): array
     {
-        $isReachable = mt_rand(1, 100) > 5;
+        $isMaintenance = mt_rand(1, 100) <= 3;
+        $isReachable = !$isMaintenance && mt_rand(1, 100) > 5;
 
         return [
             'reachable' => $isReachable,
-            'httpCode' => $isReachable ? 200 : 0,
+            'httpCode' => $isMaintenance ? 503 : ($isReachable ? 200 : 0),
             'latency_ms' => $isReachable ? mt_rand(50, 300) : 0,
-            'error' => $isReachable ? null : "Mock timeout when accessing {$url}",
+            'error' => $isReachable || $isMaintenance ? null : "Mock timeout when accessing {$url}",
+            'maintenance_mode' => $isMaintenance,
         ];
     }
 }

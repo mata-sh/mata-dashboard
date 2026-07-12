@@ -25,6 +25,7 @@ final class EndpointTarget
         public readonly ?string $serverName = null,
         public readonly ?int $applicationId = null,
         public readonly array $metadata = [],
+        public readonly ?string $statusUrl = null,
     ) {}
 
     /**
@@ -41,11 +42,12 @@ final class EndpointTarget
 
         $identifier = self::resolveIdentifier($data, $originalKey, $url);
 
-        $serverId = self::toUnsignedInt($data['server_id'] ?? null);
-        $applicationId = self::toUnsignedInt($data['application_id'] ?? null);
-        $serverName = isset($data['server_name']) && is_string($data['server_name'])
-            ? trim($data['server_name'])
-            : null;
+        $serverId = TypeConverter::toInt($data['server_id'] ?? null);
+        $serverId = $serverId !== null && $serverId > 0 ? $serverId : null;
+        $applicationId = TypeConverter::toInt($data['application_id'] ?? null);
+        $applicationId = $applicationId !== null && $applicationId > 0 ? $applicationId : null;
+        $serverName = TypeConverter::toString($data['server_name'] ?? null);
+        $statusUrl = TypeConverter::toString($data['status_url'] ?? null);
 
         $metadata = $data;
         unset(
@@ -53,7 +55,8 @@ final class EndpointTarget
             $metadata['identifier'],
             $metadata['server_id'],
             $metadata['server_name'],
-            $metadata['application_id']
+            $metadata['application_id'],
+            $metadata['status_url']
         );
 
         return new self(
@@ -62,6 +65,7 @@ final class EndpointTarget
             serverId: $serverId,
             serverName: $serverName,
             applicationId: $applicationId,
+            statusUrl: $statusUrl,
             metadata: $metadata
         );
     }
@@ -116,10 +120,15 @@ final class EndpointTarget
         return $targets;
     }
 
+    public function resolveProbeUrl(): string
+    {
+        return $this->statusUrl ?? $this->url;
+    }
+
     /**
-     * Fetch a metadata value while providing a sensible default.
+     * Resolve a metadata value, using the default when it is absent.
      */
-    public function getMetadataValue(string $key, mixed $default = null): mixed
+    public function resolveMetadataValue(string $key, mixed $default = null): mixed
     {
         return $this->metadata[$key] ?? $default;
     }
@@ -141,16 +150,5 @@ final class EndpointTarget
         }
 
         return $url;
-    }
-
-    private static function toUnsignedInt(mixed $value): ?int
-    {
-        $intValue = TypeConverter::toInt($value);
-
-        if ($intValue === null || $intValue < 0) {
-            return null;
-        }
-
-        return $intValue;
     }
 }

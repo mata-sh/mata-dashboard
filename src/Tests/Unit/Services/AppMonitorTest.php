@@ -56,6 +56,47 @@ final class AppMonitorTest extends TestCase
         $this->assertSame(503, $result['httpCode']);
     }
 
+    public function testStatusEndpointMaintenanceDoesNotRecordUnreachableEvent(): void
+    {
+        $store = $this->createMock(CacheStoreInterface::class);
+        $store->method('get')->willReturn(null);
+        $store->expects($this->once())->method('put');
+        $events = $this->createMock(EventManager::class);
+        $events->expects($this->never())->method('handleEvent');
+        $monitor = $this->monitor($store, $this->probe(new Response(503, [], '{"maintenance_mode":true}')), CacheTypes::PING, $events);
+
+        $result = $monitor->checkMultipleEndpoints([
+            'app' => new EndpointTarget(
+                identifier: 'app',
+                url: 'https://app.example.test',
+                statusUrl: 'https://app.example.test/status.php',
+            ),
+        ]);
+
+        $this->assertFalse($result['app']['reachable']);
+        $this->assertTrue($result['app']['maintenance_mode']);
+        $this->assertSame('https://app.example.test/status.php', $result['app']['url']);
+    }
+
+    public function testCachedMaintenanceDoesNotRecordUnreachableEvent(): void
+    {
+        $store = $this->createMock(CacheStoreInterface::class);
+        $store->method('get')->willReturn(new CacheEntry([
+            'reachable' => false,
+            'maintenance_mode' => true,
+            'httpCode' => 503,
+        ], time()));
+        $events = $this->createMock(EventManager::class);
+        $events->expects($this->never())->method('handleEvent');
+        $monitor = $this->monitor($store, new ProbeClient(), CacheTypes::PING, $events);
+
+        $result = $monitor->checkMultipleEndpoints([
+            'app' => new EndpointTarget('app', 'https://app.example.test'),
+        ]);
+
+        $this->assertTrue($result['app']['maintenance_mode']);
+    }
+
     public function testMixedCacheBatchPreservesOrderAndRecordsCachedFailures(): void
     {
         $store = $this->createMock(CacheStoreInterface::class);

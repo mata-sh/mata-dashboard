@@ -610,10 +610,8 @@ class MockServerDataCollector implements ServerDataCollectorInterface
                 'description' => 'Customer-facing commerce and checkout platform.',
                 'path' => 'ecommerce',
                 'environment' => 'live',
-                'maintenance' => 0,
                 'category' => 'commerce',
                 'suitable_environments' => ['live', 'stg'],
-                'maintenance_probability' => 0.04,
                 'log_templates' => ['logs/error.log', 'logs/access.log', 'logs/payment.log', 'logs/queue.log'],
             ],
             'admin-panel' => [
@@ -621,7 +619,6 @@ class MockServerDataCollector implements ServerDataCollectorInterface
                 'description' => 'Internal dashboard for administration and operations.',
                 'path' => 'admin',
                 'environment' => 'live',
-                'maintenance' => 0,
                 'category' => 'internal',
                 'suitable_environments' => ['live', 'stg'],
                 'log_templates' => ['logs/error.log', 'logs/access.log', 'logs/audit.log'],
@@ -631,7 +628,6 @@ class MockServerDataCollector implements ServerDataCollectorInterface
                 'description' => 'Routes and authenticates requests for backend services.',
                 'path' => 'api',
                 'environment' => 'live',
-                'maintenance' => 0,
                 'category' => 'api',
                 'suitable_environments' => ['live', 'test', 'stg'],
                 'log_templates' => ['logs/error.log', 'logs/access.log', 'logs/request.log'],
@@ -641,7 +637,6 @@ class MockServerDataCollector implements ServerDataCollectorInterface
                 'description' => 'Self-service portal for customers and account management.',
                 'path' => 'portal',
                 'environment' => 'test',
-                'maintenance' => 0,
                 'category' => 'customer',
                 'suitable_environments' => ['live', 'test', 'stg'],
                 'log_templates' => ['logs/error.log', 'logs/access.log', 'logs/ui.log'],
@@ -651,7 +646,6 @@ class MockServerDataCollector implements ServerDataCollectorInterface
                 'description' => 'Tracks inventory, stock levels, and fulfillment operations.',
                 'path' => 'inventory',
                 'environment' => 'live',
-                'maintenance' => 0,
                 'category' => 'operations',
                 'suitable_environments' => ['live', 'stg'],
                 'log_templates' => ['logs/error.log', 'logs/sync.log', 'logs/report.log'],
@@ -661,10 +655,8 @@ class MockServerDataCollector implements ServerDataCollectorInterface
                 'description' => 'Explores product and operational analytics.',
                 'path' => 'analytics',
                 'environment' => 'dev',
-                'maintenance' => 0,
                 'category' => 'analytics',
                 'suitable_environments' => ['live', 'test', 'stg'],
-                'maintenance_probability' => 0.06,
                 'log_templates' => ['logs/error.log', 'logs/query.log', 'logs/etl.log'],
             ],
             'payment-processor' => [
@@ -672,7 +664,6 @@ class MockServerDataCollector implements ServerDataCollectorInterface
                 'description' => 'Processes payments and settlement workflows.',
                 'path' => 'payments',
                 'environment' => 'live',
-                'maintenance' => 0,
                 'category' => 'commerce',
                 'suitable_environments' => ['live'],
                 'log_templates' => ['logs/error.log', 'logs/access.log', 'logs/security.log', 'logs/settlement.log'],
@@ -682,10 +673,8 @@ class MockServerDataCollector implements ServerDataCollectorInterface
                 'description' => 'Delivers email, SMS, and application notifications.',
                 'path' => 'notifications',
                 'environment' => 'test',
-                'maintenance' => 0,
                 'category' => 'communications',
                 'suitable_environments' => ['live', 'test', 'stg'],
-                'maintenance_probability' => 0.08,
                 'log_templates' => ['logs/error.log', 'logs/queue.log', 'logs/delivery.log'],
             ],
             'warehouse-system' => [
@@ -693,7 +682,6 @@ class MockServerDataCollector implements ServerDataCollectorInterface
                 'description' => 'Coordinates warehouse and enterprise resource operations.',
                 'path' => 'warenwirtschaft',
                 'environment' => 'live',
-                'maintenance' => 0,
                 'category' => 'operations',
                 'suitable_environments' => ['live', 'stg'],
                 'log_templates' => ['logs/error.log', 'logs/integration.log', 'logs/erp.log'],
@@ -703,7 +691,6 @@ class MockServerDataCollector implements ServerDataCollectorInterface
                 'description' => 'Manages customer relationships and account activity.',
                 'path' => 'crm',
                 'environment' => 'live',
-                'maintenance' => 0,
                 'category' => 'customer',
                 'suitable_environments' => ['live', 'stg', 'test'],
                 'log_templates' => ['logs/error.log', 'logs/access.log', 'logs/integration.log'],
@@ -713,7 +700,6 @@ class MockServerDataCollector implements ServerDataCollectorInterface
                 'description' => 'Indexes and serves application search queries.',
                 'path' => 'search',
                 'environment' => 'live',
-                'maintenance' => 0,
                 'category' => 'api',
                 'suitable_environments' => ['live', 'stg', 'test'],
                 'log_templates' => ['logs/error.log', 'logs/indexer.log', 'logs/query.log'],
@@ -723,7 +709,6 @@ class MockServerDataCollector implements ServerDataCollectorInterface
                 'description' => 'Balances traffic across application instances.',
                 'path' => 'load-balancer',
                 'environment' => 'live',
-                'maintenance' => 0,
                 'category' => 'infrastructure',
                 'suitable_environments' => ['live', 'stg'],
                 'log_templates' => ['logs/error.log', 'logs/access.log', 'logs/health.log'],
@@ -733,10 +718,8 @@ class MockServerDataCollector implements ServerDataCollectorInterface
                 'description' => 'Provides shared storage for distributed services.',
                 'path' => 'shared-storage',
                 'environment' => 'live',
-                'maintenance' => 0,
                 'category' => 'infrastructure',
                 'suitable_environments' => ['live', 'stg'],
-                'maintenance_probability' => 0.07,
                 'log_templates' => ['logs/error.log', 'logs/replication.log', 'logs/audit.log'],
             ],
             'ci-runner' => [
@@ -744,10 +727,8 @@ class MockServerDataCollector implements ServerDataCollectorInterface
                 'description' => 'Runs continuous integration and delivery pipelines.',
                 'path' => 'ci-runner',
                 'environment' => 'dev',
-                'maintenance' => 0,
                 'category' => 'devtools',
                 'suitable_environments' => ['dev', 'test'],
-                'maintenance_probability' => 0.12,
                 'log_templates' => ['logs/error.log', 'logs/pipeline.log', 'logs/worker.log'],
             ],
             'feature-flags' => [
@@ -755,7 +736,6 @@ class MockServerDataCollector implements ServerDataCollectorInterface
                 'description' => 'Controls feature rollout and runtime configuration.',
                 'path' => 'feature-flags',
                 'environment' => 'dev',
-                'maintenance' => 0,
                 'category' => 'devtools',
                 'suitable_environments' => ['dev', 'test', 'stg'],
                 'log_templates' => ['logs/error.log', 'logs/audit.log', 'logs/toggle.log'],
@@ -765,7 +745,6 @@ class MockServerDataCollector implements ServerDataCollectorInterface
                 'description' => 'Relays outbound email and delivery events.',
                 'path' => 'email',
                 'environment' => 'live',
-                'maintenance' => 0,
                 'category' => 'communications',
                 'suitable_environments' => ['live', 'stg', 'test'],
                 'log_templates' => ['logs/error.log', 'logs/delivery.log', 'logs/relay.log'],
@@ -775,7 +754,6 @@ class MockServerDataCollector implements ServerDataCollectorInterface
                 'description' => 'Builds scheduled reports and data exports.',
                 'path' => 'reporting',
                 'environment' => 'stg',
-                'maintenance' => 0,
                 'category' => 'analytics',
                 'suitable_environments' => ['live', 'stg', 'test'],
                 'log_templates' => ['logs/error.log', 'logs/report.log', 'logs/export.log'],
@@ -785,10 +763,8 @@ class MockServerDataCollector implements ServerDataCollectorInterface
                 'description' => 'Executes automated quality and regression checks.',
                 'path' => 'qa-suite',
                 'environment' => 'test',
-                'maintenance' => 0,
                 'category' => 'testing',
                 'suitable_environments' => ['test', 'stg'],
-                'maintenance_probability' => 0.16,
                 'log_templates' => ['logs/error.log', 'logs/run.log', 'logs/assertion.log'],
             ],
             'beta-portal' => [
@@ -796,7 +772,6 @@ class MockServerDataCollector implements ServerDataCollectorInterface
                 'description' => 'Preview customer portal for upcoming features.',
                 'path' => 'beta-portal',
                 'environment' => 'test',
-                'maintenance' => 0,
                 'category' => 'customer',
                 'suitable_environments' => ['test', 'stg'],
                 'log_templates' => ['logs/error.log', 'logs/feature.log', 'logs/access.log'],
@@ -806,7 +781,6 @@ class MockServerDataCollector implements ServerDataCollectorInterface
                 'description' => 'Maintains product catalog data and availability.',
                 'path' => 'catalog',
                 'environment' => 'live',
-                'maintenance' => 0,
                 'category' => 'commerce',
                 'suitable_environments' => ['live', 'stg'],
                 'log_templates' => ['logs/error.log', 'logs/ingestion.log', 'logs/search.log'],
@@ -816,7 +790,6 @@ class MockServerDataCollector implements ServerDataCollectorInterface
                 'description' => 'Moves asynchronous messages between services.',
                 'path' => 'broker',
                 'environment' => 'live',
-                'maintenance' => 0,
                 'category' => 'infrastructure',
                 'suitable_environments' => ['live', 'test', 'stg'],
                 'log_templates' => ['logs/error.log', 'logs/queue.log', 'logs/cluster.log'],
@@ -826,7 +799,6 @@ class MockServerDataCollector implements ServerDataCollectorInterface
                 'description' => 'Orchestrates multi-step business workflows.',
                 'path' => 'workflow',
                 'environment' => 'stg',
-                'maintenance' => 0,
                 'category' => 'internal',
                 'suitable_environments' => ['dev', 'test', 'stg', 'live'],
                 'log_templates' => ['logs/error.log', 'logs/execution.log', 'logs/audit.log'],
@@ -875,7 +847,6 @@ class MockServerDataCollector implements ServerDataCollectorInterface
                 ],
                 'status_total_base' => [250, 550],
                 'status_total_weight' => ['fatal' => 25, 'warnings' => 6],
-                'maintenance_probability' => 0.04,
                 'session_multiplier' => 1.15,
                 'log_files' => ['min' => 2, 'max' => 5],
                 'log_size_multiplier' => 1.0,
@@ -928,7 +899,6 @@ class MockServerDataCollector implements ServerDataCollectorInterface
                 ],
                 'status_total_base' => [80, 200],
                 'status_total_weight' => ['fatal' => 12, 'warnings' => 5],
-                'maintenance_probability' => 0.18,
                 'session_multiplier' => 0.45,
                 'log_files' => ['min' => 1, 'max' => 3],
                 'log_size_multiplier' => 0.6,
@@ -974,7 +944,6 @@ class MockServerDataCollector implements ServerDataCollectorInterface
                 ],
                 'status_total_base' => [120, 320],
                 'status_total_weight' => ['fatal' => 18, 'warnings' => 6],
-                'maintenance_probability' => 0.16,
                 'session_multiplier' => 0.5,
                 'log_files' => ['min' => 2, 'max' => 4],
                 'log_size_multiplier' => 0.7,
@@ -1022,7 +991,6 @@ class MockServerDataCollector implements ServerDataCollectorInterface
                 ],
                 'status_total_base' => [150, 420],
                 'status_total_weight' => ['fatal' => 20, 'warnings' => 6],
-                'maintenance_probability' => 0.1,
                 'session_multiplier' => 0.95,
                 'log_files' => ['min' => 2, 'max' => 5],
                 'log_size_multiplier' => 0.9,
@@ -1070,7 +1038,6 @@ class MockServerDataCollector implements ServerDataCollectorInterface
                 ],
                 'status_total_base' => [130, 360],
                 'status_total_weight' => ['fatal' => 18, 'warnings' => 6],
-                'maintenance_probability' => 0.08,
                 'session_multiplier' => 0.85,
                 'log_files' => ['min' => 2, 'max' => 4],
                 'log_size_multiplier' => 0.85,
@@ -1116,7 +1083,6 @@ class MockServerDataCollector implements ServerDataCollectorInterface
                 ],
                 'status_total_base' => [90, 260],
                 'status_total_weight' => ['fatal' => 16, 'warnings' => 5],
-                'maintenance_probability' => 0.12,
                 'session_multiplier' => 0.4,
                 'log_files' => ['min' => 1, 'max' => 4],
                 'log_size_multiplier' => 0.7,
@@ -1400,13 +1366,6 @@ class MockServerDataCollector implements ServerDataCollectorInterface
                 $errorSessionAssigned = true;
             }
 
-            $maintenanceProbability = $preset['maintenance_probability'] ?? 0.08;
-            if (isset($template['maintenance_probability'])) {
-                $maintenanceProbability += $template['maintenance_probability'];
-            }
-            $maintenanceProbability = min($maintenanceProbability, 0.65);
-            $maintenance = mt_rand(0, 100) < (int) round($maintenanceProbability * 100) ? 1 : 0;
-
             $logCandidates = $template['log_templates'] ?? ['logs/error.log', 'logs/debug.log', 'logs/app.log'];
             $maxLogs = min(count($logCandidates), $preset['log_files']['max'] ?? count($logCandidates));
             $minLogs = max(1, min($preset['log_files']['min'] ?? 1, $maxLogs));
@@ -1430,9 +1389,8 @@ class MockServerDataCollector implements ServerDataCollectorInterface
                 'description' => $template['description'] ?? 'Application monitored by Mata.',
                 'path' => $template['path'],
                 'url' => rtrim($this->serverConfig['url'], '/') . '/' . $template['path'],
-                'environment' => $environment,
+                'status_url' => rtrim($this->serverConfig['url'], '/') . '/' . $template['path'] . '/status.php',
                 'env' => $environment,
-                'maintenance' => $maintenance,
                 'status' => [
                     'fatal' => $fatalCount,
                     'warnings' => $warningCount,
@@ -1521,9 +1479,6 @@ class MockServerDataCollector implements ServerDataCollectorInterface
                         + $apps[$appKey]['status']['warnings'] * ($statusWeights['warnings'] ?? 5))
                 );
 
-                if ($apps[$appKey]['maintenance'] === 0 && mt_rand(0, 100) < 18) {
-                    $apps[$appKey]['maintenance'] = 1;
-                }
             }
         }
 

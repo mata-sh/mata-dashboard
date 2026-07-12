@@ -27,9 +27,9 @@ final class ServerRendererTest extends TestCase
      * @param array<string,mixed> $nodeHealth
      */
     #[DataProvider('nodeHealthStates')]
-    public function testFormatsNodeHealth(array $nodeHealth, string $state, string $label): void
+    public function testBuildsNodeHealthData(array $nodeHealth, string $state, string $label): void
     {
-        $method = new ReflectionMethod(ServerRenderer::class, 'formatNodeHealth');
+        $method = new ReflectionMethod(ServerRenderer::class, 'buildNodeHealthData');
         $result = $method->invoke($this->createRenderer(), $nodeHealth);
 
         $this->assertSame($state, $result['state']);
@@ -59,6 +59,20 @@ final class ServerRendererTest extends TestCase
         ], NodeHealthState::UNREACHABLE, 'Unreachable'];
 
         yield 'unknown' => [[], NodeHealthState::UNKNOWN, 'Health check failed'];
+    }
+
+    public function testBuildsProbeDerivedMaintenanceData(): void
+    {
+        $method = new ReflectionMethod(ServerRenderer::class, 'buildAvailabilityData');
+
+        $result = $method->invoke($this->createRenderer(), [
+            'reachable' => false,
+            'httpCode' => 503,
+            'maintenance_mode' => true,
+        ]);
+
+        $this->assertSame('maintenance', $result['status']);
+        $this->assertSame('Maintenance mode', $result['tooltip']);
     }
 
     public function testCalculatesWholeUsagePercentage(): void

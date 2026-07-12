@@ -30,7 +30,7 @@ final class ApiResponseTransformerValidationTest extends TestCase
                 'path' => '/var/www/shop',
                 'url' => 'https://shop.example.test',
                 'env' => 'live',
-                'maintenance' => 'false',
+                'status_url' => 'https://shop.example.test/health/',
                 'status' => ['fatal' => '1', 'warnings' => 2, 'total' => '3'],
                 'logs' => ['logs/error.log' => '42'],
                 'session' => [
@@ -47,7 +47,8 @@ final class ApiResponseTransformerValidationTest extends TestCase
         ], path: 'apps');
 
         $this->assertNull($response['error']);
-        $this->assertSame(false, $response['result']['shop']['maintenance']);
+        $this->assertArrayNotHasKey('maintenance', $response['result']['shop']);
+        $this->assertSame('https://shop.example.test/health/', $response['result']['shop']['status_url']);
         $this->assertSame(['fatal' => 1, 'warnings' => 2, 'total' => 3], $response['result']['shop']['status']);
         $this->assertSame(42, $response['result']['shop']['logs']['logs/error.log']);
         $this->assertSame(4, $response['result']['shop']['session']['count_last_hour']);
@@ -62,7 +63,6 @@ final class ApiResponseTransformerValidationTest extends TestCase
                 'path' => '/var/www/staging-shop',
                 'url' => 'https://staging-shop.example.test',
                 'env' => 'stg',
-                'maintenance' => false,
                 'status' => ['fatal' => 0, 'warnings' => 0, 'total' => 0],
                 'logs' => ['logs/error.log' => 0],
                 'session' => [
@@ -79,6 +79,19 @@ final class ApiResponseTransformerValidationTest extends TestCase
 
         $this->assertNull($response['error']);
         $this->assertSame('stg', $response['result']['staging-shop']['env']);
+    }
+
+    public function testInvalidStatusUrlIsAnExplicitError(): void
+    {
+        $response = $this->transformer->normalizeApiResponse([
+            'shop' => [
+                'title' => 'Shop', 'path' => '/var/www/shop', 'url' => 'https://shop.example.test', 'env' => 'live',
+                'status_url' => '/health/', 'status' => ['fatal' => 0, 'warnings' => 0, 'total' => 0], 'logs' => [],
+            ],
+        ], path: 'apps');
+
+        $this->assertNull($response['result']);
+        $this->assertSame('invalid_payload', $response['error']['kind']);
     }
 
     public function testInvalidAppsPayloadIsAnExplicitError(): void
