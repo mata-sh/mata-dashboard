@@ -3,6 +3,7 @@
 
 declare(strict_types=1);
 
+use Mata\Models\ServerMetrics\AggregationWindowPlanner;
 use Mata\Models\ServerMetrics\ServerMetricsAggregator;
 use Mata\Models\ServerMetrics\ServerMetricsRepository;
 
@@ -17,198 +18,118 @@ if (!$cron->acquireLock()) {
 
 $cron->startTimer();
 $cron->log('Started');
+$exitCode = 0;
 
 try {
-    // All event/alarm infrastructure now loaded via bootstrap_events.php
     $aggregationConfig = $monitoringSettings['data_retention']['aggregation'] ?? [];
-    $hourlyLagMinutes = (int) max(0, $aggregationConfig['hourly']['lag_minutes'] ?? 5);
-    $catchUpHours = (int) max(1, $aggregationConfig['hourly']['catch_up_hours'] ?? 24);
-    $dailyLagMinutes = (int) max(0, $aggregationConfig['daily']['lag_minutes'] ?? 30);
+    $hourlyLagMinutes = max(0, (int) ($aggregationConfig['hourly']['lag_minutes'] ?? 5));
+    $hourlyCatchUpHours = max(1, (int) ($aggregationConfig['hourly']['catch_up_hours'] ?? 24));
+    $dailyLagMinutes = max(0, (int) ($aggregationConfig['daily']['lag_minutes'] ?? 30));
+    $dailyCatchUpDays = max(1, (int) ($aggregationConfig['daily']['catch_up_days'] ?? 7));
 
     $repository = new ServerMetricsRepository($db, $idResolver, $configSyncRepository);
     $aggregator = new ServerMetricsAggregator($db, $repository, $log);
-
-    $now = new DateTimeImmutable();
-    $hourlyAsOf = $hourlyLagMinutes > 0
-        ? $now->sub(new DateInterval('PT' . $hourlyLagMinutes . 'M'))
-        : $now;
-    $targetHour = $hourlyAsOf
-        ->setTime((int) $hourlyAsOf->format('H'), 0, 0)
-        ->sub(new DateInterval('PT1H'))
-    ;
-
-    $windowStart = $catchUpHours > 1
-        ? $targetHour->sub(new DateInterval('PT' . ($catchUpHours - 1) . 'H'))
-        : $targetHour;
-
-    $dailyAsOfDay = (
-        $dailyLagMinutes > 0
-        ? $now->sub(new DateInterval('PT' . $dailyLagMinutes . 'M'))
-        : $now
-    )->setTime(0, 0, 0);
+    $planner = new AggregationWindowPlanner();
+    $now = new DateTimeImmutable('now', new DateTimeZone('UTC'));
+    $hourlyWindows = $planner->hourlyWindows($now, $hourlyLagMinutes, $hourlyCatchUpHours);
+    $dailyWindows = $planner->dailyWindows($now, $dailyLagMinutes, $dailyCatchUpDays);
 
     $stats = [
         'servers_considered' => 0,
         'servers_skipped' => 0,
+        'hourly_planned' => 0,
         'hourly_aggregated' => 0,
-        'hourly_skipped' => 0,
-        'hourly_errors' => 0,
+        'hourly_empty' => 0,
+        'hourly_failed' => 0,
+        'daily_planned' => 0,
         'daily_aggregated' => 0,
-        'daily_errors' => 0,
+        'daily_empty' => 0,
+        'daily_failed' => 0,
     ];
 
     foreach ($monitoringSettings['servers'] ?? [] as $serverName => $serverConfig) {
-        if (!is_array($serverConfig)) {
-            continue;
-        }
-
-        if (str_starts_with((string) $serverName, '_')) {
-            ++$stats['servers_skipped'];
-
-            continue;
-        }
-
-        if (!isServerActive($serverConfig)) {
-            $log->info('aggregate_server_metrics.skip_inactive', ['server' => $serverName]);
+        if (!is_array($serverConfig) || str_starts_with((string) $serverName, '_') || !isServerActive($serverConfig)) {
             ++$stats['servers_skipped'];
 
             continue;
         }
 
         ++$stats['servers_considered'];
-        $cron->touchHeartbeat();
-
-        try {
-            $latestAggregates = $repository->getLatestAggregates((string) $serverName);
-        } catch (Throwable $exception) {
-            $log->error('aggregate_server_metrics.latest_lookup_failed', [
-                'server' => $serverName,
-                'error' => $exception->getMessage(),
-            ]);
-            ++$stats['hourly_errors'];
-
-            continue;
-        }
-
-        $latestHourly = $latestAggregates['hourly']['hour_timestamp'] ?? null;
-        $hourCursor = $latestHourly instanceof DateTimeImmutable
-            ? $latestHourly->add(new DateInterval('PT1H'))
-            : $windowStart;
-
-        if ($hourCursor < $windowStart) {
-            $hourCursor = $windowStart;
-        }
-
-        if ($hourCursor > $targetHour) {
-            ++$stats['hourly_skipped'];
-
-            continue;
-        }
-
-        $dailyCandidates = [];
-        $hourInterval = new DateInterval('PT1H');
-
-        while ($hourCursor <= $targetHour) {
+        foreach ($hourlyWindows as $hourStart) {
+            ++$stats['hourly_planned'];
             $cron->touchHeartbeat();
 
             try {
-                $aggregated = $aggregator->aggregateHour((string) $serverName, $hourCursor);
+                if ($aggregator->aggregateHour((string) $serverName, $hourStart)) {
+                    ++$stats['hourly_aggregated'];
+                } else {
+                    ++$stats['hourly_empty'];
+                }
             } catch (Throwable $exception) {
+                ++$stats['hourly_failed'];
                 $log->error('aggregate_server_metrics.hour_failed', [
                     'server' => $serverName,
-                    'hour' => $hourCursor->format(DateTimeInterface::ATOM),
+                    'hour' => $hourStart->format(DateTimeInterface::ATOM),
                     'error' => $exception->getMessage(),
                 ]);
-                ++$stats['hourly_errors'];
-                $hourCursor = $hourCursor->add($hourInterval);
-
-                continue;
             }
-
-            if ($aggregated) {
-                ++$stats['hourly_aggregated'];
-
-                if ($hourCursor->format('H') === '23') {
-                    $dayDate = $hourCursor->setTime(0, 0, 0);
-                    $dailyCandidates[$dayDate->format('Y-m-d')] = $dayDate;
-                }
-            } else {
-                ++$stats['hourly_skipped'];
-            }
-
-            $hourCursor = $hourCursor->add($hourInterval);
         }
 
-        $latestDaily = $latestAggregates['daily']['date'] ?? null;
-        $lastDailyDate = $latestDaily instanceof DateTimeImmutable
-            ? $latestDaily->setTime(0, 0, 0)
-            : null;
-
-        foreach ($dailyCandidates as $dayKey => $dayDate) {
-            if ($dayDate >= $dailyAsOfDay) {
-                continue;
-            }
-
-            if ($lastDailyDate !== null && $dayDate <= $lastDailyDate) {
-                continue;
-            }
-
+        // Daily windows are planned independently. A current hourly aggregate must
+        // never prevent a delayed or missed daily rollup from being repaired.
+        foreach ($dailyWindows as $dayStart) {
+            ++$stats['daily_planned'];
             $cron->touchHeartbeat();
 
             try {
-                if ($aggregator->aggregateDay((string) $serverName, $dayDate)) {
+                if ($aggregator->aggregateDay((string) $serverName, $dayStart)) {
                     ++$stats['daily_aggregated'];
-                    $lastDailyDate = $dayDate;
                 } else {
-                    $log->info('aggregate_server_metrics.daily_no_data', [
-                        'server' => $serverName,
-                        'date' => $dayKey,
-                    ]);
+                    ++$stats['daily_empty'];
                 }
             } catch (Throwable $exception) {
+                ++$stats['daily_failed'];
                 $log->error('aggregate_server_metrics.daily_failed', [
                     'server' => $serverName,
-                    'date' => $dayKey,
+                    'date' => $dayStart->format('Y-m-d'),
                     'error' => $exception->getMessage(),
                 ]);
-                ++$stats['daily_errors'];
             }
         }
     }
 
     $duration = $cron->endTimer();
-    $summary = sprintf(
-        'Finished in %.3fs (memory: %s) | servers=%d aggregated_hourly=%d aggregated_daily=%d errors=%d',
+    $cron->log(sprintf(
+        'Finished in %.3fs (memory: %s) | servers=%d hourly=%d/%d daily=%d/%d failed=%d',
         $duration,
         $cron->memoryUsage(),
         $stats['servers_considered'],
         $stats['hourly_aggregated'],
+        $stats['hourly_planned'],
         $stats['daily_aggregated'],
-        $stats['hourly_errors'] + $stats['daily_errors']
-    );
-
-    $cron->log($summary);
+        $stats['daily_planned'],
+        $stats['hourly_failed'] + $stats['daily_failed']
+    ));
     $log->info('aggregate_server_metrics.summary', [
         'duration_seconds' => $duration,
         'memory' => $cron->memoryUsage(),
         'stats' => $stats,
-        'hour_target' => $targetHour->format(DateTimeInterface::ATOM),
-        'window_start' => $windowStart->format(DateTimeInterface::ATOM),
+        'timezone' => 'UTC',
+        'oldest_hourly_window' => $hourlyWindows[0]->format(DateTimeInterface::ATOM),
+        'oldest_daily_window' => $dailyWindows[0]->format('Y-m-d'),
     ]);
     $cron->touchHeartbeat();
-
 } catch (Throwable $exception) {
+    $exitCode = 1;
     $cron->log('ERROR: ' . $exception->getMessage());
-    $log->critical('aggregate_server_metrics.unhandled_exception', [
-        'error' => $exception->getMessage(),
-    ]);
+    $log->critical('aggregate_server_metrics.unhandled_exception', ['error' => $exception->getMessage()]);
 } finally {
     $cron->releaseLock();
 }
 
-/**
- * @param array<string,mixed> $config
- */
+exit($exitCode);
+
+/** @param array<string,mixed> $config */
 function isServerActive(array $config): bool
 {
     if ((normalizeFlag($config['disabled'] ?? null) ?? false) === true) {
@@ -216,8 +137,7 @@ function isServerActive(array $config): bool
     }
 
     foreach (['enabled', 'active', 'monitoring_enabled'] as $flag) {
-        $normalized = normalizeFlag($config[$flag] ?? null);
-        if ($normalized === false) {
+        if (normalizeFlag($config[$flag] ?? null) === false) {
             return false;
         }
     }
@@ -230,25 +150,16 @@ function normalizeFlag(mixed $value): ?bool
     if (is_bool($value)) {
         return $value;
     }
-
     if (is_numeric($value)) {
         return (int) $value !== 0;
     }
-
-    if (is_string($value)) {
-        $normalized = strtolower(trim($value));
-        if ($normalized === '') {
-            return null;
-        }
-
-        if (in_array($normalized, ['1', 'true', 'yes', 'on', 'enabled'], true)) {
-            return true;
-        }
-
-        if (in_array($normalized, ['0', 'false', 'no', 'off', 'disabled'], true)) {
-            return false;
-        }
+    if (!is_string($value) || trim($value) === '') {
+        return null;
     }
 
-    return null;
+    return match (strtolower(trim($value))) {
+        '1', 'true', 'yes', 'on', 'enabled' => true,
+        '0', 'false', 'no', 'off', 'disabled' => false,
+        default => null,
+    };
 }

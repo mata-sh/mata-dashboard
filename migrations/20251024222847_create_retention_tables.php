@@ -129,6 +129,7 @@ SQL
             ->addColumn('disk_percent_avg', 'decimal', ['precision' => 5, 'scale' => 2, 'null' => true])
             ->addColumn('disk_percent_max', 'decimal', ['precision' => 5, 'scale' => 2, 'null' => true])
             ->addColumn('file_count_avg', 'biginteger', ['null' => true, 'signed' => false])
+            ->addColumn('file_count_max', 'biginteger', ['null' => true, 'signed' => false])
             ->addColumn('process_count_avg', 'integer', ['null' => true, 'signed' => false])
             ->addColumn('process_count_max', 'integer', ['null' => true, 'signed' => false])
             ->addColumn('sample_count', 'integer', ['default' => 0, 'null' => false, 'signed' => false])

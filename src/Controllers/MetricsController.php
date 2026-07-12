@@ -49,6 +49,14 @@ final class MetricsController extends BaseController
     /** @var string[] */
     public const ALLOWED_GRANULARITIES = ['auto', 'raw', 'hourly', 'daily'];
 
+    /** @var array<string,string> */
+    private const SERVER_METRICS_MODAL_RANGES = [
+        '6h' => '6 hours',
+        '24h' => '24 hours',
+        '7d' => '7 days',
+        '30d' => '30 days',
+    ];
+
     private int $cacheTtlSeconds;
     private int $dashboardCacheTtl = 60;
 
@@ -257,6 +265,49 @@ final class MetricsController extends BaseController
     }
 
     /**
+     * Render the shared CPU/RAM/disk/files modal used by server cards.
+     */
+    public function renderServerMetricsModal(string $server): Response
+    {
+        return $this->executeWithErrorHandling(
+            function () use ($server) {
+                $metric = $this->validator->normalizeMetric($this->getQueryParam('metric', 'cpu'));
+                $range = $this->normalizeRangeInput($this->getQueryParam('range', '24h'));
+                $allowedMetrics = ['cpu', 'ram_percent', 'disk_percent', 'file_count'];
+
+                if (!in_array($metric, $allowedMetrics, true) || !isset(self::SERVER_METRICS_MODAL_RANGES[$range])) {
+                    return new HtmlResponse(
+                        $this->metricsRenderer->renderValidationError([
+                            'filters' => 'Supported metrics are CPU, RAM, disk, and files with ranges 6h, 24h, 7d, or 30d.',
+                        ]),
+                        422
+                    );
+                }
+
+                $granularity = $this->validator->resolveGranularity($range, 'auto');
+                $validation = $this->validator->validate(
+                    $server,
+                    $metric,
+                    $range,
+                    $granularity,
+                    $this->serversConfig
+                );
+                if ($validation->hasErrors()) {
+                    return new HtmlResponse($this->metricsRenderer->renderValidationError($validation->errors), 422);
+                }
+
+                return new HtmlResponse($this->metricsRenderer->renderServerMetricsModal(
+                    $server,
+                    $this->getSeriesPayload($server, $metric, $range, $granularity),
+                    $this->serverMetricsModalRanges()
+                ));
+            },
+            'Failed to render server metrics',
+            "MetricsController:renderServerMetricsModal server={$server}"
+        );
+    }
+
+    /**
      * Get server metric time-series data as JSON for chart rendering.
      *
      * Returns chart-ready JSON payload with time-series data for a single metric.
@@ -458,6 +509,23 @@ final class MetricsController extends BaseController
         );
     }
 
+    /**
+     * @return list<array{value:string,label:string,granularity:string}>
+     */
+    private function serverMetricsModalRanges(): array
+    {
+        $ranges = [];
+        foreach (self::SERVER_METRICS_MODAL_RANGES as $value => $label) {
+            $ranges[] = [
+                'value' => $value,
+                'label' => $label,
+                'granularity' => $this->validator->resolveGranularity($value, 'auto'),
+            ];
+        }
+
+        return $ranges;
+    }
+
     private function normalizeRangeInput(string $range): string
     {
         $normalized = strtolower(trim($range));
@@ -495,7 +563,8 @@ final class MetricsController extends BaseController
         string $range,
         string $granularity
     ): array {
-        $cached = $this->cacheService->readSeriesCache($server, $metric, $range, $granularity, $this->cacheTtlSeconds);
+        $forceRefresh = in_array(strtolower($this->getQueryParam('force', '')), ['1', 'true', 'yes'], true);
+        $cached = $forceRefresh ? null : $this->cacheService->readSeriesCache($server, $metric, $range, $granularity, $this->cacheTtlSeconds);
         if ($cached !== null) {
             return $cached;
         }

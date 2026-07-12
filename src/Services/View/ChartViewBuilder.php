@@ -36,13 +36,13 @@ class ChartViewBuilder
             '24h' => [
                 'label' => '24 Hours',
                 'range' => '24h',
-                'granularity' => 'hourly',
+                'granularity' => 'auto',
                 'refresh' => 60,
             ],
             '7d' => [
                 'label' => '7 Days',
                 'range' => '7d',
-                'granularity' => 'daily',
+                'granularity' => 'auto',
                 'refresh' => 300,
             ],
         ],

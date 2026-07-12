@@ -69,7 +69,7 @@ class MetricsControllerTest extends TestCase
         ;
         $this->mockRenderer = $this->getMockBuilder(MetricsRenderer::class)
             ->disableOriginalConstructor()
-            ->onlyMethods(['renderDashboardOverview', 'renderProcessCountModal', 'renderMetricsJson', 'renderValidationError', 'renderError'])
+            ->onlyMethods(['renderDashboardOverview', 'renderProcessCountModal', 'renderServerMetricsModal', 'renderMetricsJson', 'renderValidationError', 'renderError'])
             ->getMock()
         ;
         $this->mockCacheService = $this->getMockBuilder(MetricsCacheService::class)
@@ -113,7 +113,7 @@ class MetricsControllerTest extends TestCase
             ],
             'timespans' => [
                 '24h' => ['range' => '24h', 'granularity' => 'hourly'],
-                '7d' => ['range' => '7d', 'granularity' => 'daily'],
+                '7d' => ['range' => '7d', 'granularity' => 'hourly'],
                 '30d' => ['range' => '30d', 'granularity' => 'daily'],
             ],
         ];
@@ -631,6 +631,49 @@ class MetricsControllerTest extends TestCase
         $this->assertArrayHasKey('duration_ms', $debugCalls['metrics.request.complete']);
         $this->assertArrayHasKey('data_points', $debugCalls['metrics.request.complete']);
         $this->assertArrayHasKey('from_cache', $debugCalls['metrics.request.complete']);
+    }
+
+    public function testServerMetricsModalUsesAutomaticGranularityAndExposesRangeMetadata(): void
+    {
+        $_GET = ['metric' => 'cpu', 'range' => '30d'];
+
+        $this->mockValidator->method('normalizeMetric')->willReturn('cpu');
+        $this->mockValidator->method('validate')->willReturn(new MetricsValidationResult([], 'cpu'));
+        $this->mockValidator->method('resolveGranularity')->willReturnCallback(
+            static fn (string $range, string $requested): string => match ($range) {
+                '6h' => 'raw',
+                '30d' => 'daily',
+                default => 'hourly',
+            }
+        );
+        $this->mockCacheService->method('readSeriesCache')->willReturn(null);
+        $this->mockCacheService->method('buildCacheMetadata')->willReturn(['from_cache' => false]);
+        $this->mockViewBuilder
+            ->expects($this->once())
+            ->method('buildServerMetricTimeSeries')
+            ->with('prod-server', 'cpu', '30d', 'daily')
+            ->willReturn(['data' => [], 'granularity' => 'daily'])
+        ;
+        $this->mockRenderer
+            ->expects($this->once())
+            ->method('renderServerMetricsModal')
+            ->with(
+                'prod-server',
+                $this->callback(static fn (array $payload): bool => $payload['filters']['granularity'] === 'daily'),
+                [
+                    ['value' => '6h', 'label' => '6 hours', 'granularity' => 'raw'],
+                    ['value' => '24h', 'label' => '24 hours', 'granularity' => 'hourly'],
+                    ['value' => '7d', 'label' => '7 days', 'granularity' => 'hourly'],
+                    ['value' => '30d', 'label' => '30 days', 'granularity' => 'daily'],
+                ]
+            )
+            ->willReturn('<div>Modal</div>')
+        ;
+
+        $response = $this->controller->renderServerMetricsModal('prod-server');
+
+        self::assertInstanceOf(HtmlResponse::class, $response);
+        self::assertSame('<div>Modal</div>', $response->getContent());
     }
 
     // ═══════════════════════════════════════════════════════════════════════

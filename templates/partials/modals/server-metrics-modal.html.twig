@@ -1,0 +1,43 @@
+{% embed "partials/modals/modal-shell.html.twig" with {
+    modal_class: 'server-metrics-modal',
+    modal_title: 'Server Metrics',
+    modal_context: server.name,
+    modal_meta: 'UTC · ' ~ filters.granularity,
+    modal_meta_class: 'js-server-metrics-meta',
+    icons: icons,
+    wide: true
+} %}
+  {% block modal_body %}
+    <section class="js-server-metrics-modal server-metrics-modal__content"
+      data-api-endpoint="{{ endpoints.metrics_server }}"
+      data-initial-series="{{ chart.series|json_encode|e('html_attr') }}"
+      data-server="{{ server.name }}">
+      <div class="server-metrics-modal__controls" aria-label="Metrics controls">
+        <label>Metric
+          <select class="js-server-metric" aria-label="Metric">
+            {% for key, label in metrics %}<option value="{{ key }}" {% if filters.metric == key %}selected{% endif %}>{{ label }}</option>{% endfor %}
+          </select>
+        </label>
+        <label>Range
+          <select class="js-server-range" aria-label="Range">
+            {% for range in ranges %}<option value="{{ range.value }}" data-granularity="{{ range.granularity }}" {% if filters.range == range.value %}selected{% endif %}>{{ range.label }}</option>{% endfor %}
+          </select>
+        </label>
+        <button type="button" class="button js-server-metrics-refresh">{{ icons.refresh|raw }} Refresh</button>
+      </div>
+      <p class="server-metrics-modal__loading js-server-metrics-loading" hidden>Loading metrics…</p>
+      <p class="notification is-danger js-server-metrics-error" hidden></p>
+      <p class="notification is-warning js-server-metrics-partial" hidden>Partial data: some samples are unavailable.</p>
+      <div class="metrics-chart-wrapper">
+        <canvas class="js-server-metrics-chart" aria-label="Server metric chart" role="img"></canvas>
+        <p class="metrics-chart-empty js-server-metrics-empty" hidden>No metrics are available for the selected range.</p>
+      </div>
+      <dl class="metrics-chart-stats js-server-metrics-stats">
+        <div><dt>Min</dt><dd data-stat="min">—</dd></div>
+        <div><dt>Max</dt><dd data-stat="max">—</dd></div>
+        <div><dt>Average</dt><dd data-stat="avg">—</dd></div>
+        <div><dt>Current</dt><dd data-stat="current">—</dd></div>
+      </dl>
+    </section>
+  {% endblock %}
+{% endembed %}

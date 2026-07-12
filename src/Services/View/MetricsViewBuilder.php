@@ -6,12 +6,13 @@ namespace Mata\Services\View;
 
 use DateInterval;
 use DateTimeImmutable;
+use DateTimeZone;
 use InvalidArgumentException;
 use Mata\Models\ServerMetrics\Dto\ServerMetricDailyAggregate;
 use Mata\Models\ServerMetrics\Dto\ServerMetricHourlyAggregate;
 use Mata\Models\ServerMetrics\Dto\ServerMetricRawSnapshot;
 use Mata\Models\ServerMetrics\ServerMetricsQueryInterface;
-use Monolog\Logger;
+use Psr\Log\LoggerInterface;
 
 /**
  * Metrics view data builder service.
@@ -25,11 +26,11 @@ use Monolog\Logger;
 class MetricsViewBuilder
 {
     private ServerMetricsQueryInterface $metricsQuery;
-    private Logger $logger;
+    private LoggerInterface $logger;
 
     public function __construct(
         ServerMetricsQueryInterface $metricsQuery,
-        Logger $logger
+        LoggerInterface $logger
     ) {
         $this->metricsQuery = $metricsQuery;
         $this->logger = $logger;
@@ -228,7 +229,8 @@ class MetricsViewBuilder
     private function parseTimeRange(string $range, string $granularity): array
     {
         $normalizedRange = strtolower(trim($range));
-        $end = new DateTimeImmutable('now');
+        $utc = new DateTimeZone('UTC');
+        $end = new DateTimeImmutable('now', $utc);
 
         // Align end boundary based on granularity
         if ($granularity === 'daily') {
@@ -239,7 +241,7 @@ class MetricsViewBuilder
 
         // Handle "all time" ranges
         if ($normalizedRange === '' || $normalizedRange === 'all' || $normalizedRange === 'max') {
-            $start = new DateTimeImmutable('1970-01-01 00:00:00');
+            $start = new DateTimeImmutable('1970-01-01 00:00:00', $utc);
 
             return ['start' => $start, 'end' => $end];
         }

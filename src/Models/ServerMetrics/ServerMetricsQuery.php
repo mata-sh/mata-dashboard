@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Mata\Models\ServerMetrics;
 
 use DateTimeImmutable;
+use DateTimeZone;
 use Mata\Core\DatabaseInterface;
 use Mata\Models\ServerMetrics\Dto\ServerMetricDailyAggregate;
 use Mata\Models\ServerMetrics\Dto\ServerMetricHourlyAggregate;
@@ -58,6 +59,7 @@ final class ServerMetricsQuery implements ServerMetricsQueryInterface
                 h.disk_percent_avg,
                 h.disk_percent_max,
                 h.file_count_avg,
+                h.file_count_max,
                 h.process_count_avg,
                 h.process_count_max,
                 h.sample_count,
@@ -66,7 +68,7 @@ final class ServerMetricsQuery implements ServerMetricsQueryInterface
             FROM server_metrics_hourly AS h
             WHERE h.server_id = ?
                 AND h.hour_timestamp >= ?
-                AND h.hour_timestamp <= ?
+                AND h.hour_timestamp < ?
             ORDER BY h.hour_timestamp ASC
         SQL;
 
@@ -125,7 +127,7 @@ final class ServerMetricsQuery implements ServerMetricsQueryInterface
             FROM server_metrics_daily AS d
             WHERE d.server_id = ?
                 AND d.date >= ?
-                AND d.date <= ?
+                AND d.date < ?
             ORDER BY d.date ASC
         SQL;
 
@@ -179,7 +181,7 @@ final class ServerMetricsQuery implements ServerMetricsQueryInterface
             FROM server_metrics_raw AS r
             WHERE r.server_id = ?
                 AND r.collected_at >= ?
-                AND r.collected_at <= ?
+                AND r.collected_at < ?
             ORDER BY r.collected_at ASC
         SQL;
 
@@ -234,7 +236,7 @@ final class ServerMetricsQuery implements ServerMetricsQueryInterface
     private function mapRowToHourlyAggregate(array $row): ServerMetricHourlyAggregate
     {
         try {
-            $hourTimestamp = new DateTimeImmutable((string) $row['hour_timestamp']);
+            $hourTimestamp = new DateTimeImmutable((string) $row['hour_timestamp'], new DateTimeZone('UTC'));
         } catch (Throwable $exception) {
             throw new RuntimeException('Unable to parse hour_timestamp from database.', 0, $exception);
         }
@@ -242,7 +244,7 @@ final class ServerMetricsQuery implements ServerMetricsQueryInterface
         $firstSample = null;
         if (!empty($row['first_sample'])) {
             try {
-                $firstSample = new DateTimeImmutable((string) $row['first_sample']);
+                $firstSample = new DateTimeImmutable((string) $row['first_sample'], new DateTimeZone('UTC'));
             } catch (Throwable) {
                 // Ignore parse failures for optional fields
             }
@@ -251,7 +253,7 @@ final class ServerMetricsQuery implements ServerMetricsQueryInterface
         $lastSample = null;
         if (!empty($row['last_sample'])) {
             try {
-                $lastSample = new DateTimeImmutable((string) $row['last_sample']);
+                $lastSample = new DateTimeImmutable((string) $row['last_sample'], new DateTimeZone('UTC'));
             } catch (Throwable) {
                 // Ignore parse failures for optional fields
             }
@@ -273,6 +275,7 @@ final class ServerMetricsQuery implements ServerMetricsQueryInterface
             $this->toNullableFloat($row['disk_percent_avg'] ?? null),
             $this->toNullableFloat($row['disk_percent_max'] ?? null),
             $this->toNullableInt($row['file_count_avg'] ?? null),
+            $this->toNullableInt($row['file_count_max'] ?? null),
             $this->toNullableInt($row['process_count_avg'] ?? null),
             $this->toNullableInt($row['process_count_max'] ?? null),
             (int) ($row['sample_count'] ?? 0),
@@ -287,7 +290,7 @@ final class ServerMetricsQuery implements ServerMetricsQueryInterface
     private function mapRowToDailyAggregate(array $row): ServerMetricDailyAggregate
     {
         try {
-            $date = new DateTimeImmutable((string) $row['date']);
+            $date = new DateTimeImmutable((string) $row['date'], new DateTimeZone('UTC'));
         } catch (Throwable $exception) {
             throw new RuntimeException('Unable to parse date from database.', 0, $exception);
         }
@@ -323,13 +326,13 @@ final class ServerMetricsQuery implements ServerMetricsQueryInterface
     private function mapRowToRawSnapshot(array $row): ServerMetricRawSnapshot
     {
         try {
-            $collectedAt = new DateTimeImmutable((string) $row['collected_at']);
+            $collectedAt = new DateTimeImmutable((string) $row['collected_at'], new DateTimeZone('UTC'));
         } catch (Throwable $exception) {
             throw new RuntimeException('Unable to parse collected_at from database.', 0, $exception);
         }
 
         try {
-            $ingestedAt = new DateTimeImmutable((string) $row['ingested_at']);
+            $ingestedAt = new DateTimeImmutable((string) $row['ingested_at'], new DateTimeZone('UTC'));
         } catch (Throwable $exception) {
             throw new RuntimeException('Unable to parse ingested_at from database.', 0, $exception);
         }

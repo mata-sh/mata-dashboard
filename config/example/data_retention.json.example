@@ -25,7 +25,9 @@
         },
         "daily": {
             "_comment_lag_minutes": "Minutes to wait after midnight before rolling the previous day",
-            "lag_minutes": 30
+            "lag_minutes": 30,
+            "_comment_catch_up_days": "Completed UTC days reprocessed per run to repair missed or late data",
+            "catch_up_days": 7
         }
     },
     "pruning": {

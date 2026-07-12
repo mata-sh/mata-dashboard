@@ -6,6 +6,7 @@ namespace Mata\Models\ServerMetrics;
 
 use DateInterval;
 use DateTimeImmutable;
+use DateTimeZone;
 use Mata\Core\DatabaseInterface;
 use Mata\Models\ServerMetrics\Dto\ServerMetricDailyAggregate;
 use Mata\Models\ServerMetrics\Dto\ServerMetricHourlyAggregate;
@@ -35,6 +36,8 @@ final class ServerMetricsAggregator
      */
     public function aggregateHour(string $serverName, DateTimeImmutable $hourStart): bool
     {
+        $hourStart = $hourStart->setTimezone(new DateTimeZone('UTC'));
+        $hourStart = $hourStart->setTime((int) $hourStart->format('H'), 0, 0);
         $stats = $this->fetchHourlyStats($serverName, $hourStart);
         if ($stats === null || ((int) ($stats['sample_count'] ?? 0)) === 0) {
             return false;
@@ -51,7 +54,11 @@ final class ServerMetricsAggregator
      */
     public function aggregateDay(string $serverName, DateTimeImmutable $dayDate): bool
     {
+        $dayDate = $dayDate->setTimezone(new DateTimeZone('UTC'))->setTime(0, 0, 0);
         $stats = $this->fetchDailyStats($serverName, $dayDate);
+        if ($stats === null || ((int) ($stats['sample_count'] ?? 0)) === 0) {
+            $stats = $this->fetchDailyHourlyStats($serverName, $dayDate);
+        }
         if ($stats === null || ((int) ($stats['sample_count'] ?? 0)) === 0) {
             return false;
         }
@@ -96,6 +103,7 @@ SELECT
     AVG(r.disk_usage_percent) AS disk_percent_avg,
     MAX(r.disk_usage_percent) AS disk_percent_max,
     AVG(r.total_file_count) AS file_count_avg,
+    MAX(r.total_file_count) AS file_count_max,
     AVG(r.process_count) AS process_count_avg,
     MAX(r.process_count) AS process_count_max
 FROM server_metrics_raw AS r
@@ -149,6 +157,47 @@ WHERE
     s.name = ?
     AND r.collected_at >= ?
     AND r.collected_at < ?
+SQL;
+
+        $rows = $this->db->runQuery($sql, [
+            $serverName,
+            $startOfDay->format('Y-m-d H:i:s'),
+            $dayEnd->format('Y-m-d H:i:s'),
+        ]);
+
+        return $rows[0] ?? null;
+    }
+
+    /**
+     * Fallback after raw retention. Averages are weighted by raw sample count;
+     * averaging hourly averages would distort hours with missing samples.
+     *
+     * @return null|array<string,mixed>
+     */
+    private function fetchDailyHourlyStats(string $serverName, DateTimeImmutable $dayDate): ?array
+    {
+        $startOfDay = $dayDate->setTime(0, 0, 0);
+        $dayEnd = $startOfDay->add(new DateInterval('P1D'));
+        $sql = <<<'SQL'
+SELECT
+    SUM(h.sample_count) AS sample_count,
+    SUM(h.cpu_avg * h.sample_count) / NULLIF(SUM(CASE WHEN h.cpu_avg IS NOT NULL THEN h.sample_count ELSE 0 END), 0) AS cpu_avg,
+    MIN(h.cpu_min) AS cpu_min, MAX(h.cpu_max) AS cpu_max,
+    SUM(h.ram_used_avg * h.sample_count) / NULLIF(SUM(CASE WHEN h.ram_used_avg IS NOT NULL THEN h.sample_count ELSE 0 END), 0) AS ram_used_avg,
+    MIN(h.ram_used_min) AS ram_used_min, MAX(h.ram_used_max) AS ram_used_max,
+    SUM(h.ram_percent_avg * h.sample_count) / NULLIF(SUM(CASE WHEN h.ram_percent_avg IS NOT NULL THEN h.sample_count ELSE 0 END), 0) AS ram_percent_avg,
+    MAX(h.ram_percent_max) AS ram_percent_max,
+    SUM(h.disk_used_avg * h.sample_count) / NULLIF(SUM(CASE WHEN h.disk_used_avg IS NOT NULL THEN h.sample_count ELSE 0 END), 0) AS disk_used_avg,
+    MIN(h.disk_used_min) AS disk_used_min, MAX(h.disk_used_max) AS disk_used_max,
+    SUM(h.disk_percent_avg * h.sample_count) / NULLIF(SUM(CASE WHEN h.disk_percent_avg IS NOT NULL THEN h.sample_count ELSE 0 END), 0) AS disk_percent_avg,
+    MAX(h.disk_percent_max) AS disk_percent_max,
+    SUM(h.file_count_avg * h.sample_count) / NULLIF(SUM(CASE WHEN h.file_count_avg IS NOT NULL THEN h.sample_count ELSE 0 END), 0) AS file_count_avg,
+    MAX(h.file_count_max) AS file_count_max,
+    SUM(h.process_count_avg * h.sample_count) / NULLIF(SUM(CASE WHEN h.process_count_avg IS NOT NULL THEN h.sample_count ELSE 0 END), 0) AS process_count_avg,
+    MAX(h.process_count_max) AS process_count_max
+FROM server_metrics_hourly AS h
+INNER JOIN servers AS s ON s.id = h.server_id
+WHERE s.name = ? AND h.hour_timestamp >= ? AND h.hour_timestamp < ?
 SQL;
 
         $rows = $this->db->runQuery($sql, [
@@ -225,6 +274,7 @@ SQL;
             TypeConverter::toFloat($row['disk_percent_avg'] ?? null),
             TypeConverter::toFloat($row['disk_percent_max'] ?? null),
             TypeConverter::toInt($row['file_count_avg'] ?? null),
+            TypeConverter::toInt($row['file_count_max'] ?? null),
             TypeConverter::toInt($row['process_count_avg'] ?? null),
             TypeConverter::toInt($row['process_count_max'] ?? null),
             (int) ($row['sample_count'] ?? 0),

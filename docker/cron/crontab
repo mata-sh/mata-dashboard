@@ -5,6 +5,7 @@ PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 APP_ROOT=/var/www/html
 PHP_BIN=/usr/local/bin/php
 CRON_LOG_DIR=/var/www/html/logs/cron
+CRON_ENV_FILE=/etc/mata/cron.env
 
 # Job output uses the application log. The redirect also captures shell, parse, and
 # other failures before PHP bootstrap configures Monolog.
@@ -14,17 +15,17 @@ CRON_LOG_DIR=/var/www/html/logs/cron
 # (the health report has application-managed rotation and is excluded below).
 
 # Data collection
-*/5 * * * * cd "$APP_ROOT" && "$PHP_BIN" cron/servers_data_fetch.php >> "$CRON_LOG_DIR/app-servers-data-fetch.log" 2>&1
-*/5 * * * * cd "$APP_ROOT" && "$PHP_BIN" cron/servers_metrics_collect.php >> "$CRON_LOG_DIR/app-servers-metrics-collect.log" 2>&1
-*/15 * * * * cd "$APP_ROOT" && "$PHP_BIN" cron/servers_metrics_aggregate.php >> "$CRON_LOG_DIR/app-servers-metrics-aggregate.log" 2>&1
+*/5 * * * * . "$CRON_ENV_FILE" && cd "$APP_ROOT" && "$PHP_BIN" cron/servers_data_fetch.php >> "$CRON_LOG_DIR/app-servers-data-fetch.log" 2>&1
+*/5 * * * * . "$CRON_ENV_FILE" && cd "$APP_ROOT" && "$PHP_BIN" cron/servers_metrics_collect.php >> "$CRON_LOG_DIR/app-servers-metrics-collect.log" 2>&1
+*/15 * * * * . "$CRON_ENV_FILE" && cd "$APP_ROOT" && "$PHP_BIN" cron/servers_metrics_aggregate.php >> "$CRON_LOG_DIR/app-servers-metrics-aggregate.log" 2>&1
 
 # Alarm evaluation and delivery
-* * * * * cd "$APP_ROOT" && "$PHP_BIN" cron/alarms_evaluate_critical.php >> "$CRON_LOG_DIR/app-alarms-evaluate-critical.log" 2>&1
-*/5 * * * * cd "$APP_ROOT" && "$PHP_BIN" cron/alarms_evaluate_non_critical.php >> "$CRON_LOG_DIR/app-alarms-evaluate-non-critical.log" 2>&1
-* * * * * cd "$APP_ROOT" && "$PHP_BIN" cron/alarms_dispatch.php >> "$CRON_LOG_DIR/app-alarms-dispatch.log" 2>&1
+* * * * * . "$CRON_ENV_FILE" && cd "$APP_ROOT" && "$PHP_BIN" cron/alarms_evaluate_critical.php >> "$CRON_LOG_DIR/app-alarms-evaluate-critical.log" 2>&1
+*/5 * * * * . "$CRON_ENV_FILE" && cd "$APP_ROOT" && "$PHP_BIN" cron/alarms_evaluate_non_critical.php >> "$CRON_LOG_DIR/app-alarms-evaluate-non-critical.log" 2>&1
+* * * * * . "$CRON_ENV_FILE" && cd "$APP_ROOT" && "$PHP_BIN" cron/alarms_dispatch.php >> "$CRON_LOG_DIR/app-alarms-dispatch.log" 2>&1
 
 # Database retention
-25 2 * * * cd "$APP_ROOT" && "$PHP_BIN" cron/retention_cleanup.php >> "$CRON_LOG_DIR/app-retention-cleanup.log" 2>&1
+25 2 * * * . "$CRON_ENV_FILE" && cd "$APP_ROOT" && "$PHP_BIN" cron/retention_cleanup.php >> "$CRON_LOG_DIR/app-retention-cleanup.log" 2>&1
 
 # Maintenance
 # Retain cron logs and their compressed archives for 30 days. Heartbeats are JSONL

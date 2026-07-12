@@ -74,6 +74,7 @@ final class MockServerMetricsQuery implements ServerMetricsQueryInterface
                 round($diskPercentAvg, 2),
                 round(min(100, $diskPercentAvg + mt_rand(1, 3)), 2),
                 mt_rand(180000, 220000),
+                mt_rand(220000, 240000),
                 mt_rand(25, 60),
                 mt_rand(40, 80),
                 $sampleCount,

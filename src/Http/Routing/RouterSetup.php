@@ -315,8 +315,8 @@ class RouterSetup
 
             // Metrics-based modals with time-series charts handled by MetricsController
             $metricsModalRoutes = [
+                ['modal_server_metrics_render', '/modal/{server}/metrics', 'get', fn ($server) => $this->metricsController->renderServerMetricsModal($server)],
                 ['modal_server_process_count_render', '/modal/{server}/process-count', 'get', fn ($server) => $this->metricsController->renderProcessCountModal($server)],
-                // Future metrics modals (CPU trends, RAM history, etc.) will be added here
             ];
 
             // Register routes
@@ -380,9 +380,9 @@ class RouterSetup
     {
         $this->mount('/api/metrics', function () {
             $metricsApiRoutes = [
-                ['metrics_server', '/{server}/{metric}', 'get', fn ($server, $metric) => $this->metricsController->getServerMetricSeries($server, $metric)],
-                ['metrics_server_multi', '/{server}/compare', 'get', fn ($server) => $this->metricsController->getServerMultiMetricSeries($server)],
                 ['metrics_dashboard_data', '/dashboard', 'get', fn () => $this->metricsController->getDashboardMetricsData()],
+                ['metrics_server_multi', '/{server}/compare', 'get', fn ($server) => $this->metricsController->getServerMultiMetricSeries($server)],
+                ['metrics_server', '/{server}/{metric}', 'get', fn ($server, $metric) => $this->metricsController->getServerMetricSeries($server, $metric)],
             ];
 
             foreach ($metricsApiRoutes as [$name, $path, $method, $handler]) {

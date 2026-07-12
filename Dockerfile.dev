@@ -65,9 +65,12 @@ COPY docker/apache/000-default.conf /etc/apache2/sites-available/000-default.con
 # Copy development PHP configuration
 COPY docker/php/php-dev.ini /usr/local/etc/php/conf.d/99-custom.ini
 
-# Install crontab for www-data user
+# Install crontab and cron environment setup helper.
 COPY docker/cron/crontab /tmp/crontab
-RUN crontab -u www-data /tmp/crontab \
+COPY docker/cron/setup-environment.sh /usr/local/bin/mata-cron-setup
+COPY docker/cron/smoke-check.sh /usr/local/bin/mata-cron-smoke-check
+RUN chmod 0755 /usr/local/bin/mata-cron-setup /usr/local/bin/mata-cron-smoke-check \
+    && crontab -u www-data /tmp/crontab \
     && rm /tmp/crontab
 
 # Enable Apache modules

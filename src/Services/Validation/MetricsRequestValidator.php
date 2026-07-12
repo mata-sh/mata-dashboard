@@ -107,8 +107,8 @@ class MetricsRequestValidator
      *
      * Automatically selects optimal granularity for data aggregation:
      * - <= 6 hours: raw (5-minute intervals)
-     * - <= 3 days: hourly aggregation
-     * - > 3 days: daily aggregation
+     * - <= 7 days: hourly aggregation
+     * - > 7 days: daily aggregation
      *
      * @param string $range                Time range (e.g., "24h", "7d", "all")
      * @param string $requestedGranularity User-requested granularity or "auto"
@@ -137,7 +137,7 @@ class MetricsRequestValidator
 
         return match ($unit) {
             'h' => $value <= 6 ? 'raw' : 'hourly',
-            'd' => $value <= 3 ? 'hourly' : 'daily',
+            'd' => $value <= 7 ? 'hourly' : 'daily',
             'w' => $value <= 1 ? 'hourly' : 'daily',
             'm' => 'daily',
             'y' => 'daily',

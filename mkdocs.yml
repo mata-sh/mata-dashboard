@@ -37,6 +37,7 @@ nav:
   - Architecture:
     - Security: architecture/security.md
     - Overview: architecture/overview.md
+    - Server Metrics Pipeline: architecture/server-metrics-pipeline.md
   #   - Components: architecture/components.md
   #   - Technology Choices: architecture/technology-choices.md
   #   - Security Model: architecture/security-model.md

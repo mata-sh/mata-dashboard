@@ -114,6 +114,47 @@ class MetricsRenderer extends BaseRenderer
     }
 
     /**
+     * Render the shared server-card metrics modal.
+     *
+     * @param array<string,mixed>                                       $payload
+     * @param list<array{value:string,label:string,granularity:string}> $ranges
+     */
+    public function renderServerMetricsModal(string $serverName, array $payload, array $ranges): string
+    {
+        $series = is_array($payload['series'] ?? null) ? $payload['series'] : [];
+        $filters = is_array($payload['filters'] ?? null) ? $payload['filters'] : [];
+        $metric = (string) ($filters['metric'] ?? 'cpu');
+        $range = (string) ($filters['range'] ?? '24h');
+
+        try {
+            return $this->twig->render('partials/modals/server-metrics-modal.html.twig', [
+                'server' => ['name' => $serverName],
+                'filters' => [
+                    'metric' => $metric,
+                    'range' => $range,
+                    'granularity' => (string) ($filters['granularity'] ?? 'hourly'),
+                ],
+                'metrics' => [
+                    'cpu' => 'CPU',
+                    'ram_percent' => 'RAM',
+                    'disk_percent' => 'Disk',
+                    'file_count' => 'Files',
+                ],
+                'ranges' => $ranges,
+                'endpoints' => [
+                    'metrics_server' => $this->endpoints->url('metrics_server', ['server' => $serverName, 'metric' => $metric]),
+                ],
+                'chart' => ['series' => $series],
+                'icons' => $this->getModalIcons(),
+            ]);
+        } catch (Exception $exception) {
+            $this->logError($exception->getMessage(), 'ServerMetricsModal', ['server' => $serverName]);
+
+            return '<div class="notification is-danger">Failed to render server metrics.</div>';
+        }
+    }
+
+    /**
      * Format metrics payload as JSON response.
      *
      * @param array<string,mixed> $series

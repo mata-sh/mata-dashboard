@@ -23,7 +23,7 @@
         {% if modal_context|default('') %}<span class="modal-heading-context">{{ modal_context }}</span>{% endif %}
       </div>
       {% if modal_meta is defined %}
-        <span class="modal-heading-meta">{{ modal_meta }}</span>
+        <span class="modal-heading-meta{{ modal_meta_class|default('') ? ' ' ~ modal_meta_class }}">{{ modal_meta }}</span>
       {% elseif cache.age is defined %}
         <span class="modal-heading-meta">last fetched {{ cache.age }} ago</span>
       {% endif %}

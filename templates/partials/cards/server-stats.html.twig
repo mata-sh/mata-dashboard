@@ -1,12 +1,59 @@
 <div id="server-stats-{{ server.id }}" class="server-stats">
-  <span class="server-cpu count">{{ icons.cpu|raw }} {{ server.cpu_usage }}%</span>
-  <span class="server-ram count" data-tippy-content="RAM: {{ storage.ram_used }} / {{ storage.ram_capacity }}">{{ icons.pie_chart|raw }} {{ storage.ram_percent }}%</span>
-  <span class="server-space count {{ storage.disk_usage_level }}" data-tippy-content="Disk: {{ storage.disk_used }} / {{ storage.disk_capacity }}">{{ icons.hard_drive|raw }} {{ storage.disk_percent }}%</span>
+  <button
+    type="button"
+    class="server-cpu count modal-trigger server-metric-trigger"
+    aria-label="Open CPU metric history"
+    aria-haspopup="dialog"
+    hx-get="{{ metrics_modal_endpoints.cpu }}"
+    hx-target="#modal-container"
+    hx-trigger="click"
+    hx-toggle="modal"
+  >
+    {{ icons.cpu|raw }} {{ server.cpu_usage }}%
+  </button>
+  <button
+    type="button"
+    class="server-ram count modal-trigger server-metric-trigger"
+    aria-label="Open RAM metric history"
+    aria-haspopup="dialog"
+    data-tippy-content="RAM: {{ storage.ram_used }} / {{ storage.ram_capacity }}"
+    hx-get="{{ metrics_modal_endpoints.ram_percent }}"
+    hx-target="#modal-container"
+    hx-trigger="click"
+    hx-toggle="modal"
+  >
+    {{ icons.pie_chart|raw }} {{ storage.ram_percent }}%
+  </button>
+  <button
+    type="button"
+    class="server-space count {{ storage.disk_usage_level }} modal-trigger server-metric-trigger"
+    aria-label="Open disk metric history"
+    aria-haspopup="dialog"
+    data-tippy-content="Disk: {{ storage.disk_used }} / {{ storage.disk_capacity }}"
+    hx-get="{{ metrics_modal_endpoints.disk_percent }}"
+    hx-target="#modal-container"
+    hx-trigger="click"
+    hx-toggle="modal"
+  >
+    {{ icons.hard_drive|raw }} {{ storage.disk_percent }}%
+  </button>
   <span class="server-processes count" data-tippy-content="<strong>Prozesse</strong>
                                     <br>Php: {{ processes.php }}
                                     <br>Sql: {{ processes.sql }}
                                     <br>Total: {{ processes.total }}">{{ icons.activity|raw }} {{ processes.php }}</span>
-  <span class="server-filecount count {{ files.count_level }}" data-tippy-content="Files: {{ files.count_full }}">{{ icons.file|raw }} {{ files.count }}</span>
+  <button
+    type="button"
+    class="server-filecount count {{ files.count_level }} modal-trigger server-metric-trigger"
+    aria-label="Open file count history"
+    aria-haspopup="dialog"
+    data-tippy-content="Files: {{ files.count_full }}"
+    hx-get="{{ metrics_modal_endpoints.file_count }}"
+    hx-target="#modal-container"
+    hx-trigger="click"
+    hx-toggle="modal"
+  >
+    {{ icons.file|raw }} {{ files.count }}
+  </button>
   {% if cronjobs.visible %}
     <button type="button" class="server-cronjobs count {{ cronjobs.level }} modal-trigger" aria-label="Open cronjob details" aria-haspopup="dialog" data-tippy-content="{{ cronjobs.tooltip }}" hx-get="{{ cronjobs.modal_endpoint }}" hx-target="#modal-container" hx-trigger="click" hx-toggle="modal">{{ icons.clock|raw }} {{ cronjobs.count }}</button>
   {% endif %}

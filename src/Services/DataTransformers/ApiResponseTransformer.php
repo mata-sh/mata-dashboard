@@ -701,5 +701,4 @@ class ApiResponseTransformer
 
         return $statusUrl;
     }
-
 }

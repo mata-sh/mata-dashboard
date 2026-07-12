@@ -84,14 +84,30 @@ final class ServerRendererTest extends TestCase
         $this->assertSame(0, $method->invoke($renderer, 80, 0));
     }
 
-    private function createRenderer(): ServerRenderer
+    public function testBuildsMetricModalEndpointsForEachCardMetric(): void
+    {
+        $endpoints = new Endpoints();
+        $endpoints->register('modal_server_metrics_render', '/modal/{server}/metrics');
+
+        $method = new ReflectionMethod(ServerRenderer::class, 'buildMetricModalEndpoints');
+        $result = $method->invoke($this->createRenderer($endpoints), 'production server');
+
+        $this->assertSame([
+            'cpu' => '/modal/production%20server/metrics?metric=cpu&range=24h',
+            'ram_percent' => '/modal/production%20server/metrics?metric=ram_percent&range=24h',
+            'disk_percent' => '/modal/production%20server/metrics?metric=disk_percent&range=24h',
+            'file_count' => '/modal/production%20server/metrics?metric=file_count&range=24h',
+        ], $result);
+    }
+
+    private function createRenderer(?Endpoints $endpoints = null): ServerRenderer
     {
         return new ServerRenderer(
             $this->createStub(Environment::class),
             $this->createStub(Logger::class),
             $this->createStub(Tools::class),
             $this->createStub(App::class),
-            $this->createStub(Endpoints::class),
+            $endpoints ?? $this->createStub(Endpoints::class),
             $this->createStub(LogRenderer::class)
         );
     }

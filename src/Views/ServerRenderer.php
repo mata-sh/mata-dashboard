@@ -321,12 +321,33 @@ class ServerRenderer extends BaseRenderer
                 'count_level' => $levels['total_system_filecount'],
             ],
             'cronjobs' => $this->buildCronjobsStatsData($serverName, $serverMetrics),
+            'metrics_modal_endpoints' => $this->buildMetricModalEndpoints($serverName),
             'icons' => $this->getCommonIcons(),
             'cache' => [
                 'age' => $this->tools->formatDuration((int) ($cacheInfo['age'] ?? 0)),
                 'ttl' => $this->tools->formatDuration((int) ($cacheInfo['ttl'] ?? 0)),
             ],
         ];
+    }
+
+    /**
+     * Build metric modal endpoints keyed by metric name.
+     *
+     * @return array<string,null|string>
+     */
+    private function buildMetricModalEndpoints(string $serverName): array
+    {
+        $endpoints = [];
+
+        foreach (['cpu', 'ram_percent', 'disk_percent', 'file_count'] as $metric) {
+            $endpoints[$metric] = $this->endpoints->url(
+                'modal_server_metrics_render',
+                ['server' => $serverName],
+                ['metric' => $metric, 'range' => '24h']
+            );
+        }
+
+        return $endpoints;
     }
 
     /**

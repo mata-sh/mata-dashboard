@@ -27,6 +27,7 @@ final class ServerMetricHourlyAggregate
         public readonly ?float $diskPercentAvg,
         public readonly ?float $diskPercentMax,
         public readonly ?int $fileCountAvg,
+        public readonly ?int $fileCountMax,
         public readonly ?int $processCountAvg,
         public readonly ?int $processCountMax,
         public readonly int $sampleCount,

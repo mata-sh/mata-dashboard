@@ -1,900 +1,183 @@
-# Dashboard Internal API Reference
-
-This document describes the internal API endpoints provided by the MATA Dashboard for HTMX interactions, AJAX requests, and frontend dynamic updates.
-
-## Overview
-
-The dashboard exposes internal endpoints for:
-- Dynamic content updates via HTMX
-- JSON data for charts and visualizations
-- Modal content rendering
-- Real-time server metrics
-- Event and alarm management
-
-### Base URL Patterns
-
-All dashboard endpoints follow these patterns:
-- **Authentication**: `/login`, `/logout`
-- **Dashboard Views (HTML)**: `/watch/*`
-- **API (JSON Data)**: `/api/*`
-  - Events, alarms, libraries data
-  - Application errorlogs
-  - Server metrics and comparison data
-  - Dashboard metrics summary
-
-## Authentication Endpoints
-
-### POST /login
-
-Authenticate user and create session.
-
-**Content-Type:** `application/x-www-form-urlencoded`
-
-**Request Body:**
-
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| `username` | string | Yes | User login name |
-| `password` | string | Yes | User password |
-
-**Example Request:**
-
-```http
-POST /login HTTP/1.1
-Host: dashboard.example.com
-Content-Type: application/x-www-form-urlencoded
-
-username=admin&password=secure_password
-```
-
-**Success Response:**
-- **HTTP 302 Redirect** to `/watch` (dashboard)
-- **Set-Cookie**: Session cookie (HttpOnly, Secure)
-
-**Error Response:**
-- **HTTP 200** with login form and error message
-- Invalid credentials message displayed
-
----
-
-### GET /login
-
-Display login form.
-
-**Response:** HTML login page
-
----
-
-### GET /logout
-
-Destroy session and redirect to login.
-
-**Response:**
-- **HTTP 302 Redirect** to `/login`
-- Session cookie cleared
-
----
-
-## Dashboard View Endpoints
-
-All `/watch/*` endpoints require authentication. Unauthenticated requests are redirected to `/login`.
-
-### GET /watch
-
-Main dashboard page displaying all servers and applications.
-
-**Response:** Full HTML page with:
-- Server overview cards
-- Application status indicators
-- Navigation tabs (Servers, Databases, Libraries, Metrics, Events, Alarms)
-- Initial data load
-
-**HTMX Integration:**
-- Auto-refreshes specific sections
-- Polls endpoints for updates
-- Lazy-loads modal content
-
----
-
-### GET /watch/servers
-
-Render servers overview section (HTMX partial).
-
-**Query Parameters:**
-
-| Parameter | Type | Description |
-|-----------|------|-------------|
-| None | - | Returns current cached data |
-
-**Response:** HTML fragment containing server cards
-
-**Example HTMX Usage:**
-
-```html
-<div hx-get="/watch/servers"
-     hx-trigger="every 30s"
-     hx-swap="innerHTML">
-  <!-- Server cards rendered here -->
-</div>
-```
-
----
-
-### GET /watch/servers/refresh
-
-Force refresh servers data and render updated view.
-
-**Behavior:**
-- Bypasses cache (force refresh)
-- Fetches fresh data from all configured nodes
-- Updates cache with new data
-- Returns updated HTML
-
-**Response:** HTML fragment with fresh server data
-
-**Example HTMX Usage:**
-
-```html
-<button hx-get="/watch/servers/refresh"
-        hx-target="#servers-container"
-        hx-swap="innerHTML">
-  Refresh Servers
-</button>
-```
-
----
-
-### GET /watch/app
-
-Render single application view.
-
-**Query Parameters:**
-
-| Parameter | Type | Required | Description |
-|-----------|------|----------|-------------|
-| `server` | string | Yes | Server identifier |
-| `app` | string | Yes | Application code |
-
-**Example Request:**
-
-```http
-GET /watch/app?server=production-web&app=ecommerce HTTP/1.1
-```
-
-**Response:** HTML fragment with application details
-
----
-
-### GET /watch/app/refresh
-
-Force refresh single application data.
-
-**Query Parameters:**
-
-| Parameter | Type | Required | Description |
-|-----------|------|----------|-------------|
-| `server` | string | Yes | Server identifier |
-| `app` | string | Yes | Application code |
-
-**Response:** HTML fragment with fresh application data
-
----
-
-### GET /watch/databases
-
-Render databases overview section.
-
-**Response:** HTML fragment containing database cards for all servers
-
-**Example Response Structure:**
-```html
-<div class="databases-container">
-  <div class="database-card">
-    <h3>MySQL 8.0</h3>
-    <p>Status: Running</p>
-    <p>Connections: 12/150</p>
-  </div>
-  <!-- More database cards -->
-</div>
-```
-
----
-
-### GET /watch/databases/refresh
-
-Force refresh databases data.
-
-**Response:** HTML fragment with fresh database information
-
----
-
-### GET /watch/libraries
-
-Render libraries overview for all applications.
-
-**Response:** HTML fragment containing libraries comparison table
-
----
-
-### GET /api/libraries
-
-Retrieve libraries data in JSON format for frontend processing.
-
-**Response Format:**
+# Dashboard Internal Endpoint Reference
+
+Routes registered by `src/Http/Routing/RouterSetup.php`. `/watch/*` returns HTML
+pages or HTMX fragments; `/api/*` returns JSON. The node-facing API is separate:
+[Node API Reference](node-api.md).
+
+## Access and request handling
+
+| Area | Router behavior |
+| --- | --- |
+| `/health` | Public JSON health response: `status` and Unix `timestamp`. |
+| `/login` | Public; optional IP allowlist applies when enabled. |
+| `/watch/*` | Requires a dashboard session; unauthenticated requests redirect to login. |
+| `/api/*` | Requires a dashboard session; unauthenticated requests receive an unauthorized response. |
+| Unsafe methods | Global CSRF validation applies to `POST`, `PUT`, `PATCH`, and `DELETE`. |
+| `/login`, `/logout`, `/watch/*`, `/api/*` | Rate limiting is applied when the rate-limiter service is configured. |
+
+## Authentication and dashboard HTML
+
+| Method | Path | Response |
+| --- | --- | --- |
+| `GET` | `/login` | Login page. |
+| `POST` | `/login` | Login submission. |
+| `POST` | `/logout` | Logout. |
+| `GET` | `/watch` | Dashboard page. |
+| `GET` | `/watch/servers` | Server overview fragment. |
+| `GET` | `/watch/events` | Events overview fragment. |
+| `GET` | `/watch/alarms` | Alarms overview fragment. |
+| `GET` | `/watch/libraries` | Libraries overview fragment. |
+| `GET` | `/watch/databases` | Databases overview fragment. |
+| `GET` | `/watch/settings` | Settings overview fragment. |
+| `GET` | `/watch/notification-bell` | Notification-bell fragment. |
+| `POST` | `/watch/notification-bell/ack-all` | Updated notification-bell fragment. |
+| `GET` | `/watch/metrics` | Metrics dashboard fragment. |
+| `GET` | `/watch/audit/section` | Composer audit fragment. |
+| `POST` | `/watch/audit/run` | Run the configured audit and return its fragment. |
+| `GET` | `/watch/audit/run/{server}/{app}` | Run an audit for one application and return its fragment. |
+
+### Refresh fragments
+
+These routes request fresh data from their controller rather than using its normal
+cached read path.
+
+| Method | Path | Response |
+| --- | --- | --- |
+| `GET` | `/watch/refresh/servers` | Server overview fragment. |
+| `GET` | `/watch/refresh/server/{server}` | One server-card fragment. |
+| `GET` | `/watch/refresh/serverstats/{server}` | One server-stats fragment. |
+| `GET` | `/watch/refresh/databases` | Databases overview fragment. |
+
+## Modal HTML
+
+| Method | Path | Response |
+| --- | --- | --- |
+| `GET` | `/watch/modal/{server}/{app}/readme` | Application README modal. |
+| `GET` | `/watch/modal/{server}/{app}/readme/refresh` | README modal with a forced source refresh. |
+| `GET` | `/watch/modal/{server}/{app}/logs` | Application logs modal. |
+| `GET` | `/watch/modal/{server}/{app}/logs/refresh` | Logs modal with a forced source refresh. |
+| `GET` | `/watch/modal/{server}/database/{database}/processes` | Database process-list modal. |
+| `GET` | `/watch/modal/{server}/database/{database}/processes/refresh` | Process-list modal with a forced source refresh. |
+| `GET` | `/watch/modal/{server}/info` | Server-information modal. |
+| `GET` | `/watch/modal/{server}/info/refresh` | Server-information modal with a forced source refresh. |
+| `GET` | `/watch/modal/{server}/cronjobs` | Server cronjobs modal. |
+| `GET` | `/watch/modal/{server}/cronjobs/refresh` | Cronjobs modal with a forced source refresh. |
+| `GET` | `/watch/modal/{server}/metrics` | Shared server-card history modal. See [Server metrics](#server-metrics). |
+| `GET` | `/watch/modal/{server}/process-count` | Existing process-count history modal. `range` defaults to `30d`; its series always uses daily granularity. |
+
+## General JSON API
+
+| Method | Path | Response / inputs |
+| --- | --- | --- |
+| `GET` | `/api/events` | Latest events JSON. |
+| `GET` | `/api/alarms` | Latest alarms JSON; `unacknowledged=1` limits results to unacknowledged alarms. |
+| `POST` | `/api/alarms/{alarmId}/ack` | `{ "success": true, "acknowledged": … }`. |
+| `GET` | `/api/libraries` | Libraries view data JSON. |
+| `GET` | `/api/logs/{server}/{app}` | Flattened application-log entries JSON; forces a source refresh. |
+| `GET` | `/api/logs-status/{server}/{app}` | Application-log metadata JSON; forces a source refresh. |
+| `POST` | `/api/database-notice/ack` | Requires POST `action`; returns `{ "success": true }` or a `400` JSON error. |
+
+## Server metrics
+
+The historical-series routes return JSON. The `dashboard` and `compare` routes
+are registered before `/{server}/{metric}` so they are not interpreted as metric
+names. See [Server Metrics Reference](../reference/server-metrics.md) for
+collection and retention.
+
+| Method | Path | Purpose |
+| --- | --- | --- |
+| `GET` | `/api/metrics/dashboard` | Configured multi-server metrics-dashboard chart payload. |
+| `GET` | `/api/metrics/{server}/compare` | One server, multiple metric datasets. |
+| `GET` | `/api/metrics/{server}/{metric}` | One server, one chart-ready series. |
+
+### `GET /api/metrics/{server}/{metric}`
+
+Metric names are normalized to lowercase with hyphens converted to underscores.
+Supported keys and units are:
+
+| Key | Unit |
+| --- | --- |
+| `cpu`, `ram_percent`, `disk_percent` | `%` |
+| `ram_used`, `disk_used` | bytes |
+| `file_count`, `process_count` | count |
+
+| Query parameter | Default | Accepted values |
+| --- | --- | --- |
+| `range` | `24h` | Positive `N[hdwmy]` duration, `all`, or `max`. |
+| `granularity` | `auto` | `auto`, `raw`, `hourly`, or `daily`. |
+| `force` | off | `1`, `true`, or `yes` bypasses the series cache. |
+
+With `granularity=auto`, selection is unit-sensitive:
+
+| Range form | Selected tier |
+| --- | --- |
+| `Nh`, where `N <= 6` | raw |
+| `Nh`, where `N > 6` | hourly |
+| `Nd`, where `N <= 7` | hourly |
+| `Nd`, where `N > 7` | daily |
+| `Nw`, where `N <= 1` | hourly |
+| `Nw`, where `N > 1` | daily |
+| `Nm` or `Ny`; `all` or `max` | daily |
+
+An explicit granularity is not remapped.
 
 ```json
 {
-  "production-web": {
-    "ecommerce": {
-      "packages": {
-        "laravel/framework": "^11.0",
-        "guzzlehttp/guzzle": "^7.8"
-      },
-      "total_count": 42
-    }
-  }
-}
-```
-
-**Content-Type:** `application/json`
-
----
-
-### GET /watch/cronjobs
-
-Render cronjobs monitoring overview.
-
-**Response:** HTML fragment showing:
-- Cron job health status
-- Last execution times
-- Execution frequency
-- Error indicators
-
----
-
-### GET /watch/events
-
-Render events log view.
-
-**Response:** HTML fragment with event log table
-
-**Displayed Information:**
-- Event timestamp
-- Server/application context
-- Event type and severity
-- Event message
-- Pagination controls
-
----
-
-### GET /api/events
-
-Retrieve events data in JSON format.
-
-**Query Parameters:**
-
-| Parameter | Type | Default | Description |
-|-----------|------|---------|-------------|
-| `limit` | integer | 100 | Maximum events to return |
-| `offset` | integer | 0 | Pagination offset |
-| `server` | string | null | Filter by server |
-| `level` | string | null | Filter by severity (info, warning, critical) |
-
-**Example Request:**
-
-```http
-GET /api/events?limit=50&level=critical HTTP/1.1
-```
-
-**Response Format:**
-
-```json
-{
-  "events": [
-    {
-      "id": 1234,
-      "datetime": "2025-11-02T10:15:23Z",
-      "server": "production-web",
-      "app": "ecommerce",
-      "type": "threshold_exceeded",
-      "level": "critical",
-      "message": "CPU usage exceeded 90%: 95.2%",
-      "context": "cpu_usage"
-    }
-  ],
-  "total": 523,
-  "limit": 50,
-  "offset": 0
-}
-```
-
-**Content-Type:** `application/json`
-
----
-
-### GET /watch/alarms
-
-Render alarms log view.
-
-**Response:** HTML fragment with alarm log table showing:
-- Alarm timestamp
-- Associated event
-- Notification status
-- Recipients
-
----
-
-### GET /api/alarms
-
-Retrieve alarms data in JSON format.
-
-**Query Parameters:** Similar to `/api/events`
-
-**Response Format:**
-
-```json
-{
-  "alarms": [
-    {
-      "id": 456,
-      "datetime": "2025-11-02T10:16:00Z",
-      "event_id": 1234,
-      "server": "production-web",
-      "type": "email",
-      "channel": "critical",
-      "status": "sent",
-      "recipients": ["ops@example.com"]
-    }
-  ],
-  "total": 89,
-  "limit": 50,
-  "offset": 0
-}
-```
-
-**Content-Type:** `application/json`
-
----
-
-### GET /watch/settings
-
-Render settings overview page.
-
-**Response:** HTML fragment showing:
-- Server configurations
-- Threshold settings
-- Cache TTL configuration
-- Monitoring environment
-
----
-
-### POST /watch/database-notice/ack
-
-Acknowledge database setup notice.
-
-**Response:**
-- **HTTP 200** Success
-- Updates user preferences
-
----
-
-## Modal Endpoints
-
-Dynamic modal content endpoints for detailed views.
-
-### GET /watch/modal/{server}/{app}/readme
-
-Render application README modal content.
-
-**Path Parameters:**
-- `server`: Server identifier
-- `app`: Application code
-
-**Response:** HTML modal content with Markdown-rendered README
-
-**Example Response:**
-```html
-<div class="modal-content">
-  <h1>E-Commerce Platform</h1>
-  <h2>Overview</h2>
-  <p>This application handles...</p>
-  <!-- Rendered Markdown content -->
-</div>
-```
-
----
-
-### GET /watch/modal/{server}/{app}/readme/refresh
-
-Force refresh README content from node.
-
-**Response:** Fresh HTML modal content
-
----
-
-### GET /watch/modal/{server}/{app}/errorlog
-
-Render application error log modal content.
-
-**Response:** HTML modal with:
-- Log file information (size, last modified)
-- Error log entries
-- Filtering controls
-- Line numbers
-
----
-
-### GET /watch/modal/{server}/{app}/errorlog/refresh
-
-Force refresh error log from node.
-
-**Response:** Fresh error log modal content
-
----
-
-### GET /api/errorlog/{server}/{app}
-
-Retrieve error log in JSON format.
-
-**Path Parameters:**
-- `server`: Server identifier
-- `app`: Application code
-
-**Response Format:**
-
-```json
-{
-  "logs": [
-    "[2025-11-02 10:15:23] production.ERROR: Database connection failed",
-    "[2025-11-02 10:14:18] production.ERROR: Undefined array key"
-  ],
-  "metadata": {
-    "size_kb": 2048,
-    "line_count": 1523,
-    "last_modified": "2025-11-02T10:15:23Z"
-  }
-}
-```
-
-**Content-Type:** `application/json`
-
----
-
-### GET /watch/modal/{server}/info
-
-Render server information modal.
-
-**Response:** HTML modal with:
-- OS and kernel version
-- PHP version and extensions
-- Installed packages count
-- Network configuration
-- Filesystem information
-
----
-
-### GET /watch/modal/{server}/info/refresh
-
-Force refresh server information.
-
-**Response:** Fresh server info modal content
-
----
-
-### GET /watch/modal/{server}/process-count
-
-Render process count modal with time-series chart.
-
-**Path Parameters:**
-- `server`: Server identifier
-
-**Query Parameters:**
-
-| Parameter | Type | Default | Description |
-|-----------|------|---------|-------------|
-| `range` | string | 30d | Time range (e.g., 24h, 7d, 30d, 60d) |
-
-**Response:** HTML modal with:
-- Process count time-series chart
-- Daily aggregated data
-- Historical trends
-- Cache metadata
-
-**Example Request:**
-
-```http
-GET /watch/modal/production-web/process-count?range=60d HTTP/1.1
-```
-
----
-
-## Metrics API Endpoints
-
-JSON API endpoints for charts and metrics visualization.
-
-### GET /api/metrics/{server}/{metric}
-
-Retrieve time-series data for a specific server metric.
-
-**Path Parameters:**
-- `server`: Server identifier
-- `metric`: Metric name (cpu_usage, memory_used, disk_usage, process_count)
-
-**Query Parameters:**
-
-| Parameter | Type | Default | Description |
-|-----------|------|---------|-------------|
-| `range` | string | 24h | Time range (1h, 6h, 24h, 7d, 30d, 60d) |
-| `granularity` | string | auto | Data granularity (raw, hourly, daily) |
-
-**Example Request:**
-
-```http
-GET /api/metrics/production-web/cpu_usage?range=24h HTTP/1.1
-```
-
-**Response Format:**
-
-```json
-{
-  "metric": "cpu_usage",
-  "server": "production-web",
-  "period": "24h",
-  "granularity": "hourly",
-  "data": [
-    {
-      "timestamp": "2025-11-02T00:00:00Z",
-      "value": 45.2
-    },
-    {
-      "timestamp": "2025-11-02T01:00:00Z",
-      "value": 38.7
-    }
-  ],
-  "stats": {
-    "min": 28.5,
-    "max": 87.3,
-    "avg": 52.1,
-    "current": 45.2
-  }
-}
-```
-
-**Content-Type:** `application/json`
-
----
-
-### GET /api/metrics/{server}/compare
-
-Retrieve multiple metrics for comparison charts.
-
-**Path Parameters:**
-- `server`: Server identifier
-
-**Query Parameters:**
-
-| Parameter | Type | Default | Description |
-|-----------|------|---------|-------------|
-| `metrics` | string | all | Comma-separated metric names |
-| `range` | string | 24h | Time range (1h, 6h, 24h, 7d, 30d, 60d) |
-| `granularity` | string | auto | Data granularity (raw, hourly, daily) |
-
-**Example Request:**
-
-```http
-GET /api/metrics/production-web/compare?metrics=cpu_usage,memory_used&range=6h
-```
-
-**Response Format:**
-
-```json
-{
-  "server": "production-web",
-  "period": "6h",
-  "metrics": {
-    "cpu_usage": [
-      {"timestamp": "2025-11-02T10:00:00Z", "value": 45.2}
-    ],
-    "memory_used": [
-      {"timestamp": "2025-11-02T10:00:00Z", "value": 2147483648}
-    ]
-  }
-}
-```
-
-**Content-Type:** `application/json`
-
----
-
-### GET /api/metrics/dashboard
-
-Retrieve dashboard-wide metrics summary.
-
-**Response Format:**
-
-```json
-{
-  "summary": {
-    "total_servers": 5,
-    "servers_online": 5,
-    "servers_offline": 0,
-    "total_apps": 12,
-    "apps_reachable": 11,
-    "apps_unreachable": 1,
-    "total_events_24h": 47,
-    "critical_events_24h": 2,
-    "alarms_sent_24h": 3
+  "filters": {
+    "server": "node-a",
+    "metric": "cpu",
+    "range": "24h",
+    "granularity": "hourly"
   },
-  "servers": [
-    {
-      "id": "production-web",
-      "title": "Production Server",
-      "status": "online",
-      "cpu_usage": 45.2,
-      "memory_percent": 58.3,
-      "disk_percent": 24.1
-    }
-  ]
+  "series": {
+    "server_name": "node-a",
+    "metric": "cpu",
+    "range": "24h",
+    "granularity": "hourly",
+    "labels": ["2026-07-12 10:00"],
+    "data": [42.5],
+    "min": 42.5,
+    "max": 42.5,
+    "avg": 42.5,
+    "unit": "%"
+  },
+  "cache": {"from_cache": false, "stale": false, "ttl": 0, "age": 0}
 }
 ```
 
-**Content-Type:** `application/json`
-
----
-
-## API Endpoints Summary
-
-All JSON data endpoints are consolidated under `/api/*` for clear separation from HTML views.
-
-### Data API Endpoints (`/api/*`)
-
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| `/api/events` | GET | Retrieve events log in JSON format |
-| `/api/alarms` | GET | Retrieve alarms log in JSON format |
-| `/api/libraries` | GET | Retrieve libraries comparison data |
-| `/api/errorlog/{server}/{app}` | GET | Retrieve application error log |
-
-### Metrics API Endpoints (`/api/metrics/*`)
-
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| `/api/metrics/{server}/{metric}` | GET | Time-series data for a specific metric |
-| `/api/metrics/{server}/compare` | GET | Multiple metrics comparison data |
-| `/api/metrics/dashboard` | GET | Dashboard-wide metrics summary |
-
-**Notes:**
-- All API endpoints require authentication
-- Rate limiting applies to all `/api/*` routes
-- Responses are JSON unless otherwise specified
-
----
-
-## Response Formats
-
-### HTML Responses
-
-HTML fragment responses for HTMX integration:
-
-**Content-Type:** `text/html; charset=UTF-8`
-
-**Structure:**
-- Semantic HTML5 markup
-- Bulma CSS classes for styling
-- HTMX attributes for interactivity
-- Inline data attributes for JavaScript
-
----
-
-### JSON Responses
-
-JSON responses for charts and data processing:
-
-**Content-Type:** `application/json`
-
-**Structure:**
-- Consistent field naming (snake_case)
-- ISO 8601 timestamps
-- Numeric values as numbers (not strings)
-- Null for missing data
-
----
-
-### Error Responses
-
-**HTTP 401 Unauthorized:**
-- Redirects to `/login` for HTML requests
-- Returns JSON error for API requests
-
-**HTTP 404 Not Found:**
-```json
-{
-  "error": "Not Found",
-  "message": "Server 'invalid-server' not found"
-}
-```
-
-**HTTP 429 Too Many Requests:**
-```
-Too many requests.
-```
-
-**HTTP 500 Internal Server Error:**
-```json
-{
-  "error": "Internal Server Error",
-  "message": "Failed to fetch server data"
-}
-```
-
----
-
-## HTMX Integration Patterns
-
-### Auto-Refresh Pattern
-
-```html
-<div hx-get="/watch/servers"
-     hx-trigger="every 30s"
-     hx-swap="innerHTML">
-  <!-- Content auto-refreshes every 30 seconds -->
-</div>
-```
-
-### Manual Refresh Button
-
-```html
-<button hx-get="/watch/servers/refresh"
-        hx-target="#servers-container"
-        hx-swap="innerHTML"
-        hx-indicator="#refresh-spinner">
-  <span class="icon">🔄</span>
-  <span>Refresh</span>
-</button>
-```
-
-### Modal Loading
-
-```html
-<a hx-get="/watch/modal/production-web/ecommerce/readme"
-   hx-target="#modal-content"
-   hx-swap="innerHTML"
-   onclick="openModal()">
-  View README
-</a>
-```
-
-### Lazy Loading Tabs
-
-```html
-<div class="tabs">
-  <a hx-get="/watch/events"
-     hx-target="#tab-content"
-     hx-trigger="click"
-     hx-swap="innerHTML">
-    Events
-  </a>
-</div>
-```
-
----
-
-## Rate Limiting
-
-All endpoints are subject to rate limiting:
-
-**Implementation:**
-- IP-based throttling
-- Per-endpoint limits
-- Configurable in application code
-
-**Limits:**
-- Dashboard views: High limit (rarely triggered)
-- API endpoints: Medium limit
-- Refresh endpoints: Lower limit to prevent abuse
-
-**Response:** HTTP 429 when limit exceeded
-
----
-
-## Caching Behavior
-
-### Cache Headers
-
-Dashboard endpoints may include cache control headers:
-
-```http
-Cache-Control: no-cache, no-store, must-revalidate
-Pragma: no-cache
-Expires: 0
-```
-
-### Server-Side Caching
-
-- **Node API responses**: Cached per TTL configuration
-- **Rendered HTML**: Not cached (always fresh)
-- **JSON data**: May be cached briefly for repeated requests
-
-### Cache Bypass
-
-Force refresh endpoints bypass cache:
-- `/watch/servers/refresh`
-- `/watch/databases/refresh`
-- `/watch/modal/.../refresh`
-
----
-
-## Security Considerations
-
-### Session Security
-
-- **HttpOnly Cookies**: Session cookies not accessible via JavaScript
-- **Secure Flag**: HTTPS-only session cookies
-- **CSRF Protection**: May be implemented for POST endpoints
-- **Session Timeout**: Automatic logout after inactivity
-
-### Input Validation
-
-All parameters are validated:
-- Server IDs: Alphanumeric, hyphens, dots, underscores
-- Metric names: Predefined whitelist
-- Pagination values: Positive integers with max limits
-
-### SQL Injection Prevention
-
-- Prepared statements for all database queries
-- Parameterized queries via Database wrapper
-- No raw SQL from user input
-
----
-
-## Performance Optimization
-
-### Response Optimization
-
-- **Partial Rendering**: HTMX endpoints return minimal HTML
-- **JSON Compression**: Gzip enabled for JSON responses
-- **Lazy Loading**: Modal content loaded on-demand
-- **Progressive Enhancement**: JavaScript not required for basic functionality
-
-### Database Optimization
-
-- **Indexed Queries**: Event/alarm tables have optimized indexes
-- **Pagination**: Large datasets paginated by default
-- **Query Caching**: Frequently accessed data cached
-
----
-
-## Testing Endpoints
-
-### Using cURL
-
-```bash
-# Authenticate and save session cookie
-curl -c cookies.txt -X POST \
-  -d "username=admin&password=secure_password" \
-  http://localhost:3300/login
-
-# Access protected endpoint
-curl -b cookies.txt \
-  http://localhost:3300/watch/servers
-
-# Get JSON data
-curl -b cookies.txt \
-  http://localhost:3300/api/events?limit=10
-```
-
-### Using Browser DevTools
-
-1. Login to dashboard
-2. Open Network tab
-3. Trigger HTMX actions
-4. Inspect XHR requests and responses
-
----
-
-## Related Documentation
-
-- [Node API Reference](node-api.md) - External node API
-- [Hooks & Extensions](hooks.md) - Extension points
-- [Architecture Overview](../architecture/overview.md) - System design
+A valid query with no rows returns `200`, empty `labels` and `data`, and null
+statistics. A row with no value for the requested metric is represented as
+`null`; it is not converted to zero. Invalid server, metric, range, or
+granularity filters return a validation response (`422`).
+
+### `GET /api/metrics/{server}/compare`
+
+`metrics` is a comma-separated list and defaults to `cpu,ram_percent`; every
+key must be supported. `range` and `granularity` have the same defaults and
+validation as the single-series route. The response has `filters`, `series`, and
+`cache`; `series` contains shared `labels` and a `datasets` entry for each
+requested metric.
+
+### `GET /api/metrics/dashboard`
+
+The metrics dashboard selects a configured `metric`, `timespan`, and optional
+comma-separated `servers`; `force=1|true|yes` bypasses its dashboard cache.
+Available metrics, timespans, their ranges, and granularities come from the
+metrics dashboard configuration rather than a fixed public list.
+
+### `GET /watch/modal/{server}/metrics`
+
+Renders HTML for the shared modal opened by CPU, RAM, disk, and file-count
+server-card controls. Query parameters are restricted to:
+
+| Parameter | Default | Accepted values |
+| --- | --- | --- |
+| `metric` | `cpu` | `cpu`, `ram_percent`, `disk_percent`, `file_count` |
+| `range` | `24h` | `6h`, `24h`, `7d`, `30d` |
+
+The modal resolves its tier as `6h` → raw, `24h`/`7d` → hourly, and `30d` →
+daily. Its JavaScript fetches the single-series JSON route when controls change
+or Refresh is clicked, displays timestamps as UTC, preserves null gaps, and
+shows an empty state when no numeric values exist. Process count is displayed as
+a non-interactive server-card statistic; the separate process-count modal route
+remains available.

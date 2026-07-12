@@ -108,9 +108,12 @@ COPY --chown=root:root docker/apache/000-default.conf /etc/apache2/sites-availab
 # Copy production PHP configuration
 COPY --chown=root:root docker/php/php-prod.ini /usr/local/etc/php/conf.d/99-custom.ini
 
-# Install crontab for www-data user
+# Install cron manifest and materialize only required DB settings at startup.
 COPY --chown=root:root docker/cron/crontab /tmp/crontab
-RUN crontab -u www-data /tmp/crontab \
+COPY --chown=root:root docker/cron/setup-environment.sh /usr/local/bin/mata-cron-setup
+COPY --chown=root:root docker/cron/smoke-check.sh /usr/local/bin/mata-cron-smoke-check
+RUN chmod 0755 /usr/local/bin/mata-cron-setup /usr/local/bin/mata-cron-smoke-check \
+    && crontab -u www-data /tmp/crontab \
     && rm /tmp/crontab
 
 # Enable Apache modules
@@ -127,8 +130,8 @@ HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
 # Expose port 80 (HTTPS would be handled by reverse proxy)
 EXPOSE 80
 
-# Start cron daemon (www-data crontab will run) and Apache in foreground
-CMD ["sh", "-c", "cron && apache2-foreground"]
+# Install the restricted cron environment before cron starts.
+CMD ["sh", "-c", "mata-cron-setup && cron && apache2-foreground"]
 
 # Labels for image metadata
 LABEL maintainer="XarcDev (mata@xarc.dev | https://github.com/xarcdotdev)"

@@ -54,5 +54,13 @@ fi
 
 echo "✅ Development environment ready!"
 
+# Cron has no inherited Docker environment. Materialize only DB settings for www-data.
+if [ -x /usr/local/bin/mata-cron-setup ]; then
+    /usr/local/bin/mata-cron-setup
+else
+    echo "❌ mata-cron-setup is missing; cron cannot safely start" >&2
+    exit 1
+fi
+
 # Start cron (www-data crontab will run) and Apache
 exec sh -c "cron && apache2-foreground"

@@ -85,6 +85,8 @@ final class DockerCrontabTest extends TestCase
         self::assertStringContainsString('APP_ROOT=/var/www/html', $crontab);
         self::assertStringContainsString('PHP_BIN=/usr/local/bin/php', $crontab);
         self::assertStringContainsString('CRON_LOG_DIR=/var/www/html/logs/cron', $crontab);
+        self::assertStringContainsString('CRON_ENV_FILE=/etc/mata/cron.env', $crontab);
+        self::assertStringContainsString('. "$CRON_ENV_FILE" && cd "$APP_ROOT"', $crontab);
         self::assertDoesNotMatchRegularExpression('/^(?:\S+\s+){5}(?:root|www-data)\s/m', $crontab);
         self::assertStringContainsString('find "$CRON_LOG_DIR" -type f -name "*.log"', $crontab);
         self::assertStringContainsString('find "$CRON_LOG_DIR" -type f -name "*.log.*.gz"', $crontab);
@@ -97,7 +99,7 @@ final class DockerCrontabTest extends TestCase
     private function jobEntries(): array
     {
         $entries = [];
-        $pattern = '/^(?<schedule>(?:\S+\s+){4}\S+)\s+cd "\$APP_ROOT" && "\$PHP_BIN" cron\/(?<script>[a-z_]+\.php) >> "\$CRON_LOG_DIR\/(?<log>app-[a-z-]+\.log)" 2>&1$/';
+        $pattern = '/^(?<schedule>(?:\S+\s+){4}\S+)\s+\. "\$CRON_ENV_FILE" && cd "\$APP_ROOT" && "\$PHP_BIN" cron\/(?<script>[a-z_]+\.php) >> "\$CRON_LOG_DIR\/(?<log>app-[a-z-]+\.log)" 2>&1$/';
 
         foreach (explode("\n", $this->crontab()) as $line) {
             if (preg_match($pattern, $line, $matches) !== 1) {

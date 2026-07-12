@@ -351,7 +351,7 @@ function resolveCollectedAt(array $data, array $cache): DateTimeImmutable
         }
     }
 
-    return new DateTimeImmutable();
+    return new DateTimeImmutable('now', new DateTimeZone('UTC'));
 }
 
 function resolveIngestedAt(): DateTimeImmutable
@@ -360,25 +360,25 @@ function resolveIngestedAt(): DateTimeImmutable
     $dateTime = DateTimeImmutable::createFromFormat('U.u', $formatted);
 
     if ($dateTime instanceof DateTimeImmutable) {
-        return $dateTime->setTimezone(new DateTimeZone(date_default_timezone_get()));
+        return $dateTime->setTimezone(new DateTimeZone('UTC'));
     }
 
-    return new DateTimeImmutable();
+    return new DateTimeImmutable('now', new DateTimeZone('UTC'));
 }
 
 function parseDateTimeCandidate(mixed $value): ?DateTimeImmutable
 {
     if ($value instanceof DateTimeImmutable) {
-        return $value;
+        return $value->setTimezone(new DateTimeZone('UTC'));
     }
 
     if ($value instanceof DateTimeInterface) {
-        return DateTimeImmutable::createFromInterface($value);
+        return DateTimeImmutable::createFromInterface($value)->setTimezone(new DateTimeZone('UTC'));
     }
 
     if (is_string($value) && $value !== '') {
         try {
-            return new DateTimeImmutable($value);
+            return (new DateTimeImmutable($value))->setTimezone(new DateTimeZone('UTC'));
         } catch (Throwable) {
             return null;
         }
@@ -392,7 +392,7 @@ function parseDateTimeCandidate(mixed $value): ?DateTimeImmutable
 
         $dateTime = DateTimeImmutable::createFromFormat('U.u', sprintf('%.6F', $numeric));
         if ($dateTime instanceof DateTimeImmutable) {
-            return $dateTime->setTimezone(new DateTimeZone(date_default_timezone_get()));
+            return $dateTime->setTimezone(new DateTimeZone('UTC'));
         }
     }
 

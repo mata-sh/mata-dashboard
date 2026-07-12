@@ -1,7 +1,11 @@
 # Cron Jobs Runbook
 
 `docker/cron/crontab` is the production cron manifest. Docker installs it as the
-`www-data` user crontab; entries do not contain a username.
+`www-data` user crontab; entries do not contain a username. Container startup
+materializes only required database settings in `/etc/mata/cron.env` (root-owned,
+`www-data` group-readable), then every PHP job sources it. Run
+`mata-cron-smoke-check` inside the web container to verify bootstrap and DB access
+as `www-data`.
 
 ## Schedule
 
@@ -16,6 +20,13 @@
 | `25 2 * * *` | `retention_cleanup.php` | `logs/cron/app-retention-cleanup.log` | `logs/cron/heartbeat-retention-cleanup.jsonl` |
 
 ## Logs and inspection
+
+Inspect retention tiers and latest UTC timestamps:
+
+```bash
+docker exec <web-container> php /var/www/html/scripts/server_metrics_diagnostic.php
+```
+
 
 Execution logs also receive launcher stdout and stderr, including failures before
 PHP bootstrap configures logging. PHP runtime errors are written to

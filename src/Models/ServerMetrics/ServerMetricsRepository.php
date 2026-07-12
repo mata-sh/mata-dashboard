@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Mata\Models\ServerMetrics;
 
 use DateTimeImmutable;
+use DateTimeZone;
 use JsonException;
 use Mata\Core\DatabaseInterface;
 use Mata\Models\ConfigSyncRepository;
@@ -146,7 +147,7 @@ SQL
             }
 
             try {
-                $timestamps[$name] = new DateTimeImmutable((string) $rawTimestamp);
+                $timestamps[$name] = new DateTimeImmutable((string) $rawTimestamp, new DateTimeZone('UTC'));
             } catch (Throwable) {
                 continue;
             }
@@ -235,6 +236,7 @@ SQL
             $this->normalizePercentage($aggregate->diskPercentAvg),
             $this->normalizePercentage($aggregate->diskPercentMax),
             $this->normalizeCount($aggregate->fileCountAvg),
+            $this->normalizeCount($aggregate->fileCountMax),
             $this->normalizeCount($aggregate->processCountAvg),
             $this->normalizeCount($aggregate->processCountMax),
             $this->normalizeSampleCount($aggregate->sampleCount),
@@ -468,7 +470,7 @@ SQL
         }
 
         try {
-            $timestamp = new DateTimeImmutable((string) $row['hour_timestamp']);
+            $timestamp = new DateTimeImmutable((string) $row['hour_timestamp'], new DateTimeZone('UTC'));
         } catch (Throwable $exception) {
             throw new RuntimeException(
                 'Unable to parse hour_timestamp from persistence layer.',
@@ -495,7 +497,7 @@ SQL
         }
 
         try {
-            $date = new DateTimeImmutable((string) $row['date']);
+            $date = new DateTimeImmutable((string) $row['date'], new DateTimeZone('UTC'));
         } catch (Throwable $exception) {
             throw new RuntimeException('Unable to parse date from persistence layer.', 0, $exception);
         }

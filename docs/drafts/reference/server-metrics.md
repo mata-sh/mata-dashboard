@@ -1,670 +1,194 @@
 # Server Metrics Reference
 
-Complete catalog of all server metrics collected and monitored by MATA Dashboard.
+This reference covers dashboard server-metric history. It does not define the
+node payload; see [Node API Reference](../api/node-api.md). Cron deployment and
+logs are in the [Cron Jobs Runbook](../cronjobs.md).
 
-## Overview
+## Current card values versus history
 
-MATA Dashboard collects comprehensive server metrics through its Node API endpoints. These metrics provide real-time visibility into server health, resource utilization, and system performance.
+Server cards render current data fetched from the monitored node. CPU, RAM,
+disk, and file-count controls open the shared history modal. The process display
+is current card data (including PHP/SQL/total detail in its tooltip) and is not
+a shared-modal trigger.
 
-## Metric Categories
+Historical charts read the dashboard database. A card value and the newest chart
+point can differ because collection is scheduled, source data may be cached, and
+hourly/daily charts show aggregate averages rather than a current value.
 
-### System Resources
-- **CPU Usage**: Processor utilization and load
-- **Memory (RAM)**: Memory consumption and availability
-- **Disk Space**: Storage usage and free space
-- **File System**: File count and inode usage
+The historical-series API supports only these keys:
 
-### Process Monitoring
-- **Total Processes**: All active system processes
-- **PHP Processes**: PHP-FPM/CLI processes
-- **SQL Processes**: Database server processes
+| Key | Raw source / aggregate value | Unit |
+| --- | --- | --- |
+| `cpu` | CPU usage / average | `%` |
+| `ram_percent` | computed RAM used ÷ total / average | `%` |
+| `ram_used` | RAM used / average | bytes |
+| `disk_percent` | computed disk used ÷ total / average | `%` |
+| `disk_used` | disk used / average | bytes |
+| `file_count` | total system file count / average | count |
+| `process_count` | total process count / average | count |
 
-### Application Resources
-- **Session Count**: Active user sessions
-- **Log File Size**: Application log file growth
-- **Error Counts**: PHP errors, warnings, and notices
+Load averages, swap, per-type process counts, application sessions, log sizes,
+error counts, and inode metrics are not supported historical-series keys. In
+particular, PHP process count is retained in raw snapshots but has no chart key;
+SQL process count is not persisted by this pipeline.
 
----
+## Collection and storage
 
-## CPU Metrics
+`cron/servers_metrics_collect.php` runs every five minutes. For each configured,
+active server with API credentials it fetches server health data, normalizes a
+snapshot, and stores it in `server_metrics_raw`. A failed server does not stop
+the remaining servers. Collection time is the source timestamp when available,
+then a timestamp derived from source-cache age, otherwise collection time; it is
+normalized to UTC.
 
-### CPU Usage Percentage
-Real-time processor utilization across all cores.
+| Tier | Table | Time key | Content used by charts |
+| --- | --- | --- | --- |
+| Raw | `server_metrics_raw` | `collected_at` | Individual snapshot values. |
+| Hourly | `server_metrics_hourly` | `hour_timestamp` | Per completed-hour average for each supported key. |
+| Daily | `server_metrics_daily` | `date` | Per completed-day average for each supported key. |
 
-| Field | Description |
-|-------|-------------|
-| **Metric Name** | `cpu_usage_percent` |
-| **Data Type** | Float (0.00 - 100.00) |
-| **Unit** | Percentage |
-| **Update Frequency** | Every 5 minutes (via cron) |
-| **Alarm handling** | Threshold-based |
+Raw snapshots also retain RAM/disk totals, PHP process count, PHP and OS
+versions, uptime, source collector identity, and ingestion time. Hourly and
+daily rows retain sample counts and additional min/max fields. The chart API
+selects the average field for aggregated tiers; it does not expose those
+min/max fields or sample counts.
 
-**Interpretation:**
-- **0-50%**: Normal operation
-- **50-70%**: Moderate load
-- **70-85%**: High load - investigate processes
-- **85-100%**: Critical - performance degradation likely
+All storage, aggregation, and chart-range boundaries are UTC. Aggregation uses
+half-open windows: `>= start` and `< end`. A sample at an exact hour or midnight
+belongs to the new window, never the preceding one.
 
-**Example Response:**
+## Aggregation
+
+`cron/servers_metrics_aggregate.php` runs every 15 minutes. It plans UTC windows
+without relying on the latest stored aggregate, then upserts each planned row.
+Reruns therefore repair aggregates when late samples arrive or previous cron
+runs were missed; they do not create duplicate hourly or daily rows.
+
+Defaults from `config/example/data_retention.json.example`:
+
+| Tier | Lag | Catch-up | Planning behavior |
+| --- | --- | --- | --- |
+| Hourly | 5 minutes | 24 hours | After subtracting lag, aggregate the preceding completed hour and the preceding bounded hours. |
+| Daily | 30 minutes | 7 days | After subtracting lag, aggregate the preceding completed UTC day and the preceding bounded days. |
+
+Hourly aggregates always read raw samples. Daily aggregation first reads raw
+samples for the day. If none remain, it falls back to hourly aggregates and
+uses sample-count-weighted averages; it does not average hourly averages
+unweighted. Missing values remain null in SQL averages, and aggregation never
+invents zero samples.
+
+A current hour or current UTC day has no aggregate row. It becomes eligible only
+after its configured lag. Delayed scheduler runs and configuration changes can
+move the practical availability later.
+
+## Range and tier selection
+
+The general series API accepts a positive duration in `N[hdwmy]`, `all`, or
+`max`, plus `raw`, `hourly`, `daily`, or `auto` granularity. With `auto`:
+
+| Requested range form | Selected tier |
+| --- | --- |
+| `Nh`, where `N <= 6` | raw |
+| `Nh`, where `N > 6` | hourly |
+| `Nd`, where `N <= 7` | hourly |
+| `Nd`, where `N > 7` | daily |
+| `Nw`, where `N <= 1` | hourly |
+| `Nw`, where `N > 1` | daily |
+| `Nm` or `Ny`; `all` or `max` | daily |
+
+An explicit tier is honored even when it is not the automatic choice. The shared
+server-card modal has a narrower fixed set:
+
+| Modal range | Tier |
+| --- | --- |
+| `6h` | raw |
+| `24h`, `7d` | hourly |
+| `30d` | daily |
+
+## API and modal
+
+`GET /api/metrics/{server}/{metric}` returns JSON with `filters`, a chart-ready
+`series`, and cache metadata. `range` defaults to `24h`; `granularity` defaults
+to `auto`; `force=1`, `true`, or `yes` bypasses the series cache. Labels are UTC
+strings: seconds for raw, minutes for hourly, and dates for daily.
+
 ```json
 {
-  "cpu_usage_percent": 45.2
+  "filters": {"server": "node-a", "metric": "cpu", "range": "24h", "granularity": "hourly"},
+  "series": {
+    "labels": ["2026-07-12 10:00"],
+    "data": [42.5],
+    "min": 42.5,
+    "max": 42.5,
+    "avg": 42.5,
+    "unit": "%"
+  },
+  "cache": {"from_cache": false, "stale": false, "ttl": 0, "age": 0}
 }
 ```
 
-### CPU Load Average
-System load average over different time periods.
+No rows is a successful `200` response with empty `labels` and `data` and null
+statistics. Rows whose requested value is unavailable remain JSON `null`. The
+shared modal treats nulls as gaps, reports partial data when some values are
+missing, and shows an empty state if no numeric value exists. Invalid filters
+return `422` from the JSON API; invalid modal metric/range input returns a `422`
+HTML validation fragment.
 
-| Field | Description |
-|-------|-------------|
-| **Metric Name** | `load_average` |
-| **Data Type** | Object with 1m, 5m, 15m values |
-| **Unit** | Load units (relative to CPU cores) |
-| **Update Frequency** | Real-time |
+`GET /watch/modal/{server}/metrics?metric=cpu&range=24h` renders the shared HTML
+modal. It permits `cpu`, `ram_percent`, `disk_percent`, and `file_count` only;
+the default is CPU for 24 hours. Its client requests the canonical single-series
+API as controls change or Refresh is clicked. The existing
+`/watch/modal/{server}/process-count` modal is separate and always requests
+daily process-count history.
 
-**Example Response:**
-```json
-{
-  "load_average": {
-    "1min": 1.5,
-    "5min": 1.2,
-    "15min": 0.8
-  }
-}
-```
+`/api/metrics/{server}/compare` returns multiple datasets for one server.
+`/api/metrics/dashboard` returns the configured multi-server dashboard chart.
+Their endpoint contract and configured inputs are in the
+[Dashboard Internal Endpoint Reference](../api/dashboard-endpoints.md).
 
-**Interpretation:**
-For a 4-core system:
-- Load < 4.0: System has capacity
-- Load = 4.0: System at full capacity
-- Load > 4.0: Processes waiting for CPU time
+## Retention ownership
 
----
+Aggregation never deletes data. `cron/retention_cleanup.php`, scheduled at
+`02:25` daily by `docker/cron/crontab`, owns metric retention for all three
+server tiers. The example configuration defaults are:
 
-## Memory (RAM) Metrics
+| Setting | Default | Table |
+| --- | --- | --- |
+| `metrics.raw_retention_days` | 30 days | `server_metrics_raw` |
+| `metrics.hourly_retention_days` | 90 days | `server_metrics_hourly` |
+| `metrics.daily_retention_days` | 365 days | `server_metrics_daily` |
+| `pruning.batch_limit` | 5000 rows | Bounded delete batch size |
 
-### Memory Usage
-Current RAM consumption and availability.
+Set a retention value to `0` to disable cleanup for that tier. Cleanup deletes
+rows older than the tier cutoff in bounded batches. The relevant configuration
+is `config/data_retention.json`; use
+`config/example/data_retention.json.example` as the current shape.
 
-| Field | Description |
-|-------|-------------|
-| **Metric Name** | `ram_used`, `ram_free`, `ram_total` |
-| **Data Type** | Integer (bytes) |
-| **Unit** | Bytes (converted to MB/GB in UI) |
-| **Update Frequency** | Every 5 minutes |
-| **Alarm handling** | Threshold-based on percentage |
+## Diagnostics and limitations
 
-**Example Response:**
-```json
-{
-  "ram_total": 16777216000,
-  "ram_used": 12582912000,
-  "ram_free": 4194304000,
-  "ram_usage_percent": 75.0
-}
-```
-
-**Interpretation:**
-- **0-60%**: Normal operation
-- **60-80%**: Monitor for memory leaks
-- **80-90%**: High memory pressure
-- **90-100%**: Critical - swapping likely
-
-### Swap Usage
-Virtual memory (swap space) utilization.
-
-| Field | Description |
-|-------|-------------|
-| **Metric Name** | `swap_used`, `swap_free`, `swap_total` |
-| **Data Type** | Integer (bytes) |
-| **Unit** | Bytes |
-| **Update Frequency** | Every 5 minutes |
-
-**Warning Signs:**
-- Heavy swap usage indicates RAM exhaustion
-- Constant swapping causes severe performance degradation
-- Monitor swap usage trends over time
-
----
-
-## Disk Space Metrics
-
-### Disk Usage
-Storage utilization for all mounted filesystems.
-
-| Field | Description |
-|-------|-------------|
-| **Metric Name** | `disk_space_usage_percent` |
-| **Data Type** | Float (0.00 - 100.00) |
-| **Unit** | Percentage |
-| **Update Frequency** | Every 5 minutes |
-| **Alarm handling** | Configurable thresholds |
-| **Default Thresholds** | Good: <60%, Warn: 70%, Critical: 80%, Alarm: 90% |
-
-**Example Response:**
-```json
-{
-  "disk_total": 1073741824000,
-  "disk_used": 751619276800,
-  "disk_free": 322122547200,
-  "disk_space_usage_percent": 70.0
-}
-```
-
-**Threshold Levels:**
-
-| Level | Percentage | Action Required |
-|-------|------------|-----------------|
-| **Good** | 0-60% | Normal monitoring |
-| **Warning** | 60-70% | Review disk usage trends |
-| **Critical** | 70-80% | Plan cleanup or expansion |
-| **Alarm** | 80-90% | Immediate action required |
-| **Emergency** | 90-100% | Service interruption risk |
-
-**Best Practices:**
-- Monitor disk growth rate
-- Set up automated cleanup for logs and temp files
-- Plan capacity expansion when reaching 70%
-- Keep 20-30% free space for optimal performance
-
-### Disk Free Space
-Absolute free space available.
-
-| Field | Description |
-|-------|-------------|
-| **Metric Name** | `disk_free_bytes`, `disk_free_gb` |
-| **Data Type** | Integer (bytes), Float (GB) |
-| **Unit** | Bytes, Gigabytes |
-| **Update Frequency** | Every 5 minutes |
-
-**Critical Thresholds:**
-- **< 10GB**: Warning state
-- **< 5GB**: Critical state
-- **< 1GB**: Emergency state
-
----
-
-## File System Metrics
-
-### Total File Count
-Total number of files across the entire filesystem.
-
-| Field | Description |
-|-------|-------------|
-| **Metric Name** | `total_system_filecount` |
-| **Data Type** | Integer |
-| **Unit** | File count |
-| **Update Frequency** | Hourly (expensive operation) |
-| **Alarm handling** | Threshold-based |
-| **Default Thresholds** | Good: <500k, Warn: 700k, Critical: 850k, Alarm: 900k |
-
-**Example Response:**
-```json
-{
-  "total_system_filecount": 678543
-}
-```
-
-**Threshold Configuration:**
-
-| Level | File Count | Interpretation |
-|-------|------------|----------------|
-| **Good** | < 500,000 | Normal filesystem usage |
-| **Warning** | 500,000 - 700,000 | Monitor file growth |
-| **Critical** | 700,000 - 850,000 | Review file storage strategy |
-| **Alarm** | 850,000 - 900,000 | High inode usage risk |
-| **Emergency** | > 900,000 | Inode exhaustion possible |
-
-**Impact of High File Counts:**
-- Slower filesystem operations
-- Backup duration increases
-- Inode exhaustion risk (even with free disk space)
-- Directory traversal performance degradation
-
-**Common Causes:**
-- Log file fragmentation
-- Temporary file accumulation
-- Cache file buildup
-- Session file retention
-- Email queue files
-
-**Remediation Strategies:**
-- Implement log rotation
-- Clean temp directories regularly
-- Archive or compress old files
-- Use database storage for sessions instead of files
-- Review application file creation patterns
-
-### Inode Usage
-Filesystem inode utilization (if available).
-
-| Field | Description |
-|-------|-------------|
-| **Metric Name** | `inode_usage_percent` |
-| **Data Type** | Float (0.00 - 100.00) |
-| **Unit** | Percentage |
-| **Update Frequency** | Hourly |
-
-**Critical Note:**
-A filesystem can run out of inodes (file descriptors) even with plenty of free disk space. This prevents creating new files.
-
----
-
-## Process Metrics
-
-### Process Count by Type
-Count of active processes categorized by type.
-
-| Field | Description |
-|-------|-------------|
-| **Metric Name** | `process_count_total`, `process_count_php`, `process_count_sql` |
-| **Data Type** | Integer |
-| **Unit** | Process count |
-| **Update Frequency** | Every 5 minutes |
-
-**Example Response:**
-```json
-{
-  "process_count_total": 342,
-  "process_count_php": 15,
-  "process_count_sql": 8
-}
-```
-
-**Process Categories:**
-
-#### Total Processes
-All active system processes.
-
-**Interpretation:**
-- **< 200**: Light server load
-- **200-500**: Normal operation
-- **500-1000**: High activity
-- **> 1000**: Investigate process accumulation
-
-#### PHP Processes
-Active PHP-FPM workers and CLI processes.
-
-**Monitoring Points:**
-- Compare against PHP-FPM pool configuration
-- Check for zombie PHP processes
-- Monitor process lifetime and memory growth
-- Watch for stuck CLI processes
-
-**Typical Configuration:**
-```ini
-; PHP-FPM pool configuration
-pm = dynamic
-pm.max_children = 50
-pm.start_servers = 5
-pm.min_spare_servers = 5
-pm.max_spare_servers = 35
-```
-
-#### SQL Processes
-Database server connections and processes.
-
-**Monitoring Points:**
-- Compare against `max_connections` setting
-- Check for long-running queries
-- Monitor connection pool usage
-- Watch for connection leaks
-
----
-
-## Application-Level Metrics
-
-### Session Count
-Active user sessions for monitored applications.
-
-| Field | Description |
-|-------|-------------|
-| **Metric Name** | `session_count` |
-| **Data Type** | Integer |
-| **Unit** | Session count |
-| **Update Frequency** | Every minute |
-| **Alarm handling** | Application-specific thresholds |
-| **Default Thresholds** | Good: <100, Warn: 500, Critical: 2500, Alarm: 50000 |
-
-**Example Response:**
-```json
-{
-  "session_count": 1247,
-  "session_count_last_hour": 1189,
-  "session_count_trend": "increasing"
-}
-```
-
-**Interpretation:**
-- Tracks active user activity
-- Indicates application load
-- Helps with capacity planning
-- Useful for performance correlation
-
-**Session Storage Considerations:**
-
-| Storage Method | File Count Impact | Performance |
-|----------------|-------------------|-------------|
-| **File-based** | 1 file per session | Impacts total_system_filecount |
-| **Database** | No file impact | Better for high-traffic sites |
-| **Redis/Memcached** | No file impact | Best performance |
-
-### Log File Size
-Size of application log files.
-
-| Field | Description |
-|-------|-------------|
-| **Metric Name** | `log_filesize_kb` |
-| **Data Type** | Integer |
-| **Unit** | Kilobytes |
-| **Update Frequency** | Every 5 minutes |
-| **Alarm handling** | Threshold-based |
-| **Default Thresholds** | Good: <10MB, Warn: 100MB, Critical: 250MB, Alarm: 500MB |
-
-**Example Response:**
-```json
-{
-  "log_filesize_kb": 102400,
-  "log_filesize_mb": 100,
-  "log_file_path": "/var/www/app/storage/logs/laravel.log"
-}
-```
-
-**Threshold Configuration:**
-
-| Level | Size | Action |
-|-------|------|--------|
-| **Good** | < 10 MB | Normal operation |
-| **Warning** | 10-100 MB | Review log rotation |
-| **Critical** | 100-250 MB | Implement rotation immediately |
-| **Alarm** | 250-500 MB | Disk space risk |
-| **Emergency** | > 500 MB | Performance impact likely |
-
-**Log Management Best Practices:**
 ```bash
-# Example logrotate configuration
-/var/www/app/storage/logs/*.log {
-    daily
-    missingok
-    rotate 14
-    compress
-    delaycompress
-    notifempty
-    create 0640 www-data www-data
-    sharedscripts
-}
+# Counts and latest timestamp in each server-metric tier
+docker exec <web-container> php /var/www/html/scripts/server_metrics_diagnostic.php
+
+# Collection execution log and structured ingestion-health report
+tail -f logs/cron/app-servers-metrics-collect.log
+tail -f logs/cron/collect_server_metrics_health.log
 ```
 
----
-
-## Metric Collection Schedule
-
-### Real-Time Metrics
-Updated on every dashboard refresh (user-initiated):
-- Current CPU usage
-- Current memory usage
-- Active process counts
-- Application status
-
-### Scheduled Collection (Cron)
-
-#### Every 5 Minutes
-```bash
-*/5 * * * * /usr/bin/php /path/to/mata-dashboard/cron/servers_metrics_collect.php
-```
-
-Collects:
-- CPU usage snapshots
-- Memory utilization
-- Disk space
-- Process counts
-- Application metrics
-
-#### Hourly Aggregation
-```bash
-5 * * * * /usr/bin/php /path/to/mata-dashboard/cron/servers_metrics_aggregate.php
-```
-
-Processes:
-- Hourly metric aggregation
-- Statistical summaries (min, max, avg)
-- Data retention enforcement
-
-#### Daily Aggregation
-Runs at 00:30 daily via aggregate script:
-- Daily metric summaries
-- Long-term trend data
-- Historical archiving
-
----
-
-## Metric Storage and Retention
-
-### Database Tables
-
-#### server_metrics_raw
-Raw metrics collected every 5 minutes.
-
-**Retention**: 30 days (configurable)
-
-**Schema:**
-```sql
-CREATE TABLE server_metrics_raw (
-    id INT PRIMARY KEY AUTO_INCREMENT,
-    server_id INT NOT NULL,
-    collected_at DATETIME NOT NULL,
-    cpu_usage_percent DECIMAL(5,2),
-    ram_usage_percent DECIMAL(5,2),
-    disk_usage_percent DECIMAL(5,2),
-    process_count_total INT,
-    process_count_php INT,
-    process_count_sql INT,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-```
-
-#### server_metrics_hourly
-Hourly aggregated metrics.
-
-**Retention**: 90 days (configurable)
-
-**Aggregation**: Min, Max, Average values per hour
-
-#### server_metrics_daily
-Daily aggregated metrics.
-
-**Retention**: 365 days (configurable)
-
-**Aggregation**: Min, Max, Average values per day
-
-### Retention Configuration
-
-Edit `config/data_retention.json`:
-
-```json
-{
-    "raw_retention_days": 30,
-    "aggregation": {
-        "hourly": {
-            "lag_minutes": 5,
-            "catch_up_hours": 24
-        },
-        "daily": {
-            "lag_minutes": 30
-        }
-    },
-    "pruning": {
-        "batch_limit": 5000
-    }
-}
-```
-
----
-
-## API Endpoints
-
-### Get Server System Data
-```
-GET /api/server/system
-```
-
-**Response:**
-```json
-{
-    "cpu_usage_percent": 45.2,
-    "ram_total": 16777216000,
-    "ram_used": 12582912000,
-    "ram_free": 4194304000,
-    "ram_usage_percent": 75.0,
-    "disk_total": 1073741824000,
-    "disk_used": 751619276800,
-    "disk_free": 322122547200,
-    "disk_space_usage_percent": 70.0,
-    "total_system_filecount": 678543,
-    "process_count_total": 342,
-    "process_count_php": 15,
-    "process_count_sql": 8,
-    "collected_at": "2025-11-02T14:30:00Z"
-}
-```
-
-### Get Server Processes
-```
-GET /api/server/processes
-```
-
-**Response:**
-```json
-{
-    "total": 342,
-    "php": 15,
-    "sql": 8,
-    "details": [
-        {
-            "pid": 1234,
-            "type": "php-fpm",
-            "cpu": 2.5,
-            "memory": 45678,
-            "uptime": "3h 24m"
-        }
-    ]
-}
-```
-
----
-
-## Alarm handling on Metrics
-
-### Threshold Evaluation
-Metrics are evaluated against configured thresholds in `config/thresholds.json`.
-
-**Evaluation Frequency:**
-- Real-time: On each data collection
-- Batch: Hourly aggregation review
-
-### Alarm Levels
-
-| Level | Color | Action |
-|-------|-------|--------|
-| **Good** | Green | No action required |
-| **Warning** | Yellow | Monitor trend |
-| **Critical** | Orange | Investigate and plan |
-| **Alarm** | Red | Immediate action required |
-
-### Alarm Notification Flow
-
-1. **Metric Collection**: Data collected from node
-2. **Threshold Check**: Compare against configured thresholds
-3. **Event Recording**: Log threshold violation
-4. **Deduplication**: Check against recent events
-5. **Alarm Trigger**: Create alarm if threshold exceeded
-6. **Notification**: Send email alarm to configured recipients
-
----
-
-## Performance Considerations
-
-### Metric Collection Impact
-
-| Metric | Collection Cost | Frequency Recommendation |
-|--------|----------------|--------------------------|
-| **CPU Usage** | Low | Every 1-5 minutes |
-| **Memory Usage** | Low | Every 1-5 minutes |
-| **Disk Space** | Medium | Every 5-15 minutes |
-| **File Count** | High | Hourly or daily |
-| **Process List** | Medium | Every 5-15 minutes |
-
-### Optimization Tips
-
-1. **File Count Collection:**
-   - Cache results for 1 hour minimum
-   - Consider sampling specific directories only
-   - Run during off-peak hours
-
-2. **Disk Space:**
-   - Cache for 5-15 minutes
-   - Monitor rate of change, not just absolute values
-
-3. **Process Counts:**
-   - Use count-only queries (avoid full process details)
-   - Filter by relevant process types only
-
-4. **Database Storage:**
-   - Implement automatic retention policies
-   - Use aggregation for historical data
-   - Index by server_id and collected_at
-
----
-
-## Troubleshooting
-
-### Missing Metrics
-
-**Problem:** Metrics not updating
-
-**Check:**
-1. Cron job status: `crontab -l`
-2. Cron execution logs: `grep CRON /var/log/syslog`
-3. Application logs: `tail -f storage/logs/info.log`
-4. API connectivity: Test node API endpoint
-5. Database connectivity: Check event_log table
-
-### Inaccurate Metrics
-
-**Problem:** Metrics seem incorrect
-
-**Check:**
-1. Node API response: `curl -H "X-Mata-Auth: server-id|1700000000|nonce|hmac_sha256_hex" https://node/api/system`
-2. Timezone settings: Server and application must match
-3. Unit conversion: Verify bytes → MB/GB calculations
-4. Caching: Force refresh to bypass cache
-
-### High File Counts
-
-**Problem:** total_system_filecount constantly increasing
-
-**Investigation:**
-```bash
-# Find directories with most files
-find /var/www -type d -exec sh -c 'echo "$(find "{}" -maxdepth 1 -type f | wc -l) {}"' \; | sort -rn | head -20
-
-# Find large file accumulations
-du -a /var/www | sort -rn | head -20
-
-# Check session storage
-ls -la /var/lib/php/sessions/ | wc -l
-```
-
----
-
-## Related Documentation
-
-- [Application Monitoring Reference](./application-monitoring.md)
-- [Threshold Configuration Reference](./thresholds.md)
-- [Event System Reference](./event-system.md)
-- [Configuration Reference](./configuration-reference.md)
-
----
-
-**Last Updated:** 2025-11-02
-**Version:** 1.0
+The collector writes one JSON health report after each run with before/after raw
+counts, newest sample time, and lag per processed server. It emits an ingestion
+summary event and a `server_metrics.ingestion_stall` warning when a server adds
+no row and its latest sample reaches the configured threshold (15 minutes by
+default). The health report has application-managed rotation configured under
+`ingestion_health`.
+
+Known limits:
+
+- Charts are sparse: absent collection or aggregate windows produce no label;
+  null values produce label-aligned gaps. Neither is filled with zero.
+- Historical availability is bounded by independent raw, hourly, and daily
+  retention. Requesting a tier after it has been pruned returns no rows.
+- Daily fallback depends on retained hourly rows. If both raw and hourly data
+  are gone, an old daily aggregate cannot be rebuilt.
+- The current server-card view is not a live historical sample stream and
+  unsupported node fields do not become historical charts automatically.

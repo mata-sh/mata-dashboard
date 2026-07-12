@@ -36,21 +36,28 @@ Collects raw server metrics every 5 minutes.
 
 Aggregates raw metrics into hourly and daily summaries.
 
-**Schedule:** Hourly (at 5 minutes past the hour)
+**Schedule:** Every 15 minutes
 
 ```bash
-5 * * * * /usr/bin/php /path/to/mata-dashboard/cron/servers_metrics_aggregate.php
+*/15 * * * * /usr/bin/php /path/to/mata-dashboard/cron/servers_metrics_aggregate.php
 ```
 
 **What it does:**
 
-1. Queries raw metrics from past hour
-2. Calculates averages, min, max values
-3. Stores hourly aggregates
-4. Daily aggregation (if appropriate time)
-5. Cleanup old raw data per retention policy
+1. Plans completed UTC hourly windows with configured lag and catch-up bounds
+2. Upserts hourly averages/min/max from raw snapshots
+3. Independently plans and upserts completed UTC daily windows after daily lag
+4. Reprocesses bounded recent windows so late samples and missed runs are repaired
+5. Does not perform retention cleanup; `retention_cleanup.php` owns retention
 
-**Output:** Logs to `temp/logs/cron-aggregate.log`
+Cron receives only required database settings through `/etc/mata/cron.env` (root-owned,
+`www-data` group-readable). Verify the scheduled context with:
+
+```bash
+docker exec <web-container> mata-cron-smoke-check
+```
+
+**Output:** Logs to `logs/cron/app-servers-metrics-aggregate.log`
 
 ## Cron Job Architecture
 
