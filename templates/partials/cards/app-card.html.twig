@@ -9,7 +9,7 @@
            data-tippy-content="Refresh {{ app.name }}">
             {{ icons.refresh_ccw|raw }}
         </a>  --> #}
-    <a class="app-readme-btn" hx-get="{{ endpoints.modal_app_readme_render }}" hx-target="#modal-container" hx-trigger="click" hx-toggle="modal">{{ icons.info|raw }}</a>
+    <button type="button" class="app-readme-btn modal-trigger" aria-label="Open application README" aria-haspopup="dialog" hx-get="{{ endpoints.modal_app_readme_render }}" hx-target="#modal-container" hx-trigger="click" hx-toggle="modal">{{ icons.info|raw }}</button>
   </span>
   {# <!--  <span class="app-libs {{ APP_ENV }}" data-tippy-content="{{ APP_PATH }}">
         <span class="libs-helper">2.0.9.2</span>

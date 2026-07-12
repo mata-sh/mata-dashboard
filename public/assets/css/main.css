@@ -308,7 +308,7 @@ svg {
     stroke: lightgray;
 }
 
-.server-stats span {
+.server-stats > * {
     display: inline-flex;
     align-items: center;
     gap: 2px;
@@ -320,15 +320,15 @@ svg {
     opacity: 0;
 }
 
-.server-stats span.critical {
+.server-stats > .critical {
     opacity: 0.5;
 }
 
-.server-stats span.alarm {
+.server-stats > .alarm {
     opacity: 1;
 }
 
-.server-stats:has(:hover) span {
+.server-stats:has(:hover) > * {
     opacity: 1;
 }
 
@@ -634,6 +634,81 @@ svg {
     stroke: #d9d9d9;
     width: 14px;
     height: 14px;
+}
+
+.modal-trigger {
+    cursor: pointer;
+    transition: border-color .15s ease, background-color .15s ease, color .15s ease, opacity .15s ease;
+}
+
+.server-info-btn.modal-trigger,
+.app-title .app-readme-btn.modal-trigger {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    box-sizing: border-box;
+    width: 20px;
+    height: 20px;
+    margin: 0 0 0 4px;
+    padding: 0;
+    border: 1px solid #262c38;
+    border-radius: 4px;
+    background: #14171d;
+    color: #8b93a5;
+}
+
+.server-info-btn.modal-trigger svg,
+.app-title .app-readme-btn.modal-trigger svg {
+    width: 12px;
+    height: 12px;
+    margin: 0;
+    stroke: currentColor;
+}
+
+.server-cronjobs.modal-trigger,
+.db-process-list.modal-trigger {
+    box-sizing: border-box;
+    padding: 2px 5px;
+    border: 1px solid #262c38;
+    border-radius: 4px;
+    background: #14171d;
+    color: inherit;
+    font: inherit;
+    line-height: inherit;
+}
+
+.server-cronjobs.modal-trigger {
+    border-color: currentColor;
+}
+
+.server-cronjobs.modal-trigger svg,
+.db-process-list.modal-trigger svg {
+    stroke: currentColor;
+}
+
+.db-process-list.modal-trigger:hover,
+.db-process-list.modal-trigger:focus-visible,
+.server-info-btn.modal-trigger:hover,
+.server-info-btn.modal-trigger:focus-visible,
+.app-title .app-readme-btn.modal-trigger:hover,
+.app-title .app-readme-btn.modal-trigger:focus-visible {
+    border-color: #3f93a6;
+    background: #182029;
+    color: #9fe8f2;
+    outline: none;
+}
+
+.server-cronjobs.modal-trigger:hover,
+.server-cronjobs.modal-trigger:focus-visible {
+    background: #182029;
+    outline: none;
+}
+
+.server-cronjobs.modal-trigger:focus-visible,
+.db-process-list.modal-trigger:focus-visible,
+.server-info-btn.modal-trigger:focus-visible,
+.app-title .app-readme-btn.modal-trigger:focus-visible {
+    box-shadow: 0 0 0 2px rgba(63, 147, 166, .2);
 }
 
 .login-container>div {
