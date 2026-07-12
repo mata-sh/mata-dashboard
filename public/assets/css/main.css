@@ -1901,3 +1901,269 @@ label.audit-chip:hover { filter: brightness(1.25); }
     font-size: .72rem;
     line-height: 1.2;
 }
+
+/* ── Cronjobs modal ──────────────────────────────────────────── */
+/* Floating-card treatment; #modal.cronjobs-modal beats #modal>.modal-content */
+#modal.cronjobs-modal > .modal-content {
+    width: min(90%, 1000px);
+    height: auto;
+    max-height: 80%;
+    padding: 0;
+    overflow: hidden;
+    background: #12151c;
+    border: 1px solid #262c38;
+    border-radius: 10px;
+    box-shadow: 0 12px 28px rgba(0, 0, 0, .45);
+}
+
+.cronjobs-top-bar {
+    align-items: center;
+    gap: .75rem;
+    margin-bottom: 0;
+    padding: .8rem 1.1rem;
+    background: #0e1015;
+    border-bottom: 1px solid #2f6f7d;
+}
+
+.cronjobs-heading {
+    display: flex;
+    align-items: baseline;
+    gap: .55rem;
+    margin-right: auto;
+}
+
+.cronjobs-heading-title {
+    font-size: .85rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .07em;
+    color: #e8eaf0;
+}
+
+.cronjobs-heading-server {
+    font-size: .8rem;
+    color: #7fe3f0;
+}
+
+.cronjobs-heading-meta {
+    font-size: .72rem;
+    color: #5a6172;
+}
+
+.cronjobs-modal .modal-refresh-button-top {
+    height: 30px;
+    padding: 0 .7rem;
+    background: #14171d;
+    border: 1px solid #262c38;
+    border-radius: 4px;
+    font-size: .78rem;
+    color: #c9cfda;
+    transition: border-color .15s ease, color .15s ease;
+}
+
+.cronjobs-modal .modal-refresh-button-top:hover {
+    background: #14171d;
+    border-color: #3f93a6;
+    color: #9fe8f2;
+}
+
+.cronjobs-modal .modal-refresh-button-top svg {
+    width: 12px;
+    height: 12px;
+    margin-right: 8px;
+    stroke: currentColor;
+}
+
+.cronjobs-modal .modal-close-button-top {
+    position: static;
+    box-sizing: border-box;
+    width: 30px;
+    height: 30px;
+    padding: 0;
+    background: #14171d;
+    border: 1px solid #262c38;
+    border-radius: 4px;
+    color: #8b93a5;
+    transition: border-color .15s ease, color .15s ease;
+}
+
+.cronjobs-modal .modal-close-button-top:hover {
+    background: #14171d;
+    border-color: #3f93a6;
+    color: #9fe8f2;
+}
+
+.cronjobs-modal .modal-close-button-top svg {
+    width: 14px;
+    height: 14px;
+    stroke: currentColor;
+    stroke-width: 2;
+}
+
+.cronjobs-content {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    padding: 1rem 1.1rem;
+}
+
+.cronjobs-empty {
+    padding: 1.5rem;
+    border: 1px dashed #2a3040;
+    border-radius: 6px;
+    text-align: center;
+    font-size: .9rem;
+    color: #5a6172;
+}
+
+.cronjobs-table-shell {
+    overflow-x: auto;
+    background: #0b0d12;
+    border: 1px solid #1f242e;
+    border-radius: 6px;
+}
+
+.cronjobs-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.cronjobs-table th {
+    padding: .5rem .75rem;
+    background: #0e1015;
+    border-bottom: 1px solid #2f6f7d;
+    font-size: .72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .07em;
+    text-align: left;
+    color: #8b93a5;
+    white-space: nowrap;
+}
+
+.cronjobs-table td {
+    padding: .45rem .75rem;
+    font-size: .9rem;
+    color: #c9cfda;
+    vertical-align: middle;
+}
+
+.cronjobs-table td:not(:first-child) {
+    white-space: nowrap;
+}
+
+.cronjobs-row:not(:first-child) td {
+    border-top: 1px solid #151a22;
+}
+
+.cronjobs-path {
+    width: 99%;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: .85rem;
+    color: #e8eaf0;
+}
+
+.cronjobs-mtime {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: .85rem;
+}
+
+.cronjobs-status {
+    display: inline-block;
+    padding: .12rem .5rem;
+    border: 1px solid transparent;
+    border-radius: 4px;
+    font-size: .72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .05em;
+    color: #fff;
+}
+
+.cronjobs-status.status-ok { background: #2e7d43; border-color: #4da767; }
+.cronjobs-status.status-stale { background: #9c7c14; border-color: #c4a53a; }
+.cronjobs-status.status-missing { background: #c22a35; border-color: #e05561; }
+
+.cronjobs-tail-row td {
+    padding: 0 .75rem .5rem;
+}
+
+.cronjobs-tail summary {
+    display: inline-flex;
+    align-items: center;
+    gap: .4rem;
+    list-style: none;
+    cursor: pointer;
+    font-size: .72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .07em;
+    color: #8b93a5;
+    transition: color .15s ease;
+}
+
+.cronjobs-tail summary::-webkit-details-marker {
+    display: none;
+}
+
+.cronjobs-tail summary::before {
+    content: "";
+    width: 0;
+    height: 0;
+    border-left: 5px solid currentColor;
+    border-top: 4px solid transparent;
+    border-bottom: 4px solid transparent;
+    transition: transform .15s ease;
+}
+
+.cronjobs-tail[open] summary::before {
+    transform: rotate(90deg);
+}
+
+.cronjobs-tail summary:hover {
+    color: #9fe8f2;
+}
+
+.cronjobs-tail-count {
+    font-weight: 400;
+    text-transform: none;
+    letter-spacing: normal;
+    color: #5a6172;
+}
+
+.cronjobs-tail pre {
+    margin-top: .4rem;
+    padding: .6rem .75rem;
+    max-height: 220px;
+    overflow: auto;
+    background: #0b0d12;
+    border: 1px solid #151a22;
+    border-radius: 4px;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: .78rem;
+    line-height: 1.5;
+    color: #c9cfda;
+}
+
+.cronjobs-footer {
+    padding: .7rem 1.1rem;
+    background: #0e1015;
+    border-top: 1px solid #1f242e;
+}
+
+.cronjobs-close-button {
+    width: 100%;
+    height: 32px;
+    background: #14171d;
+    border: 1px solid #262c38;
+    border-radius: 4px;
+    font-size: .82rem;
+    color: #c9cfda;
+    transition: border-color .15s ease, color .15s ease;
+}
+
+.cronjobs-close-button:hover {
+    background: #14171d;
+    border-color: #3f93a6;
+    color: #9fe8f2;
+}
