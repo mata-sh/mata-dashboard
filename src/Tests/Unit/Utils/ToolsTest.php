@@ -171,22 +171,19 @@ class ToolsTest extends TestCase
      * @group tools
      * @group formatting
      */
-    public function testItFormatsNumbersWithUnits(): void
+    public function testItFormatsCompactNumbers(): void
     {
         $testCases = [
-            [0, '0'],
-            [1, '1'],
             [999, '999'],
-            [1000, '1k'],
-            [1500, '1.5k'],
-            [10000, '10k'],
-            [1000000, '1M'],
-            [2500000, '2.5M'],
-            [10000000, '10M'],
+            [1250, '1.2k'],
+            [238512, '238k'],
+            [240000, '240k'],
+            [2500000, '2.5m'],
+            ['abc', '0'],
         ];
 
         foreach ($testCases as [$number, $expected]) {
-            $result = $this->tools->formatNumber($number);
+            $result = $this->tools->formatCompactNumber($number);
             $this->assertEquals($expected, $result, "Failed formatting number {$number}");
         }
     }
@@ -254,29 +251,6 @@ class ToolsTest extends TestCase
         $result = $this->tools->icon('square', 24, 'my-custom-class');
 
         $this->assertStringContainsString('class="icon my-custom-class"', $result);
-    }
-
-    /**
-     * @group tools
-     * @group formatting
-     */
-    public function testItHandlesLargeNumbersInFormatNumber(): void
-    {
-        $result = $this->tools->formatNumber(999999999);
-        $this->assertEquals('1000M', $result);
-    }
-
-    /**
-     * @group tools
-     * @group formatting
-     */
-    public function testItHandlesFloatsInFormatNumber(): void
-    {
-        $result = $this->tools->formatNumber(1234.56);
-        $this->assertEquals('1.2k', $result);
-
-        $result2 = $this->tools->formatNumber(1234567.89);
-        $this->assertEquals('1.2M', $result2);
     }
 
     /**

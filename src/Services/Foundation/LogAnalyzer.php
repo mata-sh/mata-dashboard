@@ -128,9 +128,9 @@ class LogAnalyzer
         bool $alarmsEnabled,
         array $logs
     ): array {
-        $fatalCount = $this->tools->formatNumber($status['fatal']);
-        $warningCount = $this->tools->formatNumber($status['warnings']);
-        $totalLineCount = $this->tools->formatNumber($status['total']);
+        $fatalCount = $this->tools->formatCompactNumber($status['fatal']);
+        $warningCount = $this->tools->formatCompactNumber($status['warnings']);
+        $totalLineCount = $this->tools->formatCompactNumber($status['total']);
 
         $showEventsCount = 0;
         $showEventsType = 'working';

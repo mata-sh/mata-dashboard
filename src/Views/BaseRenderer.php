@@ -139,6 +139,18 @@ abstract class BaseRenderer
         return number_format($number, $decimals, '', '.');
     }
 
+    /**
+     * Format numbers with compact unit suffixes.
+     *
+     * @param mixed $number Number to format
+     *
+     * @return string Formatted number
+     */
+    protected function formatCompactNumber(mixed $number): string
+    {
+        return $this->tools->formatCompactNumber($number);
+    }
+
     // ────────────────────────────────────────────────
     // Ui assets
     // ────────────────────────────────────────────────

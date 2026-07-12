@@ -254,19 +254,39 @@ class Tools
     }
 
     /**
-     * Format large numbers with K/M suffix.
+     * Format numbers with compact unit suffixes.
      */
-    public function formatNumber(float|int $num): string
+    public function formatCompactNumber(mixed $number): string
     {
-        if ($num >= 1000000) {
-            return round($num / 1000000, 1) . 'M';
-        }
-        if ($num >= 1000) {
-            return round($num / 1000, 1) . 'k';
+        if (!is_numeric($number)) {
+            return '0';
         }
 
-        return (string) $num;
+        $number = (float) $number;
+        $units = ['', 'k', 'm', 'b', 't'];
+        $unitIndex = 0;
 
+        while (abs($number) >= 1000 && $unitIndex < count($units) - 1) {
+            $number /= 1000;
+            ++$unitIndex;
+        }
+
+        if ($unitIndex === 0) {
+            return (string) (int) $number;
+        }
+
+        $decimals = abs($number) < 10 ? 1 : 0;
+        $factor = 10 ** $decimals;
+        $number = $number >= 0
+            ? floor($number * $factor) / $factor
+            : ceil($number * $factor) / $factor;
+        $formatted = number_format($number, $decimals, '.', '');
+
+        if ($decimals > 0) {
+            $formatted = rtrim(rtrim($formatted, '0'), '.');
+        }
+
+        return $formatted . $units[$unitIndex];
     }
 
     /**

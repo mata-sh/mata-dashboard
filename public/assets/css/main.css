@@ -238,21 +238,26 @@ svg {
 }
 
 .server-stats {
+    display: flex;
+    align-items: center;
+    gap: 4px;
     width: fit-content;
     color: white;
     cursor: pointer;
-    margin-right: 6px;
+    margin-right: 4px;
     margin-top: 3px;
+    white-space: nowrap;
 }
 
 .server-stats svg {
-    position: relative;
-    top: 2px;
+    flex: 0 0 auto;
     stroke: lightgray;
-    margin-right: 1px;
 }
 
 .server-stats span {
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
     opacity: 0.2;
 }
 
@@ -275,7 +280,7 @@ svg {
 
 
 .server-filecount {
-    width: 81px;
+    width: auto;
 }
 
 .server-cronjobs {

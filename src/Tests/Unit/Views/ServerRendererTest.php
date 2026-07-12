@@ -61,6 +61,15 @@ final class ServerRendererTest extends TestCase
         yield 'unknown' => [[], NodeHealthState::UNKNOWN, 'Health check failed'];
     }
 
+    public function testCalculatesWholeUsagePercentage(): void
+    {
+        $method = new ReflectionMethod(ServerRenderer::class, 'calculateUsagePercent');
+        $renderer = $this->createRenderer();
+
+        $this->assertSame(80, $method->invoke($renderer, 80, 100));
+        $this->assertSame(0, $method->invoke($renderer, 80, 0));
+    }
+
     private function createRenderer(): ServerRenderer
     {
         return new ServerRenderer(

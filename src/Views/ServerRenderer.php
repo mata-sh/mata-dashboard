@@ -316,7 +316,8 @@ class ServerRenderer extends BaseRenderer
             'storage' => $this->buildStorageData($serverData, $levels),
             'processes' => $this->buildProcessData($serverData),
             'files' => [
-                'count' => $this->formatNumber($serverData['total_system_filecount'] ?? 0),
+                'count' => $this->formatCompactNumber($serverData['total_system_filecount'] ?? 0),
+                'count_full' => $this->formatNumber($serverData['total_system_filecount'] ?? 0),
                 'count_level' => $levels['total_system_filecount'],
             ],
             'cronjobs' => $this->buildCronjobsStatsData($serverName, $serverMetrics),
@@ -581,13 +582,29 @@ class ServerRenderer extends BaseRenderer
      */
     private function buildStorageData(?array $serverData = null, array $levels = []): array
     {
+        $diskCapacity = $serverData['disk_space_capacity'] ?? 0;
+        $diskUsed = $serverData['disk_space_used'] ?? 0;
+        $ramCapacity = $serverData['ram_capacity'] ?? 0;
+        $ramUsed = $serverData['ram_used'] ?? 0;
+
         return [
-            'disk_capacity' => $this->formatSize($serverData['disk_space_capacity'] ?? 0),
-            'disk_used' => $this->formatSize($serverData['disk_space_used'] ?? 0),
+            'disk_capacity' => $this->formatSize($diskCapacity),
+            'disk_used' => $this->formatSize($diskUsed),
+            'disk_percent' => $this->calculateUsagePercent($diskUsed, $diskCapacity),
             'disk_usage_level' => $levels['disk_space_usage_percent'] ?? 'good',
-            'ram_capacity' => $this->formatSize($serverData['ram_capacity'] ?? 0),
-            'ram_used' => $this->formatSize($serverData['ram_used'] ?? 0),
+            'ram_capacity' => $this->formatSize($ramCapacity),
+            'ram_used' => $this->formatSize($ramUsed),
+            'ram_percent' => $this->calculateUsagePercent($ramUsed, $ramCapacity),
         ];
+    }
+
+    private function calculateUsagePercent(mixed $used, mixed $capacity): int
+    {
+        if (!is_numeric($used) || !is_numeric($capacity) || (float) $capacity <= 0) {
+            return 0;
+        }
+
+        return (int) round((float) $used / (float) $capacity * 100);
     }
 
     /**

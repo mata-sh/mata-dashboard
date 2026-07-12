@@ -47,7 +47,7 @@ final class LogAnalyzerTest extends TestCase
         ];
 
         $this->tools->method('convertSize')->willReturnCallback(static fn (int $size): string => $size . ' KB');
-        $this->tools->method('formatNumber')->willReturnCallback(static fn (int $value): string => (string) $value);
+        $this->tools->method('formatCompactNumber')->willReturnCallback(static fn (int $value): string => (string) $value);
 
         $this->eventManager
             ->expects($this->once())
@@ -86,7 +86,7 @@ final class LogAnalyzerTest extends TestCase
         ];
 
         $this->tools->method('convertSize')->willReturn('60000 KB');
-        $this->tools->method('formatNumber')->willReturnCallback(static fn (int $value): string => (string) $value);
+        $this->tools->method('formatCompactNumber')->willReturnCallback(static fn (int $value): string => (string) $value);
 
         $this->eventManager
             ->expects($this->once())
@@ -137,7 +137,7 @@ final class LogAnalyzerTest extends TestCase
         ];
 
         $this->tools->method('convertSize')->willReturn('100 KB');
-        $this->tools->method('formatNumber')->willReturnCallback(static fn (int $value): string => (string) $value);
+        $this->tools->method('formatCompactNumber')->willReturnCallback(static fn (int $value): string => (string) $value);
 
         $this->eventManager
             ->expects($this->once())

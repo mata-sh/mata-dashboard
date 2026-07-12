@@ -1,12 +1,12 @@
 <div id="server-stats-{{ server.id }}" class="server-stats">
-  <span class="server-cpu count">{{ icons.cpu|raw }} {{ server.cpu_usage }} %</span>
-  <span class="server-ram count">{{ icons.pie_chart|raw }} {{ storage.ram_used }} / {{ storage.ram_capacity }}</span>
-  <span class="server-space count {{ storage.disk_usage_level }}">{{ icons.hard_drive|raw }} {{ storage.disk_used }} / {{ storage.disk_capacity }}</span>
+  <span class="server-cpu count">{{ icons.cpu|raw }} {{ server.cpu_usage }}%</span>
+  <span class="server-ram count" data-tippy-content="RAM: {{ storage.ram_used }} / {{ storage.ram_capacity }}">{{ icons.pie_chart|raw }} {{ storage.ram_percent }}%</span>
+  <span class="server-space count {{ storage.disk_usage_level }}" data-tippy-content="Disk: {{ storage.disk_used }} / {{ storage.disk_capacity }}">{{ icons.hard_drive|raw }} {{ storage.disk_percent }}%</span>
   <span class="server-processes count" data-tippy-content="<strong>Prozesse</strong>
                                     <br>Php: {{ processes.php }}
                                     <br>Sql: {{ processes.sql }}
                                     <br>Total: {{ processes.total }}">{{ icons.activity|raw }} {{ processes.php }}</span>
-  <span class="server-filecount count {{ files.count_level }}">{{ icons.file|raw }} {{ files.count }}</span>
+  <span class="server-filecount count {{ files.count_level }}" data-tippy-content="Files: {{ files.count_full }}">{{ icons.file|raw }} {{ files.count }}</span>
   {% if cronjobs.visible %}
     <span class="server-cronjobs count {{ cronjobs.level }}" data-tippy-content="{{ cronjobs.tooltip }}" hx-get="{{ cronjobs.modal_endpoint }}" hx-target="#modal-container" hx-trigger="click" hx-toggle="modal">{{ icons.clock|raw }} {{ cronjobs.count }}</span>
   {% endif %}
