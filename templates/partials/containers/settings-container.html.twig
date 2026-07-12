@@ -36,7 +36,7 @@
     </p>
     <div class="settings-server-list">
       {% for server in settings.servers %}
-        <article class="settings-server">
+        <article class="settings-server"{% if server.colors.primary %} style="--server-accent: {{ server.colors.primary }}"{% endif %}>
           <header>
             <span class="settings-server-name">{{ server.title ? : server.key }}</span>
             <span class="settings-server-key">{{ server.key }}</span>
@@ -133,7 +133,7 @@
                   <span class="settings-key">{{ metric.metric }}</span>
                   <span class="settings-threshold-values">
                     {% for level in metric.levels %}
-                      <span class="settings-threshold-chip">
+                      <span class="settings-threshold-chip{% if level.label in ['good', 'warn', 'critical', 'alarm'] %} is-{{ level.label }}{% endif %}">
                         <span>{{ level.label }}</span>
                         <strong>{{ level.value }}</strong>
                       </span>
