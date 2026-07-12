@@ -429,7 +429,7 @@ This means:
         "alarm_threshold_event_count": 1,
         "min_alarm_interval_minutes": 180
     },
-    "fatal_errors_occuring": {
+    "fatal_errors_occurring": {
         "alarm_threshold_event_count": 1,
         "min_alarm_interval_minutes": 1440
     }

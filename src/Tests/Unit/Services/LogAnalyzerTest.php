@@ -150,7 +150,7 @@ final class LogAnalyzerTest extends TestCase
             ->expects($this->once())
             ->method('handleEvent')
             ->with(
-                'fatal_errors_occuring',
+                'fatal_errors_occurring',
                 $this->callback(static fn (string $message): bool => str_contains($message, 'Fatal Error Detected')),
                 [],
                 'warning',

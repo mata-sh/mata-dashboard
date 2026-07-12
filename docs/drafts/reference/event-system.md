@@ -283,12 +283,12 @@ System file count exceeded threshold.
 
 ### Application Error Events
 
-#### `fatal_errors_occuring`
+#### `fatal_errors_occurring`
 PHP fatal errors detected in application.
 
 **Severity:** Critical
 
-**Event Type:** `fatal_errors_occuring`
+**Event Type:** `fatal_errors_occurring`
 
 **Details:**
 ```json
@@ -312,7 +312,7 @@ PHP fatal errors detected in application.
 ```json
 {
     "alarms": {
-        "fatal_errors_occuring": {
+        "fatal_errors_occurring": {
             "alarm_threshold_event_count": 1,
             "min_event_interval_minutes": 720,
             "min_alarm_interval_minutes": 1440
@@ -700,7 +700,7 @@ def should_trigger_alarm(event_type, recent_events, config):
 **Scenario 1: Single Critical Event**
 ```json
 {
-    "fatal_errors_occuring": {
+    "fatal_errors_occurring": {
         "alarm_threshold_event_count": 1,
         "min_event_interval_minutes": 720,
         "min_alarm_interval_minutes": 1440

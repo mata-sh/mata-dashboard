@@ -514,6 +514,23 @@ final class MonitoringSettingsLoaderTest extends TestCase
         $this->assertEmpty($result['errors']);
     }
 
+    public function testDefaultFatalErrorEventIntervalIsConfigured(): void
+    {
+        $path = tempnam(sys_get_temp_dir(), 'mata-intervals-');
+        self::assertNotFalse($path);
+        file_put_contents($path, '{"unused": true}');
+
+        try {
+            $config = $this->loader->loadIntervalsConfig($path);
+        } finally {
+            unlink($path);
+        }
+
+        $intervals = $config['events']['min_event_interval_minutes'];
+        $this->assertSame(72, $intervals['fatal_errors_occurring']);
+        $this->assertSame(60, $intervals['_default']);
+    }
+
     public function testDataRetentionDefaultsContainSeparateCategories(): void
     {
         $config = $this->loadDataRetentionConfig(['metrics' => ['raw_retention_days' => 12]]);

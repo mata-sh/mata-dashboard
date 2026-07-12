@@ -216,7 +216,7 @@ class LogAnalyzer
         string $server
     ): void {
         $this->eventManager->handleEvent(
-            type: 'fatal_errors_occuring',
+            type: 'fatal_errors_occurring',
             message: "Fatal Error Detected (Count: {$fatalCount}): {$app} on Server: {$server}",
             level: 'warning',
             server: $server,

@@ -220,7 +220,7 @@ final class MonitoringSettingsLoader
                     'too_many_sql_connections' => 72,
                     'servers_config_not_found' => 18,
                     'remaining_disk_space_too_low' => 60,
-                    'fatal_errors_occuring' => 72,
+                    'fatal_errors_occurring' => 72,
                 ],
             ],
             'alarms' => [
@@ -234,7 +234,7 @@ final class MonitoringSettingsLoader
                     'too_many_sql_connections' => 60,
                     'servers_config_not_found' => 1440,
                     'remaining_disk_space_too_low' => 180,
-                    'fatal_errors_occuring' => 1440,
+                    'fatal_errors_occurring' => 1440,
                 ],
             ],
         ];
@@ -524,7 +524,7 @@ final class MonitoringSettingsLoader
                 'error_count' => ['info' => 1, 'warning' => 5, 'error' => 10, 'alarm' => 25],
             ],
             'alarms' => [
-                'fatal_errors_occuring' => [
+                'fatal_errors_occurring' => [
                     'alarm_threshold_event_count' => 1,
                     'min_alarm_interval_minutes' => 1440,
                 ],
@@ -668,7 +668,7 @@ final class MonitoringSettingsLoader
             'too_many_sql_connections' => ['min_event_interval_minutes' => 72],
             'servers_config_not_found' => ['min_event_interval_minutes' => 18],
             'remaining_disk_space_too_low' => ['min_event_interval_minutes' => 60],
-            'fatal_errors_occuring' => ['min_event_interval_minutes' => 72],
+            'fatal_errors_occurring' => ['min_event_interval_minutes' => 72],
         ];
     }
 

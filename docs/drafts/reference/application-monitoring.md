@@ -269,7 +269,7 @@ error_rate = total_errors / (time_period_hours)
 ```json
 {
     "alarms": {
-        "fatal_errors_occuring": {
+        "fatal_errors_occurring": {
             "alarm_threshold_event_count": 1,
             "min_event_interval_minutes": 720,
             "min_alarm_interval_minutes": 1440

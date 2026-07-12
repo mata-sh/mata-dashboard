@@ -226,7 +226,7 @@ Define how many events must occur before triggering an alarm notification.
     "app_unreachable": {
       "alarm_threshold_event_count": 3
     },
-    "fatal_errors_occuring": {
+    "fatal_errors_occurring": {
       "alarm_threshold_event_count": 1
     },
     "remaining_disk_space_too_low": {
@@ -261,7 +261,7 @@ Control how often the same event can be logged (in minutes).
     "min_event_interval_minutes": {
       "_default": 60,
       "app_unreachable": 15,
-      "fatal_errors_occuring": 72,
+      "fatal_errors_occurring": 72,
       "remaining_disk_space_too_low": 60
     }
   }
@@ -278,7 +278,7 @@ Control how often the same event can be logged (in minutes).
     "min_alarm_interval_minutes": {
       "_default": 1440,
       "app_unreachable": 60,
-      "fatal_errors_occuring": 1440,
+      "fatal_errors_occurring": 1440,
       "remaining_disk_space_too_low": 180
     }
   }

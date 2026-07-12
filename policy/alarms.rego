@@ -17,7 +17,7 @@ else := cpu_usage_over_80_4h if cpu_usage_over_80_4h
 else := disk_usage_warning if disk_usage_warning
 
 fatal_prod_app_error := result if {
-    input.event.type == "app_fatal_error"
+    input.event.type == "fatal_errors_occurring"
     app_env() == "prod"
     event_count("1h") > 0
     result := {

@@ -567,13 +567,13 @@ Application HTTP ping failure alarm.
 
 ---
 
-### fatal_errors_occuring
+### fatal_errors_occurring
 PHP fatal error detection alarm.
 
 **Default Configuration:**
 ```json
 {
-    "fatal_errors_occuring": {
+    "fatal_errors_occurring": {
         "alarm_threshold_event_count": 1,
         "min_event_interval_minutes": 720,
         "min_alarm_interval_minutes": 1440
@@ -800,7 +800,7 @@ Missing cronjob execution alarm.
             "min_event_interval_minutes": 15,
             "min_alarm_interval_minutes": 60
         },
-        "fatal_errors_occuring": {
+        "fatal_errors_occurring": {
             "alarm_threshold_event_count": 1,
             "min_event_interval_minutes": 720,
             "min_alarm_interval_minutes": 1440
@@ -941,12 +941,12 @@ Missing cronjob execution alarm.
 **2. Reduce Event Count Threshold:**
 ```json
 // Before
-"fatal_errors_occuring": {
+"fatal_errors_occurring": {
     "alarm_threshold_event_count": 3
 }
 
 // After
-"fatal_errors_occuring": {
+"fatal_errors_occurring": {
     "alarm_threshold_event_count": 1
 }
 ```

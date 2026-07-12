@@ -10,7 +10,7 @@
             "too_many_sql_connections": 72,
             "servers_config_not_found": 18,
             "remaining_disk_space_too_low": 60,
-            "fatal_errors_occuring": 72
+            "fatal_errors_occurring": 72
         }
     },
     "alarms": {
@@ -24,7 +24,7 @@
             "too_many_sql_connections": 72,
             "servers_config_not_found": 1440,
             "remaining_disk_space_too_low": 180,
-            "fatal_errors_occuring": 1440
+            "fatal_errors_occurring": 1440
         }
     }
 }
