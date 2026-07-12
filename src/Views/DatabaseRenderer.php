@@ -9,6 +9,7 @@ use Mata\Core\App;
 use Mata\Http\Routing\Endpoints;
 use Mata\Services\Collect\ServerDataCollectorInterface;
 use Mata\Utils\Tools;
+use Mata\Utils\TypeConverter;
 use Monolog\Logger;
 use Twig\Environment;
 
@@ -159,10 +160,84 @@ class DatabaseRenderer extends BaseRenderer
             'system' => [
                 'processes_sql' => $databaseData['processes']['sql'] ?? null,
             ],
+            'databases' => $this->buildDatabaseEntries($databaseData),
+            'databases_available' => is_array($databaseData['databases'] ?? null),
             'ui' => [
                 'error_message' => $errorMessage,
             ],
         ];
+    }
+
+    /**
+     * Normalize database entries for display.
+     *
+     * @param array<string,mixed> $databaseData Database data from API
+     *
+     * @return array<int,array<string,mixed>> Display-ready database entries
+     */
+    private function buildDatabaseEntries(array $databaseData): array
+    {
+        $databases = $databaseData['databases'] ?? null;
+
+        if (!is_array($databases)) {
+            return [];
+        }
+
+        $entries = [];
+
+        foreach ($databases as $databaseName => $entry) {
+            if (!is_array($entry)) {
+                $this->logError('Invalid database entry.', 'DatabaseCard', [
+                    'database' => (string) $databaseName,
+                ]);
+
+                continue;
+            }
+
+            $database = TypeConverter::toString($entry['database'] ?? null);
+            $name = TypeConverter::toString($databaseName) ?? $database ?? '';
+            $configuredDatabase = TypeConverter::toString($entry['configured_database'] ?? null);
+            $host = TypeConverter::toString($entry['host'] ?? null);
+            $port = TypeConverter::toString($entry['port'] ?? null);
+            $connectionError = TypeConverter::toString($entry['connection_error'] ?? null);
+
+            if ($connectionError !== null) {
+                $this->logError($connectionError, 'DatabaseCard', [
+                    'database' => $name,
+                ]);
+            }
+
+            $entries[] = [
+                'name' => $name,
+                'configured_database' => $configuredDatabase !== $database ? $configuredDatabase : null,
+                'endpoint' => $host === null ? '' : $host . ($port === null ? '' : ':' . $port),
+                'description' => $this->escape(TypeConverter::toString($entry['description'] ?? null) ?? ''),
+                'max_connections' => $this->formatCount($entry['max_connections'] ?? null),
+                'active_threads' => $this->formatCount($entry['active_threads'] ?? null),
+                'active_processes' => $this->formatCount($entry['active_processes'] ?? null),
+                'process_count' => is_array($entry['process_list'] ?? null) ? count($entry['process_list']) : 0,
+                'status' => $connectionError === null ? 'ok' : 'error',
+                'status_tooltip' => $connectionError === null
+                    ? 'Connected'
+                    : $this->truncate($this->escape($connectionError), 160),
+            ];
+        }
+
+        return $entries;
+    }
+
+    /**
+     * Format a node-supplied count for display.
+     *
+     * @param mixed $value Raw count value from the node payload
+     *
+     * @return null|string Formatted number, or null when the value is not numeric
+     */
+    private function formatCount(mixed $value): ?string
+    {
+        $count = TypeConverter::toInt($value);
+
+        return $count === null ? null : $this->formatNumber($count);
     }
 
     /**

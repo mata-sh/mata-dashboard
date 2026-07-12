@@ -570,6 +570,21 @@ svg {
     cursor: pointer;
 }
 
+.db-row {
+    margin-top: 4px;
+    gap: 8px;
+    align-items: center;
+}
+
+.db-metric {
+    white-space: nowrap;
+}
+
+.db-row-empty {
+    font-size: 0.8em;
+    opacity: 0.6;
+}
+
 /* .app-container span {
     flex: 1;
 } */

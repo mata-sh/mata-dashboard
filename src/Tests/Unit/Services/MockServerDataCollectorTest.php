@@ -17,6 +17,47 @@ use Psr\Log\NullLogger;
  */
 final class MockServerDataCollectorTest extends TestCase
 {
+    public function testDemoDatabasesMatchTheServerDatabasesResponseContract(): void
+    {
+        $logger = new NullLogger();
+        $collector = new MockServerDataCollector(
+            $logger,
+            new CacheTtlResolver([]),
+            new ApiResponseTransformer($logger),
+            'database-server',
+            ['url' => 'https://database-server.example.test'],
+        );
+
+        $response = $collector->getServerDatabases();
+
+        $this->assertNull($response['error']);
+        $this->assertIsArray($response['result']);
+        $this->assertIsArray($response['result']['databases']);
+
+        $keys = [
+            'database',
+            'configured_database',
+            'host',
+            'port',
+            'description',
+            'max_connections',
+            'active_threads',
+            'active_processes',
+            'process_list',
+            'connection_error',
+        ];
+
+        foreach ($response['result']['databases'] as $database) {
+            $this->assertIsArray($database);
+
+            foreach ($keys as $key) {
+                $this->assertArrayHasKey($key, $database);
+            }
+
+            $this->assertIsString($database['connection_error']);
+        }
+    }
+
     public function testDemoAppsAlwaysMatchTheAppsResponseContract(): void
     {
         $logger = new NullLogger();
