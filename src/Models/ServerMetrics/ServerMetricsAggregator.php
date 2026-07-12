@@ -6,7 +6,6 @@ namespace Mata\Models\ServerMetrics;
 
 use DateInterval;
 use DateTimeImmutable;
-use DateTimeInterface;
 use Mata\Core\DatabaseInterface;
 use Mata\Models\ServerMetrics\Dto\ServerMetricDailyAggregate;
 use Mata\Models\ServerMetrics\Dto\ServerMetricHourlyAggregate;
@@ -22,7 +21,6 @@ use Throwable;
  * - Calculating min/max/avg totals per timeframe
  * - Counting alarm/warning events from dashboard logs
  * - Delegating persistence to the metrics repository
- * - Coordinating raw data pruning after aggregation
  */
 final class ServerMetricsAggregator
 {
@@ -70,33 +68,6 @@ final class ServerMetricsAggregator
         $this->repository->upsertDailyAggregate($serverName, $aggregate);
 
         return true;
-    }
-
-    /**
-     * Delete raw samples older than the provided timestamp.
-     *
-     * @return int number of rows removed
-     */
-    public function pruneRawData(DateTimeImmutable $before, int $batchLimit = 0): int
-    {
-        $sql = 'DELETE FROM server_metrics_raw WHERE collected_at < ?';
-
-        if ($batchLimit > 0) {
-            $sql .= ' LIMIT ' . (int) $batchLimit;
-        }
-
-        try {
-            $deleted = $this->db->runQuery($sql, [$before->format('Y-m-d H:i:s')]);
-        } catch (Throwable $exception) {
-            $this->logger->error('server_metrics.prune_failed', [
-                'before' => $before->format(DateTimeInterface::ATOM),
-                'message' => $exception->getMessage(),
-            ]);
-
-            return 0;
-        }
-
-        return is_int($deleted) ? $deleted : 0;
     }
 
     /**

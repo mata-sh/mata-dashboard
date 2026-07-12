@@ -22,8 +22,6 @@ class EventAggregatorService implements EventAggregatorServiceInterface
     private const DEFAULT_ALARM_DECISION_LIMIT = 100;
     private const DEFAULT_LATEST_EVENTS_LIMIT = 50;
     private const DEFAULT_LATEST_ALARMS_LIMIT = 50;
-    private const DEFAULT_CLEAR_ALARMS_DAYS = 365;
-    private const DEFAULT_CLEAR_EVENTS_DAYS = 180;
     private const DEFAULT_DECISION_WINDOW_MINUTES = [
         '1h' => 60,
         '4h' => 240,
@@ -185,22 +183,6 @@ class EventAggregatorService implements EventAggregatorServiceInterface
     public function acknowledgeAllAlarms(string $user): int
     {
         return $this->alarmRepository->acknowledgeAll($user);
-    }
-
-    /**
-     * Remove alarm records older than specified days.
-     */
-    public function clearOldAlarms(int $days = self::DEFAULT_CLEAR_ALARMS_DAYS): void
-    {
-        $this->alarmRepository->clearOld($days);
-    }
-
-    /**
-     * Remove event records older than specified days.
-     */
-    public function clearOldEvents(int $days = self::DEFAULT_CLEAR_EVENTS_DAYS): void
-    {
-        $this->repository->clearOldEvents($days);
     }
 
     /**

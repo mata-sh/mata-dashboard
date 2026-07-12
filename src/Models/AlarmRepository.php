@@ -149,14 +149,6 @@ final class AlarmRepository
         );
     }
 
-    public function clearOld(int $days): void
-    {
-        $cutoff = (new DateTimeImmutable('now'))
-            ->sub(new DateInterval(sprintf('P%dD', $days)))
-            ->format('Y-m-d H:i:s');
-        $this->db->runQuery('DELETE FROM alarms WHERE created_at < :cutoff', ['cutoff' => $cutoff]);
-    }
-
     /** @return array<int,array<string,mixed>> */
     public function getLastByContext(
         ?string $type,

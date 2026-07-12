@@ -361,16 +361,6 @@ final class MockEventAggregatorService implements EventAggregatorServiceInterfac
         return $count;
     }
 
-    public function clearOldAlarms(int $days = 365): void
-    {
-        $this->logger->debug('Mock clearOldAlarms ignored.', ['days' => $days]);
-    }
-
-    public function clearOldEvents(int $days = 180): void
-    {
-        $this->logger->debug('Mock clearOldEvents ignored.', ['days' => $days]);
-    }
-
     /**
      * @return array<string,mixed>
      */

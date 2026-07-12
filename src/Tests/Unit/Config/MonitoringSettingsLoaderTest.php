@@ -513,4 +513,61 @@ final class MonitoringSettingsLoaderTest extends TestCase
         $this->assertTrue($result['is_valid']);
         $this->assertEmpty($result['errors']);
     }
+
+    public function testDataRetentionDefaultsContainSeparateCategories(): void
+    {
+        $config = $this->loadDataRetentionConfig(['metrics' => ['raw_retention_days' => 12]]);
+
+        $this->assertSame(12, $config['metrics']['raw_retention_days']);
+        $this->assertSame(90, $config['metrics']['hourly_retention_days']);
+        $this->assertSame(365, $config['metrics']['daily_retention_days']);
+        $this->assertSame(180, $config['events']['retention_days']);
+        $this->assertSame(365, $config['alarms']['retention_days']);
+        $this->assertSame(15, $config['ingestion_health']['stall_minutes']);
+    }
+
+    public function testDataRetentionPartialNestedConfigPreservesDefaults(): void
+    {
+        $config = $this->loadDataRetentionConfig([
+            'aggregation' => ['hourly' => ['lag_minutes' => 10]],
+            'ingestion_health' => ['log_rotate_files' => 9],
+        ]);
+
+        $this->assertSame(10, $config['aggregation']['hourly']['lag_minutes']);
+        $this->assertSame(24, $config['aggregation']['hourly']['catch_up_hours']);
+        $this->assertSame(30, $config['aggregation']['daily']['lag_minutes']);
+        $this->assertSame(9, $config['ingestion_health']['log_rotate_files']);
+        $this->assertSame(5, $config['ingestion_health']['log_rotate_megabytes']);
+    }
+
+    public function testDataRetentionNormalizesNegativeRetentionAndPreservesDisabledZero(): void
+    {
+        $config = $this->loadDataRetentionConfig([
+            'metrics' => [
+                'raw_retention_days' => -1,
+                'hourly_retention_days' => 0,
+            ],
+            'events' => ['retention_days' => '-2'],
+            'alarms' => ['retention_days' => '0'],
+        ]);
+
+        $this->assertSame(0, $config['metrics']['raw_retention_days']);
+        $this->assertSame(0, $config['metrics']['hourly_retention_days']);
+        $this->assertSame(0, $config['events']['retention_days']);
+        $this->assertSame(0, $config['alarms']['retention_days']);
+    }
+
+    /** @param array<string,mixed> $config */
+    private function loadDataRetentionConfig(array $config): array
+    {
+        $path = tempnam(sys_get_temp_dir(), 'mata-retention-');
+        self::assertNotFalse($path);
+        file_put_contents($path, json_encode($config, JSON_THROW_ON_ERROR));
+
+        try {
+            return $this->loader->loadDataRetentionConfig($path);
+        } finally {
+            unlink($path);
+        }
+    }
 }

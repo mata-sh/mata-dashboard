@@ -49,6 +49,9 @@
 # CLEANUP & MAINTENANCE
 # ============================================================================
 
+# Run database retention cleanup daily at 2:25 AM
+25 2 * * * cd /var/www/html && /usr/local/bin/php cron/retention_cleanup.php >> /var/www/html/logs/cron_retention_cleanup.log 2>&1
+
 # Clean up old log files daily at 2 AM
 0 2 * * * find /var/www/html/logs -name "*.log" -mtime +30 -delete 2>/dev/null
 

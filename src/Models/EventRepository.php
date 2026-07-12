@@ -199,26 +199,6 @@ class EventRepository
     }
 
     /**
-     * Remove event records older than specified days.
-     */
-    public function clearOldEvents(int $days = 180): void
-    {
-        $cutoff = (new DateTimeImmutable('now'))
-            ->sub(new DateInterval(sprintf('P%dD', $days)))
-            ->format('Y-m-d H:i:s');
-        $sql = <<<'SQL'
-            DELETE FROM events
-            WHERE datetime < :cutoff
-              AND NOT EXISTS (
-                  SELECT 1
-                  FROM alarms
-                  WHERE alarms.event_id = events.id
-              )
-        SQL;
-        $this->db->runQuery($sql, ['cutoff' => $cutoff]);
-    }
-
-    /**
      * Get unevaluated events for alarm decision processing.
      *
      * @param int                       $limit       Maximum number of candidates to fetch

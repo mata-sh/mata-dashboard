@@ -174,7 +174,9 @@ final class MonitoringSettingsLoader
             throwOnError: false
         );
 
-        return array_merge($this->getDefaultDataRetentionConfig(), $dataRetentionConfig);
+        return $this->normalizeDataRetentionConfig(
+            array_replace_recursive($this->getDefaultDataRetentionConfig(), $dataRetentionConfig)
+        );
     }
 
     /**
@@ -537,12 +539,22 @@ final class MonitoringSettingsLoader
     /**
      * Get default data retention configuration.
      *
-     * @return array<string,mixed> Default data retention values for server metrics
+     * @return array<string,mixed> Default data retention values for alarms, events, and metrics
      */
     private function getDefaultDataRetentionConfig(): array
     {
         return [
-            'raw_retention_days' => 30,
+            'metrics' => [
+                'raw_retention_days' => 30,
+                'hourly_retention_days' => 90,
+                'daily_retention_days' => 365,
+            ],
+            'events' => [
+                'retention_days' => 180,
+            ],
+            'alarms' => [
+                'retention_days' => 365,
+            ],
             'aggregation' => [
                 'hourly' => [
                     'lag_minutes' => 5,
@@ -555,7 +567,38 @@ final class MonitoringSettingsLoader
             'pruning' => [
                 'batch_limit' => 5000,
             ],
+            'ingestion_health' => [
+                'stall_minutes' => 15,
+                'log_rotate_megabytes' => 5,
+                'log_rotate_files' => 3,
+            ],
         ];
+    }
+
+    /**
+     * @param array<string,mixed> $config
+     *
+     * @return array<string,mixed>
+     */
+    private function normalizeDataRetentionConfig(array $config): array
+    {
+        $defaults = $this->getDefaultDataRetentionConfig();
+
+        foreach ([
+            ['metrics', 'raw_retention_days'],
+            ['metrics', 'hourly_retention_days'],
+            ['metrics', 'daily_retention_days'],
+            ['events', 'retention_days'],
+            ['alarms', 'retention_days'],
+        ] as [$section, $key]) {
+            if (!is_array($config[$section] ?? null)) {
+                $config[$section] = $defaults[$section];
+            }
+
+            $config[$section][$key] = max(0, (int) ($config[$section][$key] ?? 0));
+        }
+
+        return $config;
     }
 
     /**

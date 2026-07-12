@@ -79,14 +79,4 @@ interface EventAggregatorServiceInterface
      * @return int Number of alarms acknowledged
      */
     public function acknowledgeAllAlarms(string $user): int;
-
-    /**
-     * Remove alarm records older than specified days.
-     */
-    public function clearOldAlarms(int $days = 365): void;
-
-    /**
-     * Remove event records older than specified days.
-     */
-    public function clearOldEvents(int $days = 180): void;
 }

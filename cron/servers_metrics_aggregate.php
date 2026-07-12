@@ -20,12 +20,10 @@ $cron->log('Started');
 
 try {
     // All event/alarm infrastructure now loaded via bootstrap_events.php
-    $dataRetentionConfig = $monitoringSettings['data_retention'] ?? [];
-    $hourlyLagMinutes = (int) max(0, $dataRetentionConfig['aggregation']['hourly']['lag_minutes'] ?? 5);
-    $catchUpHours = (int) max(1, $dataRetentionConfig['aggregation']['hourly']['catch_up_hours'] ?? 24);
-    $dailyLagMinutes = (int) max(0, $dataRetentionConfig['aggregation']['daily']['lag_minutes'] ?? 30);
-    $rawRetentionDays = (int) max(0, $dataRetentionConfig['raw_retention_days'] ?? 30);
-    $pruneBatchLimit = (int) max(0, $dataRetentionConfig['pruning']['batch_limit'] ?? 0);
+    $aggregationConfig = $monitoringSettings['data_retention']['aggregation'] ?? [];
+    $hourlyLagMinutes = (int) max(0, $aggregationConfig['hourly']['lag_minutes'] ?? 5);
+    $catchUpHours = (int) max(1, $aggregationConfig['hourly']['catch_up_hours'] ?? 24);
+    $dailyLagMinutes = (int) max(0, $aggregationConfig['daily']['lag_minutes'] ?? 30);
 
     $repository = new ServerMetricsRepository($db, $idResolver, $configSyncRepository);
     $aggregator = new ServerMetricsAggregator($db, $repository, $log);
@@ -57,7 +55,6 @@ try {
         'hourly_errors' => 0,
         'daily_aggregated' => 0,
         'daily_errors' => 0,
-        'pruned' => 0,
     ];
 
     foreach ($monitoringSettings['servers'] ?? [] as $serverName => $serverConfig) {
@@ -179,28 +176,14 @@ try {
         }
     }
 
-    if ($rawRetentionDays > 0 && $stats['hourly_aggregated'] > 0) {
-        $pruneThreshold = $now->sub(new DateInterval('P' . $rawRetentionDays . 'D'));
-        $deleted = $aggregator->pruneRawData($pruneThreshold, $pruneBatchLimit);
-        $stats['pruned'] = $deleted;
-
-        if ($deleted > 0) {
-            $log->info('aggregate_server_metrics.pruned_raw', [
-                'before' => $pruneThreshold->format(DateTimeInterface::ATOM),
-                'deleted' => $deleted,
-            ]);
-        }
-    }
-
     $duration = $cron->endTimer();
     $summary = sprintf(
-        'Finished in %.3fs (memory: %s) | servers=%d aggregated_hourly=%d aggregated_daily=%d pruned=%d errors=%d',
+        'Finished in %.3fs (memory: %s) | servers=%d aggregated_hourly=%d aggregated_daily=%d errors=%d',
         $duration,
         $cron->memoryUsage(),
         $stats['servers_considered'],
         $stats['hourly_aggregated'],
         $stats['daily_aggregated'],
-        $stats['pruned'],
         $stats['hourly_errors'] + $stats['daily_errors']
     );
 

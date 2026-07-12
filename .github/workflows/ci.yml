@@ -17,16 +17,24 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Install Conftest
+      - name: Install policy tools
         run: |
           CONFTEST_VERSION=0.56.0
+          OPA_VERSION=1.12.2
           curl -sSL -o conftest.tar.gz https://github.com/open-policy-agent/conftest/releases/download/v${CONFTEST_VERSION}/conftest_${CONFTEST_VERSION}_Linux_x86_64.tar.gz
           tar -xzf conftest.tar.gz conftest
           sudo mv conftest /usr/local/bin/conftest
+          curl -sSL -o opa https://openpolicyagent.org/downloads/v${OPA_VERSION}/opa_linux_amd64_static
+          chmod +x opa
+          sudo mv opa /usr/local/bin/opa
           conftest --version
+          opa version
 
       - name: Policy checks (Conftest)
         run: conftest test config/example/*.json.example -p policy --parser json
+
+      - name: Retention policy tests (OPA)
+        run: opa test policy/data_retention.rego policy/data_retention_test.rego
 
       - name: Set up PHP
         uses: shivammathur/setup-php@v2

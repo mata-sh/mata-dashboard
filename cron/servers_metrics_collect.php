@@ -176,7 +176,7 @@ try {
         'memory' => $cron->memoryUsage(),
         'stats' => $stats,
         'retention' => [
-            'raw_days' => $dataRetentionConfig['raw_retention_days'] ?? null,
+            'raw_days' => $dataRetentionConfig['metrics']['raw_retention_days'] ?? null,
             'hourly_lag_minutes' => $dataRetentionConfig['aggregation']['hourly']['lag_minutes'] ?? null,
         ],
         'ingestion' => [

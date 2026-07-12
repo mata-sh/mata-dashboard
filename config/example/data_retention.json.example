@@ -1,6 +1,21 @@
 {
-    "_comment": "Data retention configuration for server metrics storage and aggregation",
-    "raw_retention_days": 30,
+    "_comment": "Data retention configuration for alarms, events, and server/application metrics. Set a retention value to 0 to disable cleanup for that category.",
+    "metrics": {
+        "_comment_raw_retention_days": "Days to retain raw metric samples",
+        "raw_retention_days": 30,
+        "_comment_hourly_retention_days": "Days to retain hourly metric aggregates",
+        "hourly_retention_days": 90,
+        "_comment_daily_retention_days": "Days to retain daily metric aggregates",
+        "daily_retention_days": 365
+    },
+    "events": {
+        "_comment_retention_days": "Days to retain events without an alarm",
+        "retention_days": 180
+    },
+    "alarms": {
+        "_comment_retention_days": "Days to retain alarms without pending, processing, or retry deliveries",
+        "retention_days": 365
+    },
     "aggregation": {
         "hourly": {
             "_comment_lag_minutes": "Minutes to wait before considering the previous hour complete",
@@ -14,7 +29,7 @@
         }
     },
     "pruning": {
-        "_comment_batch_limit": "Delete at most N raw rows per run to avoid long-running transactions",
+        "_comment_batch_limit": "Rows per delete statement/batch; cleanup repeats bounded batches until the table is drained",
         "batch_limit": 5000
     },
     "ingestion_health": {
