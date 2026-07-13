@@ -392,7 +392,7 @@ class DashboardController extends BaseController
 
                 if (empty($this->serversConfig)) {
                     $html = $this->serverRenderer->renderErrorContainer(
-                        "No Servers configured.<br> config/{$this->appConfig->environment->env}/servers.json",
+                        "No Servers configured.\nconfig/{$this->appConfig->environment->env}/servers.json",
                         $this->serversConfig
                     );
 

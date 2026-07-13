@@ -21,6 +21,11 @@ use Mata\Http\Security\RouteParameter;
  */
 class RouterSetup
 {
+    /**
+     * Bramus Router stores before middleware by explicit request method; `*` is not a wildcard.
+     */
+    private const ALL_REQUEST_METHODS = 'GET|POST|PUT|PATCH|DELETE|OPTIONS';
+
     private Router $router;
     private App $app;
     private LoginController $loginController;
@@ -107,7 +112,7 @@ class RouterSetup
         }
 
         // Login routes - strictest limits (brute force protection)
-        $this->router->before('*', '/login', function () {
+        $this->router->before(self::ALL_REQUEST_METHODS, '/login', function () {
             if ($this->app->rateLimiter->isRateLimited('login')) {
                 http_response_code(429);
 
@@ -115,7 +120,7 @@ class RouterSetup
             }
         });
 
-        $this->router->before('*', '/logout', function () {
+        $this->router->before(self::ALL_REQUEST_METHODS, '/logout', function () {
             if ($this->app->rateLimiter->isRateLimited('login')) {
                 http_response_code(429);
 
@@ -124,7 +129,7 @@ class RouterSetup
         });
 
         // Dashboard and watch routes - moderate limits
-        $this->router->before('*', '/watch/.*', function () {
+        $this->router->before(self::ALL_REQUEST_METHODS, '/watch(?:/.*)?', function () {
             if ($this->app->rateLimiter->isRateLimited('dashboard')) {
                 http_response_code(429);
 
@@ -133,7 +138,7 @@ class RouterSetup
         });
 
         // API routes - /api/* (events, alarms, libraries, logs) and /api/metrics/*
-        $this->router->before('*', '/api/.*', function () {
+        $this->router->before(self::ALL_REQUEST_METHODS, '/api/.*', function () {
             if ($this->app->rateLimiter->isRateLimited('api')) {
                 http_response_code(429);
                 header('Content-Type: application/json');
@@ -152,7 +157,7 @@ class RouterSetup
      */
     private function setupIpWhitelist(): void
     {
-        $this->router->before('*', '/login', function () {
+        $this->router->before(self::ALL_REQUEST_METHODS, '/login', function () {
             $config = $this->app->config->general;
 
             if (!$config->ipWhitelistEnabled) {
@@ -200,7 +205,7 @@ class RouterSetup
      */
     private function setupProtectedRouteAuth(): void
     {
-        $this->router->before('*', '/watch/.*', function () {
+        $this->router->before(self::ALL_REQUEST_METHODS, '/watch(?:/.*)?', function () {
             if ($this->app->auth->check()) {
                 return;
             }
@@ -215,7 +220,7 @@ class RouterSetup
             $this->app->redirect('login');
         });
 
-        $this->router->before('*', '/api/.*', function () {
+        $this->router->before(self::ALL_REQUEST_METHODS, '/api/.*', function () {
             if ($this->app->auth->check()) {
                 return;
             }

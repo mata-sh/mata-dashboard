@@ -15,6 +15,7 @@ use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use ReflectionMethod;
 use Twig\Environment;
+use Twig\Loader\FilesystemLoader;
 
 /**
  * @covers \Mata\Views\ServerRenderer
@@ -82,6 +83,26 @@ final class ServerRendererTest extends TestCase
 
         $this->assertSame(80, $method->invoke($renderer, 80, 100));
         $this->assertSame(0, $method->invoke($renderer, 80, 0));
+    }
+
+    public function testRenderErrorContainerRendersLineBreaksAsHtml(): void
+    {
+        $twig = new Environment(
+            new FilesystemLoader(dirname(__DIR__, 4) . '/templates'),
+            ['autoescape' => 'name']
+        );
+        $renderer = new ServerRenderer(
+            $twig,
+            $this->createStub(Logger::class),
+            $this->createStub(Tools::class),
+            $this->createStub(App::class),
+            $this->createStub(Endpoints::class),
+            $this->createStub(LogRenderer::class)
+        );
+
+        $html = $renderer->renderErrorContainer("No Servers configured.\nconfig/prod/servers.json", []);
+
+        $this->assertStringContainsString("No Servers configured.<br />\nconfig/prod/servers.json", $html);
     }
 
     public function testBuildsMetricModalEndpointsForEachCardMetric(): void

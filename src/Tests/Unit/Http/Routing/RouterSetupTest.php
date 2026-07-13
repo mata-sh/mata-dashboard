@@ -29,14 +29,34 @@ use RuntimeException;
  */
 class RouterSetupTest extends TestCase
 {
-    public function testItProtectsTheEntireApiPrefix(): void
+    public function testItProtectsWatchAndApiRoutesForEveryRequestMethod(): void
     {
         $beforeCalls = $this->collectProtectedRouteMiddlewareCalls();
+        $methods = 'GET|POST|PUT|PATCH|DELETE|OPTIONS';
 
-        // Auth is method-agnostic ('*') so no verb can slip past the gate.
-        $this->assertContains(['*', '/watch/.*'], $beforeCalls);
-        $this->assertContains(['*', '/api/.*'], $beforeCalls);
-        $this->assertNotContains(['GET|POST', '/api/metrics/.*'], $beforeCalls);
+        $this->assertContains([$methods, '/watch(?:/.*)?'], $beforeCalls);
+        $this->assertContains([$methods, '/api/.*'], $beforeCalls);
+        $this->assertNotContains(['*', '/watch/.*'], $beforeCalls);
+    }
+
+    public function testItRunsAuthenticationMiddlewareForTheWatchRootRoute(): void
+    {
+        $auth = $this->createMock(Auth::class);
+        $auth->expects($this->once())->method('check')->willReturn(true);
+
+        $app = $this->createStub(App::class);
+        $app->auth = $auth;
+        $router = new Router();
+        $router->get('/watch', static function (): void {});
+
+        $setup = $this->createRouterSetup(router: $router, app: $app);
+        $this->invokeMethod($setup, 'setupProtectedRouteAuth');
+
+        $_SERVER['REQUEST_METHOD'] = 'GET';
+        $_SERVER['REQUEST_URI'] = '/watch';
+        $_SERVER['SCRIPT_NAME'] = '/index.php';
+
+        $router->run();
     }
 
     #[DataProvider('protectedApiRouteProvider')]
@@ -78,7 +98,7 @@ class RouterSetupTest extends TestCase
         $router = $this->createStub(Router::class);
         $router->method('before')
             ->willReturnCallback(function (string $methods, string $pattern, callable $handler) use (&$apiMiddleware): void {
-                if ($methods === '*' && $pattern === '/api/.*') {
+                if ($methods === 'GET|POST|PUT|PATCH|DELETE|OPTIONS' && $pattern === '/api/.*') {
                     $apiMiddleware = $handler;
                 }
             })
