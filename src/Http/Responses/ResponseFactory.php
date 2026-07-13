@@ -88,6 +88,14 @@ class ResponseFactory
     }
 
     /**
+     * Create a response that makes HTMX navigate the browser to a new page.
+     */
+    public static function htmxRedirect(string $url): Response
+    {
+        return new Response('', 200, ['HX-Redirect' => $url]);
+    }
+
+    /**
      * Detect if the current request is an HTMX request.
      */
     public static function isHtmxRequest(): bool

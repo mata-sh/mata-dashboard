@@ -201,9 +201,18 @@ class RouterSetup
     private function setupProtectedRouteAuth(): void
     {
         $this->router->before('*', '/watch/.*', function () {
-            if (!$this->app->auth->check()) {
-                $this->app->redirect('login');
+            if ($this->app->auth->check()) {
+                return;
             }
+
+            if (ResponseFactory::isHtmxRequest()) {
+                $loginPath = rtrim($this->app->getBasePath(), '/') . '/login';
+                ResponseFactory::htmxRedirect($loginPath)->send();
+
+                exit;
+            }
+
+            $this->app->redirect('login');
         });
 
         $this->router->before('*', '/api/.*', function () {

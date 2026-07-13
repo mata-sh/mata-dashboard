@@ -26,7 +26,7 @@ bin/opa
 logs/*
 !logs/.gitkeep
 docs/_drafts
-
+docs/plan
 config/*.json
 config/*/*.json
 
