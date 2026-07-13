@@ -220,9 +220,9 @@ try {
             'technical_details' => $appConfig->template->debugEnabled ? $e->getMessage() : null,
             'suggestions' => [
                 'Ensure users.json exists in: ' . dirname($usersFilePath),
+                'Use the make command to create a new user if needed',
                 'Check file permissions (should be 600)',
                 'Verify JSON file is valid',
-                'Use the make command to create a new user if needed',
             ],
             'documentation_url' => 'https://docs.mata.sh/authentication', // TODO: Add documentation URL for authentication troubleshooting
         ],
