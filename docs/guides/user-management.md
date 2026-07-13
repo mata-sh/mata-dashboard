@@ -31,6 +31,20 @@ Without Docker you can also use the PHP CLI directly:
 php scripts/user-management/manage-users.php help
 ```
 
+When authentication data is owned by the PHP-FPM user, run the command as that user:
+
+```bash
+sudo -u <php-fpm-user> php scripts/user-management/manage-users.php create --env=prod
+```
+
+Do not run the command as root with `sudo php ...`. Root-created `users.json` and `.lock` files can be unreadable or unwritable to PHP-FPM.
+
+On Plesk, invoke the script through the physical vhost path if the deploy checkout is not readable by PHP-FPM:
+
+```bash
+sudo -u <php-fpm-user> php /var/www/vhosts/<domain>/httpdocs/<app>/scripts/user-management/manage-users.php create --env=prod
+```
+
 **Available commands:**
 
 - `list` - List all users
