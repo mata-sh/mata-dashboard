@@ -4,8 +4,8 @@ set -u
 
 ACTION=${1:-help}
 ENVIRONMENT=${2:-}
-CONFIG_DIR="/var/www/html/config/$ENVIRONMENT"
-USERS_FILE="$CONFIG_DIR/users.json"
+USERS_DIRECTORY=/var/lib/mata-dashboard
+USERS_FILE="$USERS_DIRECTORY/users.json"
 LOCK_FILE="$USERS_FILE.lock"
 AUDIT_FILE=/var/www/html/logs/user-management-audit.log
 
@@ -25,43 +25,18 @@ case "$ENVIRONMENT" in
         ;;
 esac
 
-# Root prepares only the exact writable paths, then PHP runs as www-data.
-mkdir -p "$CONFIG_DIR" /var/www/html/logs
-ORIGINAL_CONFIG_OWNER=$(stat -c '%u:%g' "$CONFIG_DIR")
-ORIGINAL_CONFIG_MODE=$(stat -c '%a' "$CONFIG_DIR")
+# Root provisions the private named volume; PHP performs all user-file writes.
+install -d -o www-data -g www-data -m 0700 "$USERS_DIRECTORY"
+mkdir -p /var/www/html/logs
 
-restore_config_dir() {
-    chown "$ORIGINAL_CONFIG_OWNER" "$CONFIG_DIR" || true
-    chmod "$ORIGINAL_CONFIG_MODE" "$CONFIG_DIR" || true
-}
-trap 'restore_config_dir' EXIT
-
-chown www-data:www-data "$CONFIG_DIR" /var/www/html/logs
-chmod 0750 "$CONFIG_DIR"
-chmod 0775 /var/www/html/logs
-
-if [ ! -e "$USERS_FILE" ]; then
-    printf '[]' > "$USERS_FILE"
+touch "$LOCK_FILE" "$AUDIT_FILE"
+if [ -e "$USERS_FILE" ]; then
+    chown www-data:www-data "$USERS_FILE"
+    chmod 0600 "$USERS_FILE"
 fi
-: > "$LOCK_FILE"
-touch "$AUDIT_FILE"
-chown www-data:www-data "$USERS_FILE" "$LOCK_FILE" "$AUDIT_FILE"
-chmod 0600 "$USERS_FILE" "$LOCK_FILE"
+chown www-data:www-data "$LOCK_FILE" "$AUDIT_FILE"
+chmod 0600 "$LOCK_FILE"
 chmod 0640 "$AUDIT_FILE"
 
-runuser -u www-data -- env APP_ENV="$ENVIRONMENT" \
+runuser -u www-data -- env APP_ENV="$ENVIRONMENT" MATA_USERS_FILE="$USERS_FILE" \
     php /var/www/html/scripts/user-management/manage-users.php "$ACTION" "--env=$ENVIRONMENT"
-status=$?
-
-# Keep later admin runs and the read-only production web process compatible.
-for file in "$USERS_FILE" "$LOCK_FILE"; do
-    if [ -e "$file" ]; then
-        chown www-data:www-data "$file"
-        chmod 0600 "$file"
-    fi
-done
-if [ -e "$AUDIT_FILE" ]; then
-    chown www-data:www-data "$AUDIT_FILE"
-    chmod 0640 "$AUDIT_FILE"
-fi
-exit "$status"

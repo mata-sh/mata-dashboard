@@ -51,6 +51,7 @@ use Mata\Services\View\MetricsViewBuilder;
 use Mata\Utils\ChannelLockManager;
 use Mata\Utils\PathResolver;
 use Mata\Utils\Tools;
+use Mata\Utils\UsersFilePathResolver;
 use Mata\Views\MetricsRenderer;
 use Symfony\Component\Mailer\Mailer;
 use Symfony\Component\Mailer\Transport;
@@ -203,8 +204,9 @@ if ($appConfig->template->debugEnabled) {
 // ************************************************************************************************
 // Initialize App & Authentication
 // ************************************************************************************************
+$usersFilePath = null;
 try {
-    $usersFilePath = $paths->appPath . '/config/' . $environment . '/users.json';
+    $usersFilePath = UsersFilePathResolver::resolve($paths->appPath, $environment);
     $auth = new Auth($log, $usersFilePath);
 } catch (Throwable $e) {
     $log->critical('Authentication initialization failed: ' . $e->getMessage());
@@ -219,8 +221,11 @@ try {
             'message' => 'The authentication system could not be initialized.',
             'technical_details' => $appConfig->template->debugEnabled ? $e->getMessage() : null,
             'suggestions' => [
-                'Ensure users.json exists in: ' . dirname($usersFilePath),
+                $usersFilePath === null
+                    ? 'Set MATA_USERS_FILE to an absolute path outside the application directory'
+                    : 'Ensure users.json exists in: ' . dirname($usersFilePath),
                 'Use the make command to create a new user if needed',
+                'Ensure the PHP process can read the file and write its directory',
                 'Check file permissions (should be 600)',
                 'Verify JSON file is valid',
             ],

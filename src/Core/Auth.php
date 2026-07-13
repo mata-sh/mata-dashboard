@@ -289,6 +289,8 @@ class Auth
      */
     private function saveUsers(): void
     {
+        $this->assertUsersDirectoryWritable();
+
         $this->withFileLock(LOCK_EX, function () {
             if (file_exists($this->usersFile)) {
                 $currentMtime = filemtime($this->usersFile);
@@ -300,28 +302,54 @@ class Auth
                 }
             }
 
-            $temp = $this->usersFile . '.' . getmypid() . '.tmp';
             $encoded = json_encode(array_values($this->users), JSON_PRETTY_PRINT);
             if ($encoded === false) {
                 throw new RuntimeException('Failed to encode users JSON');
             }
 
-            if (file_put_contents($temp, $encoded) === false) {
-                throw new RuntimeException("Failed to write temp users file: {$temp}");
+            $directory = dirname($this->usersFile);
+            $temp = tempnam($directory, basename($this->usersFile) . '.');
+            if ($temp === false || realpath(dirname($temp)) !== realpath($directory)) {
+                if ($temp !== false) {
+                    @unlink($temp);
+                }
+
+                throw new RuntimeException("Failed to create temp users file in: {$directory}");
             }
 
-            if (!rename($temp, $this->usersFile)) {
-                @unlink($temp);
+            try {
+                if (!chmod($temp, 0600) || file_put_contents($temp, $encoded) === false) {
+                    throw new RuntimeException("Failed to write temp users file: {$temp}");
+                }
 
-                throw new RuntimeException("Failed to replace users file: {$this->usersFile}");
+                if (!rename($temp, $this->usersFile)) {
+                    throw new RuntimeException("Failed to replace users file: {$this->usersFile}");
+                }
+            } finally {
+                if (file_exists($temp)) {
+                    @unlink($temp);
+                }
             }
 
-            chmod($this->usersFile, 0600);
+            if (!chmod($this->usersFile, 0600)) {
+                throw new RuntimeException("Failed to secure users file: {$this->usersFile}");
+            }
             $savedMtime = filemtime($this->usersFile);
             if ($savedMtime !== false) {
                 $this->usersFileMtime = $savedMtime;
             }
         });
+    }
+
+    private function assertUsersDirectoryWritable(): void
+    {
+        $directory = dirname($this->usersFile);
+        if (!is_dir($directory) || !is_writable($directory)) {
+            throw new RuntimeException(
+                "Users directory is not writable: {$directory}. "
+                . 'The PHP process needs write access to atomically update users.json.'
+            );
+        }
     }
 
     /**
@@ -335,6 +363,11 @@ class Auth
         $lockHandle = fopen($lockFile, 'c');
         if ($lockHandle === false) {
             throw new RuntimeException("Failed to open users lock file: {$lockFile}");
+        }
+        if (!chmod($lockFile, 0600)) {
+            fclose($lockHandle);
+
+            throw new RuntimeException("Failed to secure users lock file: {$lockFile}");
         }
 
         return $lockHandle;

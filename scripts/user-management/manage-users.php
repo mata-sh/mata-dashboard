@@ -6,6 +6,7 @@ declare(strict_types=1);
 require_once __DIR__ . '/../../vendor/autoload.php';
 
 use Mata\Core\Auth;
+use Mata\Utils\UsersFilePathResolver;
 use Monolog\Formatter\LineFormatter;
 use Monolog\Handler\StreamHandler;
 use Monolog\Logger;
@@ -24,7 +25,6 @@ if (php_sapi_name() !== 'cli') {
 $currentUser = posix_getpwuid(posix_geteuid());
 
 // Load APP_ENV and security settings from config/config.env
-$configPath = $paths->appPath . '/config';
 $env = $appConfig->environment->env;
 $strictUserCheck = false; // Default: OFF for shared hosting compatibility
 $allowedUsers = ['root', 'http']; // Default allowed users
@@ -89,7 +89,11 @@ if ($env === 'prod' && ($argv[1] ?? '') !== 'list') {
     echo "\n";
 }
 
-$usersFile = "{$configPath}/{$env}/users.json";
+try {
+    $usersFile = UsersFilePathResolver::resolve($paths->appPath, $env);
+} catch (InvalidArgumentException $e) {
+    exit("❌ Invalid MATA_USERS_FILE: {$e->getMessage()}\n");
+}
 $action = $argv[1] ?? 'help';
 
 // Remove --env flag from argv if present

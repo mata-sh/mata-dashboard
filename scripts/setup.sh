@@ -57,6 +57,12 @@ set_env_value() {
     local value=$3
     local temporary
 
+    if [[ "$value" == *[[:space:]]* ]]; then
+        value=${value//\\/\\\\}
+        value=${value//\"/\\\"}
+        value="\"$value\""
+    fi
+
     temporary=$(mktemp)
     if [[ -f "$file" && ! -r "$file" ]]; then
         local owner
@@ -109,6 +115,87 @@ set_env_value() {
         sudo -u "$owner" tee "$file" < "$temporary" >/dev/null
     fi
     rm -f "$temporary"
+}
+
+get_env_value() {
+    local file=$1
+    local key=$2
+
+    awk -v key="$key" '
+        $0 ~ "^" key "=" {
+            value = substr($0, length(key) + 2)
+            sub(/^[[:space:]]+/, "", value)
+            sub(/[[:space:]]+$/, "", value)
+            if (value ~ /^".*"$/) {
+                sub(/^"/, "", value)
+                sub(/"$/, "", value)
+            }
+        }
+        END { print value }
+    ' "$file" 2>/dev/null
+}
+
+configure_users_file() {
+    local users_file=${MATA_USERS_FILE:-}
+    local users_directory
+    local php_fpm_user=${PHP_FPM_USER:-}
+    local php_fpm_group
+    local create_directory
+
+    if [[ -z "$users_file" ]]; then
+        users_file=$(get_env_value config/config.env MATA_USERS_FILE)
+    fi
+
+    if [[ -t 0 ]]; then
+        printf '\nAuthentication data path\n'
+        printf '%s\n' 'Production requires an absolute path outside the deployment and web root.'
+        printf '%s\n' 'Leave empty only for the in-project development location.'
+        read -r -p "Users file [${users_file:-empty}]: " entered_users_file
+        if [[ -n "$entered_users_file" ]]; then
+            users_file=$entered_users_file
+        fi
+    fi
+
+    if [[ -n "$users_file" && "$users_file" != /* ]]; then
+        printf 'ERROR: MATA_USERS_FILE must be an absolute path.\n' >&2
+        exit 1
+    fi
+
+    set_env_value config/config.env MATA_USERS_FILE "$users_file"
+
+    if [[ -z "$users_file" ]]; then
+        return
+    fi
+
+    users_directory=$(dirname "$users_file")
+    if [[ -d "$users_directory" ]]; then
+        return
+    fi
+
+    printf 'Authentication directory does not exist: %s\n' "$users_directory"
+    prompt_yes_no create_directory "Create it for the PHP-FPM user? [Y/n]: " yes
+    if [[ "$create_directory" != yes ]]; then
+        printf 'Create it before using user management:\n'
+        printf '  install -d -o <php-fpm-user> -g <php-fpm-group> -m 700 %q\n' "$users_directory"
+
+        return
+    fi
+
+    if [[ -z "$php_fpm_user" ]]; then
+        if [[ -t 0 ]]; then
+            read -r -p 'PHP-FPM user [www-data]: ' php_fpm_user
+        fi
+        php_fpm_user=${php_fpm_user:-www-data}
+    fi
+    php_fpm_group=${PHP_FPM_GROUP:-$(id -gn "$php_fpm_user" 2>/dev/null || printf '%s' "$php_fpm_user")}
+
+    if command -v sudo >/dev/null 2>&1 \
+        && sudo install -d -o "$php_fpm_user" -g "$php_fpm_group" -m 700 "$users_directory"; then
+        printf 'Created private authentication directory: %s\n' "$users_directory"
+    else
+        printf 'Could not create the directory with PHP-FPM ownership. Run:\n' >&2
+        printf '  sudo install -d -o %q -g %q -m 700 %q\n' "$php_fpm_user" "$php_fpm_group" "$users_directory" >&2
+    fi
 }
 
 printf '\nMATA Dashboard Setup\n'
@@ -188,6 +275,9 @@ else
 fi
 
 set_env_value config/config.env APP_ENV "$ENV"
+if [[ "$MODE" == local ]]; then
+    configure_users_file
+fi
 if [[ "$MODE" == docker ]]; then
     set_env_value .env APP_ENV "$ENV"
     if [[ "$ENV" == dev || "$ENV" == demo ]]; then

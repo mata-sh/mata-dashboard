@@ -46,9 +46,10 @@ project/
 │   ├── db.config.env                 # Database connection
 │   ├── mail.config.env               # Email configuration
 │   ├── dev/                          # Development JSON configs
-│   │   └── users.json                # Dev user data
 │   ├── prod/                         # Production JSON configs
 │   └── demo/                         # Demo JSON configs
+│
+├── mata_users volume                 # Persistent Docker user data (users.json)
 │
 ├── docker/                           # Docker configuration files
 │   ├── apache/

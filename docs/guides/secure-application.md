@@ -105,7 +105,8 @@ No system-level agents, daemons, or elevated privileges are required.
 Use least-privilege filesystem access:
 
 - Application code and configuration must not be writable by the web server user.
-- Only runtime directories (cache, logs, temp) should be writable by the application process.
+- Only runtime directories (cache, logs, temp, and the dedicated `MATA_USERS_FILE` directory) should be writable by the application process.
+- Provision the authentication-data directory as described in the [User Management guide](user-management.md#persistent-authentication-data); do not use `config/<env>/` for production authentication data.
 - Validate ownership and permissions as part of the deployment process.
 
 <!-- ## Next Steps -->

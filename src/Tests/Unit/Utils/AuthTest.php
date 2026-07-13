@@ -568,6 +568,21 @@ class AuthTest extends TestCase
      * @group auth
      * @group cli-mode
      */
+    public function testItReportsMissingUsersDirectoryWhenCliSaves(): void
+    {
+        $usersFile = sys_get_temp_dir() . '/missing_users_directory_' . uniqid() . '/users.json';
+        $auth = new Auth(new NullLogger(), $usersFile, true);
+
+        $this->expectException(RuntimeException::class);
+        $this->expectExceptionMessage('Users directory is not writable');
+
+        $auth->createUser('cliuser', 'password123', 'admin');
+    }
+
+    /**
+     * @group auth
+     * @group cli-mode
+     */
     public function testItSkipsPermissionCheckInCliMode(): void
     {
         // Create users file with relaxed permissions

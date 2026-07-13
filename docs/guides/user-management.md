@@ -43,9 +43,35 @@ php scripts/user-management/manage-users.php help
 
 `make setup` offers to create the initial user. Setup does not install static default credentials.
 
+## Persistent authentication data
+
+Set `MATA_USERS_FILE` to an absolute path outside the deployed application and web root:
+
+```dotenv
+MATA_USERS_FILE=/var/lib/mata-dashboard/users.json
+```
+
+Provision its directory once for the PHP-FPM user. The application creates the lock file and atomically replaces `users.json` there.
+
+```bash
+install -d -o <php-fpm-user> -g <php-fpm-group> -m 700 /var/lib/mata-dashboard
+```
+
+On Plesk/shared hosting, `/var/lib` is usually unavailable. Use a sibling of the web root instead:
+
+```dotenv
+MATA_USERS_FILE=/var/www/vhosts/<domain>/mata-private/users.json
+```
+
+The file and lock file are owned by PHP-FPM and use mode `0600`. Deployments must not copy, delete, or change this directory.
+
+Docker always uses `/var/lib/mata-dashboard/users.json` on its `mata_users` named volume, regardless of `MATA_USERS_FILE` in `config.env`.
+
+If `MATA_USERS_FILE` is empty, MATA keeps the legacy location `config/<env>/users.json`. This is intended for development only.
+
 ## Environments
 
-The script targets the users.json in `config/dev/`, `config/demo/`, or `config/prod/` based on `APP_ENV`. You can override with `--env=ENV`.
+The script uses the same `MATA_USERS_FILE` as the web application. Without it, it targets `config/dev/`, `config/demo/`, or `config/prod/` based on `APP_ENV`. You can override with `--env=ENV`.
 
 ```bash
 make users-list MODE=docker ENV=prod
@@ -55,11 +81,5 @@ Production writes require explicit confirmation.
 
 ## Files and Logs
 
-- Users are stored in `config/<env>/users.json`
+- Users: `MATA_USERS_FILE`, or the legacy `config/<env>/users.json`
 - Audit log: `logs/user-management-audit.log`
-
-Keep `users.json` restricted:
-
-```bash
-chmod 600 config/<env>/users.json
-```

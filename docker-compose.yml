@@ -16,6 +16,7 @@ services:
       - ./config:/var/www/html/config
       - ./logs:/var/www/html/logs
       - ./temp:/var/www/html/temp
+      - mata_users:/var/lib/mata-dashboard
     env_file:
       - ./config/config.env
       - ./config/db.config.env
@@ -24,6 +25,8 @@ services:
       # Override only Docker-specific infrastructure settings
       # Application settings come from config/*.env files
       - DB_HOST=mata-db
+      # Docker always stores credentials on this persistent named volume.
+      - MATA_USERS_FILE=/var/lib/mata-dashboard/users.json
     depends_on:
       mata-db:
         condition: service_healthy
@@ -67,6 +70,8 @@ services:
 
 volumes:
   mysql_data:
+    driver: local
+  mata_users:
     driver: local
 
 networks:

@@ -86,7 +86,7 @@ MATA stores dashboard user accounts in a local `users.json` file to keep the das
 
 **Operational controls**
 - You can restrict who is allowed to run the CLI tool by configuring an allowlist of **Linux users** in `config.env` (useful when multiple shell users exist on the same host).
-- Recommended deployment: keep `users.json` **outside the web root** and only expose `public/`.
+- Production deployment: set `MATA_USERS_FILE` to an absolute path in a persistent directory **outside the deployed application and web root**. The PHP-FPM user exclusively owns that directory (`0700`) and `users.json` (`0600`). Only expose `public/`.
 
 **Limitations (current)**
 - There is currently **no built-in backup workflow** and **no automatic credential rotation** for user records.

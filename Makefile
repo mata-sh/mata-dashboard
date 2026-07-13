@@ -32,7 +32,7 @@ endef
 
 # Usage: $(call GET_ENV_VALUE,file,key)
 define GET_ENV_VALUE
-$$(awk -F= -v key='$(2)' '$$0 ~ "^" key "=" { gsub(/["[:space:]]/, "", $$2); value=$$2 } END { print value }' "$(1)" 2>/dev/null)
+$$(awk -v key='$(2)' '$$0 ~ "^" key "=" { value = substr($$0, length(key) + 2); sub(/^[[:space:]]+/, "", value); sub(/[[:space:]]+$$/, "", value); if (value ~ /^".*"$$/) { sub(/^"/, "", value); sub(/"$$/, "", value) } } END { print value }' "$(1)" 2>/dev/null)
 endef
 
 DOCKER_DAEMON_CHECKED ?= 0
@@ -516,29 +516,26 @@ define RUN_USER_COMMAND
 	if [ "$(MODE)" = "local" ]; then \
 		command -v php >/dev/null 2>&1 || { echo "$(COLOR_RED)❌ PHP is not available.$(COLOR_RESET)"; exit 1; }; \
 		[ -f vendor/autoload.php ] || { echo "$(COLOR_RED)❌ vendor/autoload.php is missing. Run composer install.$(COLOR_RESET)"; exit 1; }; \
-		path="config/$(ENV)/users.json"; [ -e "$$path" ] || path="config/$(ENV)"; [ -e "$$path" ] || path="config"; \
+		users_file="$${MATA_USERS_FILE:-$(call GET_ENV_VALUE,config/config.env,MATA_USERS_FILE)}"; path="$$users_file"; \
+		if [ -z "$$path" ]; then path="config/$(ENV)/users.json"; [ -e "$$path" ] || path="config/$(ENV)"; [ -e "$$path" ] || path="config"; elif [ ! -e "$$path" ]; then path=$$(dirname "$$path"); fi; \
 		owner=$$(stat -c '%U' "$$path" 2>/dev/null || stat -f '%Su' "$$path" 2>/dev/null || id -un); current=$$(id -un); \
 		echo "$(COLOR_BLUE)Mode: local | Environment: $(ENV) | Operator: $$owner$(COLOR_RESET)"; \
 		if [ "$$owner" != "$$current" ]; then \
 			command -v sudo >/dev/null 2>&1 || { echo "$(COLOR_RED)❌ Run this command as $$owner.$(COLOR_RESET)"; exit 1; }; \
-			sudo -u "$$owner" env APP_ENV="$(ENV)" php scripts/user-management/manage-users.php "$$action" "--env=$(ENV)"; \
+			if [ -n "$$users_file" ]; then sudo -u "$$owner" env APP_ENV="$(ENV)" MATA_USERS_FILE="$$users_file" php scripts/user-management/manage-users.php "$$action" "--env=$(ENV)"; else sudo -u "$$owner" env APP_ENV="$(ENV)" php scripts/user-management/manage-users.php "$$action" "--env=$(ENV)"; fi; \
 		else \
-			APP_ENV="$(ENV)" php scripts/user-management/manage-users.php "$$action" "--env=$(ENV)"; \
+			if [ -n "$$users_file" ]; then APP_ENV="$(ENV)" MATA_USERS_FILE="$$users_file" php scripts/user-management/manage-users.php "$$action" "--env=$(ENV)"; else APP_ENV="$(ENV)" php scripts/user-management/manage-users.php "$$action" "--env=$(ENV)"; fi; \
 		fi; \
 	else \
 		$(REQUIRE_DOCKER_MODE); \
-		if [ "$(ENV)" = "prod" ]; then \
-			echo "$(COLOR_BLUE)Mode: docker admin | Environment: $(ENV)$(COLOR_RESET)"; \
-			$(SELECTED_COMPOSE) run --rm --no-deps -u root \
-				-v "$(CURDIR)/config:/var/www/html/config" \
-				-v "$(CURDIR)/logs:/var/www/html/logs" \
-				-v "$(CURDIR)/docker/admin-entrypoint.sh:/usr/local/bin/mata-admin:ro" \
-				--entrypoint /bin/sh mata-web /usr/local/bin/mata-admin "$$action" "$(ENV)"; \
-		else \
-			$(REQUIRE_WEB_RUNNING); \
-			echo "$(COLOR_BLUE)Mode: docker | Environment: $(ENV)$(COLOR_RESET)"; \
-			$(SELECTED_COMPOSE) exec -e APP_ENV="$(ENV)" -u www-data mata-web php scripts/user-management/manage-users.php "$$action" "--env=$(ENV)"; \
-		fi; \
+		echo "$(COLOR_BLUE)Mode: docker admin | Environment: $(ENV)$(COLOR_RESET)"; \
+		: "mata_users is inherited from the mata-web service, including for compose run"; \
+		$(SELECTED_COMPOSE) run --rm --no-deps -u root \
+			-e MATA_USERS_FILE=/var/lib/mata-dashboard/users.json \
+			-v "$(CURDIR)/config:/var/www/html/config" \
+			-v "$(CURDIR)/logs:/var/www/html/logs" \
+			-v "$(CURDIR)/docker/admin-entrypoint.sh:/usr/local/bin/mata-admin:ro" \
+			--entrypoint /bin/sh mata-web /usr/local/bin/mata-admin "$$action" "$(ENV)"; \
 	fi
 endef
 
