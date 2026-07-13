@@ -6,7 +6,7 @@ services:
       args:
         PHP_VERSION: ${PHP_VERSION:-8.3.14}
         COMPOSER_VERSION: ${COMPOSER_VERSION:-2.7.9}
-    # Note: container_name prevents scaling (docker-compose up --scale)
+    # Note: container_name prevents scaling (docker compose up --scale)
     # Remove if you need multiple replicas or orchestration
     container_name: ${COMPOSE_PROJECT_NAME:-mata-dashboard}-web
     restart: unless-stopped
@@ -26,7 +26,7 @@ services:
       - DB_HOST=mata-db
     depends_on:
       mata-db:
-        condition: service_started
+        condition: service_healthy
       mata-opa:
         condition: service_started
     networks:
@@ -38,15 +38,20 @@ services:
     env_file:
       - ./config/db.config.env
     environment:
-      # MySQL container initialization (uses DB_* variables from db.config.env)
+      # MySQL container initialization (uses DB_* variables from db.config.env).
+      # Development alone mounts docker/mysql/init.sql via docker-compose.dev.yml; production does not.
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-change_me}
       MYSQL_DATABASE: ${DB_DATABASE:-mata_dashboard}
       MYSQL_USER: ${DB_USERNAME:-mata_user}
       MYSQL_PASSWORD: ${DB_PASSWORD:-change_me}
       MYSQL_CHARACTER_SET_SERVER: utf8mb4
       MYSQL_COLLATION_SERVER: utf8mb4_unicode_ci
-    volumes:
-      - ./docker/mysql/init.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 --silent"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+      start_period: 10s
     networks:
       - mata-network
 

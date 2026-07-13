@@ -25,6 +25,7 @@ The MATA Dashboard uses a multi-environment Docker setup with:
 - **Docker Compose** for orchestration
 - **Apache + PHP 8.3** runtime
 - **MySQL 8.0** database
+- **OPA** as part of the Docker stack
 - **Automated cron jobs** for data collection and cleanup
 
 ## Directory Structure
@@ -45,7 +46,7 @@ project/
 │   ├── db.config.env                 # Database connection
 │   ├── mail.config.env               # Email configuration
 │   ├── dev/                          # Development JSON configs
-│   │   └── users.json                # Dev user credentials
+│   │   └── users.json                # Dev user data
 │   ├── prod/                         # Production JSON configs
 │   └── demo/                         # Demo JSON configs
 │
@@ -104,24 +105,24 @@ MYSQL_PORT=3306        # Database (dev-only localhost host binding)
 The application uses **two separate configuration layers**:
 
 #### 1. Docker Orchestration (`.env`)
-- Used by `docker-compose.yml`
-- Contains: ports, database credentials, `APP_ENV`
+- Used by `docker compose` with the selected Compose files
+- Contains: ports, `APP_ENV`, root database password, and production data path
 - Controls which containers start and how they connect
-- **Not loaded by the PHP application**
+- **Not loaded directly by the PHP application**
 
 Example:
 ```bash
 COMPOSE_PROJECT_NAME=mata-dashboard
-WEB_PORT=3300  # Dashboard web interface
+WEB_PORT=3300
 APP_ENV=dev
-DB_HOST=db
-DB_USERNAME=mata_user
-DB_PASSWORD=secret
+MYSQL_ROOT_PASSWORD=<root-database-password>
+DATA_PATH=./data
 ```
 
 #### 2. Application Configuration (`config/*.env`)
-- Loaded by PHP application via `EnvConfigLoader`
-- Contains: domain, template settings, logging, mail config
+- Loaded by PHP through `EnvConfigLoader`
+- `config/db.config.env` is also supplied to Compose for MySQL interpolation
+- Contains: database credentials, domain, template settings, logging, and mail config
 - Controls application behavior
 - Independent of Docker (can run without containers)
 
@@ -147,82 +148,92 @@ Files:
 | **OPcache** | Disabled | Enabled with JIT |
 | **Error Display** | On (1) | Off (0) |
 | **Logging** | Debug level | Errors only |
-| **MySQL** | In-memory (tmpfs) | Persistent volume |
+| **MySQL** | In-memory (tmpfs), initialized with `docker/mysql/init.sql` | Persistent volume; no `init.sql` mount |
 | **PHP Memory** | 512M | 256M |
 | **Xdebug** | Available (commented) | Not installed |
 
 ## Quick Start
 
 > **💡 Recommended**: Use Makefile targets for the best developer experience. Run `make help` for all commands.
+>
+> Run `make setup` first to select Docker mode and an environment. It saves `MODE` and `ENV` in ignored `.mata.mk`; use `MODE=... ENV=...` for a one-command override. Stable commands such as `users-*`, `opa-*`, `test`, `db-*`, `status`, and `logs*` dispatch by that selection. Docker-only commands include lifecycle targets, `dev-logs`, `logs-web`, `logs-db`, `ps`, `shell`, `shell-www`, and cleanup.
 
 ### Development
 
 #### Using Makefile (Recommended)
 ```bash
-# 1. First-time setup
+# 1. First-time setup: select Docker mode and dev or demo.
+# This saves MODE and ENV in ignored .mata.mk. docker-init is shared;
+# dev-setup validates dev/demo prerequisites.
 make setup
 
-# 2. Start development environment
-make dev
+# 2. Start the selected development environment if setup did not start it.
+# Compose waits for healthy MySQL before starting mata-web and migrations.
+make dev-start
 
 # 3. Follow logs (optional)
-make logs
+make dev-logs
 
 # Access services at:
 # - Dashboard: http://localhost:3300
 # - OPA Service: http://127.0.0.1:3320 (dev only)
 # - MkDocs: http://localhost:3330 (if running)
-# Login: dev / password
+# No default login: make setup offers to create the initial user.
 ```
 
 #### Direct Docker Compose (Alternative)
 ```bash
-# 1. Create .env file
+# 1. Create application configuration files and the external network
+for file in config.env db.config.env mail.config.env; do cp "config/example/$file.example" "config/$file"; done
+chmod 600 config/*.env
+docker network create mata-network 2>/dev/null || true
+
+# 2. Create Docker configuration
 cp .env.example .env
 
-# 2. Ensure APP_ENV is set to dev
-sed -i 's/APP_ENV=.*/APP_ENV=dev/' .env
+# 3. Docker and application APP_ENV values must match
+sed -i 's/APP_ENV=.*/APP_ENV=dev/' .env config/config.env
 
-# 3. Start containers
-docker-compose -f docker-compose.yml -f docker-compose.dev.yml up -d --build
+# 4. Start containers
+docker compose --env-file config/db.config.env --env-file .env -f docker-compose.yml -f docker-compose.dev.yml up -d --build
 
-# 4. Access services
+# 5. Access services
 # - Dashboard: http://localhost:3300
 # - OPA Service: http://127.0.0.1:3320 (dev only)
 # - Node API: http://localhost:3310 (if testing node locally)
-# Login: dev / password
+# Create an initial user with make users-create after selecting Docker mode.
 ```
 
 ### Production
 
 #### Using Makefile (Recommended)
 ```bash
-# 1. Create and configure .env
-cp .env.example .env
-# Edit .env: set APP_ENV=prod, strong passwords, etc.
+# 1. Create and configure .env, then select Docker production mode.
+# make setup stores the selection in ignored .mata.mk and offers initial user creation.
+# docker-init is shared; prod-setup validates production prerequisites.
+make setup
 
-# 2. Deploy
-make prod
-
-# Production includes automatic safety checks for:
-# - Missing .env file
-# - Default passwords
-# - APP_ENV setting
+# 2. Deploy if setup did not start services. prod-start validates APP_ENV and
+# placeholder passwords, starts mata-web after healthy MySQL, then runs migrations.
+make prod-start
 ```
 
 #### Direct Docker Compose (Alternative)
 ```bash
-# 1. Create production .env
+# 1. Create application configuration files and the external network
+for file in config.env db.config.env mail.config.env; do cp "config/example/$file.example" "config/$file"; done
+chmod 600 config/*.env
+docker network create mata-network 2>/dev/null || true
+
+# 2. Create production Docker configuration
 cp .env.example .env
 
-# 2. Update .env with production values:
-# - APP_ENV=prod
-# - Strong DB_PASSWORD
-# - Strong MYSQL_ROOT_PASSWORD
-# - DISPLAY_ERRORS=0
+# 3. Set APP_ENV=prod and a strong MYSQL_ROOT_PASSWORD in .env.
+# Confirm APP_ENV=prod in config/config.env and set a strong DB_PASSWORD
+# in config/db.config.env.
 
-# 3. Deploy
-docker-compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
+# 4. Deploy
+docker compose --env-file config/db.config.env --env-file .env -f docker-compose.yml -f docker-compose.prod.yml up -d --build
 ```
 
 ## Configuration Files
@@ -283,7 +294,7 @@ docker-compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
 The image installs this manifest as the `www-data` user crontab. Inspect it with:
 
 ```bash
-docker compose exec web crontab -l
+docker compose --env-file config/db.config.env --env-file .env exec mata-web crontab -l
 ```
 
 | Schedule | Script |
@@ -367,14 +378,14 @@ Checks HTTP GET to `http://localhost/` for 200 OK response.
 ### View Logs
 ```bash
 # Using Makefile (Recommended)
-make logs           # Follow all logs
-make logs-web       # Web container only
-make logs-db        # Database only
+make logs           # Follow selected-mode logs
+make logs-web       # mata-web container only (Docker-only)
+make logs-db        # mata-db container only (Docker-only)
 
 # Direct Docker Compose
-docker-compose logs -f
-docker-compose logs -f web
-docker-compose logs -f db
+docker compose --env-file config/db.config.env --env-file .env logs -f
+docker compose --env-file config/db.config.env --env-file .env logs -f mata-web
+docker compose --env-file config/db.config.env --env-file .env logs -f mata-db
 ```
 
 ### Rebuild Containers
@@ -384,46 +395,46 @@ make dev-rebuild        # Development
 make prod-rebuild       # Production
 
 # Direct Docker Compose
-docker-compose -f docker-compose.yml -f docker-compose.dev.yml up -d --build
-docker-compose -f docker-compose.yml -f docker-compose.prod.yml build --no-cache
+docker compose --env-file config/db.config.env --env-file .env -f docker-compose.yml -f docker-compose.dev.yml up -d --build
+docker compose --env-file config/db.config.env --env-file .env -f docker-compose.yml -f docker-compose.prod.yml build --no-cache
 ```
 
 ### Execute Commands in Container
 ```bash
 # Using Makefile
-make shell              # Enter web container as root
+make shell              # Enter mata-web container as root
 make shell-www          # Enter as www-data user
 make db-shell           # MySQL shell
 
 # Direct Docker Compose
-docker-compose exec web bash
-docker-compose exec -u www-data web bash
-docker-compose exec db mysql -u root -p
+docker compose --env-file config/db.config.env --env-file .env exec mata-web bash
+docker compose --env-file config/db.config.env --env-file .env exec -u www-data mata-web bash
+docker compose --env-file config/db.config.env --env-file .env exec mata-db mysql -u root -p
 ```
 
 ### Database Operations
 ```bash
 # Using Makefile
-make db-backup                              # Backup to backups/
-make db-restore FILE=backups/backup.sql     # Restore from file
-make db-migrate                             # Run migrations
+make db-backup                              # Timestamped backup in backups/; FILE=... is optional
+make db-restore FILE=backups/backup.sql     # FILE is required; restore requires confirmation
+make db-migrate                             # Run migrations; production writes require confirmation
 make db-status                              # Migration status
 
 # Direct Docker Compose
-docker-compose exec db mysqldump -u root -p mata_dashboard > backup.sql
-docker-compose exec -T db mysql -u root -p mata_dashboard < backup.sql
+docker compose --env-file config/db.config.env --env-file .env exec mata-db mysqldump -u root -p mata_dashboard > backup.sql
+docker compose --env-file config/db.config.env --env-file .env exec -T mata-db mysql -u root -p mata_dashboard < backup.sql
 ```
 
 ### Clean Up
 ```bash
 # Using Makefile
-make down               # Stop all containers
-make clean              # Remove everything (with confirmation)
-make docker-clean       # Docker system prune
+make down               # Stop the selected Docker stack
+make clean              # Remove the selected stack and volumes (with confirmation)
+make docker-clean       # Project Docker cleanup
 
 # Direct Docker Compose
-docker-compose down
-docker-compose down -v  # WARNING: deletes data!
+docker compose --env-file config/db.config.env --env-file .env down
+docker compose --env-file config/db.config.env --env-file .env down -v  # WARNING: deletes data!
 docker system prune -a
 ```
 
@@ -439,7 +450,7 @@ docker system prune -a
 sudo chown -R $USER:$USER .
 
 # Or run in container as www-data
-docker-compose exec -u www-data web bash
+docker compose --env-file config/db.config.env --env-file .env exec -u www-data mata-web bash
 ```
 
 ### Port Already in Use
@@ -470,18 +481,18 @@ lsof -ti:3300 | xargs kill -9
 **Problem**: `SQLSTATE[HY000] [2002] Connection refused`
 
 **Checklist**:
-1. Is DB container running? `docker-compose ps`
-2. Check DB logs: `docker-compose logs db`
+1. Is the `mata-db` container running? `docker compose ps`
+2. Check DB logs: `docker compose logs mata-db`
 3. Verify credentials in `.env` match `config/db.config.env`
 4. Wait for MySQL to fully start (can take 30s)
 
 **Solution**:
 ```bash
 # Restart database
-docker-compose restart db
+docker compose --env-file config/db.config.env --env-file .env restart mata-db
 
 # Check MySQL is ready
-docker-compose exec db mysqladmin ping -h localhost -u root -p
+docker compose --env-file config/db.config.env --env-file .env exec mata-db mysqladmin ping -h localhost -u root -p
 ```
 
 ### OPcache Not Clearing (Dev)
@@ -491,19 +502,19 @@ docker-compose exec db mysqladmin ping -h localhost -u root -p
 **Verify**:
 ```bash
 # Check if using Dockerfile.dev
-docker-compose -f docker-compose.yml -f docker-compose.dev.yml ps
+docker compose --env-file config/db.config.env --env-file .env -f docker-compose.yml -f docker-compose.dev.yml ps
 
 # Verify OPcache is disabled
-docker-compose exec web php -i | grep opcache.enable
+docker compose --env-file config/db.config.env --env-file .env exec mata-web php -i | grep opcache.enable
 ```
 
 **Solution**:
 ```bash
 # Rebuild with dev Dockerfile
-docker-compose -f docker-compose.yml -f docker-compose.dev.yml up -d --build
+docker compose --env-file config/db.config.env --env-file .env -f docker-compose.yml -f docker-compose.dev.yml up -d --build
 
 # Or manually clear OPcache
-docker-compose exec web php -r "opcache_reset();"
+docker compose --env-file config/db.config.env --env-file .env exec mata-web php -r "opcache_reset();"
 ```
 
 ### Container Keeps Restarting
@@ -513,13 +524,13 @@ docker-compose exec web php -r "opcache_reset();"
 **Debug**:
 ```bash
 # Check container logs
-docker-compose logs --tail=100 web
+docker compose --env-file config/db.config.env --env-file .env logs --tail=100 mata-web
 
 # Check health status
-docker inspect --format='{{json .State.Health}}' mata-dashboard
+docker inspect --format='{{json .State.Health}}' mata-dashboard-web
 
 # Run container without daemon to see errors
-docker-compose up web
+docker compose --env-file config/db.config.env --env-file .env up mata-web
 ```
 
 ## Best Practices
@@ -528,7 +539,7 @@ docker-compose up web
 
 1. **Always use dev compose override**
    ```bash
-   docker-compose -f docker-compose.yml -f docker-compose.dev.yml up
+   docker compose -f docker-compose.yml -f docker-compose.dev.yml up
    ```
 
 2. **Don't commit `.env`**
@@ -542,7 +553,7 @@ docker-compose up web
 4. **Check logs regularly**
    - Application logs: `logs/app.log`
    - PHP errors: `logs/php-error.log`
-   - Docker logs: `docker-compose logs`
+   - Docker logs: `docker compose logs`
 
 ### Production
 

@@ -157,14 +157,21 @@ printf '  Mode:         %s\n' "$MODE"
 printf '  Environment:  %s\n\n' "$ENV"
 
 if [[ "$MODE" == local ]]; then
-    "$MAKE_CMD" setup-local ENV="$ENV"
+    "$MAKE_CMD" setup-local MODE=local ENV="$ENV"
 else
-    "$MAKE_CMD" docker-setup ENV="$ENV"
+    "$MAKE_CMD" docker-init MODE=docker ENV="$ENV"
+    if [[ ! -f .env ]]; then
+        cp .env.example .env
+        printf 'Created .env from .env.example.\n'
+    fi
 fi
 
 set_env_value config/config.env APP_ENV "$ENV"
 if [[ "$MODE" == docker ]]; then
     set_env_value .env APP_ENV "$ENV"
+    if [[ "$ENV" == dev || "$ENV" == demo ]]; then
+        "$MAKE_CMD" dev-setup MODE=docker ENV="$ENV"
+    fi
 fi
 
 cat > .mata.mk <<EOF
@@ -210,9 +217,10 @@ else
     if [[ "$START_SERVICES" == yes ]]; then
         prompt_yes_no RUN_MIGRATIONS "Run database migrations after startup? [Y/n]: " yes
         if [[ "$ENV" == prod ]]; then
-            "$MAKE_CMD" prod-start RUN_MIGRATIONS="$RUN_MIGRATIONS"
+            "$MAKE_CMD" prod-fix-perms MODE=docker ENV=prod
+            "$MAKE_CMD" prod-start MODE=docker ENV=prod RUN_MIGRATIONS="$RUN_MIGRATIONS"
         else
-            "$MAKE_CMD" dev-start RUN_MIGRATIONS="$RUN_MIGRATIONS"
+            "$MAKE_CMD" dev-start MODE=docker ENV="$ENV" RUN_MIGRATIONS="$RUN_MIGRATIONS"
         fi
         opa_state=running
         migrations_ran=$RUN_MIGRATIONS

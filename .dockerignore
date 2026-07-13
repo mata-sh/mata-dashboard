@@ -22,6 +22,8 @@ config/mail.config.env
 config/mysql.mata.env
 config/db.config.env
 config/users.json
+config/*.json
+config/*/*.json
 config/.htpasswd
 
 # Git files

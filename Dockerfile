@@ -1,4 +1,4 @@
-# MATA Node - Multi-Stage Production Build
+# MATA Dashboard - Multi-Stage Production Build
 ARG PHP_VERSION=8.3.14
 ARG COMPOSER_VERSION=2.7.9
 
@@ -51,8 +51,7 @@ RUN composer dump-autoload --optimize --no-dev
 
 # ============================================================
 # Stage 2: Production Runtime - Clean, minimal image
-ARG PHP_VERSION=8.3.14
-FROM php:8.3-apache AS production
+FROM php:${PHP_VERSION}-apache AS production
 
 # Install dependencies, build extensions, and remove build deps in single layer
 RUN apt-get update && apt-get install -y \

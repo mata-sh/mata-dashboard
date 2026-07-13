@@ -114,6 +114,8 @@ Lightweight, stateless applications offering **read-only** API endpoints. They n
 
 ### Quick Start
 
+`make setup` interactively selects native (`local`) or Docker mode and the `dev`, `demo`, or `prod` environment. It stores the selection in ignored `.mata.mk`. Use `MODE=... ENV=...` for one-command overrides.
+
 - [Quick Start Tutorial](docs/guides/quickstart.md)
 - [Quick Start - Docker](docs/guides/quickstart-docker.md)
 

@@ -1,5 +1,5 @@
 # Production-specific Docker Compose overrides
-# Usage: docker-compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+# Usage: docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
 
 services:
   mata-web:

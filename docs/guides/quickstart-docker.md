@@ -11,8 +11,8 @@ git clone https://github.com/mata-sh/mata-node.git && cd mata-node
 # Create config files and install composer deps
 make setup
 
-# Start Docker stack
-make docker-setup
+# Configure the node, then start it using the Docker instructions in the
+# mata-node repository. Its Make targets are separate from this dashboard.
 ```
 
 Edit `config/servers.json` to add your server:
@@ -42,13 +42,19 @@ openssl rand -hex 32
 ```bash
 git clone https://github.com/mata-sh/mata-dashboard.git && cd mata-dashboard
 
-# Select Docker and production when prompted. Setup configures the stack,
-# offers to start its services (including OPA), runs migrations optionally,
-# and offers to create the initial administrator.
+# Select Docker mode and production when prompted. Setup saves MODE and ENV
+# in ignored .mata.mk and offers startup and initial-user creation.
+# prod-start performs production validation. OPA is part of the Docker stack.
 make setup
 
-# If you did not start services in the setup wizard:
-make prod-start     
+# On a first deployment, prepare bind-mount permissions. Run this again only
+# after a host-side permission problem.
+make prod-fix-perms
+
+# If setup did not start services, Compose waits for healthy MySQL before
+# starting mata-web; prod-start then runs migrations.
+# It rejects APP_ENV mismatches and placeholder database passwords.
+make prod-start
 ```
 
 Access the dashboard at `http://<your-server-host>:3300/` (or the `WEB_PORT` in `.env`).
@@ -62,7 +68,7 @@ Access the dashboard at `http://<your-server-host>:3300/` (or the `WEB_PORT` in 
 1. Navigate to `http://<your-server-host>:3300/`
 
 !!! warning "User Management:"
-    No default credentials are installed. Use the administrator created by `make setup`, or run `make users-create`.
+    No default credentials are installed. Use the administrator created by `make setup`, or run `make users-create`. Production user commands run in a one-off admin container because `mata-web` mounts `config/` read-only.
 
 2. Log in with the administrator credentials you created.
 3. View your server dashboard

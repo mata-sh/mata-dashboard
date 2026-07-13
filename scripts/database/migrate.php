@@ -4,44 +4,45 @@
 declare(strict_types=1);
 
 /**
- * Unified lightweight migration wrapper for Phinx.
+ * Lightweight Phinx wrapper.
  *
- * Usage examples:
- *   php scripts/migrate.php migrate --env=staging
- *   php scripts/migrate.php rollback --env=prod
- *   php scripts/migrate.php status --docker
- *   php scripts/migrate.php migrate --env=prod --container=my_php
+ * Usage:
+ *   APP_ENV=dev php scripts/database/migrate.php migrate --env=dev
+ *   APP_ENV=prod php scripts/database/migrate.php rollback --env=prod
+ *   APP_ENV=prod php scripts/database/migrate.php status --env=prod
  */
 
 require __DIR__ . '/../../vendor/autoload.php';
 
-// --- Load your application environment ---
 $bootstrap = require __DIR__ . '/../bootstrap.php';
 ['appConfig' => $appConfig, 'paths' => $paths] = $bootstrap;
 
-// --- CLI argument parsing ---
-array_shift($argv); // remove script name
-
-$env = 'development';
-$useDocker = false;
-$dockerContainer = 'php_app'; // default container name
+$arguments = $_SERVER['argv'] ?? [];
+array_shift($arguments);
+$env = $appConfig->environment->env;
 $phinxArgs = [];
 
-// parse args
-foreach ($argv as $arg) {
+foreach ($arguments as $arg) {
     if (str_starts_with($arg, '--env=')) {
         $env = substr($arg, 6);
-    } elseif ($arg === '--docker') {
-        $useDocker = true;
-    } elseif (str_starts_with($arg, '--container=')) {
-        $useDocker = true;
-        $dockerContainer = substr($arg, 12);
     } else {
         $phinxArgs[] = $arg;
     }
 }
 
-// --- Build the dynamic Phinx config ---
+if (!in_array($env, ['dev', 'demo', 'prod'], true)) {
+    fwrite(STDERR, "ERROR: Environment must be dev, demo, or prod.\n");
+
+    exit(2);
+}
+
+$action = $phinxArgs[0] ?? '';
+if (!in_array($action, ['migrate', 'rollback', 'status'], true)) {
+    fwrite(STDERR, "Usage: php scripts/database/migrate.php migrate|rollback|status [--env=dev|demo|prod]\n");
+
+    exit(2);
+}
+
 $phinxConfig = [
     'paths' => [
         'migrations' => $paths->appPath . '/migrations',
@@ -63,32 +64,32 @@ $phinxConfig = [
     'version_order' => 'creation',
 ];
 
-// write temporary config file
-$tempConfig = sys_get_temp_dir() . '/phinx.' . uniqid('', true) . '.php';
+$tempConfig = tempnam(sys_get_temp_dir(), 'mata-phinx.');
+if ($tempConfig === false) {
+    fwrite(STDERR, "ERROR: Cannot create temporary Phinx configuration.\n");
+
+    exit(1);
+}
+chmod($tempConfig, 0600);
 file_put_contents($tempConfig, '<?php return ' . var_export($phinxConfig, true) . ';');
 
-// --- Build Phinx command ---
-$cmd = sprintf(
-    'vendor/bin/phinx %s -c %s',
-    implode(' ', array_map('escapeshellarg', $phinxArgs)),
-    // escapeshellarg($env),
-    escapeshellarg($tempConfig)
-);
+$command = [
+    $paths->appPath . '/vendor/bin/phinx',
+    ...$phinxArgs,
+    '-c',
+    $tempConfig,
+];
 
-// --- Optional Docker passthrough ---
-if ($useDocker) {
-    $cmd = sprintf(
-        'docker exec -it %s %s',
-        escapeshellarg($dockerContainer),
-        $cmd
-    );
+echo "Running database {$action} for {$env}.\n\n";
+$process = proc_open($command, [0 => STDIN, 1 => STDOUT, 2 => STDERR], $pipes);
+if (!is_resource($process)) {
+    @unlink($tempConfig);
+    fwrite(STDERR, "ERROR: Failed to start Phinx.\n");
+
+    exit(1);
 }
 
-// --- Execute ---
-echo "🔧 Running: {$cmd}\n\n";
-passthru($cmd, $exitCode);
-
-// --- Cleanup ---
+$exitCode = proc_close($process);
 @unlink($tempConfig);
 
 exit($exitCode);

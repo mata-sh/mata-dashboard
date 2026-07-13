@@ -37,11 +37,14 @@ This is the Innterface that fetches data from the client nodes on the same or ot
 # ssh into your server and clone the repo for the dashboard
 git clone https://github.com/mata-sh/mata-dashboard.git && cd mata-dashboard
 
-# Select native deployment and the environment when prompted.
-# Setup installs dependencies, offers OPA setup, and can create the first user.
+# Select native/local mode and the dev, demo, or prod environment when prompted.
+# Setup saves the selection in ignored .mata.mk, installs dependencies,
+# offers native OPA setup, and can create the first user. Native OPA uses
+# make setup-opa plus the systemd service installed by make opa-install-service.
 make setup
 
-# Create another dashboard user later when needed
+# Create another dashboard user later when needed.
+# Use MODE=... ENV=... to override the saved selection for one command.
 make users-create
 
 # smtp server (optional)

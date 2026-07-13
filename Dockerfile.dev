@@ -1,4 +1,4 @@
-# MATA Node - Development Build
+# MATA Dashboard - Development Build
 ARG PHP_VERSION=8.3
 ARG COMPOSER_VERSION=latest
 

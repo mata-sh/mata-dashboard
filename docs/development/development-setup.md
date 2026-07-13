@@ -44,11 +44,13 @@ openssl rand -hex 32
 ```bash
 git clone https://github.com/mata-sh/mata-dashboard.git && cd mata-dashboard
 
-# Select Docker and development when prompted. The wizard can start the
-# stack, run migrations, and create the initial user.
+# Select Docker mode and dev or demo when prompted. Setup saves MODE and ENV
+# in ignored .mata.mk, runs dev-setup validation, and can create the initial user.
 make setup
 
-# Run this only if startup was skipped in the wizard.
+# Run this only if startup was skipped in the wizard. Compose waits for healthy
+# MySQL before starting mata-web; migrations then run through mata-web.
+# OPA is part of the Docker stack.
 make dev-start
 ```
 

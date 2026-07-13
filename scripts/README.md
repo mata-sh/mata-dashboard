@@ -9,7 +9,7 @@ This directory contains utility scripts organized by purpose.
 ```
 scripts/
 ├── database/           # Database management utilities
-├── dev/               # Development and testing tools
+├── user-management/   # User management CLI
 ├── build/             # Build and release automation
 └── docs/              # Documentation tooling
 ```
@@ -19,19 +19,36 @@ scripts/
 Instead of running scripts directly, use Makefile targets for a better developer experience:
 
 ```bash
-# Setup
-make setup              # Full development setup
-make docker-setup       # Docker environment setup
+# Setup: interactively save local/docker mode and dev/demo/prod environment in .mata.mk
+make setup
+# One-command override: MODE=docker ENV=dev make status
 
-# Development
-make dev                # Start development environment
-make test               # Run tests
-make shell              # Access container
+# Mode-aware commands
+make users-list         # Also: users-create, users-unlock, users-delete, users-passwd
+make opa-status         # Also: opa-start, opa-stop; all dispatch by selected mode
+make test               # Also: test-coverage
+make db-migrate         # Also: db-rollback, db-status, db-check, db-shell
+make db-backup          # Timestamped backup in backups/ by default; FILE=... is optional
+make db-restore FILE=backups/backup.sql  # FILE is required; production writes/restores confirm
+# Local backup/restore/db-shell require mysqldump and mysql clients in PATH.
+make status             # Status
+make logs               # Also: logs-app, logs-php; all dispatch by selected mode
 
-# Database
-make db-migrate         # Run migrations
-make db-backup          # Backup database
-make users-list         # List users
+# Docker-only commands after Docker setup
+make dev-start          # Dev/demo lifecycle; Compose gates mata-web on healthy MySQL
+make dev-logs           # Start dev/demo stack and follow logs
+make dev-stop           # Also: dev-restart, dev-recreate, dev-rebuild
+make prod-fix-perms     # Initial provisioning or bind-mount permission recovery
+make prod-start         # Validates APP_ENV and placeholder passwords before startup
+make prod-stop          # Also: prod-restart, prod-rebuild
+make logs-web           # mata-web logs
+make logs-db            # mata-db logs
+make ps                 # Container status
+make shell              # mata-web shell
+make shell-www          # mata-web shell as www-data
+make docker-clean       # Project Docker cleanup
+# docker-init is shared; dev-setup and prod-setup validate environment-specific prerequisites.
+# docker-setup is deprecated; use make setup or the environment-specific setup target.
 
 # See all commands
 make help
@@ -43,7 +60,6 @@ Database management and migration utilities:
 
 - **`migrate.php`** - Run database migrations
 - **`database-integrity.php`** - Check database integrity and consistency
-- **`migrate-password.php`** - Migrate password hashing to new format
 - **`hash-password.php`** - Generate password hashes
 
 Usage examples:
@@ -52,19 +68,15 @@ php scripts/database/migrate.php
 php scripts/database/hash-password.php "mypassword"
 ```
 
-## Development Scripts (`dev/`)
+## Setup and User Management
 
-Development workflow and testing tools:
-
-- **`setup.sh`** - Initialize development environment
-- **`run-tests.php`** - Execute test suite
-- **`manage-users.php`** - Manage user accounts (CLI)
+- **`setup.sh`** - Guided native or Docker setup
+- **`user-management/manage-users.php`** - Manage user accounts (CLI)
 
 Usage examples:
 ```bash
-./scripts/dev/setup.sh
-php scripts/dev/run-tests.php
-php scripts/dev/manage-users.php list
+./scripts/setup.sh
+php scripts/user-management/manage-users.php list
 ```
 
 ## Build Scripts (`build/`)
@@ -103,8 +115,7 @@ All scripts are designed to be run from the project root directory:
 php scripts/database/migrate.php
 
 # Development
-./scripts/dev/setup.sh
-php scripts/dev/run-tests.php
+./scripts/setup.sh
 
 # Build
 ./scripts/build/generate-changelog.sh

@@ -40,6 +40,9 @@ chmod -R a+rX /var/www/html
 echo "📁 Setting up writable directories..."
 chown -R www-data:www-data /var/www/html/temp /var/www/html/logs /var/www/html/config /var/www/html/public/branding
 chmod -R 770 /var/www/html/temp /var/www/html/logs
+# Keep ignored writable roots traversable so host Git/Docker tooling can stat them.
+chmod 775 /var/www/html/temp /var/www/html/logs
+[ ! -e /var/www/html/logs/.gitkeep ] || chmod 644 /var/www/html/logs/.gitkeep
 chmod -R 755 /var/www/html/config /var/www/html/public/branding
 
 # Secure users.json files (must be 600 for security)

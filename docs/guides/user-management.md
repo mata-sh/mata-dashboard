@@ -21,7 +21,7 @@ make users-list MODE=local ENV=prod
 make users-create MODE=docker ENV=dev
 ```
 
-Production Docker commands use a one-off administrative container. The normal web container keeps `config/` read-only.
+Production Docker commands use a one-off administrative container. The normal `mata-web` container keeps `config/` read-only.
 
 ## User Management (PHP)
 
