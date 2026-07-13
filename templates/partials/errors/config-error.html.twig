@@ -32,6 +32,18 @@
     </div>
   {% endif %}
 
+  {% if error.context.failed_files is defined and error.context.example_dir is defined and error.context.config_dir is defined %}
+    <div class="error-section">
+      <span class="error-subtitle">How to resolve</span>
+      <p class="error-hint">Copy each template to the configuration directory, update its values, then restart the application.</p>
+      {% for file in error.context.failed_files %}
+        <div class="error-command">
+          <code>cp "{{ error.context.example_dir }}/{{ file }}.example" "{{ error.context.config_dir }}/{{ file }}"</code>
+        </div>
+      {% endfor %}
+    </div>
+  {% endif %}
+
   {% if error.context.validation_errors is defined %}
     <div class="error-section">
       <span class="error-subtitle">Errors found</span>

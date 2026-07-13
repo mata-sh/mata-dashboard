@@ -18,7 +18,7 @@ class EnvConfigCreator
      */
     private const TEMPLATE_MAP = [
         'config.env' => 'config.env.example',
-        'db.config.env' => 'db.config.example',
+        'db.config.env' => 'db.config.env.example',
         'mail.config.env' => 'mail.config.env.example',
     ];
 

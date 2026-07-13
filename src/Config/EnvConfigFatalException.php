@@ -114,10 +114,15 @@ final class EnvConfigFatalException extends RuntimeException
      *
      * @param array<string> $failedFiles      List of files that could not be created
      * @param string        $exampleDir       Path to example template directory
+     * @param string        $configDir        Path to target configuration directory
      * @param null|string   $documentationUrl URL to setup documentation
      */
-    public static function setupFailed(array $failedFiles, string $exampleDir, ?string $documentationUrl = null): self
-    {
+    public static function setupFailed(
+        array $failedFiles,
+        string $exampleDir,
+        string $configDir,
+        ?string $documentationUrl = null
+    ): self {
         return new self(
             message: 'Failed to create required configuration files',
             userMessage: 'The application could not automatically create the required configuration files.',
@@ -127,6 +132,7 @@ final class EnvConfigFatalException extends RuntimeException
             context: [
                 'failed_files' => $failedFiles,
                 'example_dir' => $exampleDir,
+                'config_dir' => $configDir,
             ],
             documentationUrl: $documentationUrl
         );

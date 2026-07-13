@@ -1,13 +1,36 @@
-{% extends 'layouts/main.html.twig' %}
-
 {% set error_type = error.type|default('error') %}
 {% set heading = error.heading|default(error.title|default('Error')) %}
 {% set title = error.title|default(heading) %}
 {% set icon_map = {'warning': '!', 'error': 'x', 'info': 'i'} %}
 {% set icon = icon_map[error_type]|default('x') %}
-
-{% block content %}
+{% set asset_base_url = asset_base_url|default('/assets') %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{ title }}</title>
   <style>
+    @font-face {
+      font-family: "Nunito";
+      font-style: normal;
+      font-weight: 400;
+      font-display: swap;
+      src: url("{{ asset_base_url }}/fonts/nunito/nunito-400-latin.woff2") format("woff2");
+    }
+
+    @font-face {
+      font-family: "Nunito";
+      font-style: normal;
+      font-weight: 700;
+      font-display: swap;
+      src: url("{{ asset_base_url }}/fonts/nunito/nunito-700-latin.woff2") format("woff2");
+    }
+
+    * { box-sizing: border-box; }
+
+    body { margin: 0; }
+
     .error-page {
       min-height: 100vh;
       display: flex;
@@ -15,6 +38,7 @@
       justify-content: center;
       padding: 24px 16px;
       background: linear-gradient(135deg, #999 0%, #fff 100%);
+      font-family: "Nunito", Arial, sans-serif;
     }
 
     .error-card {
@@ -91,9 +115,7 @@
       line-height: 1.6;
     }
 
-    .error-section {
-      margin-top: 16px;
-    }
+    .error-section { margin-top: 16px; }
 
     .error-subtitle {
       display: block;
@@ -118,18 +140,26 @@
       font-size: 14px;
     }
 
-    .error-technical {
-      color: #6c757d;
-      font-size: 14px;
-    }
+    .error-technical { color: #6c757d; font-size: 14px; }
 
-    .error-technical code {
+    .error-technical code,
+    .error-command code {
       background: #f8f9fa;
       padding: 2px 6px;
       border-radius: 3px;
       font-family: "Courier New", monospace;
       font-size: 13px;
       color: #e83e8c;
+    }
+
+    .error-hint {
+      margin: 0 0 8px;
+      line-height: 1.6;
+    }
+
+    .error-command {
+      margin: 6px 0;
+      overflow-wrap: anywhere;
     }
 
     .error-footer {
@@ -154,16 +184,12 @@
       transition: opacity 0.2s;
     }
 
-    .error-doc-link:hover {
-      opacity: 0.85;
-    }
-
-    .error-doc-icon {
-      font-size: 18px;
-    }
+    .error-doc-link:hover { opacity: 0.85; }
+    .error-doc-icon { font-size: 18px; }
   </style>
-
-  <section class="section error-page">
+</head>
+<body>
+  <section class="error-page">
     <div class="error-card" data-type="{{ error_type }}">
       <div class="error-header">
         <span class="error-icon">{{ icon }}</span>
@@ -188,4 +214,5 @@
       </div>
     </div>
   </section>
-{% endblock %}
+</body>
+</html>

@@ -136,7 +136,8 @@ final class EnvConfigManager
 
                 throw  EnvConfigFatalException::setupFailed(
                     array_keys($failed),
-                    $this->exampleDir
+                    $this->exampleDir,
+                    $this->configDir
                 );
             }
 
@@ -153,7 +154,8 @@ final class EnvConfigManager
 
             throw  EnvConfigFatalException::setupFailed(
                 $missingFiles,
-                $this->exampleDir
+                $this->exampleDir,
+                $this->configDir
             );
         }
     }

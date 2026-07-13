@@ -93,6 +93,10 @@ $sessionPath = session_save_path($paths->appPath . '/temp/sessions');
 $loader = new FilesystemLoader($paths->appPath . '/templates');
 $twig = new Environment($loader, []);
 
+// Configuration failures occur before App initialization; derive the public asset path from the request.
+$scriptDirectory = dirname($_SERVER['SCRIPT_NAME'] ?? '/index.php');
+$errorAssetBaseUrl = ($scriptDirectory === '/' ? '' : rtrim($scriptDirectory, '/')) . '/assets';
+
 // ************************************************************************************************
 // Config Initialization
 // ************************************************************************************************
@@ -116,6 +120,7 @@ try {
 
     http_response_code(500);
     echo $twig->render('partials/errors/config-error.html.twig', [
+        'asset_base_url' => $errorAssetBaseUrl,
         'error' => [
             'title' => $e->getTitle(),
             'heading' => $e->getHeading(),
@@ -206,6 +211,7 @@ try {
 
     http_response_code(500);
     echo $twig->render('partials/errors/auth-error.html.twig', [
+        'asset_base_url' => $errorAssetBaseUrl,
         'error' => [
             'title' => 'Authentication Error',
             'heading' => 'Authentication System Unavailable',
