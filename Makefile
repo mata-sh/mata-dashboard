@@ -518,7 +518,7 @@ define RUN_USER_COMMAND
 		[ -f vendor/autoload.php ] || { echo "$(COLOR_RED)❌ vendor/autoload.php is missing. Run composer install.$(COLOR_RESET)"; exit 1; }; \
 		users_file="$${MATA_USERS_FILE:-$(call GET_ENV_VALUE,config/config.env,MATA_USERS_FILE)}"; path="$$users_file"; \
 		if [ -z "$$path" ]; then path="config/$(ENV)/users.json"; [ -e "$$path" ] || path="config/$(ENV)"; [ -e "$$path" ] || path="config"; elif [ ! -e "$$path" ]; then path=$$(dirname "$$path"); fi; \
-		owner=$$(stat -c '%U' "$$path" 2>/dev/null || stat -f '%Su' "$$path" 2>/dev/null || id -un); current=$$(id -un); \
+		owner=$$(stat -c '%U' "$$path" 2>/dev/null || stat -f '%Su' "$$path" 2>/dev/null || { command -v sudo >/dev/null 2>&1 && sudo stat -c '%U' "$$path" 2>/dev/null; } || { command -v sudo >/dev/null 2>&1 && sudo stat -f '%Su' "$$path" 2>/dev/null; } || id -un); current=$$(id -un); \
 		echo "$(COLOR_BLUE)Mode: local | Environment: $(ENV) | Operator: $$owner$(COLOR_RESET)"; \
 		if [ "$$owner" != "$$current" ]; then \
 			command -v sudo >/dev/null 2>&1 || { echo "$(COLOR_RED)❌ Run this command as $$owner.$(COLOR_RESET)"; exit 1; }; \
