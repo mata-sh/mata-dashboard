@@ -12,6 +12,12 @@ COLOR_BLUE := $(shell git config --get-color "" "blue")
 COLOR_CYAN := $(shell git config --get-color "" "cyan")
 COLOR_MAGENTA := $(shell git config --get-color "" "magenta")
 
+# Local setup selection. Command-line values override this generated file.
+SETUP_CONFIG := .mata.mk
+-include $(SETUP_CONFIG)
+MODE ?=
+ENV ?=
+
 # ============================================
 # OPA (Open Policy Agent)
 # ============================================
@@ -25,74 +31,81 @@ OPA_SERVICE_TEMPLATE := scripts/systemd/opa.service
 # Help
 # ============================================
 
-# Default target - show help
+# Default target - show concise help
 .DEFAULT_GOAL := help
 
-# Show all available commands
 help:
-	@echo "$(COLOR_CYAN)=====================================$(COLOR_RESET)"
-	@echo "$(COLOR_BOLD)$(COLOR_CYAN)MATA Dashboard - Makefile Commands$(COLOR_RESET)"
-	@echo "$(COLOR_CYAN)=====================================$(COLOR_RESET)"
-	@echo "$(COLOR_YELLOW)ℹ️ Most commands require Docker. Run 'make setup' first.$(COLOR_RESET)"
-	@echo "$(COLOR_YELLOW)ℹ️ For more commands: $(COLOR_CYAN)make docker-help$(COLOR_RESET)"
+	@echo "$(COLOR_BOLD)$(COLOR_CYAN)MATA Dashboard$(COLOR_RESET)"
+	@echo "$(COLOR_CYAN)==============$(COLOR_RESET)"
 	@echo ""
-	@echo "$(COLOR_BOLD)Local General (Git Hooks, Docs, Build):$(COLOR_RESET)"
-	@echo "  $(COLOR_GREEN)make setup$(COLOR_RESET)           - Full setup (composer deps + configs) [$(COLOR_MAGENTA)composer, git$(COLOR_RESET)]"
-	@echo "  $(COLOR_GREEN)make setup-opa$(COLOR_RESET)       - Install OPA binary to bin/opa [$(COLOR_MAGENTA)curl$(COLOR_RESET)]"
-	@echo "  $(COLOR_GREEN)make opa-install-service$(COLOR_RESET) - Install and start systemd unit for OPA [$(COLOR_MAGENTA)systemd$(COLOR_RESET)]"
-	@echo "  $(COLOR_GREEN)make opa-docker-start$(COLOR_RESET) - Start OPA in Docker with local policies mounted [$(COLOR_MAGENTA)docker$(COLOR_RESET)]"
-	@echo "  $(COLOR_GREEN)make install-hooks$(COLOR_RESET)   - Install git hooks [$(COLOR_MAGENTA)git$(COLOR_RESET)]"
-	@echo "  $(COLOR_GREEN)make changelog$(COLOR_RESET)       - Generate changelog [$(COLOR_MAGENTA)claude code$(COLOR_RESET)]"
+	@echo "$(COLOR_BOLD)START HERE$(COLOR_RESET)"
+	@echo "  $(COLOR_GREEN)make setup$(COLOR_RESET)          Guided native or Docker setup"
+	@echo "  $(COLOR_GREEN)make doctor$(COLOR_RESET)         Validate the selected installation"
 	@echo ""
-	@echo "  $(COLOR_GREEN)make docs-serve$(COLOR_RESET)      - Serve docs locally on [$(COLOR_MAGENTA)mkdocs$(COLOR_RESET)]"
-	@echo "  $(COLOR_GREEN)make docs-deploy$(COLOR_RESET)     - Deploy docs to GitHub Pages [$(COLOR_MAGENTA)mkdocs$(COLOR_RESET)]"
-	@echo "  $(COLOR_GREEN)make docs-ai-update$(COLOR_RESET)  - AI-powered docs update [$(COLOR_MAGENTA)claude code$(COLOR_RESET)]"
+	@if [ -n "$(MODE)" ]; then \
+		echo "$(COLOR_BOLD)CURRENT INSTALLATION$(COLOR_RESET)"; \
+		echo "  Mode:        $(MODE)"; \
+		echo "  Environment: $(ENV)"; \
+		echo ""; \
+	else \
+		echo "$(COLOR_YELLOW)No installation mode selected. Run: make setup$(COLOR_RESET)"; \
+		echo ""; \
+	fi
+	@echo "$(COLOR_BOLD)COMMON OPERATIONS$(COLOR_RESET)"
+	@echo "  $(COLOR_GREEN)make users-create$(COLOR_RESET)   Create a user"
+	@echo "  $(COLOR_GREEN)make users-list$(COLOR_RESET)     List users"
+	@echo "  $(COLOR_GREEN)make users-passwd$(COLOR_RESET)   Change a password"
+	@echo "  $(COLOR_GREEN)make db-migrate$(COLOR_RESET)     Run database migrations (Docker)"
+	@echo "  $(COLOR_GREEN)make db-status$(COLOR_RESET)      Show migration status (Docker)"
 	@echo ""
-	@echo "$(COLOR_BOLD)Docker Dev Environment:$(COLOR_RESET)"
-	@echo "  $(COLOR_CYAN)Setup:$(COLOR_RESET)"
-	@echo "    $(COLOR_GREEN)make docker-setup$(COLOR_RESET)  - Docker environment setup only (optional - dev-start does this automatically)"
-	@echo "  $(COLOR_CYAN)Development:$(COLOR_RESET)"
-	@echo "    $(COLOR_GREEN)make dev-start$(COLOR_RESET)     - Start full Docker environment (auto-runs setup if needed)"
-	@echo "    $(COLOR_GREEN)make dev-logs$(COLOR_RESET)      - Start dev and follow logs"
-	@echo "    $(COLOR_GREEN)make dev-stop$(COLOR_RESET)      - Stop development"
-	@echo "    $(COLOR_GREEN)make dev-recreate$(COLOR_RESET)  - Recreate containers (reload env files)"
-	@echo "    $(COLOR_GREEN)make shell$(COLOR_RESET)         - Access web container"
-	@echo "  $(COLOR_CYAN)Testing:$(COLOR_RESET)"
-	@echo "    $(COLOR_GREEN)make test$(COLOR_RESET)          - Run tests with PHPUnit"
-	@echo "    $(COLOR_GREEN)make test-coverage$(COLOR_RESET) - Run tests with coverage"
-	@echo "  $(COLOR_CYAN)Database:$(COLOR_RESET)"
-	@echo "    $(COLOR_GREEN)make db-migrate$(COLOR_RESET)    - Run database migrations"
-	@echo "    $(COLOR_GREEN)make db-rollback$(COLOR_RESET)   - Rollback last migration"
-	@echo "    $(COLOR_GREEN)make db-status$(COLOR_RESET)     - Show migration status"
-	@echo "    $(COLOR_GREEN)make db-check$(COLOR_RESET)      - Check database integrity"
-	@echo "    $(COLOR_GREEN)make db-backup$(COLOR_RESET)     - Backup database to backups/"
-	@echo "    $(COLOR_GREEN)make db-restore FILE=backup.sql$(COLOR_RESET)"
-	@echo "    $(COLOR_GREEN)make db-hash-password$(COLOR_RESET) - Generate password hash"
-	@echo "  $(COLOR_CYAN)User Management:$(COLOR_RESET)"
-	@echo "    $(COLOR_GREEN)make users-list$(COLOR_RESET)    - List all users"
-	@echo "    $(COLOR_GREEN)make users-create$(COLOR_RESET)  - Create new user (interactive)"
-	@echo "    $(COLOR_GREEN)make users-unlock$(COLOR_RESET)  - Unlock user account"
-	@echo "    $(COLOR_GREEN)make users-delete$(COLOR_RESET)  - Delete user"
-	@echo "    $(COLOR_GREEN)make users-passwd$(COLOR_RESET)  - Change user password"
-	@echo "  $(COLOR_CYAN)Monitoring:$(COLOR_RESET)"
-	@echo "    $(COLOR_GREEN)make logs$(COLOR_RESET)          - Follow all container logs"
-	@echo "    $(COLOR_GREEN)make ps$(COLOR_RESET)            - Show container status"
-	@echo "    $(COLOR_GREEN)make down$(COLOR_RESET)          - Stop all containers"
-	@echo "    $(COLOR_GREEN)make logs-app$(COLOR_RESET)      - Follow application log"
+	@echo "$(COLOR_BOLD)OPA$(COLOR_RESET)"
+	@echo "  $(COLOR_GREEN)make opa-start$(COLOR_RESET)      Start OPA for the selected mode"
+	@echo "  $(COLOR_GREEN)make opa-status$(COLOR_RESET)     Show OPA status"
+	@echo "  $(COLOR_GREEN)make opa-stop$(COLOR_RESET)       Stop OPA"
 	@echo ""
-	@echo "$(COLOR_BOLD)Docker Production Environment:$(COLOR_RESET)"
-	@echo "  $(COLOR_GREEN)make prod$(COLOR_RESET)            - Deploy production"
-	@echo "  $(COLOR_GREEN)make prod-stop$(COLOR_RESET)       - Stop production"
-	@echo "  $(COLOR_RED)make clean$(COLOR_RESET)             - Remove everything (WARNING!)"
+	@echo "$(COLOR_BOLD)DEVELOPMENT$(COLOR_RESET)"
+	@echo "  $(COLOR_GREEN)make test$(COLOR_RESET)           Run tests"
+	@echo "  $(COLOR_GREEN)make docs-serve$(COLOR_RESET)     Serve documentation"
+	@echo "  $(COLOR_GREEN)make docs-ai-update$(COLOR_RESET) Update documentation using AI"
+	@echo "  $(COLOR_GREEN)make changelog$(COLOR_RESET)      Generate the changelog"
 	@echo ""
-	@echo "For more details: $(COLOR_CYAN)make docker-help$(COLOR_RESET)"
+	@echo "$(COLOR_BOLD)MORE$(COLOR_RESET)"
+	@echo "  $(COLOR_GREEN)make help-all$(COLOR_RESET)       Show all command groups"
+	@echo "  $(COLOR_GREEN)make docker-help$(COLOR_RESET)    Show Docker commands"
+
+help-all: help
+	@echo ""
+	@echo "$(COLOR_BOLD)SETUP AND UTILITIES$(COLOR_RESET)"
+	@echo "  make setup MODE=local ENV=prod"
+	@echo "  make setup MODE=docker ENV=dev"
+	@echo "  make install-hooks"
+	@echo "  make setup-opa"
+	@echo "  make opa-install-service"
+	@echo "  make docs-deploy"
+	@echo ""
+	@echo "$(COLOR_BOLD)USER MANAGEMENT$(COLOR_RESET)"
+	@echo "  make users-list | users-create | users-unlock | users-delete | users-passwd"
+	@echo "  Override selection with MODE=local|docker ENV=dev|demo|prod"
+	@echo ""
+	@echo "$(COLOR_BOLD)DATABASE$(COLOR_RESET)"
+	@echo "  make db-migrate | db-rollback | db-status | db-check"
+	@echo "  make db-backup | db-restore FILE=backup.sql | db-hash-password"
+	@echo ""
+	@echo "$(COLOR_BOLD)DOCKER LIFECYCLE$(COLOR_RESET)"
+	@echo "  make dev-start | dev-stop | dev-restart | dev-recreate | dev-rebuild"
+	@echo "  make prod-start | prod-stop | prod-rebuild"
+	@echo "  make logs | logs-web | logs-db | ps | shell | shell-www | db-shell"
 
 # ============================================
 # Setup
 # ============================================
 
-# Full environment setup (composer + config files)
+# Guided setup. MODE and ENV can be supplied to skip the first prompts.
 setup:
+	@MODE="$(MODE)" ENV="$(ENV)" START_SERVICES="$(START_SERVICES)" RUN_MIGRATIONS="$(RUN_MIGRATIONS)" INSTALL_OPA="$(INSTALL_OPA)" INSTALL_OPA_SERVICE="$(INSTALL_OPA_SERVICE)" CREATE_USER="$(CREATE_USER)" MAKE_CMD="make" ./scripts/setup.sh
+
+# Native prerequisites and webserver configuration, called by the setup wizard.
+setup-local:
 	@echo "$(COLOR_BLUE)📋 Creating config files from examples...$(COLOR_RESET)"
 	@mkdir -p config temp/api-cache temp/sessions temp/templates-cache logs
 	@for file in config.env db.config.env mail.config.env; do \
@@ -169,15 +182,30 @@ setup:
 		echo "  $(COLOR_CYAN)make docker-setup$(COLOR_RESET)"; \
 		exit 1; \
 	fi
-	@echo "$(COLOR_GREEN)✅ Development environment ready!$(COLOR_RESET)"
-	@echo ""
-	@echo "$(COLOR_CYAN)⚙️  NEXT STEPS:$(COLOR_RESET)"
-	@echo "$(COLOR_YELLOW)1.$(COLOR_RESET) Edit $(COLOR_BOLD)config/config.env$(COLOR_RESET) - set DOMAIN, DIR, OPA, RATELIMITING, etc. "
-	@echo "$(COLOR_YELLOW)2.$(COLOR_RESET) Edit $(COLOR_BOLD)config/mail.config.env$(COLOR_RESET) - configure email settings (optional)"
-	@echo "$(COLOR_YELLOW)3.$(COLOR_RESET) Choose webserver config from $(COLOR_BOLD)docs/examples/webserver-configs/README.md$(COLOR_RESET)"
-	@echo "$(COLOR_YELLOW)4.$(COLOR_RESET) Create first user: $(COLOR_CYAN)php scripts/user-management/manage-users.php create$(COLOR_RESET)"
-	@echo ""
-	@echo "$(COLOR_BLUE)Or use Docker:$(COLOR_RESET) $(COLOR_CYAN)make dev-start$(COLOR_RESET) (auto-setup included)"
+	@echo "$(COLOR_GREEN)✅ Native prerequisites ready.$(COLOR_RESET)"
+	@echo "$(COLOR_YELLOW)Review config/config.env, config/db.config.env, and config/mail.config.env.$(COLOR_RESET)"
+
+doctor:
+	@failed=0; \
+	echo "$(COLOR_BOLD)MATA installation check$(COLOR_RESET)"; \
+	echo "  Mode:        $${MODE:-$(MODE)}"; \
+	echo "  Environment: $${ENV:-$(ENV)}"; \
+	case "$(ENV)" in dev|demo|prod) ;; *) echo "$(COLOR_RED)  ✗ Invalid or missing environment$(COLOR_RESET)"; failed=1 ;; esac; \
+	for file in config/config.env config/db.config.env config/mail.config.env; do \
+		if [ -f "$$file" ]; then echo "$(COLOR_GREEN)  ✓ $$file$(COLOR_RESET)"; else echo "$(COLOR_RED)  ✗ $$file missing$(COLOR_RESET)"; failed=1; fi; \
+	done; \
+	if [ "$(MODE)" = "local" ]; then \
+		command -v php >/dev/null 2>&1 && echo "$(COLOR_GREEN)  ✓ PHP available$(COLOR_RESET)" || { echo "$(COLOR_RED)  ✗ PHP missing$(COLOR_RESET)"; failed=1; }; \
+		[ -f vendor/autoload.php ] && echo "$(COLOR_GREEN)  ✓ Composer dependencies installed$(COLOR_RESET)" || { echo "$(COLOR_RED)  ✗ vendor/autoload.php missing$(COLOR_RESET)"; failed=1; }; \
+		if systemctl is-active --quiet opa.service 2>/dev/null; then echo "$(COLOR_GREEN)  ✓ OPA running$(COLOR_RESET)"; else echo "$(COLOR_YELLOW)  ! OPA not running$(COLOR_RESET)"; fi; \
+	elif [ "$(MODE)" = "docker" ]; then \
+		command -v docker >/dev/null 2>&1 && echo "$(COLOR_GREEN)  ✓ Docker available$(COLOR_RESET)" || { echo "$(COLOR_RED)  ✗ Docker missing$(COLOR_RESET)"; failed=1; }; \
+		command -v docker-compose >/dev/null 2>&1 && echo "$(COLOR_GREEN)  ✓ Docker Compose available$(COLOR_RESET)" || { echo "$(COLOR_RED)  ✗ docker-compose missing$(COLOR_RESET)"; failed=1; }; \
+		[ -f .env ] && echo "$(COLOR_GREEN)  ✓ .env present$(COLOR_RESET)" || { echo "$(COLOR_RED)  ✗ .env missing$(COLOR_RESET)"; failed=1; }; \
+	else \
+		echo "$(COLOR_RED)  ✗ No mode selected; run make setup$(COLOR_RESET)"; failed=1; \
+	fi; \
+	exit $$failed
 
 # Install Composer dependencies and git hooks
 install-hooks:
@@ -240,7 +268,7 @@ opa-install-service:
 		exit 1; \
 	fi
 	@echo "$(COLOR_BLUE)🛠️  Installing systemd unit...$(COLOR_RESET)"
-	@sudo sh -c 'sed -e "s|@@OPA_BIN@@|$(OPA_BIN)|g" -e "s|@@OPA_WORKDIR@@|$(CURDIR)|g" "$(OPA_SERVICE_TEMPLATE)" > /etc/systemd/system/opa.service'
+	@sudo sh -c 'sed -e "s|@@OPA_BIN@@|$(abspath $(OPA_BIN))|g" -e "s|@@OPA_WORKDIR@@|$(CURDIR)|g" -e "s|@@OPA_POLICY_DIR@@|$(CURDIR)/policy|g" "$(OPA_SERVICE_TEMPLATE)" > /etc/systemd/system/opa.service'
 	@sudo systemctl daemon-reload
 	@sudo systemctl enable --now opa.service
 	@echo "$(COLOR_GREEN)✅ OPA service installed and started$(COLOR_RESET)"
@@ -258,6 +286,47 @@ opa-docker-start:
 		openpolicyagent/opa:latest \
 		run --server --watch /policies >/dev/null; \
 	echo "$(COLOR_GREEN)✅ OPA running at http://localhost:3320 (container: mata-opa)$(COLOR_RESET)"
+
+# Start OPA according to the mode selected by make setup.
+opa-start:
+	@if [ "$(MODE)" = "local" ]; then \
+		if [ ! -f /etc/systemd/system/opa.service ]; then \
+			echo "$(COLOR_RED)❌ OPA service is not installed. Run: make opa-install-service$(COLOR_RESET)"; \
+			exit 1; \
+		fi; \
+		sudo systemctl start opa.service; \
+	elif [ "$(MODE)" = "docker" ]; then \
+		if [ "$(ENV)" = "prod" ]; then \
+			docker-compose -f docker-compose.yml -f docker-compose.prod.yml up -d mata-opa; \
+		else \
+			docker-compose -f docker-compose.yml -f docker-compose.dev.yml up -d mata-opa; \
+		fi; \
+	else \
+		echo "$(COLOR_RED)❌ No installation mode selected. Run: make setup$(COLOR_RESET)"; \
+		exit 1; \
+	fi
+
+opa-stop:
+	@if [ "$(MODE)" = "local" ]; then \
+		sudo systemctl stop opa.service; \
+	elif [ "$(MODE)" = "docker" ]; then \
+		if [ "$(ENV)" = "prod" ]; then files="-f docker-compose.yml -f docker-compose.prod.yml"; else files="-f docker-compose.yml -f docker-compose.dev.yml"; fi; \
+		docker-compose $$files stop mata-opa; \
+	else \
+		echo "$(COLOR_RED)❌ No installation mode selected. Run: make setup$(COLOR_RESET)"; \
+		exit 1; \
+	fi
+
+opa-status:
+	@if [ "$(MODE)" = "local" ]; then \
+		systemctl --no-pager --full status opa.service; \
+	elif [ "$(MODE)" = "docker" ]; then \
+		if [ "$(ENV)" = "prod" ]; then files="-f docker-compose.yml -f docker-compose.prod.yml"; else files="-f docker-compose.yml -f docker-compose.dev.yml"; fi; \
+		docker-compose $$files ps mata-opa; \
+	else \
+		echo "$(COLOR_RED)❌ No installation mode selected. Run: make setup$(COLOR_RESET)"; \
+		exit 1; \
+	fi
 
 # ============================================
 # Testing
@@ -312,25 +381,60 @@ db-migrate-passwords:
 # User Management
 # ============================================
 
-# List all users (in Docker container, run as www-data)
+# User commands follow MODE and ENV selected by make setup.
+define RUN_USER_COMMAND
+	@mode="$(MODE)"; env="$(ENV)"; action="$(1)"; \
+	case "$$env" in dev|demo|prod) ;; *) echo "$(COLOR_RED)❌ ENV must be dev, demo, or prod. Run: make setup$(COLOR_RESET)"; exit 1 ;; esac; \
+	if [ "$$mode" = "local" ]; then \
+		if ! command -v php >/dev/null 2>&1; then echo "$(COLOR_RED)❌ PHP is not available.$(COLOR_RESET)"; exit 1; fi; \
+		if [ ! -f vendor/autoload.php ]; then echo "$(COLOR_RED)❌ vendor/autoload.php is missing. Run: composer install$(COLOR_RESET)"; exit 1; fi; \
+		path="config/$$env/users.json"; [ -e "$$path" ] || path="config/$$env"; [ -e "$$path" ] || path="config"; \
+		owner=$$(stat -c '%U' "$$path" 2>/dev/null || stat -f '%Su' "$$path" 2>/dev/null || id -un); \
+		current=$$(id -un); \
+		echo "$(COLOR_BLUE)Mode: local | Environment: $$env | Operator: $$owner$(COLOR_RESET)"; \
+		if [ "$$owner" != "$$current" ]; then \
+			if ! command -v sudo >/dev/null 2>&1; then echo "$(COLOR_RED)❌ Run this command as $$owner.$(COLOR_RESET)"; exit 1; fi; \
+			sudo -u "$$owner" php scripts/user-management/manage-users.php "$$action" "--env=$$env"; \
+		else \
+			php scripts/user-management/manage-users.php "$$action" "--env=$$env"; \
+		fi; \
+	elif [ "$$mode" = "docker" ]; then \
+		if [ "$$env" = "prod" ]; then \
+			files="-f docker-compose.yml -f docker-compose.prod.yml"; \
+			echo "$(COLOR_BLUE)Mode: docker admin | Environment: $$env$(COLOR_RESET)"; \
+			docker-compose $$files run --rm --no-deps -u root \
+				-v "$(CURDIR)/config:/var/www/html/config" \
+				-v "$(CURDIR)/logs:/var/www/html/logs" \
+				-v "$(CURDIR)/docker/admin-entrypoint.sh:/usr/local/bin/mata-admin:ro" \
+				--entrypoint /bin/sh mata-web /usr/local/bin/mata-admin "$$action" "$$env"; \
+		else \
+			files="-f docker-compose.yml -f docker-compose.dev.yml"; \
+			if ! docker-compose $$files ps --services --filter status=running | grep -qx mata-web; then \
+				echo "$(COLOR_RED)❌ Docker web service is not running. Run: make dev-start$(COLOR_RESET)"; exit 1; \
+			fi; \
+			echo "$(COLOR_BLUE)Mode: docker | Environment: $$env$(COLOR_RESET)"; \
+			docker-compose $$files exec -u www-data mata-web php scripts/user-management/manage-users.php "$$action" "--env=$$env"; \
+		fi; \
+	else \
+		echo "$(COLOR_RED)❌ No installation mode selected. Run: make setup$(COLOR_RESET)"; \
+		exit 1; \
+	fi
+endef
+
 users-list:
-	docker-compose exec -u www-data mata-web php scripts/user-management/manage-users.php list
+	$(call RUN_USER_COMMAND,list)
 
-# Create a new user (interactive, in Docker container, run as www-data)
 users-create:
-	docker-compose exec -u www-data mata-web php scripts/user-management/manage-users.php create
+	$(call RUN_USER_COMMAND,create)
 
-# Unlock a user account (in Docker container, run as www-data)
 users-unlock:
-	docker-compose exec -u www-data mata-web php scripts/user-management/manage-users.php unlock
+	$(call RUN_USER_COMMAND,unlock)
 
-# Delete a user (in Docker container, run as www-data)
 users-delete:
-	docker-compose exec -u www-data mata-web php scripts/user-management/manage-users.php delete
+	$(call RUN_USER_COMMAND,delete)
 
-# Change user password (in Docker container, run as www-data)
 users-passwd:
-	docker-compose exec -u www-data mata-web php scripts/user-management/manage-users.php passwd
+	$(call RUN_USER_COMMAND,passwd)
 
 # ============================================
 # Build & Release
@@ -374,7 +478,7 @@ docker-setup:
 	fi
 	@echo "$(COLOR_BLUE)🔌 Ensuring shared Docker network exists...$(COLOR_RESET)"
 	@docker network inspect mata-network >/dev/null 2>&1 || docker network create mata-network >/dev/null
-	@mkdir -p config temp/api-cache temp/sessions temp/templates-cache logs config/dev
+	@mkdir -p config config/dev config/demo config/prod temp/api-cache temp/sessions temp/templates-cache logs
 	@echo "$(COLOR_BLUE)📋 Creating config files from examples...$(COLOR_RESET)"
 	@for file in config.env db.config.env mail.config.env; do \
 		if [ ! -f "config/$$file" ]; then \
@@ -385,24 +489,9 @@ docker-setup:
 			echo "$(COLOR_YELLOW)⚠️  config/$$file already exists, skipping$(COLOR_RESET)"; \
 		fi; \
 	done
-	@if [ ! -f config/dev/users.json ]; then \
-		echo '[{"id":"user_mata123","username":"mata","password_hash":"$$2y$$12$$Yu0Yg9fwwcCh4d9QbXMYv.iVn6vyOCIpKxLlRKyiIY2nYuqGw1MXW","role":"admin","failed_attempts":0}]' > config/dev/users.json; \
-		chmod 600 config/dev/users.json; \
-		echo "$(COLOR_GREEN)✅ Created config/dev/users.json (user: mata|pw: mata)$(COLOR_RESET)"; \
-	else \
-		echo "$(COLOR_YELLOW)⚠️  config/dev/users.json already exists, skipping$(COLOR_RESET)"; \
-	fi
 	@echo ""
-	@echo "$(COLOR_GREEN)✅ Docker environment ready!$(COLOR_RESET)"
-	@echo ""
-	@echo "$(COLOR_CYAN)⚙️  NEXT STEPS:$(COLOR_RESET)"
-	@echo "$(COLOR_YELLOW)1.$(COLOR_RESET) Edit $(COLOR_BOLD).env$(COLOR_RESET) - set APP_ENV (dev/demo/prod), review ports (3300/3310/3320/3330), set passwords"
-	@echo "$(COLOR_YELLOW)2.$(COLOR_RESET) Edit $(COLOR_BOLD)config/config.env$(COLOR_RESET) - set DOMAIN, DIR, OPA, RATELIMITING, etc."
-	@echo "    $(COLOR_BLUE)Note:$(COLOR_RESET) DB_HOST is auto-set to 'mata-db' for Docker networking"
-	@echo "$(COLOR_YELLOW)3.$(COLOR_RESET) Start containers: $(COLOR_CYAN)make dev-start$(COLOR_RESET)"
-	@PORT=$$(grep -E '^WEB_PORT=' .env 2>/dev/null | cut -d '=' -f2 || echo "3300"); \
-	echo "$(COLOR_YELLOW)4.$(COLOR_RESET) Login at http://localhost:$$PORT with $(COLOR_CYAN)user: mata pw: mata$(COLOR_RESET)"; \
-	echo "$(COLOR_YELLOW)5.$(COLOR_RESET) Manage users with $(COLOR_CYAN)make users-list|users-create|users-passwd|users-unlock|users-delete$(COLOR_RESET) (see $(COLOR_BOLD)docs/guides/user-management.md$(COLOR_RESET))"
+	@echo "$(COLOR_GREEN)✅ Docker prerequisites ready.$(COLOR_RESET)"
+	@echo "$(COLOR_YELLOW)No default user was created. The setup wizard can create one after startup.$(COLOR_RESET)"
 
 ## Development (Docker)
 
@@ -417,15 +506,19 @@ dev-start:
 		echo ""; \
 	fi
 	docker-compose -f docker-compose.yml -f docker-compose.dev.yml up -d --build
-	@echo "$(COLOR_BLUE)🗄️  Running database migrations...$(COLOR_RESET)"
-	@$(MAKE) db-migrate
+	@if [ "$(RUN_MIGRATIONS)" != "no" ]; then \
+		echo "$(COLOR_BLUE)🗄️  Running database migrations...$(COLOR_RESET)"; \
+		$(MAKE) db-migrate; \
+	else \
+		echo "$(COLOR_YELLOW)⚠️  Database migrations skipped.$(COLOR_RESET)"; \
+	fi
 	@echo ""
 	@echo "$(COLOR_GREEN)✅ Development environment running!$(COLOR_RESET)"
 	@# Read actual port from .env file or use default
 	@PORT=$$(grep -E '^WEB_PORT=' .env 2>/dev/null | cut -d '=' -f2 || echo "3300"); \
 	echo "$(COLOR_CYAN)🌐 Dashboard: http://localhost:$$PORT$(COLOR_RESET)"; \
 	echo "$(COLOR_CYAN)🩺 Health: http://localhost:$$PORT/health$(COLOR_RESET)"
-	@echo "$(COLOR_YELLOW)👤 Login: mata/mata$(COLOR_RESET)"
+	@echo "$(COLOR_YELLOW)👤 No default login. Create one with: make users-create$(COLOR_RESET)"
 
 # Start dev environment and follow logs
 dev-logs:
@@ -464,8 +557,12 @@ prod-start:
 		exit 1; \
 	fi
 	docker-compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
-	@echo "$(COLOR_BLUE)🗄️  Running database migrations...$(COLOR_RESET)"
-	@$(MAKE) db-migrate
+	@if [ "$(RUN_MIGRATIONS)" != "no" ]; then \
+		echo "$(COLOR_BLUE)🗄️  Running database migrations...$(COLOR_RESET)"; \
+		$(MAKE) db-migrate; \
+	else \
+		echo "$(COLOR_YELLOW)⚠️  Database migrations skipped.$(COLOR_RESET)"; \
+	fi
 	@echo "$(COLOR_GREEN)✅ Production deployed!$(COLOR_RESET)"
 
 # Stop production environment
@@ -626,14 +723,14 @@ docker-help:
 	@echo "  $(COLOR_YELLOW)make docker-clean$(COLOR_RESET)   - Clean mata-dashboard Docker resources only"
 	@echo "  $(COLOR_RED)make docker-clean-all$(COLOR_RESET)  - System-wide Docker cleanup (ALL projects!)"
 
-.PHONY: help setup install-hooks \
+.PHONY: help help-all setup setup-local doctor install-hooks setup-opa opa-install-service opa-docker-start opa-start opa-stop opa-status \
 	test test-coverage \
 	db-migrate db-rollback db-status db-check db-hash-password db-migrate-passwords \
 	users-list users-create users-unlock users-delete users-passwd \
 	changelog bootstrap \
 	docs-serve docs-deploy docs-ai-update \
-	docker-setup dev dev-logs dev-stop dev-restart dev-recreate dev-rebuild \
-	prod prod-stop prod-rebuild \
+	docker-setup dev-start dev-logs dev-stop dev-restart dev-recreate dev-rebuild \
+	prod-start prod-stop prod-rebuild \
 	logs logs-web logs-db ps \
 	shell db-shell shell-www \
 	db-backup db-restore \

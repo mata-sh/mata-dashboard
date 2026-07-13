@@ -44,10 +44,11 @@ openssl rand -hex 32
 ```bash
 git clone https://github.com/mata-sh/mata-dashboard.git && cd mata-dashboard
 
-# Create config files and install composer deps
+# Select Docker and development when prompted. The wizard can start the
+# stack, run migrations, and create the initial user.
 make setup
 
-# Start the full Docker dev stack (runs setup if needed)
+# Run this only if startup was skipped in the wizard.
 make dev-start
 ```
 
@@ -59,10 +60,9 @@ make dev-start
 
 ### 3. Log In to the Dashboard
 
-1. Navigate to `http://localhost:3300/`
-2. Login with these credentials:
-   - **Username:** `mata` | **Password:** `mata` (admin role)
-3. View your server dashboard
+1. Navigate to `http://localhost:3300/`.
+2. Log in with the user created by `make setup`.
+3. View your server dashboard.
 
 !!! info "User Management:"
-   These default users are created automatically. For manual setup, you'll need to configure `config/users.json` or create users with `make users-create`.
+   No static default credentials are installed. Create additional users with `make users-create`.

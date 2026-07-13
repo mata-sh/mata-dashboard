@@ -5,7 +5,7 @@ After=network.target
 [Service]
 Type=simple
 WorkingDirectory=@@OPA_WORKDIR@@
-ExecStart=@@OPA_BIN@@ run --server --addr 127.0.0.1:3320
+ExecStart=@@OPA_BIN@@ run --server --addr 127.0.0.1:3320 --watch @@OPA_POLICY_DIR@@
 Restart=on-failure
 
 [Install]

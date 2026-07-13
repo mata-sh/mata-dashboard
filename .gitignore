@@ -3,6 +3,7 @@
 *.bin
 *.env
 *.code-workspace
+.mata.mk
 *.log
 *.sql
 *.txt

@@ -37,10 +37,11 @@ This is the Innterface that fetches data from the client nodes on the same or ot
 # ssh into your server and clone the repo for the dashboard
 git clone https://github.com/mata-sh/mata-dashboard.git && cd mata-dashboard
 
-# Runs composer install and creates config files
+# Select native deployment and the environment when prompted.
+# Setup installs dependencies, offers OPA setup, and can create the first user.
 make setup
 
-# Create a user and password with admin role for the dashboard
+# Create another dashboard user later when needed
 make users-create
 
 # smtp server (optional)
