@@ -58,7 +58,28 @@ set_env_value() {
     local temporary
 
     temporary=$(mktemp)
-    if [[ -f "$file" ]]; then
+    if [[ -f "$file" && ! -r "$file" ]]; then
+        local owner
+        owner=$(stat -c '%U' "$file" 2>/dev/null || stat -f '%Su' "$file" 2>/dev/null || true)
+        if [[ -z "$owner" ]] || ! command -v sudo >/dev/null 2>&1; then
+            rm -f "$temporary"
+            printf 'ERROR: Cannot read %s. Run setup as its owner.\n' "$file" >&2
+            exit 1
+        fi
+        printf 'Reading %s as %s (sudo required).\n' "$file" "$owner"
+        sudo -u "$owner" awk -v key="$key" -v value="$value" '
+            BEGIN { updated = 0 }
+            $0 ~ "^" key "=" {
+                if (!updated) print key "=" value
+                updated = 1
+                next
+            }
+            { print }
+            END {
+                if (!updated) print key "=" value
+            }
+        ' "$file" > "$temporary"
+    elif [[ -f "$file" ]]; then
         awk -v key="$key" -v value="$value" '
             BEGIN { updated = 0 }
             $0 ~ "^" key "=" {
