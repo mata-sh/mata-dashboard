@@ -158,13 +158,13 @@ ini_set('error_log', $paths->logsPath . '/php-error.log');
 ini_set('display_errors', 0);
 
 // ************************************************************************************************
-// Instance Branding (app name + logos)
+// Instance Branding (app name + assets)
 // ************************************************************************************************
-// Seed public/branding/ with the default logos on first run; instance logos placed there
+// Seed public/branding/ with default assets on first run; instance assets placed there
 // override the defaults and are gitignored (see public/branding/README.md).
 $brandingDir = $paths->appPath . '/public/branding';
 $brandingDefaultsDir = $paths->appPath . '/public/assets/branding';
-$brandingLogos = [];
+$brandingAssets = [];
 foreach (['logo' => 'logo.png', 'logo_topbar' => 'logo_topbar.png'] as $key => $file) {
     if (!file_exists($brandingDir . '/' . $file) && is_file($brandingDefaultsDir . '/' . $file)) {
         if (!is_dir($brandingDir)) {
@@ -174,15 +174,38 @@ foreach (['logo' => 'logo.png', 'logo_topbar' => 'logo_topbar.png'] as $key => $
             $log->warning('Could not seed default branding file: public/branding/' . $file);
         }
     }
-    $brandingLogos[$key] = file_exists($brandingDir . '/' . $file)
+    $brandingAssets[$key] = file_exists($brandingDir . '/' . $file)
         ? 'branding/' . $file
         : 'assets/branding/' . $file;
 }
 
+$favicon = ['path' => 'assets/images/favicon.png', 'type' => 'image/png'];
+foreach (['favicon.svg' => 'image/svg+xml', 'favicon.png' => 'image/png'] as $file => $type) {
+    if (is_file($brandingDir . '/' . $file)) {
+        $favicon = ['path' => 'branding/' . $file, 'type' => $type];
+        break;
+    }
+
+    if (is_file($brandingDefaultsDir . '/' . $file)) {
+        if (!is_dir($brandingDir)) {
+            @mkdir($brandingDir, 0755, true);
+        }
+        if (@copy($brandingDefaultsDir . '/' . $file, $brandingDir . '/' . $file)) {
+            $favicon = ['path' => 'branding/' . $file, 'type' => $type];
+        } else {
+            $log->warning('Could not seed default branding file: public/branding/' . $file);
+            $favicon = ['path' => 'assets/branding/' . $file, 'type' => $type];
+        }
+        break;
+    }
+}
+
 $twig->addGlobal('branding', [
     'app_name'    => $appConfig->general->appName,
-    'logo'        => $brandingLogos['logo'],
-    'logo_topbar' => $brandingLogos['logo_topbar'],
+    'logo'        => $brandingAssets['logo'],
+    'logo_topbar' => $brandingAssets['logo_topbar'],
+    'favicon'     => $favicon['path'],
+    'favicon_type' => $favicon['type'],
 ]);
 
 // ************************************************************************************************
