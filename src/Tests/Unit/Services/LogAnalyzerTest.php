@@ -122,6 +122,42 @@ final class LogAnalyzerTest extends TestCase
         );
     }
 
+    public function testAnalyzeAppLogsDoesNotTriggerLargeLogFileAlarmWhenDisabled(): void
+    {
+        $collector = $this->createMock(ServerDataCollectorInterface::class);
+        $appData = [
+            'logs' => [
+                '/tmp/huge.log' => 60000,
+            ],
+            'status' => [
+                'fatal' => 0,
+                'warnings' => 0,
+                'total' => 10,
+            ],
+        ];
+
+        $this->tools->method('formatKilobytes')->willReturn('60000 KB');
+        $this->tools->method('formatCompactNumber')->willReturnCallback(static fn (int $value): string => (string) $value);
+
+        $this->eventManager
+            ->expects($this->once())
+            ->method('getServerDataThresholdLevel')
+            ->with(60000, 'log_filesize_kb')
+            ->willReturn('alarm')
+        ;
+        $this->eventManager->expects($this->never())->method('handleEvent');
+
+        $result = $this->analyzer->analyzeAppLogs(
+            $appData,
+            'app-1',
+            'srv-1',
+            $collector,
+            alarmsEnabled: false
+        );
+
+        $this->assertSame('alarm', $result['log_analysis']['level']);
+    }
+
     public function testAnalyzeAppLogsTriggersHandleEventForFatalErrors(): void
     {
         $collector = $this->createMock(ServerDataCollectorInterface::class);
