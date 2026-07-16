@@ -42,7 +42,6 @@ use Twig\Environment;
  */
 class ModalController extends BaseController
 {
-    private Tools $tools;
     private CacheStoreInterface $cacheStore;
     private ApiCacheKeyFactory $cacheKeyFactory;
     private CacheTtlResolver $ttlResolver;
@@ -83,7 +82,6 @@ class ModalController extends BaseController
         Endpoints $endpoints,
         array $serversConfig
     ) {
-        $this->tools = $tools;
         $this->logger = $logger;
         $this->appConfig = $appConfig;
         $this->cacheStore = $cacheStore;
@@ -135,9 +133,6 @@ class ModalController extends BaseController
         if (!isset($serverConfig['api_key'], $serverConfig['api_url'])) {
             throw new InvalidArgumentException("Server {$server} missing required config");
         }
-        $timestamp = time();
-        $token = $this->tools->buildHmacAuthToken($server, $serverConfig['api_key'], $timestamp);
-
         // Extract security flags with defaults
         $allowHttp = TypeConverter::toBool($serverConfig['allow_http'] ?? null) ?? false;
         $suppressHttpWarning = TypeConverter::toBool($serverConfig['suppress_http_warning'] ?? null) ?? false;
@@ -145,7 +140,8 @@ class ModalController extends BaseController
         $apiClient = new ApiClient(
             $this->logger,
             $serverConfig['api_url'],
-            $token,
+            $server,
+            $serverConfig['api_key'],
             10,
             true,
             $allowHttp,

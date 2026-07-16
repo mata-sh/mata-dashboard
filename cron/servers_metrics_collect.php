@@ -102,14 +102,21 @@ try {
             continue;
         }
 
-        $token = $tools->buildHmacAuthToken((string) $serverName, $apiKey, time());
-
         try {
             // Extract security flags with defaults
             $allowHttp = TypeConverter::toBool($serverConfig['allow_http'] ?? null) ?? false;
             $suppressHttpWarning = TypeConverter::toBool($serverConfig['suppress_http_warning'] ?? null) ?? false;
 
-            $apiClient = new ApiClient($log, $apiUrl, $token, 10, true, $allowHttp, $suppressHttpWarning);
+            $apiClient = new ApiClient(
+                $log,
+                $apiUrl,
+                (string) $serverName,
+                $apiKey,
+                10,
+                true,
+                $allowHttp,
+                $suppressHttpWarning
+            );
             $collector = new ServerDataCollector(
                 $log,
                 $cacheStore,

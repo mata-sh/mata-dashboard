@@ -65,7 +65,6 @@ use Twig\Environment;
  */
 class DashboardController extends BaseController
 {
-    private Tools $tools;
     private NotificationManager $notificationManager;
     private EventManager $eventManager;
     private Endpoints $endpoints;
@@ -109,7 +108,7 @@ class DashboardController extends BaseController
      * Initialize dashboard controller with dependencies.
      *
      * Sets up server configurations, API clients, and monitoring thresholds.
-     * Creates encrypted API tokens for server communication.
+     * Configures per-request HMAC authentication for server communication.
      *
      * @param App                 $app                 Application container with auth and paths
      * @param Tools               $tools               Utility functions for formatting and icons
@@ -140,7 +139,6 @@ class DashboardController extends BaseController
         MenuBuilder $menuBuilder,
         array $monitoringSettings = [],
     ) {
-        $this->tools = $tools;
         $this->logger = $logger;
         $this->appConfig = $appConfig;
         $this->notificationManager = $notificationManager;
@@ -245,9 +243,6 @@ class DashboardController extends BaseController
             throw new InvalidArgumentException("Server {$server} missing required config");
         }
 
-        $timestamp = time();
-        $token = $this->tools->buildHmacAuthToken($server, $serverConfig['api_key'], $timestamp);
-
         // Extract security flags with defaults
         $allowHttp = TypeConverter::toBool($serverConfig['allow_http'] ?? null) ?? false;
         $suppressHttpWarning = TypeConverter::toBool($serverConfig['suppress_http_warning'] ?? null) ?? false;
@@ -255,7 +250,8 @@ class DashboardController extends BaseController
         $apiClient = new ApiClient(
             $this->logger,
             $serverConfig['api_url'],
-            $token,
+            $server,
+            $serverConfig['api_key'],
             10,
             true,
             $allowHttp,

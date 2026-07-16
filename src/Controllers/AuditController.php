@@ -32,7 +32,6 @@ use Twig\Environment;
  */
 class AuditController extends BaseController
 {
-    private Tools $tools;
     private ApplicationConfig $appConfig;
     private CacheStoreInterface $cacheStore;
     private ApiCacheKeyFactory $cacheKeyFactory;
@@ -62,7 +61,6 @@ class AuditController extends BaseController
         Endpoints $endpoints,
         array $serversConfig
     ) {
-        $this->tools = $tools;
         $this->logger = $logger;
         $this->appConfig = $appConfig;
         $this->cacheStore = $cacheStore;
@@ -209,11 +207,11 @@ class AuditController extends BaseController
             throw new InvalidArgumentException("Server {$server} missing required config");
         }
 
-        $token = $this->tools->buildHmacAuthToken($server, $serverConfig['api_key'], time());
         $apiClient = new ApiClient(
             $this->logger,
             $serverConfig['api_url'],
-            $token,
+            $server,
+            $serverConfig['api_key'],
             10,
             true,
             TypeConverter::toBool($serverConfig['allow_http'] ?? null) ?? false,

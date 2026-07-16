@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Mata\Utils;
 
+use Mata\Security\HmacAuthTokenGenerator;
 use Psr\Log\LoggerInterface;
 use Psr\Log\NullLogger;
 use RuntimeException;
@@ -246,11 +247,7 @@ class Tools
         int $timestamp,
         ?string $nonce = null
     ): string {
-        $nonceValue = $nonce ?? bin2hex(random_bytes(16));
-        $payload = $server . '|' . $timestamp . '|' . $nonceValue;
-        $signature = hash_hmac('sha256', $payload, $apiKey);
-
-        return $server . '|' . $timestamp . '|' . $nonceValue . '|' . $signature;
+        return (new HmacAuthTokenGenerator())->generate($server, $apiKey, $timestamp, $nonce);
     }
 
     /**

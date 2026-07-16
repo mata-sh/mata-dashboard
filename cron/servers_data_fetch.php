@@ -32,13 +32,20 @@ try {
 
     foreach ($monitoringSettings['servers'] as $server => $data) {
         try {
-            $token = $tools->buildHmacAuthToken($server, $data['api_key'], time());
-
             // Extract security flags with defaults
             $allowHttp = TypeConverter::toBool($data['allow_http'] ?? null) ?? false;
             $suppressHttpWarning = TypeConverter::toBool($data['suppress_http_warning'] ?? null) ?? false;
 
-            $apiClient = new ApiClient($log, $data['api_url'], $token, 10, true, $allowHttp, $suppressHttpWarning);
+            $apiClient = new ApiClient(
+                $log,
+                $data['api_url'],
+                $server,
+                $data['api_key'],
+                10,
+                true,
+                $allowHttp,
+                $suppressHttpWarning
+            );
             $serversApi[$server] = new ServerDataCollector(
                 $log,
                 $cacheStore,
