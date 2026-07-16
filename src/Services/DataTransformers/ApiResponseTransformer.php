@@ -85,6 +85,7 @@ class ApiResponseTransformer
             $this->logger->warning('Invalid node response payload', [
                 'endpoint' => $e->endpoint,
                 'message' => $e->getMessage(),
+                'response' => $data,
             ]);
 
             return $this->errorApiResponse($e->toErrorArray(), $cacheAge, $cacheTtl, $fromCache, $staleCache);

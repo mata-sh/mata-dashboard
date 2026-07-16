@@ -6,6 +6,7 @@ namespace Mata\Tests\Unit\Services\DataTransformers;
 
 use Mata\Services\DataTransformers\ApiResponseTransformer;
 use PHPUnit\Framework\TestCase;
+use Psr\Log\LoggerInterface;
 use Psr\Log\NullLogger;
 
 /**
@@ -103,6 +104,24 @@ final class ApiResponseTransformerValidationTest extends TestCase
         $this->assertNull($response['result']);
         $this->assertSame('invalid_payload', $response['error']['kind']);
         $this->assertSame('apps', $response['error']['endpoint']);
+    }
+
+    public function testInvalidPayloadLogsTheResponse(): void
+    {
+        $payload = ['shop' => ['title' => 'Shop']];
+        $logger = $this->createMock(LoggerInterface::class);
+        $logger->expects($this->once())
+            ->method('warning')
+            ->with(
+                'Invalid node response payload',
+                $this->callback(static fn (array $context): bool => $context === [
+                    'endpoint' => 'apps',
+                    'message' => 'Node returned an invalid application payload for shop.',
+                    'response' => $payload,
+                ]),
+            );
+
+        (new ApiResponseTransformer($logger))->normalizeApiResponse($payload, path: 'apps');
     }
 
     public function testInvalidServerMetricIsAnExplicitError(): void
