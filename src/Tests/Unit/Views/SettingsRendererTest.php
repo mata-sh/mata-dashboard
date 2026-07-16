@@ -36,7 +36,7 @@ final class SettingsRendererTest extends TestCase
 
         try {
             $method = new ReflectionMethod(SettingsRenderer::class, 'buildConfigFilesMetadata');
-            $files = $method->invoke($this->createRenderer($appPath), $configPath);
+            $files = $method->invoke($this->createRenderer($appPath), $configPath, $configPath . '/users.json');
             $filesByName = array_column($files, null, 'name');
 
             $this->assertSame(
@@ -60,6 +60,27 @@ final class SettingsRendererTest extends TestCase
             $this->assertTrue($filesByName['events.json']['exists']);
             $this->assertFalse($filesByName['users.json']['exists']);
         } finally {
+            $this->deleteDirectory($appPath);
+        }
+    }
+
+    public function testListsExternalUsersFileAtItsConfiguredPath(): void
+    {
+        $appPath = sys_get_temp_dir() . '/mata-settings-' . bin2hex(random_bytes(8));
+        $configPath = $appPath . '/config';
+        $usersFilePath = sys_get_temp_dir() . '/mata-users-' . bin2hex(random_bytes(8)) . '.json';
+        mkdir($configPath, 0777, true);
+        file_put_contents($usersFilePath, '{}');
+
+        try {
+            $method = new ReflectionMethod(SettingsRenderer::class, 'buildConfigFilesMetadata');
+            $files = $method->invoke($this->createRenderer($appPath), $configPath, $usersFilePath);
+            $filesByName = array_column($files, null, 'name');
+
+            $this->assertSame($usersFilePath, $filesByName['users.json']['path']);
+            $this->assertTrue($filesByName['users.json']['exists']);
+        } finally {
+            unlink($usersFilePath);
             $this->deleteDirectory($appPath);
         }
     }

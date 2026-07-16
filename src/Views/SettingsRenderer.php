@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Mata\Views;
 
 use DirectoryIterator;
+use Mata\Utils\UsersFilePathResolver;
 
 /**
  * Settings renderer for configuration overview.
@@ -36,12 +37,14 @@ class SettingsRenderer extends BaseRenderer
         array $thresholdsConfig
     ): string {
         $configRoot = $this->app->paths->appPath . '/config';
+        $usersFilePath = UsersFilePathResolver::resolve($this->app->paths->appPath);
+
         return $this->twig->render('partials/containers/settings-container.html.twig', [
             'settings' => [
                 'environment' => $environment,
                 'app_environment' => $appEnvironment,
                 'config_root' => $this->app->paths->toRelativePath($configRoot),
-                'files' => $this->buildConfigFilesMetadata($configRoot),
+                'files' => $this->buildConfigFilesMetadata($configRoot, $usersFilePath),
                 'servers' => $this->summarizeServersConfig($serversConfig),
                 'ttl' => $this->summarizeTtlConfig($ttlConfig),
                 'thresholds' => $this->summarizeThresholdsConfig($thresholdsConfig),
@@ -59,11 +62,12 @@ class SettingsRenderer extends BaseRenderer
      * Expected files are shown even when missing. Additional JSON and ENV files
      * in the configuration root are included automatically.
      *
-     * @param string $configRoot Configuration root directory path
+     * @param string $configRoot    Configuration root directory path
+     * @param string $usersFilePath  Resolved authentication file path
      *
      * @return array<int,array<string,mixed>> Configuration files metadata
      */
-    private function buildConfigFilesMetadata(string $configRoot): array
+    private function buildConfigFilesMetadata(string $configRoot, string $usersFilePath): array
     {
         $configRoot = rtrim($configRoot, '/');
         $files = [
@@ -76,15 +80,16 @@ class SettingsRenderer extends BaseRenderer
             ['name' => 'thresholds.json', 'description' => 'Configures alarm thresholds and escalation rules.', 'path' => $configRoot . '/thresholds.json'],
             ['name' => 'data_retention.json', 'description' => 'Controls metric, event, and alarm retention.', 'path' => $configRoot . '/data_retention.json'],
             ['name' => 'intervals.json', 'description' => 'Controls event and alarm cooldown intervals.', 'path' => $configRoot . '/intervals.json'],
-            ['name' => 'users.json', 'description' => 'Stores dashboard user accounts and authentication data.', 'path' => $configRoot . '/users.json'],
-
+            ['name' => 'users.json', 'description' => 'Stores dashboard user accounts and authentication data.', 'path' => $usersFilePath],
         ];
 
         $knownPaths = array_column($files, 'path');
         if (is_dir($configRoot) && is_readable($configRoot)) {
             try {
                 foreach (new DirectoryIterator($configRoot) as $file) {
-                    if (!$file->isFile() || !in_array($file->getExtension(), ['env', 'json'], true)) {
+                    if ($file->getFilename() === 'users.json'
+                        || !$file->isFile()
+                        || !in_array($file->getExtension(), ['env', 'json'], true)) {
                         continue;
                     }
 
@@ -109,10 +114,19 @@ class SettingsRenderer extends BaseRenderer
             return [
                 'name' => $file['name'],
                 'description' => $file['description'],
-                'path' => $this->app->paths->toRelativePath($file['path']),
+                'path' => $this->displayConfigPath($file['path']),
                 'exists' => is_file($file['path']),
             ];
         }, $files);
+    }
+
+    private function displayConfigPath(string $path): string
+    {
+        $appPath = rtrim($this->app->paths->appPath, '/');
+
+        return str_starts_with($path, $appPath . '/')
+            ? $this->app->paths->toRelativePath($path)
+            : $path;
     }
 
     // ────────────────────────────────────────────────
