@@ -213,7 +213,11 @@ class ServerViewBuilder
         }
 
         try {
-            $targets = EndpointTarget::fromRawAppData($rawAppsData, $serverName);
+            $pingableApps = array_filter(
+                $rawAppsData,
+                static fn (array $app): bool => ($app['ping'] ?? 'on') !== 'off'
+            );
+            $targets = EndpointTarget::fromRawAppData($pingableApps, $serverName);
 
             return $appMonitor->checkMultipleEndpoints($targets);
         } catch (Exception $e) {

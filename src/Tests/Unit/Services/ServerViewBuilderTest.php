@@ -106,6 +106,35 @@ final class ServerViewBuilderTest extends TestCase
         $this->assertSame('236k', $result['formatted_count']);
     }
 
+    public function testSkipsAppsWithPingDisabled(): void
+    {
+        $builder = new ServerViewBuilder(
+            $this->createStub(ServerMonitor::class),
+            $this->createStub(LogAnalyzer::class),
+            $this->createStub(EventManager::class),
+            new Logger('test'),
+            new CacheTypeResolver(),
+            new Tools(__DIR__),
+        );
+        $appMonitor = $this->createMock(AppMonitorInterface::class);
+        $appMonitor->expects($this->once())
+            ->method('checkMultipleEndpoints')
+            ->willReturnCallback(function (array $targets): array {
+                $this->assertSame(['enabled'], array_keys($targets));
+                $this->assertSame('https://enabled.example.test', $targets['enabled']->url);
+
+                return ['enabled' => ['reachable' => true]];
+            });
+
+        $method = new ReflectionMethod($builder, 'checkAppsAvailability');
+        $result = $method->invoke($builder, [
+            'enabled' => ['url' => 'https://enabled.example.test'],
+            'disabled' => ['url' => 'https://disabled.example.test', 'ping' => 'off'],
+        ], $appMonitor, 'server-a');
+
+        $this->assertSame(['enabled' => ['reachable' => true]], $result);
+    }
+
     public function testMissingBundleBuildsAnErrorCard(): void
     {
         $builder = new ServerViewBuilder(
