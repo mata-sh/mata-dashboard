@@ -172,7 +172,8 @@ class ApiResponseTransformer
                 }
 
                 $description = TypeConverter::toString($appData['description'] ?? null);
-                if (array_key_exists('description', $appData) && $appData['description'] !== null && $description === null) {
+                if (array_key_exists('description', $appData) && $appData['description'] !== null && $description === null
+                    && (!is_string($appData['description']) || trim($appData['description']) !== '')) {
                     throw new InvalidNodePayloadException("Node returned an invalid description for {$appName}.", 'apps');
                 }
 
