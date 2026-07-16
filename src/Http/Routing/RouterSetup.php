@@ -372,7 +372,7 @@ class RouterSetup
                 ['events_json', '/events', 'get', fn () => $this->dashboardController->getEventsJson()],
                 ['alarms_json', '/alarms', 'get', fn () => $this->dashboardController->getAlarmsJson()],
                 ['libraries_json', '/libraries', 'get', fn () => $this->dashboardController->getLibrariesJson()],
-                ['app_logs_json', '/logs/{server}/{app}', 'get', fn ($server, $app) => $this->modalController->getAppLogsJson($server, $app, forceRefresh: true)],
+                ['app_logs_json', '/logs/{server}/{app}', 'get', fn ($server, $app) => $this->modalController->getAppLogsJson($server, $app)],
                 ['app_logs_status_json', '/logs-status/{server}/{app}', 'get', fn ($server, $app) => $this->modalController->getAppLogsStatusJson($server, $app, forceRefresh: true)],
 
                 // Mutations
