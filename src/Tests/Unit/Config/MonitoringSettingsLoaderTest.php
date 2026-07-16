@@ -31,6 +31,22 @@ final class MonitoringSettingsLoaderTest extends TestCase
         $this->loader = new MonitoringSettingsLoader($this->eventRecorder);
     }
 
+    public function testLoadTtlConfigAddsTheAuditCacheTtlWhenItIsNotConfigured(): void
+    {
+        $path = tempnam(sys_get_temp_dir(), 'mata-ttl-');
+        self::assertNotFalse($path);
+        file_put_contents($path, json_encode(['apps' => 120], JSON_THROW_ON_ERROR));
+
+        try {
+            $ttl = $this->loader->loadTtlConfig($path);
+        } finally {
+            unlink($path);
+        }
+
+        $this->assertSame(120, $ttl['apps']);
+        $this->assertSame(86400, $ttl['audit']);
+    }
+
     // ==================== HTTPS Validation Tests ====================
 
     public function testLoadServersConfigExcludesDisabledServers(): void

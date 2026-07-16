@@ -434,6 +434,7 @@ final class MonitoringSettingsLoader
             'readme' => 300,           // 5 minutes
             'errorlog' => 60,          // 1 minute
             'serverMetricsChart' => 60, // 1 minute
+            'audit' => 86400,           // 24 hours; refreshed explicitly by Run audit
         ];
     }
 
