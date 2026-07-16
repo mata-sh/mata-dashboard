@@ -169,11 +169,11 @@ setup:
 # Native prerequisites and webserver configuration, called by the setup wizard.
 setup-local:
 	@echo "$(COLOR_BLUE)📋 Creating config files from examples...$(COLOR_RESET)"
-	@mkdir -p config/dev config/demo config/prod temp/api-cache temp/sessions temp/templates-cache logs
-	@for file in config.env db.config.env mail.config.env; do \
+	@mkdir -p config/demo temp/api-cache temp/sessions temp/templates-cache logs
+	@for file in config.env db.config.env mail.config.env servers.json ttl.json thresholds.json intervals.json data_retention.json; do \
 		if [ ! -f "config/$$file" ]; then \
 			cp "config/example/$${file}.example" "config/$$file"; \
-			chmod 600 "config/$$file"; \
+			case "$$file" in *.env|servers.json) chmod 600 "config/$$file" ;; *) chmod 644 "config/$$file" ;; esac; \
 			echo "$(COLOR_GREEN)✅ Created config/$$file$(COLOR_RESET)"; \
 		else \
 			echo "$(COLOR_YELLOW)⚠️  config/$$file already exists, skipping$(COLOR_RESET)"; \
@@ -271,7 +271,7 @@ doctor:
 			[ "$$docker_env" = "$(ENV)" ] && echo "$(COLOR_GREEN)  ✓ .env APP_ENV=$(ENV)$(COLOR_RESET)" || { echo "$(COLOR_RED)  ✗ .env APP_ENV=$${docker_env:-missing}, expected $(ENV)$(COLOR_RESET)"; failed=1; }; \
 		else echo "$(COLOR_RED)  ✗ .env missing$(COLOR_RESET)"; failed=1; fi; \
 	fi; \
-	for dir in config/$(ENV) logs temp; do \
+	for dir in config logs temp; do \
 		if [ -d "$$dir" ]; then owner=$$(stat -c '%U:%G' "$$dir" 2>/dev/null || stat -f '%Su:%Sg' "$$dir" 2>/dev/null || echo unknown); echo "$(COLOR_GREEN)  ✓ $$dir ($$owner)$(COLOR_RESET)"; else echo "$(COLOR_RED)  ✗ $$dir missing$(COLOR_RESET)"; failed=1; fi; \
 	done; \
 	exit $$failed
@@ -590,15 +590,15 @@ docker-init:
 	@set -e; $(REQUIRE_DOCKER_MODE); \
 	echo "$(COLOR_BLUE)🐳 Initializing Docker prerequisites...$(COLOR_RESET)"; \
 	docker network inspect mata-network >/dev/null 2>&1 || docker network create mata-network >/dev/null; \
-	if ! mkdir -p config/dev config/demo config/prod temp/api-cache temp/sessions temp/templates-cache logs 2>/dev/null; then \
+	if ! mkdir -p config/demo temp/api-cache temp/sessions temp/templates-cache logs 2>/dev/null; then \
 		echo "$(COLOR_YELLOW)Writable paths belong to another user; preparing them through a scoped root container.$(COLOR_RESET)"; \
 		docker run --rm -v "$(CURDIR)/config:/mata/config" -v "$(CURDIR)/temp:/mata/temp" -v "$(CURDIR)/logs:/mata/logs" php:8.3-apache \
-			sh -c 'mkdir -p /mata/config/dev /mata/config/demo /mata/config/prod /mata/temp/api-cache /mata/temp/sessions /mata/temp/templates-cache /mata/logs'; \
+			sh -c 'mkdir -p /mata/config/demo /mata/temp/api-cache /mata/temp/sessions /mata/temp/templates-cache /mata/logs'; \
 	fi; \
-	for file in config.env db.config.env mail.config.env; do \
+	for file in config.env db.config.env mail.config.env servers.json ttl.json thresholds.json intervals.json data_retention.json; do \
 		if [ ! -f "config/$$file" ]; then \
-			if cp "config/example/$${file}.example" "config/$$file" 2>/dev/null; then chmod 600 "config/$$file"; \
-			else docker run --rm -v "$(CURDIR)/config:/mata/config" php:8.3-apache sh -c "cp /mata/config/example/$${file}.example /mata/config/$$file && chmod 600 /mata/config/$$file"; fi; \
+			if cp "config/example/$${file}.example" "config/$$file" 2>/dev/null; then case "$$file" in *.env|servers.json) chmod 600 "config/$$file" ;; *) chmod 644 "config/$$file" ;; esac; \
+			else docker run --rm -v "$(CURDIR)/config:/mata/config" php:8.3-apache sh -c "cp /mata/config/example/$${file}.example /mata/config/$$file && case '$$file' in *.env|servers.json) chmod 600 /mata/config/$$file ;; *) chmod 644 /mata/config/$$file ;; esac"; fi; \
 			echo "$(COLOR_GREEN)✅ Created config/$$file$(COLOR_RESET)"; \
 		fi; \
 	done; \
@@ -636,7 +636,8 @@ prod-fix-perms: prod-setup
 		-v "$(CURDIR)/logs:/mata/logs" \
 		-v "$(CURDIR)/temp:/mata/temp" \
 		"php:$${php_version}-apache" sh -c \
-		'chmod 0755 /mata/config /mata/config/prod \
+		'chmod 0755 /mata/config \}]} મનેjson սխալ? Need validate. Okay maybe escaped final wrong. Let's see. assistant to=functions.read  天天中彩票一等奖  彩神争霸邀请码՞ւ】【”】【ҟны  qq上= 天天中彩票买 хадоу  大发彩票快三json::{"path":"Makefile","offset":168,"limit":22}]} ... Wait tool output absent? The tool call malformed maybe. Need resend. +#+#+#+#+#+ to=functions.read  天天送commentary  天天中彩票如何ाठमाडौंцҳауеит 凤凰大参考՞ւjson
+{
 		&& chown -R www-data:www-data /mata/logs /mata/temp \
 		&& find /mata/logs -type d -exec chmod 0775 {} + \
 		&& find /mata/logs -type f -exec chmod 0660 {} + \

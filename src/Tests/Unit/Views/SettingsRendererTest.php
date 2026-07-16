@@ -28,15 +28,15 @@ final class SettingsRendererTest extends TestCase
     {
         $appPath = sys_get_temp_dir() . '/mata-settings-' . bin2hex(random_bytes(8));
         $configPath = $appPath . '/config';
-        mkdir($configPath . '/demo', 0777, true);
+        mkdir($configPath, 0777, true);
         file_put_contents($configPath . '/config.env', 'APP_ENV=demo');
         file_put_contents($configPath . '/limits.json', '{}');
-        file_put_contents($configPath . '/demo/thresholds.json', '{}');
-        file_put_contents($configPath . '/demo/events.json', '{}');
+        file_put_contents($configPath . '/thresholds.json', '{}');
+        file_put_contents($configPath . '/events.json', '{}');
 
         try {
             $method = new ReflectionMethod(SettingsRenderer::class, 'buildConfigFilesMetadata');
-            $files = $method->invoke($this->createRenderer($appPath), 'demo', $configPath);
+            $files = $method->invoke($this->createRenderer($appPath), $configPath);
             $filesByName = array_column($files, null, 'name');
 
             $this->assertSame(

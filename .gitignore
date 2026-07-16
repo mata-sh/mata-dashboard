@@ -28,7 +28,7 @@ logs/*
 docs/_drafts
 docs/plan
 config/*.json
-config/*/*.json
+config/demo/*.json
 
 # instance branding (seeded from public/assets/branding/ on first run)
 public/branding/*

@@ -7,7 +7,7 @@ Database credentials are defined in `config/db.config.env`
 
 ## Application Configuration
 
-`config/<env>/config.env`
+`config/config.env`
 
 1. **Disable debug mode in production:**
 
@@ -106,7 +106,7 @@ Use least-privilege filesystem access:
 
 - Application code and configuration must not be writable by the web server user.
 - Only runtime directories (cache, logs, temp, and the dedicated `MATA_USERS_FILE` directory) should be writable by the application process.
-- Provision the authentication-data directory as described in the [User Management guide](user-management.md#persistent-authentication-data); do not use `config/<env>/` for production authentication data.
+- Provision the authentication-data directory as described in the [User Management guide](user-management.md#persistent-authentication-data); do not use the in-project `config/users.json` fallback for production authentication data.
 - Validate ownership and permissions as part of the deployment process.
 
 <!-- ## Next Steps -->

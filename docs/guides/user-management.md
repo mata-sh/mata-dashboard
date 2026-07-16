@@ -81,11 +81,11 @@ The file and lock file are owned by PHP-FPM and use mode `0600`. Deployments mus
 
 Docker always uses `/var/lib/mata-dashboard/users.json` on its `mata_users` named volume, regardless of `MATA_USERS_FILE` in `config.env`.
 
-If `MATA_USERS_FILE` is empty, MATA keeps the legacy location `config/<env>/users.json`. This is intended for development only.
+If `MATA_USERS_FILE` is empty, MATA uses `config/users.json`. This is intended for development only.
 
 ## Environments
 
-The script uses the same `MATA_USERS_FILE` as the web application. Without it, it targets `config/dev/`, `config/demo/`, or `config/prod/` based on `APP_ENV`. You can override with `--env=ENV`.
+The script uses the same `MATA_USERS_FILE` as the web application. Without it, it uses the shared `config/users.json`; `APP_ENV` does not select a separate user file.
 
 ```bash
 make users-list MODE=docker ENV=prod
@@ -95,5 +95,5 @@ Production writes require explicit confirmation.
 
 ## Files and Logs
 
-- Users: `MATA_USERS_FILE`, or the legacy `config/<env>/users.json`
+- Users: `MATA_USERS_FILE`, or the development fallback `config/users.json`
 - Audit log: `logs/user-management-audit.log`

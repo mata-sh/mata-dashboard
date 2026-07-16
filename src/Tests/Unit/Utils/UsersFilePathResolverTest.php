@@ -42,11 +42,11 @@ class UsersFilePathResolverTest extends TestCase
         parent::tearDown();
     }
 
-    public function testItUsesLegacyEnvironmentPathWhenNoPersistentPathIsConfigured(): void
+    public function testItUsesInProjectPathWhenNoPersistentPathIsConfigured(): void
     {
         $this->assertSame(
-            $this->tempDir . '/app/config/prod/users.json',
-            UsersFilePathResolver::resolve($this->tempDir . '/app', 'prod')
+            $this->tempDir . '/app/config/users.json',
+            UsersFilePathResolver::resolve($this->tempDir . '/app')
         );
     }
 
@@ -55,7 +55,7 @@ class UsersFilePathResolverTest extends TestCase
         $usersFile = $this->tempDir . '/data/users.json';
         $this->setUsersFile($usersFile);
 
-        $this->assertSame($usersFile, UsersFilePathResolver::resolve($this->tempDir . '/app', 'prod'));
+        $this->assertSame($usersFile, UsersFilePathResolver::resolve($this->tempDir . '/app'));
     }
 
     public function testItRejectsRelativeConfiguredPath(): void
@@ -65,7 +65,7 @@ class UsersFilePathResolverTest extends TestCase
         $this->expectException(InvalidArgumentException::class);
         $this->expectExceptionMessage('must be an absolute path');
 
-        UsersFilePathResolver::resolve($this->tempDir . '/app', 'prod');
+        UsersFilePathResolver::resolve($this->tempDir . '/app');
     }
 
     public function testItRejectsConfiguredPathInsideApplicationDirectory(): void
@@ -75,7 +75,7 @@ class UsersFilePathResolverTest extends TestCase
         $this->expectException(InvalidArgumentException::class);
         $this->expectExceptionMessage('must be outside the application directory');
 
-        UsersFilePathResolver::resolve($this->tempDir . '/app', 'prod');
+        UsersFilePathResolver::resolve($this->tempDir . '/app');
     }
 
     public function testItRejectsPathInNonexistentDirectoryInsideApplicationDirectory(): void
@@ -85,7 +85,7 @@ class UsersFilePathResolverTest extends TestCase
         $this->expectException(InvalidArgumentException::class);
         $this->expectExceptionMessage('must be outside the application directory');
 
-        UsersFilePathResolver::resolve($this->tempDir . '/app', 'prod');
+        UsersFilePathResolver::resolve($this->tempDir . '/app');
     }
 
     private function setUsersFile(?string $value): void

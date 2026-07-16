@@ -31,6 +31,31 @@ final class MonitoringSettingsLoaderTest extends TestCase
         $this->loader = new MonitoringSettingsLoader($this->eventRecorder);
     }
 
+    public function testLoadAllConfigsUsesConfigurationRootForEveryRuntimeEnvironment(): void
+    {
+        $configPath = $this->createTempDirectory();
+        file_put_contents($configPath . '/servers.json', json_encode([
+            'server' => [
+                'title' => 'Server',
+                'api_url' => 'https://server.example.test/api',
+                'api_key' => 'key123',
+            ],
+        ], JSON_THROW_ON_ERROR));
+        file_put_contents($configPath . '/ttl.json', '{"apps": 1}');
+        file_put_contents($configPath . '/thresholds.json', '{"server_data": {}}');
+        file_put_contents($configPath . '/intervals.json', '{"events": {}}');
+        file_put_contents($configPath . '/data_retention.json', '{"retention": {}}');
+
+        try {
+            $config = $this->loader->loadAllConfigs($configPath, 'demo');
+        } finally {
+            $this->cleanupTempFiles([$configPath]);
+        }
+
+        $this->assertSame('demo', $config['environment']);
+        $this->assertArrayHasKey('server', $config['servers']);
+    }
+
     public function testLoadTtlConfigAddsMissingCacheTtls(): void
     {
         $path = tempnam(sys_get_temp_dir(), 'mata-ttl-');

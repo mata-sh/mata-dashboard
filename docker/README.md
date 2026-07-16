@@ -132,10 +132,10 @@ Files:
 - `config/db.config.env` - Database connection details
 - `config/mail.config.env` - Email configuration
 
-#### 3. Environment-Specific Data (`config/{env}/*.json`)
-- Loaded based on `APP_ENV` value (dev, demo, prod)
-- Contains: users, servers, monitoring settings
-- Runtime configuration data
+#### 3. Monitoring Configuration (`config/*.json`)
+- Shared by every monitored target; `APP_ENV` does not select these files
+- Contains: users, servers, thresholds, cache TTLs, cooldowns, and retention settings
+- Demo-only mock events live in `config/demo/events.json`
 
 ### Environment Comparison
 

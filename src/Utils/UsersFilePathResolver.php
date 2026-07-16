@@ -12,14 +12,14 @@ use InvalidArgumentException;
 final class UsersFilePathResolver
 {
     /**
-     * Use MATA_USERS_FILE when configured; retain the in-project path for
-     * development installations that have not yet moved their user data.
+     * Use MATA_USERS_FILE when configured; otherwise use the dashboard-wide
+     * in-project path for development installations.
      */
-    public static function resolve(string $appPath, string $environment): string
+    public static function resolve(string $appPath): string
     {
         $configuredPath = self::configuredPath();
         if ($configuredPath === null) {
-            return $appPath . '/config/' . $environment . '/users.json';
+            return $appPath . '/config/users.json';
         }
 
         if (!self::isAbsolutePath($configuredPath)) {

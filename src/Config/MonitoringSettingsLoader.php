@@ -440,32 +440,32 @@ final class MonitoringSettingsLoader
     }
 
     /**
-     * Get all monitoring configuration in one call with environment support.
+     * Get all monitoring configuration in one call.
      *
-     * Convenience method to load all monitoring configurations at once.
-     * Loads configuration files from environment-specific subdirectories.
+     * Runtime monitoring configuration is global to the dashboard. APP_ENV
+     * identifies the dashboard runtime only; it does not select monitored targets.
      *
-     * @param string $configPath  Base configuration directory path
-     * @param string $environment Environment name (dev, demo, prod)
+     * @param string $configPath     Base configuration directory path
+     * @param string $appEnvironment Dashboard runtime environment
      *
      * @return array<string,mixed> Complete monitoring configuration with servers, ttl, thresholds, and data_retention
      */
-    public function loadAllConfigs(string $configPath, string $environment = 'prod'): array
+    public function loadAllConfigs(string $configPath, string $appEnvironment = 'prod'): array
     {
-        $envConfigPath = $this->getEnvironmentConfigPath($configPath, $environment);
+        $configPath = rtrim($configPath, '/');
 
-        $serversFile = $envConfigPath . '/servers.json';
-        $ttlFile = $envConfigPath . '/ttl.json';
-        $intervalsFile = $envConfigPath . '/intervals.json';
-        $thresholdsFile = $envConfigPath . '/thresholds.json';
-        $dataRetentionFile = $envConfigPath . '/data_retention.json';
+        $serversFile = $configPath . '/servers.json';
+        $ttlFile = $configPath . '/ttl.json';
+        $intervalsFile = $configPath . '/intervals.json';
+        $thresholdsFile = $configPath . '/thresholds.json';
+        $dataRetentionFile = $configPath . '/data_retention.json';
 
         $config = [
             'servers' => $this->loadServersConfig($serversFile),
             'ttl' => $this->loadTtlConfig($ttlFile),
             'data_retention' => $this->loadDataRetentionConfig($dataRetentionFile),
             'intervals' => $this->loadIntervalsConfig($intervalsFile),
-            'environment' => $environment,
+            'environment' => $appEnvironment,
             'charts' => [],
         ];
 
@@ -482,42 +482,6 @@ final class MonitoringSettingsLoader
         }
 
         return $config;
-    }
-
-    /**
-     * Get environment-specific configuration path.
-     *
-     * @param string $basePath    Base configuration directory
-     * @param string $environment Environment name
-     *
-     * @return string Environment-specific configuration path
-     *
-     * @throws RuntimeException If environment directory doesn't exist
-     */
-    private function getEnvironmentConfigPath(string $basePath, string $environment): string
-    {
-        $envPath = $basePath . '/' . $environment;
-
-        if (!is_dir($envPath)) {
-            // Fallback to prod if environment directory doesn't exist
-            $fallbackPath = $basePath . '/prod';
-            if (!is_dir($fallbackPath)) {
-                throw new RuntimeException(
-                    "Configuration environment directory not found: {$envPath} "
-                    . "and fallback {$fallbackPath} also missing"
-                );
-            }
-
-            $this->recordConfigurationEvent(
-                type: 'config_environment_fallback',
-                message: "Environment '{$environment}' not found, falling back to 'prod'",
-                level: 'warning'
-            );
-
-            return $fallbackPath;
-        }
-
-        return $envPath;
     }
 
     /**

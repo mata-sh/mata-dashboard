@@ -3,16 +3,12 @@
   <section class="settings-card">
     <h3>Configuration Overview</h3>
     <div class="settings-subtitle is-info">
-      The dashboard is currently using the <strong>{{ env_name }}</strong> monitoring set (APP_ENV: {{ settings.app_environment|default(env_name) }}). All application and active-environment configuration files are listed below. Update them in an editor of your choice; changes take effect on the next refresh.
+      The dashboard runtime environment is <strong>{{ env_name }}</strong> (APP_ENV: {{ settings.app_environment|default(env_name) }}). Monitoring configuration is shared across all monitored targets. Update files in an editor; changes take effect on the next refresh.
     </div>
     <div class="settings-paths">
       <div>
         <span class="settings-path-label">Config root</span>
         <code>{{ settings.config_root|default('config') }}</code>
-      </div>
-      <div>
-        <span class="settings-path-label">Active directory</span>
-        <code>{{ settings.environment_path|default('config/' ~ env_name) }}</code>
       </div>
     </div>
     <div class="settings-files">

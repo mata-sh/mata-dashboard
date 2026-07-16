@@ -229,7 +229,7 @@ if ($appConfig->template->debugEnabled) {
 // ************************************************************************************************
 $usersFilePath = null;
 try {
-    $usersFilePath = UsersFilePathResolver::resolve($paths->appPath, $environment);
+    $usersFilePath = UsersFilePathResolver::resolve($paths->appPath);
     $auth = new Auth($log, $usersFilePath);
 } catch (Throwable $e) {
     $log->critical('Authentication initialization failed: ' . $e->getMessage());

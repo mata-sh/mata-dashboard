@@ -100,9 +100,9 @@ final class ServerRendererTest extends TestCase
             $this->createStub(LogRenderer::class)
         );
 
-        $html = $renderer->renderErrorContainer("No Servers configured.\nconfig/prod/servers.json", []);
+        $html = $renderer->renderErrorContainer("No Servers configured.\nconfig/servers.json", []);
 
-        $this->assertStringContainsString("No Servers configured.<br />\nconfig/prod/servers.json", $html);
+        $this->assertStringContainsString("No Servers configured.<br />\nconfig/servers.json", $html);
     }
 
     public function testBuildsMetricModalEndpointsForEachCardMetric(): void

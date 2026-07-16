@@ -36,15 +36,12 @@ class SettingsRenderer extends BaseRenderer
         array $thresholdsConfig
     ): string {
         $configRoot = $this->app->paths->appPath . '/config';
-        $environmentPath = $configRoot . '/' . $environment;
-
         return $this->twig->render('partials/containers/settings-container.html.twig', [
             'settings' => [
                 'environment' => $environment,
                 'app_environment' => $appEnvironment,
                 'config_root' => $this->app->paths->toRelativePath($configRoot),
-                'environment_path' => $this->app->paths->toRelativePath($environmentPath),
-                'files' => $this->buildConfigFilesMetadata($environment, $configRoot),
+                'files' => $this->buildConfigFilesMetadata($configRoot),
                 'servers' => $this->summarizeServersConfig($serversConfig),
                 'ttl' => $this->summarizeTtlConfig($ttlConfig),
                 'thresholds' => $this->summarizeThresholdsConfig($thresholdsConfig),
@@ -60,51 +57,51 @@ class SettingsRenderer extends BaseRenderer
      * Build metadata about every dashboard configuration file.
      *
      * Expected files are shown even when missing. Additional JSON and ENV files
-     * in the active environment are included automatically.
+     * in the configuration root are included automatically.
      *
-     * @param string $environment Environment name (prod, dev, etc.)
-     * @param string $configRoot  Configuration root directory path
+     * @param string $configRoot Configuration root directory path
      *
      * @return array<int,array<string,mixed>> Configuration files metadata
      */
-    private function buildConfigFilesMetadata(string $environment, string $configRoot): array
+    private function buildConfigFilesMetadata(string $configRoot): array
     {
-        $environmentPath = rtrim($configRoot, '/') . '/' . $environment;
+        $configRoot = rtrim($configRoot, '/');
         $files = [
             ['name' => 'config.env', 'description' => 'Application, logging, and runtime settings.', 'path' => $configRoot . '/config.env'],
             ['name' => 'db.config.env', 'description' => 'Database connection and TLS settings.', 'path' => $configRoot . '/db.config.env'],
             ['name' => 'mail.config.env', 'description' => 'Email and SMTP settings for notifications.', 'path' => $configRoot . '/mail.config.env'],
             ['name' => 'limits.json', 'description' => 'Alarm delivery rate limits by channel and server.', 'path' => $configRoot . '/limits.json'],
-            ['name' => 'servers.json', 'description' => 'Defines monitored servers and their API credentials.', 'path' => $environmentPath . '/servers.json'],
-            ['name' => 'ttl.json', 'description' => 'Controls cache lifetimes for API calls.', 'path' => $environmentPath . '/ttl.json'],
-            ['name' => 'thresholds.json', 'description' => 'Configures alarm thresholds and escalation rules.', 'path' => $environmentPath . '/thresholds.json'],
-            ['name' => 'data_retention.json', 'description' => 'Controls metric, event, and alarm retention.', 'path' => $environmentPath . '/data_retention.json'],
-            ['name' => 'intervals.json', 'description' => 'Controls event and alarm cooldown intervals.', 'path' => $environmentPath . '/intervals.json'],
-            ['name' => 'users.json', 'description' => 'Stores dashboard user accounts and authentication data.', 'path' => $environmentPath . '/users.json'],
+            ['name' => 'servers.json', 'description' => 'Defines monitored servers and their API credentials.', 'path' => $configRoot . '/servers.json'],
+            ['name' => 'ttl.json', 'description' => 'Controls cache lifetimes for API calls.', 'path' => $configRoot . '/ttl.json'],
+            ['name' => 'thresholds.json', 'description' => 'Configures alarm thresholds and escalation rules.', 'path' => $configRoot . '/thresholds.json'],
+            ['name' => 'data_retention.json', 'description' => 'Controls metric, event, and alarm retention.', 'path' => $configRoot . '/data_retention.json'],
+            ['name' => 'intervals.json', 'description' => 'Controls event and alarm cooldown intervals.', 'path' => $configRoot . '/intervals.json'],
+            ['name' => 'users.json', 'description' => 'Stores dashboard user accounts and authentication data.', 'path' => $configRoot . '/users.json'],
+
         ];
 
         $knownPaths = array_column($files, 'path');
-        foreach ([$configRoot, $environmentPath] as $directory) {
-            if (!is_dir($directory)) {
-                continue;
-            }
+        if (is_dir($configRoot) && is_readable($configRoot)) {
+            try {
+                foreach (new DirectoryIterator($configRoot) as $file) {
+                    if (!$file->isFile() || !in_array($file->getExtension(), ['env', 'json'], true)) {
+                        continue;
+                    }
 
-            foreach (new DirectoryIterator($directory) as $file) {
-                if (!$file->isFile() || !in_array($file->getExtension(), ['env', 'json'], true)) {
-                    continue;
+                    $path = $file->getPathname();
+                    if (in_array($path, $knownPaths, true)) {
+                        continue;
+                    }
+
+                    $files[] = [
+                        'name' => $file->getFilename(),
+                        'description' => 'Additional dashboard configuration file.',
+                        'path' => $path,
+                    ];
+                    $knownPaths[] = $path;
                 }
-
-                $path = $file->getPathname();
-                if (in_array($path, $knownPaths, true)) {
-                    continue;
-                }
-
-                $files[] = [
-                    'name' => $file->getFilename(),
-                    'description' => 'Additional dashboard configuration file.',
-                    'path' => $path,
-                ];
-                $knownPaths[] = $path;
+            } catch (\UnexpectedValueException) {
+                // Expected file metadata remains available when the directory cannot be listed.
             }
         }
 
