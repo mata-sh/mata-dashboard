@@ -427,6 +427,7 @@ final class MonitoringSettingsLoader
             'apps' => 60,               // 1 minute
             'app' => 30,                // 30 seconds
             'serverData' => 10,         // 10 seconds
+            'serverInfo' => 86400,      // 24 hours
             'databases' => 10,          // 10 seconds
             'libraries' => 600,         // 10 minutes
             'appLogs' => 30,           // 30 seconds

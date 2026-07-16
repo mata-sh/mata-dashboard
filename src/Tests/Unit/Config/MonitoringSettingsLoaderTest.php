@@ -31,7 +31,7 @@ final class MonitoringSettingsLoaderTest extends TestCase
         $this->loader = new MonitoringSettingsLoader($this->eventRecorder);
     }
 
-    public function testLoadTtlConfigAddsTheAuditCacheTtlWhenItIsNotConfigured(): void
+    public function testLoadTtlConfigAddsMissingCacheTtls(): void
     {
         $path = tempnam(sys_get_temp_dir(), 'mata-ttl-');
         self::assertNotFalse($path);
@@ -44,6 +44,7 @@ final class MonitoringSettingsLoaderTest extends TestCase
         }
 
         $this->assertSame(120, $ttl['apps']);
+        $this->assertSame(86400, $ttl['serverInfo']);
         $this->assertSame(86400, $ttl['audit']);
     }
 
