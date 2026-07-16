@@ -82,6 +82,19 @@ final class ApiResponseTransformerValidationTest extends TestCase
         $this->assertSame('stg', $response['result']['staging-shop']['env']);
     }
 
+    public function testNullStatusUrlIsAccepted(): void
+    {
+        $response = $this->transformer->normalizeApiResponse([
+            'shop' => [
+                'title' => 'Shop', 'path' => '/var/www/shop', 'url' => 'https://shop.example.test', 'env' => 'live',
+                'status_url' => null, 'status' => ['fatal' => 0, 'warnings' => 0, 'total' => 0], 'logs' => [],
+            ],
+        ], path: 'apps');
+
+        $this->assertNull($response['error']);
+        $this->assertNull($response['result']['shop']['status_url']);
+    }
+
     public function testInvalidStatusUrlIsAnExplicitError(): void
     {
         $response = $this->transformer->normalizeApiResponse([

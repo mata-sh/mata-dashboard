@@ -690,6 +690,10 @@ class ApiResponseTransformer
             return null;
         }
 
+        if ($appData['status_url'] === null) {
+            return null;
+        }
+
         $statusUrl = TypeConverter::toString($appData['status_url']);
         if ($statusUrl === null || !filter_var($statusUrl, FILTER_VALIDATE_URL)) {
             return false;
