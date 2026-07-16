@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Mata\Views;
 
+use DirectoryIterator;
+
 /**
  * Settings renderer for configuration overview.
  *
@@ -55,7 +57,10 @@ class SettingsRenderer extends BaseRenderer
     // ────────────────────────────────────────────────
 
     /**
-     * Build metadata about configuration files for display.
+     * Build metadata about every dashboard configuration file.
+     *
+     * Expected files are shown even when missing. Additional JSON and ENV files
+     * in the active environment are included automatically.
      *
      * @param string $environment Environment name (prod, dev, etc.)
      * @param string $configRoot  Configuration root directory path
@@ -64,31 +69,51 @@ class SettingsRenderer extends BaseRenderer
      */
     private function buildConfigFilesMetadata(string $environment, string $configRoot): array
     {
+        $environmentPath = rtrim($configRoot, '/') . '/' . $environment;
         $files = [
-            [
-                'name' => 'servers.json',
-                'description' => 'Defines monitored servers and their API credentials.',
-            ],
-            [
-                'name' => 'ttl.json',
-                'description' => 'Controls cache lifetimes for API calls.',
-            ],
-            [
-                'name' => 'thresholds.json',
-                'description' => 'Configures alarm thresholds and escalation rules.',
-            ],
+            ['name' => 'config.env', 'description' => 'Application, logging, and runtime settings.', 'path' => $configRoot . '/config.env'],
+            ['name' => 'db.config.env', 'description' => 'Database connection and TLS settings.', 'path' => $configRoot . '/db.config.env'],
+            ['name' => 'mail.config.env', 'description' => 'Email and SMTP settings for notifications.', 'path' => $configRoot . '/mail.config.env'],
+            ['name' => 'limits.json', 'description' => 'Alarm delivery rate limits by channel and server.', 'path' => $configRoot . '/limits.json'],
+            ['name' => 'servers.json', 'description' => 'Defines monitored servers and their API credentials.', 'path' => $environmentPath . '/servers.json'],
+            ['name' => 'ttl.json', 'description' => 'Controls cache lifetimes for API calls.', 'path' => $environmentPath . '/ttl.json'],
+            ['name' => 'thresholds.json', 'description' => 'Configures alarm thresholds and escalation rules.', 'path' => $environmentPath . '/thresholds.json'],
+            ['name' => 'data_retention.json', 'description' => 'Controls metric, event, and alarm retention.', 'path' => $environmentPath . '/data_retention.json'],
+            ['name' => 'intervals.json', 'description' => 'Controls event and alarm cooldown intervals.', 'path' => $environmentPath . '/intervals.json'],
+            ['name' => 'users.json', 'description' => 'Stores dashboard user accounts and authentication data.', 'path' => $environmentPath . '/users.json'],
         ];
 
-        $envPath = rtrim($configRoot, '/') . '/' . $environment;
+        $knownPaths = array_column($files, 'path');
+        foreach ([$configRoot, $environmentPath] as $directory) {
+            if (!is_dir($directory)) {
+                continue;
+            }
 
-        return array_map(function (array $file) use ($envPath) {
-            $absolutePath = $envPath . '/' . $file['name'];
+            foreach (new DirectoryIterator($directory) as $file) {
+                if (!$file->isFile() || !in_array($file->getExtension(), ['env', 'json'], true)) {
+                    continue;
+                }
 
+                $path = $file->getPathname();
+                if (in_array($path, $knownPaths, true)) {
+                    continue;
+                }
+
+                $files[] = [
+                    'name' => $file->getFilename(),
+                    'description' => 'Additional dashboard configuration file.',
+                    'path' => $path,
+                ];
+                $knownPaths[] = $path;
+            }
+        }
+
+        return array_map(function (array $file) {
             return [
                 'name' => $file['name'],
                 'description' => $file['description'],
-                'path' => $this->app->paths->toRelativePath($absolutePath),
-                'exists' => file_exists($absolutePath),
+                'path' => $this->app->paths->toRelativePath($file['path']),
+                'exists' => is_file($file['path']),
             ];
         }, $files);
     }
