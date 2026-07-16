@@ -14,12 +14,16 @@ use Mata\Services\Foundation\ApiClient;
 use Mata\Services\Foundation\ProbeClient;
 use Mata\Services\Monitor\Dto\EndpointTarget;
 use Psr\Log\LoggerInterface;
+use Throwable;
 
 /**
  * Application availability monitoring with cache and event support.
  */
 class AppMonitor implements AppMonitorInterface
 {
+    /** Keep shared hosts responsive without serializing application checks. */
+    private const MAX_CONCURRENT_PROBES = 4;
+
     public function __construct(
         private CacheStoreInterface $cacheStore,
         private ApiCacheKeyFactory $cacheKeyFactory,
@@ -59,7 +63,7 @@ class AppMonitor implements AppMonitorInterface
         $ttlSeconds = $this->ttlResolver->get($cacheType);
         $results = [];
         $cacheKeys = [];
-        $pending = [];
+        $uncachedTargets = [];
 
         foreach ($targets as $identifier => $target) {
             $cacheKey = $this->availabilityCacheKey($target->resolveProbeUrl(), $cacheType, $timeout);
@@ -71,17 +75,31 @@ class AppMonitor implements AppMonitorInterface
             }
 
             $cacheKeys[$identifier] = $cacheKey;
-            $pending[$identifier] = $this->probeTargetAsync($target, $timeout);
+            $uncachedTargets[$identifier] = $target;
         }
 
-        foreach ($this->probeClient->settle($pending) as $identifier => $result) {
-            $this->cacheStore->put($cacheKeys[$identifier], $result);
-            $results[$identifier] = $result;
+        $targetBatches = array_chunk($uncachedTargets, self::MAX_CONCURRENT_PROBES, true);
+        foreach ($targetBatches as $targetBatch) {
+            $pending = [];
+            foreach ($targetBatch as $identifier => $target) {
+                try {
+                    $pending[$identifier] = $this->probeTargetAsync($target, $timeout);
+                } catch (Throwable $exception) {
+                    $results[$identifier] = $this->unavailableResult($target, $exception->getMessage());
+                }
+            }
+
+            foreach ($this->probeClient->settle($pending) as $identifier => $result) {
+                $results[$identifier] = $result;
+            }
         }
 
         $orderedResults = [];
         foreach ($targets as $identifier => $target) {
-            $result = $results[$identifier];
+            $result = $results[$identifier] ?? $this->unavailableResult($target, 'Availability probe did not return a result');
+            if (array_key_exists($identifier, $cacheKeys)) {
+                $this->cacheStore->put($cacheKeys[$identifier], $result);
+            }
             $orderedResults[$identifier] = $result;
             $this->recordUnreachableTarget($target, $result);
         }
@@ -94,6 +112,22 @@ class AppMonitor implements AppMonitorInterface
         return $target->statusUrl === null
             ? $this->probeClient->checkAvailabilityAsync($target->url, $timeout)
             : $this->probeClient->checkStatusAsync($target->statusUrl, $timeout);
+    }
+
+    /**
+     * @return array{reachable:false,httpCode:null,latency_ms:null,error:string,url:string,maintenance_mode:false,checked_at:int}
+     */
+    private function unavailableResult(EndpointTarget $target, string $error): array
+    {
+        return [
+            'reachable' => false,
+            'httpCode' => null,
+            'latency_ms' => null,
+            'error' => $error !== '' ? $error : 'Availability probe failed',
+            'url' => $target->resolveProbeUrl(),
+            'maintenance_mode' => false,
+            'checked_at' => time(),
+        ];
     }
 
     private function availabilityCacheKey(string $url, string $cacheType, int $timeout): string

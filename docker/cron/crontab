@@ -15,7 +15,10 @@ CRON_ENV_FILE=/etc/mata/cron.env
 # (the health report has application-managed rotation and is excluded below).
 
 # Data collection
-*/5 * * * * . "$CRON_ENV_FILE" && cd "$APP_ROOT" && "$PHP_BIN" cron/servers_data_fetch.php >> "$CRON_LOG_DIR/app-servers-data-fetch.log" 2>&1
+# servers_data_fetch warms the dashboard api-cache (node health, server data, apps,
+# availability probes), one server at a time. Offset from servers_metrics_collect so
+# both jobs never query the nodes in the same minute.
+2-59/5 * * * * . "$CRON_ENV_FILE" && cd "$APP_ROOT" && "$PHP_BIN" cron/servers_data_fetch.php >> "$CRON_LOG_DIR/app-servers-data-fetch.log" 2>&1
 */5 * * * * . "$CRON_ENV_FILE" && cd "$APP_ROOT" && "$PHP_BIN" cron/servers_metrics_collect.php >> "$CRON_LOG_DIR/app-servers-metrics-collect.log" 2>&1
 */15 * * * * . "$CRON_ENV_FILE" && cd "$APP_ROOT" && "$PHP_BIN" cron/servers_metrics_aggregate.php >> "$CRON_LOG_DIR/app-servers-metrics-aggregate.log" 2>&1
 

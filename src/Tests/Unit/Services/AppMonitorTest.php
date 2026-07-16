@@ -7,6 +7,8 @@ namespace Mata\Tests\Unit\Services;
 use GuzzleHttp\Client;
 use GuzzleHttp\Handler\MockHandler;
 use GuzzleHttp\HandlerStack;
+use GuzzleHttp\Promise\Create;
+use GuzzleHttp\Promise\PromiseInterface;
 use GuzzleHttp\Psr7\Response;
 use Mata\Constants\CacheTypes;
 use Mata\Services\Cache\ApiCacheKeyFactory;
@@ -120,6 +122,64 @@ final class AppMonitorTest extends TestCase
         $this->assertFalse($results['cached']['reachable']);
         $this->assertTrue($results['healthy']['reachable']);
         $this->assertFalse($results['down']['reachable']);
+    }
+
+    public function testMissingProbeResultIsReportedForItsApplication(): void
+    {
+        $store = $this->createMock(CacheStoreInterface::class);
+        $store->method('get')->willReturn(null);
+        $store->expects($this->once())->method('put');
+
+        $probe = $this->createMock(ProbeClient::class);
+        $probe->method('checkAvailabilityAsync')->willReturn(Create::promiseFor([]));
+        $probe->method('settle')->willReturn([]);
+
+        $events = $this->createMock(EventManager::class);
+        $events->expects($this->once())->method('handleEvent')->willReturn([]);
+        $monitor = $this->monitor($store, $probe, CacheTypes::PING, $events);
+
+        $results = $monitor->checkMultipleEndpoints([
+            'app' => new EndpointTarget('app', 'https://app.example.test'),
+        ]);
+
+        $this->assertFalse($results['app']['reachable']);
+        $this->assertSame('Availability probe did not return a result', $results['app']['error']);
+    }
+
+    public function testLimitsUncachedProbesToFourPerBatch(): void
+    {
+        $store = $this->createMock(CacheStoreInterface::class);
+        $store->method('get')->willReturn(null);
+        $store->expects($this->exactly(10))->method('put');
+
+        $probe = $this->createMock(ProbeClient::class);
+        $probe->expects($this->exactly(10))
+            ->method('checkAvailabilityAsync')
+            ->willReturnCallback(static fn (): PromiseInterface => Create::promiseFor([]));
+        $batchSizes = [];
+        $probe->expects($this->exactly(3))
+            ->method('settle')
+            ->willReturnCallback(static function (array $promises) use (&$batchSizes): array {
+                $batchSizes[] = count($promises);
+
+                return array_map(
+                    static fn (): array => ['reachable' => true, 'maintenance_mode' => false],
+                    $promises
+                );
+            });
+
+        $events = $this->createMock(EventManager::class);
+        $events->expects($this->never())->method('handleEvent');
+        $monitor = $this->monitor($store, $probe, CacheTypes::PING, $events);
+        $targets = [];
+        for ($index = 1; $index <= 10; ++$index) {
+            $targets["app-{$index}"] = new EndpointTarget("app-{$index}", "https://app-{$index}.example.test");
+        }
+
+        $results = $monitor->checkMultipleEndpoints($targets);
+
+        $this->assertSame([4, 4, 2], $batchSizes);
+        $this->assertSame(array_keys($targets), array_keys($results));
     }
 
     private function monitor(

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Mata\Services\Collect;
 
 use GuzzleHttp\Exception\RequestException;
+use GuzzleHttp\Exception\TransferException;
 use Mata\Constants\CacheTypes;
 use Mata\Services\Cache\ApiCacheKeyFactory;
 use Mata\Services\Cache\CacheStoreInterface;
@@ -325,7 +326,8 @@ class ServerDataCollector implements ServerDataCollectorInterface
                 cacheTtl: $ttlSeconds,
                 path: $path,
             );
-        } catch (RequestException $e) {
+        } catch (TransferException $e) {
+            // TransferException covers ConnectException (timeouts, DNS) which is NOT a RequestException
             $this->logger->warning("Fetching data failed trying stale cache: {$e->getMessage()}");
 
             // 3. Try stale cache
@@ -342,7 +344,7 @@ class ServerDataCollector implements ServerDataCollectorInterface
             }
 
             // 4. Surface a structured node error when the failed response carried one
-            $response = $e->getResponse();
+            $response = $e instanceof RequestException ? $e->getResponse() : null;
             if ($response !== null) {
                 $nodeError = $this->dataTransformer->normalizeNodeErrorResponse(
                     (string) $response->getBody(),
@@ -370,8 +372,8 @@ class ServerDataCollector implements ServerDataCollectorInterface
      *
      * @return array<string,mixed> Decoded JSON response
      *
-     * @throws RequestException When HTTP request fails
-     * @throws RuntimeException When response transformation fails
+     * @throws TransferException When HTTP request fails
+     * @throws RuntimeException  When response transformation fails
      */
     private function fetchFromApi(string $method, string $path, array $requestOptions = []): array
     {

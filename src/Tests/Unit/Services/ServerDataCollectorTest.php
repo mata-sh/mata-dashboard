@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Mata\Tests\Unit\Services;
 
+use GuzzleHttp\Exception\ConnectException;
 use GuzzleHttp\Exception\RequestException;
 use GuzzleHttp\Psr7\Request;
 use GuzzleHttp\Psr7\Response;
@@ -159,6 +160,33 @@ final class ServerDataCollectorTest extends TestCase
 
         $this->assertNull($collector->getApps('none'));
         $this->assertSame(['apps' => ['old']], $cache->getStale($key, 60)?->value);
+    }
+
+    public function testTimeoutFallsBackToStaleEntry(): void
+    {
+        $cache = $this->createMock(CacheStoreInterface::class);
+        $cache->method('get')->willReturn(null);
+        $cache->expects($this->once())->method('getStale')->willReturn(new CacheEntry(['apps' => []], time() - 120));
+        $apiClient = $this->createMock(ApiClient::class);
+        $apiClient->method('getApiBase')->willReturn('https://node.example.test/api');
+        $apiClient->method('request')->willThrowException(new ConnectException(
+            'cURL error 28: Operation timed out after 10001 milliseconds with 0 bytes received',
+            new Request('GET', 'apps'),
+        ));
+
+        $collector = new ServerDataCollector(
+            new NullLogger(),
+            $cache,
+            new ApiCacheKeyFactory(),
+            new CacheTtlResolver(['apps' => 60]),
+            $apiClient,
+            new ApiResponseTransformer(new NullLogger()),
+        );
+
+        $response = $collector->getApps();
+
+        $this->assertTrue($response['from_cache']);
+        $this->assertTrue($response['stale_cache']);
     }
 
     public function testNodeJsonHttpErrorReturnsAnErrorEnvelope(): void
