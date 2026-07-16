@@ -100,7 +100,7 @@ class LogAnalyzer
 
         return [
             'max_size' => $maxLogfileSize,
-            'max_size_formatted' => $this->tools->convertSize($maxLogfileSize),
+            'max_size_formatted' => $this->tools->formatKilobytes($maxLogfileSize),
             'max_path' => $maxLogFilePath,
             'level' => $level,
             'first_log' => $firstLog,
@@ -175,7 +175,7 @@ class LogAnalyzer
     /**
      * Evaluate log file size alarm conditions.
      *
-     * @param int    $maxLogfileSize Maximum log file size in bytes
+     * @param int    $maxLogfileSize Maximum log file size in KB
      * @param string $maxLogFilePath Path to the largest log file
      * @param string $level          Threshold level for the log file size
      * @param string $app            Application name
@@ -192,7 +192,7 @@ class LogAnalyzer
             return;
         }
 
-        $maxLogfileSizeFormatted = $this->tools->convertSize($maxLogfileSize);
+        $maxLogfileSizeFormatted = $this->tools->formatKilobytes($maxLogfileSize);
 
         $this->eventManager->handleEvent(
             type: 'logfile_too_large',

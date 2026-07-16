@@ -150,6 +150,24 @@ final class ApiResponseTransformerValidationTest extends TestCase
         (new ApiResponseTransformer($logger))->normalizeApiResponse($payload, path: 'apps');
     }
 
+    public function testServerStorageKilobytesArePreserved(): void
+    {
+        $response = $this->transformer->normalizeApiResponse([
+            'cpu_usage' => 25,
+            'ram_capacity' => 16 * 1024 * 1024,
+            'ram_used' => 8 * 1024 * 1024,
+            'disk_space_capacity' => 500 * 1024 * 1024,
+            'disk_space_used' => 250 * 1024 * 1024,
+            'total_system_filecount' => 100,
+            'processes' => ['total' => 10, 'php' => 2, 'sql' => 1],
+        ], path: 'server/data');
+
+        $this->assertSame(16 * 1024 * 1024, $response['result']['ram_capacity']);
+        $this->assertSame(8 * 1024 * 1024, $response['result']['ram_used']);
+        $this->assertSame(500 * 1024 * 1024, $response['result']['disk_space_capacity']);
+        $this->assertSame(250 * 1024 * 1024, $response['result']['disk_space_used']);
+    }
+
     public function testInvalidServerMetricIsAnExplicitError(): void
     {
         $response = $this->transformer->normalizeApiResponse([

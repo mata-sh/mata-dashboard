@@ -98,7 +98,7 @@ class LogRenderer extends BaseRenderer
             $tooltip .= sprintf(
                 '%s <strong>%s</strong><br>',
                 $this->escape($log),
-                $this->formatSize((int) $size)
+                $this->tools->formatKilobytes((int) $size)
             );
         }
 

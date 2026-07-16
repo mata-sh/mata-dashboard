@@ -90,9 +90,9 @@ class Tools
     }
 
     /**
-     * Convert bytes to human-readable format.
+     * Format bytes for display.
      */
-    public function convertSize(int $bytes): string
+    public function formatBytes(int $bytes): string
     {
         $units = ['KB', 'MB', 'GB', 'TB'];
         $size = $bytes / 1024; // Convert bytes to KB first
@@ -120,6 +120,14 @@ class Tools
         }
 
         return $formatted . ' ' . $units[$unitIndex];
+    }
+
+    /**
+     * Format kilobytes reported by the node for display.
+     */
+    public function formatKilobytes(int $kilobytes): string
+    {
+        return $this->formatBytes($kilobytes * 1024);
     }
 
     /**

@@ -514,7 +514,7 @@ class ModalRenderer extends BaseRenderer
                 'status' => !$exists ? 'missing' : ($stale ? 'stale' : 'ok'),
                 'mtime' => $entry['mtime'] ?? null,
                 'age' => $ageSeconds === null ? null : $this->tools->formatDuration((int) $ageSeconds),
-                'size' => $size === null ? null : $this->tools->convertSize((int) $size),
+                'size' => $size === null ? null : $this->tools->formatBytes((int) $size),
                 'content_tail' => is_array($contentTail)
                     ? array_values(array_filter($contentTail, static fn ($line): bool => is_string($line)))
                     : [],

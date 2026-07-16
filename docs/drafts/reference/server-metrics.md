@@ -21,9 +21,9 @@ The historical-series API supports only these keys:
 | --- | --- | --- |
 | `cpu` | CPU usage / average | `%` |
 | `ram_percent` | computed RAM used ÷ total / average | `%` |
-| `ram_used` | RAM used / average | bytes |
+| `ram_used` | RAM used / average | KiB |
 | `disk_percent` | computed disk used ÷ total / average | `%` |
-| `disk_used` | disk used / average | bytes |
+| `disk_used` | disk used / average | KiB |
 | `file_count` | total system file count / average | count |
 | `process_count` | total process count / average | count |
 

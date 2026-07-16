@@ -291,6 +291,8 @@ class ApiResponseTransformer
     }
 
     /**
+     * Normalize the `server/data` endpoint. RAM and disk values are reported and retained in KB.
+     *
      * @param array<string,mixed> $data
      *
      * @throws InvalidNodePayloadException When the node payload is invalid
@@ -298,13 +300,21 @@ class ApiResponseTransformer
     public function normalizeServerSystemData(array $data): array
     {
         $normalized = $data;
-        foreach (['cpu_usage' => 'float', 'ram_capacity' => 'int', 'ram_used' => 'int', 'disk_space_capacity' => 'int', 'disk_space_used' => 'int', 'total_system_filecount' => 'int'] as $field => $type) {
-            $value = $type === 'float' ? TypeConverter::toFloat($data[$field] ?? null) : TypeConverter::toInt($data[$field] ?? null);
-            if ($value === null || $value < 0) {
-                throw new InvalidNodePayloadException("Node returned invalid {$field} data.", 'server/data');
-            }
-            $normalized[$field] = $value;
-        }
+        $normalized['cpu_usage'] = $this->normalizeNonNegativeFloat($data['cpu_usage'] ?? null, 'cpu_usage');
+        $normalized['ram_capacity'] = $this->normalizeNonNegativeInt($data['ram_capacity'] ?? null, 'ram_capacity');
+        $normalized['ram_used'] = $this->normalizeNonNegativeInt($data['ram_used'] ?? null, 'ram_used');
+        $normalized['disk_space_capacity'] = $this->normalizeNonNegativeInt(
+            $data['disk_space_capacity'] ?? null,
+            'disk_space_capacity'
+        );
+        $normalized['disk_space_used'] = $this->normalizeNonNegativeInt(
+            $data['disk_space_used'] ?? null,
+            'disk_space_used'
+        );
+        $normalized['total_system_filecount'] = $this->normalizeNonNegativeInt(
+            $data['total_system_filecount'] ?? null,
+            'total_system_filecount'
+        );
 
         $processes = $data['processes'] ?? null;
         if (!is_array($processes)) {
@@ -321,6 +331,26 @@ class ApiResponseTransformer
         $normalized['cronjobs'] = $this->normalizeCronjobSummary(
             isset($data['cronjobs']) && is_array($data['cronjobs']) ? $data['cronjobs'] : []
         );
+
+        return $normalized;
+    }
+
+    private function normalizeNonNegativeInt(mixed $value, string $field): int
+    {
+        $normalized = TypeConverter::toInt($value);
+        if ($normalized === null || $normalized < 0) {
+            throw new InvalidNodePayloadException("Node returned invalid {$field} data.", 'server/data');
+        }
+
+        return $normalized;
+    }
+
+    private function normalizeNonNegativeFloat(mixed $value, string $field): float
+    {
+        $normalized = TypeConverter::toFloat($value);
+        if ($normalized === null || $normalized < 0) {
+            throw new InvalidNodePayloadException("Node returned invalid {$field} data.", 'server/data');
+        }
 
         return $normalized;
     }

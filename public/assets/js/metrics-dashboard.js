@@ -445,11 +445,19 @@ function formatMetricValue(value, unit) {
         return formatBytes(numeric);
     }
 
+    if (unit === 'kilobytes') {
+        return formatKilobytes(numeric);
+    }
+
     if (Math.abs(numeric) >= 1000) {
         return numeric.toLocaleString();
     }
 
     return numeric.toString();
+}
+
+function formatKilobytes(kilobytes) {
+    return formatBytes(kilobytes * 1024);
 }
 
 function formatBytes(bytes) {

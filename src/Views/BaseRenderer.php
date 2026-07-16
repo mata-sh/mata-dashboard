@@ -121,9 +121,9 @@ abstract class BaseRenderer
      *
      * @return string Formatted size string
      */
-    protected function formatSize(float|int $bytes): string
+    protected function formatBytes(float|int $bytes): string
     {
-        return $this->tools->convertSize((int) $bytes);
+        return $this->tools->formatBytes((int) $bytes);
     }
 
     /**

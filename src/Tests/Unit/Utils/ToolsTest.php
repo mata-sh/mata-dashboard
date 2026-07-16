@@ -67,7 +67,7 @@ class ToolsTest extends TestCase
      * @group tools
      * @group formatting
      */
-    public function testItConvertsBytesToHumanReadableFormat(): void
+    public function testItFormatsBytesForDisplay(): void
     {
         $testCases = [
             [0, '0 KB'],
@@ -82,9 +82,15 @@ class ToolsTest extends TestCase
         ];
 
         foreach ($testCases as [$bytes, $expected]) {
-            $result = $this->tools->convertSize($bytes);
+            $result = $this->tools->formatBytes($bytes);
             $this->assertEquals($expected, $result, "Failed converting {$bytes} bytes");
         }
+    }
+
+    public function testItFormatsKilobytesForDisplay(): void
+    {
+        $this->assertSame('3.32 MB', $this->tools->formatKilobytes(3400));
+        $this->assertSame('16 GB', $this->tools->formatKilobytes(16 * 1024 * 1024));
     }
 
     /**

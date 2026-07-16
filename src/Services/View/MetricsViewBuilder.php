@@ -145,8 +145,8 @@ class MetricsViewBuilder
      * // Compare RAM used vs Disk used over last 7 days
      * $builder->buildMultiMetricTimeSeries('prod-server', ['ram_used', 'disk_used'], '7d', 'daily');
      * // Returns: ['labels' => ['2024-01-01', ...], 'datasets' => [
-     * //   ['metric' => 'ram_used', 'data' => [4294967296, ...], 'unit' => 'bytes'],
-     * //   ['metric' => 'disk_used', 'data' => [107374182400, ...], 'unit' => 'bytes']
+     * //   ['metric' => 'ram_used', 'data' => [4194304, ...], 'unit' => 'kilobytes'],
+     * //   ['metric' => 'disk_used', 'data' => [104857600, ...], 'unit' => 'kilobytes']
      * // ]]
      *
      * @param string            $serverName  Server identifier from servers.json
@@ -406,7 +406,7 @@ class MetricsViewBuilder
     {
         return match ($metric) {
             'cpu', 'ram_percent', 'disk_percent' => '%',
-            'ram_used', 'disk_used' => 'bytes',
+            'ram_used', 'disk_used' => 'kilobytes',
             'file_count', 'process_count' => 'count',
             default => '',
         };

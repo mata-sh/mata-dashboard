@@ -112,7 +112,7 @@ class TooltipEscapingTest extends TestCase
     public function testLogTooltipEscapesPathsButKeepsGeneratedMarkup(): void
     {
         $tools = $this->createStub(Tools::class);
-        $tools->method('convertSize')->willReturn('1 KB');
+        $tools->method('formatKilobytes')->willReturn('1 KB');
 
         $renderer = new LogRenderer(
             $this->createStub(Environment::class),

@@ -610,12 +610,12 @@ class ServerRenderer extends BaseRenderer
         $ramUsed = $serverData['ram_used'] ?? 0;
 
         return [
-            'disk_capacity' => $this->formatSize($diskCapacity),
-            'disk_used' => $this->formatSize($diskUsed),
+            'disk_capacity' => $this->tools->formatKilobytes((int) $diskCapacity),
+            'disk_used' => $this->tools->formatKilobytes((int) $diskUsed),
             'disk_percent' => $this->calculateUsagePercent($diskUsed, $diskCapacity),
             'disk_usage_level' => $levels['disk_space_usage_percent'] ?? 'good',
-            'ram_capacity' => $this->formatSize($ramCapacity),
-            'ram_used' => $this->formatSize($ramUsed),
+            'ram_capacity' => $this->tools->formatKilobytes((int) $ramCapacity),
+            'ram_used' => $this->tools->formatKilobytes((int) $ramUsed),
             'ram_percent' => $this->calculateUsagePercent($ramUsed, $ramCapacity),
             'ram_usage_level' => $levels['ram_usage_percent'] ?? 'good',
         ];

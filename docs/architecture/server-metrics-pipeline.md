@@ -60,9 +60,9 @@ the configured node API.
 | Raw snapshot value | Node response source | Notes |
 | --- | --- | --- |
 | `cpu_usage` | `cpu_usage` | Percent |
-| `ram_used`, `ram_total` | `ram_used` / `ram_capacity`, or RAM/memory alternatives | Bytes |
+| `ram_used`, `ram_total` | `ram_used` / `ram_capacity`, or RAM/memory alternatives | KiB |
 | `ram_usage_percent` | calculated as `ram_used / ram_total * 100` | Null if total is absent or zero |
-| `disk_used`, `disk_total` | disk/storage alternatives | Bytes |
+| `disk_used`, `disk_total` | disk/storage alternatives | KiB |
 | `disk_usage_percent` | calculated as `disk_used / disk_total * 100` | Null if total is absent or zero |
 | `total_file_count` | `total_system_filecount` or file-system alternatives | Count |
 | `process_count`, `php_process_count` | `processes.*` or alternatives | Count |
@@ -216,7 +216,7 @@ Supported API metric keys:
 | `disk_percent` | `disk_usage_percent` / `disk_percent_avg` | `%` |
 | `file_count` | `total_file_count` / `file_count_avg` | count |
 | `process_count` | `process_count` / `process_count_avg` | count |
-| `ram_used`, `disk_used` | raw value / matching `*_avg` | bytes |
+| `ram_used`, `disk_used` | raw value / matching `*_avg` | KiB |
 
 ### Shared server-card modal
 

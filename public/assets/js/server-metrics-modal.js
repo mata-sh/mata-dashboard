@@ -4,9 +4,9 @@ function formatMetricValue(value, unit) {
     if (value === null || value === undefined || !Number.isFinite(Number(value))) return '—';
     const number = Number(value);
     if (unit === '%') return `${number.toFixed(1)}%`;
-    if (unit === 'bytes') {
+    if (unit === 'bytes' || unit === 'kilobytes') {
         const units = ['B', 'KB', 'MB', 'GB', 'TB'];
-        let size = number;
+        let size = unit === 'kilobytes' ? number * 1024 : number;
         let index = 0;
         while (size >= 1024 && index < units.length - 1) { size /= 1024; index += 1; }
         return `${size.toFixed(index ? 1 : 0)} ${units[index]}`;

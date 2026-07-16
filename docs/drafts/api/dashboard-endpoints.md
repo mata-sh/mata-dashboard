@@ -98,7 +98,7 @@ Supported keys and units are:
 | Key | Unit |
 | --- | --- |
 | `cpu`, `ram_percent`, `disk_percent` | `%` |
-| `ram_used`, `disk_used` | bytes |
+| `ram_used`, `disk_used` | KiB |
 | `file_count`, `process_count` | count |
 
 | Query parameter | Default | Accepted values |
