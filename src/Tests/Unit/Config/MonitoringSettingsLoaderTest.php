@@ -33,6 +33,62 @@ final class MonitoringSettingsLoaderTest extends TestCase
 
     // ==================== HTTPS Validation Tests ====================
 
+    public function testLoadServersConfigExcludesDisabledServers(): void
+    {
+        $path = tempnam(sys_get_temp_dir(), 'mata-servers-');
+        self::assertNotFalse($path);
+        file_put_contents($path, json_encode([
+            'disabled-server' => ['disabled' => true],
+            'enabled-server' => [
+                'title' => 'Enabled Server',
+                'api_url' => 'https://enabled.example.test/api',
+                'api_key' => 'key123',
+            ],
+        ], JSON_THROW_ON_ERROR));
+
+        try {
+            $result = $this->loader->loadServersConfig($path);
+        } finally {
+            unlink($path);
+        }
+
+        $this->assertSame(['enabled-server'], array_keys($result));
+    }
+
+    public function testLoadServersConfigAllowsAllServersToBeDisabled(): void
+    {
+        $this->eventRecorder->expects($this->never())->method('recordEvent');
+
+        $path = tempnam(sys_get_temp_dir(), 'mata-servers-');
+        self::assertNotFalse($path);
+        file_put_contents($path, json_encode([
+            'disabled-server' => ['disabled' => true],
+        ], JSON_THROW_ON_ERROR));
+
+        try {
+            $result = $this->loader->loadServersConfig($path);
+        } finally {
+            unlink($path);
+        }
+
+        $this->assertSame([], $result);
+    }
+
+    public function testValidateServersConfigRejectsNonBooleanDisabledFlag(): void
+    {
+        $result = $this->loader->validateServersConfig([
+            'server' => [
+                'title' => 'Server',
+                'api_url' => 'https://api.example.test',
+                'api_key' => 'key123',
+                'disabled' => 'true',
+            ],
+        ]);
+
+        $this->assertFalse($result['is_valid']);
+        $this->assertSame("Server 'server' disabled must be a boolean", $result['errors'][0]);
+    }
+
     public function testValidateServersConfigHttpsUrlIsValid(): void
     {
         $config = [

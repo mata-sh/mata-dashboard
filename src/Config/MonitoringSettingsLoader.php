@@ -78,11 +78,21 @@ final class MonitoringSettingsLoader
         // Remove entries where array key begins with underscore
         $serversConfig = array_filter(
             $serversConfig,
-            fn ($key) => !str_starts_with($key, '_'),
+            static fn ($key): bool => !str_starts_with((string) $key, '_'),
             ARRAY_FILTER_USE_KEY
         );
 
-        $validation = $this->validateServersConfig($serversConfig);
+        // Disabled servers are excluded before validation, synchronization, or monitoring.
+        $configuredServerCount = count($serversConfig);
+        $serversConfig = array_filter(
+            $serversConfig,
+            static fn (mixed $config): bool => !is_array($config) || ($config['disabled'] ?? false) !== true
+        );
+        $allServersDisabled = $configuredServerCount > 0 && $serversConfig === [];
+
+        $validation = $allServersDisabled
+            ? ['is_valid' => true, 'errors' => []]
+            : $this->validateServersConfig($serversConfig);
         if (!$validation['is_valid']) {
             foreach ($validation['errors'] as $error) {
                 $this->recordConfigurationEvent(
@@ -279,6 +289,14 @@ final class MonitoringSettingsLoader
 
         if (!is_array($serverConfig)) {
             return ["Server '{$serverName}' configuration must be an array"];
+        }
+
+        if (array_key_exists('disabled', $serverConfig) && !is_bool($serverConfig['disabled'])) {
+            return ["Server '{$serverName}' disabled must be a boolean"];
+        }
+
+        if (($serverConfig['disabled'] ?? false) === true) {
+            return [];
         }
 
         $errors = array_merge($errors, $this->validateRequiredFields($serverName, $serverConfig));
