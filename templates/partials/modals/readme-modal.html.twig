@@ -5,6 +5,11 @@
     refresh_endpoint: endpoints.modal_app_readme_refresh
 } %}
   {% block modal_body %}
+    {% if notice is not null %}
+      <div class="notification is-info is-light" role="status" data-notice-code="{{ notice.code }}">
+        {{ notice.message }}
+      </div>
+    {% endif %}
     {{ content.modal_content|raw }}
   {% endblock %}
 {% endembed %}

@@ -309,6 +309,50 @@ class ModalControllerTest extends TestCase
      *
      * @group modal-controller
      * @group readme-modal
+     * @group notice
+     */
+    public function testItPassesReadmeNoticeToTheModal(): void
+    {
+        $server = 'server1';
+        $app = 'test-app';
+
+        $mockCollector = $this->createMockServerDataCollector($server);
+        $mockCollector->expects($this->once())
+            ->method('fetchAppReadme')
+            ->willReturn([
+                'result' => '',
+                'notice' => [
+                    'code' => 'README_NOT_FOUND',
+                    'message' => 'README not found',
+                ],
+                'cache_age' => 0,
+                'cache_ttl' => 300,
+            ])
+        ;
+        $this->injectMockCollector($server, $mockCollector);
+
+        $this->mockTwig->expects($this->once())
+            ->method('render')
+            ->with(
+                'partials/modals/readme-modal.html.twig',
+                $this->callback(fn (array $data): bool => $data['notice'] === [
+                    'code' => 'README_NOT_FOUND',
+                    'message' => 'README not found',
+                ])
+            )
+            ->willReturn('<div>No README</div>')
+        ;
+
+        $response = $this->controller->renderAppReadme($server, $app);
+
+        $this->assertInstanceOf(HtmlResponse::class, $response);
+    }
+
+    /**
+     * @test
+     *
+     * @group modal-controller
+     * @group readme-modal
      * @group validation
      *
      * Tests server validation for README requests. When a user tries to access

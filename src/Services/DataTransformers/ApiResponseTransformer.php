@@ -59,11 +59,15 @@ class ApiResponseTransformer
         bool $staleCache = false,
         string $path = '',
     ): array {
+        $notice = null;
         if (is_array($data)) {
             $nodeError = $this->nodeErrorFromPayload($data, $path, null);
             if ($nodeError !== null) {
                 return $this->errorApiResponse($nodeError, $cacheAge, $cacheTtl, $fromCache, $staleCache);
             }
+
+            $notice = $this->normalizeNotice($data['notice'] ?? null, $path);
+            unset($data['notice']);
         }
 
         try {
@@ -91,7 +95,7 @@ class ApiResponseTransformer
             return $this->errorApiResponse($e->toErrorArray(), $cacheAge, $cacheTtl, $fromCache, $staleCache);
         }
 
-        return $this->apiResponse($normalized, null, $cacheAge, $cacheTtl, $fromCache, $staleCache);
+        return $this->apiResponse($normalized, null, $cacheAge, $cacheTtl, $fromCache, $staleCache, $notice);
     }
 
     /**
@@ -653,6 +657,7 @@ class ApiResponseTransformer
 
     /**
      * @param null|array{kind:string,message:string,endpoint:string,status_code:null|int} $error
+     * @param null|array{code:string,message:string}                                      $notice
      *
      * @return array<string,mixed>
      */
@@ -663,8 +668,9 @@ class ApiResponseTransformer
         int $cacheTtl,
         bool $fromCache,
         bool $staleCache,
+        ?array $notice = null,
     ): array {
-        return [
+        $response = [
             'result' => $result,
             'error' => $error,
             'cache_age' => $cacheAge,
@@ -672,6 +678,38 @@ class ApiResponseTransformer
             'from_cache' => $fromCache,
             'stale_cache' => $staleCache,
         ];
+
+        if ($notice !== null) {
+            $response['notice'] = $notice;
+        }
+
+        return $response;
+    }
+
+    /**
+     * @return null|array{code:string,message:string}
+     */
+    private function normalizeNotice(mixed $notice, string $endpoint): ?array
+    {
+        if ($notice === null) {
+            return null;
+        }
+
+        if (!is_array($notice) || !is_string($notice['code'] ?? null) || !is_string($notice['message'] ?? null)) {
+            $this->logger->warning('Node returned an invalid notice payload', ['endpoint' => $endpoint]);
+
+            return null;
+        }
+
+        $code = trim($notice['code']);
+        $message = trim($notice['message']);
+        if ($code === '' || $message === '') {
+            $this->logger->warning('Node returned an invalid notice payload', ['endpoint' => $endpoint]);
+
+            return null;
+        }
+
+        return ['code' => $code, 'message' => $message];
     }
 
     /**

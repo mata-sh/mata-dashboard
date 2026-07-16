@@ -26,4 +26,26 @@ final class ApiResponseTransformerReadmeTest extends TestCase
 
         $this->assertSame("# Test\n\nREADME", $response['result']);
     }
+
+    public function testNormalizeReadmeDataPreservesAContextualNotice(): void
+    {
+        $transformer = new ApiResponseTransformer(new NullLogger());
+
+        $response = $transformer->normalizeApiResponse(
+            data: [
+                'content' => '',
+                'notice' => [
+                    'code' => 'README_NOT_FOUND',
+                    'message' => 'README not found',
+                ],
+            ],
+            path: 'test-app/readme',
+        );
+
+        $this->assertSame('', $response['result']);
+        $this->assertSame([
+            'code' => 'README_NOT_FOUND',
+            'message' => 'README not found',
+        ], $response['notice']);
+    }
 }

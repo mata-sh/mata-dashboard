@@ -21,12 +21,13 @@ class ModalRenderer extends BaseRenderer
     /**
      * Build template data for README modal.
      *
-     * @param string              $markdownContent Raw markdown content
-     * @param string              $server          Server name
-     * @param string              $app             Application name
-     * @param int                 $cacheAge        Cache age in seconds
-     * @param int                 $cacheTtl        Cache ttl in seconds
-     * @param array<string,mixed> $endpoints       Pre-built endpoint URLs
+     * @param string                                 $markdownContent Raw markdown content
+     * @param string                                 $server          Server name
+     * @param string                                 $app             Application name
+     * @param int                                    $cacheAge        Cache age in seconds
+     * @param int                                    $cacheTtl        Cache ttl in seconds
+     * @param array<string,mixed>                    $endpoints       Pre-built endpoint URLs
+     * @param null|array{code:string,message:string} $notice          Contextual node notice
      *
      * @return array<string,mixed> Template data array
      */
@@ -36,7 +37,8 @@ class ModalRenderer extends BaseRenderer
         string $app,
         int $cacheAge,
         int $cacheTtl,
-        array $endpoints
+        array $endpoints,
+        ?array $notice = null
     ): array {
         $convertedContent = $this->renderReadmeContent($markdownContent);
 
@@ -44,6 +46,7 @@ class ModalRenderer extends BaseRenderer
             'content' => [
                 'modal_content' => $convertedContent,
             ],
+            'notice' => $notice,
             'app' => [
                 'server' => $server,
                 'name' => $app,
@@ -264,12 +267,13 @@ class ModalRenderer extends BaseRenderer
     /**
      * Render complete README modal.
      *
-     * @param string              $markdownContent Raw markdown content
-     * @param string              $server          Server name
-     * @param string              $app             Application name
-     * @param int                 $cacheAge        Cache age in seconds
-     * @param int                 $cacheTtl        Cache TTL in seconds
-     * @param array<string,mixed> $endpoints       Pre-built endpoint URLs
+     * @param string                                 $markdownContent Raw markdown content
+     * @param string                                 $server          Server name
+     * @param string                                 $app             Application name
+     * @param int                                    $cacheAge        Cache age in seconds
+     * @param int                                    $cacheTtl        Cache TTL in seconds
+     * @param array<string,mixed>                    $endpoints       Pre-built endpoint URLs
+     * @param null|array{code:string,message:string} $notice          Contextual node notice
      *
      * @return string Rendered modal HTML
      */
@@ -279,9 +283,10 @@ class ModalRenderer extends BaseRenderer
         string $app,
         int $cacheAge,
         int $cacheTtl,
-        array $endpoints
+        array $endpoints,
+        ?array $notice = null
     ): string {
-        $data = $this->buildReadmeModalData($markdownContent, $server, $app, $cacheAge, $cacheTtl, $endpoints);
+        $data = $this->buildReadmeModalData($markdownContent, $server, $app, $cacheAge, $cacheTtl, $endpoints, $notice);
 
         try {
             return $this->twig->render('partials/modals/readme-modal.html.twig', $data);

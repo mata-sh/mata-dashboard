@@ -187,6 +187,9 @@ class ModalController extends BaseController
                 $markdownContent = !empty($readmeResponse['result'])
                     ? $readmeResponse['result']
                     : 'No Readme.md found.';
+                $notice = is_array($readmeResponse['notice'] ?? null)
+                    ? $readmeResponse['notice']
+                    : null;
 
                 $endpoints = [
                     'modal_app_readme_refresh' => $this->endpoints->url(
@@ -201,7 +204,8 @@ class ModalController extends BaseController
                     $app,
                     $readmeResponse['cache_age'] ?? 0,
                     $readmeResponse['cache_ttl'] ?? 0,
-                    $endpoints
+                    $endpoints,
+                    $notice
                 );
 
                 return new HtmlResponse($html);
