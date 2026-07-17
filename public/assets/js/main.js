@@ -1,6 +1,15 @@
-tippy('[data-tippy-content]', {
-    allowHTML: true,
-});
+function initializeTooltips() {
+    tippy('[data-tippy-content]:not(.app-status):not(.app-filesize)', {
+        allowHTML: true,
+    });
+
+    tippy('.app-status[data-tippy-content], .app-filesize[data-tippy-content]', {
+        allowHTML: true,
+        maxWidth: 560,
+    });
+}
+
+initializeTooltips();
 
 // Hide Lodading Indicator before Htmx displays Container
 document.body.addEventListener('htmx:beforeSwap', function (evt) {
@@ -56,9 +65,7 @@ document.body.addEventListener('htmx:afterRequest', function () {
     if (bar) {
         clearInterval(progressInterval);
         bar.style.transition = 'width 0.1s linear, opacity 0.3s ease';
-        tippy('[data-tippy-content]', {
-            allowHTML: true,
-        });
+        initializeTooltips();
     }
 });
 
