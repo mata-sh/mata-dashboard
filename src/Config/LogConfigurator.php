@@ -29,16 +29,23 @@ final class LogConfigurator
         return $this->createLogger($channel, $path, Level::Error);
     }
 
-    public function createCronLogger(
+    public function createCronBootLogger(
         PathResolver $paths,
         string $jobName,
-        string $level = 'debug',
         string $channel = 'cronjob'
     ): Logger {
-        $path = $paths->logsPath . DIRECTORY_SEPARATOR . 'cron' . DIRECTORY_SEPARATOR . "app-{$jobName}.log";
+        return $this->createLogger($channel, $this->cronLogPath($paths, $jobName), Level::Error);
+    }
+
+    public function createCronLogger(
+        LoggingConfig $config,
+        PathResolver $paths,
+        string $jobName,
+        string $channel = 'cronjob'
+    ): Logger {
         $logger = new Logger($channel);
-        $resolvedLevel = $this->resolveLogLevel($level, $logger);
-        $this->applyHandler($logger, $path, $resolvedLevel);
+        $resolvedLevel = $this->resolveLogLevel($config->level, $logger);
+        $this->applyHandler($logger, $this->cronLogPath($paths, $jobName), $resolvedLevel);
 
         return $logger;
     }
@@ -66,6 +73,11 @@ final class LogConfigurator
         $handler = new StreamHandler($path, $level);
         $handler->setFormatter($this->createFormatter());
         $logger->setHandlers([$handler]);
+    }
+
+    private function cronLogPath(PathResolver $paths, string $jobName): string
+    {
+        return $paths->logsPath . DIRECTORY_SEPARATOR . 'cron' . DIRECTORY_SEPARATOR . "app-{$jobName}.log";
     }
 
     private function createFormatter(): LineFormatter

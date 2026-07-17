@@ -45,7 +45,7 @@ $jobName = $tools->normalizeJobName(basename($_SERVER['SCRIPT_FILENAME'], '.php'
 // Monolog
 // ************************************************************************************************
 $logConfigurator = new LogConfigurator();
-$log = $logConfigurator->createCronLogger($paths, $jobName);
+$log = $logConfigurator->createCronBootLogger($paths, $jobName);
 
 try {
     $configLoader = new EnvConfigLoader();
@@ -54,6 +54,7 @@ try {
         'db.config.env',
         'mail.config.env',
     ], $paths->appPath . '/config');
+    $log = $logConfigurator->createCronLogger($appConfig->logging, $paths, $jobName);
 
     $validationResult = $configLoader->validateConfig($appConfig);
     if (!$validationResult['is_valid']) {
