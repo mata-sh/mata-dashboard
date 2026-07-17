@@ -319,6 +319,8 @@ class RouterSetup
                 ['modal_app_readme_refresh', '/modal/{server}/{app}/readme/refresh', 'get', fn ($server, $app) => $this->modalController->renderAppReadme($server, $app, forceRefresh: true)],
                 ['modal_app_logs_render', '/modal/{server}/{app}/logs', 'get', fn ($server, $app) => $this->modalController->renderAppLogs($server, $app)],
                 ['modal_app_logs_refresh', '/modal/{server}/{app}/logs/refresh', 'get', fn ($server, $app) => $this->modalController->renderAppLogs($server, $app, forceRefresh: true)],
+                ['modal_app_log_files_render', '/modal/{server}/{app}/log-files', 'get', fn ($server, $app) => $this->modalController->renderAppLogFiles($server, $app)],
+                ['modal_app_log_files_refresh', '/modal/{server}/{app}/log-files/refresh', 'get', fn ($server, $app) => $this->modalController->renderAppLogFiles($server, $app, forceRefresh: true)],
                 ['modal_db_processes_render', '/modal/{server}/database/{database}/processes', 'get', fn ($server, $database) => $this->modalController->renderDatabaseProcesses($server, $database)],
                 ['modal_db_processes_refresh', '/modal/{server}/database/{database}/processes/refresh', 'get', fn ($server, $database) => $this->modalController->renderDatabaseProcesses($server, $database, forceRefresh: true)],
                 ['modal_server_info_render', '/modal/{server}/info', 'get', fn ($server) => $this->modalController->renderServerInfo($server)],

@@ -270,6 +270,58 @@ class ModalController extends BaseController
     }
 
     /**
+     * Fetch and render application log-file metadata.
+     *
+     * @param bool $forceRefresh Whether to bypass cache
+     *
+     * @return Response Rendered modal HTML response
+     */
+    public function renderAppLogFiles(
+        string $server,
+        string $app,
+        bool $forceRefresh = false
+    ): Response {
+        return $this->executeWithErrorHandling(
+            function () use ($server, $app, $forceRefresh) {
+                if (!isset($this->serverDataCollectors[$server])) {
+                    return $this->handleNotFound("Server '{$server}'", 'Log files request');
+                }
+
+                $logsStatusResponse = $this->requireValidResponse(
+                    $this->modalCacheService->fetchLogsStatus(
+                        $this->serverDataCollectors[$server],
+                        $app,
+                        $forceRefresh
+                    ),
+                    "log files of {$app} on {$server}"
+                );
+                $logFiles = is_array($logsStatusResponse['result'] ?? null)
+                    ? $logsStatusResponse['result']
+                    : [];
+                $endpoints = [
+                    'modal_app_log_files_refresh' => $this->endpoints->url(
+                        'modal_app_log_files_refresh',
+                        ['server' => $server, 'app' => $app]
+                    ),
+                ];
+
+                $html = $this->modalRenderer->renderAppLogFilesModal(
+                    $logFiles,
+                    $server,
+                    $app,
+                    $logsStatusResponse['cache_age'] ?? 0,
+                    $logsStatusResponse['cache_ttl'] ?? 0,
+                    $endpoints
+                );
+
+                return new HtmlResponse($html);
+            },
+            'Failed to load application log files',
+            "Log files for {$app} on {$server}"
+        );
+    }
+
+    /**
      * Return application logs data as JSON response.
      *
      * @param string $server       Server identifier

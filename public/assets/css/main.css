@@ -778,6 +778,29 @@ svg {
     stroke: currentColor;
 }
 
+.app-filesize.modal-trigger {
+    appearance: none;
+    box-sizing: border-box;
+    padding: 0;
+    border: 0;
+    background-color: transparent;
+    color: inherit;
+    font: inherit;
+    line-height: inherit;
+    cursor: pointer;
+}
+
+.app-filesize.modal-trigger.alarm {
+    background-color: #e50000;
+    color: #fff;
+    font-weight: bold;
+}
+
+.app-filesize.modal-trigger:focus-visible {
+    outline: 1px solid #3f93a6;
+    outline-offset: 2px;
+}
+
 .server-cronjobs.modal-trigger,
 .db-process-list.modal-trigger,
 .server-metric-trigger.modal-trigger {

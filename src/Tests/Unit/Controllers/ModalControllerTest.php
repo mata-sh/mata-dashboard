@@ -451,6 +451,46 @@ class ModalControllerTest extends TestCase
         $this->assertEquals($expectedHtml, $response->getContent());
     }
 
+    public function testItRendersLogFilesModalSuccessfully(): void
+    {
+        $server = 'server1';
+        $app = 'test-app';
+        $logFiles = [
+            '/var/log/app/error.log' => [
+                'size' => 131072,
+                'lines' => 42,
+                'last_modified' => '2026-07-18 12:00:00',
+            ],
+        ];
+
+        $mockCollector = $this->createMockServerDataCollector($server);
+        $mockCollector->expects($this->once())
+            ->method('fetchAppLogsStatus')
+            ->with($app, $this->anything())
+            ->willReturn([
+                'result' => $logFiles,
+                'cache_age' => 30,
+                'cache_ttl' => 60,
+            ])
+        ;
+        $this->injectMockCollector($server, $mockCollector);
+
+        $expectedHtml = '<div class="modal">Log files</div>';
+        $this->mockTwig->expects($this->once())
+            ->method('render')
+            ->with('partials/modals/log-files-modal.html.twig', $this->callback(
+                static fn (array $data): bool => $data['entries'][0]['path'] === '/var/log/app/error.log'
+                    && $data['entries'][0]['line_count'] === '42'
+            ))
+            ->willReturn($expectedHtml)
+        ;
+
+        $response = $this->controller->renderAppLogFiles($server, $app);
+
+        $this->assertInstanceOf(HtmlResponse::class, $response);
+        $this->assertSame($expectedHtml, $response->getContent());
+    }
+
     /**
      * @test
      *

@@ -1,0 +1,35 @@
+{% embed "partials/modals/modal-shell.html.twig" with {
+    modal_class: 'log-files-modal',
+    modal_title: 'Error Log Files',
+    modal_context: app.name ~ ' on ' ~ app.server,
+    refresh_endpoint: endpoints.modal_app_log_files_refresh
+} %}
+  {% block modal_body %}
+    {% if entries is empty %}
+      <div class="modal-empty">No log files found.</div>
+    {% else %}
+      <div class="modal-table-shell">
+        <table class="modal-table">
+          <thead>
+            <tr>
+              <th>Path</th>
+              <th>Size</th>
+              <th>Lines</th>
+              <th>Last modified</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for entry in entries %}
+              <tr class="modal-row">
+                <td class="cell-mono cell-bright cell-grow">{{ entry.path ?? '–' }}</td>
+                <td class="cell-nowrap">{{ entry.size ?? '–' }}</td>
+                <td class="cell-nowrap">{{ entry.line_count ?? '–' }}</td>
+                <td class="cell-mono cell-nowrap">{{ entry.last_modified|default('–') }}</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% endif %}
+  {% endblock %}
+{% endembed %}

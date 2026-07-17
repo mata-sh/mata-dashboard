@@ -187,6 +187,27 @@ class RouterSetupTest extends TestCase
         ];
     }
 
+    public function testRegistersApplicationLogFilesModalRoutes(): void
+    {
+        $router = $this->createStub(Router::class);
+        $router->method('mount')
+            ->willReturnCallback(static fn (string $path, callable $callback) => $callback())
+        ;
+        $endpoints = new Endpoints();
+        $setup = $this->createRouterSetup(router: $router, endpoints: $endpoints);
+
+        $this->invokeMethod($setup, 'setupWatchRoutes');
+
+        $this->assertSame(
+            'watch/modal/{server}/{app}/log-files',
+            $endpoints->get('modal_app_log_files_render')
+        );
+        $this->assertSame(
+            'watch/modal/{server}/{app}/log-files/refresh',
+            $endpoints->get('modal_app_log_files_refresh')
+        );
+    }
+
     public function testRegistersDatabaseProcessModalRoutes(): void
     {
         $router = $this->createStub(Router::class);

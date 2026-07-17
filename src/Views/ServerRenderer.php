@@ -461,6 +461,10 @@ class ServerRenderer extends BaseRenderer
                     'modal_app_logs_render',
                     ['server' => $server, 'app' => $app]
                 ),
+                'modal_app_log_files_render' => $this->endpoints->url(
+                    'modal_app_log_files_render',
+                    ['server' => $server, 'app' => $app]
+                ),
             ],
             'logs' => [
                 'file_size_level' => $logAnalysis['log_analysis']['level'],

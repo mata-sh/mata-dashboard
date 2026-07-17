@@ -26,6 +26,6 @@
     </span>
     <span class="app-status-text {{ app.status_type }}">{{ app.status_type }}</span>
   </span>
-  <span class="app-filesize count {{ logs.file_size_level }}" data-tippy-content="{{ logs.file_size_tooltip }}">{{ logs.max_file_size }} {{ icons.alert|raw }}</span>
+  <button type="button" class="app-filesize count {{ logs.file_size_level }} modal-trigger" aria-label="Open error log file details" aria-haspopup="dialog" data-tippy-content="{{ logs.file_size_tooltip }}" hx-get="{{ endpoints.modal_app_log_files_render }}" hx-target="#modal-container" hx-trigger="click" hx-toggle="modal">{{ logs.max_file_size }} {{ icons.alert|raw }}</button>
   <span class="app-sessions count {{ sessions.count_level }}" data-tippy-content="{{ sessions.tooltip }}">{{ sessions.count_last }} {{ icons.user|raw }}</span>
 </div>

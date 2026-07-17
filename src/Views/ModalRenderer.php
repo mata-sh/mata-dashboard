@@ -333,6 +333,93 @@ class ModalRenderer extends BaseRenderer
     }
 
     /**
+     * Build template data for an application's log-file metadata modal.
+     *
+     * @param array<mixed>        $logFiles  Log metadata keyed by file path
+     * @param array<string,mixed> $endpoints Pre-built endpoint URLs
+     *
+     * @return array<string,mixed> Template data array
+     */
+    public function buildAppLogFilesModalData(
+        array $logFiles,
+        string $server,
+        string $app,
+        int $cacheAge,
+        int $cacheTtl,
+        array $endpoints
+    ): array {
+        $entries = [];
+
+        foreach ($logFiles as $path => $metadata) {
+            if (!is_array($metadata)) {
+                continue;
+            }
+
+            $size = is_numeric($metadata['size'] ?? null)
+                ? $this->tools->formatBytes((int) $metadata['size'])
+                : null;
+            $lineCount = $metadata['lines'] ?? null;
+            $lastModified = $metadata['last_modified'] ?? null;
+
+            $entries[] = [
+                'path' => is_string($path) ? $path : null,
+                'size' => $size,
+                'line_count' => is_numeric($lineCount) ? number_format((int) $lineCount) : null,
+                'last_modified' => is_scalar($lastModified) ? (string) $lastModified : null,
+            ];
+        }
+
+        return [
+            'app' => [
+                'server' => $server,
+                'name' => $app,
+            ],
+            'entries' => $entries,
+            'endpoints' => $endpoints,
+            'icons' => $this->getModalIcons(),
+            'cache' => [
+                'age' => $this->tools->formatDuration($cacheAge),
+                'ttl' => $this->tools->formatDuration($cacheTtl),
+            ],
+        ];
+    }
+
+    /**
+     * Render an application's log-file metadata modal.
+     *
+     * @param array<mixed>        $logFiles  Log metadata keyed by file path
+     * @param array<string,mixed> $endpoints Pre-built endpoint URLs
+     */
+    public function renderAppLogFilesModal(
+        array $logFiles,
+        string $server,
+        string $app,
+        int $cacheAge,
+        int $cacheTtl,
+        array $endpoints
+    ): string {
+        $data = $this->buildAppLogFilesModalData(
+            $logFiles,
+            $server,
+            $app,
+            $cacheAge,
+            $cacheTtl,
+            $endpoints
+        );
+
+        try {
+            return $this->twig->render('partials/modals/log-files-modal.html.twig', $data);
+        } catch (Exception $e) {
+            $this->logError($e->getMessage(), 'AppLogFilesModal', [
+                'server' => $server,
+                'app' => $app,
+            ]);
+
+            return '<div class="notification is-danger">Error rendering application log files modal</div>';
+        }
+    }
+
+    /**
      * Build template data for server info modal.
      *
      * @param array<string,mixed> $serverInfo Server information data
