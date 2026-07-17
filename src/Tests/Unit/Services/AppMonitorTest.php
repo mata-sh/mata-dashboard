@@ -58,6 +58,30 @@ final class AppMonitorTest extends TestCase
         $this->assertSame(503, $result['httpCode']);
     }
 
+    public function testForcedBatchBypassesCacheAndWritesTheNormalPingKey(): void
+    {
+        $target = new EndpointTarget('app', 'https://app.example.test');
+        $cacheKey = (new ApiCacheKeyFactory())->createAvailabilityKey(
+            'https://node.example.test/api',
+            CacheTypes::PING,
+            $target->resolveProbeUrl(),
+            2,
+        );
+        $store = $this->createMock(CacheStoreInterface::class);
+        $store->expects($this->never())->method('get');
+        $store->expects($this->once())
+            ->method('put')
+            ->with($cacheKey, $this->isType('array'))
+            ->willReturn(true);
+
+        $results = $this->monitor($store, $this->probe(new Response(200)))->checkMultipleEndpoints(
+            ['app' => $target],
+            forceRefresh: true,
+        );
+
+        $this->assertTrue($results['app']['reachable']);
+    }
+
     public function testStatusEndpointMaintenanceDoesNotRecordUnreachableEvent(): void
     {
         $store = $this->createMock(CacheStoreInterface::class);

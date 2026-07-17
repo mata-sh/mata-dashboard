@@ -63,6 +63,18 @@ final class NodeHealthMonitorTest extends TestCase
         $this->assertSame(NodeHealthState::HEALTHY, $this->monitor($store, new ProbeClient())->checkOrWait('node-a')['state']);
     }
 
+    public function testForcedRefreshBypassesCachedHealth(): void
+    {
+        $store = $this->createMock(CacheStoreInterface::class);
+        $store->expects($this->never())->method('get');
+        $store->expects($this->once())->method('put')->willReturn(true);
+        $monitor = $this->monitor($store, $this->probe(['status' => 'healthy', 'maintenance_mode' => false]));
+
+        $health = $monitor->checkOrWait('node-a', forceRefresh: true);
+
+        $this->assertSame(NodeHealthState::HEALTHY, $health['state']);
+    }
+
     public function testAsyncCompletionCachesAndEmitsUnhealthyEvent(): void
     {
         $store = $this->createMock(CacheStoreInterface::class);

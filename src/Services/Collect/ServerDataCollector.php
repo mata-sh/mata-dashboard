@@ -73,9 +73,9 @@ class ServerDataCollector implements ServerDataCollectorInterface
      *
      * @return null|array<string,mixed> Server data or null on failure
      */
-    public function getServerSystemData(string $cacheType = 'serverData'): ?array
+    public function getServerSystemData(string $cacheType = 'serverData', bool $forceRefresh = false): ?array
     {
-        return $this->request('GET', 'server/data', $cacheType);
+        return $this->request('GET', 'server/data', $cacheType, forceRefresh: $forceRefresh);
     }
 
     /**
@@ -133,9 +133,9 @@ class ServerDataCollector implements ServerDataCollectorInterface
      *
      * @return null|array<string,mixed> Apps data indexed by app name or null on failure
      */
-    public function getApps(string $cacheType = 'apps'): ?array
+    public function getApps(string $cacheType = 'apps', bool $forceRefresh = false): ?array
     {
-        return $this->request('GET', 'apps', $cacheType);
+        return $this->request('GET', 'apps', $cacheType, forceRefresh: $forceRefresh);
     }
 
     /**
@@ -299,13 +299,18 @@ class ServerDataCollector implements ServerDataCollectorInterface
      *
      * @return null|array<string,mixed> Response data or null on failure
      */
-    private function request(string $method, string $path, string $cacheType = '', array $requestOptions = []): ?array
-    {
+    private function request(
+        string $method,
+        string $path,
+        string $cacheType = '',
+        array $requestOptions = [],
+        bool $forceRefresh = false,
+    ): ?array {
         $ttlSeconds = $this->ttlResolver->get($cacheType);
         $cacheKey = $this->cacheKeyFactory->createApiRequestKey($this->apiClient->getApiBase(), $method, $path);
 
         // 1. Try fresh cache
-        $cachedEntry = $this->cacheStore->get($cacheKey, $ttlSeconds);
+        $cachedEntry = $forceRefresh ? null : $this->cacheStore->get($cacheKey, $ttlSeconds);
         if ($cachedEntry !== null) {
             return $this->dataTransformer->normalizeApiResponse(
                 data: $cachedEntry->value,

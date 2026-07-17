@@ -34,10 +34,14 @@ class AppMonitor implements AppMonitorInterface
         private LoggerInterface $logger
     ) {}
 
-    public function checkEndpoint(EndpointTarget $target, int $timeout = 2, string $cacheType = CacheTypes::PING): array
-    {
+    public function checkEndpoint(
+        EndpointTarget $target,
+        int $timeout = 2,
+        string $cacheType = CacheTypes::PING,
+        bool $forceRefresh = false,
+    ): array {
         $cacheKey = $this->availabilityCacheKey($target->resolveProbeUrl(), $cacheType, $timeout);
-        $cached = $this->cacheStore->get($cacheKey, $this->ttlResolver->get($cacheType));
+        $cached = $forceRefresh ? null : $this->cacheStore->get($cacheKey, $this->ttlResolver->get($cacheType));
         if ($cached !== null) {
             return $cached->value;
         }
@@ -54,8 +58,12 @@ class AppMonitor implements AppMonitorInterface
      *
      * @return array<int|string,array<string,mixed>>
      */
-    public function checkMultipleEndpoints(array $targets, int $timeout = 2, string $cacheType = CacheTypes::PING): array
-    {
+    public function checkMultipleEndpoints(
+        array $targets,
+        int $timeout = 2,
+        string $cacheType = CacheTypes::PING,
+        bool $forceRefresh = false,
+    ): array {
         if ($targets === []) {
             return [];
         }
@@ -67,7 +75,7 @@ class AppMonitor implements AppMonitorInterface
 
         foreach ($targets as $identifier => $target) {
             $cacheKey = $this->availabilityCacheKey($target->resolveProbeUrl(), $cacheType, $timeout);
-            $cached = $this->cacheStore->get($cacheKey, $ttlSeconds);
+            $cached = $forceRefresh ? null : $this->cacheStore->get($cacheKey, $ttlSeconds);
             if ($cached !== null) {
                 $results[$identifier] = $cached->value;
 

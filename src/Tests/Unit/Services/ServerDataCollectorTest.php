@@ -82,6 +82,38 @@ final class ServerDataCollectorTest extends TestCase
         $this->assertSame(60, $response['cache_ttl']);
     }
 
+    public function testForcedRefreshBypassesCacheAndWritesTheNormalEntry(): void
+    {
+        $cacheKey = (new ApiCacheKeyFactory())->createApiRequestKey(
+            'https://node.example.test/api',
+            'GET',
+            'apps',
+        );
+        $cache = $this->createMock(CacheStoreInterface::class);
+        $cache->expects($this->never())->method('get');
+        $cache->expects($this->once())
+            ->method('put')
+            ->with($cacheKey, [])
+            ->willReturn(true);
+        $apiClient = $this->createMock(ApiClient::class);
+        $apiClient->method('getApiBase')->willReturn('https://node.example.test/api');
+        $apiClient->expects($this->once())->method('request')->willReturn('[]');
+
+        $collector = new ServerDataCollector(
+            new NullLogger(),
+            $cache,
+            new ApiCacheKeyFactory(),
+            new CacheTtlResolver(['apps' => 300]),
+            $apiClient,
+            new ApiResponseTransformer(new NullLogger()),
+        );
+
+        $response = $collector->getApps(forceRefresh: true);
+
+        $this->assertFalse($response['from_cache']);
+        $this->assertSame([], $response['result']);
+    }
+
     public function testFailedRequestUsesStaleEntryUnlessTtlIsZero(): void
     {
         $cache = $this->createMock(CacheStoreInterface::class);

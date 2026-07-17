@@ -17,11 +17,12 @@ interface ServerDataCollectorInterface
     /**
      * Fetch comprehensive server data including system metrics.
      *
-     * @param string $cacheType Cache type key for TTL lookup (default: 'serverData')
+     * @param string $cacheType    cache key for TTL lookup (default: 'serverData')
+     * @param bool   $forceRefresh bypass a cached result while preserving its cache key
      *
      * @return null|array<string,mixed> Server data or null on failure
      */
-    public function getServerSystemData(string $cacheType = 'serverData'): ?array;
+    public function getServerSystemData(string $cacheType = 'serverData', bool $forceRefresh = false): ?array;
 
     /**
      * Fetch raw PHP process information from server.
@@ -58,11 +59,12 @@ interface ServerDataCollectorInterface
     /**
      * Fetch all apps/applications from the server.
      *
-     * @param string $cacheType Cache type key for TTL lookup (default: 'apps')
+     * @param string $cacheType    cache key for TTL lookup (default: 'apps')
+     * @param bool   $forceRefresh bypass a cached result while preserving its cache key
      *
      * @return null|array<string,mixed> Apps data indexed by app name or null on failure
      */
-    public function getApps(string $cacheType = 'apps'): ?array;
+    public function getApps(string $cacheType = 'apps', bool $forceRefresh = false): ?array;
 
     /**
      * Fetch library information for all apps.

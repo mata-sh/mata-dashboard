@@ -62,7 +62,7 @@ class MockServerDataCollector implements ServerDataCollectorInterface
     /**
      * Generate realistic server system metrics.
      */
-    public function getServerSystemData(string $cacheType = 'serverData'): ?array
+    public function getServerSystemData(string $cacheType = 'serverData', bool $forceRefresh = false): ?array
     {
         $ttlSeconds = $this->ttlResolver->get($cacheType);
 
@@ -179,7 +179,7 @@ class MockServerDataCollector implements ServerDataCollectorInterface
     /**
      * Generate demo application data.
      */
-    public function getApps(string $cacheType = 'apps'): ?array
+    public function getApps(string $cacheType = 'apps', bool $forceRefresh = false): ?array
     {
         $ttlSeconds = $this->ttlResolver->get($cacheType);
         $data = $this->generateDemoApps();

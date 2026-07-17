@@ -17,12 +17,20 @@ interface NodeHealthMonitorInterface
      *
      * @return array<string,mixed>
      */
-    public function checkOrWait(string $serverName, string $cacheType = CacheTypes::HEALTH): array;
+    public function checkOrWait(
+        string $serverName,
+        string $cacheType = CacheTypes::HEALTH,
+        bool $forceRefresh = false,
+    ): array;
 
     /**
      * Return cached health immediately or a cache-miss probe promise.
      *
      * @return array<string,mixed>|PromiseInterface
      */
-    public function checkAsync(string $serverName, string $cacheType = CacheTypes::HEALTH): array|PromiseInterface;
+    public function checkAsync(
+        string $serverName,
+        string $cacheType = CacheTypes::HEALTH,
+        bool $forceRefresh = false,
+    ): array|PromiseInterface;
 }

@@ -17,8 +17,11 @@ class MockNodeHealthMonitor implements NodeHealthMonitorInterface
      */
     public function __construct(private array $variants = []) {}
 
-    public function checkOrWait(string $serverName, string $cacheType = CacheTypes::HEALTH): array
-    {
+    public function checkOrWait(
+        string $serverName,
+        string $cacheType = CacheTypes::HEALTH,
+        bool $forceRefresh = false,
+    ): array {
         if (isset($this->variants[$serverName])) {
             return $this->withState($this->variants[$serverName]);
         }
@@ -62,9 +65,12 @@ class MockNodeHealthMonitor implements NodeHealthMonitorInterface
         ]);
     }
 
-    public function checkAsync(string $serverName, string $cacheType = CacheTypes::HEALTH): array|PromiseInterface
-    {
-        return $this->checkOrWait($serverName, $cacheType);
+    public function checkAsync(
+        string $serverName,
+        string $cacheType = CacheTypes::HEALTH,
+        bool $forceRefresh = false,
+    ): array|PromiseInterface {
+        return $this->checkOrWait($serverName, $cacheType, $forceRefresh);
     }
 
     /**

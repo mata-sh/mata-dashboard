@@ -12,16 +12,24 @@ use Mata\Services\Monitor\Dto\EndpointTarget;
  */
 class MockAppMonitor implements AppMonitorInterface
 {
-    public function checkEndpoint(EndpointTarget $target, int $timeout = 2, string $cacheType = CacheTypes::PING): array
-    {
+    public function checkEndpoint(
+        EndpointTarget $target,
+        int $timeout = 2,
+        string $cacheType = CacheTypes::PING,
+        bool $forceRefresh = false,
+    ): array {
         return $this->generateMockResult($target->url);
     }
 
     /**
      * @param array<string,EndpointTarget> $targets
      */
-    public function checkMultipleEndpoints(array $targets, int $timeout = 2, string $cacheType = CacheTypes::PING): array
-    {
+    public function checkMultipleEndpoints(
+        array $targets,
+        int $timeout = 2,
+        string $cacheType = CacheTypes::PING,
+        bool $forceRefresh = false,
+    ): array {
         if ($targets === []) {
             return [];
         }

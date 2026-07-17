@@ -31,22 +31,28 @@ class NodeHealthMonitor implements NodeHealthMonitorInterface
         private LoggerInterface $logger
     ) {}
 
-    public function checkOrWait(string $serverName, string $cacheType = CacheTypes::HEALTH): array
-    {
-        $result = $this->checkAsync($serverName, $cacheType);
+    public function checkOrWait(
+        string $serverName,
+        string $cacheType = CacheTypes::HEALTH,
+        bool $forceRefresh = false,
+    ): array {
+        $result = $this->checkAsync($serverName, $cacheType, $forceRefresh);
 
         // @var array<string,mixed> $result
         return is_array($result) ? $result : $result->wait();
     }
 
-    public function checkAsync(string $serverName, string $cacheType = CacheTypes::HEALTH): array|PromiseInterface
-    {
+    public function checkAsync(
+        string $serverName,
+        string $cacheType = CacheTypes::HEALTH,
+        bool $forceRefresh = false,
+    ): array|PromiseInterface {
         $cacheKey = $this->cacheKeyFactory->createApiRequestKey(
             $this->apiClient->getApiBase(),
             'GET',
             'health'
         );
-        $cached = $this->cacheStore->get($cacheKey, $this->ttlResolver->get($cacheType));
+        $cached = $forceRefresh ? null : $this->cacheStore->get($cacheKey, $this->ttlResolver->get($cacheType));
         if ($cached !== null) {
             return $cached->value;
         }

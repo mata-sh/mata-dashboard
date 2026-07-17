@@ -134,10 +134,11 @@ function warmServerCaches(
     NodeHealthMonitorInterface $healthMonitor,
     LoggerInterface $log
 ): void {
-    $healthMonitor->checkOrWait($server);
-    $collector->getServerSystemData();
+    // Refresh the dashboard's normal cache entries regardless of their display TTL.
+    $healthMonitor->checkOrWait($server, forceRefresh: true);
+    $collector->getServerSystemData(forceRefresh: true);
 
-    $appsResponse = $collector->getApps();
+    $appsResponse = $collector->getApps(forceRefresh: true);
     if ($appsResponse === null || !is_array($appsResponse['result'] ?? null)) {
         $log->warning("{$server}: apps could not be fetched, skipping availability probes");
 
@@ -152,6 +153,6 @@ function warmServerCaches(
     );
     $targets = EndpointTarget::fromRawAppData($pingableApps, $server);
     if ($targets !== []) {
-        $appMonitor->checkMultipleEndpoints($targets);
+        $appMonitor->checkMultipleEndpoints($targets, forceRefresh: true);
     }
 }
