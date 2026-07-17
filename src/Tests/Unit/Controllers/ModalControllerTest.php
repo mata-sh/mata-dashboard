@@ -267,7 +267,7 @@ class ModalControllerTest extends TestCase
      * @group error-handling
      *
      * Tests handling of missing README files. When an app doesn't have a README.md,
-     * the controller should gracefully display a "No Readme.md found" message
+     * the renderer should gracefully display a "No README.md content found" message
      * instead of throwing an error.
      */
     public function testItHandlesMissingReadmeGracefully(): void
@@ -292,8 +292,8 @@ class ModalControllerTest extends TestCase
             ->with(
                 $this->anything(),
                 $this->callback(function ($data) {
-                    // Should contain "No Readme.md found" message in content
-                    return str_contains($data['content']['modal_content'], 'No Readme.md found');
+                    // Should contain "No README.md content found" message in content
+                    return str_contains($data['content']['modal_content'], 'No README.md content found');
                 })
             )
             ->willReturn('<div>No README</div>')

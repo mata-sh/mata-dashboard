@@ -184,9 +184,7 @@ class ModalController extends BaseController
                     "README of {$app} on {$server}"
                 );
 
-                $markdownContent = !empty($readmeResponse['result'])
-                    ? $readmeResponse['result']
-                    : 'No Readme.md found.';
+                $markdownContent = $readmeResponse['result'] ?? '';
                 $notice = is_array($readmeResponse['notice'] ?? null)
                     ? $readmeResponse['notice']
                     : null;
