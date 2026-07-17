@@ -781,13 +781,26 @@ svg {
 .app-filesize.modal-trigger {
     appearance: none;
     box-sizing: border-box;
-    padding: 0;
-    border: 0;
+    padding: 0 3px;
+    border: 1px solid transparent;
+    border-radius: 4px;
     background-color: transparent;
     color: inherit;
     font: inherit;
     line-height: inherit;
     cursor: pointer;
+}
+
+.app-filesize.modal-trigger.good {
+    color: grey;
+}
+
+.app-filesize.modal-trigger.warn {
+    color: #ffd24d;
+}
+
+.app-filesize.modal-trigger.critical {
+    color: #ff4d4d;
 }
 
 .app-filesize.modal-trigger.alarm {
@@ -796,9 +809,22 @@ svg {
     font-weight: bold;
 }
 
+.app-filesize.modal-trigger:hover,
 .app-filesize.modal-trigger:focus-visible {
-    outline: 1px solid #3f93a6;
-    outline-offset: 2px;
+    border-color: #3f93a6;
+    background: #182029;
+    outline: none;
+}
+
+.app-filesize.modal-trigger:focus-visible {
+    box-shadow: 0 0 0 2px rgba(63, 147, 166, .2);
+}
+
+.app-filesize.modal-trigger.alarm:hover,
+.app-filesize.modal-trigger.alarm:focus-visible {
+    background-color: #b80000;
+    border-color: #ff8585;
+    color: #fff;
 }
 
 .server-cronjobs.modal-trigger,
