@@ -11,13 +11,21 @@ as `www-data`.
 
 | Schedule | Script | Execution log | Heartbeat history |
 |----------|--------|---------------|-------------------|
-| `*/5 * * * *` | `servers_data_fetch.php` | `logs/cron/app-servers-data-fetch.log` | `logs/cron/heartbeat-servers-data-fetch.jsonl` |
-| `*/5 * * * *` | `servers_metrics_collect.php` | `logs/cron/app-servers-metrics-collect.log` | `logs/cron/heartbeat-servers-metrics-collect.jsonl` |
-| `*/15 * * * *` | `servers_metrics_aggregate.php` | `logs/cron/app-servers-metrics-aggregate.log` | `logs/cron/heartbeat-servers-metrics-aggregate.jsonl` |
+| `*/5 * * * *` (chained, runs first) | `servers_data_fetch.php` | `logs/cron/app-servers-data-fetch.log` | `logs/cron/heartbeat-servers-data-fetch.jsonl` |
+| `*/5 * * * *` (chained, runs second) | `servers_metrics_collect.php` | `logs/cron/app-servers-metrics-collect.log` | `logs/cron/heartbeat-servers-metrics-collect.jsonl` |
+| `4-59/15 * * * *` | `servers_metrics_aggregate.php` | `logs/cron/app-servers-metrics-aggregate.log` | `logs/cron/heartbeat-servers-metrics-aggregate.jsonl` |
 | `* * * * *` | `alarms_evaluate_critical.php` | `logs/cron/app-alarms-evaluate-critical.log` | `logs/cron/heartbeat-alarms-evaluate-critical.jsonl` |
 | `*/5 * * * *` | `alarms_evaluate_non_critical.php` | `logs/cron/app-alarms-evaluate-non-critical.log` | `logs/cron/heartbeat-alarms-evaluate-non-critical.jsonl` |
 | `* * * * *` | `alarms_dispatch.php` | `logs/cron/app-alarms-dispatch.log` | `logs/cron/heartbeat-alarms-dispatch.jsonl` |
 | `25 2 * * *` | `retention_cleanup.php` | `logs/cron/app-retention-cleanup.log` | `logs/cron/heartbeat-retention-cleanup.jsonl` |
+
+`servers_data_fetch.php` and `servers_metrics_collect.php` share one chained
+crontab entry (`fetch ; collect`): fetch warms the shared `temp/api-cache`, then
+collect ingests from those entries while they are well inside the 180s
+`serverData` TTL, so each node is queried once per 5-minute cycle. The `;`
+separator keeps a fetch failure from blocking collection — collect then fetches
+on its own through the same cache. `servers_metrics_aggregate.php` is offset to
+`:04/:19/:34/:49` so it does not start alongside the collection chain.
 
 ## Logs and inspection
 

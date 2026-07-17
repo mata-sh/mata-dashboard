@@ -16,11 +16,13 @@ CRON_ENV_FILE=/etc/mata/cron.env
 
 # Data collection
 # servers_data_fetch warms the dashboard api-cache (node health, server data, apps,
-# availability probes), one server at a time. Offset from servers_metrics_collect so
-# both jobs never query the nodes in the same minute.
-2-59/5 * * * * . "$CRON_ENV_FILE" && cd "$APP_ROOT" && "$PHP_BIN" cron/servers_data_fetch.php >> "$CRON_LOG_DIR/app-servers-data-fetch.log" 2>&1
-*/5 * * * * . "$CRON_ENV_FILE" && cd "$APP_ROOT" && "$PHP_BIN" cron/servers_metrics_collect.php >> "$CRON_LOG_DIR/app-servers-metrics-collect.log" 2>&1
-*/15 * * * * . "$CRON_ENV_FILE" && cd "$APP_ROOT" && "$PHP_BIN" cron/servers_metrics_aggregate.php >> "$CRON_LOG_DIR/app-servers-metrics-aggregate.log" 2>&1
+# availability probes), one server at a time. Chained on purpose: collect ingests
+# from the freshly warmed entries (serverData TTL is 180s), so the nodes are
+# queried once per cycle. ';' not '&&': a fetch failure must not stop metrics
+# collection — collect then fetches on its own through the same shared cache.
+*/5 * * * * . "$CRON_ENV_FILE" && cd "$APP_ROOT" && { "$PHP_BIN" cron/servers_data_fetch.php >> "$CRON_LOG_DIR/app-servers-data-fetch.log" 2>&1 ; "$PHP_BIN" cron/servers_metrics_collect.php >> "$CRON_LOG_DIR/app-servers-metrics-collect.log" 2>&1 ; }
+# Offset from the :00/:15 slots so it does not start alongside the collection chain.
+4-59/15 * * * * . "$CRON_ENV_FILE" && cd "$APP_ROOT" && "$PHP_BIN" cron/servers_metrics_aggregate.php >> "$CRON_LOG_DIR/app-servers-metrics-aggregate.log" 2>&1
 
 # Alarm evaluation and delivery
 * * * * * . "$CRON_ENV_FILE" && cd "$APP_ROOT" && "$PHP_BIN" cron/alarms_evaluate_critical.php >> "$CRON_LOG_DIR/app-alarms-evaluate-critical.log" 2>&1

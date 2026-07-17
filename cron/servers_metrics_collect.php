@@ -31,8 +31,9 @@ try {
     // All event/alarm infrastructure now loaded via bootstrap_events.php
     $dataRetentionConfig = $monitoringSettings['data_retention'] ?? [];
 
-    $cacheDir = $paths->tempPath . '/server-metrics';
-    $cacheStore = new FileCacheStore($log, $cacheDir);
+    // Share the dashboard/servers_data_fetch cache so a server/data payload warmed
+    // within its TTL is reused instead of re-fetched from the node
+    $cacheStore = new FileCacheStore($log, $paths->tempPath . '/api-cache');
     $cacheKeyFactory = new ApiCacheKeyFactory();
     $ttlResolver = new CacheTtlResolver($monitoringSettings['ttl'] ?? []);
     $dataTransformer = new ApiResponseTransformer($log);
