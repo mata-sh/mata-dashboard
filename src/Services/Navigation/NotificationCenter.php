@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace Mata\Services\Navigation;
 
 use LogicException;
+use Mata\Services\Cache\ApiCacheKeyFactory;
+use Mata\Services\Cache\CacheStoreInterface;
 use Mata\Services\Event\EventAggregatorServiceInterface;
 use Mata\Services\Event\EventManager;
 
@@ -23,12 +25,13 @@ class NotificationCenter
     /** Severity levels shown as bell pills, in display order. */
     public const PILL_LEVELS = ['warning', 'error', 'critical'];
 
-    private EventManager $eventManager;
+    private const COUNTS_CACHE_TTL = 15;
 
-    public function __construct(EventManager $eventManager)
-    {
-        $this->eventManager = $eventManager;
-    }
+    public function __construct(
+        private EventManager $eventManager,
+        private CacheStoreInterface $cacheStore,
+        private ApiCacheKeyFactory $cacheKeyFactory,
+    ) {}
 
     /**
      * Get unacknowledged alarm counts per severity level, zero-filled.
@@ -40,12 +43,14 @@ class NotificationCenter
      */
     public function getUnacknowledgedCounts(): array
     {
-        $raw = $this->aggregator()->getUnacknowledgedAlarmCounts();
-
-        $counts = ['info' => 0, 'warning' => 0, 'error' => 0, 'critical' => 0];
-        foreach ($raw as $level => $count) {
-            $counts[$level] = ($counts[$level] ?? 0) + $count;
+        $cacheKey = $this->countsCacheKey();
+        $cached = $this->cacheStore->get($cacheKey, self::COUNTS_CACHE_TTL);
+        if ($cached !== null) {
+            return $this->normalizeCounts($cached->value);
         }
+
+        $counts = $this->normalizeCounts($this->aggregator()->getUnacknowledgedAlarmCounts());
+        $this->cacheStore->put($cacheKey, $counts);
 
         return $counts;
     }
@@ -60,7 +65,10 @@ class NotificationCenter
      */
     public function acknowledge(int $alarmId, string $user): bool
     {
-        return $this->aggregator()->acknowledgeAlarm($alarmId, $user);
+        $acknowledged = $this->aggregator()->acknowledgeAlarm($alarmId, $user);
+        $this->cacheStore->delete($this->countsCacheKey());
+
+        return $acknowledged;
     }
 
     /**
@@ -72,7 +80,28 @@ class NotificationCenter
      */
     public function acknowledgeAll(string $user): int
     {
-        return $this->aggregator()->acknowledgeAllAlarms($user);
+        $acknowledged = $this->aggregator()->acknowledgeAllAlarms($user);
+        $this->cacheStore->delete($this->countsCacheKey());
+
+        return $acknowledged;
+    }
+
+    /** @param array<string,mixed> $raw */
+    private function normalizeCounts(array $raw): array
+    {
+        $counts = ['info' => 0, 'warning' => 0, 'error' => 0, 'critical' => 0];
+        foreach ($raw as $level => $count) {
+            if (is_string($level) && is_int($count)) {
+                $counts[$level] = ($counts[$level] ?? 0) + $count;
+            }
+        }
+
+        return $counts;
+    }
+
+    private function countsCacheKey(): string
+    {
+        return $this->cacheKeyFactory->createDashboardKey('notifications/unacknowledged-counts');
     }
 
     private function aggregator(): EventAggregatorServiceInterface

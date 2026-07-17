@@ -163,7 +163,11 @@ class DashboardController extends BaseController
         $this->eventsRenderer = new EventsRenderer($twig, $logger, $tools, $app, $endpoints);
         $this->alarmsRenderer = new AlarmsRenderer($twig, $logger, $tools, $app, $endpoints);
         $this->notificationCenterRenderer = new NotificationCenterRenderer($twig, $logger, $tools, $app, $endpoints);
-        $this->notificationCenter = new NotificationCenter($eventManager);
+        $this->notificationCenter = new NotificationCenter(
+            $eventManager,
+            $cacheStore,
+            $cacheKeyFactory,
+        );
         $this->app = $app;
 
         // Initialize Libraries service classes

@@ -28,4 +28,9 @@ interface CacheStoreInterface
      * @param array<int|string,mixed> $value
      */
     public function put(string $key, array $value): bool;
+
+    /**
+     * Remove a cached entry. Missing entries are treated as already removed.
+     */
+    public function delete(string $key): bool;
 }

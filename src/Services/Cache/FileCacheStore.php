@@ -92,6 +92,26 @@ final class FileCacheStore implements CacheStoreInterface
         }
     }
 
+    public function delete(string $key): bool
+    {
+        if ($this->cacheDir === null) {
+            return true;
+        }
+
+        $path = $this->resolvePath($key, false);
+        if ($path === null || !is_file($path)) {
+            return true;
+        }
+
+        if (!@unlink($path)) {
+            $this->logFailure('delete', $key, 'Could not delete cache file.');
+
+            return false;
+        }
+
+        return true;
+    }
+
     private function read(string $key): ?CacheEntry
     {
         if ($this->cacheDir === null) {

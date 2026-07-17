@@ -323,8 +323,7 @@ Active cron logs and their compressed archives are deleted after 30 days; active
 logs are compressed weekly. The ingestion health report has application-managed
 rotation and is excluded from shell rotation.
 
-For host or native installations, substitute the application root and PHP path
-while retaining these schedules and `logs/cron/` destinations.
+For shared hosting, use [`../cron/crontab.shared-hosting.template`](../cron/crontab.shared-hosting.template). Set `APP_ROOT` and `PHP_BIN`; configuration loads from `config/*.config.env`, so no `cron.env` is required.
 
 ## Architecture Details
 

@@ -50,8 +50,7 @@ Cron removes active cron logs and their compressed archives after 30 days, and
 compresses active logs weekly. It excludes the ingestion-health report from shell
 rotation.
 
-For host or native installations, substitute the application root and PHP path
-in the manifest while retaining the schedules and `logs/cron/` destinations.
+For shared hosting, use [`cron/crontab.shared-hosting.template`](../../cron/crontab.shared-hosting.template). Set `APP_ROOT` and `PHP_BIN`; the PHP jobs load configuration from `config/*.config.env`, so no `cron.env` is required. Control panels that accept one command at a time require replacing both variables with their values before pasting each command. The template leaves log retention to the host.
 
 ## Monitoring Ingestion Health
 

@@ -16,7 +16,7 @@ final class DockerCrontabTest extends TestCase
     /** @var array<string,array{schedule:string,log:string}> */
     private const JOBS = [
         'servers_data_fetch.php' => [
-            'schedule' => '*/5 * * * *',
+            'schedule' => '2-59/5 * * * *',
             'log' => 'app-servers-data-fetch.log',
         ],
         'servers_metrics_collect.php' => [

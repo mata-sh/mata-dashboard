@@ -9,7 +9,7 @@
         <div id="notification-bell-mobile"
              class="navbar-item notification-bell"
              hx-get="{{ endpoints.notification_bell_render }}"
-             hx-trigger="load, every 60s, bell-refresh from:body"
+             hx-trigger="load, every 57s, bell-refresh from:body"
              hx-swap="innerHTML"></div>
       {% endif %}
       <a role="button" class="navbar-burger" data-target="navbar-menu" aria-label="menu" aria-expanded="false">
@@ -35,7 +35,7 @@
         <div id="notification-bell"
              class="navbar-item notification-bell"
              hx-get="{{ endpoints.notification_bell_render }}"
-             hx-trigger="load, every 60s, bell-refresh from:body"
+             hx-trigger="load, every 50s, bell-refresh from:body"
              hx-swap="innerHTML"></div>
       {% endif %}
       <div class="navbar-item">

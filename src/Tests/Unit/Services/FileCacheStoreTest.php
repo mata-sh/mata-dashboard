@@ -94,6 +94,17 @@ final class FileCacheStoreTest extends TestCase
         $this->assertSame(0o060, $permissions & 0o060);
     }
 
+    public function testDeleteRemovesExistingEntriesAndIgnoresMissingEntries(): void
+    {
+        $store = new FileCacheStore(new NullLogger(), $this->directory);
+        $key = $this->keys->createApiRequestKey('https://api.example.test', 'GET', 'apps');
+
+        $this->assertTrue($store->put($key, ['apps' => []]));
+        $this->assertTrue($store->delete($key));
+        $this->assertNull($store->get($key, 60));
+        $this->assertTrue($store->delete($key));
+    }
+
     public function testRoundTripUsesFileMtimeAndRejectsMalformedPayloads(): void
     {
         $store = new FileCacheStore(new NullLogger(), $this->directory);

@@ -11,6 +11,9 @@ use JsonException;
  */
 final class ApiCacheKeyFactory
 {
+    /** Synthetic host for dashboard-internal cache entries (not a real API). */
+    private const DASHBOARD_HOST = 'https://mata-dashboard.local';
+
     /**
      * Create a key for an ordinary node API request.
      */
@@ -34,13 +37,19 @@ final class ApiCacheKeyFactory
     }
 
     /**
+     * Create a key for a dashboard-internal resource under the synthetic host.
+     */
+    public function createDashboardKey(string $path): string
+    {
+        return $this->createApiRequestKey(self::DASHBOARD_HOST, 'GET', $path);
+    }
+
+    /**
      * Create a dashboard metrics key under the synthetic dashboard host.
      */
     public function createDashboardMetricsKey(string $logicalKey): string
     {
-        return $this->createApiRequestKey(
-            'https://mata-dashboard.local',
-            'GET',
+        return $this->createDashboardKey(
             'metrics/dashboard/' . $this->createOpaqueLeaf($logicalKey)
         );
     }

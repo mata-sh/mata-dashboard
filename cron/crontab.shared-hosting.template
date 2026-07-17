@@ -1,0 +1,24 @@
+# MATA Dashboard shared-hosting crontab template
+# Copy this file to your user crontab and set these two paths for your account.
+# For a hosting control panel, replace $APP_ROOT and $PHP_BIN in each command
+# before entering it. PHP must be version 8.3 or newer.
+APP_ROOT=/home/ACCOUNT/mata-dashboard
+PHP_BIN=/usr/local/bin/php
+
+# Cron jobs load configuration from config/*.config.env. No cron.env is needed.
+# The application writes its own logs to $APP_ROOT/logs/cron/. Configure log
+# retention with your host; Docker-specific filesystem maintenance is omitted.
+
+# Data collection
+# Offset from metrics collection so both jobs do not query nodes in the same minute.
+2-59/5 * * * * "$PHP_BIN" "$APP_ROOT/cron/servers_data_fetch.php" >> "$APP_ROOT/logs/cron/app-servers-data-fetch.log" 2>&1
+*/5 * * * * "$PHP_BIN" "$APP_ROOT/cron/servers_metrics_collect.php" >> "$APP_ROOT/logs/cron/app-servers-metrics-collect.log" 2>&1
+*/15 * * * * "$PHP_BIN" "$APP_ROOT/cron/servers_metrics_aggregate.php" >> "$APP_ROOT/logs/cron/app-servers-metrics-aggregate.log" 2>&1
+
+# Alarm evaluation and delivery
+* * * * * "$PHP_BIN" "$APP_ROOT/cron/alarms_evaluate_critical.php" >> "$APP_ROOT/logs/cron/app-alarms-evaluate-critical.log" 2>&1
+*/5 * * * * "$PHP_BIN" "$APP_ROOT/cron/alarms_evaluate_non_critical.php" >> "$APP_ROOT/logs/cron/app-alarms-evaluate-non-critical.log" 2>&1
+* * * * * "$PHP_BIN" "$APP_ROOT/cron/alarms_dispatch.php" >> "$APP_ROOT/logs/cron/app-alarms-dispatch.log" 2>&1
+
+# Database retention
+25 2 * * * "$PHP_BIN" "$APP_ROOT/cron/retention_cleanup.php" >> "$APP_ROOT/logs/cron/app-retention-cleanup.log" 2>&1
