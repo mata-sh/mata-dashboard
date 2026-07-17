@@ -1406,6 +1406,45 @@ svg {
     color: #e8eaf0;
 }
 
+.settings-title {
+    display: inline-flex;
+    align-items: center;
+    gap: .5rem;
+    margin-bottom: 0 !important;
+    cursor: pointer;
+    user-select: none;
+}
+
+.settings-title:hover {
+    color: #7fe3f0;
+}
+
+.settings-caret {
+    font-size: 1.3em;
+    line-height: 1;
+    color: #8b93a5;
+    transition: transform .15s ease;
+}
+
+.settings-title:hover .settings-caret {
+    color: #7fe3f0;
+}
+
+.settings-card.is-open > .settings-title .settings-caret,
+.settings-subcard.is-open > .settings-title .settings-caret {
+    transform: rotate(90deg);
+}
+
+.settings-card > .settings-details,
+.settings-subcard > .settings-details {
+    display: none;
+}
+
+.settings-card.is-open > .settings-details,
+.settings-subcard.is-open > .settings-details {
+    display: block;
+}
+
 .settings-subtitle {
     color: #8b93a5;
     margin-bottom: 14px;

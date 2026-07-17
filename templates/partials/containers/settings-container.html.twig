@@ -1,7 +1,11 @@
 {% set env_name = settings.environment|default('prod') %}
 <div class="settings-section">
-  <section class="settings-card">
-    <h3>Configuration Overview</h3>
+  <section class="settings-card" id="configuration-overview">
+    <h3 class="settings-title" role="button" tabindex="0" aria-controls="configuration-overview-details"
+        _="on click or keydown[key=='Enter'] toggle .is-open on #configuration-overview">
+      Configuration Overview <span class="settings-caret" aria-hidden="true">&#9656;</span>
+    </h3>
+    <div class="settings-details" id="configuration-overview-details">
     <div class="settings-subtitle is-info">
       The dashboard runtime environment is <strong>{{ env_name }}</strong> (APP_ENV: {{ settings.app_environment|default(env_name) }}). Monitoring configuration is shared across all monitored targets. Update files in an editor; changes take effect on the next refresh.
     </div>
@@ -23,10 +27,15 @@
         </article>
       {% endfor %}
     </div>
+    </div>
   </section>
 
-  <section class="settings-card">
-    <h3>Monitored Servers</h3>
+  <section class="settings-card" id="monitored-servers">
+    <h3 class="settings-title" role="button" tabindex="0" aria-controls="monitored-servers-details"
+        _="on click or keydown[key=='Enter'] toggle .is-open on #monitored-servers">
+      Monitored Servers <span class="settings-caret" aria-hidden="true">&#9656;</span>
+    </h3>
+    <div class="settings-details" id="monitored-servers-details">
     <p class="settings-subtitle">
       Entries come from <code>servers.json</code>. API keys are masked, but the full value lives in the config file.
     </p>
@@ -95,11 +104,16 @@
         </p>
       {% endfor %}
     </div>
+    </div>
   </section>
 
   <section class="settings-card">
-    <div class="settings-subcard">
-      <h3>Cache Windows</h3>
+    <div class="settings-subcard" id="cache-windows">
+      <h3 class="settings-title" role="button" tabindex="0" aria-controls="cache-windows-details"
+          _="on click or keydown[key=='Enter'] toggle .is-open on #cache-windows">
+        Cache Windows <span class="settings-caret" aria-hidden="true">&#9656;</span>
+      </h3>
+      <div class="settings-details" id="cache-windows-details">
       <p class="settings-subtitle">
         Values from <code>ttl.json</code>. Negative numbers mean "keep forever".
       </p>
@@ -113,9 +127,14 @@
           <li class="settings-empty">TTL configuration not available.</li>
         {% endfor %}
       </ul>
+      </div>
     </div>
-    <div class="settings-subcard">
-      <h3>Alarm Thresholds</h3>
+    <div class="settings-subcard" id="alarm-thresholds">
+      <h3 class="settings-title" role="button" tabindex="0" aria-controls="alarm-thresholds-details"
+          _="on click or keydown[key=='Enter'] toggle .is-open on #alarm-thresholds">
+        Alarm Thresholds <span class="settings-caret" aria-hidden="true">&#9656;</span>
+      </h3>
+      <div class="settings-details" id="alarm-thresholds-details">
       <p class="settings-subtitle">
         Summaries from <code>thresholds.json</code>.
       </p>
@@ -142,6 +161,7 @@
         {% else %}
           <p class="settings-empty">Threshold configuration not available.</p>
         {% endfor %}
+      </div>
       </div>
     </div>
   </section>
