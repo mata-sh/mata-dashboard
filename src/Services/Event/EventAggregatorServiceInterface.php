@@ -25,7 +25,12 @@ interface EventAggregatorServiceInterface
         array|string|null $levelFilter = null
     ): array;
 
-    public function markEventEvaluated(int $eventId): void;
+    /**
+     * Mark an event as evaluated and persist its alarm decision.
+     *
+     * @param null|array<string,mixed> $alarmDecision Alarm evaluation verdict
+     */
+    public function markEventEvaluated(int $eventId, ?array $alarmDecision = null): void;
 
     /**
      * Query events by context with flexible filtering.

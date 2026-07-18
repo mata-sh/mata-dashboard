@@ -230,7 +230,9 @@ final class OpaAlarmDecisionService implements AlarmDecisionServiceInterface
     ): AlarmDecision {
         $result = $response['result'] ?? null;
         $data = is_array($result) ? $result : [];
-        $reason = null;
+        $reason = is_string($data['reason'] ?? null) && $data['reason'] !== ''
+            ? $data['reason']
+            : null;
 
         $allow = match (true) {
             is_bool($result) => $result,

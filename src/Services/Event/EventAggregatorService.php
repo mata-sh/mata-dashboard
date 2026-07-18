@@ -88,9 +88,9 @@ class EventAggregatorService implements EventAggregatorServiceInterface
         return $events;
     }
 
-    public function markEventEvaluated(int $eventId): void
+    public function markEventEvaluated(int $eventId, ?array $alarmDecision = null): void
     {
-        $this->repository->markEventEvaluated($eventId);
+        $this->repository->markEventEvaluated($eventId, $alarmDecision);
     }
 
     /**

@@ -250,9 +250,30 @@ class EventRepository
         return is_array($result) ? $result : [];
     }
 
-    public function markEventEvaluated(int $eventId): void
+    public function markEventEvaluated(int $eventId, ?array $alarmDecision = null): void
     {
-        // Reuse evaluated_at as the alarm-decision marker to avoid reprocessing.
-        $this->db->runQuery('UPDATE events SET evaluated_at = CURRENT_TIMESTAMP WHERE id = ?', [$eventId]);
+        if ($alarmDecision === null) {
+            $this->db->runQuery(
+                'UPDATE events SET evaluated_at = CURRENT_TIMESTAMP, alarm_decision = NULL WHERE id = ?',
+                [$eventId]
+            );
+
+            return;
+        }
+
+        $encodedDecision = json_encode($alarmDecision, JSON_UNESCAPED_SLASHES);
+        if ($encodedDecision === false) {
+            $this->db->runQuery(
+                'UPDATE events SET evaluated_at = CURRENT_TIMESTAMP, alarm_decision = NULL WHERE id = ?',
+                [$eventId]
+            );
+
+            return;
+        }
+
+        $this->db->runQuery(
+            'UPDATE events SET evaluated_at = CURRENT_TIMESTAMP, alarm_decision = ? WHERE id = ?',
+            [$encodedDecision, $eventId]
+        );
     }
 }

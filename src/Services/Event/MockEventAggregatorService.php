@@ -186,7 +186,7 @@ final class MockEventAggregatorService implements EventAggregatorServiceInterfac
         return $candidates;
     }
 
-    public function markEventEvaluated(int $eventId): void
+    public function markEventEvaluated(int $eventId, ?array $alarmDecision = null): void
     {
         if ($eventId > 0) {
             $this->evaluatedEventIds[$eventId] = true;

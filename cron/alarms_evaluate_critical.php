@@ -4,6 +4,7 @@
 declare(strict_types=1);
 
 use Mata\Services\Event\Dto\EventContext;
+use Mata\Services\Alarm\Dto\AlarmEvaluationRecord;
 use Mata\Services\Alarm\Dto\OpaAlarmDecisionConfig;
 use Mata\Services\Alarm\OpaAlarmDecisionService;
 
@@ -40,6 +41,7 @@ try {
     );
     foreach ($events as $event) {
         ++$stats['considered'];
+        $record = new AlarmEvaluationRecord();
 
         // Evaluate threshold: check if event count meets alarm trigger criteria
         $shouldAlarm = $alarmEvaluator->shouldTriggerAlarmForEvent(
@@ -49,15 +51,23 @@ try {
         );
 
         if (!$shouldAlarm) {
-            $eventAggregator->markEventEvaluated((int) $event['id']);
-            ++$stats['skipped'];
-            $log->debug('critical_alarm_decision.threshold_not_met', [
-                'event_id' => $event['id'] ?? null,
+            $record
+                ->setOutcome('suppressed')
+                ->setThresholdGate('fail');
+            $log->info('alarm_decision', array_merge([
+                'event_id' => (int) $event['id'],
                 'type' => $event['type'] ?? null,
-            ]);
+                'level' => $event['level'] ?? null,
+                'server_id' => $event['server_id'] ?? null,
+                'application_id' => $event['application_id'] ?? null,
+            ], $record->toArray()));
+            $eventAggregator->markEventEvaluated((int) $event['id'], $record->toArray());
+            ++$stats['skipped'];
 
             continue;
         }
+
+        $record->setThresholdGate('pass');
 
         try {
             $decision = $alarmDecisionService->decide($event, $supportedChannels);
@@ -72,25 +82,32 @@ try {
         }
 
         if (!$decision->allow) {
-            $eventAggregator->markEventEvaluated((int) $event['id']);
+            $record
+                ->setOutcome('suppressed')
+                ->setPolicyGate('deny')
+                ->setPolicyReason($decision->reason);
+            $log->info('alarm_decision', array_merge([
+                'event_id' => (int) $event['id'],
+                'type' => $event['type'] ?? null,
+                'level' => $event['level'] ?? null,
+                'server_id' => $event['server_id'] ?? null,
+                'application_id' => $event['application_id'] ?? null,
+            ], $record->toArray()));
+            $eventAggregator->markEventEvaluated((int) $event['id'], $record->toArray());
             ++$stats['skipped'];
-
-            if ($decision->reason !== null) {
-                $log->info('critical_alarm_decision.skipped', [
-                    'event_id' => $event['id'] ?? null,
-                    'reason' => $decision->reason,
-                ]);
-            }
 
             continue;
         }
 
+        $record
+            ->setPolicyGate('allow')
+            ->setPolicyReason($decision->reason)
+            ->setPriority($decision->priority)
+            ->setEnrich($decision->enrich)
+            ->setRequestedChannels($decision->channels);
+
         if ($decision->enrich) {
             ++$stats['enrich_requested'];
-            $log->info('critical_alarm_decision.enrichment_requested', [
-                'event_id' => $event['id'] ?? null,
-                'channels' => $decision->channels,
-            ]);
         }
 
         // Filter channels based on alarm cooldowns
@@ -102,6 +119,10 @@ try {
             app: $event['application_id'],
             context: $eventContext
         );
+
+        $record
+            ->setReadyChannels($readyChannels)
+            ->setOutcome($readyChannels === [] ? 'undelivered' : 'enqueued');
 
         try {
             $alarmCreator->create((int) $event['id'], $readyChannels, $decision->priority);
@@ -120,11 +141,15 @@ try {
                 );
             }
 
-            $eventAggregator->markEventEvaluated((int) $event['id']);
+            $log->info('alarm_decision', array_merge([
+                'event_id' => (int) $event['id'],
+                'type' => $event['type'] ?? null,
+                'level' => $event['level'] ?? null,
+                'server_id' => $event['server_id'] ?? null,
+                'application_id' => $event['application_id'] ?? null,
+            ], $record->toArray()));
+            $eventAggregator->markEventEvaluated((int) $event['id'], $record->toArray());
             $stats['enqueued'] += count($readyChannels);
-            if ($readyChannels === []) {
-                $log->debug('critical_alarm_decision.no_ready_channels', ['event_id' => $event['id'] ?? null]);
-            }
         } catch (Throwable $exception) {
             ++$stats['failed'];
             $log->error('critical_alarm_decision.enqueue_failed', [
