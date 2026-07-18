@@ -130,6 +130,12 @@ RewriteRule ^ index.php [QSA,L]
 !!! warning "Performance Impact"
     Using `.htaccess` has a performance cost as Apache must check for these files on every request. Use server-level configuration when possible.
 
+#### Alarm decision driver
+
+Shared hosting requires `ALARM_DECISION_DRIVER=builtin`. This degraded mode allows critical-level events plus `fatal_errors_occurring` and `library_outdated_security` via email only, and denies everything else.
+
+This is an explicit configuration choice, not automatic failover from OPA.
+
 ## Nginx Configuration
 
 Nginx is a high-performance alternative to Apache, commonly used in production.

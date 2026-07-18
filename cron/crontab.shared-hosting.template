@@ -20,6 +20,7 @@ PHP_BIN=/usr/local/bin/php
 4-59/15 * * * * "$PHP_BIN" "$APP_ROOT/cron/servers_metrics_aggregate.php" >> "$APP_ROOT/logs/cron/app-servers-metrics-aggregate.log" 2>&1
 
 # Alarm evaluation and delivery
+# Hosts without OPA must set ALARM_DECISION_DRIVER=builtin in config/config.env.
 * * * * * "$PHP_BIN" "$APP_ROOT/cron/alarms_evaluate_critical.php" >> "$APP_ROOT/logs/cron/app-alarms-evaluate-critical.log" 2>&1
 */5 * * * * "$PHP_BIN" "$APP_ROOT/cron/alarms_evaluate_non_critical.php" >> "$APP_ROOT/logs/cron/app-alarms-evaluate-non-critical.log" 2>&1
 * * * * * "$PHP_BIN" "$APP_ROOT/cron/alarms_dispatch.php" >> "$APP_ROOT/logs/cron/app-alarms-dispatch.log" 2>&1

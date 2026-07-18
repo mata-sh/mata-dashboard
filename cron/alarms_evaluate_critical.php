@@ -3,10 +3,9 @@
 
 declare(strict_types=1);
 
-use Mata\Services\Alarm\AlarmDecisionProcessingException;
-use Mata\Services\Alarm\AlarmDecisionProcessor;
-use Mata\Config\Dto\OpaAlarmDecisionConfig;
-use Mata\Services\Alarm\OpaAlarmDecisionService;
+use Mata\Services\Alarm\Decision\AlarmDecisionProcessingException;
+use Mata\Services\Alarm\Decision\AlarmDecisionProcessor;
+use Mata\Services\Alarm\Decision\AlarmDecisionServiceFactory;
 
 $requiresDatabase = true;
 
@@ -20,9 +19,10 @@ if (!$cron->acquireLock()) {
 $cron->startTimer();
 $cron->log('Started');
 
+$exitCode = 0;
+
 try {
-    $opaConfig = OpaAlarmDecisionConfig::fromEnv();
-    $alarmDecisionService = new OpaAlarmDecisionService($opaConfig);
+    $alarmDecisionService = AlarmDecisionServiceFactory::fromEnv();
     $alarmDecisionProcessor = new AlarmDecisionProcessor(
         $alarmEvaluator,
         $alarmDecisionService,
@@ -59,7 +59,7 @@ try {
             $error = $exception->getPrevious()?->getMessage() ?? $exception->getMessage();
 
             if ($exception->getStage() === AlarmDecisionProcessingException::POLICY) {
-                $log->error('critical_alarm_decision.opa_failed', [
+                $log->error('critical_alarm_decision.policy_failed', [
                     'event_id' => $eventId,
                     'error' => $error,
                 ]);
@@ -93,8 +93,8 @@ try {
         $stats['enrich_requested']
     ));
     $cron->touchHeartbeat();
-
 } catch (Throwable $exception) {
+    $exitCode = 1;
     $cron->log('ERROR: ' . $exception->getMessage());
     $log->critical('evaluate_critical_alarms.unhandled_exception', [
         'error' => $exception->getMessage(),
@@ -102,3 +102,5 @@ try {
 } finally {
     $cron->releaseLock();
 }
+
+exit($exitCode);

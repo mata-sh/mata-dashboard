@@ -2,10 +2,12 @@
 
 declare(strict_types=1);
 
-namespace Mata\Services\Alarm;
+namespace Mata\Services\Alarm\Decision;
 
-use Mata\Services\Alarm\Dto\AlarmProcessingResult;
+use Mata\Services\Alarm\AlarmCreatorInterface;
+use Mata\Services\Alarm\AlarmThresholdCooldownService;
 use Mata\Services\Alarm\Dto\AlarmEvaluationRecord;
+use Mata\Services\Alarm\Dto\AlarmProcessingResult;
 use Mata\Services\Event\Dto\EventContext;
 use Mata\Services\Event\EventAggregatorServiceInterface;
 use Mata\Services\Event\EventRecorderService;

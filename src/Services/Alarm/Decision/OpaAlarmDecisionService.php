@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-namespace Mata\Services\Alarm;
+namespace Mata\Services\Alarm\Decision;
 
 use GuzzleHttp\Client;
 use GuzzleHttp\Exception\GuzzleException;
-use Mata\Services\Alarm\Dto\AlarmDecision;
 use Mata\Config\Dto\OpaAlarmDecisionConfig;
+use Mata\Services\Alarm\Dto\AlarmDecision;
 use RuntimeException;
 
 final class OpaAlarmDecisionService implements AlarmDecisionServiceInterface
@@ -78,8 +78,6 @@ final class OpaAlarmDecisionService implements AlarmDecisionServiceInterface
         $threshold = $this->extractThreshold($event, $context);
         $applicationEnv = $this->extractApplicationEnv($event, $context);
 
-        $metrics = $this->normalizeMetrics($event['metrics'] ?? null);
-
         $input = [
             'event' => [
                 'id' => (int) ($event['id'] ?? 0),
@@ -99,13 +97,8 @@ final class OpaAlarmDecisionService implements AlarmDecisionServiceInterface
                 'name' => $event['app_name'] ?? null,
                 'app_env' => $event['app_env'] ?? null,
             ],
-            'metrics' => $metrics,
             'channels' => $this->normalizeChannels($supportedChannels),
         ];
-
-        if (!empty($metrics['counts']['same_type_level_or_higher'])) {
-            $input['event']['counts'] = $metrics['counts']['same_type_level_or_higher'];
-        }
 
         if ($threshold !== null) {
             $input['event']['threshold'] = $threshold;
@@ -138,43 +131,6 @@ final class OpaAlarmDecisionService implements AlarmDecisionServiceInterface
         }
 
         return array_values(array_unique($normalized));
-    }
-
-    /**
-     * @return array<string,mixed>
-     */
-    private function normalizeMetrics(mixed $metrics): array
-    {
-        $counts = [];
-        $lastEventAt = null;
-        $lastAlarmAt = null;
-
-        if (is_array($metrics)) {
-            $countsSource = $metrics['counts']['same_type_level_or_higher'] ?? $metrics['same_type_level_or_higher'] ?? null;
-            if (is_array($countsSource)) {
-                foreach ($countsSource as $span => $count) {
-                    if (!is_string($span) || $span === '') {
-                        continue;
-                    }
-                    $counts[$span] = (int) $count;
-                }
-            }
-
-            if (is_string($metrics['last_event_at'] ?? null)) {
-                $lastEventAt = $metrics['last_event_at'];
-            }
-            if (is_string($metrics['last_alarm_at'] ?? null)) {
-                $lastAlarmAt = $metrics['last_alarm_at'];
-            }
-        }
-
-        return [
-            'counts' => [
-                'same_type_level_or_higher' => $counts,
-            ],
-            'last_event_at' => $lastEventAt,
-            'last_alarm_at' => $lastAlarmAt,
-        ];
     }
 
     /**

@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Mata\Services\Alarm;
+namespace Mata\Services\Alarm\Decision;
 
 use RuntimeException;
 use Throwable;

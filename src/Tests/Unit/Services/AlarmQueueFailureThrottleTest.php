@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace Mata\Tests\Unit\Services;
 
 use DateTimeImmutable;
-use Mata\Tests\TestCase;
 use Mata\Services\Alarm\AlarmQueueFailureThrottle;
+use Mata\Tests\TestCase;
 
 /**
  * @covers \Mata\Services\Alarm\AlarmQueueFailureThrottle

@@ -5,10 +5,10 @@ declare(strict_types=1);
 namespace Mata\Tests\Unit\Services;
 
 use Mata\Services\Alarm\AlarmCreatorInterface;
-use Mata\Services\Alarm\AlarmDecisionProcessingException;
-use Mata\Services\Alarm\AlarmDecisionProcessor;
-use Mata\Services\Alarm\AlarmDecisionServiceInterface;
 use Mata\Services\Alarm\AlarmThresholdCooldownService;
+use Mata\Services\Alarm\Decision\AlarmDecisionProcessingException;
+use Mata\Services\Alarm\Decision\AlarmDecisionProcessor;
+use Mata\Services\Alarm\Decision\AlarmDecisionServiceInterface;
 use Mata\Services\Alarm\Dto\AlarmDecision;
 use Mata\Services\Event\EventAggregatorServiceInterface;
 use Mata\Services\Event\EventRecorderService;
@@ -16,7 +16,7 @@ use Mata\Tests\TestCase;
 use RuntimeException;
 
 /**
- * @covers \Mata\Services\Alarm\AlarmDecisionProcessor
+ * @covers \Mata\Services\Alarm\Decision\AlarmDecisionProcessor
  *
  * @internal
  */
