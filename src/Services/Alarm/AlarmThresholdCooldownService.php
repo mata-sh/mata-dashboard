@@ -125,7 +125,7 @@ class AlarmThresholdCooldownService
             return true;
         }
 
-        $minEventInterval = (int) ($config['min_event_interval_minutes'] ?? 720);
+        $alarmThresholdWindowMinutes = (int) ($config['alarm_threshold_window_minutes'] ?? 720);
 
         // Check recent events to see if threshold met
         $recentEvents = $this->aggregator->getLastEventsByContext(
@@ -133,7 +133,7 @@ class AlarmThresholdCooldownService
             context: null,
             server: $server,
             app: $app,
-            maxAgeMinutes: $minEventInterval
+            maxAgeMinutes: $alarmThresholdWindowMinutes
         );
 
         return count($recentEvents) >= $eventCountThreshold;

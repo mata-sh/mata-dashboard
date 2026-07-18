@@ -87,7 +87,7 @@ cp config/example/thresholds.json.example config/thresholds.json
     "alarms": {
         "alarm_type": {
             "alarm_threshold_event_count": number,
-            "min_event_interval_minutes": number,
+            "alarm_threshold_window_minutes": number,
             "min_alarm_interval_minutes": number
         }
     }
@@ -515,7 +515,7 @@ Each alarm type has three configuration values:
 | Field | Description |
 |-------|-------------|
 | `alarm_threshold_event_count` | Number of events required to trigger alarm |
-| `min_event_interval_minutes` | Minimum time between events for aggregation |
+| `alarm_threshold_window_minutes` | Lookback window for counting recent events |
 | `min_alarm_interval_minutes` | Minimum time between alarm notifications |
 
 ---
@@ -528,7 +528,7 @@ Application HTTP ping failure alarm.
 {
     "app_unreachable": {
         "alarm_threshold_event_count": 3,
-        "min_event_interval_minutes": 15,
+        "alarm_threshold_window_minutes": 15,
         "min_alarm_interval_minutes": 60
     }
 }
@@ -546,7 +546,7 @@ Application HTTP ping failure alarm.
 {
     "app_unreachable": {
         "alarm_threshold_event_count": 1,
-        "min_event_interval_minutes": 5,
+        "alarm_threshold_window_minutes": 5,
         "min_alarm_interval_minutes": 15
     }
 }
@@ -558,7 +558,7 @@ Application HTTP ping failure alarm.
 {
     "app_unreachable": {
         "alarm_threshold_event_count": 5,
-        "min_event_interval_minutes": 30,
+        "alarm_threshold_window_minutes": 30,
         "min_alarm_interval_minutes": 120
     }
 }
@@ -575,7 +575,7 @@ PHP fatal error detection alarm.
 {
     "fatal_errors_occurring": {
         "alarm_threshold_event_count": 1,
-        "min_event_interval_minutes": 720,
+        "alarm_threshold_window_minutes": 720,
         "min_alarm_interval_minutes": 1440
     }
 }
@@ -603,7 +603,7 @@ Log file size threshold alarm.
 {
     "logfile_too_large": {
         "alarm_threshold_event_count": 1,
-        "min_event_interval_minutes": 120,
+        "alarm_threshold_window_minutes": 120,
         "min_alarm_interval_minutes": 720
     }
 }
@@ -625,7 +625,7 @@ System file count threshold alarm.
 {
     "filecount_too_large": {
         "alarm_threshold_event_count": 1,
-        "min_event_interval_minutes": 720,
+        "alarm_threshold_window_minutes": 720,
         "min_alarm_interval_minutes": 60
     }
 }
@@ -647,7 +647,7 @@ Low disk space alarm.
 {
     "remaining_disk_space_too_low": {
         "alarm_threshold_event_count": 1,
-        "min_event_interval_minutes": 60,
+        "alarm_threshold_window_minutes": 60,
         "min_alarm_interval_minutes": 180
     }
 }
@@ -666,7 +666,7 @@ Low disk space alarm.
 {
     "remaining_disk_space_too_low": {
         "alarm_threshold_event_count": 1,
-        "min_event_interval_minutes": 30,
+        "alarm_threshold_window_minutes": 30,
         "min_alarm_interval_minutes": 60
     }
 }
@@ -678,7 +678,7 @@ Low disk space alarm.
 {
     "remaining_disk_space_too_low": {
         "alarm_threshold_event_count": 2,
-        "min_event_interval_minutes": 120,
+        "alarm_threshold_window_minutes": 120,
         "min_alarm_interval_minutes": 360
     }
 }
@@ -695,7 +695,7 @@ Database connection threshold alarm.
 {
     "too_many_sql_connections": {
         "alarm_threshold_event_count": 1,
-        "min_event_interval_minutes": 720,
+        "alarm_threshold_window_minutes": 720,
         "min_alarm_interval_minutes": 60
     }
 }
@@ -717,7 +717,7 @@ Missing servers.json configuration alarm.
 {
     "servers_config_not_found": {
         "alarm_threshold_event_count": 1,
-        "min_event_interval_minutes": 180,
+        "alarm_threshold_window_minutes": 180,
         "min_alarm_interval_minutes": 1440
     }
 }
@@ -738,7 +738,7 @@ Missing cronjob execution alarm.
 {
     "cronjob_heartbeat_missing": {
         "alarm_threshold_event_count": 1,
-        "min_event_interval_minutes": 30,
+        "alarm_threshold_window_minutes": 30,
         "min_alarm_interval_minutes": 360
     }
 }
@@ -797,42 +797,42 @@ Missing cronjob execution alarm.
     "alarms": {
         "app_unreachable": {
             "alarm_threshold_event_count": 3,
-            "min_event_interval_minutes": 15,
+            "alarm_threshold_window_minutes": 15,
             "min_alarm_interval_minutes": 60
         },
         "fatal_errors_occurring": {
             "alarm_threshold_event_count": 1,
-            "min_event_interval_minutes": 720,
+            "alarm_threshold_window_minutes": 720,
             "min_alarm_interval_minutes": 1440
         },
         "logfile_too_large": {
             "alarm_threshold_event_count": 1,
-            "min_event_interval_minutes": 120,
+            "alarm_threshold_window_minutes": 120,
             "min_alarm_interval_minutes": 720
         },
         "filecount_too_large": {
             "alarm_threshold_event_count": 1,
-            "min_event_interval_minutes": 720,
+            "alarm_threshold_window_minutes": 720,
             "min_alarm_interval_minutes": 60
         },
         "remaining_disk_space_too_low": {
             "alarm_threshold_event_count": 1,
-            "min_event_interval_minutes": 60,
+            "alarm_threshold_window_minutes": 60,
             "min_alarm_interval_minutes": 180
         },
         "too_many_sql_connections": {
             "alarm_threshold_event_count": 1,
-            "min_event_interval_minutes": 720,
+            "alarm_threshold_window_minutes": 720,
             "min_alarm_interval_minutes": 60
         },
         "servers_config_not_found": {
             "alarm_threshold_event_count": 1,
-            "min_event_interval_minutes": 180,
+            "alarm_threshold_window_minutes": 180,
             "min_alarm_interval_minutes": 1440
         },
         "cronjob_heartbeat_missing": {
             "alarm_threshold_event_count": 1,
-            "min_event_interval_minutes": 30,
+            "alarm_threshold_window_minutes": 30,
             "min_alarm_interval_minutes": 360
         }
     }
@@ -906,11 +906,11 @@ Missing cronjob execution alarm.
 **3. Increase Time Intervals:**
 ```json
 // Before
-"min_event_interval_minutes": 5,
+"alarm_threshold_window_minutes": 5,
 "min_alarm_interval_minutes": 15
 
 // After
-"min_event_interval_minutes": 15,
+"alarm_threshold_window_minutes": 15,
 "min_alarm_interval_minutes": 60
 ```
 
@@ -984,7 +984,7 @@ Missing cronjob execution alarm.
     "alarms": {
         "app_unreachable": {
             "alarm_threshold_event_count": 2,
-            "min_event_interval_minutes": 10,
+            "alarm_threshold_window_minutes": 10,
             "min_alarm_interval_minutes": 30
         }
     }
@@ -1011,7 +1011,7 @@ Missing cronjob execution alarm.
     "alarms": {
         "app_unreachable": {
             "alarm_threshold_event_count": 3,
-            "min_event_interval_minutes": 15,
+            "alarm_threshold_window_minutes": 15,
             "min_alarm_interval_minutes": 120
         }
     }
@@ -1038,7 +1038,7 @@ Missing cronjob execution alarm.
     "alarms": {
         "app_unreachable": {
             "alarm_threshold_event_count": 5,
-            "min_event_interval_minutes": 30,
+            "alarm_threshold_window_minutes": 30,
             "min_alarm_interval_minutes": 240
         }
     }
@@ -1092,7 +1092,7 @@ Missing cronjob execution alarm.
 **Solutions:**
 1. Increase threshold values (good, warn, critical, alarm)
 2. Increase `alarm_threshold_event_count`
-3. Increase `min_event_interval_minutes`
+3. Increase `alarm_threshold_window_minutes`
 4. Increase `min_alarm_interval_minutes`
 
 ### Alarms Not Reaching Email

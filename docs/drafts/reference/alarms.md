@@ -15,13 +15,17 @@ The stages run in this order:
 | Layer | Responsibility |
 |---|---|
 | `thresholds.json` | Decides whether an event pattern is an alarm candidate. PHP applies count-based candidate thresholds. |
-| OPA | Decides whether a candidate becomes a logical alarm, selects supported channels, and assigns delivery priority. It returns `allow`, `channels`, `priority`, `enrich`, and `reason`. |
+| OPA | Stateless classification only: decides `allow`, `channels`, `priority`, and `reason` from event type, level, threshold, and environment. It never evaluates counts. |
 | `intervals.json` | Deduplicates equivalent channel deliveries. |
 | Queue | Persists the logical alarm and every selected, non-deduplicated channel delivery. |
 | `limits.json` | Applies per-server, per-channel transport rate limits to queued deliveries. |
 | Transport | Sends a due delivery through its channel. |
 
-OPA does not perform cooldown or transport rate-limit logic. PHP owns candidate thresholds, delivery deduplication, queue persistence, and transport rate limiting.
+OPA does not perform counts, cooldown, or transport rate-limit logic. PHP owns all count and frequency thresholds in `thresholds.json`, delivery deduplication, queue persistence, and transport rate limiting.
+
+Delivery priority uses ascending dispatch order: `10` critical, `30` error/security, `60` warning, `100` info. Lower values dispatch first.
+
+In `thresholds.json`, alarm count gates use `alarm_threshold_window_minutes`.
 
 ## Logical alarms and deliveries
 

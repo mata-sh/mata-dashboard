@@ -347,7 +347,7 @@ Set thresholds for database connection pool usage (as percentage):
 
 ## Step 6: Configure Alarm Behavior
 
-The `alarms` section controls notification frequency and event counting.
+The `alarms` section configures PHP event-count gates. OPA performs only stateless classification and does not evaluate counts.
 
 ### 6.1 Alarm Configuration Structure
 
@@ -356,7 +356,7 @@ Each alarm type has two settings:
 ```json
 "alarm_name": {
     "alarm_threshold_event_count": 3,  // Number of occurrences before alarm
-    "min_alarm_interval_minutes": 60   // Minimum time between notifications
+    "alarm_threshold_window_minutes": 60   // Lookback window for those occurrences
 }
 ```
 
@@ -367,31 +367,24 @@ Each alarm type has two settings:
 ```json
 "app_unreachable": {
     "alarm_threshold_event_count": 3,
-    "min_alarm_interval_minutes": 60
+    "alarm_threshold_window_minutes": 60
 }
 ```
 
-This means:
-- First occurrence: Logged as WARNING
-- Second occurrence: Logged as CRITICAL
-- **Third occurrence: Sends email alarm**
-- Must occur within the interval window
+This means three matching events must occur within 60 minutes before PHP passes the candidate to OPA.
 
-### 6.3 Notification Intervals
+### 6.3 Event Lookback Windows
 
-**Purpose:** Prevents notification spam.
+**Purpose:** Limits count gates to recent events.
 
 ```json
 "remaining_disk_space_too_low": {
     "alarm_threshold_event_count": 1,
-    "min_alarm_interval_minutes": 180
+    "alarm_threshold_window_minutes": 180
 }
 ```
 
-This means:
-- Email sent immediately on first detection (event_count = 1)
-- No additional emails for 180 minutes (3 hours)
-- Even if disk space remains critical
+This means one matching event in the previous 180 minutes passes the PHP count gate. Delivery cooldowns are configured separately in `intervals.json`.
 
 ### 6.4 Complete Alarm Configuration
 
@@ -399,51 +392,51 @@ This means:
 "alarms": {
     "app_unreachable": {
         "alarm_threshold_event_count": 3,
-        "min_alarm_interval_minutes": 60
+        "alarm_threshold_window_minutes": 60
     },
     "orders_export_stale": {
         "alarm_threshold_event_count": 1,
-        "min_alarm_interval_minutes": 60
+        "alarm_threshold_window_minutes": 60
     },
     "cronjob_heartbeat_missing": {
         "alarm_threshold_event_count": 1,
-        "min_alarm_interval_minutes": 360
+        "alarm_threshold_window_minutes": 360
     },
     "filecount_too_large": {
         "alarm_threshold_event_count": 1,
-        "min_alarm_interval_minutes": 60
+        "alarm_threshold_window_minutes": 60
     },
     "logfile_too_large": {
         "alarm_threshold_event_count": 1,
-        "min_alarm_interval_minutes": 720
+        "alarm_threshold_window_minutes": 720
     },
     "too_many_sql_connections": {
         "alarm_threshold_event_count": 1,
-        "min_alarm_interval_minutes": 60
+        "alarm_threshold_window_minutes": 60
     },
     "servers_config_not_found": {
         "alarm_threshold_event_count": 1,
-        "min_alarm_interval_minutes": 1440
+        "alarm_threshold_window_minutes": 1440
     },
     "remaining_disk_space_too_low": {
         "alarm_threshold_event_count": 1,
-        "min_alarm_interval_minutes": 180
+        "alarm_threshold_window_minutes": 180
     },
     "fatal_errors_occurring": {
         "alarm_threshold_event_count": 1,
-        "min_alarm_interval_minutes": 1440
+        "alarm_threshold_window_minutes": 1440
     }
 }
 ```
 
-**Recommended Intervals:**
+**Recommended Lookback Windows:**
 
-| Issue Type | Event Count | Interval | Reasoning |
+| Issue Type | Event Count | Lookback | Reasoning |
 |------------|-------------|----------|-----------|
 | Transient network issues | 3 | 60 min | Avoid false alarms |
-| Disk space critical | 1 | 180 min | Immediate alarm, infrequent reminders |
-| Fatal application errors | 1 | 1440 min (24h) | Critical but one notification per day |
-| Missing cron heartbeat | 1 | 360 min (6h) | Check for missed jobs |
+| Disk space critical | 1 | 180 min | Evaluate recent critical events |
+| Fatal application errors | 1 | 1440 min (24h) | Retain the intended daily event window |
+| Missing cron heartbeat | 1 | 360 min (6h) | Evaluate recent missed jobs |
 
 ---
 
@@ -875,10 +868,10 @@ Review metrics:
    "alarm_threshold_event_count": 3
    ```
 
-3. **Verify notification interval:**
+3. **Verify the event lookback window:**
    ```json
-   // If already sent within interval, no new email
-   "min_alarm_interval_minutes": 60
+   // Matching events must occur within this window
+   "alarm_threshold_window_minutes": 60
    ```
 
 4. **Test email system:**
@@ -915,13 +908,13 @@ Review metrics:
    "alarm_threshold_event_count": 3
    ```
 
-3. **Lengthen notification interval:**
+3. **Shorten the event lookback window:**
    ```json
-   // Before: Alarm every hour
-   "min_alarm_interval_minutes": 60
+   // Before: Counts events over one hour
+   "alarm_threshold_window_minutes": 60
 
-   // After: Alarm every 4 hours
-   "min_alarm_interval_minutes": 240
+   // After: Counts only the most recent 15 minutes
+   "alarm_threshold_window_minutes": 15
    ```
 
 ### Missing Alarms
@@ -991,8 +984,8 @@ You've successfully configured custom alarm thresholds! Here's what to do next:
         "max_connections_percent": {"good": 10, "warn": 30, "critical": 50, "alarm": 75}
     },
     "alarms": {
-        "app_unreachable": {"alarm_threshold_event_count": 3, "min_alarm_interval_minutes": 60},
-        "remaining_disk_space_too_low": {"alarm_threshold_event_count": 1, "min_alarm_interval_minutes": 180}
+        "app_unreachable": {"alarm_threshold_event_count": 3, "alarm_threshold_window_minutes": 60},
+        "remaining_disk_space_too_low": {"alarm_threshold_event_count": 1, "alarm_threshold_window_minutes": 180}
     }
 }
 ```

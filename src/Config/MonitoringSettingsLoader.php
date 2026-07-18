@@ -36,10 +36,10 @@ final class MonitoringSettingsLoader
     private ?SettingsDatabaseSync $settingsSync;
 
     /**
-     * @param EventRecorderService      $eventRecorder Event recorder for logging configuration failures
+     * @param EventRecorderService      $eventRecorder        Event recorder for logging configuration failures
      * @param null|AlarmDirectProcessor $alarmDirectProcessor Optional direct alarm processor for critical notifications
-     * @param null|DatabaseInterface    $db            Optional database connection for settings sync
-     * @param null|SettingsDatabaseSync $settingsSync  Optional settings sync service
+     * @param null|DatabaseInterface    $db                   Optional database connection for settings sync
+     * @param null|SettingsDatabaseSync $settingsSync         Optional settings sync service
      */
     public function __construct(
         EventRecorderService $eventRecorder,
@@ -510,11 +510,11 @@ final class MonitoringSettingsLoader
             'alarms' => [
                 'fatal_errors_occurring' => [
                     'alarm_threshold_event_count' => 1,
-                    'min_alarm_interval_minutes' => 1440,
+                    'alarm_threshold_window_minutes' => 1440,
                 ],
                 'logfile_too_large' => [
                     'alarm_threshold_event_count' => 1,
-                    'min_alarm_interval_minutes' => 1440,
+                    'alarm_threshold_window_minutes' => 1440,
                 ],
             ],
         ];

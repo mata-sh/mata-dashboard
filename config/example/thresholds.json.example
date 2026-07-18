@@ -32,7 +32,8 @@
         },
         "cronjobs_failed_percent": {
             "good": -1,
-            "critical": 0,
+            "warn": 25,
+            "critical": 50,
             "alarm": 99
         }
     },
@@ -61,39 +62,39 @@
     "alarms": {
         "app_unreachable": {
             "alarm_threshold_event_count": 3,
-            "min_alarm_interval_minutes": 60
+            "alarm_threshold_window_minutes": 60
         },
         "orders_export_stale": {
             "alarm_threshold_event_count": 1,
-            "min_alarm_interval_minutes": 60
+            "alarm_threshold_window_minutes": 60
         },
         "cronjob_heartbeat_missing": {
             "alarm_threshold_event_count": 1,
-            "min_alarm_interval_minutes": 360
+            "alarm_threshold_window_minutes": 360
         },
         "filecount_too_large": {
             "alarm_threshold_event_count": 1,
-            "min_alarm_interval_minutes": 60
+            "alarm_threshold_window_minutes": 60
         },
         "logfile_too_large": {
             "alarm_threshold_event_count": 1,
-            "min_alarm_interval_minutes": 720
+            "alarm_threshold_window_minutes": 720
         },
         "too_many_sql_connections": {
             "alarm_threshold_event_count": 1,
-            "min_alarm_interval_minutes": 60
+            "alarm_threshold_window_minutes": 60
         },
         "servers_config_not_found": {
             "alarm_threshold_event_count": 1,
-            "min_alarm_interval_minutes": 1440
+            "alarm_threshold_window_minutes": 1440
         },
         "remaining_disk_space_too_low": {
             "alarm_threshold_event_count": 1,
-            "min_alarm_interval_minutes": 180
+            "alarm_threshold_window_minutes": 180
         },
         "fatal_errors_occurring": {
             "alarm_threshold_event_count": 1,
-            "min_alarm_interval_minutes": 1440
+            "alarm_threshold_window_minutes": 1440
         }
     }
 }

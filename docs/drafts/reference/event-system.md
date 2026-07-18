@@ -314,7 +314,7 @@ PHP fatal errors detected in application.
     "alarms": {
         "fatal_errors_occurring": {
             "alarm_threshold_event_count": 1,
-            "min_event_interval_minutes": 720,
+            "alarm_threshold_window_minutes": 720,
             "min_alarm_interval_minutes": 1440
         }
     }
@@ -346,7 +346,7 @@ Application not responding to HTTP ping.
     "alarms": {
         "app_unreachable": {
             "alarm_threshold_event_count": 3,
-            "min_event_interval_minutes": 15,
+            "alarm_threshold_window_minutes": 15,
             "min_alarm_interval_minutes": 60
         }
     }
@@ -407,7 +407,7 @@ servers.json configuration file missing or unreadable.
     "alarms": {
         "servers_config_not_found": {
             "alarm_threshold_event_count": 1,
-            "min_event_interval_minutes": 180,
+            "alarm_threshold_window_minutes": 180,
             "min_alarm_interval_minutes": 1440
         }
     }
@@ -535,7 +535,7 @@ Expected cronjob execution not detected.
     "alarms": {
         "cronjob_heartbeat_missing": {
             "alarm_threshold_event_count": 1,
-            "min_event_interval_minutes": 30,
+            "alarm_threshold_window_minutes": 30,
             "min_alarm_interval_minutes": 360
         }
     }
@@ -664,7 +664,7 @@ MATA prevents notification spam through intelligent alarm deduplication.
     "alarms": {
         "app_unreachable": {
             "alarm_threshold_event_count": 3,
-            "min_event_interval_minutes": 15,
+            "alarm_threshold_window_minutes": 15,
             "min_alarm_interval_minutes": 60
         }
     }
@@ -683,12 +683,12 @@ MATA prevents notification spam through intelligent alarm deduplication.
 ```python
 def should_trigger_alarm(event_type, recent_events, config):
     threshold = config['alarm_threshold_event_count']
-    min_interval = config['min_event_interval_minutes']
+    threshold_window_minutes = config['alarm_threshold_window_minutes']
 
-    # Count events within minimum interval
+    # Count events within the threshold window
     recent_count = count_events_since(
         event_type,
-        minutes_ago=min_interval
+        minutes_ago=threshold_window_minutes
     )
 
     # Trigger if threshold exceeded
@@ -702,7 +702,7 @@ def should_trigger_alarm(event_type, recent_events, config):
 {
     "fatal_errors_occurring": {
         "alarm_threshold_event_count": 1,
-        "min_event_interval_minutes": 720,
+        "alarm_threshold_window_minutes": 720,
         "min_alarm_interval_minutes": 1440
     }
 }
@@ -716,7 +716,7 @@ def should_trigger_alarm(event_type, recent_events, config):
 {
     "app_unreachable": {
         "alarm_threshold_event_count": 3,
-        "min_event_interval_minutes": 15,
+        "alarm_threshold_window_minutes": 15,
         "min_alarm_interval_minutes": 60
     }
 }
@@ -987,7 +987,7 @@ Adjust deduplication settings in `config/thresholds.json`:
     "alarms": {
         "your_alarm_type": {
             "alarm_threshold_event_count": 5,
-            "min_event_interval_minutes": 60,
+            "alarm_threshold_window_minutes": 60,
             "min_alarm_interval_minutes": 240
         }
     }
