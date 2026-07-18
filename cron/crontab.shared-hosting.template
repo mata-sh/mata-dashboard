@@ -6,8 +6,8 @@ APP_ROOT=/home/ACCOUNT/mata-dashboard
 PHP_BIN=/usr/local/bin/php
 
 # Cron jobs load configuration from config/*.config.env. No cron.env is needed.
-# The application writes its own logs to $APP_ROOT/logs/cron/. Configure log
-# retention with your host; Docker-specific filesystem maintenance is omitted.
+# The application writes its own logs to $APP_ROOT/logs/. Log and cache
+# maintenance jobs are included below; nothing is left to the host.
 
 # Data collection
 # Chained on purpose: servers_data_fetch warms the api-cache, then
@@ -26,3 +26,18 @@ PHP_BIN=/usr/local/bin/php
 
 # Database retention
 25 2 * * * "$PHP_BIN" "$APP_ROOT/cron/retention_cleanup.php" >> "$APP_ROOT/logs/cron/app-retention-cleanup.log" 2>&1
+
+# Maintenance
+# Requires find, gzip, and date on the host (standard on shared hosting).
+# Log maintenance covers the whole logs/ tree. logs/health/ is excluded: the
+# ingestion health report rotates itself (size-based, config/data_retention.json).
+# user-management-audit.log rotates weekly like the rest, but its compressed
+# archives are never deleted (audit trail). Heartbeats are JSONL and unaffected.
+# "*.log.[0-9]" sweeps numbered leftovers from the pre-logs/health rotation scheme.
+0 2 * * * find "$APP_ROOT/logs" -type f -name "*.log" ! -path "*/logs/health/*" -mtime +30 -delete 2>/dev/null
+0 2 * * * find "$APP_ROOT/logs" -type f \( -name "*.log.*.gz" -o -name "*.log.[0-9]" \) ! -path "*/logs/health/*" ! -name "user-management-audit.log.*.gz" -mtime +30 -delete 2>/dev/null
+0 3 * * * find "$APP_ROOT/temp/api-cache" -name "*.json" -mtime +7 -delete 2>/dev/null
+0 4 * * * find "$APP_ROOT/temp/sessions" -name "sess_*" -mtime +1 -delete 2>/dev/null
+0 5 * * 0 find "$APP_ROOT/temp/templates-cache" -name "*.php" -mtime +7 -delete 2>/dev/null
+# Rotate all logs recursively (skip empty files); escaped percent signs are required by cron.
+0 6 * * 0 find "$APP_ROOT/logs" -type f -name "*.log" ! -path "*/logs/health/*" -size +0c -exec sh -c 'for file do gzip -c "$file" > "${file}.$(date +\%Y\%m\%d).gz" && : > "$file"; done' sh {} + 2>/dev/null

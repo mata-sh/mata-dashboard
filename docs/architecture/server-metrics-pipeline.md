@@ -82,7 +82,7 @@ updates the existing row; it does not add another point.
 Collection health is recorded in:
 
 - `logs/cron/app-servers-metrics-collect.log`
-- `logs/cron/collect_server_metrics_health.log`
+- `logs/health/collect_server_metrics_health.log`
 - `logs/cron/heartbeat-servers-metrics-collect.jsonl`
 
 The health report contains per-server inserted count, latest sample timestamp,

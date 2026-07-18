@@ -41,7 +41,7 @@ PHP bootstrap configures logging. PHP runtime errors are written to
 `logs/cron/php-error.log`. Heartbeats are JSONL execution history; they are not
 removed by cron log maintenance.
 
-`logs/cron/collect_server_metrics_health.log` is a separate ingestion-health
+`logs/health/collect_server_metrics_health.log` is a separate ingestion-health
 report written only by `servers_metrics_collect.php`. It is not that job's
 execution log and has application-managed rotation.
 
@@ -51,18 +51,20 @@ docker compose exec web crontab -l
 
 # Follow collection execution and ingestion health
 tail -f logs/cron/app-servers-metrics-collect.log
-tail -f logs/cron/collect_server_metrics_health.log
+tail -f logs/health/collect_server_metrics_health.log
 ```
 
-Cron removes active cron logs and their compressed archives after 30 days, and
-compresses active logs weekly. It excludes the ingestion-health report from shell
-rotation.
+Cron maintains the whole `logs/` tree: it compresses active logs weekly and
+removes them and their compressed archives after 30 days. Two exceptions:
+`logs/health/` is application-managed (size-based rotation) and excluded from
+shell maintenance, and the compressed archives of `user-management-audit.log`
+are never deleted (audit trail).
 
-For shared hosting, use [`cron/crontab.shared-hosting.template`](../../cron/crontab.shared-hosting.template). Set `APP_ROOT` and `PHP_BIN`; the PHP jobs load configuration from `config/*.config.env`, so no `cron.env` is required. Control panels that accept one command at a time require replacing both variables with their values before pasting each command. The template leaves log retention to the host.
+For shared hosting, use [`cron/crontab.shared-hosting.template`](../../cron/crontab.shared-hosting.template). Set `APP_ROOT` and `PHP_BIN`; the PHP jobs load configuration from `config/*.config.env`, so no `cron.env` is required. Control panels that accept one command at a time require replacing both variables with their values before pasting each command. The template includes the same log and cache maintenance jobs as the Docker manifest.
 
 ## Monitoring Ingestion Health
 
-- Check `logs/cron/collect_server_metrics_health.log` after each run for inserts, last sample timestamp, and computed lag per server.
+- Check `logs/health/collect_server_metrics_health.log` after each run for inserts, last sample timestamp, and computed lag per server.
 - Stalled servers emit a dashboard event with type `server_metrics.ingestion_stall`.
 - Tune stall/retention thresholds in `config/data_retention.json` under `ingestion_health` (default window is 15 minutes).
 

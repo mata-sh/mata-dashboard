@@ -51,7 +51,7 @@ try {
         repository: $repository,
         eventManager: $eventManager,
         logger: $log,
-        healthLogPath: $paths->logsPath . '/cron/collect_server_metrics_health.log',
+        healthLogPath: $paths->logsPath . '/health/collect_server_metrics_health.log',
         stallThresholdMinutes: $stallThresholdMinutes,
         maxLogBytes: $healthLogSizeLimit,
         retainedFiles: $healthLogRetainedFiles

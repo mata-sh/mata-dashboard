@@ -350,7 +350,7 @@ Wait 5 minutes, then check if the cron job ran successfully:
 # Cron job execution log
 tail -f /path/to/mata-dashboard/logs/cron/app-servers-metrics-collect.log
 # Separate ingestion health report
-tail -f /path/to/mata-dashboard/logs/cron/collect_server_metrics_health.log
+tail -f /path/to/mata-dashboard/logs/health/collect_server_metrics_health.log
 ```
 
 ---

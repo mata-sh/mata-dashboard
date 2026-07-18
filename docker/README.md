@@ -300,9 +300,9 @@ docker compose --env-file config/db.config.env --env-file .env exec mata-web cro
 
 | Schedule | Script |
 |----------|--------|
-| `*/5 * * * *` | `servers_data_fetch.php` |
+| `*/5 * * * *` | `servers_data_fetch.php` (chained with collect in one entry) |
 | `*/5 * * * *` | `servers_metrics_collect.php` |
-| `*/15 * * * *` | `servers_metrics_aggregate.php` |
+| `4-59/15 * * * *` | `servers_metrics_aggregate.php` |
 | `* * * * *` | `alarms_evaluate_critical.php` |
 | `*/5 * * * *` | `alarms_evaluate_non_critical.php` |
 | `* * * * *` | `alarms_dispatch.php` |
@@ -312,18 +312,21 @@ Cron execution logs, including launcher failures before bootstrap, are in
 `/var/www/html/logs/cron/app-<job-name>.log`. PHP runtime errors are in
 `/var/www/html/logs/cron/php-error.log`; heartbeat history is in
 `/var/www/html/logs/cron/heartbeat-<job-name>.jsonl`. The separate ingestion
-health report is `/var/www/html/logs/cron/collect_server_metrics_health.log`.
+health report is `/var/www/html/logs/health/collect_server_metrics_health.log`.
 
 ```bash
 tail -f logs/cron/app-servers-metrics-collect.log
-tail -f logs/cron/collect_server_metrics_health.log
+tail -f logs/health/collect_server_metrics_health.log
 ```
 
-Active cron logs and their compressed archives are deleted after 30 days; active
-logs are compressed weekly. The ingestion health report has application-managed
-rotation and is excluded from shell rotation.
+Log maintenance covers the whole `logs/` tree: active logs are compressed weekly
+and, together with their compressed archives, deleted after 30 days. Two
+exceptions: `logs/health/` is application-managed (size-based rotation via
+`config/data_retention.json`) and excluded from shell maintenance, and the
+compressed archives of `user-management-audit.log` are never deleted (audit
+trail).
 
-For shared hosting, use [`../cron/crontab.shared-hosting.template`](../cron/crontab.shared-hosting.template). Set `APP_ROOT` and `PHP_BIN`; configuration loads from `config/*.config.env`, so no `cron.env` is required.
+For shared hosting, use [`../cron/crontab.shared-hosting.template`](../cron/crontab.shared-hosting.template). Set `APP_ROOT` and `PHP_BIN`; configuration loads from `config/*.config.env`, so no `cron.env` is required. The template includes the same maintenance jobs.
 
 ## Architecture Details
 

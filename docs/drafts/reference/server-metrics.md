@@ -172,7 +172,7 @@ docker exec <web-container> php /var/www/html/scripts/server_metrics_diagnostic.
 
 # Collection execution log and structured ingestion-health report
 tail -f logs/cron/app-servers-metrics-collect.log
-tail -f logs/cron/collect_server_metrics_health.log
+tail -f logs/health/collect_server_metrics_health.log
 ```
 
 The collector writes one JSON health report after each run with before/after raw

@@ -741,7 +741,7 @@ Check application cron logs:
 
 ```bash
 tail -f /var/log/mata/collect.log
-tail -f logs/cron/collect_server_metrics_health.log
+tail -f logs/health/collect_server_metrics_health.log
 ```
 
 ### Solutions

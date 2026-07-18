@@ -949,7 +949,7 @@ Review metrics:
 4. **Verify cron jobs are running:**
    ```bash
    # Check last collection time
-   ls -lah logs/cron/collect_server_metrics_health.log
+   ls -lah logs/health/collect_server_metrics_health.log
    ```
 
 ---
