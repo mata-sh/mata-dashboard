@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Mata\Services\Alarm\Dto;
 
-final class AlarmDecision
+final readonly class AlarmDecision
 {
     /**
      * @param array<int,string> $channels

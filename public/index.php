@@ -29,7 +29,7 @@ use Mata\Models\AlarmRepository;
 use Mata\Models\ConfigSyncRepository;
 use Mata\Models\EventRepository;
 use Mata\Services\Alarm\AlarmCreator;
-use Mata\Services\Alarm\AlarmManager;
+use Mata\Services\Alarm\AlarmDirectProcessor;
 use Mata\Services\Cache\ApiCacheKeyFactory;
 use Mata\Services\Cache\CacheStoreInterface;
 use Mata\Services\Cache\CacheTtlResolver;
@@ -48,7 +48,7 @@ use Mata\Services\Notification\NotificationManager;
 use Mata\Services\Validation\MetricsRequestValidator;
 use Mata\Services\View\ChartViewBuilder;
 use Mata\Services\View\MetricsViewBuilder;
-use Mata\Utils\ChannelLockManager;
+use Mata\Services\Alarm\AlarmQueueFailureThrottle;
 use Mata\Utils\PathResolver;
 use Mata\Utils\Tools;
 use Mata\Utils\UsersFilePathResolver;
@@ -329,12 +329,12 @@ $settingsSync = new SettingsDatabaseSync($db, $log, $configSyncRepository);
 $idResolver = new IdResolver($configSyncRepository);
 
 // --- Limits & Locking ---
-$lockManager = new ChannelLockManager($paths->tempPath . '/alarm-locks', $log);
+$queueFailureThrottle = new AlarmQueueFailureThrottle($paths->tempPath . '/alarm-locks', $log);
 $limitsLoader = new AlarmLimitsLoader($log);
 $limitsConfig = $limitsLoader->load($paths->appPath . '/config/limits.json');
 
 // --- Alarm Manager ---
-$alarmManager = new AlarmManager($alarmCreator, $limitsConfig, $lockManager, $log);
+$alarmDirectProcessor = new AlarmDirectProcessor($alarmCreator, $limitsConfig, $queueFailureThrottle, $log);
 
 // --- Event Manager ---
 $eventRepository = new EventRepository($db);
@@ -353,14 +353,14 @@ if ($useMockEvents) {
     $eventAggregator = new EventAggregatorService($eventRepository, $alarmRepository, $idResolver, $log);
 }
 
-$eventManager = (new EventManager($appConfig, $alarmManager))
+$eventManager = (new EventManager($appConfig, $alarmDirectProcessor))
     ->setEventRecorder($eventRecorder)
     ->setEventAggregator($eventAggregator);
 
 // ************************************************************************************************
 // Monitoring Configuration
 // ************************************************************************************************
-$monitoringSettingsLoader = new MonitoringSettingsLoader($eventManager->recorder, $alarmManager, $db, $settingsSync);
+$monitoringSettingsLoader = new MonitoringSettingsLoader($eventManager->recorder, $alarmDirectProcessor, $db, $settingsSync);
 
 try {
     $configPath = $paths->appPath . '/config';

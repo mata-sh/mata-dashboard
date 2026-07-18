@@ -19,8 +19,8 @@ use Mata\Services\Event\EventRecorderService;
  * - Generating cooldown hashes for alarm deduplication
  *
  * ## Architecture:
- * - **AlarmEvaluationService** (this): Alarm decision logic, threshold checks, cooldown management
- * - **AlarmManager**: Alarm delivery creation and priority resolution
+ * - **AlarmThresholdCooldownService** (this): Threshold checks and cooldown management
+ * - **AlarmDecisionProcessor**: Policy decisions and alarm creation
  * - **EventManager**: Event creation and event-specific logic
  *
  * ## Usage in cronjobs:
@@ -42,7 +42,7 @@ use Mata\Services\Event\EventRecorderService;
  * );
  * ```
  */
-class AlarmEvaluationService
+class AlarmThresholdCooldownService
 {
     /** @var array<string,mixed> Alarm threshold configuration */
     private array $alarmThresholds = [];

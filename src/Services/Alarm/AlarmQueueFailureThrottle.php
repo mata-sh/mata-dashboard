@@ -2,19 +2,19 @@
 
 declare(strict_types=1);
 
-namespace Mata\Utils;
+namespace Mata\Services\Alarm;
 
 use DateTimeImmutable;
 use Psr\Log\LoggerInterface;
 use Psr\Log\NullLogger;
 
 /**
- * Filesystem-backed throttle guard used when database persistence is unavailable.
+ * Filesystem-backed throttle for direct alarms that cannot be persisted to the delivery queue.
  *
  * Stores the last trigger timestamp per `(server, channel)` as lock files beneath
- * a configurable directory. Intended for best-effort suppression during outages.
+ * a configurable directory. Intended for best-effort suppression during queue-storage outages.
  */
-final class ChannelLockManager
+final class AlarmQueueFailureThrottle
 {
     private string $baseDirectory;
     private LoggerInterface $logger;

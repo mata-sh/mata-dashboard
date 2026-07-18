@@ -3,9 +3,9 @@
 
 declare(strict_types=1);
 
-use Mata\Services\Event\Dto\EventContext;
-use Mata\Services\Alarm\Dto\AlarmEvaluationRecord;
-use Mata\Services\Alarm\Dto\OpaAlarmDecisionConfig;
+use Mata\Services\Alarm\AlarmDecisionProcessingException;
+use Mata\Services\Alarm\AlarmDecisionProcessor;
+use Mata\Config\Dto\OpaAlarmDecisionConfig;
 use Mata\Services\Alarm\OpaAlarmDecisionService;
 
 $requiresDatabase = true;
@@ -21,9 +21,16 @@ $cron->startTimer();
 $cron->log('Started');
 
 try {
-    // --- OPA Decision Service ---
     $opaConfig = OpaAlarmDecisionConfig::fromEnv();
     $alarmDecisionService = new OpaAlarmDecisionService($opaConfig);
+    $alarmDecisionProcessor = new AlarmDecisionProcessor(
+        $alarmEvaluator,
+        $alarmDecisionService,
+        $alarmCreator,
+        $eventRecorder,
+        $eventAggregator,
+        $log,
+    );
 
     $supportedChannels = ['email'];
     $stats = [
@@ -34,128 +41,44 @@ try {
         'enrich_requested' => 0,
     ];
 
-    // Fetch non-critical events (warning, info) - critical events handled by separate cronjob
     $events = $eventAggregator->getAlarmDecisionCandidates(
         $alarmDecisionService->getBatchLimit(),
         ['warning', 'info']
     );
     foreach ($events as $event) {
         ++$stats['considered'];
-        $record = new AlarmEvaluationRecord();
-
-        // Evaluate threshold: check if event count meets alarm trigger criteria
-        $shouldAlarm = $alarmEvaluator->shouldTriggerAlarmForEvent(
-            type: $event['type'],
-            server: $event['server_id'],
-            app: $event['application_id']
-        );
-
-        if (!$shouldAlarm) {
-            $record
-                ->setOutcome('suppressed')
-                ->setThresholdGate('fail');
-            $log->info('alarm_decision', array_merge([
-                'event_id' => (int) $event['id'],
-                'type' => $event['type'] ?? null,
-                'level' => $event['level'] ?? null,
-                'server_id' => $event['server_id'] ?? null,
-                'application_id' => $event['application_id'] ?? null,
-            ], $record->toArray()));
-            $eventAggregator->markEventEvaluated((int) $event['id'], $record->toArray());
-            ++$stats['skipped'];
-
-            continue;
-        }
-
-        $record->setThresholdGate('pass');
 
         try {
-            $decision = $alarmDecisionService->decide($event, $supportedChannels);
-        } catch (Throwable $exception) {
+            $result = $alarmDecisionProcessor->process($event, $supportedChannels);
+        } catch (AlarmDecisionProcessingException $exception) {
             ++$stats['failed'];
-            $log->error('routine_alarm_decision.opa_failed', [
-                'event_id' => $event['id'] ?? null,
-                'error' => $exception->getMessage(),
-            ]);
+            if ($exception->isEnrichmentRequested()) {
+                ++$stats['enrich_requested'];
+            }
+            $eventId = $event['id'] ?? null;
+            $error = $exception->getPrevious()?->getMessage() ?? $exception->getMessage();
 
-            continue;
-        }
-
-        if (!$decision->allow) {
-            $record
-                ->setOutcome('suppressed')
-                ->setPolicyGate('deny')
-                ->setPolicyReason($decision->reason);
-            $log->info('alarm_decision', array_merge([
-                'event_id' => (int) $event['id'],
-                'type' => $event['type'] ?? null,
-                'level' => $event['level'] ?? null,
-                'server_id' => $event['server_id'] ?? null,
-                'application_id' => $event['application_id'] ?? null,
-            ], $record->toArray()));
-            $eventAggregator->markEventEvaluated((int) $event['id'], $record->toArray());
-            ++$stats['skipped'];
-
-            continue;
-        }
-
-        $record
-            ->setPolicyGate('allow')
-            ->setPolicyReason($decision->reason)
-            ->setPriority($decision->priority)
-            ->setEnrich($decision->enrich)
-            ->setRequestedChannels($decision->channels);
-
-        if ($decision->enrich) {
-            ++$stats['enrich_requested'];
-        }
-
-        // Filter channels based on alarm cooldowns
-        $eventContext = EventContext::fromArray(json_decode($event['context'] ?? '{}', true) ?: []);
-        $readyChannels = $alarmEvaluator->filterReadyChannels(
-            type: $event['type'],
-            requestedChannels: $decision->channels,
-            server: $event['server_id'],
-            app: $event['application_id'],
-            context: $eventContext
-        );
-
-        $record
-            ->setReadyChannels($readyChannels)
-            ->setOutcome($readyChannels === [] ? 'undelivered' : 'enqueued');
-
-        try {
-            $alarmCreator->create((int) $event['id'], $readyChannels, $decision->priority);
-
-            foreach ($readyChannels as $channel) {
-                $alarmHash = $alarmEvaluator->generateCooldownHash(
-                    type: $event['type'],
-                    server: $event['server_id'],
-                    app: $event['application_id'],
-                    context: $eventContext,
-                    channel: $channel
-                );
-                $eventRecorder->upsertAlarmCooldown(
-                    $alarmHash,
-                    $alarmEvaluator->getAlarmIntervalMinutes($event['type'])
-                );
+            if ($exception->getStage() === AlarmDecisionProcessingException::POLICY) {
+                $log->error('routine_alarm_decision.opa_failed', [
+                    'event_id' => $eventId,
+                    'error' => $error,
+                ]);
+            } else {
+                $log->error('routine_alarm_decision.enqueue_failed', [
+                    'event_id' => $eventId,
+                    'error' => $error,
+                ]);
             }
 
-            $log->info('alarm_decision', array_merge([
-                'event_id' => (int) $event['id'],
-                'type' => $event['type'] ?? null,
-                'level' => $event['level'] ?? null,
-                'server_id' => $event['server_id'] ?? null,
-                'application_id' => $event['application_id'] ?? null,
-            ], $record->toArray()));
-            $eventAggregator->markEventEvaluated((int) $event['id'], $record->toArray());
-            $stats['enqueued'] += count($readyChannels);
-        } catch (Throwable $exception) {
-            ++$stats['failed'];
-            $log->error('routine_alarm_decision.enqueue_failed', [
-                'event_id' => $event['id'] ?? null,
-                'error' => $exception->getMessage(),
-            ]);
+            continue;
+        }
+
+        if ($result->skipped) {
+            ++$stats['skipped'];
+        }
+        $stats['enqueued'] += $result->enqueuedCount;
+        if ($result->enrichmentRequested) {
+            ++$stats['enrich_requested'];
         }
     }
 

@@ -9,21 +9,20 @@ use Mata\Models\Dto\EventRecordResult;
 use Mata\Services\Alarm\Dto\Alarm;
 use Mata\Services\Alarm\Dto\AlarmLevel;
 use Mata\Utils\AlarmLimitHelper;
-use Mata\Utils\ChannelLockManager;
 use PDOException;
 use Psr\Log\LoggerInterface;
 
-/** Creates logical alarms for direct alarm notifications, with filesystem fallback when no event exists. */
-class AlarmManager
+/** Queues direct alarms and throttles unqueueable alarms when delivery storage is unavailable. */
+class AlarmDirectProcessor
 {
     public function __construct(
-        private AlarmCreator $alarmCreator,
+        private AlarmCreatorInterface $alarmCreator,
         private AlarmLimitsConfig $limitsConfig,
-        private ChannelLockManager $lockManager,
+        private AlarmQueueFailureThrottle $queueFailureThrottle,
         private LoggerInterface $logger
     ) {}
 
-    public function handleAlarm(Alarm $alarm, ?EventRecordResult $eventRecord = null): void
+    public function process(Alarm $alarm, ?EventRecordResult $eventRecord = null): void
     {
         $eventId = $eventRecord === null ? 0 : $eventRecord->eventId;
         $serverKey = $this->normalizeServerKey($eventRecord === null ? $alarm->server : $eventRecord->serverKey);
@@ -40,11 +39,11 @@ class AlarmManager
         }
 
         foreach ($alarm->channels as $channel) {
-            $this->fallbackThrottle($serverKey, (string) $channel);
+            $this->throttleQueueFailure($serverKey, (string) $channel);
         }
     }
 
-    private function fallbackThrottle(string $serverKey, string $channel): void
+    private function throttleQueueFailure(string $serverKey, string $channel): void
     {
         $channel = strtolower(trim($channel));
         $spacingSeconds = AlarmLimitHelper::calculateSpacingSeconds($this->limitsConfig->resolve($serverKey, $channel));
@@ -53,7 +52,7 @@ class AlarmManager
 
             return;
         }
-        if ($this->lockManager->tryAcquire($serverKey, $channel, $spacingSeconds)) {
+        if ($this->queueFailureThrottle->tryAcquire($serverKey, $channel, $spacingSeconds)) {
             $this->logger->warning("Alarm delivery storage unavailable; alarm suppressed after acquiring filesystem lock [channel={$channel}, server={$serverKey}, spacing_seconds={$spacingSeconds}]");
         }
     }

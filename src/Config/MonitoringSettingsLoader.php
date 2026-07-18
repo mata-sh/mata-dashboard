@@ -7,7 +7,7 @@ namespace Mata\Config;
 use Exception;
 use Mata\Core\DatabaseInterface;
 use Mata\Core\NullDatabase;
-use Mata\Services\Alarm\AlarmManager;
+use Mata\Services\Alarm\AlarmDirectProcessor;
 use Mata\Services\Alarm\Dto\Alarm;
 use Mata\Services\Alarm\Dto\AlarmLevel;
 use Mata\Services\Event\EventRecorderService;
@@ -31,24 +31,24 @@ use RuntimeException;
 final class MonitoringSettingsLoader
 {
     private EventRecorderService $eventRecorder;
-    private ?AlarmManager $alarmManager;
+    private ?AlarmDirectProcessor $alarmDirectProcessor;
     private ?DatabaseInterface $db;
     private ?SettingsDatabaseSync $settingsSync;
 
     /**
      * @param EventRecorderService      $eventRecorder Event recorder for logging configuration failures
-     * @param null|AlarmManager         $alarmManager  Optional alarm manager for critical notifications
+     * @param null|AlarmDirectProcessor $alarmDirectProcessor Optional direct alarm processor for critical notifications
      * @param null|DatabaseInterface    $db            Optional database connection for settings sync
      * @param null|SettingsDatabaseSync $settingsSync  Optional settings sync service
      */
     public function __construct(
         EventRecorderService $eventRecorder,
-        ?AlarmManager $alarmManager = null,
+        ?AlarmDirectProcessor $alarmDirectProcessor = null,
         ?DatabaseInterface $db = null,
         ?SettingsDatabaseSync $settingsSync = null
     ) {
         $this->eventRecorder = $eventRecorder;
-        $this->alarmManager = $alarmManager;
+        $this->alarmDirectProcessor = $alarmDirectProcessor;
         $this->db = $db;
         $this->settingsSync = $settingsSync;
     }
@@ -765,7 +765,7 @@ final class MonitoringSettingsLoader
             forceAlarm: $forceAlarm
         );
 
-        if ($forceAlarm && $this->alarmManager !== null) {
+        if ($forceAlarm && $this->alarmDirectProcessor !== null) {
             $alarm = new Alarm(
                 type: $type,
                 message: $message,
@@ -774,7 +774,7 @@ final class MonitoringSettingsLoader
                 app: $recordResult->appLabel,
                 channels: ['email']
             );
-            $this->alarmManager->handleAlarm($alarm, $recordResult);
+            $this->alarmDirectProcessor->process($alarm, $recordResult);
         }
     }
 }

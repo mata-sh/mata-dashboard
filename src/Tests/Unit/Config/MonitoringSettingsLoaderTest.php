@@ -25,7 +25,7 @@ final class MonitoringSettingsLoaderTest extends TestCase
 
         $this->eventRecorder = $this->createStub(EventRecorderService::class);
 
-        // MonitoringSettingsLoader accepts optional parameters for alarmManager, db, and settingsSync
+        // MonitoringSettingsLoader accepts optional parameters for direct alarm processing, db, and settings sync
         // We only need eventRecorder for validation tests
         $this->loader = new MonitoringSettingsLoader($this->eventRecorder);
     }

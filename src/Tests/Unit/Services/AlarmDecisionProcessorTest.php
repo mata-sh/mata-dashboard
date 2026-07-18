@@ -1,0 +1,215 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Mata\Tests\Unit\Services;
+
+use Mata\Services\Alarm\AlarmCreatorInterface;
+use Mata\Services\Alarm\AlarmDecisionProcessingException;
+use Mata\Services\Alarm\AlarmDecisionProcessor;
+use Mata\Services\Alarm\AlarmDecisionServiceInterface;
+use Mata\Services\Alarm\AlarmThresholdCooldownService;
+use Mata\Services\Alarm\Dto\AlarmDecision;
+use Mata\Services\Event\EventAggregatorServiceInterface;
+use Mata\Services\Event\EventRecorderService;
+use Mata\Tests\TestCase;
+use RuntimeException;
+
+/**
+ * @covers \Mata\Services\Alarm\AlarmDecisionProcessor
+ *
+ * @internal
+ */
+final class AlarmDecisionProcessorTest extends TestCase
+{
+    public function testThresholdSuppressionIsRecordedAndMarkedEvaluated(): void
+    {
+        $evaluator = $this->createMock(AlarmThresholdCooldownService::class);
+        $evaluator->expects($this->once())
+            ->method('shouldTriggerAlarmForEvent')
+            ->willReturn(false);
+        $decisionService = $this->createMock(AlarmDecisionServiceInterface::class);
+        $decisionService->expects($this->never())->method('decide');
+        $creator = $this->createMock(AlarmCreatorInterface::class);
+        $creator->expects($this->never())->method('create');
+        $recorder = $this->createStub(EventRecorderService::class);
+        $aggregator = $this->expectRecordedOutcome('suppressed');
+
+        $result = $this->processor($evaluator, $decisionService, $creator, $recorder, $aggregator)
+            ->process($this->event());
+
+        $this->assertTrue($result->skipped);
+        $this->assertSame(0, $result->enqueuedCount);
+        $this->assertSame('fail', $result->record->toArray()['threshold_gate']);
+    }
+
+    public function testPolicyDenialIsRecordedAndMarkedEvaluated(): void
+    {
+        $evaluator = $this->readyEvaluator([]);
+        $decisionService = $this->createMock(AlarmDecisionServiceInterface::class);
+        $decisionService->expects($this->once())
+            ->method('decide')
+            ->willReturn(new AlarmDecision(false, [], reason: 'maintenance_window'));
+        $creator = $this->createMock(AlarmCreatorInterface::class);
+        $creator->expects($this->never())->method('create');
+        $recorder = $this->createStub(EventRecorderService::class);
+        $aggregator = $this->expectRecordedOutcome('suppressed');
+
+        $result = $this->processor($evaluator, $decisionService, $creator, $recorder, $aggregator)
+            ->process($this->event());
+
+        $this->assertTrue($result->skipped);
+        $this->assertSame('deny', $result->record->toArray()['policy_gate']);
+        $this->assertSame('maintenance_window', $result->record->toArray()['policy_reason']);
+    }
+
+    public function testNoReadyChannelsCreatesAnUndeliveredAlarm(): void
+    {
+        $evaluator = $this->readyEvaluator([]);
+        $decisionService = $this->decisionService(new AlarmDecision(true, ['email'], 50));
+        $creator = $this->createMock(AlarmCreatorInterface::class);
+        $creator->expects($this->once())
+            ->method('create')
+            ->with(42, [], 50)
+            ->willReturn(99);
+        $recorder = $this->createMock(EventRecorderService::class);
+        $recorder->expects($this->never())->method('upsertAlarmCooldown');
+        $aggregator = $this->expectRecordedOutcome('undelivered');
+
+        $result = $this->processor($evaluator, $decisionService, $creator, $recorder, $aggregator)
+            ->process($this->event());
+
+        $this->assertFalse($result->skipped);
+        $this->assertSame(0, $result->enqueuedCount);
+        $this->assertSame(['email'], $result->record->toArray()['unavailable_channels']);
+    }
+
+    public function testReadyChannelsCreateDeliveriesAndCooldowns(): void
+    {
+        $evaluator = $this->createMock(AlarmThresholdCooldownService::class);
+        $evaluator->expects($this->once())
+            ->method('shouldTriggerAlarmForEvent')
+            ->willReturn(true);
+        $evaluator->expects($this->once())
+            ->method('filterReadyChannels')
+            ->willReturn(['email']);
+        $evaluator->expects($this->once())
+            ->method('generateCooldownHash')
+            ->willReturn('alarm-hash');
+        $evaluator->expects($this->once())
+            ->method('getAlarmIntervalMinutes')
+            ->with('disk')
+            ->willReturn(30);
+        $decisionService = $this->decisionService(new AlarmDecision(true, ['email'], 50, true));
+        $creator = $this->createMock(AlarmCreatorInterface::class);
+        $creator->expects($this->once())
+            ->method('create')
+            ->with(42, ['email'], 50)
+            ->willReturn(99);
+        $recorder = $this->createMock(EventRecorderService::class);
+        $recorder->expects($this->once())
+            ->method('upsertAlarmCooldown')
+            ->with('alarm-hash', 30);
+        $aggregator = $this->expectRecordedOutcome('enqueued');
+
+        $result = $this->processor($evaluator, $decisionService, $creator, $recorder, $aggregator)
+            ->process($this->event());
+
+        $this->assertSame(1, $result->enqueuedCount);
+        $this->assertTrue($result->enrichmentRequested);
+    }
+
+    public function testPolicyFailureRemainsRetryable(): void
+    {
+        $evaluator = $this->readyEvaluator([]);
+        $decisionService = $this->createStub(AlarmDecisionServiceInterface::class);
+        $decisionService->method('decide')->willThrowException(new RuntimeException('OPA unavailable'));
+        $creator = $this->createStub(AlarmCreatorInterface::class);
+        $recorder = $this->createStub(EventRecorderService::class);
+        $aggregator = $this->createMock(EventAggregatorServiceInterface::class);
+        $aggregator->expects($this->never())->method('markEventEvaluated');
+
+        try {
+            $this->processor($evaluator, $decisionService, $creator, $recorder, $aggregator)
+                ->process($this->event());
+            $this->fail('Expected policy processing exception.');
+        } catch (AlarmDecisionProcessingException $exception) {
+            $this->assertSame(AlarmDecisionProcessingException::POLICY, $exception->getStage());
+            $this->assertSame('OPA unavailable', $exception->getMessage());
+        }
+    }
+
+    public function testDeliveryCreationFailureRemainsRetryable(): void
+    {
+        $evaluator = $this->readyEvaluator(['email']);
+        $decisionService = $this->decisionService(new AlarmDecision(true, ['email'], enrich: true));
+        $creator = $this->createStub(AlarmCreatorInterface::class);
+        $creator->method('create')->willThrowException(new RuntimeException('database unavailable'));
+        $recorder = $this->createStub(EventRecorderService::class);
+        $aggregator = $this->createMock(EventAggregatorServiceInterface::class);
+        $aggregator->expects($this->never())->method('markEventEvaluated');
+
+        try {
+            $this->processor($evaluator, $decisionService, $creator, $recorder, $aggregator)
+                ->process($this->event());
+            $this->fail('Expected delivery processing exception.');
+        } catch (AlarmDecisionProcessingException $exception) {
+            $this->assertSame(AlarmDecisionProcessingException::DELIVERY, $exception->getStage());
+            $this->assertTrue($exception->isEnrichmentRequested());
+            $this->assertSame('database unavailable', $exception->getMessage());
+        }
+    }
+
+    /** @param array<int,string> $readyChannels */
+    private function readyEvaluator(array $readyChannels): AlarmThresholdCooldownService
+    {
+        $evaluator = $this->createStub(AlarmThresholdCooldownService::class);
+        $evaluator->method('shouldTriggerAlarmForEvent')->willReturn(true);
+        $evaluator->method('filterReadyChannels')->willReturn($readyChannels);
+
+        return $evaluator;
+    }
+
+    private function decisionService(AlarmDecision $decision): AlarmDecisionServiceInterface
+    {
+        $service = $this->createStub(AlarmDecisionServiceInterface::class);
+        $service->method('decide')->willReturn($decision);
+
+        return $service;
+    }
+
+    private function expectRecordedOutcome(string $outcome): EventAggregatorServiceInterface
+    {
+        $aggregator = $this->createMock(EventAggregatorServiceInterface::class);
+        $aggregator->expects($this->once())
+            ->method('markEventEvaluated')
+            ->with(42, $this->callback(
+                static fn (array $record): bool => $record['outcome'] === $outcome
+            ));
+
+        return $aggregator;
+    }
+
+    private function processor(
+        AlarmThresholdCooldownService $evaluator,
+        AlarmDecisionServiceInterface $decisionService,
+        AlarmCreatorInterface $creator,
+        EventRecorderService $recorder,
+        EventAggregatorServiceInterface $aggregator,
+    ): AlarmDecisionProcessor {
+        return new AlarmDecisionProcessor($evaluator, $decisionService, $creator, $recorder, $aggregator);
+    }
+
+    /** @return array<string,mixed> */
+    private function event(): array
+    {
+        return [
+            'id' => 42,
+            'type' => 'disk',
+            'level' => 'critical',
+            'context' => '{}',
+            'server_id' => 1,
+            'application_id' => 2,
+        ];
+    }
+}

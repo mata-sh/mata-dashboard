@@ -16,7 +16,7 @@ use Mata\Config\Dto\PhpConfig;
 use Mata\Config\Dto\RateLimitingConfig;
 use Mata\Config\Dto\TemplateConfig;
 use Mata\Models\Dto\EventRecordResult;
-use Mata\Services\Alarm\AlarmManager;
+use Mata\Services\Alarm\AlarmDirectProcessor;
 use Mata\Services\Event\Dto\EventContext;
 use Mata\Services\Event\EventAggregatorServiceInterface;
 use Mata\Services\Event\EventManager;
@@ -32,7 +32,7 @@ final class EventManagerTest extends TestCase
 {
     private EventRecorderService $eventRecorder;
     private EventAggregatorServiceInterface $eventAggregator;
-    private AlarmManager $alarmManager;
+    private AlarmDirectProcessor $alarmDirectProcessor;
 
     protected function setUp(): void
     {
@@ -40,12 +40,12 @@ final class EventManagerTest extends TestCase
 
         $this->eventRecorder = $this->createMock(EventRecorderService::class);
         $this->eventAggregator = $this->createStub(EventAggregatorServiceInterface::class);
-        $this->alarmManager = $this->createStub(AlarmManager::class);
+        $this->alarmDirectProcessor = $this->createStub(AlarmDirectProcessor::class);
     }
 
     public function testHandleEventRecordsEventOnly(): void
     {
-        $this->alarmManager = $this->createMock(AlarmManager::class);
+        $this->alarmDirectProcessor = $this->createMock(AlarmDirectProcessor::class);
 
         $manager = $this->createManager(alarmsEnabled: false, eventsEnabled: true);
 
@@ -69,7 +69,7 @@ final class EventManagerTest extends TestCase
             ))
         ;
 
-        $this->alarmManager->expects($this->never())->method('handleAlarm');
+        $this->alarmDirectProcessor->expects($this->never())->method('process');
 
         $result = $manager->handleEvent(
             type: 'test_event',
@@ -146,12 +146,12 @@ final class EventManagerTest extends TestCase
 
     public function testHandleEventSkipsWhenEventsDisabled(): void
     {
-        $this->alarmManager = $this->createMock(AlarmManager::class);
+        $this->alarmDirectProcessor = $this->createMock(AlarmDirectProcessor::class);
 
         $manager = $this->createManager(eventsEnabled: false, alarmsEnabled: false);
 
         $this->eventRecorder->expects($this->never())->method('recordEvent');
-        $this->alarmManager->expects($this->never())->method('handleAlarm');
+        $this->alarmDirectProcessor->expects($this->never())->method('process');
 
         $result = $manager->handleEvent(
             type: 'test_event',
@@ -166,7 +166,7 @@ final class EventManagerTest extends TestCase
 
     public function testHandleEventRecordsEventWithCooldownRespected(): void
     {
-        $this->alarmManager = $this->createMock(AlarmManager::class);
+        $this->alarmDirectProcessor = $this->createMock(AlarmDirectProcessor::class);
 
         $intervalsConfig = [
             'events' => ['min_event_interval_minutes' => ['_default' => 30]],
@@ -214,7 +214,7 @@ final class EventManagerTest extends TestCase
             ))
         ;
 
-        $this->alarmManager->expects($this->never())->method('handleAlarm');
+        $this->alarmDirectProcessor->expects($this->never())->method('process');
 
         $result = $manager->handleEvent(
             type: 'test_event',
@@ -237,7 +237,7 @@ final class EventManagerTest extends TestCase
     ): EventManager {
         $manager = new EventManager(
             $this->createConfig($alarmsEnabled, $eventsEnabled),
-            $this->alarmManager,
+            $this->alarmDirectProcessor,
             $this->eventRecorder,
             $this->eventAggregator
         );

@@ -12,9 +12,9 @@ declare(strict_types=1);
  * - $deliveryRepository  Alarm delivery persistence
  * - $configSyncRepository  Config synchronization
  * - $eventRepository       Event persistence
- * - $lockManager           Channel-based locking for alarms
+ * - $queueFailureThrottle  Queue-failure throttling for direct alarms
  * - $alarmLimits           Rate limiting configuration
- * - $alarmManager          Alarm delivery orchestrator
+ * - $alarmDirectProcessor  Forced direct-alarm processor
  * - $alarmEvaluator        Alarm evaluation service (alarm decision logic)
  * - $idResolver            Server/app ID resolution
  * - $eventRecorder         Event recording service
@@ -33,15 +33,15 @@ use Mata\Models\AlarmDeliveryRepository;
 use Mata\Models\AlarmRepository;
 use Mata\Models\ConfigSyncRepository;
 use Mata\Models\EventRepository;
-use Mata\Services\Alarm\AlarmEvaluationService;
+use Mata\Services\Alarm\AlarmThresholdCooldownService;
 use Mata\Services\Alarm\AlarmCreator;
-use Mata\Services\Alarm\AlarmManager;
+use Mata\Services\Alarm\AlarmDirectProcessor;
 use Mata\Services\Event\EventAggregatorService;
 use Mata\Services\Event\EventManager;
 use Mata\Services\Event\EventRecorderService;
 use Mata\Services\Event\MockEventAggregatorService;
 use Mata\Services\Foundation\IdResolver;
-use Mata\Utils\ChannelLockManager;
+use Mata\Services\Alarm\AlarmQueueFailureThrottle;
 
 // Ensure bootstrap.php was loaded first
 if (!isset($db, $appConfig, $paths, $log)) {
@@ -58,19 +58,19 @@ $configSyncRepository = new ConfigSyncRepository($db);
 $eventRepository = new EventRepository($db);
 
 // ************************************************************************************************
-// Limits & Locking
+// Limits & Queue-Failure Throttling
 // ************************************************************************************************
-$lockManager = new ChannelLockManager($paths->tempPath . '/alarm-locks', $log);
+$queueFailureThrottle = new AlarmQueueFailureThrottle($paths->tempPath . '/alarm-locks', $log);
 $limitsLoader = new AlarmLimitsLoader($log);
 $alarmLimits = $limitsLoader->load($paths->appPath . '/config/limits.json');
 
 // ************************************************************************************************
-// Alarm Manager
+// Direct Alarm Processor
 // ************************************************************************************************
-$alarmManager = new AlarmManager(
+$alarmDirectProcessor = new AlarmDirectProcessor(
     $alarmCreator,
     $alarmLimits,
-    $lockManager,
+    $queueFailureThrottle,
     $log
 );
 
@@ -90,14 +90,14 @@ if ($useMockEvents) {
     $eventAggregator = new EventAggregatorService($eventRepository, $alarmRepository, $idResolver, $log);
 }
 
-$eventManager = (new EventManager($appConfig, $alarmManager))
+$eventManager = (new EventManager($appConfig, $alarmDirectProcessor))
     ->setEventRecorder($eventRecorder)
     ->setEventAggregator($eventAggregator);
 
 // ************************************************************************************************
 // Alarm Evaluation Service
 // ************************************************************************************************
-$alarmEvaluator = new AlarmEvaluationService(
+$alarmEvaluator = new AlarmThresholdCooldownService(
     $eventAggregator,
     $eventRecorder,
     $appConfig
@@ -106,7 +106,7 @@ $alarmEvaluator = new AlarmEvaluationService(
 // ************************************************************************************************
 // Monitoring Settings
 // ************************************************************************************************
-$monitoringSettingsLoader = new MonitoringSettingsLoader($eventRecorder, $alarmManager);
+$monitoringSettingsLoader = new MonitoringSettingsLoader($eventRecorder, $alarmDirectProcessor);
 $monitoringSettings = $monitoringSettingsLoader->loadAllConfigs(
     $paths->appPath . '/config',
     $appConfig->environment->env
@@ -125,9 +125,9 @@ return compact(
     'alarmCreator',
     'configSyncRepository',
     'eventRepository',
-    'lockManager',
+    'queueFailureThrottle',
     'alarmLimits',
-    'alarmManager',
+    'alarmDirectProcessor',
     'alarmEvaluator',
     'idResolver',
     'eventRecorder',

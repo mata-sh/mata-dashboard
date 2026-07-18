@@ -2,18 +2,18 @@
 
 declare(strict_types=1);
 
-namespace Mata\Tests\Unit\Utils;
+namespace Mata\Tests\Unit\Services;
 
 use DateTimeImmutable;
 use Mata\Tests\TestCase;
-use Mata\Utils\ChannelLockManager;
+use Mata\Services\Alarm\AlarmQueueFailureThrottle;
 
 /**
- * @covers \Mata\Utils\ChannelLockManager
+ * @covers \Mata\Services\Alarm\AlarmQueueFailureThrottle
  *
  * @internal
  */
-final class ChannelLockManagerTest extends TestCase
+final class AlarmQueueFailureThrottleTest extends TestCase
 {
     private string $tempDir;
 
@@ -31,7 +31,7 @@ final class ChannelLockManagerTest extends TestCase
 
     public function testTryAcquireRespectsSpacing(): void
     {
-        $manager = new ChannelLockManager($this->tempDir);
+        $manager = new AlarmQueueFailureThrottle($this->tempDir);
         $spacingSeconds = 10;
 
         $this->assertTrue($manager->tryAcquire('Server-Alpha', 'Email', $spacingSeconds));
@@ -46,7 +46,7 @@ final class ChannelLockManagerTest extends TestCase
 
     public function testGetLastTriggeredAtAndRelease(): void
     {
-        $manager = new ChannelLockManager($this->tempDir);
+        $manager = new AlarmQueueFailureThrottle($this->tempDir);
 
         $this->assertNull($manager->getLastTriggeredAt('srv', 'email'));
 

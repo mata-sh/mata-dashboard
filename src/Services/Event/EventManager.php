@@ -6,7 +6,7 @@ namespace Mata\Services\Event;
 
 use LogicException;
 use Mata\Config\Dto\ApplicationConfig;
-use Mata\Services\Alarm\AlarmManager;
+use Mata\Services\Alarm\AlarmDirectProcessor;
 use Mata\Services\Alarm\Dto\Alarm;
 use Mata\Services\Alarm\Dto\AlarmLevel;
 use Mata\Services\Event\Dto\EventContext;
@@ -53,12 +53,12 @@ use PDOException;
  *
  * ### Component Responsibilities:
  * - **EventManager** (this): Event business logic, threshold evaluation, event cooldown management
- * - **AlarmEvaluationService**: Alarm decision logic, alarm cooldown management, channel filtering
+ * - **AlarmThresholdCooldownService**: Alarm threshold checks, cooldown management, channel filtering
  * - **EventRecorderService**: Low-level event/alarm persistence and cooldown tracking
  * - **EventAggregatorService**: Event/alarm querying, reporting, cleanup operations
- * - **AlarmManager**: Alarm delivery creation and priority resolution
+ * - **AlarmDirectProcessor**: Direct alarm queueing for forced alarms
  *
- * @see AlarmEvaluationService For alarm decision logic
+ * @see AlarmThresholdCooldownService For alarm threshold and cooldown logic
  * @see EventRecorderService For direct event persistence (rarely used directly)
  * @see EventAggregatorServiceInterface For read-only event querying
  */
@@ -79,7 +79,7 @@ class EventManager
     /** @var array<string,int> Event type to interval minutes mapping */
     private array $eventIntervals = [];
 
-    private ?AlarmManager $alarmManager;
+    private ?AlarmDirectProcessor $alarmDirectProcessor;
     private ApplicationConfig $appConfig;
 
     /**
@@ -102,18 +102,18 @@ class EventManager
      *
      * Use setMonitoringSettings() to configure thresholds and intervals after initialization.
      *
-     * @param AlarmManager                         $alarmManager    Alarm delivery orchestrator
+     * @param AlarmDirectProcessor                 $alarmDirectProcessor Direct alarm processor for forced alarms
      * @param ApplicationConfig                    $appConfig       Application configuration for alarm/event settings
      * @param null|EventRecorderService            $eventRecorder   Optional event recorder (can be set later via setEventRecorder)
      * @param null|EventAggregatorServiceInterface $eventAggregator Optional event aggregator (can be set later via setEventAggregator)
      */
     public function __construct(
         ApplicationConfig $appConfig,
-        ?AlarmManager $alarmManager = null,
+        ?AlarmDirectProcessor $alarmDirectProcessor = null,
         ?EventRecorderService $eventRecorder = null,
         ?EventAggregatorServiceInterface $eventAggregator = null
     ) {
-        $this->alarmManager = $alarmManager;
+        $this->alarmDirectProcessor = $alarmDirectProcessor;
         $this->appConfig = $appConfig;
         $this->recorder = $eventRecorder;
         $this->aggregator = $eventAggregator;
@@ -313,7 +313,7 @@ class EventManager
                 cooldownMinutes: $cooldownMinutes
             );
 
-            if ($forceAlarm && $this->alarmManager !== null) {
+            if ($forceAlarm && $this->alarmDirectProcessor !== null) {
                 $alarm = new Alarm(
                     type: $type,
                     message: $message,
@@ -322,7 +322,7 @@ class EventManager
                     app: $eventRecordResult->appLabel,
                     channels: ['email']
                 );
-                $this->alarmManager->handleAlarm($alarm, $eventRecordResult);
+                $this->alarmDirectProcessor->process($alarm, $eventRecordResult);
             }
 
             return [
@@ -372,7 +372,7 @@ class EventManager
      * Hash format: SHA256(type|server|app|context|channel)
      *
      * NOTE: For event cooldowns, channel should always be empty string.
-     * For alarm cooldowns, use AlarmEvaluationService::generateCooldownHash() instead.
+     * For alarm cooldowns, use AlarmThresholdCooldownService::generateCooldownHash() instead.
      *
      * @param string          $type    Event type identifier
      * @param null|int|string $server  Server context

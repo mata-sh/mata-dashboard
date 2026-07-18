@@ -9,8 +9,8 @@ use Mata\Models\AlarmDeliveryRepository;
 use Mata\Models\AlarmRepository;
 use Throwable;
 
-/** Atomically creates a logical alarm and its requested channel deliveries. */
-final class AlarmCreator
+/** Atomically creates a logical alarm and its ready-channel deliveries. */
+final class AlarmCreator implements AlarmCreatorInterface
 {
     public function __construct(
         private DatabaseInterface $db,

@@ -7,7 +7,7 @@ namespace Mata\Services\Alarm;
 use GuzzleHttp\Client;
 use GuzzleHttp\Exception\GuzzleException;
 use Mata\Services\Alarm\Dto\AlarmDecision;
-use Mata\Services\Alarm\Dto\OpaAlarmDecisionConfig;
+use Mata\Config\Dto\OpaAlarmDecisionConfig;
 use RuntimeException;
 
 final class OpaAlarmDecisionService implements AlarmDecisionServiceInterface
