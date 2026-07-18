@@ -72,28 +72,6 @@ class DatabaseTest extends TestCase
      * @test
      *
      * @group database
-     * @group validation
-     */
-    public function testItValidatesRequiredConfigKeys(): void
-    {
-        $this->markTestSkipped('DatabaseConfig DTO now enforces required parameters at compile time via PHP type system');
-    }
-
-    /**
-     * @test
-     *
-     * @group database
-     * @group validation
-     */
-    public function testItValidatesEmptyConfigValues(): void
-    {
-        $this->markTestSkipped('DatabaseConfig DTO now handles validation; empty values are permitted by the DTO');
-    }
-
-    /**
-     * @test
-     *
-     * @group database
      * @group queries
      */
     public function testItExecutesSelectQueriesAndReturnsResults(): void
@@ -240,7 +218,7 @@ class DatabaseTest extends TestCase
     {
         $database = $this->createMockDatabase();
 
-        $mockPdo = $this->createMock(PDO::class);
+        $mockPdo = $this->createStub(PDO::class);
         $this->setProperty($database, 'pdo', $mockPdo);
 
         $result = $database->getPdo();
@@ -389,17 +367,6 @@ class DatabaseTest extends TestCase
      * @test
      *
      * @group database
-     * @group configuration
-     */
-    public function testItValidatesAllRequiredConfigKeys(): void
-    {
-        $this->markTestSkipped('DatabaseConfig DTO now enforces required parameters at compile time via PHP type system');
-    }
-
-    /**
-     * @test
-     *
-     * @group database
      * @group insert-operations
      */
     public function testItDistinguishesInsertQueriesCaseInsensitive(): void
@@ -414,10 +381,10 @@ class DatabaseTest extends TestCase
         ];
 
         foreach ($insertQueries as $query) {
-            $mockStatement = $this->createMock(PDOStatement::class);
+            $mockStatement = $this->createStub(PDOStatement::class);
             $mockStatement->method('execute')->willReturn(true);
 
-            $mockPdo = $this->createMock(PDO::class);
+            $mockPdo = $this->createStub(PDO::class);
             $mockPdo->method('prepare')->willReturn($mockStatement);
             $mockPdo->method('lastInsertId')->willReturn('99');
 
@@ -464,18 +431,6 @@ class DatabaseTest extends TestCase
      */
     private function createMockDatabase(): Database
     {
-        // Create a mock that bypasses the constructor
-        $database = $this->getMockBuilder(Database::class)
-            ->disableOriginalConstructor()
-            ->getMock()
-        ;
-
-        // Allow method calls
-        $database->method('runQuery')->willReturnCallback(function ($sql, $params = []) {
-            // Mock implementation that can be overridden in specific tests
-            return [];
-        });
-
         // Create a real instance for most tests
         $reflection = new ReflectionClass(Database::class);
 

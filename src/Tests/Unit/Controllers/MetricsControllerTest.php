@@ -36,6 +36,8 @@ use PHPUnit\Framework\MockObject\MockObject;
  *
  * @internal
  */
+// The shared fixture configures selected collaborators after the controller is built.
+#[\PHPUnit\Framework\Attributes\AllowMockObjectsWithoutExpectations]
 class MetricsControllerTest extends TestCase
 {
     private MetricsController $controller;

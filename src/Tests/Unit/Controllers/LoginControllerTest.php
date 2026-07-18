@@ -20,6 +20,8 @@ use Twig\Environment;
  *
  * @internal
  */
+// Tests configure only the collaborators used by each request after the controller is built.
+#[\PHPUnit\Framework\Attributes\AllowMockObjectsWithoutExpectations]
 class LoginControllerTest extends TestCase
 {
     private LoginController $controller;

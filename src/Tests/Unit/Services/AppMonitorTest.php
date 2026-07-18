@@ -44,8 +44,8 @@ final class AppMonitorTest extends TestCase
     public function testTtlZeroStillProbesAndWritesThroughToStore(): void
     {
         $store = $this->createMock(CacheStoreInterface::class);
-        $store->expects($this->once())->method('get')->with($this->isType('string'), 0)->willReturn(null);
-        $store->expects($this->once())->method('put')->with($this->isType('string'), $this->isType('array'))->willReturn(true);
+        $store->expects($this->once())->method('get')->with($this->isString(), 0)->willReturn(null);
+        $store->expects($this->once())->method('put')->with($this->isString(), $this->isArray())->willReturn(true);
         $probe = $this->probe(new Response(503));
 
         $result = $this->monitor($store, $probe, CacheTypes::NONE)->checkEndpoint(
@@ -71,7 +71,7 @@ final class AppMonitorTest extends TestCase
         $store->expects($this->never())->method('get');
         $store->expects($this->once())
             ->method('put')
-            ->with($cacheKey, $this->isType('array'))
+            ->with($cacheKey, $this->isArray())
             ->willReturn(true);
 
         $results = $this->monitor($store, $this->probe(new Response(200)))->checkMultipleEndpoints(
@@ -106,7 +106,7 @@ final class AppMonitorTest extends TestCase
 
     public function testCachedMaintenanceDoesNotRecordUnreachableEvent(): void
     {
-        $store = $this->createMock(CacheStoreInterface::class);
+        $store = $this->createStub(CacheStoreInterface::class);
         $store->method('get')->willReturn(new CacheEntry([
             'reachable' => false,
             'maintenance_mode' => true,
@@ -154,7 +154,7 @@ final class AppMonitorTest extends TestCase
         $store->method('get')->willReturn(null);
         $store->expects($this->once())->method('put');
 
-        $probe = $this->createMock(ProbeClient::class);
+        $probe = $this->createStub(ProbeClient::class);
         $probe->method('checkAvailabilityAsync')->willReturn(Create::promiseFor([]));
         $probe->method('settle')->willReturn([]);
 
@@ -212,7 +212,7 @@ final class AppMonitorTest extends TestCase
         string $cacheType = CacheTypes::PING,
         ?EventManager $events = null,
     ): AppMonitor {
-        $apiClient = $this->createMock(ApiClient::class);
+        $apiClient = $this->createStub(ApiClient::class);
         $apiClient->method('getApiBase')->willReturn('https://node.example.test/api');
 
         return new AppMonitor(
@@ -221,7 +221,7 @@ final class AppMonitorTest extends TestCase
             new CacheTtlResolver([$cacheType => $cacheType === CacheTypes::NONE ? 0 : 60]),
             $apiClient,
             $probe,
-            $events ?? $this->createMock(EventManager::class),
+            $events ?? $this->createStub(EventManager::class),
             new NullLogger(),
         );
     }

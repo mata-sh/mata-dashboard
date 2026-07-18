@@ -12,7 +12,6 @@ use Mata\Tests\TestCase;
 use Mata\Utils\PathResolver;
 use Monolog\Handler\NullHandler;
 use Monolog\Logger;
-use PHPUnit\Framework\MockObject\MockObject;
 
 /**
  * Test suite for NotificationManager service.
@@ -24,7 +23,7 @@ use PHPUnit\Framework\MockObject\MockObject;
 class NotificationManagerTest extends TestCase
 {
     private NotificationManager $notificationManager;
-    private DatabaseInterface&MockObject $mockDb;
+    private DatabaseInterface $mockDb;
     private Logger $logger;
     private string $testTempDir;
     private array $tempPaths = [];
@@ -33,16 +32,24 @@ class NotificationManagerTest extends TestCase
     {
         parent::setUp();
 
-        $this->mockDb = $this->createMock(DatabaseInterface::class);
+        $this->mockDb = $this->createStub(DatabaseInterface::class);
         $this->logger = new Logger('test');
         $this->logger->pushHandler(new NullHandler());
         $this->testTempDir = $this->createTempDirectory();
         $this->tempPaths[] = $this->testTempDir;
 
-        $mockPaths = $this->createMock(PathResolver::class);
+        $mockPaths = $this->createStub(PathResolver::class);
         $mockPaths->tempPath = $this->testTempDir;
 
         $this->notificationManager = new NotificationManager($this->mockDb, $this->logger, $mockPaths);
+    }
+
+    private function useMockDatabase(): void
+    {
+        $this->mockDb = $this->createMock(DatabaseInterface::class);
+        $paths = $this->createStub(PathResolver::class);
+        $paths->tempPath = $this->testTempDir;
+        $this->notificationManager = new NotificationManager($this->mockDb, $this->logger, $paths);
     }
 
     protected function tearDown(): void
@@ -71,6 +78,8 @@ class NotificationManagerTest extends TestCase
     public function testItAddsNotificationSuccessfully(): void
     {
         $callCount = 0;
+        $this->useMockDatabase();
+
         $this->mockDb->expects($this->exactly(2))
             ->method('runQuery')
             ->willReturnCallback(function ($sql, $params) use (&$callCount) {
@@ -109,6 +118,8 @@ class NotificationManagerTest extends TestCase
     public function testItHandlesAddNotificationFailure(): void
     {
         $callCount = 0;
+        $this->useMockDatabase();
+
         $this->mockDb->expects($this->exactly(2))
             ->method('runQuery')
             ->willReturnCallback(function ($sql, $params) use (&$callCount) {
@@ -142,6 +153,8 @@ class NotificationManagerTest extends TestCase
     public function testItPreventsDuplicateNotifications(): void
     {
         // First call checks for duplicates
+        $this->useMockDatabase();
+
         $this->mockDb->expects($this->once())
             ->method('runQuery')
             ->with(
@@ -171,6 +184,8 @@ class NotificationManagerTest extends TestCase
     {
         // First check if exists
         $callCount = 0;
+        $this->useMockDatabase();
+
         $this->mockDb->expects($this->exactly(2))
             ->method('runQuery')
             ->willReturnCallback(function ($sql) use (&$callCount) {
@@ -209,6 +224,8 @@ class NotificationManagerTest extends TestCase
         // First call: Check if identifier exists
         // Second call: Update the notification
         $callCount = 0;
+        $this->useMockDatabase();
+
         $this->mockDb->expects($this->exactly(2))
             ->method('runQuery')
             ->willReturnCallback(function ($sql) use (&$callCount) {
@@ -244,6 +261,8 @@ class NotificationManagerTest extends TestCase
      */
     public function testItRemovesNotificationByIdentifier(): void
     {
+        $this->useMockDatabase();
+
         $this->mockDb->expects($this->once())
             ->method('runQuery')
             ->with(
@@ -266,6 +285,8 @@ class NotificationManagerTest extends TestCase
     {
         $identifiers = ['config.issue1', 'config.issue2', 'config.issue3'];
 
+        $this->useMockDatabase();
+
         $this->mockDb->expects($this->once())
             ->method('runQuery')
             ->with(
@@ -286,6 +307,8 @@ class NotificationManagerTest extends TestCase
      */
     public function testItHandlesEmptyIdentifiersArrayGracefully(): void
     {
+        $this->useMockDatabase();
+
         $this->mockDb->expects($this->never())
             ->method('runQuery')
         ;
@@ -323,6 +346,8 @@ class NotificationManagerTest extends TestCase
             ],
         ];
 
+        $this->useMockDatabase();
+
         $this->mockDb->expects($this->once())
             ->method('runQuery')
             ->willReturn($expectedNotifications)
@@ -343,6 +368,8 @@ class NotificationManagerTest extends TestCase
      */
     public function testItHandlesDatabaseErrorWhenRetrievingNotifications(): void
     {
+        $this->useMockDatabase();
+
         $this->mockDb->expects($this->once())
             ->method('runQuery')
             ->willThrowException(new Exception('Database error'))
@@ -362,6 +389,8 @@ class NotificationManagerTest extends TestCase
      */
     public function testItMarksNotificationAsRead(): void
     {
+        $this->useMockDatabase();
+
         $this->mockDb->expects($this->once())
             ->method('runQuery')
             ->with(
@@ -382,6 +411,8 @@ class NotificationManagerTest extends TestCase
      */
     public function testItDeactivatesNotification(): void
     {
+        $this->useMockDatabase();
+
         $this->mockDb->expects($this->once())
             ->method('runQuery')
             ->with(
@@ -402,6 +433,8 @@ class NotificationManagerTest extends TestCase
      */
     public function testItCleansUpOldNotifications(): void
     {
+        $this->useMockDatabase();
+
         $this->mockDb->expects($this->once())
             ->method('runQuery')
             ->with(
@@ -422,6 +455,8 @@ class NotificationManagerTest extends TestCase
      */
     public function testItUsesDefaultCleanupDays(): void
     {
+        $this->useMockDatabase();
+
         $this->mockDb->expects($this->once())
             ->method('runQuery')
             ->with(
@@ -447,6 +482,8 @@ class NotificationManagerTest extends TestCase
             ['type' => 'alarm', 'count' => 1],
         ];
 
+        $this->useMockDatabase();
+
         $this->mockDb->expects($this->once())
             ->method('runQuery')
             ->willReturn($dbResults)
@@ -470,6 +507,8 @@ class NotificationManagerTest extends TestCase
      */
     public function testItHandlesEmptyUnreadCount(): void
     {
+        $this->useMockDatabase();
+
         $this->mockDb->expects($this->once())
             ->method('runQuery')
             ->willReturn([])
@@ -488,6 +527,8 @@ class NotificationManagerTest extends TestCase
      */
     public function testItAddsConfigWarning(): void
     {
+        $this->useMockDatabase();
+
         $this->mockDb->expects($this->exactly(2))
             ->method('runQuery')
             ->willReturnOnConsecutiveCalls(
@@ -518,6 +559,8 @@ class NotificationManagerTest extends TestCase
             ['identifier' => 'config.invalid_format'],
             ['identifier' => 'config.permission_issue'],
         ];
+
+        $this->useMockDatabase();
 
         $this->mockDb->expects($this->once())
             ->method('runQuery')
@@ -550,6 +593,8 @@ class NotificationManagerTest extends TestCase
             ['identifier' => 'config.issue3'], // This one is resolved
         ];
 
+        $this->useMockDatabase();
+
         $this->mockDb->expects($this->exactly(2))
             ->method('runQuery')
             ->willReturnOnConsecutiveCalls(
@@ -571,7 +616,7 @@ class NotificationManagerTest extends TestCase
     public function testItShowsOfflineNoticeWhenUsingNullDatabase(): void
     {
         $nullDb = new NullDatabase($this->logger);
-        $mockPaths = $this->createMock(PathResolver::class);
+        $mockPaths = $this->createStub(PathResolver::class);
         $mockPaths->tempPath = $this->testTempDir;
 
         $manager = new NotificationManager($nullDb, $this->logger, $mockPaths);
@@ -592,7 +637,7 @@ class NotificationManagerTest extends TestCase
     public function testItAcknowledgesOfflineNoticeSnooze(): void
     {
         $nullDb = new NullDatabase($this->logger);
-        $mockPaths = $this->createMock(PathResolver::class);
+        $mockPaths = $this->createStub(PathResolver::class);
         $mockPaths->tempPath = $this->testTempDir;
 
         $manager = new NotificationManager($nullDb, $this->logger, $mockPaths);
@@ -614,7 +659,7 @@ class NotificationManagerTest extends TestCase
     public function testItAcknowledgesOfflineNoticeNever(): void
     {
         $nullDb = new NullDatabase($this->logger);
-        $mockPaths = $this->createMock(PathResolver::class);
+        $mockPaths = $this->createStub(PathResolver::class);
         $mockPaths->tempPath = $this->testTempDir;
 
         $manager = new NotificationManager($nullDb, $this->logger, $mockPaths);
@@ -636,7 +681,7 @@ class NotificationManagerTest extends TestCase
     public function testItResetsOfflineNoticeState(): void
     {
         $nullDb = new NullDatabase($this->logger);
-        $mockPaths = $this->createMock(PathResolver::class);
+        $mockPaths = $this->createStub(PathResolver::class);
         $mockPaths->tempPath = $this->testTempDir;
 
         $manager = new NotificationManager($nullDb, $this->logger, $mockPaths);
@@ -662,7 +707,7 @@ class NotificationManagerTest extends TestCase
     public function testItHandlesInvalidAcknowledgmentAction(): void
     {
         $nullDb = new NullDatabase($this->logger);
-        $mockPaths = $this->createMock(PathResolver::class);
+        $mockPaths = $this->createStub(PathResolver::class);
         $mockPaths->tempPath = $this->testTempDir;
 
         $manager = new NotificationManager($nullDb, $this->logger, $mockPaths);
@@ -700,6 +745,8 @@ class NotificationManagerTest extends TestCase
     public function testItHandlesNotificationWithZeroShowInterval(): void
     {
         $callCount = 0;
+        $this->useMockDatabase();
+
         $this->mockDb->expects($this->exactly(2))
             ->method('runQuery')
             ->willReturnCallback(function ($sql, $params) use (&$callCount) {

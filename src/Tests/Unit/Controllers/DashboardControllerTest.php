@@ -49,6 +49,9 @@ use Twig\Environment;
  *
  * @coversNothing
  */
+// Shared controller fixtures are reconfigured after construction across this legacy suite.
+// Rebuilding the controller for each interaction would risk losing existing setup behavior.
+#[\PHPUnit\Framework\Attributes\AllowMockObjectsWithoutExpectations]
 class DashboardControllerTest extends TestCase
 {
     private DashboardController $controller;

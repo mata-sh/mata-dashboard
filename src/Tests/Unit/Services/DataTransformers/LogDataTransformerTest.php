@@ -77,7 +77,7 @@ final class LogDataTransformerTest extends TestCase
         $logger = $this->createMock(LoggerInterface::class);
         $logger->expects($this->exactly(6))
             ->method('warning')
-            ->with('Skipping malformed log entry', $this->isType('array'))
+            ->with('Skipping malformed log entry', $this->isArray())
         ;
 
         $transformer = new LogDataTransformer($logger);

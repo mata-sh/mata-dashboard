@@ -18,7 +18,7 @@ use PHPUnit\Framework\MockObject\MockObject;
  */
 final class LogAnalyzerTest extends TestCase
 {
-    private MockObject&Tools $tools;
+    private Tools $tools;
     private EventManager&MockObject $eventManager;
     private LogAnalyzer $analyzer;
 
@@ -26,14 +26,14 @@ final class LogAnalyzerTest extends TestCase
     {
         parent::setUp();
 
-        $this->tools = $this->createMock(Tools::class);
+        $this->tools = $this->createStub(Tools::class);
         $this->eventManager = $this->createMock(EventManager::class);
         $this->analyzer = new LogAnalyzer($this->tools, $this->eventManager);
     }
 
     public function testAnalyzeAppLogsReturnsExpectedStructure(): void
     {
-        $collector = $this->createMock(ServerDataCollectorInterface::class);
+        $collector = $this->createStub(ServerDataCollectorInterface::class);
         $appData = [
             'logs' => [
                 '/var/log/app/error.log' => 5000,
@@ -73,7 +73,7 @@ final class LogAnalyzerTest extends TestCase
 
     public function testAnalyzeAppLogsTriggersHandleEventForLargeLogFile(): void
     {
-        $collector = $this->createMock(ServerDataCollectorInterface::class);
+        $collector = $this->createStub(ServerDataCollectorInterface::class);
         $appData = [
             'logs' => [
                 '/tmp/huge.log' => 60000,
@@ -124,7 +124,7 @@ final class LogAnalyzerTest extends TestCase
 
     public function testAnalyzeAppLogsDoesNotTriggerLargeLogFileAlarmWhenDisabled(): void
     {
-        $collector = $this->createMock(ServerDataCollectorInterface::class);
+        $collector = $this->createStub(ServerDataCollectorInterface::class);
         $appData = [
             'logs' => [
                 '/tmp/huge.log' => 60000,
@@ -160,7 +160,7 @@ final class LogAnalyzerTest extends TestCase
 
     public function testAnalyzeAppLogsTriggersHandleEventForFatalErrors(): void
     {
-        $collector = $this->createMock(ServerDataCollectorInterface::class);
+        $collector = $this->createStub(ServerDataCollectorInterface::class);
         $appData = [
             'logs' => [
                 '/tmp/error.log' => 100,

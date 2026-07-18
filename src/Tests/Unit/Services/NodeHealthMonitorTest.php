@@ -83,7 +83,7 @@ final class NodeHealthMonitorTest extends TestCase
         $events = $this->createMock(EventManager::class);
         $events->expects($this->once())
             ->method('handleEvent')
-            ->with('node_unhealthy', $this->isType('string'), ['server' => 'node-a'], 'warning', 'node-a')
+            ->with('node_unhealthy', $this->isString(), ['server' => 'node-a'], 'warning', 'node-a')
             ->willReturn([]);
         $monitor = $this->monitor($store, $this->probe(['status' => 'unhealthy', 'maintenance_mode' => false]), $events);
 
@@ -94,7 +94,7 @@ final class NodeHealthMonitorTest extends TestCase
 
     private function monitor(CacheStoreInterface $store, ProbeClient $probe, ?EventManager $events = null): NodeHealthMonitor
     {
-        $apiClient = $this->createMock(ApiClient::class);
+        $apiClient = $this->createStub(ApiClient::class);
         $apiClient->method('getApiBase')->willReturn('https://node.example.test/api');
 
         return new NodeHealthMonitor(
@@ -103,7 +103,7 @@ final class NodeHealthMonitorTest extends TestCase
             new CacheTtlResolver([CacheTypes::HEALTH => 60]),
             $apiClient,
             $probe,
-            $events ?? $this->createMock(EventManager::class),
+            $events ?? $this->createStub(EventManager::class),
             new NullLogger(),
         );
     }

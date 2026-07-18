@@ -42,6 +42,8 @@ use Twig\Environment;
  *
  * @internal
  */
+// The shared fixture configures only the collaborators required by each modal scenario.
+#[\PHPUnit\Framework\Attributes\AllowMockObjectsWithoutExpectations]
 class ModalControllerTest extends TestCase
 {
     private ModalController $controller;

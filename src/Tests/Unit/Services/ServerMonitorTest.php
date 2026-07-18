@@ -11,7 +11,6 @@ use Mata\Services\Monitor\ServerMonitor;
 use Mata\Tests\TestCase;
 use Monolog\Handler\NullHandler;
 use Monolog\Logger;
-use PHPUnit\Framework\MockObject\MockObject;
 
 /**
  * @covers \Mata\Services\Monitor\ServerMonitor
@@ -20,20 +19,28 @@ use PHPUnit\Framework\MockObject\MockObject;
  */
 final class ServerMonitorTest extends TestCase
 {
-    private EventManager&MockObject $eventManager;
+    private EventManager $eventManager;
     private ServerMonitor $monitor;
 
     protected function setUp(): void
     {
         parent::setUp();
 
-        $this->eventManager = $this->createMock(EventManager::class);
+        $this->eventManager = $this->createStub(EventManager::class);
         $logger = new Logger('test');
         $logger->pushHandler(new NullHandler());
         $this->monitor = new ServerMonitor(
             $logger,
             $this->eventManager,
         );
+    }
+
+    private function useMockEventManager(): void
+    {
+        $this->eventManager = $this->createMock(EventManager::class);
+        $logger = new Logger('test');
+        $logger->pushHandler(new NullHandler());
+        $this->monitor = new ServerMonitor($logger, $this->eventManager);
     }
 
     public function testCollectServerHealthDataReturnsStructuredPayload(): void
@@ -55,6 +62,8 @@ final class ServerMonitorTest extends TestCase
                 'stale_cache' => false,
             ])
         ;
+
+        $this->useMockEventManager();
 
         $this->eventManager
             ->expects($this->exactly(4))
@@ -78,7 +87,7 @@ final class ServerMonitorTest extends TestCase
 
     public function testCollectServerHealthDataTriggersFilecountAlarm(): void
     {
-        $collector = $this->createMock(ServerDataCollectorInterface::class);
+        $collector = $this->createStub(ServerDataCollectorInterface::class);
 
         $collector->method('getServerSystemData')
             ->willReturn([
@@ -89,6 +98,8 @@ final class ServerMonitorTest extends TestCase
                 ],
             ])
         ;
+
+        $this->useMockEventManager();
 
         $this->eventManager
             ->expects($this->exactly(4))
@@ -119,7 +130,7 @@ final class ServerMonitorTest extends TestCase
 
     public function testCollectServerHealthDataTriggersDiskUsageAlarm(): void
     {
-        $collector = $this->createMock(ServerDataCollectorInterface::class);
+        $collector = $this->createStub(ServerDataCollectorInterface::class);
 
         $collector->method('getServerSystemData')
             ->willReturn([
@@ -130,6 +141,8 @@ final class ServerMonitorTest extends TestCase
                 ],
             ])
         ;
+
+        $this->useMockEventManager();
 
         $this->eventManager
             ->expects($this->exactly(4))
@@ -160,7 +173,7 @@ final class ServerMonitorTest extends TestCase
 
     public function testCollectServerHealthDataThrowsWhenServerDataMissing(): void
     {
-        $collector = $this->createMock(ServerDataCollectorInterface::class);
+        $collector = $this->createStub(ServerDataCollectorInterface::class);
         $collector->method('getServerSystemData')->willReturn(['result' => null]);
 
         $this->expectException(Exception::class);

@@ -21,7 +21,7 @@ final class MetricsCacheServiceTest extends TestCase
     public function testDashboardTtlZeroIsDelegatedToTheStore(): void
     {
         $store = $this->createMock(CacheStoreInterface::class);
-        $store->expects($this->once())->method('get')->with($this->isType('string'), 0)->willReturn(null);
+        $store->expects($this->once())->method('get')->with($this->isString(), 0)->willReturn(null);
         $service = new MetricsCacheService($store, new ApiCacheKeyFactory(), new Logger('test'), []);
 
         $this->assertNull($service->readDashboardCache('filters', 0, false));
@@ -29,7 +29,7 @@ final class MetricsCacheServiceTest extends TestCase
 
     public function testPermanentDashboardEntryHasEntrySpecificAgeMetadata(): void
     {
-        $store = $this->createMock(CacheStoreInterface::class);
+        $store = $this->createStub(CacheStoreInterface::class);
         $store->method('get')->willReturn(new CacheEntry(['series' => []], time() - 20));
         $service = new MetricsCacheService($store, new ApiCacheKeyFactory(), new Logger('test'), []);
 
@@ -43,7 +43,7 @@ final class MetricsCacheServiceTest extends TestCase
 
     public function testCorruptSeriesEntryIsIgnored(): void
     {
-        $store = $this->createMock(CacheStoreInterface::class);
+        $store = $this->createStub(CacheStoreInterface::class);
         $store->method('get')->willReturn(new CacheEntry(['filters' => [], 'series' => 'invalid'], time()));
         $service = new MetricsCacheService(
             $store,

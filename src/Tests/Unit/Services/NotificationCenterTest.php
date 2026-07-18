@@ -36,7 +36,7 @@ final class NotificationCenterTest extends TestCase
         $cacheStore->expects($this->once())
             ->method('put')
             ->with(
-                $this->isType('string'),
+                $this->isString(),
                 ['info' => 0, 'warning' => 2, 'error' => 0, 'critical' => 0],
             )
             ->willReturn(true);
@@ -57,7 +57,7 @@ final class NotificationCenterTest extends TestCase
         $cacheStore = $this->createMock(CacheStoreInterface::class);
         $cacheStore->expects($this->once())
             ->method('delete')
-            ->with($this->isType('string'))
+            ->with($this->isString())
             ->willReturn(true);
 
         $notificationCenter = $this->notificationCenter($aggregator, $cacheStore);
@@ -73,7 +73,7 @@ final class NotificationCenterTest extends TestCase
         EventAggregatorServiceInterface $aggregator,
         CacheStoreInterface $cacheStore,
     ): NotificationCenter {
-        $eventManager = $this->createMock(EventManager::class);
+        $eventManager = $this->createStub(EventManager::class);
         $eventManager->aggregator = $aggregator;
 
         return new NotificationCenter($eventManager, $cacheStore, new ApiCacheKeyFactory());

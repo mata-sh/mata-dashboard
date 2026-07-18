@@ -28,7 +28,7 @@ final class ServerDataCollectorTest extends TestCase
 {
     public function testServerRoutesUseTheNewNamespace(): void
     {
-        $cache = $this->createMock(CacheStoreInterface::class);
+        $cache = $this->createStub(CacheStoreInterface::class);
         $paths = ['server/data', 'server/info', 'server/php', 'server/databases', 'server/cronjobs'];
         $apiClient = $this->createMock(ApiClient::class);
         $apiClient->method('getApiBase')->willReturn('https://node.example.test/api');
@@ -119,7 +119,7 @@ final class ServerDataCollectorTest extends TestCase
         $cache = $this->createMock(CacheStoreInterface::class);
         $cache->method('get')->willReturn(null);
         $cache->expects($this->once())->method('getStale')->willReturn(new CacheEntry(['apps' => []], time() - 120));
-        $apiClient = $this->createMock(ApiClient::class);
+        $apiClient = $this->createStub(ApiClient::class);
         $apiClient->method('getApiBase')->willReturn('https://node.example.test/api');
         $apiClient->method('request')->willThrowException(new RequestException('Unavailable', new Request('GET', 'apps')));
 
@@ -177,7 +177,7 @@ final class ServerDataCollectorTest extends TestCase
         $cache = new FileCacheStore(new NullLogger(), $directory);
         $key = (new ApiCacheKeyFactory())->createApiRequestKey('https://node.example.test/api', 'GET', 'apps');
         $cache->put($key, ['apps' => ['old']]);
-        $apiClient = $this->createMock(ApiClient::class);
+        $apiClient = $this->createStub(ApiClient::class);
         $apiClient->method('getApiBase')->willReturn('https://node.example.test/api');
         $apiClient->method('request')->willThrowException(new RequestException('Unavailable', new Request('GET', 'apps')));
 
@@ -199,7 +199,7 @@ final class ServerDataCollectorTest extends TestCase
         $cache = $this->createMock(CacheStoreInterface::class);
         $cache->method('get')->willReturn(null);
         $cache->expects($this->once())->method('getStale')->willReturn(new CacheEntry(['apps' => []], time() - 120));
-        $apiClient = $this->createMock(ApiClient::class);
+        $apiClient = $this->createStub(ApiClient::class);
         $apiClient->method('getApiBase')->willReturn('https://node.example.test/api');
         $apiClient->method('request')->willThrowException(new ConnectException(
             'cURL error 28: Operation timed out after 10001 milliseconds with 0 bytes received',
@@ -223,9 +223,9 @@ final class ServerDataCollectorTest extends TestCase
 
     public function testNodeJsonHttpErrorReturnsAnErrorEnvelope(): void
     {
-        $cache = $this->createMock(CacheStoreInterface::class);
+        $cache = $this->createStub(CacheStoreInterface::class);
 
-        $apiClient = $this->createMock(ApiClient::class);
+        $apiClient = $this->createStub(ApiClient::class);
         $apiClient->method('getApiBase')->willReturn('https://node.example.test/api');
         $apiClient->method('request')->willThrowException(new RequestException(
             'Client error',

@@ -22,7 +22,6 @@ use Mata\Services\Event\EventAggregatorServiceInterface;
 use Mata\Services\Event\EventManager;
 use Mata\Services\Event\EventRecorderService;
 use Mata\Tests\TestCase;
-use PHPUnit\Framework\MockObject\MockObject;
 
 /**
  * @covers \Mata\Services\Event\EventManager
@@ -31,21 +30,23 @@ use PHPUnit\Framework\MockObject\MockObject;
  */
 final class EventManagerTest extends TestCase
 {
-    private EventRecorderService&MockObject $eventRecorder;
-    private EventAggregatorServiceInterface&MockObject $eventAggregator;
-    private AlarmManager&MockObject $alarmManager;
+    private EventRecorderService $eventRecorder;
+    private EventAggregatorServiceInterface $eventAggregator;
+    private AlarmManager $alarmManager;
 
     protected function setUp(): void
     {
         parent::setUp();
 
         $this->eventRecorder = $this->createMock(EventRecorderService::class);
-        $this->eventAggregator = $this->createMock(EventAggregatorServiceInterface::class);
-        $this->alarmManager = $this->createMock(AlarmManager::class);
+        $this->eventAggregator = $this->createStub(EventAggregatorServiceInterface::class);
+        $this->alarmManager = $this->createStub(AlarmManager::class);
     }
 
     public function testHandleEventRecordsEventOnly(): void
     {
+        $this->alarmManager = $this->createMock(AlarmManager::class);
+
         $manager = $this->createManager(alarmsEnabled: false, eventsEnabled: true);
 
         $this->eventRecorder
@@ -145,6 +146,8 @@ final class EventManagerTest extends TestCase
 
     public function testHandleEventSkipsWhenEventsDisabled(): void
     {
+        $this->alarmManager = $this->createMock(AlarmManager::class);
+
         $manager = $this->createManager(eventsEnabled: false, alarmsEnabled: false);
 
         $this->eventRecorder->expects($this->never())->method('recordEvent');
@@ -163,6 +166,8 @@ final class EventManagerTest extends TestCase
 
     public function testHandleEventRecordsEventWithCooldownRespected(): void
     {
+        $this->alarmManager = $this->createMock(AlarmManager::class);
+
         $intervalsConfig = [
             'events' => ['min_event_interval_minutes' => ['_default' => 30]],
             'alarms' => ['min_alarm_interval_minutes' => []],

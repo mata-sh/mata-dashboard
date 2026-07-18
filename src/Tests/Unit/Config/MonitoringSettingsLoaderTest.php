@@ -8,7 +8,6 @@ use Mata\Config\MonitoringSettingsLoader;
 use Mata\Models\Dto\EventRecordResult;
 use Mata\Services\Event\EventRecorderService;
 use Mata\Tests\TestCase;
-use PHPUnit\Framework\MockObject\MockObject;
 
 /**
  * @covers \Mata\Config\MonitoringSettingsLoader
@@ -17,14 +16,14 @@ use PHPUnit\Framework\MockObject\MockObject;
  */
 final class MonitoringSettingsLoaderTest extends TestCase
 {
-    private EventRecorderService&MockObject $eventRecorder;
+    private EventRecorderService $eventRecorder;
     private MonitoringSettingsLoader $loader;
 
     protected function setUp(): void
     {
         parent::setUp();
 
-        $this->eventRecorder = $this->createMock(EventRecorderService::class);
+        $this->eventRecorder = $this->createStub(EventRecorderService::class);
 
         // MonitoringSettingsLoader accepts optional parameters for alarmManager, db, and settingsSync
         // We only need eventRecorder for validation tests
@@ -99,6 +98,8 @@ final class MonitoringSettingsLoaderTest extends TestCase
 
     public function testLoadServersConfigAllowsAllServersToBeDisabled(): void
     {
+        $this->useEventRecorderMock();
+
         $this->eventRecorder->expects($this->never())->method('recordEvent');
 
         $path = tempnam(sys_get_temp_dir(), 'mata-servers-');
@@ -177,6 +178,8 @@ final class MonitoringSettingsLoaderTest extends TestCase
         ];
 
         // Expect warning to be logged via recordEvent
+        $this->useEventRecorderMock();
+
         $this->eventRecorder
             ->expects($this->once())
             ->method('recordEvent')
@@ -208,6 +211,8 @@ final class MonitoringSettingsLoaderTest extends TestCase
         ];
 
         // No warning should be logged
+        $this->useEventRecorderMock();
+
         $this->eventRecorder
             ->expects($this->never())
             ->method('recordEvent');
@@ -571,6 +576,8 @@ final class MonitoringSettingsLoaderTest extends TestCase
         $validVariations = ['on', 'true', 'yes', 'enabled', '1'];
 
         // Should not log warning
+        $this->useEventRecorderMock();
+
         $this->eventRecorder
             ->expects($this->never())
             ->method('recordEvent');
@@ -670,6 +677,12 @@ final class MonitoringSettingsLoaderTest extends TestCase
         $this->assertSame(0, $config['metrics']['hourly_retention_days']);
         $this->assertSame(0, $config['events']['retention_days']);
         $this->assertSame(0, $config['alarms']['retention_days']);
+    }
+
+    private function useEventRecorderMock(): void
+    {
+        $this->eventRecorder = $this->createMock(EventRecorderService::class);
+        $this->loader = new MonitoringSettingsLoader($this->eventRecorder);
     }
 
     /** @param array<string,mixed> $config */
