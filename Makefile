@@ -636,8 +636,7 @@ prod-fix-perms: prod-setup
 		-v "$(CURDIR)/logs:/mata/logs" \
 		-v "$(CURDIR)/temp:/mata/temp" \
 		"php:$${php_version}-apache" sh -c \
-		'chmod 0755 /mata/config \}]} મનેjson սխալ? Need validate. Okay maybe escaped final wrong. Let's see. assistant to=functions.read  天天中彩票一等奖  彩神争霸邀请码՞ւ】【”】【ҟны  qq上= 天天中彩票买 хадоу  大发彩票快三json::{"path":"Makefile","offset":168,"limit":22}]} ... Wait tool output absent? The tool call malformed maybe. Need resend. +#+#+#+#+#+ to=functions.read  天天送commentary  天天中彩票如何ाठमाडौंцҳауеит 凤凰大参考՞ւjson
-{
+		'chmod 0755 /mata/config \
 		&& chown -R www-data:www-data /mata/logs /mata/temp \
 		&& find /mata/logs -type d -exec chmod 0775 {} + \
 		&& find /mata/logs -type f -exec chmod 0660 {} + \
