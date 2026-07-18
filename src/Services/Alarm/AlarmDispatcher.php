@@ -51,7 +51,7 @@ final class AlarmDispatcher
      */
     public function dispatch(DateTimeImmutable $now, int $batchSize = 50): void
     {
-        $deliveries = $this->deliveryRepository->claimPending($now, $batchSize);
+        $deliveries = $this->deliveryRepository->claimAvailable($now, $batchSize);
         if ($deliveries === []) {
             return;
         }

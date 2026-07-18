@@ -15,6 +15,9 @@ final class AlarmDeliveryRepository
 {
     private const SQL_DATETIME = 'Y-m-d H:i:s';
 
+    /** Maximum expected dispatch batch runtime before recovery. */
+    private const STALE_PROCESSING_MINUTES = 15;
+
     public function __construct(private DatabaseInterface $db) {}
 
     /** @throws PDOException */
@@ -35,10 +38,17 @@ final class AlarmDeliveryRepository
         }
     }
 
-    /** @return array<int,QueuedAlarmDelivery> */
-    public function claimPending(DateTimeImmutable $now, int $limit = 50): array
+    /**
+     * Claims due pending/retry deliveries and stale processing deliveries.
+     *
+     * @return array<int,QueuedAlarmDelivery>
+     */
+    public function claimAvailable(DateTimeImmutable $now, int $limit = 50): array
     {
         $nowSql = $now->format(self::SQL_DATETIME);
+        $staleSql = $now
+            ->sub(new DateInterval('PT' . self::STALE_PROCESSING_MINUTES . 'M'))
+            ->format(self::SQL_DATETIME);
         $limit = max(1, $limit);
         $rows = $this->runSelect(<<<SQL
             SELECT ad.id, al.id AS alarm_id, al.created_at AS alarm_created_at, al.event_id,
@@ -51,11 +61,17 @@ final class AlarmDeliveryRepository
             LEFT JOIN events AS e ON e.id = al.event_id
             LEFT JOIN servers AS s ON s.id = e.server_id
             LEFT JOIN applications AS a ON a.id = e.application_id
-            WHERE ad.status IN ('pending', 'retry')
-              AND (ad.next_retry_at IS NULL OR ad.next_retry_at <= ?)
+            WHERE (
+                    ad.status IN ('pending', 'retry')
+                    AND (ad.next_retry_at IS NULL OR ad.next_retry_at <= ?)
+                )
+                OR (
+                    ad.status = 'processing'
+                    AND COALESCE(ad.processed_at, ad.created_at) <= ?
+                )
             ORDER BY ad.priority ASC, ad.created_at ASC
             LIMIT {$limit}
-            SQL, [$nowSql]);
+            SQL, [$nowSql, $staleSql]);
         if ($rows === []) {
             return [];
         }

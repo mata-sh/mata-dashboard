@@ -143,7 +143,7 @@ final class AlarmRepositorySqlIntegrationTest extends TestCase
         $alarmId = $this->repository->createForEvent(2);
         $this->deliveryRepository->enqueue($alarmId, 'email', 10);
 
-        $deliveries = $this->deliveryRepository->claimPending(new DateTimeImmutable('2026-01-01 00:03:00'));
+        $deliveries = $this->deliveryRepository->claimAvailable(new DateTimeImmutable('2026-01-01 00:03:00'));
 
         $this->assertCount(1, $deliveries);
         $this->assertSame(2, $deliveries[0]->eventId);
@@ -151,7 +151,7 @@ final class AlarmRepositorySqlIntegrationTest extends TestCase
         $this->assertSame('email', $deliveries[0]->channel);
     }
 
-    public function testClaimPendingOnlyClaimsQueueableDeliveriesThatAreDue(): void
+    public function testClaimAvailableOnlyClaimsQueueableDeliveriesThatAreDue(): void
     {
         $this->db->pdo()->exec(<<<'SQL'
             INSERT INTO alarms (id, event_id, created_at) VALUES
@@ -179,7 +179,7 @@ final class AlarmRepositorySqlIntegrationTest extends TestCase
                 (210, 110, 'email', 'discarded', NULL, '2026-01-01 00:02:00');
             SQL);
 
-        $deliveries = $this->deliveryRepository->claimPending(new DateTimeImmutable('2026-01-01 00:03:00'));
+        $deliveries = $this->deliveryRepository->claimAvailable(new DateTimeImmutable('2026-01-01 00:03:00'));
 
         $this->assertSame([201, 203, 205], array_map(static fn ($delivery): int => $delivery->id, $deliveries));
         $rows = $this->db->pdo()->query(

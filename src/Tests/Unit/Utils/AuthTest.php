@@ -458,6 +458,36 @@ class AuthTest extends TestCase
      * @group lockout
      * @group security
      */
+    public function testItGrantsFreshAttemptWindowAfterLockoutExpires(): void
+    {
+        // User whose lockout window has already expired but whose attempt
+        // counter was never cleared (the state left behind by a lockout).
+        $lockedOutUser = [
+            'id' => 'user_locked',
+            'username' => 'lockeduser',
+            'password_hash' => password_hash('correct_password', PASSWORD_DEFAULT),
+            'role' => 'viewer',
+            'created_at' => date('Y-m-d H:i:s'),
+            'failed_attempts' => 5,
+            'locked_until' => time() - 60,
+        ];
+        file_put_contents($this->testUsersFile, json_encode([$lockedOutUser], JSON_PRETTY_PRINT));
+        chmod($this->testUsersFile, 0600);
+        $auth = new Auth(new NullLogger(), $this->testUsersFile);
+
+        // One typo after the lockout expired must not instantly re-lock the
+        // account for another full window.
+        $this->assertFalse($auth->login('lockeduser', 'typo_password'));
+
+        $result = $auth->login('lockeduser', 'correct_password');
+        $this->assertTrue($result, 'Correct password after expired lockout plus one typo must succeed');
+    }
+
+    /**
+     * @group auth
+     * @group lockout
+     * @group security
+     */
     public function testItResetsFailedAttemptsAfterSuccessfulLogin(): void
     {
         $this->auth->login('admin', 'admin123');

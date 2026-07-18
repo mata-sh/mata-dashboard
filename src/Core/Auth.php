@@ -274,6 +274,13 @@ class Auth
             return;
         }
 
+        // Reset the attempt counter after an expired lockout.
+        if (isset($this->users[$username]['locked_until'])
+            && time() >= $this->users[$username]['locked_until']) {
+            $this->users[$username]['failed_attempts'] = 0;
+            unset($this->users[$username]['locked_until']);
+        }
+
         $this->users[$username]['failed_attempts']
             = ($this->users[$username]['failed_attempts'] ?? 0) + 1;
 

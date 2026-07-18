@@ -91,6 +91,44 @@ final class AlarmDispatcherTest extends TestCase
         $this->assertSame('2026-01-01 00:01:30', $delivery['next_retry_at']);
     }
 
+    public function testStaleProcessingDeliveryIsReclaimedWhileFreshOneIsLeftAlone(): void
+    {
+        $db = $this->createPendingDatabase();
+        // Delivery 7 stays pending. Add a delivery stuck in 'processing' since a
+        // dispatcher crash two hours ago, plus one claimed moments ago by a
+        // (hypothetical) still-running worker.
+        $db->pdo()->exec(<<<'SQL'
+            INSERT INTO events (id, server_id, application_id, type, message, level, context)
+            VALUES (2, 1, 1, 'cpu', 'CPU high', 'critical', NULL), (3, 1, 1, 'ram', 'RAM high', 'critical', NULL);
+            INSERT INTO alarms (id, event_id, created_at)
+            VALUES (43, 2, '2025-12-31 21:58:00'), (44, 3, '2025-12-31 23:58:30');
+            INSERT INTO alarm_deliveries (id, alarm_id, channel, status, attempts, processed_at, created_at)
+            VALUES
+                (8, 43, 'email', 'processing', 0, '2025-12-31 22:00:00', '2025-12-31 21:59:00'),
+                (9, 44, 'email', 'processing', 0, '2025-12-31 23:59:00', '2025-12-31 23:58:30');
+            SQL);
+        $mailer = $this->createMock(MailerInterface::class);
+        $mailer->expects($this->exactly(2))->method('send');
+        $limit = new AlarmLimit(0, 0, 0);
+        $dispatcher = new AlarmDispatcher(
+            new AlarmDeliveryRepository($db),
+            new AlarmLimitsConfig($limit, ['email' => $limit]),
+            $this->sender($mailer),
+        );
+
+        $dispatcher->dispatch(new DateTimeImmutable('2026-01-01 00:00:00'));
+
+        $rows = $db->pdo()->query(
+            'SELECT id, status, attempts FROM alarm_deliveries ORDER BY id'
+        )->fetchAll();
+        $byId = array_column($rows, null, 'id');
+        $this->assertSame('sent', $byId[7]['status'], 'pending delivery must be dispatched');
+        $this->assertSame('sent', $byId[8]['status'], 'stale processing delivery must be reclaimed and dispatched');
+        $this->assertSame(1, (int) $byId[8]['attempts']);
+        $this->assertSame('processing', $byId[9]['status'], 'freshly claimed delivery must not be double-processed');
+        $this->assertSame(0, (int) $byId[9]['attempts']);
+    }
+
     public function testSuccessfulEmailSendMarksDeliverySentAndPassesAlarmMetadata(): void
     {
         $db = $this->createPendingDatabase();
