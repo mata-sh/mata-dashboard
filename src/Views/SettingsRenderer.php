@@ -6,6 +6,7 @@ namespace Mata\Views;
 
 use DirectoryIterator;
 use Mata\Utils\UsersFilePathResolver;
+use UnexpectedValueException;
 
 /**
  * Settings renderer for configuration overview.
@@ -63,7 +64,7 @@ class SettingsRenderer extends BaseRenderer
      * in the configuration root are included automatically.
      *
      * @param string $configRoot    Configuration root directory path
-     * @param string $usersFilePath  Resolved authentication file path
+     * @param string $usersFilePath Resolved authentication file path
      *
      * @return array<int,array<string,mixed>> Configuration files metadata
      */
@@ -105,7 +106,7 @@ class SettingsRenderer extends BaseRenderer
                     ];
                     $knownPaths[] = $path;
                 }
-            } catch (\UnexpectedValueException) {
+            } catch (UnexpectedValueException) {
                 // Expected file metadata remains available when the directory cannot be listed.
             }
         }

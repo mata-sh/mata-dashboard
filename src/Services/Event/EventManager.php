@@ -103,9 +103,9 @@ class EventManager
      * Use setMonitoringSettings() to configure thresholds and intervals after initialization.
      *
      * @param AlarmDirectProcessor                 $alarmDirectProcessor Direct alarm processor for forced alarms
-     * @param ApplicationConfig                    $appConfig       Application configuration for alarm/event settings
-     * @param null|EventRecorderService            $eventRecorder   Optional event recorder (can be set later via setEventRecorder)
-     * @param null|EventAggregatorServiceInterface $eventAggregator Optional event aggregator (can be set later via setEventAggregator)
+     * @param ApplicationConfig                    $appConfig            Application configuration for alarm/event settings
+     * @param null|EventRecorderService            $eventRecorder        Optional event recorder (can be set later via setEventRecorder)
+     * @param null|EventAggregatorServiceInterface $eventAggregator      Optional event aggregator (can be set later via setEventAggregator)
      */
     public function __construct(
         ApplicationConfig $appConfig,
