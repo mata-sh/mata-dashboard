@@ -33,6 +33,24 @@ final class MockEventAggregatorServiceTest extends TestCase
         $this->assertCount(2, $service->getLatestEvents());
     }
 
+    public function testAlarmDecisionCandidatesDoNotContainMetrics(): void
+    {
+        $service = new MockEventAggregatorService(demoData: [
+            'events' => [[
+                'id' => 1,
+                'datetime' => '2026-07-11T12:00:00Z',
+                'type' => 'disk_usage',
+                'level' => 'critical',
+                'metrics' => ['counts' => ['same_type_level_or_higher' => ['1h' => 1]]],
+            ]],
+        ]);
+
+        $candidates = $service->getAlarmDecisionCandidates();
+
+        $this->assertCount(1, $candidates);
+        $this->assertArrayNotHasKey('metrics', $candidates[0]);
+    }
+
     public function testNormalizesAlarmDeliveriesToTheReadModelContract(): void
     {
         $service = new MockEventAggregatorService(demoData: [

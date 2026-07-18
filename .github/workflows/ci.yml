@@ -31,10 +31,10 @@ jobs:
           opa version
 
       - name: Policy checks (Conftest)
-        run: conftest test config/example/*.json.example -p policy --parser json
+        run: make policy-validate
 
-      - name: Retention policy tests (OPA)
-        run: opa test policy/data_retention.rego policy/data_retention_test.rego
+      - name: Policy tests (OPA)
+        run: opa test policy
 
       - name: Set up PHP
         uses: shivammathur/setup-php@v2

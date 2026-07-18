@@ -124,6 +124,7 @@ help:
 	@echo "  $(COLOR_GREEN)make opa-status$(COLOR_RESET)     Show OPA status"
 	@echo "  $(COLOR_GREEN)make opa-stop$(COLOR_RESET)       Stop OPA"
 	@echo "  $(COLOR_GREEN)make opa-test$(COLOR_RESET)       Validate OPA policies"
+	@echo "  $(COLOR_GREEN)make policy-validate$(COLOR_RESET) Validate example configs against policies (conftest)"
 	@echo ""
 	@echo "$(COLOR_BOLD)DEVELOPMENT$(COLOR_RESET)"
 	@echo "  $(COLOR_GREEN)make test$(COLOR_RESET)           Run tests"
@@ -381,6 +382,30 @@ opa-test:
 		$(REQUIRE_DOCKER_MODE); \
 		$(SELECTED_COMPOSE) run --rm --no-deps --entrypoint /opa mata-opa test /policies; \
 	fi
+
+# Each example file is validated only against its own policy namespace; policies
+# without a matching example (and users.json, which has no policy) are skipped.
+POLICY_VALIDATE_PAIRS := \
+	thresholds:config.thresholds \
+	servers:config.servers \
+	ttl:config.ttl \
+	data_retention:config.data_retention \
+	intervals:config.intervals
+
+policy-validate:
+	@if command -v conftest >/dev/null 2>&1; then \
+		CONFTEST="conftest"; \
+	else \
+		CONFTEST="docker run --rm -v $(CURDIR):/project -w /project openpolicyagent/conftest"; \
+	fi; \
+	status=0; \
+	for pair in $(POLICY_VALIDATE_PAIRS); do \
+		file="config/example/$${pair%%:*}.json.example"; \
+		ns="$${pair#*:}"; \
+		echo "$(COLOR_BLUE)conftest: $$file ($$ns)$(COLOR_RESET)"; \
+		$$CONFTEST test "$$file" -p policy --parser json --namespace "$$ns" || status=1; \
+	done; \
+	exit $$status
 
 # ============================================
 # Testing
@@ -870,7 +895,7 @@ docker-help:
 	@echo "  $(COLOR_YELLOW)make docker-clean$(COLOR_RESET)   - Clean mata-dashboard Docker resources only"
 	@echo "  $(COLOR_RED)make docker-clean-all$(COLOR_RESET)  - System-wide Docker cleanup (ALL projects!)"
 
-.PHONY: help help-all setup setup-local doctor install-hooks setup-opa opa-install-service opa-start opa-stop opa-status opa-test \
+.PHONY: help help-all setup setup-local doctor install-hooks setup-opa opa-install-service opa-start opa-stop opa-status opa-test policy-validate \
 	test test-coverage \
 	db-migrate db-rollback db-status db-check db-hash-password db-backup db-restore db-shell \
 	users-list users-create users-unlock users-delete users-passwd \

@@ -430,9 +430,7 @@ final class MockEventAggregatorService implements EventAggregatorServiceInterfac
         if (!isset($event['app_name']) && isset($event['app'])) {
             $event['app_name'] = $event['app'];
         }
-        if (!isset($event['metrics'])) {
-            $event['metrics'] = $this->defaultMetrics($event);
-        }
+        unset($event['metrics']);
 
         return $event;
     }
@@ -489,31 +487,9 @@ final class MockEventAggregatorService implements EventAggregatorServiceInterfac
      */
     private function normalizeDecisionCandidate(array $event): array
     {
-        if (!isset($event['metrics'])) {
-            $event['metrics'] = $this->defaultMetrics($event);
-        }
+        unset($event['metrics']);
 
         return $event;
-    }
-
-    /**
-     * @param array<string,mixed> $event
-     *
-     * @return array<string,mixed>
-     */
-    private function defaultMetrics(array $event): array
-    {
-        $datetime = is_string($event['datetime'] ?? null) ? $event['datetime'] : null;
-
-        return [
-            'counts' => [
-                'same_type_level_or_higher' => [
-                    '1h' => 1,
-                ],
-            ],
-            'last_event_at' => $datetime,
-            'last_alarm_at' => null,
-        ];
     }
 
     /**

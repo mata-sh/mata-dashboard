@@ -1,36 +1,40 @@
-
 # Policy-as-Code
 
-## config evaluatios
-
+## Config evaluation
 
 These Conftest policies validate the example JSON configurations in `config/example/` so CI fails fast on invalid or unsafe templates.
 
 Local run:
 
 ```sh
-conftest test config/example/*.json.example -p policy
+make policy-validate
 ```
 
+The policies live in `config.*` namespaces, so plain conftest without `--all-namespaces` matches nothing.
 
-## alarm evaluation
+## Alarm evaluation
 
-- cooldowns have a short debounce (seconds/minutes) to avoid bursts determined by the intervals.json
-- the alarm cooldowns per event (type+level) are determineb by the intervals.json
-- opa decides if the event should create an alarm based on alarms.rego
+PHP applies count and frequency thresholds before OPA. OPA policy input is stateless by design: it classifies one candidate from its type, level, threshold, and environment, then returns allow/channels/priority/reason. It never receives or evaluates event counts or metrics.
 
-  {
-    "input": {
-      "event": { "id": 42, "type": "disk_usage", "level": "critical", "threshold": 0.9 },
-      "application": { "id": 123456, "code": "app-1", "env": "prod" },
-      "server": { "id": 12345, "name": "server-1" },
-      "metrics": {
-        "counts": {
-          "same_type_level_or_higher": { "1h": 1, "4h": 4 }
-        },
-          "last_event_at": "2024-01-01T11:10:00Z",s
-          "last_alarm_at": "2024-01-01T10:00:00Z"
-      },
-      "channels": ["email", "messenger"]
-    }
+```json
+{
+  "input": {
+    "event": {
+      "id": 42,
+      "type": "disk_usage",
+      "level": "critical",
+      "threshold": 0.9
+    },
+    "application": {
+      "id": 123456,
+      "code": "app-1",
+      "env": "prod"
+    },
+    "server": {
+      "id": 12345,
+      "name": "server-1"
+    },
+    "channels": ["email", "messenger"]
   }
+}
+```

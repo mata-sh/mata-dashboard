@@ -15,6 +15,9 @@ allowed_keys := {
     "readme",
     "errorlog",
     "serverMetricsChart",
+    "sessions",
+    "cronjobs",
+    "audit",
 }
 
 is_ttl_config if {
@@ -36,12 +39,14 @@ deny contains msg if {
     is_ttl_config
     key := object.keys(input)[_]
     value := input[key]
-    not is_positive_int(value)
-    msg := sprintf("ttl.json.example: %s must be a positive integer", [key])
+    not is_valid_ttl(value)
+    msg := sprintf("ttl.json.example: %s must be a positive integer or -1 (disabled)", [key])
 }
 
-is_positive_int(value) if {
+is_valid_ttl(value) if {
     is_number(value)
     value > 0
     value == floor(value)
 }
+
+is_valid_ttl(value) if value == -1
