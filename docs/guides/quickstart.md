@@ -64,11 +64,16 @@ vi config/db.config.env
 ```json
 // Set Api key you generated for your client node (DASHBOARD_API_KEY)
 {
-  "server-id": {
+  "prod-web-01": {
     "api_key": "32_character_hexadecimal_api_key_here"
   }
 }
 ```
+
+The entry key (`prod-web-01` above) is the server's identifier and must exactly match
+`DASHBOARD_SERVER_ID` in that node's `config/config.env`; likewise `api_key` must match the
+node's `DASHBOARD_API_KEY`. Renaming the entry key later breaks authentication for that node
+until you update its `DASHBOARD_SERVER_ID` to match.
 
 ## 3. Subdomains
 

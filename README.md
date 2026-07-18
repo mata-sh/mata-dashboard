@@ -69,7 +69,7 @@ User: **demo** | Password: **demo**
 
 - **Read-only nodes:** stateless endpoints; no alarm handling, no emails, no remote actions.
 - **Pull-only traffic:** communication is **dashboard → node** only.
-- **Auth (HMAC + short TTL):** per-node shared secret; each pull request includes a timestamped HMAC token with a short TTL.
+- **Auth (HMAC + short TTL):** per-node shared secret; each pull request includes a timestamped HMAC token with a short TTL. See [security architecture](docs/architecture/security.md#how-authentication-works) for the full handshake.
 - **TLS required:** nodes accept **HTTPS only**.
 - **Network controls:** optional IP allowlists for dashboard and node endpoints.
 - **Abuse resistance:** rate limiting on dashboard and node APIs.

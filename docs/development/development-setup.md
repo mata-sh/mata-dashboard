@@ -32,6 +32,10 @@ Edit `config/servers.json` to add your server:
   }
 }
 ```
+
+The entry key (`production-web-server` above) must exactly match `DASHBOARD_SERVER_ID` in the
+node's `config/config.env`, and `api_key` must match its `DASHBOARD_API_KEY`.
+
 **Generating Api-Keys**
 
 ```bash

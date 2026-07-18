@@ -47,9 +47,37 @@ Node endpoints expose only read-only operations:
 Plain HTTP is deactivated by default via servers.json configuration. Nodes therefore **only accept HTTPS URLs**.
 
 
+### How authentication works
+
+Every request the dashboard sends to a node carries a single `X-Mata-Auth` header:
+
+```text
+X-Mata-Auth: <server_id>|<unix_timestamp>|<nonce>|<hex_hmac_sha256>
+```
+
+- `server_id` is the node's entry key in the dashboard's `config/servers.json` (the JSON
+  property name, e.g. `"prod-web-01"` — there is no separate `server_id` field). It must
+  exactly match `DASHBOARD_SERVER_ID` in the node's `config/config.env`.
+- The signature is `HMAC-SHA256(server_id|timestamp|nonce, api_key)`, where `api_key` is the
+  per-node shared secret (`api_key` in `servers.json`, `DASHBOARD_API_KEY` on the node). The
+  secret itself is never transmitted — only proof of possession.
+- The node verifies, in order: the timestamp is within the configured clock-skew window, the
+  server ID matches its own configured identity, the nonce is well-formed and unused
+  (replay protection), and the recomputed HMAC matches in constant time.
+
+Two values are required because they play different roles: the API key proves possession of
+the shared secret, while the signed server ID binds the token to one specific node identity.
+Even if the same `api_key` were accidentally reused across nodes, a token minted for one node
+is rejected by any other. Since the ID is inside the HMAC payload, it cannot be swapped on a
+captured token without invalidating the signature.
+
+Operational consequence: renaming a node's entry key in `servers.json` is a breaking change
+for that node — its `DASHBOARD_SERVER_ID` must be updated to match.
+
 ### Key scoping and rotation
 
-Authentication is based on a **single per-node shared secret** stored in `servers.json` dashboard  and config.env on the node.
+Authentication is based on a **single per-node shared secret**, stored as `api_key` in the
+dashboard's `servers.json` and as `DASHBOARD_API_KEY` in `config.env` on the node.
 - **Scope:** secrets should be unique per node (do not reuse across nodes).
 - **Rotation:** rotation is supported operationally by replacing the secret on the node and dashboard (brief monitoring interruption while configs are updated).
 Planned improvements include **mTLS (client certificates)** and/or asymmetric signing for stronger operational security and easier rotation.
