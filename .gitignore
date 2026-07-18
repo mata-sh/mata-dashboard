@@ -14,6 +14,7 @@
 *.lock
 .htpasswd
 public/.htaccess
+cron/logrotate.shared-hosting.conf
 
 # folder
 .git/

@@ -62,6 +62,25 @@ are never deleted (audit trail).
 
 For shared hosting, use [`cron/crontab.shared-hosting.template`](../../cron/crontab.shared-hosting.template). Set `APP_ROOT` and `PHP_BIN`; the PHP jobs load configuration from `config/*.config.env`, so no `cron.env` is required. Control panels that accept one command at a time require replacing both variables with their values before pasting each command. The template includes the same log and cache maintenance jobs as the Docker manifest.
 
+### Optional logrotate
+
+`logrotate [options] CONFIG_FILE` accepts the configuration path as its positional
+argument. Root-managed servers normally install service configuration under
+`/etc/logrotate.d/`. The shared-hosting setup instead keeps its user-owned copy
+beside the crontab at `cron/logrotate.shared-hosting.conf`.
+
+Copy [`cron/logrotate.shared-hosting.conf.template`](../../cron/logrotate.shared-hosting.conf.template), replace its absolute application path, disable the manual gzip rotation entry, then enable the alternative `logrotate` entry. Do not run both rotation methods.
+
+| Directive | Effect |
+|-----------|--------|
+| `weekly` | Rotate at most once per week, tracked in the `-s` state file. |
+| `rotate -1` | Never delete archives itself; deletion is delegated to the crontab cleanup. |
+| `missingok` | Ignore missing log files. |
+| `notifempty` | Skip empty log files. |
+| `compress` | Gzip rotated files. |
+| `copytruncate` | Copy then truncate the active file; compatible with current writers, but has a small write-loss race. |
+| `dateext` / `dateformat .%Y%m%d` | Use a `.YYYYMMDD` archive suffix. |
+
 ## Monitoring Ingestion Health
 
 - Check `logs/health/collect_server_metrics_health.log` after each run for inserts, last sample timestamp, and computed lag per server.

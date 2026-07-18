@@ -1,0 +1,35 @@
+# MATA Dashboard logrotate configuration for shared hosting.
+#
+# Copy this file to logrotate.shared-hosting.conf and replace
+# /home/ACCOUNT/mata-dashboard with the absolute application path.
+# logrotate does not expand APP_ROOT from the crontab.
+#
+# Keeping this user-owned config beside the crontab is intentional. A system
+# administrator may instead install it as /etc/logrotate.d/mata-dashboard.
+#
+# logs/health/ is intentionally omitted because the application rotates that
+# file itself. The existing crontab archive-cleanup job remains responsible for
+# deleting old non-audit archives; audit archives are excluded there.
+
+/home/ACCOUNT/mata-dashboard/logs/*.log
+/home/ACCOUNT/mata-dashboard/logs/cron/*.log {
+    # Check weekly. The state file prevents premature repeated rotation.
+    weekly
+
+    # Defer archive deletion to the crontab cleanup so audit archives survive.
+    # Archives grow without limit if that cleanup command stops running.
+    rotate -1
+
+    # Missing and empty logs are not errors and are not rotated.
+    missingok
+    notifempty
+
+    # Gzip archives and suffix their names with the rotation date.
+    compress
+    dateext
+    dateformat .%Y%m%d
+
+    # Keep the active pathname/inode for writers that cannot be told to reopen.
+    # Copying and truncating has a small race in which concurrent writes may be lost.
+    copytruncate
+}

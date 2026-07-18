@@ -37,8 +37,16 @@ PHP_BIN=/usr/local/bin/php
 # "*.log.[0-9]" sweeps numbered leftovers from the pre-logs/health rotation scheme.
 0 2 * * * find "$APP_ROOT/logs" -type f -name "*.log" ! -path "*/logs/health/*" -mtime +30 -delete 2>/dev/null
 0 2 * * * find "$APP_ROOT/logs" -type f \( -name "*.log.*.gz" -o -name "*.log.[0-9]" \) ! -path "*/logs/health/*" ! -name "user-management-audit.log.*.gz" -mtime +30 -delete 2>/dev/null
-0 3 * * * find "$APP_ROOT/temp/api-cache" -name "*.json" -mtime +7 -delete 2>/dev/null
-0 4 * * * find "$APP_ROOT/temp/sessions" -name "sess_*" -mtime +1 -delete 2>/dev/null
-0 5 * * 0 find "$APP_ROOT/temp/templates-cache" -name "*.php" -mtime +7 -delete 2>/dev/null
+0 3 * * * find "$APP_ROOT/temp/api-cache" -type f -name "*.json" -mtime +7 -delete 2>/dev/null
+0 4 * * * find "$APP_ROOT/temp/sessions" -type f -name "sess_*" -mtime +1 -delete 2>/dev/null
+0 5 * * 0 find "$APP_ROOT/temp/templates-cache" -type f -name "*.php" -mtime +7 -delete 2>/dev/null
 # Rotate all logs recursively (skip empty files); escaped percent signs are required by cron.
 0 6 * * 0 find "$APP_ROOT/logs" -type f -name "*.log" ! -path "*/logs/health/*" -size +0c -exec sh -c 'for file do gzip -c "$file" > "${file}.$(date +\%Y\%m\%d).gz" && : > "$file"; done' sh {} + 2>/dev/null
+
+# Alternative log rotation with logrotate
+# logrotate is common on Linux/VPS systems, but many shared-hosting providers do not
+# expose it. Do not enable this line together with the manual rotation line above.
+# Copy cron/logrotate.shared-hosting.conf.template to cron/logrotate.shared-hosting.conf,
+# replace /home/ACCOUNT/mata-dashboard in that file, and adjust the binary path if needed.
+# The existing archive cleanup above may remain enabled; it removes old non-audit archives.
+# 0 6 * * 0 /usr/sbin/logrotate -s "$APP_ROOT/temp/logrotate.status" "$APP_ROOT/cron/logrotate.shared-hosting.conf" >> "$APP_ROOT/logs/cron/app-logrotate.log" 2>&1

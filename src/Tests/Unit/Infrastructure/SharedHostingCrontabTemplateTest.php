@@ -72,13 +72,17 @@ final class SharedHostingCrontabTemplateTest extends TestCase
         );
         self::assertStringContainsString('date +\%Y\%m\%d', $template);
 
+        // An optional logrotate setup is documented but disabled by default.
+        self::assertStringContainsString('logrotate.shared-hosting.conf.template', $template);
+        self::assertStringContainsString('# 0 6 * * 0 /usr/sbin/logrotate', $template);
+
         // The app-managed health report directory is excluded from all three log jobs.
         self::assertSame(3, substr_count($template, '! -path "*/logs/health/*"'));
 
         // Cache and session cleanup mirrors the Docker manifest.
-        self::assertStringContainsString('find "$APP_ROOT/temp/api-cache" -name "*.json" -mtime +7 -delete', $template);
-        self::assertStringContainsString('find "$APP_ROOT/temp/sessions" -name "sess_*" -mtime +1 -delete', $template);
-        self::assertStringContainsString('find "$APP_ROOT/temp/templates-cache" -name "*.php" -mtime +7 -delete', $template);
+        self::assertStringContainsString('find "$APP_ROOT/temp/api-cache" -type f -name "*.json" -mtime +7 -delete', $template);
+        self::assertStringContainsString('find "$APP_ROOT/temp/sessions" -type f -name "sess_*" -mtime +1 -delete', $template);
+        self::assertStringContainsString('find "$APP_ROOT/temp/templates-cache" -type f -name "*.php" -mtime +7 -delete', $template);
     }
 
     private function template(): string
