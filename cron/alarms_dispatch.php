@@ -7,8 +7,7 @@ use Mata\Config\AlarmLimitsLoader;
 use Mata\Models\AlarmDeliveryRepository;
 use Mata\Services\Alarm\AlarmDispatcher;
 use Mata\Services\Alarm\AlarmEmailFactory;
-use Mata\Services\Alarm\AlarmEmailTypePresentationResolver;
-use Mata\Services\Alarm\AlarmEmailTargetPresentationResolver;
+use Mata\Services\Alarm\AlarmPresenter;
 use Mata\Services\Alarm\AlarmEmailSender;
 use Twig\Environment;
 use Twig\Loader\FilesystemLoader;
@@ -67,8 +66,7 @@ try {
         $twig,
         $appConfig->mail,
         $appConfig->general->appName,
-        new AlarmEmailTypePresentationResolver($thresholds),
-        new AlarmEmailTargetPresentationResolver($servers),
+        new AlarmPresenter($thresholds, $servers),
     );
     $emailSender = new AlarmEmailSender($mailer, $emailFactory, $log);
     $dispatcher = new AlarmDispatcher($deliveryRepository, $limitsConfig, $emailSender, $log);

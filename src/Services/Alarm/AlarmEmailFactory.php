@@ -6,7 +6,6 @@ namespace Mata\Services\Alarm;
 
 use Mata\Config\Dto\MailConfig;
 use Mata\Services\Alarm\Dto\AlarmEmailView;
-use Mata\Services\Alarm\Dto\AlarmLevel;
 use RuntimeException;
 use Symfony\Component\Mime\Address;
 use Symfony\Component\Mime\Email;
@@ -20,8 +19,7 @@ final class AlarmEmailFactory
         private Environment $twig,
         private MailConfig $mailConfig,
         private string $applicationName,
-        private ?AlarmEmailTypePresentationResolver $typePresentationResolver = null,
-        private ?AlarmEmailTargetPresentationResolver $targetPresentationResolver = null,
+        private AlarmPresenter $presenter = new AlarmPresenter(),
     ) {}
 
     /** @throws RuntimeException */
@@ -74,9 +72,7 @@ final class AlarmEmailFactory
         $alarm = $view->alarm;
         $app = $this->displayLabel($alarm->app, '');
         $server = $this->displayLabel($alarm->server, 'Global');
-        $presentation = ($this->typePresentationResolver ?? new AlarmEmailTypePresentationResolver())->resolve($alarm);
-        $serverPresentation = ($this->targetPresentationResolver ?? new AlarmEmailTargetPresentationResolver())
-            ->resolve($server, $view->appEnvironment);
+        $presentation = $this->presenter->present($alarm, $server, $view->appEnvironment);
 
         return [
             'branding' => $this->applicationName,
@@ -92,11 +88,11 @@ final class AlarmEmailFactory
                 'server' => $server,
                 'app' => $app === '' ? 'All applications' : $app,
                 'heading' => $app === '' ? "Server: {$server}" : "{$app} on {$server}",
-                'color' => $serverPresentation['color'],
-                'environment' => $serverPresentation['environment'],
+                'color' => $presentation->serverColor,
+                'environment' => $presentation->environment,
             ],
             'presentation' => $presentation,
-            'severity' => $this->severityPresentation($alarm->level),
+            'severity' => $alarm->level->getPresentation(),
             'dashboard_url' => $dashboardUrl,
         ];
     }
@@ -156,24 +152,5 @@ final class AlarmEmailFactory
         }
 
         return str_ends_with($dashboardUrl, '/') ? substr($dashboardUrl, 0, -1) : $dashboardUrl;
-    }
-
-    /** @return array{value:string,display_label:string,code:string,accent:string} */
-    private function severityPresentation(AlarmLevel $level): array
-    {
-        return match ($level) {
-            AlarmLevel::Critical => [
-                'value' => 'critical', 'display_label' => 'Critical', 'code' => 'SEV-1', 'accent' => '#ff3b4e',
-            ],
-            AlarmLevel::Error => [
-                'value' => 'error', 'display_label' => 'Error', 'code' => 'SEV-2', 'accent' => '#ffb020',
-            ],
-            AlarmLevel::Warning => [
-                'value' => 'warning', 'display_label' => 'Warning', 'code' => 'SEV-3', 'accent' => '#ffb020',
-            ],
-            AlarmLevel::Info => [
-                'value' => 'info', 'display_label' => 'Info', 'code' => 'SEV-4', 'accent' => '#3fd0e0',
-            ],
-        };
     }
 }

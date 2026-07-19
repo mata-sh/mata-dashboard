@@ -7,7 +7,7 @@ namespace Mata\Tests\Unit\Services;
 use DateTimeImmutable;
 use Mata\Config\Dto\MailConfig;
 use Mata\Services\Alarm\AlarmEmailFactory;
-use Mata\Services\Alarm\AlarmEmailTargetPresentationResolver;
+use Mata\Services\Alarm\AlarmPresenter;
 use Mata\Services\Alarm\Dto\Alarm;
 use Mata\Services\Alarm\Dto\AlarmEmailView;
 use Mata\Services\Alarm\Dto\AlarmLevel;
@@ -92,10 +92,10 @@ final class AlarmEmailFactoryTest extends TestCase
 
     public function testItRendersServerColorAndEnvironmentBadge(): void
     {
-        $resolver = new AlarmEmailTargetPresentationResolver([
+        $presenter = new AlarmPresenter(servers: [
             'Api-1' => ['primary_color' => '#E88C02', 'env' => 'test'],
         ]);
-        $html = (string) $this->factory(serverPresentationResolver: $resolver)->create($this->view())->getHtmlBody();
+        $html = (string) $this->factory(presenter: $presenter)->create($this->view())->getHtmlBody();
 
         $this->assertStringContainsString('border-bottom:4px solid #E88C02', $html);
         $this->assertStringContainsString('background-color:#f59e0b', $html);
@@ -207,14 +207,13 @@ final class AlarmEmailFactoryTest extends TestCase
         ?string $fromName = 'MATA Alerts',
         array $alarmRecipients = ['ops@example.com', 'oncall@example.com'],
         string $applicationName = 'MATA',
-        ?AlarmEmailTargetPresentationResolver $serverPresentationResolver = null,
+        ?AlarmPresenter $presenter = null,
     ): AlarmEmailFactory {
         return new AlarmEmailFactory(
             new Environment(new FilesystemLoader(dirname(__DIR__, 4) . '/templates'), ['autoescape' => 'name']),
             new MailConfig(null, $fromEmail, $fromName, $alarmRecipients, [], [], 'mailer', 'mailer', 'UTF-8', 78, $dashboardUrl),
             $applicationName,
-            null,
-            $serverPresentationResolver,
+            $presenter ?? new AlarmPresenter(),
         );
     }
 

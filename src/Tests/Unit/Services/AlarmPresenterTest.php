@@ -1,0 +1,112 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Mata\Tests\Unit\Services;
+
+use Mata\Services\Alarm\AlarmPresenter;
+use Mata\Services\Alarm\Dto\Alarm;
+use Mata\Services\Alarm\Dto\AlarmEnvironment;
+use Mata\Tests\TestCase;
+
+/**
+ * @covers \Mata\Services\Alarm\AlarmPresenter
+ *
+ * @internal
+ */
+final class AlarmPresenterTest extends TestCase
+{
+    private AlarmPresenter $presenter;
+
+    protected function setUp(): void
+    {
+        $this->presenter = new AlarmPresenter(
+            thresholds: [
+                'server_data' => [
+                    'disk_space_usage_percent' => ['alarm' => 90],
+                    'cronjobs_failed_count' => ['alarm' => 0],
+                ],
+            ],
+            servers: [
+                'api-1' => ['primary_color' => '#E88C02', 'env' => 'test'],
+            ],
+        );
+    }
+
+    public function testItPreservesTheExistingCompactFatalErrorCount(): void
+    {
+        $presentation = $this->presenter->present(new Alarm(
+            'fatal_errors_occurring',
+            'Fatal Error Detected (Count: 2.1k): Shop on Server: api-1',
+        ), 'api-1', null);
+
+        $this->assertSame('Detected fatal errors above threshold.', $presentation->description);
+        $this->assertSame('FATAL_ERRORS_OCCURRING', $presentation->metric?->label);
+        $this->assertSame('2.1k', $presentation->metric?->value);
+        $this->assertNull($presentation->metric?->threshold);
+    }
+
+    public function testItResolvesDiskAndCronjobMetricsWithConfiguredThresholds(): void
+    {
+        $disk = $this->presenter->present(new Alarm(
+            'remaining_diskspace_too_low',
+            'Remaining diskspace is getting too low (91 % used) on Server: api-1',
+        ), 'api-1', null);
+        $cronjobs = $this->presenter->present(new Alarm(
+            'cronjobs_failing',
+            'Cronjobs failing (1200/1500, stale: 2, missing: 1) on Server: api-1',
+        ), 'api-1', null);
+
+        $this->assertSame('91%', $disk->metric?->value);
+        $this->assertSame('threshold: 90%', $disk->metric?->threshold);
+        $this->assertSame('1.200', $cronjobs->metric?->value);
+        $this->assertSame('threshold: 0', $cronjobs->metric?->threshold);
+    }
+
+    public function testItResolvesHealthStatesAndFallsBackForUnknownTypes(): void
+    {
+        $unhealthy = $this->presenter->present(new Alarm('node_unhealthy', 'Unhealthy health response'), 'api-1', null);
+        $unreachable = $this->presenter->present(new Alarm('node_unreachable', 'No health response'), 'api-1', null);
+        $unknown = $this->presenter->present(new Alarm('custom_alarm', 'Custom alarm'), 'api-1', null);
+
+        $this->assertSame('UNHEALTHY', $unhealthy->metric?->value);
+        $this->assertSame('UNREACHABLE', $unreachable->metric?->value);
+        $this->assertSame('Detected custom alarm.', $unknown->description);
+        $this->assertNull($unknown->metric);
+    }
+
+    public function testItUsesApplicationEnvironmentBeforeTheServerFallback(): void
+    {
+        $presentation = $this->presenter->present(new Alarm('custom_alarm', 'Custom alarm'), 'API-1', 'prod');
+
+        $this->assertSame('#E88C02', $presentation->serverColor);
+        $this->assertSame(AlarmEnvironment::Live, $presentation->environment);
+        $this->assertSame('LIVE', $presentation->environment?->getLabel());
+        $this->assertSame('#098f00', $presentation->environment?->getBadgeColor());
+    }
+
+    public function testItUsesServerEnvironmentWhenApplicationEnvironmentIsUnknown(): void
+    {
+        $presenter = new AlarmPresenter(servers: [
+            'api-1' => ['primary_color' => '#E88C02', 'env' => 'staging'],
+        ]);
+
+        $presentation = $presenter->present(new Alarm('custom_alarm', 'Custom alarm'), 'api-1', 'unknown');
+
+        $this->assertSame(AlarmEnvironment::Staging, $presentation->environment);
+        $this->assertSame('STAGING', $presentation->environment?->getLabel());
+        $this->assertSame('#663399', $presentation->environment?->getBadgeColor());
+    }
+
+    public function testItOmitsInvalidServerPresentationValues(): void
+    {
+        $presenter = new AlarmPresenter(servers: [
+            'api-1' => ['primary_color' => 'orange', 'env' => 'unknown'],
+        ]);
+
+        $presentation = $presenter->present(new Alarm('custom_alarm', 'Custom alarm'), 'api-1', null);
+
+        $this->assertNull($presentation->serverColor);
+        $this->assertNull($presentation->environment);
+    }
+}
