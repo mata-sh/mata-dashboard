@@ -2108,7 +2108,8 @@ svg {
     display: flex;
     flex-wrap: wrap;
     align-items: center;
-    gap: .3rem;
+    column-gap: .3rem;
+    row-gap: .55rem;
 }
 
 /* app chips */
@@ -2145,6 +2146,18 @@ label.audit-chip:hover {
 .audit-chip:has(input:not(:checked)) {
     opacity: .35;
     filter: grayscale(.8);
+}
+
+label.audit-chip:has(input:checked)::after {
+    position: absolute;
+    bottom: -5px;
+    left: 50%;
+    width: 8px;
+    height: 2px;
+    content: '';
+    background: #2f6f7d;
+    border-radius: 2px;
+    transform: translateX(-50%);
 }
 
 .audit-chip.sev-critical {
