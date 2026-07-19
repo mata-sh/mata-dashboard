@@ -92,6 +92,7 @@
             pagination: 'local',
             paginationSize: 33,
             paginationCounter: 'rows',
+            initialSort: [{column: 'id', dir: 'desc'}],
             ajaxResponse: function (url, params, response) {
                 if (window.mataPopulateSelectFromRows) {
                     window.mataPopulateSelectFromRows('filter-app', response, 'app', 'All Apps');
