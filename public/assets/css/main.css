@@ -1392,6 +1392,15 @@ svg {
     transition: border-color .15s ease, box-shadow .15s ease;
 }
 
+.filter-menu select {
+    appearance: none;
+    padding-right: 2.5rem;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 8'%3E%3Cpath fill='%238b93a5' d='m1 1 5 5 5-5z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right .85rem center;
+    background-size: .7rem;
+}
+
 .filter-menu input::placeholder {
     color: #5a6172;
 }
