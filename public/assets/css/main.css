@@ -95,6 +95,8 @@ svg {
 
 .notification {
     margin-bottom: 30px;
+    background-color: hsl(190.8, 45.3%, 33.7%);
+    color: hsl(197.5, 100%, 95.3%);
 }
 
 .is-hidden {
