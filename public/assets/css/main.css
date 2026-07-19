@@ -2183,6 +2183,12 @@ label.audit-chip:hover {
     color: #e05561;
 }
 
+.audit-clean-icon {
+    width: 13px;
+    height: 13px;
+    color: #7bd88f;
+}
+
 .audit-chip small {
     font-size: .85em;
     font-weight: 500;
