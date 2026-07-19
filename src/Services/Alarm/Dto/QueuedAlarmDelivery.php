@@ -24,7 +24,8 @@ final readonly class QueuedAlarmDelivery
         public ?string $context,
         public ?string $serverName,
         public ?string $appName,
-        public DateTimeImmutable $createdAt
+        public DateTimeImmutable $createdAt,
+        public ?DateTimeImmutable $previousAlarmCreatedAt = null,
     ) {}
 
     public function getServerKey(): string

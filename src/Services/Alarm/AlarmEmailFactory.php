@@ -20,6 +20,7 @@ final class AlarmEmailFactory
         private Environment $twig,
         private MailConfig $mailConfig,
         private string $applicationName,
+        private ?AlarmEmailPresentationResolver $presentationResolver = null,
     ) {}
 
     /** @throws RuntimeException */
@@ -70,7 +71,9 @@ final class AlarmEmailFactory
     private function createTemplateData(AlarmEmailView $view, ?string $dashboardUrl): array
     {
         $alarm = $view->alarm;
-        $severity = $this->severityPresentation($alarm->level);
+        $app = $this->displayLabel($alarm->app, '');
+        $server = $this->displayLabel($alarm->server, 'Global');
+        $presentation = ($this->presentationResolver ?? new AlarmEmailPresentationResolver())->resolve($alarm);
 
         return [
             'branding' => $this->applicationName,
@@ -80,12 +83,15 @@ final class AlarmEmailFactory
                 'message' => $alarm->message,
                 'context' => $alarm->context,
                 'created_at' => $view->alarmCreatedAt->format('Y-m-d H:i:s T'),
+                'last_seen_at' => $view->previousAlarmCreatedAt?->format('Y-m-d H:i:s T'),
             ],
             'target' => [
-                'server' => $this->displayLabel($alarm->server, 'Global'),
-                'app' => $this->displayLabel($alarm->app, 'All applications'),
+                'server' => $server,
+                'app' => $app === '' ? 'All applications' : $app,
+                'heading' => $app === '' ? $server : "{$app} on {$server}",
             ],
-            'severity' => $severity,
+            'presentation' => $presentation,
+            'severity' => $this->severityPresentation($alarm->level),
             'dashboard_url' => $dashboardUrl,
         ];
     }
@@ -147,25 +153,21 @@ final class AlarmEmailFactory
         return str_ends_with($dashboardUrl, '/') ? substr($dashboardUrl, 0, -1) : $dashboardUrl;
     }
 
-    /** @return array{value:string,display_label:string,emoji:string,accent:string,background:string} */
+    /** @return array{value:string,display_label:string,code:string,accent:string} */
     private function severityPresentation(AlarmLevel $level): array
     {
         return match ($level) {
             AlarmLevel::Critical => [
-                'value' => 'critical', 'display_label' => 'Critical', 'emoji' => '🔴',
-                'accent' => '#dc2626', 'background' => '#fef2f2',
+                'value' => 'critical', 'display_label' => 'Critical', 'code' => 'SEV-1', 'accent' => '#ff3b4e',
             ],
             AlarmLevel::Error => [
-                'value' => 'error', 'display_label' => 'Error', 'emoji' => '🟠',
-                'accent' => '#d97706', 'background' => '#fffbeb',
+                'value' => 'error', 'display_label' => 'Error', 'code' => 'SEV-2', 'accent' => '#ffb020',
             ],
             AlarmLevel::Warning => [
-                'value' => 'warning', 'display_label' => 'Warning', 'emoji' => '🟡',
-                'accent' => '#ea580c', 'background' => '#fff7ed',
+                'value' => 'warning', 'display_label' => 'Warning', 'code' => 'SEV-3', 'accent' => '#ffb020',
             ],
             AlarmLevel::Info => [
-                'value' => 'info', 'display_label' => 'Info', 'emoji' => '🔵',
-                'accent' => '#2563eb', 'background' => '#eff6ff',
+                'value' => 'info', 'display_label' => 'Info', 'code' => 'SEV-4', 'accent' => '#3fd0e0',
             ],
         };
     }

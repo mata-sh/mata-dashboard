@@ -147,6 +147,7 @@ final class AlarmDispatcher
                 alarm: $alarm,
                 alarmId: $queuedDelivery->alarmId,
                 alarmCreatedAt: $queuedDelivery->alarmCreatedAt,
+                previousAlarmCreatedAt: $queuedDelivery->previousAlarmCreatedAt,
             )),
             default => throw new RuntimeException("Unsupported alarm delivery channel: {$channel}"),
         };

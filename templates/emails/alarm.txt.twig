@@ -1,10 +1,16 @@
-[{{ severity.value|upper }}] {{ target.app }} on {{ target.server }}
+[{{ severity.value|upper }}] {{ target.heading }}
 
-{{ alarm.message }}
+{{ presentation.description }}
+{% if presentation.metric %}
+{{ presentation.metric.label }}: {{ presentation.metric.value }}{% if presentation.metric.threshold %} ({{ presentation.metric.threshold }}){% endif %}
+{% endif %}
+Last seen: {{ alarm.last_seen_at ?: 'No previous alarm' }}
+Current alarm: {{ alarm.created_at }}
 
 Alarm ID: {{ alarm.id }}
 Type: {{ alarm.type }}
-Created: {{ alarm.created_at }}
+Server: {{ target.server }}
+Application: {{ target.app }}
 Context:
 {{ alarm.context ?: 'No additional context' }}
 {% if dashboard_url %}

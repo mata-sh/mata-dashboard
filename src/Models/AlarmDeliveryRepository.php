@@ -52,6 +52,18 @@ final class AlarmDeliveryRepository
         $limit = max(1, $limit);
         $rows = $this->runSelect(<<<SQL
             SELECT ad.id, al.id AS alarm_id, al.created_at AS alarm_created_at, al.event_id,
+                (
+                    SELECT MAX(previous_alarm.created_at)
+                    FROM alarms AS previous_alarm
+                    INNER JOIN events AS previous_event ON previous_event.id = previous_alarm.event_id
+                    WHERE previous_event.type = e.type
+                      AND (
+                          previous_alarm.created_at < al.created_at
+                          OR (previous_alarm.created_at = al.created_at AND previous_alarm.id < al.id)
+                      )
+                      AND (previous_event.server_id = e.server_id OR (previous_event.server_id IS NULL AND e.server_id IS NULL))
+                      AND (previous_event.application_id = e.application_id OR (previous_event.application_id IS NULL AND e.application_id IS NULL))
+                ) AS previous_alarm_created_at,
                 ad.channel, ad.priority, ad.attempts, ad.next_retry_at, ad.created_at,
                 e.type, e.message, e.level, e.context,
                 COALESCE(s.name, '') AS server_name,
@@ -191,7 +203,10 @@ final class AlarmDeliveryRepository
             context: is_string($row['context'] ?? null) ? $row['context'] : null,
             serverName: $row['server_name'] !== '' ? (string) $row['server_name'] : null,
             appName: $row['app_name'] !== '' ? (string) $row['app_name'] : null,
-            createdAt: empty($row['created_at']) ? new DateTimeImmutable() : new DateTimeImmutable((string) $row['created_at'])
+            createdAt: empty($row['created_at']) ? new DateTimeImmutable() : new DateTimeImmutable((string) $row['created_at']),
+            previousAlarmCreatedAt: empty($row['previous_alarm_created_at'])
+                ? null
+                : new DateTimeImmutable((string) $row['previous_alarm_created_at']),
         );
     }
 }

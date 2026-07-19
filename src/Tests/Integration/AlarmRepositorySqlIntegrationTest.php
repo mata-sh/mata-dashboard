@@ -150,6 +150,24 @@ final class AlarmRepositorySqlIntegrationTest extends TestCase
         $this->assertSame('email', $deliveries[0]->channel);
     }
 
+    public function testPendingClaimIncludesPreviousAlarmForTheSameTypeAndTarget(): void
+    {
+        $this->db->pdo()->exec(<<<'SQL'
+            INSERT INTO events (id, server_id, application_id, type, message, context, level, datetime)
+            VALUES (3, 1, 10, 'disk', 'Disk full again', '', 'critical', '2026-01-01 00:03:00');
+            INSERT INTO alarms (id, event_id, created_at)
+            VALUES (101, 2, '2026-01-01 00:04:00'), (102, 3, '2026-01-01 00:05:00');
+            INSERT INTO alarm_deliveries (id, alarm_id, channel, status, created_at)
+            VALUES (201, 102, 'email', 'pending', '2026-01-01 00:05:00');
+            SQL);
+
+        $deliveries = $this->deliveryRepository->claimAvailable(new DateTimeImmutable('2026-01-01 00:06:00'));
+
+        $this->assertCount(1, $deliveries);
+        $this->assertSame(102, $deliveries[0]->alarmId);
+        $this->assertSame('2026-01-01 00:04:00', $deliveries[0]->previousAlarmCreatedAt?->format('Y-m-d H:i:s'));
+    }
+
     public function testClaimAvailableOnlyClaimsQueueableDeliveriesThatAreDue(): void
     {
         $this->db->pdo()->exec(<<<'SQL'
