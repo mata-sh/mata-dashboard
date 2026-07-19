@@ -95,9 +95,16 @@ final class AlarmEmailFactory
         $alarm = $view->alarm;
         $app = $this->subjectLabel($alarm->app, '*');
         $server = $this->subjectLabel($alarm->server, '*');
-        $type = strtolower($this->subjectLabel($alarm->type, ''));
 
-        return sprintf('%s %s.%s | [%s]', $alarm->level->getEmoji(), $app, $server, $type);
+        return sprintf('%s [%s.%s] %s', $alarm->level->getEmoji(), $app, $server, $this->humanizeType($alarm->type));
+    }
+
+    private function humanizeType(?string $value): string
+    {
+        $type = strtolower($this->subjectLabel($value, ''));
+        $type = str_replace('_', ' ', $type);
+
+        return $type === '' ? 'Alarm' : ucfirst($type);
     }
 
     private function displayLabel(?string $value, string $fallback): string

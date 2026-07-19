@@ -33,7 +33,7 @@ final class AlarmEmailSenderTest extends TestCase
         $sender->send($this->view());
 
         $this->assertCount(1, $mailer->messages);
-        $this->assertSame('🔵 app.server | [type]', $mailer->messages[0]->getSubject());
+        $this->assertSame('🔵 [app.server] Type', $mailer->messages[0]->getSubject());
     }
 
     public function testFactoryExceptionsPreventTransportCallsAndPropagate(): void

@@ -22,18 +22,18 @@ use Twig\Loader\FilesystemLoader;
  */
 final class AlarmEmailFactoryTest extends TestCase
 {
-    public function testItBuildsTheExistingSubjectShape(): void
+    public function testItBuildsTheSubjectWithBracketedTargetAndHumanizedType(): void
     {
         $email = $this->factory()->create($this->view());
 
-        $this->assertSame('🔴 Shop.Api-1 | [fatal_errors]', $email->getSubject());
+        $this->assertSame('🔴 [Shop.Api-1] Fatal errors', $email->getSubject());
     }
 
     public function testItUsesAsterisksForMissingSubjectLabels(): void
     {
         $view = $this->view(new Alarm(server: null, app: null, type: 'DISK_FULL', message: 'Disk full'));
 
-        $this->assertSame('🔵 *.* | [disk_full]', $this->factory()->create($view)->getSubject());
+        $this->assertSame('🔵 [*.*] Disk full', $this->factory()->create($view)->getSubject());
     }
 
     public function testItSetsSenderRecipientsAndConfiguredCharsets(): void
@@ -99,7 +99,7 @@ final class AlarmEmailFactoryTest extends TestCase
         $view = $this->view(new Alarm("TYPE\r\nInjected", 'Message', null, AlarmLevel::Info, "server\r\nB", "app\nA"));
         $subject = $this->factory()->create($view)->getSubject();
 
-        $this->assertSame('🔵 app A.server B | [type injected]', $subject);
+        $this->assertSame('🔵 [app A.server B] Type injected', $subject);
         $this->assertStringNotContainsString("\r", $subject);
         $this->assertStringNotContainsString("\n", $subject);
     }
