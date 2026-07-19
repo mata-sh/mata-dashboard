@@ -33,6 +33,8 @@ final class AlarmsContainerTemplateTest extends TestCase
 
         $this->assertSame(1, substr_count($script, "title: 'Acknowledged'"));
         $this->assertStringContainsString("field: 'acknowledged_at'", $script);
+        $this->assertStringContainsString("return '<button type=\"button\" class=\"button is-small alarm-ack-btn\">ACK</button>';", $script);
+        $this->assertStringNotContainsString("field: 'actions'", $script);
         $this->assertStringContainsString("badge.className = 'cve-badge cve-ok';", $script);
         $this->assertStringContainsString("badge.dataset.tippyContent = 'Acknowledged by '", $script);
         $this->assertStringContainsString('<polyline points="20 6 9 17 4 12"></polyline>', $script);
@@ -47,6 +49,10 @@ final class AlarmsContainerTemplateTest extends TestCase
         $this->assertStringNotContainsString("title: 'Status'", $script);
         $this->assertStringContainsString("return '—';", $script);
         $this->assertStringContainsString("tag.textContent = channel + ': ' + label;", $script);
+        $this->assertLessThan(
+            strpos($script, "title: 'Context'"),
+            strpos($script, "title: 'Deliveries'"),
+        );
 
         foreach (['sent', 'pending', 'processing', 'retry', 'failed', 'throttled', 'discarded'] as $status) {
             $this->assertStringContainsString($status . ": '", $script);

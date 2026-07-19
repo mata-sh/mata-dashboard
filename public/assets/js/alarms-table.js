@@ -81,7 +81,7 @@
     function formatAcknowledged(cell) {
         var rowData = cell.getRow().getData();
         if (!rowData.acknowledged_at) {
-            return '—';
+            return '<button type="button" class="button is-small alarm-ack-btn">ACK</button>';
         }
 
         var badge = document.createElement('span');
@@ -140,15 +140,17 @@
                 return response;
             },
             columns: [
+                {title: 'ID', field: 'id', sorter: 'number', hozAlign: 'center'},
+                {title: 'Datetime', field: 'datetime', sorter: 'datetime', hozAlign: 'center'},
+                {title: 'Server', field: 'server', sorter: 'string', hozAlign: 'center'},
+                {title: 'App', field: 'app', sorter: 'string', hozAlign: 'center'},
+                {title: 'Level', field: 'level', hozAlign: 'center', formatter: window.mataFormatLevel},
+                {title: 'Type', field: 'type', sorter: 'string', formatter: formatType},
+                {title: 'Message', field: 'message', sorter: 'string', cssClass: 'table-message-cell', formatter: formatMessage, cellClick: function (event, cell) { showMessage(cell); }},
+                {title: 'Deliveries', field: 'deliveries', hozAlign: 'center', formatter: formatDeliveries},
+                {title: 'Context', field: 'context', sorter: 'string'},
                 {
-                    title: '', field: 'actions', headerSort: false, sorter: false, hozAlign: 'center',
-                    formatter: function (cell) {
-                        if (cell.getRow().getData().acknowledged_at) {
-                            return '';
-                        }
-
-                        return '<button type="button" class="button is-small alarm-ack-btn">ACK</button>';
-                    },
+                    title: 'Acknowledged', field: 'acknowledged_at', width: 130, hozAlign: 'center', sorter: 'string', formatter: formatAcknowledged,
                     cellClick: function (event, cell) {
                         if (!(event.target instanceof Element) || !event.target.closest('.alarm-ack-btn')) {
                             return;
@@ -185,16 +187,6 @@
                             });
                     },
                 },
-                {title: 'ID', field: 'id', sorter: 'number', hozAlign: 'center'},
-                {title: 'Datetime', field: 'datetime', sorter: 'datetime', hozAlign: 'center'},
-                {title: 'Server', field: 'server', sorter: 'string', hozAlign: 'center'},
-                {title: 'App', field: 'app', sorter: 'string', hozAlign: 'center'},
-                {title: 'Level', field: 'level', hozAlign: 'center', formatter: window.mataFormatLevel},
-                {title: 'Type', field: 'type', sorter: 'string', formatter: formatType},
-                {title: 'Message', field: 'message', sorter: 'string', cssClass: 'table-message-cell', formatter: formatMessage, cellClick: function (event, cell) { showMessage(cell); }},
-                {title: 'Context', field: 'context', sorter: 'string'},
-                {title: 'Deliveries', field: 'deliveries', hozAlign: 'center', formatter: formatDeliveries},
-                {title: 'Acknowledged', field: 'acknowledged_at', width: 130, hozAlign: 'center', sorter: 'string', formatter: formatAcknowledged},
             ],
             renderComplete: function () {
                 tippy('#alarms-table [data-tippy-content]', {allowHTML: true});
