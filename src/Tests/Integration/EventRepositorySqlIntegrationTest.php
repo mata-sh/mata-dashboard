@@ -4,10 +4,9 @@ declare(strict_types=1);
 
 namespace Mata\Tests\Integration;
 
-use Mata\Core\DatabaseInterface;
 use Mata\Models\EventRepository;
+use Mata\Tests\Helpers\SqliteTestDatabase;
 use Mata\Tests\TestCase;
-use PDO;
 
 /**
  * @internal
@@ -16,14 +15,14 @@ use PDO;
  */
 final class EventRepositorySqlIntegrationTest extends TestCase
 {
-    private SqliteEventRepositoryDatabase $db;
+    private SqliteTestDatabase $db;
     private EventRepository $repository;
 
     protected function setUp(): void
     {
         parent::setUp();
 
-        $this->db = new SqliteEventRepositoryDatabase();
+        $this->db = new SqliteTestDatabase();
         $this->createSchema();
         $this->seedData();
         $this->repository = new EventRepository($this->db);
@@ -101,52 +100,5 @@ final class EventRepositorySqlIntegrationTest extends TestCase
                 (1, 1, 10, 'cpu', 'CPU high', '{"metric":"cpu"}', 'warning', '2026-01-01 00:00:00', NULL),
                 (2, 1, 10, 'disk', 'Disk full', '{"metric":"disk"}', 'critical', '2026-01-01 00:01:00', NULL);
             SQL);
-    }
-}
-
-final class SqliteEventRepositoryDatabase implements DatabaseInterface
-{
-    private PDO $pdo;
-
-    public function __construct()
-    {
-        $this->pdo = new PDO('sqlite::memory:');
-        $this->pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-        $this->pdo->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
-    }
-
-    public function pdo(): PDO
-    {
-        return $this->pdo;
-    }
-
-    public function runQuery(string $sql, array $params = []): array|int
-    {
-        $stmt = $this->pdo->prepare($sql);
-        $stmt->execute($params);
-
-        $firstWord = strtok(trim($sql), ' ');
-        $sqlType = strtoupper($firstWord === false ? '' : $firstWord);
-
-        return match ($sqlType) {
-            'INSERT' => (int) $this->pdo->lastInsertId(),
-            'UPDATE', 'DELETE' => $stmt->rowCount(),
-            default => $stmt->fetchAll(PDO::FETCH_ASSOC),
-        };
-    }
-
-    public function beginTransaction(): void
-    {
-        $this->pdo->beginTransaction();
-    }
-
-    public function commit(): void
-    {
-        $this->pdo->commit();
-    }
-
-    public function rollback(): void
-    {
-        $this->pdo->rollBack();
     }
 }

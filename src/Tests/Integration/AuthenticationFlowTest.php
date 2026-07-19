@@ -238,6 +238,7 @@ class AuthenticationFlowTest extends TestCase
             'DASHBOARD_SERVER_COLUMNS=3',
             'DASHBOARD_CONTAINER_WIDTH=1200',
             'MAILER_APP=sendgrid',
+            'SYM_MAILER_DSN=smtp://localhost',
         ]);
 
         $config = $this->configLoader->load(['.env'], $this->pathResolver->getConfigPath());

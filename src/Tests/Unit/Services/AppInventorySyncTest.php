@@ -7,8 +7,8 @@ namespace Mata\Tests\Unit\Services;
 use Mata\Models\ConfigSyncRepository;
 use Mata\Services\Foundation\IdResolver;
 use Mata\Services\Sync\AppInventorySync;
+use Mata\Tests\Helpers\SqliteTestDatabase;
 use Mata\Tests\TestCase;
-use Mata\Tests\Unit\Models\SqliteConfigSyncDatabase;
 use Monolog\Logger;
 
 /**
@@ -26,10 +26,31 @@ final class AppInventorySyncTest extends TestCase
     {
         parent::setUp();
 
-        $this->repository = new ConfigSyncRepository(new SqliteConfigSyncDatabase());
+        $db = new SqliteTestDatabase();
+        $this->createSchema($db);
+        $this->repository = new ConfigSyncRepository($db);
         $this->idResolver = new IdResolver($this->repository);
         $this->idResolver->refreshFromRepository();
         $this->sync = new AppInventorySync($this->repository, $this->idResolver, new Logger('test'));
+    }
+
+    private function createSchema(SqliteTestDatabase $db): void
+    {
+        $db->pdo()->exec(<<<'SQL'
+            CREATE TABLE servers (
+                id INTEGER PRIMARY KEY,
+                name TEXT NOT NULL
+            );
+
+            CREATE TABLE applications (
+                id INTEGER PRIMARY KEY,
+                code TEXT NOT NULL,
+                display_name TEXT NOT NULL,
+                app_env TEXT,
+                created_at TEXT,
+                updated_at TEXT
+            );
+            SQL);
     }
 
     public function testSyncUpsertsApplicationsAndRefreshesResolver(): void

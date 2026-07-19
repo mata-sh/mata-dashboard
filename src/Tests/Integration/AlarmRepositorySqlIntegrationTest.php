@@ -5,11 +5,10 @@ declare(strict_types=1);
 namespace Mata\Tests\Integration;
 
 use DateTimeImmutable;
-use Mata\Core\DatabaseInterface;
 use Mata\Models\AlarmDeliveryRepository;
 use Mata\Models\AlarmRepository;
+use Mata\Tests\Helpers\SqliteTestDatabase;
 use Mata\Tests\TestCase;
-use PDO;
 use stdClass;
 
 /**
@@ -20,7 +19,7 @@ use stdClass;
  */
 final class AlarmRepositorySqlIntegrationTest extends TestCase
 {
-    private SqliteAlarmRepositoryDatabase $db;
+    private SqliteTestDatabase $db;
     private AlarmRepository $repository;
     private AlarmDeliveryRepository $deliveryRepository;
 
@@ -28,7 +27,7 @@ final class AlarmRepositorySqlIntegrationTest extends TestCase
     {
         parent::setUp();
 
-        $this->db = new SqliteAlarmRepositoryDatabase();
+        $this->db = new SqliteTestDatabase();
         $this->createSchema();
         $this->seedData();
         $this->repository = new AlarmRepository($this->db);
@@ -278,67 +277,5 @@ final class AlarmRepositorySqlIntegrationTest extends TestCase
             INSERT INTO alarm_deliveries (id, alarm_id, channel, status, created_at)
             VALUES (200, 100, 'mail', 'sent', '2026-01-01 00:02:00');
             SQL);
-    }
-}
-
-final class SqliteAlarmRepositoryDatabase implements DatabaseInterface
-{
-    private PDO $pdo;
-
-    /** @var array<int,array{sql:string,params:array<int|string,mixed>}> */
-    private array $queryLog = [];
-
-    public function __construct()
-    {
-        $this->pdo = new PDO('sqlite::memory:');
-        $this->pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-        $this->pdo->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
-    }
-
-    public function pdo(): PDO
-    {
-        return $this->pdo;
-    }
-
-    /** @return array<int,array{sql:string,params:array<int|string,mixed>}> */
-    public function queryLog(): array
-    {
-        return $this->queryLog;
-    }
-
-    public function resetQueryLog(): void
-    {
-        $this->queryLog = [];
-    }
-
-    public function runQuery(string $sql, array $params = []): array|int
-    {
-        $this->queryLog[] = ['sql' => $sql, 'params' => $params];
-        $stmt = $this->pdo->prepare($sql);
-        $stmt->execute($params);
-
-        $firstWord = strtok(trim($sql), ' ');
-        $sqlType = strtoupper($firstWord === false ? '' : $firstWord);
-
-        return match ($sqlType) {
-            'INSERT' => (int) $this->pdo->lastInsertId(),
-            'UPDATE', 'DELETE' => $stmt->rowCount(),
-            default => $stmt->fetchAll(PDO::FETCH_ASSOC),
-        };
-    }
-
-    public function beginTransaction(): void
-    {
-        $this->pdo->beginTransaction();
-    }
-
-    public function commit(): void
-    {
-        $this->pdo->commit();
-    }
-
-    public function rollback(): void
-    {
-        $this->pdo->rollBack();
     }
 }

@@ -7,14 +7,13 @@ namespace Mata\Tests\Unit\Services;
 use DateTimeImmutable;
 use Mata\Config\Dto\AlarmLimitsConfig;
 use Mata\Config\Dto\MailConfig;
-use Mata\Core\DatabaseInterface;
 use Mata\Models\AlarmDeliveryRepository;
 use Mata\Services\Alarm\AlarmDispatcher;
 use Mata\Services\Alarm\AlarmEmailFactory;
 use Mata\Services\Alarm\AlarmEmailSender;
 use Mata\Services\Alarm\Dto\AlarmLimit;
+use Mata\Tests\Helpers\SqliteTestDatabase;
 use Mata\Tests\TestCase;
-use PDO;
 use Symfony\Component\Mailer\MailerInterface;
 use Symfony\Component\Mime\Email;
 use Symfony\Component\Mime\RawMessage;
@@ -30,7 +29,7 @@ final class AlarmDispatcherTest extends TestCase
 {
     public function testRateLimitRejectionKeepsDeliveryPendingUntilItsRetryTime(): void
     {
-        $db = new SqliteAlarmDispatcherDatabase();
+        $db = new SqliteTestDatabase();
         $db->pdo()->exec(<<<'SQL'
             CREATE TABLE servers (id INTEGER PRIMARY KEY, name TEXT NOT NULL);
             CREATE TABLE applications (id INTEGER PRIMARY KEY, code TEXT NOT NULL, display_name TEXT NOT NULL);
@@ -205,9 +204,9 @@ final class AlarmDispatcherTest extends TestCase
         return new AlarmEmailSender($mailer, $factory);
     }
 
-    private function createPendingDatabase(): SqliteAlarmDispatcherDatabase
+    private function createPendingDatabase(): SqliteTestDatabase
     {
-        $db = new SqliteAlarmDispatcherDatabase();
+        $db = new SqliteTestDatabase();
         $db->pdo()->exec(<<<'SQL'
             CREATE TABLE servers (id INTEGER PRIMARY KEY, name TEXT NOT NULL);
             CREATE TABLE applications (id INTEGER PRIMARY KEY, code TEXT NOT NULL, display_name TEXT NOT NULL);
@@ -222,50 +221,5 @@ final class AlarmDispatcherTest extends TestCase
             SQL);
 
         return $db;
-    }
-}
-
-final class SqliteAlarmDispatcherDatabase implements DatabaseInterface
-{
-    private PDO $pdo;
-
-    public function __construct()
-    {
-        $this->pdo = new PDO('sqlite::memory:');
-        $this->pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-        $this->pdo->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
-    }
-
-    public function pdo(): PDO
-    {
-        return $this->pdo;
-    }
-
-    public function runQuery(string $sql, array $params = []): array|int
-    {
-        $statement = $this->pdo->prepare($sql);
-        $statement->execute($params);
-        $type = strtoupper((string) strtok(trim($sql), ' '));
-
-        return match ($type) {
-            'INSERT' => (int) $this->pdo->lastInsertId(),
-            'UPDATE', 'DELETE' => $statement->rowCount(),
-            default => $statement->fetchAll(PDO::FETCH_ASSOC),
-        };
-    }
-
-    public function beginTransaction(): void
-    {
-        $this->pdo->beginTransaction();
-    }
-
-    public function commit(): void
-    {
-        $this->pdo->commit();
-    }
-
-    public function rollback(): void
-    {
-        $this->pdo->rollBack();
     }
 }
