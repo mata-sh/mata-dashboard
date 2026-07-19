@@ -13,31 +13,41 @@ use PHPUnit\Framework\TestCase;
  */
 final class AlarmsContainerTemplateTest extends TestCase
 {
-    public function testRendersAcknowledgementStatusAsSuccessBadge(): void
+    public function testUsesAnExternalInitializerForHtmxSwaps(): void
     {
         $template = (string) file_get_contents(__DIR__ . '/../../../../templates/partials/containers/alarms-container.html.twig');
+        $script = (string) file_get_contents(__DIR__ . '/../../../../public/assets/js/alarms-table.js');
 
-        $this->assertSame(1, substr_count($template, 'title: "Acknowledged"'));
-        $this->assertStringContainsString('field: "acknowledged_at"', $template);
-        $this->assertStringContainsString('badge.className = "cve-badge cve-ok";', $template);
-        $this->assertStringContainsString('badge.dataset.tippyContent = "Acknowledged by "', $template);
-        $this->assertStringContainsString('<polyline points="20 6 9 17 4 12"></polyline>', $template);
+        $this->assertStringContainsString('data-alarms-url="{{ endpoints.alarms_json }}"', $template);
+        $this->assertStringContainsString('data-acknowledge-url="{{ endpoints.alarms_ack }}"', $template);
+        $this->assertStringNotContainsString('<script>', $template);
+        $this->assertStringContainsString('htmx:afterSwap', $script);
+        $this->assertStringContainsString('ajaxURL: alarmsUrl', $script);
+    }
+
+    public function testRendersAcknowledgementStatusAsSuccessBadge(): void
+    {
+        $script = (string) file_get_contents(__DIR__ . '/../../../../public/assets/js/alarms-table.js');
+
+        $this->assertSame(1, substr_count($script, "title: 'Acknowledged'"));
+        $this->assertStringContainsString("field: 'acknowledged_at'", $script);
+        $this->assertStringContainsString("badge.className = 'cve-badge cve-ok';", $script);
+        $this->assertStringContainsString("badge.dataset.tippyContent = 'Acknowledged by '", $script);
+        $this->assertStringContainsString('<polyline points="20 6 9 17 4 12"></polyline>', $script);
     }
 
     public function testRendersOneEscapedDeliveriesColumn(): void
     {
-        $template = (string) file_get_contents(__DIR__ . '/../../../../templates/partials/containers/alarms-container.html.twig');
+        $script = (string) file_get_contents(__DIR__ . '/../../../../public/assets/js/alarms-table.js');
 
-        $this->assertSame(1, substr_count($template, 'title: "Deliveries"'));
-        $this->assertStringNotContainsString('title: "Channel"', $template);
-        $this->assertStringNotContainsString('title: "Status"', $template);
-        $this->assertStringContainsString('return "—";', $template);
-        $this->assertStringContainsString('element.textContent = String(value || "");', $template);
-        $this->assertStringContainsString('escapeHtml(channel)', $template);
-        $this->assertStringContainsString('escapeHtml(label)', $template);
+        $this->assertSame(1, substr_count($script, "title: 'Deliveries'"));
+        $this->assertStringNotContainsString("title: 'Channel'", $script);
+        $this->assertStringNotContainsString("title: 'Status'", $script);
+        $this->assertStringContainsString("return '—';", $script);
+        $this->assertStringContainsString("tag.textContent = channel + ': ' + label;", $script);
 
         foreach (['sent', 'pending', 'processing', 'retry', 'failed', 'throttled', 'discarded'] as $status) {
-            $this->assertStringContainsString($status . ': "', $template);
+            $this->assertStringContainsString($status . ": '", $script);
         }
     }
 }

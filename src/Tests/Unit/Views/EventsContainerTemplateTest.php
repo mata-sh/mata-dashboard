@@ -13,11 +13,22 @@ use PHPUnit\Framework\TestCase;
  */
 final class EventsContainerTemplateTest extends TestCase
 {
-    public function testFormatsEventDatetimesAsConciseUtcValues(): void
+    public function testUsesAnExternalInitializerForHtmxSwaps(): void
     {
         $template = (string) file_get_contents(__DIR__ . '/../../../../templates/partials/containers/events-container.html.twig');
+        $script = (string) file_get_contents(__DIR__ . '/../../../../public/assets/js/events-table.js');
 
-        $this->assertStringContainsString('date.toISOString().slice(0, 16).replace("T", " ") + " UTC"', $template);
-        $this->assertStringContainsString('isoValue += "Z";', $template);
+        $this->assertStringContainsString('data-events-url="{{ endpoints.events_json }}"', $template);
+        $this->assertStringNotContainsString('<script>', $template);
+        $this->assertStringContainsString("htmx:afterSwap", $script);
+        $this->assertStringContainsString("ajaxURL: eventsUrl", $script);
+    }
+
+    public function testFormatsEventDatetimesAsConciseUtcValues(): void
+    {
+        $script = (string) file_get_contents(__DIR__ . '/../../../../public/assets/js/events-table.js');
+
+        $this->assertStringContainsString("date.toISOString().slice(0, 16).replace('T', ' ') + ' UTC'", $script);
+        $this->assertStringContainsString("isoValue += 'Z';", $script);
     }
 }

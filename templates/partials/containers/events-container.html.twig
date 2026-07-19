@@ -10,6 +10,7 @@
             <option value="critical">Critical</option>
             <option value="error">Error</option>
             <option value="warning">Warning</option>
+            <option value="info">Info</option>
         </select>
         <select id="filter-app">
             <option value="">All Apps</option>
@@ -23,117 +24,7 @@
         <input id="filter-msg" type="text" placeholder="Message">
 
         <button class="button" id="filter-clear">Clear Filter</button>
-
     </div>
 
-    <div id="events-table"></div>
+    <div id="events-table" data-events-url="{{ endpoints.events_json }}"></div>
 </div>
-<script>
-
-    var table = new Tabulator("#events-table", {
-        ajaxURL: "{{ endpoints.events_json }}",
-        layout:"fitDataStretch",
-        height:"1200px",
-        pagination: "local",
-        paginationSize:33,
-        paginationCounter:"rows",
-        ajaxResponse: function (url, params, response) {
-            if (window.mataPopulateSelectFromRows) {
-                window.mataPopulateSelectFromRows("filter-app", response, "app", "All Apps");
-                window.mataPopulateSelectFromRows("filter-server", response, "server", "All Servers");
-            }
-            return response;
-        },
-        columns: [
-        {title: "ID", field: "id", sorter: "number", hozAlign:"center", },
-        {title: "Datetime", field: "datetime", sorter: "datetime", hozAlign:"center", formatter:function(cell){
-            var value = String(cell.getValue() || "");
-            var isoValue = value.includes("T") ? value : value.replace(" ", "T");
-            if (!/(?:Z|[+-]\d{2}:?\d{2})$/i.test(isoValue)) {
-                isoValue += "Z";
-            }
-
-            var date = new Date(isoValue);
-            if (Number.isNaN(date.getTime())) {
-                return value;
-            }
-
-            return date.toISOString().slice(0, 16).replace("T", " ") + " UTC";
-        },
-        {title: "Server", field: "server", sorter: "string", hozAlign:"center"},
-        {title: "App", field: "app", sorter: "string", hozAlign:"center"},
-        {title:"Level", field:"level", hozAlign:"center", formatter: window.mataFormatLevel},
-        {title: "Type", field: "type", sorter: "string",  formatter:function(cell, formatterParams){
-        var value = cell.getValue();
-        return "<span style='font-weight:bold;'>" + value + "</span>";
-        }},
-        {title: "Message", field: "message", sorter: "string"},
-        {title: "Context", field: "context", sorter: "string"},
-        ],
-    });
-
-
-    Tabulator.extendModule("filter", "filters", {
-        "===":function(headerValue, rowValue, rowData, filterParams){
-            //headerValue - the value of the header filter element
-            //rowValue - the value of the column in this row
-            //rowData - the data for the row being filtered
-            //filterParams - params object passed to the headerFilterFuncParams property
-
-            return rowVal === headerValue ? true : false;
-        }
-    });
-
-    // const fmt = "yyyy-MM-dd HH:mm:ss";
-    // const toJSDate = s => DateTime.fromFormat(s, fmt).toJSDate();
-
-    /* --- helper that reads the inputs and applies all active filters in one call --- */
-    function applyFilters(){
-        const filters = [];
-        const idVal     = document.getElementById("filter-id").value.trim();
-        const levelVal  = document.getElementById("filter-level").value;
-        const appVal    = document.getElementById("filter-app").value;
-        const serverVal = document.getElementById("filter-server").value;
-        const typeVal   = document.getElementById("filter-type").value.trim();
-        const msgVal   = document.getElementById("filter-msg").value.trim();
-        const timeVal   = document.getElementById("filter-time").value.trim();
-        // const fromVal = document.getElementById("filter-from").value;      // yyyy-MM-ddTHH:mm
-        // const toVal   = document.getElementById("filter-to").value;
-
-        if(idVal)    filters.push({field:"id",    type:"like", value:idVal});
-        if(levelVal) filters.push({field:"level", type:"=",    value:levelVal});
-        if(appVal)   filters.push({field:"app", type:"like", value:appVal});
-        if(serverVal) filters.push({field:"server", type:"like", value:serverVal});
-        if(typeVal)  filters.push({field:"type",  type:"like", value:typeVal});
-        if(msgVal)  filters.push({field:"message",  type:"like", value:msgVal});
-        if(timeVal)  filters.push({field:"datetime",  type:"like", value:timeVal});
-
-        /* time range (works because Tabulator's datetime sorter uses Luxon behind the scenes) */
-        // if(fromVal) filters.push({field:"datetime", type:">=",  value:new Date(fromVal)});
-        // if(toVal)   filters.push({field:"datetime", type:"<=",  value:new Date(toVal)});
-        // if(fromVal) filters.push({field:"datetime", type:"like",  value:fromVal});
-        // if(toVal)   filters.push({field:"datetime", type:"like",  value:toVal});
-
-        table.setFilter(filters);
-    }
-
-    /* --- wire the UI --- */
-    ["filter-id","filter-type","filter-time","filter-msg"].forEach(id=>{
-        document.getElementById(id).addEventListener("input", applyFilters);
-    });
-    document.getElementById("filter-level").addEventListener("change", applyFilters);
-    ["filter-app","filter-server"].forEach(id=>{
-        document.getElementById(id).addEventListener("change", applyFilters);
-    });
-
-    /* --- update Clear button --- */
-    document.getElementById("filter-clear").addEventListener("click", () => {
-        ["filter-id","filter-type","filter-time","filter-msg"].forEach(id=>{
-            document.getElementById(id).value = "";
-        });
-        document.getElementById("filter-level").value = "";
-        document.getElementById("filter-app").value = "";
-        document.getElementById("filter-server").value = "";
-        table.clearFilter();
-    });
-</script>
