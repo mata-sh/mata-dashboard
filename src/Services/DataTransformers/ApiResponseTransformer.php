@@ -161,9 +161,12 @@ class ApiResponseTransformer
                 $statusUrl = $this->normalizeOptionalStatusUrl($appData);
                 $status = $appData['status'] ?? null;
                 $logs = $appData['logs'] ?? null;
+                $composerEnabled = array_key_exists('composer', $appData)
+                    ? TypeConverter::toBool($appData['composer'])
+                    : false;
 
                 if ($title === null || $path === null || $url === null || !in_array($env, ['dev', 'test', 'stg', 'live'], true)
-                    || $statusUrl === false || !is_array($status) || !is_array($logs)) {
+                    || $statusUrl === false || !is_array($status) || !is_array($logs) || $composerEnabled === null) {
                     throw new InvalidNodePayloadException("Node returned an invalid application payload for {$appName}.", 'apps');
                 }
 
@@ -189,6 +192,7 @@ class ApiResponseTransformer
                     'url' => $url,
                     'env' => $env,
                     'description' => $description,
+                    'composer' => $composerEnabled,
                     'status' => ['fatal' => $fatal, 'warnings' => $warnings, 'total' => $total],
                     'logs' => $normalizedLogs,
                     'session' => $this->normalizeSessionData(

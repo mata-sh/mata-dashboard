@@ -196,7 +196,7 @@ class AuditController extends BaseController
 
         $names = [];
         foreach ($apps as $name => $app) {
-            if (is_string($name) && $name !== '') {
+            if (is_string($name) && $name !== '' && is_array($app) && ($app['composer'] ?? false) === true) {
                 $names[] = $name;
             }
         }

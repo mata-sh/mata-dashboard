@@ -1425,6 +1425,7 @@ class MockServerDataCollector implements ServerDataCollectorInterface
                 'url' => rtrim($this->serverConfig['url'], '/') . '/' . $template['path'],
                 'status_url' => rtrim($this->serverConfig['url'], '/') . '/' . $template['path'] . '/status.php',
                 'env' => $environment,
+                'composer' => true,
                 'status' => [
                     'fatal' => $fatalCount,
                     'warnings' => $warningCount,

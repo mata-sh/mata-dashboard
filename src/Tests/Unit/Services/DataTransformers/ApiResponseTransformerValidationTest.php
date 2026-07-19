@@ -31,6 +31,7 @@ final class ApiResponseTransformerValidationTest extends TestCase
                 'path' => '/var/www/shop',
                 'url' => 'https://shop.example.test',
                 'env' => 'live',
+                'composer' => true,
                 'status_url' => 'https://shop.example.test/health/',
                 'status' => ['fatal' => '1', 'warnings' => 2, 'total' => '3'],
                 'logs' => ['logs/error.log' => '42'],
@@ -53,6 +54,7 @@ final class ApiResponseTransformerValidationTest extends TestCase
         $this->assertSame(['fatal' => 1, 'warnings' => 2, 'total' => 3], $response['result']['shop']['status']);
         $this->assertSame(42, $response['result']['shop']['logs']['logs/error.log']);
         $this->assertSame(4, $response['result']['shop']['session']['count_last_hour']);
+        $this->assertTrue($response['result']['shop']['composer']);
         $this->assertNull($response['result']['shop']['session']['count_last_day']);
     }
 
@@ -80,6 +82,7 @@ final class ApiResponseTransformerValidationTest extends TestCase
 
         $this->assertNull($response['error']);
         $this->assertSame('stg', $response['result']['staging-shop']['env']);
+        $this->assertFalse($response['result']['staging-shop']['composer']);
     }
 
     public function testNullStatusUrlIsAccepted(): void
