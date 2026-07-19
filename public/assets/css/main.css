@@ -2155,7 +2155,7 @@ label.audit-chip:has(input:checked)::after {
     width: 8px;
     height: 2px;
     content: '';
-    background: #2f6f7d;
+    background: #8b93a5;
     border-radius: 2px;
     transform: translateX(-50%);
 }
