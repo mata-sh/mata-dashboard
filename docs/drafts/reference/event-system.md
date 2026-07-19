@@ -511,12 +511,12 @@ Dashboard login authentication failure.
 
 ### Cronjob Events
 
-#### `cronjob_heartbeat_missing`
+#### `cronjobs_failing`
 Expected cronjob execution not detected.
 
 **Severity:** Warning or Critical
 
-**Event Type:** `cronjob_heartbeat_missing`
+**Event Type:** `cronjobs_failing`
 
 **Details:**
 ```json
@@ -533,7 +533,7 @@ Expected cronjob execution not detected.
 ```json
 {
     "alarms": {
-        "cronjob_heartbeat_missing": {
+        "cronjobs_failing": {
             "alarm_threshold_event_count": 1,
             "alarm_threshold_window_minutes": 30,
             "min_alarm_interval_minutes": 360

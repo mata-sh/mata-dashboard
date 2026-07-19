@@ -237,7 +237,7 @@ class ServerMonitor
         }
 
         $this->eventManager->handleEvent(
-            type: 'cronjob_heartbeat_missing',
+            type: 'cronjobs_failing',
             message: "Cronjobs failing ({$failed}/{$total}, stale: {$stale}, missing: {$missing}) on Server: {$server}",
             level: 'critical',
             server: $server

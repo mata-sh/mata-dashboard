@@ -322,7 +322,7 @@ Number of failed cronjobs (`total - working`).
 }
 ```
 
-Threshold comparison is strict (`>`): zero failed cronjobs resolves to `good`; one or more failed cronjobs resolves to `alarm`. An alarm-level result emits a critical `cronjob_heartbeat_missing` event.
+Threshold comparison is strict (`>`): zero failed cronjobs resolves to `good`; one or more failed cronjobs resolves to `alarm`. An alarm-level result emits a critical `cronjobs_failing` event.
 
 ### Resource usage alarm producers
 An alarm-level `cpu_usage` result emits a critical `cpu_usage_too_high` event. An alarm-level `ram_usage_percent` result emits a critical `ram_usage_too_high` event.
@@ -758,13 +758,13 @@ Missing servers.json configuration alarm.
 
 ---
 
-### cronjob_heartbeat_missing
+### cronjobs_failing
 Missing cronjob execution alarm.
 
 **Default Configuration:**
 ```json
 {
-    "cronjob_heartbeat_missing": {
+    "cronjobs_failing": {
         "alarm_threshold_event_count": 1,
         "alarm_threshold_window_minutes": 30,
         "min_alarm_interval_minutes": 360
@@ -858,7 +858,7 @@ Missing cronjob execution alarm.
             "alarm_threshold_window_minutes": 180,
             "min_alarm_interval_minutes": 1440
         },
-        "cronjob_heartbeat_missing": {
+        "cronjobs_failing": {
             "alarm_threshold_event_count": 1,
             "alarm_threshold_window_minutes": 30,
             "min_alarm_interval_minutes": 360

@@ -24,6 +24,36 @@ test_fatal_errors_occurring_in_non_prod_is_denied if {
     decision.reason == "no_rule_match"
 }
 
+test_fatal_errors_occurring_in_staging_is_denied if {
+    decision := alarms.decision with input as {
+        "event": {"type": "fatal_errors_occurring"},
+        "application": {"env": "Staging"},
+    }
+
+    decision.allow == false
+    decision.reason == "no_rule_match"
+}
+
+test_fatal_errors_occurring_without_app_context_is_allowed if {
+    decision := alarms.decision with input as {
+        "event": {"type": "fatal_errors_occurring"},
+    }
+
+    decision.allow == true
+    decision.priority == 10
+    decision.reason == "fatal_errors_prod"
+}
+
+test_fatal_errors_occurring_with_unrecognized_env_is_allowed if {
+    decision := alarms.decision with input as {
+        "event": {"type": "fatal_errors_occurring"},
+        "application": {"env": "production"},
+    }
+
+    decision.allow == true
+    decision.reason == "fatal_errors_prod"
+}
+
 test_monitored_critical_is_allowed if {
     decision := alarms.decision with input as {
         "event": {"type": "cpu_usage_too_high", "level": "critical"},

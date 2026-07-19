@@ -219,7 +219,7 @@ final class ServerMonitorTest extends TestCase
             ->expects($this->once())
             ->method('handleEvent')
             ->with(
-                'cronjob_heartbeat_missing',
+                'cronjobs_failing',
                 'Cronjobs failing (1/3, stale: 1, missing: 0) on Server: cron-server',
                 [],
                 'critical',

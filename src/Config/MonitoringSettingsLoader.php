@@ -223,7 +223,7 @@ final class MonitoringSettingsLoader
                 'min_event_interval_minutes' => [
                     '_default' => 60,
                     'app_unreachable' => 15,
-                    'cronjob_heartbeat_missing' => 30,
+                    'cronjobs_failing' => 30,
                     'filecount_too_large' => 72,
                     'logfile_too_large' => 12,
                     'too_many_sql_connections' => 72,
@@ -238,7 +238,7 @@ final class MonitoringSettingsLoader
                 'min_alarm_interval_minutes' => [
                     '_default' => 1440,
                     'app_unreachable' => 60,
-                    'cronjob_heartbeat_missing' => 360,
+                    'cronjobs_failing' => 360,
                     'filecount_too_large' => 60,
                     'logfile_too_large' => 720,
                     'too_many_sql_connections' => 60,
@@ -656,7 +656,7 @@ final class MonitoringSettingsLoader
         return [
             '_default' => ['min_event_interval_minutes' => 60],
             'app_unreachable' => ['min_event_interval_minutes' => 15],
-            'cronjob_heartbeat_missing' => ['min_event_interval_minutes' => 30],
+            'cronjobs_failing' => ['min_event_interval_minutes' => 30],
             'filecount_too_large' => ['min_event_interval_minutes' => 72],
             'logfile_too_large' => ['min_event_interval_minutes' => 12],
             'too_many_sql_connections' => ['min_event_interval_minutes' => 72],
