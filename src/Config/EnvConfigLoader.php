@@ -319,11 +319,11 @@ final class EnvConfigLoader
             ];
         }
 
-        // Mail configuration warnings
+        // The mailer is initialized during application bootstrap.
         if (empty($config->mail->dsn)) {
-            $warnings[] = [
+            $criticalErrors[] = [
                 'identifier' => 'config.mail.dsn.missing',
-                'message' => 'Mail DSN not configured - email notifications will not work',
+                'message' => 'Mail DSN is required but missing from configuration',
             ];
         }
         if (empty($config->mail->fromEmail)) {

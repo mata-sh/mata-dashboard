@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Mata\Tests\Unit\Utils;
 
 use Mata\Config\EnvConfigLoader;
+use Mata\Tests\Helpers\ApplicationConfigFactory;
 use Mata\Tests\TestCase;
 
 /**
@@ -101,6 +102,21 @@ class EnvConfigLoaderTest extends TestCase
                 $_ENV['MAIL_DASHBOARD_URL'] = $previous;
             }
         }
+    }
+
+    public function testItTreatsMissingMailerDsnAsCritical(): void
+    {
+        $config = ApplicationConfigFactory::create(
+            mail: ApplicationConfigFactory::createMailConfig()
+        );
+
+        $result = $this->configLoader->validateConfig($config);
+
+        $this->assertFalse($result['is_valid']);
+        $this->assertContains([
+            'identifier' => 'config.mail.dsn.missing',
+            'message' => 'Mail DSN is required but missing from configuration',
+        ], $result['critical_errors']);
     }
 
     /**
