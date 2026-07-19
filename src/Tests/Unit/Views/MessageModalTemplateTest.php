@@ -32,15 +32,15 @@ final class MessageModalTemplateTest extends TestCase
         $this->assertStringContainsString('messageElement.textContent = message === null || message === undefined ? \'\' : String(message);', $modalScript);
         $this->assertStringNotContainsString('innerHTML', $modalScript);
         $this->assertStringNotContainsString('fetch(', $modalScript);
-        $this->assertStringContainsString("htmx:beforeSwap", $modalScript);
+        $this->assertStringContainsString('htmx:beforeSwap', $modalScript);
         $this->assertStringContainsString("target.id === 'main-section'", $modalScript);
         $this->assertStringContainsString('closeMessageModal(false)', $modalScript);
 
         foreach (['events-table.js', 'alarms-table.js'] as $filename) {
             $script = (string) file_get_contents(__DIR__ . '/../../../../public/assets/js/' . $filename);
 
-            $this->assertStringContainsString("Array.from(message).length > 50", $script);
-            $this->assertStringContainsString("window.mataOpenMessageModal(message", $script);
+            $this->assertStringContainsString('Array.from(message).length > 50', $script);
+            $this->assertStringContainsString('window.mataOpenMessageModal(message', $script);
             $this->assertStringNotContainsString('toggleMessage', $script);
         }
     }

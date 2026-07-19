@@ -388,7 +388,14 @@ class MockServerDataCollector implements ServerDataCollectorInterface
             $groupedLogs[$logFile] = $entries;
         }
 
-        return $this->dataTransformer->normalizeApiResponse($groupedLogs, $this->cacheAge, $ttlSeconds, false);
+        return $this->dataTransformer->normalizeApiResponse(
+            ['entries' => $groupedLogs, 'readout_limit' => 200],
+            $this->cacheAge,
+            $ttlSeconds,
+            false,
+            false,
+            "{$app}/logs"
+        );
     }
 
     /**

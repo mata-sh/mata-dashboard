@@ -424,7 +424,12 @@ class ModalControllerTest extends TestCase
             ->with($app, $this->anything())
             ->willReturn([
                 'result' => [
-                    ['level' => 'ERROR', 'message' => 'Test error', 'timestamp' => '2024-01-01 12:00:00'],
+                    'entries' => [
+                        'logs/php-error.log' => [
+                            ['level' => 'ERROR', 'message' => 'Test error', 'timestamp' => '2024-01-01 12:00:00'],
+                        ],
+                    ],
+                    'readout_limit' => 200,
                 ],
                 'cache_age' => 30,
                 'cache_ttl' => 60,
@@ -435,11 +440,13 @@ class ModalControllerTest extends TestCase
 
         $expectedHtml = '<div class="modal">Error log content</div>';
         $this->mockTwig->method('render')
-            ->willReturnCallback(function (string $template) use ($expectedHtml) {
+            ->willReturnCallback(function (string $template, array $data) use ($expectedHtml) {
                 if ($template === 'partials/components/logs-table.html.twig') {
                     return '<div>Table</div>';
                 }
                 if ($template === 'partials/modals/logs-modal.html.twig') {
+                    $this->assertSame(200, $data['logs']['readout_limit']);
+
                     return $expectedHtml;
                 }
 
@@ -504,67 +511,37 @@ class ModalControllerTest extends TestCase
      * instead of rendered HTML. This tests that the controller can return
      * error log data as JSON when requested.
      */
-    public function testItReturnsLogsAsJsonWhenRequested(): void
+    public function testItUnwrapsLogEntriesMetadataForTheJsonEndpoint(): void
     {
         $server = 'server1';
         $app = 'test-app';
-        $errorLogData = [
-            ['level' => 'ERROR', 'message' => 'Test error'],
+        $entries = [
+            'logs/php-error.log' => [
+                ['type' => 'Error', 'message' => 'Test error', 'timestamp' => '2024-01-01 12:00:00'],
+            ],
         ];
 
         $mockCollector = $this->createMockServerDataCollector($server);
         $mockCollector->expects($this->once())
             ->method('fetchAppLogs')
             ->willReturn([
-                'result' => $errorLogData,
+                'result' => ['entries' => $entries, 'readout_limit' => 200],
                 'cache_age' => 30,
                 'cache_ttl' => 60,
             ])
         ;
-
         $this->injectMockCollector($server, $mockCollector);
 
-        $response = $this->controller->getAppLogsJson($server, $app);
-
-        $this->assertInstanceOf(JsonResponse::class, $response);
-        $this->assertEquals($errorLogData, $response->getData());
-    }
-
-    /**
-     * @test
-     *
-     * @group modal-controller
-     * @group logs-modal
-     * @group json-endpoint
-     *
-     * Tests dedicated JSON error log endpoint.
-     * Separate methods for HTML vs JSON provide clearer semantics.
-     */
-    public function testItReturnsLogsJsonViaDedicatedEndpoint(): void
-    {
-        $server = 'server1';
-        $app = 'test-app';
-        $errorLogData = [
-            ['level' => 'WARNING', 'message' => 'Warning message'],
-            ['level' => 'ERROR', 'message' => 'Error message'],
-        ];
-
-        $mockCollector = $this->createMockServerDataCollector($server);
-        $mockCollector->expects($this->once())
-            ->method('fetchAppLogs')
-            ->willReturn([
-                'result' => $errorLogData,
-                'cache_age' => 15,
-                'cache_ttl' => 60,
-            ])
+        $this->mockLogTransformer->expects($this->once())
+            ->method('flattenGroupedLogs')
+            ->with($entries)
+            ->willReturn($entries)
         ;
 
-        $this->injectMockCollector($server, $mockCollector);
-
         $response = $this->controller->getAppLogsJson($server, $app);
 
         $this->assertInstanceOf(JsonResponse::class, $response);
-        $this->assertEquals($errorLogData, $response->getData());
+        $this->assertSame($entries, $response->getData());
     }
 
     /**
@@ -601,7 +578,7 @@ class ModalControllerTest extends TestCase
             ->method('fetchAppLogs')
             ->with($app, $this->anything())
             ->willReturn([
-                'result' => $groupedLogs,
+                'result' => ['entries' => $groupedLogs, 'readout_limit' => 200],
                 'cache_age' => 15,
                 'cache_ttl' => 60,
             ])

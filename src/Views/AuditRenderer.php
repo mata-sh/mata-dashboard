@@ -22,7 +22,7 @@ class AuditRenderer extends BaseRenderer
     }
 
     /**
-     * @param array<string,mixed> $summary
+     * @param array<string,mixed>    $summary
      * @param null|array<int,string> $selectedTargets
      */
     public function renderSummaryAndTargets(array $summary, ?array $selectedTargets): string

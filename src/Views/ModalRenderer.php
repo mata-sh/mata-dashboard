@@ -63,11 +63,12 @@ class ModalRenderer extends BaseRenderer
     /**
      * Build template data for logs modal.
      *
-     * @param string              $server    Server name
-     * @param string              $app       Application name
-     * @param int                 $cacheAge  Cache age in seconds
-     * @param int                 $cacheTtl  Cache TTL in seconds
-     * @param array<string,mixed> $endpoints Pre-built endpoint URLs
+     * @param string              $server       Server name
+     * @param string              $app          Application name
+     * @param int                 $cacheAge     Cache age in seconds
+     * @param int                 $cacheTtl     Cache TTL in seconds
+     * @param array<string,mixed> $endpoints    Pre-built endpoint URLs
+     * @param int                 $readoutLimit Maximum entries returned per log file
      *
      * @return array<string,mixed> Template data array
      */
@@ -76,13 +77,17 @@ class ModalRenderer extends BaseRenderer
         string $app,
         int $cacheAge,
         int $cacheTtl,
-        array $endpoints
+        array $endpoints,
+        int $readoutLimit
     ): array {
         $logsTableHtml = $this->renderLogsTable($server, $app, $endpoints);
 
         return [
             'content' => [
                 'modal_content' => $logsTableHtml,
+            ],
+            'logs' => [
+                'readout_limit' => $readoutLimit,
             ],
             'app' => [
                 'server' => $server,
@@ -303,11 +308,12 @@ class ModalRenderer extends BaseRenderer
     /**
      * Render complete logs modal.
      *
-     * @param string              $server    Server name
-     * @param string              $app       Application name
-     * @param int                 $cacheAge  Cache age in seconds
-     * @param int                 $cacheTtl  Cache TTL in seconds
-     * @param array<string,mixed> $endpoints Pre-built endpoint URLs
+     * @param string              $server       Server name
+     * @param string              $app          Application name
+     * @param int                 $cacheAge     Cache age in seconds
+     * @param int                 $cacheTtl     Cache TTL in seconds
+     * @param array<string,mixed> $endpoints    Pre-built endpoint URLs
+     * @param int                 $readoutLimit Maximum entries returned per log file
      *
      * @return string Rendered modal HTML
      */
@@ -316,9 +322,10 @@ class ModalRenderer extends BaseRenderer
         string $app,
         int $cacheAge,
         int $cacheTtl,
-        array $endpoints
+        array $endpoints,
+        int $readoutLimit
     ): string {
-        $data = $this->buildLogsModalData($server, $app, $cacheAge, $cacheTtl, $endpoints);
+        $data = $this->buildLogsModalData($server, $app, $cacheAge, $cacheTtl, $endpoints, $readoutLimit);
 
         try {
             return $this->twig->render('partials/modals/logs-modal.html.twig', $data);

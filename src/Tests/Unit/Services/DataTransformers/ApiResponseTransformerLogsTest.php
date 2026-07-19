@@ -16,7 +16,7 @@ use Psr\Log\NullLogger;
  */
 final class ApiResponseTransformerLogsTest extends TestCase
 {
-    public function testNormalizeAppLogsKeepsGroupedEntriesIntact(): void
+    public function testNormalizeAppLogsRejectsPayloadWithoutReadoutMetadata(): void
     {
         $logs = [
             'logs/php-error.log' => [
@@ -35,12 +35,12 @@ final class ApiResponseTransformerLogsTest extends TestCase
             path: 'test-app/logs',
         );
 
-        $this->assertSame($logs, $response['result']);
+        $this->assertSame('Node returned invalid application log metadata.', $response['error']['message'] ?? null);
     }
 
     public function testNormalizeAppLogsSubPathKeepsGroupedEntriesIntact(): void
     {
-        $logs = [
+        $entries = [
             'logs/php-error.log' => [
                 [
                     'timestamp' => '2026-07-09 12:00:00',
@@ -53,16 +53,38 @@ final class ApiResponseTransformerLogsTest extends TestCase
         $transformer = new ApiResponseTransformer(new NullLogger());
 
         $response = $transformer->normalizeApiResponse(
-            data: $logs,
+            data: ['entries' => $entries, 'readout_limit' => 200],
             path: 'test-app/logs/php-error.log',
         );
 
-        $this->assertSame($logs, $response['result']);
+        $this->assertSame(['entries' => $entries, 'readout_limit' => 200], $response['result']);
+    }
+
+    public function testNormalizeAppLogsKeepsReadoutLimitMetadata(): void
+    {
+        $entries = [
+            'logs/php-error.log' => [
+                [
+                    'timestamp' => '2026-07-09 12:00:00',
+                    'type' => 'Error',
+                    'message' => 'Boom',
+                ],
+            ],
+        ];
+
+        $transformer = new ApiResponseTransformer(new NullLogger());
+
+        $response = $transformer->normalizeApiResponse(
+            data: ['entries' => $entries, 'readout_limit' => 200],
+            path: 'test-app/logs',
+        );
+
+        $this->assertSame(['entries' => $entries, 'readout_limit' => 200], $response['result']);
     }
 
     public function testNormalizeAppLogsDropsStringifiedGroupWithWarning(): void
     {
-        $logs = [
+        $entries = [
             'logs/php-error.log' => [
                 [
                     'timestamp' => '2026-07-09 12:00:00',
@@ -72,8 +94,8 @@ final class ApiResponseTransformerLogsTest extends TestCase
             ],
             'old.log' => 'Error: boom',
         ];
-        $expectedLogs = [
-            'logs/php-error.log' => $logs['logs/php-error.log'],
+        $expectedEntries = [
+            'logs/php-error.log' => $entries['logs/php-error.log'],
         ];
 
         $logger = $this->createMock(LoggerInterface::class);
@@ -87,11 +109,11 @@ final class ApiResponseTransformerLogsTest extends TestCase
         $transformer = new ApiResponseTransformer($logger);
 
         $response = $transformer->normalizeApiResponse(
-            data: $logs,
+            data: ['entries' => $entries, 'readout_limit' => 200],
             path: 'test-app/logs',
         );
 
-        $this->assertSame($expectedLogs, $response['result']);
+        $this->assertSame(['entries' => $expectedEntries, 'readout_limit' => 200], $response['result']);
     }
 
     public function testNormalizeAppLogsDropsAllStringifiedGroups(): void
@@ -100,13 +122,16 @@ final class ApiResponseTransformerLogsTest extends TestCase
 
         $response = $transformer->normalizeApiResponse(
             data: [
-                'old.log' => 'Error: boom',
-                'access.log' => 'GET /',
+                'entries' => [
+                    'old.log' => 'Error: boom',
+                    'access.log' => 'GET /',
+                ],
+                'readout_limit' => 200,
             ],
             path: 'test-app/logs',
         );
 
-        $this->assertSame([], $response['result']);
+        $this->assertSame(['entries' => [], 'readout_limit' => 200], $response['result']);
     }
 
     public function testLogsStatusPathIsNotTreatedAsAppLogs(): void

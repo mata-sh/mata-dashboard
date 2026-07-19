@@ -157,7 +157,6 @@ class ModalController extends BaseController
             $apiClient,
             $dataTransformer
         );
-
     }
 
     /**
@@ -257,7 +256,8 @@ class ModalController extends BaseController
                     $app,
                     $logsResponse['cache_age'] ?? 0,
                     $logsResponse['cache_ttl'] ?? 0,
-                    $endpoints
+                    $endpoints,
+                    (int) ($logsResponse['result']['readout_limit'] ?? 0)
                 );
 
                 return new HtmlResponse($html);
@@ -343,7 +343,7 @@ class ModalController extends BaseController
                     "logs of {$app} on {$server}"
                 );
 
-                $groupedLogs = $logsResponse['result'] ?? [];
+                $groupedLogs = $logsResponse['result']['entries'] ?? [];
 
                 // Transform to flat structure with source field
                 $flatLogs = $this->logTransformer->flattenGroupedLogs($groupedLogs);

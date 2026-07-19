@@ -462,20 +462,33 @@ class ApiResponseTransformer
         ];
     }
 
-    /** @param array<string,mixed> $data */
+    /**
+     * @param array<string,mixed> $data
+     *
+     * @throws InvalidNodePayloadException When the node payload is invalid
+     */
     public function normalizeAppLogs(array $data): array
     {
-        foreach ($data as $filePath => $entries) {
-            if (!is_array($entries)) {
+        $entries = $data['entries'] ?? null;
+        $readoutLimit = TypeConverter::toInt($data['readout_limit'] ?? null);
+        if (!is_array($entries) || $readoutLimit === null || $readoutLimit < 1) {
+            throw new InvalidNodePayloadException('Node returned invalid application log metadata.', 'logs');
+        }
+
+        foreach ($entries as $filePath => $group) {
+            if (!is_array($group)) {
                 $this->logger->warning('App log group is not an array, dropping', [
                     'file' => $filePath,
-                    'type' => gettype($entries),
+                    'type' => gettype($group),
                 ]);
-                unset($data[$filePath]);
+                unset($entries[$filePath]);
             }
         }
 
-        return $data;
+        return [
+            'entries' => $entries,
+            'readout_limit' => $readoutLimit,
+        ];
     }
 
     /** @param array<string,mixed> $data */

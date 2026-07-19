@@ -6,6 +6,11 @@
     wide: true
 } %}
   {% block modal_body %}
+    {% if logs.readout_limit %}
+      <div class="notification is-info is-light">
+        Showing the latest {{ logs.readout_limit|number_format }} parsed entries per log file. Older entries are not available in this modal.
+      </div>
+    {% endif %}
     {{ content.modal_content|raw }}
   {% endblock %}
 {% endembed %}
