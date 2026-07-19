@@ -1,0 +1,4 @@
+{% include 'partials/audit/audit-summary.html.twig' %}
+<div id="audit-targets-list" hx-swap-oob="innerHTML">
+  {% include 'partials/audit/audit-targets.html.twig' with { selected_targets: selected_targets } %}
+</div>

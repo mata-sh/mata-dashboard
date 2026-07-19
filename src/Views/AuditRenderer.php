@@ -21,11 +21,15 @@ class AuditRenderer extends BaseRenderer
         ]);
     }
 
-    /** @param array<string,mixed> $summary */
-    public function renderSummary(array $summary): string
+    /**
+     * @param array<string,mixed> $summary
+     * @param null|array<int,string> $selectedTargets
+     */
+    public function renderSummaryAndTargets(array $summary, ?array $selectedTargets): string
     {
-        return $this->twig->render('partials/audit/audit-summary.html.twig', [
+        return $this->twig->render('partials/audit/audit-summary-and-targets.html.twig', [
             'summary' => $this->prepareSummary($summary),
+            'selected_targets' => $selectedTargets,
         ]);
     }
 

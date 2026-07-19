@@ -91,7 +91,7 @@ class AuditController extends BaseController
     {
         $summary = $this->buildSummary();
         if (($_GET['part'] ?? null) === 'summary') {
-            return new HtmlResponse($this->auditRenderer->renderSummary($summary));
+            return new HtmlResponse($this->auditRenderer->renderSummaryAndTargets($summary, $this->selectedTargets()));
         }
 
         return new HtmlResponse($this->auditRenderer->renderSection($summary, [
@@ -156,6 +156,21 @@ class AuditController extends BaseController
         }
 
         return $this->auditAggregator->summarize($serverAppAudits);
+    }
+
+    /** @return null|array<int,string> Null when no selection was included in the request. */
+    private function selectedTargets(): ?array
+    {
+        if (!array_key_exists('targets_present', $_GET)) {
+            return null;
+        }
+
+        $requestedTargets = $_GET['targets'] ?? [];
+        if (!is_array($requestedTargets)) {
+            return [];
+        }
+
+        return array_values(array_filter($requestedTargets, 'is_string'));
     }
 
     private function isValidTarget(string $server, string $app): bool
