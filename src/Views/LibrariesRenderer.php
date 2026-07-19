@@ -23,6 +23,7 @@ class LibrariesRenderer extends BaseRenderer
         return $this->twig->render('partials/containers/libraries-container.html.twig', [
             'endpoints' => [
                 'libraries_json' => $endpoints->url('libraries_json'),
+                'libraries_render' => $endpoints->url('libraries_render'),
                 'audit_section' => $endpoints->url('audit_section_render'),
             ],
             'filters' => [

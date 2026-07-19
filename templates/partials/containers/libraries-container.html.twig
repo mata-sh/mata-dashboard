@@ -22,6 +22,7 @@
       <span class="toggle-text">vulnerable only</span>
     </label>
     <button class="button" id="filter-clear">Clear Filter</button>
+    <button type="button" class="button" hx-get="{{ endpoints.libraries_render }}" hx-target="#main-section" hx-swap="innerHTML">Refresh</button>
   </div>
 
   <div id="libraries-errors" class="server-fetch-error" hidden></div>
