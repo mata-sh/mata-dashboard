@@ -10,7 +10,9 @@ MATA Dashboard uses threshold-based monitoring to detect and alarm on resource u
 
 ### Threshold Hierarchy
 
-Each metric has four threshold levels that define monitoring states:
+Metrics may configure any non-empty subset of these four levels. Configured values must be numeric and ascend in this order: `good < warn < critical < alarm`.
+
+Each level defines a monitoring state:
 
 | Level | Purpose | Color | Action |
 |-------|---------|-------|--------|
@@ -20,6 +22,8 @@ Each metric has four threshold levels that define monitoring states:
 | **Alarm** | Immediate attention required | Red | Take action now |
 
 ### Threshold Evaluation
+
+The resolver evaluates only configured levels and returns the highest configured level whose threshold the value exceeds.
 
 **Ascending Metrics** (higher is worse):
 - CPU usage percentage
@@ -57,6 +61,8 @@ cp config/example/thresholds.json.example config/thresholds.json
 ```
 
 ### Schema Structure
+
+Each metric object may contain any non-empty subset of `good`, `warn`, `critical`, and `alarm`.
 
 ```json
 {
@@ -298,6 +304,28 @@ Disk space utilization percentage.
 - Reserve 10-20% free space for optimal performance
 - Monitor growth rate, not just absolute usage
 - Plan expansion when reaching warn threshold
+
+---
+
+### cronjobs_failed_count
+Number of failed cronjobs (`total - working`).
+
+**Metric:** Failed cronjob count
+
+**Configuration Example:**
+```json
+{
+    "cronjobs_failed_count": {
+        "good": -1,
+        "alarm": 0
+    }
+}
+```
+
+Threshold comparison is strict (`>`): zero failed cronjobs resolves to `good`; one or more failed cronjobs resolves to `alarm`. An alarm-level result emits a critical `cronjob_heartbeat_missing` event.
+
+### Resource usage alarm producers
+An alarm-level `cpu_usage` result emits a critical `cpu_usage_too_high` event. An alarm-level `ram_usage_percent` result emits a critical `ram_usage_too_high` event.
 
 ---
 
@@ -639,13 +667,13 @@ System file count threshold alarm.
 
 ---
 
-### remaining_disk_space_too_low
+### remaining_diskspace_too_low
 Low disk space alarm.
 
 **Default Configuration:**
 ```json
 {
-    "remaining_disk_space_too_low": {
+    "remaining_diskspace_too_low": {
         "alarm_threshold_event_count": 1,
         "alarm_threshold_window_minutes": 60,
         "min_alarm_interval_minutes": 180
@@ -664,7 +692,7 @@ Low disk space alarm.
 **Production Database Server:**
 ```json
 {
-    "remaining_disk_space_too_low": {
+    "remaining_diskspace_too_low": {
         "alarm_threshold_event_count": 1,
         "alarm_threshold_window_minutes": 30,
         "min_alarm_interval_minutes": 60
@@ -676,7 +704,7 @@ Low disk space alarm.
 **Development Server:**
 ```json
 {
-    "remaining_disk_space_too_low": {
+    "remaining_diskspace_too_low": {
         "alarm_threshold_event_count": 2,
         "alarm_threshold_window_minutes": 120,
         "min_alarm_interval_minutes": 360
@@ -815,7 +843,7 @@ Missing cronjob execution alarm.
             "alarm_threshold_window_minutes": 720,
             "min_alarm_interval_minutes": 60
         },
-        "remaining_disk_space_too_low": {
+        "remaining_diskspace_too_low": {
             "alarm_threshold_event_count": 1,
             "alarm_threshold_window_minutes": 60,
             "min_alarm_interval_minutes": 180

@@ -30,11 +30,9 @@
             "critical": 80,
             "alarm": 90
         },
-        "cronjobs_failed_percent": {
+        "cronjobs_failed_count": {
             "good": -1,
-            "warn": 25,
-            "critical": 50,
-            "alarm": 99
+            "alarm": 0
         }
     },
     "app_data": {
@@ -64,10 +62,6 @@
             "alarm_threshold_event_count": 3,
             "alarm_threshold_window_minutes": 60
         },
-        "orders_export_stale": {
-            "alarm_threshold_event_count": 1,
-            "alarm_threshold_window_minutes": 60
-        },
         "cronjob_heartbeat_missing": {
             "alarm_threshold_event_count": 1,
             "alarm_threshold_window_minutes": 360
@@ -88,13 +82,21 @@
             "alarm_threshold_event_count": 1,
             "alarm_threshold_window_minutes": 1440
         },
-        "remaining_disk_space_too_low": {
+        "remaining_diskspace_too_low": {
             "alarm_threshold_event_count": 1,
             "alarm_threshold_window_minutes": 180
         },
         "fatal_errors_occurring": {
             "alarm_threshold_event_count": 1,
             "alarm_threshold_window_minutes": 1440
+        },
+        "cpu_usage_too_high": {
+            "alarm_threshold_event_count": 2,
+            "alarm_threshold_window_minutes": 30
+        },
+        "ram_usage_too_high": {
+            "alarm_threshold_event_count": 2,
+            "alarm_threshold_window_minutes": 30
         }
     }
 }

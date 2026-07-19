@@ -243,7 +243,7 @@ Disk space below threshold.
 - Critical: 80% used
 - Alarm: 90% used
 
-**Event Type:** `remaining_disk_space_too_low`
+**Event Type:** `remaining_diskspace_too_low`
 
 **Details:**
 ```json

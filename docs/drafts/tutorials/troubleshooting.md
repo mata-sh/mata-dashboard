@@ -483,12 +483,12 @@ Check email inbox for test message.
 Verify alarm settings in thresholds.json:
 
 ```bash
-cat config/thresholds.json | grep -A 3 "remaining_disk_space_too_low"
+cat config/thresholds.json | grep -A 3 "remaining_diskspace_too_low"
 ```
 
 Expected:
 ```json
-"remaining_disk_space_too_low": {
+"remaining_diskspace_too_low": {
     "alarm_threshold_event_count": 1,
     "min_alarm_interval_minutes": 180
 }
@@ -504,7 +504,7 @@ Query events table:
 
 ```sql
 SELECT * FROM events
-WHERE event_type = 'remaining_disk_space_too_low'
+WHERE event_type = 'remaining_diskspace_too_low'
   AND severity = 'alarm'
 ORDER BY created_at DESC
 LIMIT 10;
@@ -594,7 +594,7 @@ nano config/thresholds.json
 
 Change:
 ```json
-"remaining_disk_space_too_low": {
+"remaining_diskspace_too_low": {
     "alarm_threshold_event_count": 1,  // Changed from 3 to 1
     "min_alarm_interval_minutes": 180
 }
@@ -611,7 +611,7 @@ If within `min_alarm_interval_minutes` window:
 UPDATE events
 SET notification_sent = 0,
     notification_sent_at = NULL
-WHERE event_type = 'remaining_disk_space_too_low'
+WHERE event_type = 'remaining_diskspace_too_low'
   AND severity = 'alarm'
 ORDER BY created_at DESC
 LIMIT 1;

@@ -378,7 +378,7 @@ This means three matching events must occur within 60 minutes before PHP passes 
 **Purpose:** Limits count gates to recent events.
 
 ```json
-"remaining_disk_space_too_low": {
+"remaining_diskspace_too_low": {
     "alarm_threshold_event_count": 1,
     "alarm_threshold_window_minutes": 180
 }
@@ -418,7 +418,7 @@ This means one matching event in the previous 180 minutes passes the PHP count g
         "alarm_threshold_event_count": 1,
         "alarm_threshold_window_minutes": 1440
     },
-    "remaining_disk_space_too_low": {
+    "remaining_diskspace_too_low": {
         "alarm_threshold_event_count": 1,
         "alarm_threshold_window_minutes": 180
     },
@@ -527,7 +527,7 @@ Check the events table in the database:
 
 ```sql
 SELECT * FROM events
-WHERE event_type = 'remaining_disk_space_too_low'
+WHERE event_type = 'remaining_diskspace_too_low'
 ORDER BY created_at DESC
 LIMIT 5;
 ```
@@ -931,7 +931,7 @@ Review metrics:
 
 2. **Verify alarm is configured:**
    ```bash
-   grep -A 2 "remaining_disk_space_too_low" config/thresholds.json
+   grep -A 2 "remaining_diskspace_too_low" config/thresholds.json
    ```
 
 3. **Check event logging:**
@@ -985,7 +985,7 @@ You've successfully configured custom alarm thresholds! Here's what to do next:
     },
     "alarms": {
         "app_unreachable": {"alarm_threshold_event_count": 3, "alarm_threshold_window_minutes": 60},
-        "remaining_disk_space_too_low": {"alarm_threshold_event_count": 1, "alarm_threshold_window_minutes": 180}
+        "remaining_diskspace_too_low": {"alarm_threshold_event_count": 1, "alarm_threshold_window_minutes": 180}
     }
 }
 ```

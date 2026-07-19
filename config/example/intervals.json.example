@@ -3,28 +3,30 @@
         "min_event_interval_minutes": {
             "_default": 60,
             "app_unreachable": 15,
-            "orders_export_stale": 30,
             "cronjob_heartbeat_missing": 30,
             "filecount_too_large": 72,
             "logfile_too_large": 12,
             "too_many_sql_connections": 72,
             "servers_config_not_found": 18,
-            "remaining_disk_space_too_low": 60,
-            "fatal_errors_occurring": 72
+            "remaining_diskspace_too_low": 60,
+            "fatal_errors_occurring": 72,
+            "cpu_usage_too_high": 30,
+            "ram_usage_too_high": 30
         }
     },
     "alarms": {
         "min_alarm_interval_minutes": {
             "_default": 1440,
             "app_unreachable": 60,
-            "orders_export_stale": 60,
             "cronjob_heartbeat_missing": 360,
             "filecount_too_large": 72,
             "logfile_too_large": 720,
             "too_many_sql_connections": 72,
             "servers_config_not_found": 1440,
-            "remaining_disk_space_too_low": 180,
-            "fatal_errors_occurring": 1440
+            "remaining_diskspace_too_low": 180,
+            "fatal_errors_occurring": 1440,
+            "cpu_usage_too_high": 180,
+            "ram_usage_too_high": 180
         }
     }
 }

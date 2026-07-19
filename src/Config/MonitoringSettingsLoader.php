@@ -223,13 +223,14 @@ final class MonitoringSettingsLoader
                 'min_event_interval_minutes' => [
                     '_default' => 60,
                     'app_unreachable' => 15,
-                    'orders_export_stale' => 30,
                     'cronjob_heartbeat_missing' => 30,
                     'filecount_too_large' => 72,
                     'logfile_too_large' => 12,
                     'too_many_sql_connections' => 72,
                     'servers_config_not_found' => 18,
-                    'remaining_disk_space_too_low' => 60,
+                    'remaining_diskspace_too_low' => 60,
+                    'cpu_usage_too_high' => 30,
+                    'ram_usage_too_high' => 30,
                     'fatal_errors_occurring' => 72,
                 ],
             ],
@@ -237,13 +238,14 @@ final class MonitoringSettingsLoader
                 'min_alarm_interval_minutes' => [
                     '_default' => 1440,
                     'app_unreachable' => 60,
-                    'orders_export_stale' => 60,
                     'cronjob_heartbeat_missing' => 360,
                     'filecount_too_large' => 60,
                     'logfile_too_large' => 720,
                     'too_many_sql_connections' => 60,
                     'servers_config_not_found' => 1440,
-                    'remaining_disk_space_too_low' => 180,
+                    'remaining_diskspace_too_low' => 180,
+                    'cpu_usage_too_high' => 180,
+                    'ram_usage_too_high' => 180,
                     'fatal_errors_occurring' => 1440,
                 ],
             ],
@@ -502,6 +504,7 @@ final class MonitoringSettingsLoader
                     'alarm' => 2000000,
                 ],
                 'log_filesize_kb' => ['info' => 1000, 'warning' => 5000, 'error' => 10000, 'alarm' => 50000],
+                'cronjobs_failed_count' => ['good' => -1, 'alarm' => 0],
             ],
             'app_data' => [
                 'session_count' => ['info' => 50, 'warning' => 100, 'error' => 200, 'alarm' => 500],
@@ -515,6 +518,14 @@ final class MonitoringSettingsLoader
                 'logfile_too_large' => [
                     'alarm_threshold_event_count' => 1,
                     'alarm_threshold_window_minutes' => 1440,
+                ],
+                'cpu_usage_too_high' => [
+                    'alarm_threshold_event_count' => 2,
+                    'alarm_threshold_window_minutes' => 30,
+                ],
+                'ram_usage_too_high' => [
+                    'alarm_threshold_event_count' => 2,
+                    'alarm_threshold_window_minutes' => 30,
                 ],
             ],
         ];
@@ -645,13 +656,14 @@ final class MonitoringSettingsLoader
         return [
             '_default' => ['min_event_interval_minutes' => 60],
             'app_unreachable' => ['min_event_interval_minutes' => 15],
-            'orders_export_stale' => ['min_event_interval_minutes' => 30],
             'cronjob_heartbeat_missing' => ['min_event_interval_minutes' => 30],
             'filecount_too_large' => ['min_event_interval_minutes' => 72],
             'logfile_too_large' => ['min_event_interval_minutes' => 12],
             'too_many_sql_connections' => ['min_event_interval_minutes' => 72],
             'servers_config_not_found' => ['min_event_interval_minutes' => 18],
-            'remaining_disk_space_too_low' => ['min_event_interval_minutes' => 60],
+            'remaining_diskspace_too_low' => ['min_event_interval_minutes' => 60],
+            'cpu_usage_too_high' => ['min_event_interval_minutes' => 30],
+            'ram_usage_too_high' => ['min_event_interval_minutes' => 30],
             'fatal_errors_occurring' => ['min_event_interval_minutes' => 72],
         ];
     }

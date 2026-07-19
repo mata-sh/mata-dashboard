@@ -229,7 +229,7 @@ Define how many events must occur before triggering an alarm notification.
     "fatal_errors_occurring": {
       "alarm_threshold_event_count": 1
     },
-    "remaining_disk_space_too_low": {
+    "remaining_diskspace_too_low": {
       "alarm_threshold_event_count": 1
     }
   }
@@ -262,7 +262,7 @@ Control how often the same event can be logged (in minutes).
       "_default": 60,
       "app_unreachable": 15,
       "fatal_errors_occurring": 72,
-      "remaining_disk_space_too_low": 60
+      "remaining_diskspace_too_low": 60
     }
   }
 }
@@ -279,7 +279,7 @@ Control how often the same event can be logged (in minutes).
       "_default": 1440,
       "app_unreachable": 60,
       "fatal_errors_occurring": 1440,
-      "remaining_disk_space_too_low": 180
+      "remaining_diskspace_too_low": 180
     }
   }
 }

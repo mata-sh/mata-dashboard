@@ -8,6 +8,7 @@ use Mata\Config\MonitoringSettingsLoader;
 use Mata\Models\Dto\EventRecordResult;
 use Mata\Services\Event\EventRecorderService;
 use Mata\Tests\TestCase;
+use ReflectionMethod;
 
 /**
  * @covers \Mata\Config\MonitoringSettingsLoader
@@ -619,6 +620,23 @@ final class MonitoringSettingsLoaderTest extends TestCase
         $this->assertEmpty($result['errors']);
     }
 
+    public function testDefaultThresholdsIncludeCronjobCountAndResourceUsageAlarms(): void
+    {
+        $method = new ReflectionMethod($this->loader, 'getDefaultThresholdsConfig');
+        $thresholds = $method->invoke($this->loader);
+
+        $this->assertSame(['good' => -1, 'alarm' => 0], $thresholds['server_data']['cronjobs_failed_count']);
+        $this->assertArrayNotHasKey('orders_export_stale', $thresholds['alarms']);
+        $this->assertSame([
+            'alarm_threshold_event_count' => 2,
+            'alarm_threshold_window_minutes' => 30,
+        ], $thresholds['alarms']['cpu_usage_too_high']);
+        $this->assertSame([
+            'alarm_threshold_event_count' => 2,
+            'alarm_threshold_window_minutes' => 30,
+        ], $thresholds['alarms']['ram_usage_too_high']);
+    }
+
     public function testDefaultFatalErrorEventIntervalIsConfigured(): void
     {
         $path = tempnam(sys_get_temp_dir(), 'mata-intervals-');
@@ -631,9 +649,16 @@ final class MonitoringSettingsLoaderTest extends TestCase
             unlink($path);
         }
 
-        $intervals = $config['events']['min_event_interval_minutes'];
-        $this->assertSame(72, $intervals['fatal_errors_occurring']);
-        $this->assertSame(60, $intervals['_default']);
+        $eventIntervals = $config['events']['min_event_interval_minutes'];
+        $alarmIntervals = $config['alarms']['min_alarm_interval_minutes'];
+        $this->assertSame(72, $eventIntervals['fatal_errors_occurring']);
+        $this->assertSame(30, $eventIntervals['cpu_usage_too_high']);
+        $this->assertSame(30, $eventIntervals['ram_usage_too_high']);
+        $this->assertArrayNotHasKey('orders_export_stale', $eventIntervals);
+        $this->assertSame(180, $alarmIntervals['cpu_usage_too_high']);
+        $this->assertSame(180, $alarmIntervals['ram_usage_too_high']);
+        $this->assertArrayNotHasKey('orders_export_stale', $alarmIntervals);
+        $this->assertSame(60, $eventIntervals['_default']);
     }
 
     public function testDataRetentionDefaultsContainSeparateCategories(): void

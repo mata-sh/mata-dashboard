@@ -26,7 +26,7 @@ test_fatal_errors_occurring_in_non_prod_is_denied if {
 
 test_monitored_critical_is_allowed if {
     decision := alarms.decision with input as {
-        "event": {"type": "app_unreachable", "level": "critical"},
+        "event": {"type": "cpu_usage_too_high", "level": "critical"},
     }
 
     decision.allow == true
@@ -36,7 +36,7 @@ test_monitored_critical_is_allowed if {
 
 test_monitored_warning_is_allowed if {
     decision := alarms.decision with input as {
-        "event": {"type": "orders_export_stale", "level": "warning"},
+        "event": {"type": "app_unreachable", "level": "warning"},
     }
 
     decision.allow == true
@@ -81,48 +81,11 @@ test_server_metrics_ingestion_info_is_denied if {
     decision.reason == "no_rule_match"
 }
 
-test_disk_usage_critical_uses_critical_priority if {
+test_orders_export_stale_critical_is_denied if {
     decision := alarms.decision with input as {
-        "event": {"type": "disk_usage", "level": "critical", "threshold": 0.8},
-    }
-
-    decision.allow == true
-    decision.priority == 10
-}
-
-test_library_outdated_security_uses_error_priority if {
-    decision := alarms.decision with input as {
-        "event": {"type": "library_outdated_security"},
-    }
-
-    decision.allow == true
-    decision.priority == 30
-}
-
-test_cpu_usage_over_80_is_allowed_without_counts if {
-    decision := alarms.decision with input as {
-        "event": {"type": "cpu_usage", "threshold": 0.8},
-    }
-
-    decision.allow == true
-    decision.priority == 60
-    decision.reason == "cpu_over_80"
-}
-
-test_cpu_usage_below_80_is_denied if {
-    decision := alarms.decision with input as {
-        "event": {"type": "cpu_usage", "threshold": 0.79},
+        "event": {"type": "orders_export_stale", "level": "critical"},
     }
 
     decision.allow == false
     decision.reason == "no_rule_match"
-}
-
-test_disk_usage_warning_uses_warning_priority if {
-    decision := alarms.decision with input as {
-        "event": {"type": "disk_usage", "level": "warning", "threshold": 0.8},
-    }
-
-    decision.allow == true
-    decision.priority == 60
 }

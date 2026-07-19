@@ -171,6 +171,135 @@ final class ServerMonitorTest extends TestCase
         $this->monitor->collectServerHealthData($collector, 'disk-server');
     }
 
+    public function testCollectServerHealthDataReportsGoodCronjobsWithoutAnEvent(): void
+    {
+        $collector = $this->createStub(ServerDataCollectorInterface::class);
+        $collector->method('getServerSystemData')->willReturn([
+            'result' => [
+                'disk_space_used' => 10,
+                'disk_space_capacity' => 100,
+                'total_system_filecount' => 100,
+                'cronjobs' => ['total' => 3, 'working' => 3, 'stale' => 0, 'missing' => 0],
+            ],
+        ]);
+
+        $this->useMockEventManager();
+        $this->eventManager
+            ->expects($this->exactly(5))
+            ->method('getServerDataThresholdLevel')
+            ->willReturnOnConsecutiveCalls('', '', '', '', 'good')
+        ;
+        $this->eventManager->expects($this->never())->method('handleEvent');
+
+        $payload = $this->monitor->collectServerHealthData($collector, 'cron-server');
+
+        $this->assertSame('good', $payload['cronjobs']['level']);
+        $this->assertSame('3/3', $payload['cronjobs']['count']);
+    }
+
+    public function testCollectServerHealthDataTriggersCronjobAlarmForFailedCronjobs(): void
+    {
+        $collector = $this->createStub(ServerDataCollectorInterface::class);
+        $collector->method('getServerSystemData')->willReturn([
+            'result' => [
+                'disk_space_used' => 10,
+                'disk_space_capacity' => 100,
+                'total_system_filecount' => 100,
+                'cronjobs' => ['total' => 3, 'working' => 2, 'stale' => 1, 'missing' => 0],
+            ],
+        ]);
+
+        $this->useMockEventManager();
+        $this->eventManager
+            ->expects($this->exactly(5))
+            ->method('getServerDataThresholdLevel')
+            ->willReturnOnConsecutiveCalls('', '', '', '', 'alarm')
+        ;
+        $this->eventManager
+            ->expects($this->once())
+            ->method('handleEvent')
+            ->with(
+                'cronjob_heartbeat_missing',
+                'Cronjobs failing (1/3, stale: 1, missing: 0) on Server: cron-server',
+                [],
+                'critical',
+                'cron-server',
+                null,
+                false
+            )
+            ->willReturn(['eventRecorded' => true, 'eventId' => 1])
+        ;
+
+        $payload = $this->monitor->collectServerHealthData($collector, 'cron-server');
+
+        $this->assertSame('alarm', $payload['cronjobs']['level']);
+    }
+
+    public function testCollectServerHealthDataTriggersCpuAndRamUsageAlarms(): void
+    {
+        $collector = $this->createStub(ServerDataCollectorInterface::class);
+        $collector->method('getServerSystemData')->willReturn([
+            'result' => [
+                'cpu_usage' => 96,
+                'ram_used' => 95,
+                'ram_capacity' => 100,
+                'disk_space_used' => 10,
+                'disk_space_capacity' => 100,
+                'total_system_filecount' => 100,
+            ],
+        ]);
+
+        $this->useMockEventManager();
+        $this->eventManager
+            ->expects($this->exactly(4))
+            ->method('getServerDataThresholdLevel')
+            ->willReturnOnConsecutiveCalls('alarm', 'alarm', '', '')
+        ;
+
+        $events = [];
+        $this->eventManager
+            ->expects($this->exactly(2))
+            ->method('handleEvent')
+            ->willReturnCallback(static function (...$arguments) use (&$events): array {
+                $events[] = $arguments;
+
+                return ['eventRecorded' => true, 'eventId' => 1];
+            })
+        ;
+
+        $this->monitor->collectServerHealthData($collector, 'usage-server');
+
+        $this->assertSame('cpu_usage_too_high', $events[0][0]);
+        $this->assertSame('CPU usage critical (96 %) on Server: usage-server', $events[0][1]);
+        $this->assertSame('ram_usage_too_high', $events[1][0]);
+        $this->assertSame('RAM usage critical (95 %) on Server: usage-server', $events[1][1]);
+    }
+
+    public function testCollectServerHealthDataDoesNotTriggerCpuAndRamUsageEventsBelowAlarm(): void
+    {
+        $collector = $this->createStub(ServerDataCollectorInterface::class);
+        $collector->method('getServerSystemData')->willReturn([
+            'result' => [
+                'cpu_usage' => 80,
+                'ram_used' => 85,
+                'ram_capacity' => 100,
+                'disk_space_used' => 10,
+                'disk_space_capacity' => 100,
+                'total_system_filecount' => 100,
+            ],
+        ]);
+
+        $this->useMockEventManager();
+        $this->eventManager
+            ->expects($this->exactly(4))
+            ->method('getServerDataThresholdLevel')
+            ->willReturnOnConsecutiveCalls('warning', 'critical', '', '')
+        ;
+        $this->eventManager->expects($this->never())->method('handleEvent');
+
+        $this->monitor->collectServerHealthData($collector, 'usage-server');
+    }
+
     public function testCollectServerHealthDataThrowsWhenServerDataMissing(): void
     {
         $collector = $this->createStub(ServerDataCollectorInterface::class);

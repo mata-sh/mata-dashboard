@@ -82,7 +82,7 @@ final class MockServerDataCollectorTest extends TestCase
                 'ram' => $data['ram_used'] / $data['ram_capacity'] * 100 >= 95,
                 'disk' => $data['disk_space_used'] / $data['disk_space_capacity'] * 100 >= 90,
                 'filecount' => $data['total_system_filecount'] >= 900000,
-                'cronjobs' => $failedCronjobs / $data['cronjobs']['total'] * 100 >= 90,
+                'cronjobs' => $failedCronjobs >= 1,
             ];
 
             foreach (array_keys(array_filter($metrics)) as $metric) {

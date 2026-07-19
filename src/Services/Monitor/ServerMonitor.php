@@ -83,6 +83,9 @@ class ServerMonitor
             'ram_usage_percent'
         );
 
+        $this->evaluateCpuUsageAlarm((int) ($serverData['cpu_usage'] ?? 0), $cpuUsageLevel, $server);
+        $this->evaluateRamUsageAlarm((int) $ramUsagePercent, $ramUsageLevel, $server);
+
         // Evaluate file count thresholds
         $filecountLevel = $this->eventManager->getServerDataThresholdLevel(
             (int) $serverData['total_system_filecount'],
@@ -99,7 +102,7 @@ class ServerMonitor
 
         $this->evaluateDiskUsageAlarm($diskSpaceUsed, $diskUsageLevel, $server);
 
-        $cronjobsData = $this->buildCronjobsData($serverData);
+        $cronjobsData = $this->buildCronjobsData($serverData, $server);
 
         return [
             'data' => $serverData,
@@ -126,7 +129,7 @@ class ServerMonitor
      *
      * @return array{visible:bool,level:string,count:string,tooltip:string}
      */
-    private function buildCronjobsData(array $serverData): array
+    private function buildCronjobsData(array $serverData, string $server): array
     {
         $cronjobs = $serverData['cronjobs'] ?? null;
 
@@ -165,15 +168,9 @@ class ServerMonitor
         }
 
         $failed = $total - $working;
-        if ($failed === 0) {
-            $percent = 0;
-        } elseif ($working === 0) {
-            $percent = 100;
-        } else {
-            $percent = max(1, min(99, (int) round($failed / $total * 100)));
-        }
+        $level = $this->eventManager->getServerDataThresholdLevel($failed, 'cronjobs_failed_count');
+        $this->evaluateCronjobAlarm($failed, $total, $stale, $missing, $level, $server);
 
-        $level = $this->eventManager->getServerDataThresholdLevel($percent, 'cronjobs_failed_percent');
         $tooltip = "<strong>Working:</strong> {$working}";
         if ($stale > 0) {
             $tooltip .= "<br><strong>Stale:</strong> {$stale}";
@@ -188,6 +185,63 @@ class ServerMonitor
             'count' => "{$working}/{$total}",
             'tooltip' => $tooltip,
         ];
+    }
+
+    /**
+     * Evaluate CPU usage alarm conditions.
+     */
+    private function evaluateCpuUsageAlarm(int $cpuUsage, string $level, string $server): void
+    {
+        if ($level !== 'alarm') {
+            return;
+        }
+
+        $this->eventManager->handleEvent(
+            type: 'cpu_usage_too_high',
+            message: "CPU usage critical ({$cpuUsage} %) on Server: {$server}",
+            level: 'critical',
+            server: $server
+        );
+    }
+
+    /**
+     * Evaluate RAM usage alarm conditions.
+     */
+    private function evaluateRamUsageAlarm(int $ramUsagePercent, string $level, string $server): void
+    {
+        if ($level !== 'alarm') {
+            return;
+        }
+
+        $this->eventManager->handleEvent(
+            type: 'ram_usage_too_high',
+            message: "RAM usage critical ({$ramUsagePercent} %) on Server: {$server}",
+            level: 'critical',
+            server: $server
+        );
+    }
+
+    /**
+     * Evaluate cronjob alarm conditions.
+     */
+    private function evaluateCronjobAlarm(
+        int $failed,
+        int $total,
+        int $stale,
+        int $missing,
+        string $level,
+        string $server
+    ): void {
+        if ($level !== 'alarm') {
+            return;
+        }
+
+        $this->eventManager->handleEvent(
+            type: 'cronjob_heartbeat_missing',
+            message: "Cronjobs failing ({$failed}/{$total}, stale: {$stale}, missing: {$missing}) on Server: {$server}",
+            level: 'critical',
+            server: $server
+        );
     }
 
     /**

@@ -36,9 +36,15 @@ alarm_entries[alarm_path] := entry if {
 
 deny contains msg if {
     metric_objects[metric_path] = metric
-    key := threshold_keys[_]
-    not metric[key]
-    msg := sprintf("thresholds.json.example: %s missing %s threshold", [metric_path, key])
+    key := object.keys(metric)[_]
+    not is_threshold_key(key)
+    msg := sprintf("thresholds.json.example: %s contains unknown key %s", [metric_path, key])
+}
+
+deny contains msg if {
+    metric_objects[metric_path] = metric
+    not threshold_key_present(metric)
+    msg := sprintf("thresholds.json.example: %s must contain at least one threshold", [metric_path])
 }
 
 deny contains msg if {
@@ -51,7 +57,7 @@ deny contains msg if {
 
 deny contains msg if {
     metric_objects[metric_path] = metric
-    all_numeric(metric)
+    all_threshold_values_numeric(metric)
     not is_monotonic(metric)
     msg := sprintf("thresholds.json.example: %s must be monotonic good < warn < critical < alarm", [metric_path])
 }
@@ -102,17 +108,44 @@ deny contains msg if {
     msg := sprintf("thresholds.json.example: %s alarm_threshold_window_minutes must be > 0", [alarm_path])
 }
 
-all_numeric(metric) if {
-    is_number(metric.good)
-    is_number(metric.warn)
-    is_number(metric.critical)
-    is_number(metric.alarm)
+all_threshold_values_numeric(metric) if {
+    not non_numeric_threshold_value(metric)
+}
+
+non_numeric_threshold_value(metric) if {
+    key := threshold_keys[_]
+    has_key(metric, key)
+    not is_number(metric[key])
+}
+
+threshold_key_present(metric) if {
+    key := threshold_keys[_]
+    has_key(metric, key)
 }
 
 is_monotonic(metric) if {
-    metric.good < metric.warn
-    metric.warn < metric.critical
-    metric.critical < metric.alarm
+    threshold_pair_is_ordered(metric, "good", "warn")
+    threshold_pair_is_ordered(metric, "good", "critical")
+    threshold_pair_is_ordered(metric, "good", "alarm")
+    threshold_pair_is_ordered(metric, "warn", "critical")
+    threshold_pair_is_ordered(metric, "warn", "alarm")
+    threshold_pair_is_ordered(metric, "critical", "alarm")
+}
+
+threshold_pair_is_ordered(metric, lower, _) if {
+    not has_key(metric, lower)
+}
+
+threshold_pair_is_ordered(metric, _, higher) if {
+    not has_key(metric, higher)
+}
+
+threshold_pair_is_ordered(metric, lower, higher) if {
+    metric[lower] < metric[higher]
+}
+
+is_threshold_key(key) if {
+    threshold_keys[_] == key
 }
 
 is_alarm_key(key) if {
