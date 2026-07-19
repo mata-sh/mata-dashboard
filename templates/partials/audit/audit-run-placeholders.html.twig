@@ -1,3 +1,6 @@
+{% if targets %}
+  <span class="audit-results-label">Result:</span>
+{% endif %}
 {% for t in targets %}
 <span class="audit-chip running" id="audit-chip-{{ t.server }}-{{ t.app }}"
       hx-get="{{ t.url }}" hx-trigger="load" hx-swap="outerHTML">

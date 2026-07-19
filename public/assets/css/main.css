@@ -2215,6 +2215,13 @@ label.audit-chip:hover {
     border-top: 1px solid #1f242e;
 }
 
+.audit-action-label,
+.audit-results-label {
+    color: #8b93a5;
+    font-size: .72rem;
+    font-weight: 600;
+}
+
 .audit-progress {
     margin-left: auto;
     font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
