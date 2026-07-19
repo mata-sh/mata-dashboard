@@ -14,5 +14,6 @@ final readonly class AlarmEmailView
         public int $alarmId,
         public DateTimeImmutable $alarmCreatedAt,
         public ?DateTimeImmutable $previousAlarmCreatedAt = null,
+        public ?string $appEnvironment = null,
     ) {}
 }

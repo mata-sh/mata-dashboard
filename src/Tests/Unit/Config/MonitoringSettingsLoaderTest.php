@@ -149,6 +149,21 @@ final class MonitoringSettingsLoaderTest extends TestCase
         $this->assertEmpty($result['errors']);
     }
 
+    public function testValidateServersConfigAcceptsOptionalAlarmEmailEnvironment(): void
+    {
+        $result = $this->loader->validateServersConfig([
+            'staging-server' => [
+                'title' => 'Staging Server',
+                'api_url' => 'https://api.example.test',
+                'api_key' => 'key123',
+                'env' => 'staging',
+            ],
+        ]);
+
+        $this->assertTrue($result['is_valid']);
+        $this->assertSame([], $result['errors']);
+    }
+
     public function testValidateServersConfigHttpWithoutAllowHttpFlagFails(): void
     {
         $config = [

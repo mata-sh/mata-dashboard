@@ -177,6 +177,7 @@ final class SettingsDatabaseSync
             'api_key' => $serverConfig['api_key'] ?? null,
             'primary_color' => $serverConfig['primary_color'] ?? null,
             'secondary_color' => $serverConfig['secondary_color'] ?? null,
+            'env' => $serverConfig['env'] ?? null,
             'info' => $serverConfig['info'] ?? null,
             'check_disk_space' => $serverConfig['check_disk_space'] ?? null,
             'allow_http' => $serverConfig['allow_http'] ?? null,

@@ -32,7 +32,7 @@ final class AlarmDispatcherTest extends TestCase
         $db = new SqliteTestDatabase();
         $db->pdo()->exec(<<<'SQL'
             CREATE TABLE servers (id INTEGER PRIMARY KEY, name TEXT NOT NULL);
-            CREATE TABLE applications (id INTEGER PRIMARY KEY, code TEXT NOT NULL, display_name TEXT NOT NULL);
+            CREATE TABLE applications (id INTEGER PRIMARY KEY, code TEXT NOT NULL, display_name TEXT NOT NULL, app_env TEXT);
             CREATE TABLE events (
                 id INTEGER PRIMARY KEY,
                 server_id INTEGER,
@@ -209,7 +209,7 @@ final class AlarmDispatcherTest extends TestCase
         $db = new SqliteTestDatabase();
         $db->pdo()->exec(<<<'SQL'
             CREATE TABLE servers (id INTEGER PRIMARY KEY, name TEXT NOT NULL);
-            CREATE TABLE applications (id INTEGER PRIMARY KEY, code TEXT NOT NULL, display_name TEXT NOT NULL);
+            CREATE TABLE applications (id INTEGER PRIMARY KEY, code TEXT NOT NULL, display_name TEXT NOT NULL, app_env TEXT);
             CREATE TABLE events (id INTEGER PRIMARY KEY, server_id INTEGER, application_id INTEGER, type TEXT NOT NULL, message TEXT NOT NULL, level TEXT NOT NULL, context TEXT);
             CREATE TABLE alarms (id INTEGER PRIMARY KEY, event_id INTEGER NOT NULL, created_at TEXT NOT NULL);
             CREATE TABLE alarm_deliveries (id INTEGER PRIMARY KEY, alarm_id INTEGER NOT NULL, channel TEXT NOT NULL, status TEXT NOT NULL, priority INTEGER NOT NULL DEFAULT 100, attempts INTEGER NOT NULL DEFAULT 0, processed_at TEXT, next_retry_at TEXT, error_payload TEXT, created_at TEXT NOT NULL);

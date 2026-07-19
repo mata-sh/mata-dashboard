@@ -7,7 +7,7 @@ namespace Mata\Services\Alarm;
 use Mata\Services\Alarm\Dto\Alarm;
 
 /** Resolves alarm-type-specific content for the alarm email metric card. */
-final class AlarmEmailPresentationResolver
+final class AlarmEmailTypePresentationResolver
 {
     /** @param array<string,mixed> $thresholds */
     public function __construct(private array $thresholds = []) {}

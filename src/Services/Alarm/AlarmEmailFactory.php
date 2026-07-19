@@ -20,7 +20,8 @@ final class AlarmEmailFactory
         private Environment $twig,
         private MailConfig $mailConfig,
         private string $applicationName,
-        private ?AlarmEmailPresentationResolver $presentationResolver = null,
+        private ?AlarmEmailTypePresentationResolver $typePresentationResolver = null,
+        private ?AlarmEmailTargetPresentationResolver $targetPresentationResolver = null,
     ) {}
 
     /** @throws RuntimeException */
@@ -73,7 +74,9 @@ final class AlarmEmailFactory
         $alarm = $view->alarm;
         $app = $this->displayLabel($alarm->app, '');
         $server = $this->displayLabel($alarm->server, 'Global');
-        $presentation = ($this->presentationResolver ?? new AlarmEmailPresentationResolver())->resolve($alarm);
+        $presentation = ($this->typePresentationResolver ?? new AlarmEmailTypePresentationResolver())->resolve($alarm);
+        $serverPresentation = ($this->targetPresentationResolver ?? new AlarmEmailTargetPresentationResolver())
+            ->resolve($server, $view->appEnvironment);
 
         return [
             'branding' => $this->applicationName,
@@ -88,7 +91,9 @@ final class AlarmEmailFactory
             'target' => [
                 'server' => $server,
                 'app' => $app === '' ? 'All applications' : $app,
-                'heading' => $app === '' ? $server : "{$app} on {$server}",
+                'heading' => $app === '' ? "Server: {$server}" : "{$app} on {$server}",
+                'color' => $serverPresentation['color'],
+                'environment' => $serverPresentation['environment'],
             ],
             'presentation' => $presentation,
             'severity' => $this->severityPresentation($alarm->level),

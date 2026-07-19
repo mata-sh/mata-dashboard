@@ -89,6 +89,7 @@ Define the servers and applications to monitor.
     "api_key": "32_character_secure_api_key",
     "primary_color": "#28a745",
     "secondary_color": "#ffffff",
+    "env": "live",
     "info": "Server description",
     "check_disk_space": "on"
   }
@@ -106,6 +107,7 @@ Define the servers and applications to monitor.
 | `api_key` | Authentication key (32+ chars) | Generate with `openssl rand -hex 32` |
 | `primary_color` | Server card color | `#28a745` |
 | `secondary_color` | Text color | `#ffffff` |
+| `env` | Optional fallback environment for alarm emails when the app environment is unavailable | `live`, `test`, `dev`, or `staging` |
 | `info` | Server description | `Production Web Server` |
 | `check_disk_space` | Enable disk monitoring | `on` or `off` |
 

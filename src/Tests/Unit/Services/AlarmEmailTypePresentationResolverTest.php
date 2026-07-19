@@ -4,22 +4,22 @@ declare(strict_types=1);
 
 namespace Mata\Tests\Unit\Services;
 
-use Mata\Services\Alarm\AlarmEmailPresentationResolver;
+use Mata\Services\Alarm\AlarmEmailTypePresentationResolver;
 use Mata\Services\Alarm\Dto\Alarm;
 use Mata\Tests\TestCase;
 
 /**
- * @covers \Mata\Services\Alarm\AlarmEmailPresentationResolver
+ * @covers \Mata\Services\Alarm\AlarmEmailTypePresentationResolver
  *
  * @internal
  */
-final class AlarmEmailPresentationResolverTest extends TestCase
+final class AlarmEmailTypePresentationResolverTest extends TestCase
 {
-    private AlarmEmailPresentationResolver $resolver;
+    private AlarmEmailTypePresentationResolver $resolver;
 
     protected function setUp(): void
     {
-        $this->resolver = new AlarmEmailPresentationResolver([
+        $this->resolver = new AlarmEmailTypePresentationResolver([
             'server_data' => [
                 'disk_space_usage_percent' => ['alarm' => 90],
                 'cronjobs_failed_count' => ['alarm' => 0],

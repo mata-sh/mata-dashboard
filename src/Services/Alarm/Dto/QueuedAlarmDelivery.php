@@ -24,6 +24,7 @@ final readonly class QueuedAlarmDelivery
         public ?string $context,
         public ?string $serverName,
         public ?string $appName,
+        public ?string $appEnvironment,
         public DateTimeImmutable $createdAt,
         public ?DateTimeImmutable $previousAlarmCreatedAt = null,
     ) {}

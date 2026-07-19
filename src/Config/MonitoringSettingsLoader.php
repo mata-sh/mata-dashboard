@@ -71,8 +71,7 @@ final class MonitoringSettingsLoader
             filePath: $serversConfigFile,
             configType: 'servers',
             defaultConfig: null,
-            throwOnError: true,
-            exceptionClass: Exception::class
+            throwAs: Exception::class
         );
 
         // Remove entries where array key begins with underscore
@@ -136,8 +135,7 @@ final class MonitoringSettingsLoader
         $ttlConfig = $this->loadJsonConfig(
             filePath: $ttlConfigFile,
             configType: 'ttl',
-            defaultConfig: $this->getDefaultTtlConfig(),
-            throwOnError: false
+            defaultConfig: $this->getDefaultTtlConfig()
         );
 
         return array_merge($this->getDefaultTtlConfig(), $ttlConfig);
@@ -160,8 +158,7 @@ final class MonitoringSettingsLoader
             filePath: $thresholdsConfigFile,
             configType: 'thresholds',
             defaultConfig: null,
-            throwOnError: true,
-            exceptionClass: RuntimeException::class
+            throwAs: RuntimeException::class
         );
     }
 
@@ -180,8 +177,7 @@ final class MonitoringSettingsLoader
         $dataRetentionConfig = $this->loadJsonConfig(
             filePath: $dataRetentionConfigFile,
             configType: 'data_retention',
-            defaultConfig: $this->getDefaultDataRetentionConfig(),
-            throwOnError: false
+            defaultConfig: $this->getDefaultDataRetentionConfig()
         );
 
         return $this->normalizeDataRetentionConfig(
@@ -204,8 +200,7 @@ final class MonitoringSettingsLoader
         $intervalsConfig = $this->loadJsonConfig(
             filePath: $intervalsConfigFile,
             configType: 'intervals',
-            defaultConfig: $this->getDefaultIntervalsConfig(),
-            throwOnError: false
+            defaultConfig: $this->getDefaultIntervalsConfig()
         );
 
         return array_merge($this->getDefaultIntervalsConfig(), $intervalsConfig);
@@ -301,10 +296,13 @@ final class MonitoringSettingsLoader
             return [];
         }
 
-        $errors = array_merge($errors, $this->validateRequiredFields($serverName, $serverConfig));
-        $errors = array_merge($errors, $this->validateApiUrl($serverName, $serverConfig));
-
-        return array_merge($errors, $this->validateColor($serverName, $serverConfig));
+        return array_merge(
+            $errors,
+            $this->validateRequiredFields($serverName, $serverConfig),
+            $this->validateApiUrl($serverName, $serverConfig),
+            $this->validateColor($serverName, $serverConfig),
+            $this->validateEnvironment($serverName, $serverConfig),
+        );
     }
 
     /**
@@ -375,7 +373,7 @@ final class MonitoringSettingsLoader
         if (!$allowHttp) {
             return [
                 "Server '{$serverName}' API URL must use HTTPS protocol (found: http://). "
-                . "To allow HTTP connections, set 'allow_http': \"on\" in configuration.",
+                    . "To allow HTTP connections, set 'allow_http': \"on\" in configuration.",
             ];
         }
 
@@ -414,6 +412,27 @@ final class MonitoringSettingsLoader
         }
 
         return [];
+    }
+
+    /**
+     * Validate optional server environment fallback used in alarm emails.
+     *
+     * @param array<string,mixed> $serverConfig
+     *
+     * @return array<int,string>
+     */
+    private function validateEnvironment(string $serverName, array $serverConfig): array
+    {
+        if (!isset($serverConfig['env'])) {
+            return [];
+        }
+
+        $environment = $serverConfig['env'];
+        if (is_string($environment) && in_array(strtolower(trim($environment)), ['live', 'test', 'dev', 'staging'], true)) {
+            return [];
+        }
+
+        return ["Server '{$serverName}' env must be one of: live, test, dev, staging"];
     }
 
     /**
@@ -579,13 +598,15 @@ final class MonitoringSettingsLoader
     {
         $defaults = $this->getDefaultDataRetentionConfig();
 
-        foreach ([
-            ['metrics', 'raw_retention_days'],
-            ['metrics', 'hourly_retention_days'],
-            ['metrics', 'daily_retention_days'],
-            ['events', 'retention_days'],
-            ['alarms', 'retention_days'],
-        ] as [$section, $key]) {
+        foreach (
+            [
+                ['metrics', 'raw_retention_days'],
+                ['metrics', 'hourly_retention_days'],
+                ['metrics', 'daily_retention_days'],
+                ['events', 'retention_days'],
+                ['alarms', 'retention_days'],
+            ] as [$section, $key]
+        ) {
             if (!is_array($config[$section] ?? null)) {
                 $config[$section] = $defaults[$section];
             }
@@ -610,8 +631,7 @@ final class MonitoringSettingsLoader
         $eventsConfig = $this->loadJsonConfig(
             filePath: $eventsConfigFile,
             configType: 'events',
-            defaultConfig: $defaults,
-            throwOnError: false
+            defaultConfig: $defaults
         );
 
         // If we got defaults back due to error, return immediately
@@ -671,90 +691,98 @@ final class MonitoringSettingsLoader
     /**
      * Load and parse JSON configuration file with consistent error handling.
      *
-     * @param string                   $filePath       Path to JSON configuration file
-     * @param string                   $configType     Configuration type for error messages (e.g., 'ttl', 'events', 'servers')
-     * @param null|array<string,mixed> $defaultConfig  Default configuration to return on failure
-     * @param bool                     $throwOnError   If true, throws exceptions; if false, returns defaults and logs warnings
-     * @param string                   $exceptionClass Exception class to throw (Exception or RuntimeException)
+     * @param string                        $filePath      Path to JSON configuration file
+     * @param string                        $configType    Configuration type for error messages (e.g., 'ttl', 'events', 'servers')
+     * @param null|array<string,mixed>      $defaultConfig Default configuration to return on failure
+     * @param null|class-string<\Throwable> $throwAs       If set, failures throw this exception class; if null, failures log a warning and return the defaults
      *
      * @return array<string,mixed> Parsed configuration array
      *
-     * @throws Exception|RuntimeException If file loading fails and throwOnError is true
+     * @throws Exception|RuntimeException If file loading fails and throwAs is set
      */
     private function loadJsonConfig(
         string $filePath,
         string $configType,
         ?array $defaultConfig = null,
-        bool $throwOnError = false,
-        string $exceptionClass = Exception::class
+        ?string $throwAs = null
     ): array {
-        // File existence check
+        $throwOnError = $throwAs !== null;
+
         if (!file_exists($filePath)) {
-            $type = "{$configType}_config_not_found";
-            $message = "Could not load {$filePath} -> "
-                       . ($throwOnError ? 'file not found' : 'fallback to Default Values');
-            $level = $throwOnError ? 'critical' : 'warning';
-
-            $this->recordConfigurationEvent(
-                type: $type,
-                message: $message,
-                level: $level,
-                forceAlarm: $throwOnError
+            return $this->failConfigLoad(
+                eventType: "{$configType}_config_not_found",
+                message: "Could not load {$filePath} -> "
+                    . ($throwOnError ? 'file not found' : 'fallback to Default Values'),
+                exceptionMessage: "{$configType}.json file not found at {$filePath}",
+                throwAs: $throwAs,
+                defaultConfig: $defaultConfig
             );
-
-            if ($throwOnError) {
-                throw new $exceptionClass("{$configType}.json file not found at {$filePath}");
-            }
-
-            return $defaultConfig ?? [];
         }
 
-        // File read check
         $content = file_get_contents($filePath);
         if ($content === false) {
-            $type = "{$configType}_config_read_error";
-            $message = "Could not read {$filePath} -> "
-                       . ($throwOnError ? 'permission denied or file error' : 'fallback to Default Values');
-            $level = $throwOnError ? 'critical' : 'warning';
-
-            $this->recordConfigurationEvent(
-                type: $type,
-                message: $message,
-                level: $level,
-                forceAlarm: $throwOnError
+            return $this->failConfigLoad(
+                eventType: "{$configType}_config_read_error",
+                message: "Could not read {$filePath} -> "
+                    . ($throwOnError ? 'permission denied or file error' : 'fallback to Default Values'),
+                exceptionMessage: "Cannot read {$configType}.json file",
+                throwAs: $throwAs,
+                defaultConfig: $defaultConfig
             );
-
-            if ($throwOnError) {
-                throw new $exceptionClass("Cannot read {$configType}.json file");
-            }
-
-            return $defaultConfig ?? [];
         }
 
-        // JSON parsing check
         $config = json_decode($content, true);
         if (!$config || json_last_error() !== JSON_ERROR_NONE) {
-            $type = $configType === 'events' ? "{$configType}_config_invalid" : "{$configType}_config_not_found";
-            $message = 'Could not ' . ($configType === 'events' ? 'parse' : 'load') . " {$filePath} -> "
-                       . ($throwOnError ? 'no Server Watching (' : 'fallback to Default Values (')
-                       . 'JSON error: ' . json_last_error_msg() . ')';
-            $level = $throwOnError ? 'critical' : 'warning';
+            // Events settings report their own event type; other types reuse
+            // "_config_not_found" because alarm cooldowns are keyed on it.
+            $isEventsConfig = $configType === 'events';
+            $consequence = $throwOnError ? 'no Server Watching' : 'fallback to Default Values';
 
-            $this->recordConfigurationEvent(
-                type: $type,
-                message: $message,
-                level: $level,
-                forceAlarm: $throwOnError
+            return $this->failConfigLoad(
+                eventType: $isEventsConfig ? "{$configType}_config_invalid" : "{$configType}_config_not_found",
+                message: 'Could not ' . ($isEventsConfig ? 'parse' : 'load') . " {$filePath} -> "
+                    . "{$consequence} (JSON error: " . json_last_error_msg() . ')',
+                exceptionMessage: "{$configType}.json invalid or empty",
+                throwAs: $throwAs,
+                defaultConfig: $defaultConfig
             );
-
-            if ($throwOnError) {
-                throw new $exceptionClass("{$configType}.json invalid or empty");
-            }
-
-            return $defaultConfig ?? [];
         }
 
         return $config;
+    }
+
+    /**
+     * Record a configuration load failure, then either throw or return the fallback config.
+     *
+     * @param string                        $eventType        Event type identifier for the recorded event
+     * @param string                        $message          Human readable failure message
+     * @param string                        $exceptionMessage Message for the exception when throwAs is set
+     * @param null|class-string<\Throwable> $throwAs          If set, records a critical event and throws this class; if null, warns and returns defaults
+     * @param null|array<string,mixed>      $defaultConfig    Fallback configuration returned when not throwing
+     *
+     * @return array<string,mixed> The fallback configuration (empty array if none given)
+     *
+     * @throws Exception|RuntimeException If throwAs is set
+     */
+    private function failConfigLoad(
+        string $eventType,
+        string $message,
+        string $exceptionMessage,
+        ?string $throwAs,
+        ?array $defaultConfig
+    ): array {
+        $this->recordConfigurationEvent(
+            type: $eventType,
+            message: $message,
+            level: $throwAs !== null ? 'critical' : 'warning',
+            forceAlarm: $throwAs !== null
+        );
+
+        if ($throwAs !== null) {
+            throw new $throwAs($exceptionMessage);
+        }
+
+        return $defaultConfig ?? [];
     }
 
     /**

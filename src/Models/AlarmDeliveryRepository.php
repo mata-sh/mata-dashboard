@@ -67,7 +67,8 @@ final class AlarmDeliveryRepository
                 ad.channel, ad.priority, ad.attempts, ad.next_retry_at, ad.created_at,
                 e.type, e.message, e.level, e.context,
                 COALESCE(s.name, '') AS server_name,
-                COALESCE(a.display_name, a.code, '') AS app_name
+                COALESCE(a.display_name, a.code, '') AS app_name,
+                a.app_env AS app_environment
             FROM alarm_deliveries AS ad
             INNER JOIN alarms AS al ON al.id = ad.alarm_id
             LEFT JOIN events AS e ON e.id = al.event_id
@@ -203,6 +204,9 @@ final class AlarmDeliveryRepository
             context: is_string($row['context'] ?? null) ? $row['context'] : null,
             serverName: $row['server_name'] !== '' ? (string) $row['server_name'] : null,
             appName: $row['app_name'] !== '' ? (string) $row['app_name'] : null,
+            appEnvironment: is_string($row['app_environment'] ?? null) && trim($row['app_environment']) !== ''
+                ? $row['app_environment']
+                : null,
             createdAt: empty($row['created_at']) ? new DateTimeImmutable() : new DateTimeImmutable((string) $row['created_at']),
             previousAlarmCreatedAt: empty($row['previous_alarm_created_at'])
                 ? null

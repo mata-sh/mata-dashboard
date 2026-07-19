@@ -7,6 +7,7 @@ namespace Mata\Tests\Unit\Services;
 use DateTimeImmutable;
 use Mata\Config\Dto\MailConfig;
 use Mata\Services\Alarm\AlarmEmailFactory;
+use Mata\Services\Alarm\AlarmEmailTargetPresentationResolver;
 use Mata\Services\Alarm\Dto\Alarm;
 use Mata\Services\Alarm\Dto\AlarmEmailView;
 use Mata\Services\Alarm\Dto\AlarmLevel;
@@ -84,8 +85,21 @@ final class AlarmEmailFactoryTest extends TestCase
         );
         $email = $this->factory()->create($view);
 
+        $this->assertStringContainsString('Server: Api-1', (string) $email->getHtmlBody());
         $this->assertStringContainsString('2026-07-10 16:19:00 UTC', (string) $email->getHtmlBody());
         $this->assertStringContainsString('Last seen: 2026-07-10 16:19:00 UTC', (string) $email->getTextBody());
+    }
+
+    public function testItRendersServerColorAndEnvironmentBadge(): void
+    {
+        $resolver = new AlarmEmailTargetPresentationResolver([
+            'Api-1' => ['primary_color' => '#E88C02', 'env' => 'test'],
+        ]);
+        $html = (string) $this->factory(serverPresentationResolver: $resolver)->create($this->view())->getHtmlBody();
+
+        $this->assertStringContainsString('border-bottom:4px solid #E88C02', $html);
+        $this->assertStringContainsString('background-color:#f59e0b', $html);
+        $this->assertStringContainsString('>TEST</span>', $html);
     }
 
     public function testItUsesApplicationNameBrandingInTheHtmlFooter(): void
@@ -193,11 +207,14 @@ final class AlarmEmailFactoryTest extends TestCase
         ?string $fromName = 'MATA Alerts',
         array $alarmRecipients = ['ops@example.com', 'oncall@example.com'],
         string $applicationName = 'MATA',
+        ?AlarmEmailTargetPresentationResolver $serverPresentationResolver = null,
     ): AlarmEmailFactory {
         return new AlarmEmailFactory(
             new Environment(new FilesystemLoader(dirname(__DIR__, 4) . '/templates'), ['autoescape' => 'name']),
             new MailConfig(null, $fromEmail, $fromName, $alarmRecipients, [], [], 'mailer', 'mailer', 'UTF-8', 78, $dashboardUrl),
             $applicationName,
+            null,
+            $serverPresentationResolver,
         );
     }
 

@@ -147,6 +147,7 @@ final class AlarmRepositorySqlIntegrationTest extends TestCase
         $this->assertCount(1, $deliveries);
         $this->assertSame(2, $deliveries[0]->eventId);
         $this->assertSame('critical', $deliveries[0]->level);
+        $this->assertSame('prod', $deliveries[0]->appEnvironment);
         $this->assertSame('email', $deliveries[0]->channel);
     }
 
