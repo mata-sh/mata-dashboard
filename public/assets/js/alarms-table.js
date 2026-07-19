@@ -93,6 +93,19 @@
         return badge;
     }
 
+    function destroyAlarmsTable(context) {
+        var root = context instanceof Element ? context : document;
+        var tableElement = root.matches && root.matches('#alarms-table')
+            ? root
+            : root.querySelector('#alarms-table');
+        var table = tableElement && tableElement._mataTabulator;
+
+        if (table && typeof table.destroy === 'function') {
+            table.destroy();
+            tableElement._mataTabulator = null;
+        }
+    }
+
     function initializeAlarmsTable(context) {
         var root = context instanceof Element ? context : document;
         var tableElement = root.matches && root.matches('#alarms-table')
@@ -186,6 +199,8 @@
             },
         });
 
+        tableElement._mataTabulator = table;
+
         function applyFilters() {
             var filters = [];
             var values = {
@@ -230,6 +245,9 @@
 
     document.addEventListener('DOMContentLoaded', function () {
         initializeAlarmsTable(document);
+    });
+    document.body.addEventListener('htmx:beforeSwap', function (event) {
+        destroyAlarmsTable(event.detail.target);
     });
     document.body.addEventListener('htmx:afterSwap', function (event) {
         initializeAlarmsTable(event.detail.target);

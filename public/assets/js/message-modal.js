@@ -26,7 +26,7 @@
         return modal.querySelectorAll('button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])');
     }
 
-    function closeMessageModal() {
+    function closeMessageModal(restoreFocus) {
         if (!isOpen()) {
             return;
         }
@@ -36,10 +36,10 @@
         modal.hidden = true;
         messageElement.textContent = '';
 
-        var restoreFocus = lastFocusedElement;
+        var trigger = lastFocusedElement;
         lastFocusedElement = null;
-        if (restoreFocus && restoreFocus.isConnected && typeof restoreFocus.focus === 'function') {
-            restoreFocus.focus();
+        if (restoreFocus !== false && trigger && trigger.isConnected && typeof trigger.focus === 'function') {
+            trigger.focus();
         }
     }
 
@@ -67,6 +67,13 @@
 
         if (closeControl && isOpen() && modal.contains(closeControl)) {
             closeMessageModal();
+        }
+    });
+
+    document.body.addEventListener('htmx:beforeSwap', function (event) {
+        var target = event.detail && event.detail.target;
+        if (target instanceof Element && target.id === 'main-section') {
+            closeMessageModal(false);
         }
     });
 

@@ -20,7 +20,9 @@ final class EventsContainerTemplateTest extends TestCase
 
         $this->assertStringContainsString('data-events-url="{{ endpoints.events_json }}"', $template);
         $this->assertStringNotContainsString('<script>', $template);
+        $this->assertStringContainsString("htmx:beforeSwap", $script);
         $this->assertStringContainsString("htmx:afterSwap", $script);
+        $this->assertStringContainsString('table.destroy()', $script);
         $this->assertStringContainsString("ajaxURL: eventsUrl", $script);
     }
 

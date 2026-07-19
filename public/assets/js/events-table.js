@@ -56,6 +56,19 @@
         window.mataOpenMessageModal(message, cell.getElement().querySelector('.table-message-trigger'));
     }
 
+    function destroyEventsTable(context) {
+        var root = context instanceof Element ? context : document;
+        var tableElement = root.matches && root.matches('#events-table')
+            ? root
+            : root.querySelector('#events-table');
+        var table = tableElement && tableElement._mataTabulator;
+
+        if (table && typeof table.destroy === 'function') {
+            table.destroy();
+            tableElement._mataTabulator = null;
+        }
+    }
+
     function initializeEventsTable(context) {
         var root = context instanceof Element ? context : document;
         var tableElement = root.matches && root.matches('#events-table')
@@ -99,6 +112,8 @@
             ],
         });
 
+        tableElement._mataTabulator = table;
+
         function applyFilters() {
             var filters = [];
             var values = {
@@ -138,6 +153,9 @@
 
     document.addEventListener('DOMContentLoaded', function () {
         initializeEventsTable(document);
+    });
+    document.body.addEventListener('htmx:beforeSwap', function (event) {
+        destroyEventsTable(event.detail.target);
     });
     document.body.addEventListener('htmx:afterSwap', function (event) {
         initializeEventsTable(event.detail.target);

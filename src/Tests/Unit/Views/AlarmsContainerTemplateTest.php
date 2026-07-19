@@ -21,7 +21,9 @@ final class AlarmsContainerTemplateTest extends TestCase
         $this->assertStringContainsString('data-alarms-url="{{ endpoints.alarms_json }}"', $template);
         $this->assertStringContainsString('data-acknowledge-url="{{ endpoints.alarms_ack }}"', $template);
         $this->assertStringNotContainsString('<script>', $template);
+        $this->assertStringContainsString('htmx:beforeSwap', $script);
         $this->assertStringContainsString('htmx:afterSwap', $script);
+        $this->assertStringContainsString('table.destroy()', $script);
         $this->assertStringContainsString('ajaxURL: alarmsUrl', $script);
     }
 
