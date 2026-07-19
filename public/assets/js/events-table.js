@@ -66,6 +66,7 @@
         if (table && typeof table.destroy === 'function') {
             table.destroy();
             tableElement._mataTabulator = null;
+            delete tableElement.dataset.initialized;
         }
     }
 
@@ -158,7 +159,7 @@
     document.body.addEventListener('htmx:beforeSwap', function (event) {
         destroyEventsTable(event.detail.target);
     });
-    document.body.addEventListener('htmx:afterSwap', function (event) {
+    document.body.addEventListener('htmx:afterSettle', function (event) {
         initializeEventsTable(event.detail.target);
     });
 }());

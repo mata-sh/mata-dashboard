@@ -103,6 +103,7 @@
         if (table && typeof table.destroy === 'function') {
             table.destroy();
             tableElement._mataTabulator = null;
+            delete tableElement.dataset.initialized;
         }
     }
 
@@ -250,7 +251,7 @@
     document.body.addEventListener('htmx:beforeSwap', function (event) {
         destroyAlarmsTable(event.detail.target);
     });
-    document.body.addEventListener('htmx:afterSwap', function (event) {
+    document.body.addEventListener('htmx:afterSettle', function (event) {
         initializeAlarmsTable(event.detail.target);
     });
 }());
