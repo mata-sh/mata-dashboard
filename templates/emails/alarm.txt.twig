@@ -4,7 +4,7 @@
 {% if presentation.metric %}
 {{ presentation.metric.label }}: {{ presentation.metric.value }}{% if presentation.metric.threshold %} ({{ presentation.metric.threshold }}){% endif %}
 {% endif %}
-Last seen: {{ alarm.last_seen_at ?: 'No previous alarm' }}
+Last seen: {{ alarm.last_seen_at ?: 'No previous alarm' }}{% if alarm.last_seen_ago %} ({{ alarm.last_seen_ago }}){% endif %}
 Current alarm: {{ alarm.created_at }}
 
 Alarm ID: {{ alarm.id }}

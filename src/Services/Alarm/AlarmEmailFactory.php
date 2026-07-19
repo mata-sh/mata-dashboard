@@ -83,11 +83,13 @@ final class AlarmEmailFactory
                 'context' => $alarm->context,
                 'created_at' => $view->alarmCreatedAt->format('Y-m-d H:i:s T'),
                 'last_seen_at' => $view->previousAlarmCreatedAt?->format('Y-m-d H:i:s T'),
+                'last_seen_ago' => $this->elapsedTime($view->previousAlarmCreatedAt, $view->alarmCreatedAt),
             ],
             'target' => [
                 'server' => $server,
                 'app' => $app === '' ? 'All applications' : $app,
                 'heading' => $app === '' ? "Server: {$server}" : "{$app} on {$server}",
+                'heading_prefix' => $app === '' ? 'Server:' : "{$app} on",
                 'color' => $presentation->serverColor,
                 'environment' => $presentation->environment,
             ],
@@ -95,6 +97,18 @@ final class AlarmEmailFactory
             'severity' => $alarm->level->getPresentation(),
             'dashboard_url' => $dashboardUrl,
         ];
+    }
+
+    private function elapsedTime(?\DateTimeImmutable $lastSeenAt, \DateTimeImmutable $currentAt): ?string
+    {
+        if ($lastSeenAt === null) {
+            return null;
+        }
+
+        $elapsedSeconds = max(0, $currentAt->getTimestamp() - $lastSeenAt->getTimestamp());
+        $elapsedMinutes = intdiv($elapsedSeconds, 60);
+
+        return $elapsedMinutes === 0 ? 'less than a minute ago' : $elapsedMinutes . ' min ago';
     }
 
     private function createSubject(AlarmEmailView $view): string

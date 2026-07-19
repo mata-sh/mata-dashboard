@@ -62,7 +62,8 @@ final class AlarmEmailFactoryTest extends TestCase
         $this->assertStringContainsString('Critical', $html);
         $this->assertStringContainsString('FATAL_ERRORS_OCCURRING', $html);
         $this->assertStringContainsString('>2k</div>', $html);
-        $this->assertStringContainsString('Shop on Api-1', $html);
+        $this->assertStringContainsString('>Shop on</td>', $html);
+        $this->assertStringContainsString('>Api-1</td>', $html);
         $this->assertStringContainsString('Detected fatal errors above threshold.', $html);
         $this->assertStringContainsString('connection refused', $html);
         $this->assertStringContainsString('#ff3b4e', $html);
@@ -81,13 +82,15 @@ final class AlarmEmailFactoryTest extends TestCase
             new Alarm('node_unhealthy', 'Unhealthy health response', null, AlarmLevel::Warning, 'Api-1'),
             123,
             new DateTimeImmutable('2026-07-11 17:20:00 UTC'),
-            new DateTimeImmutable('2026-07-10 16:19:00 UTC'),
+            new DateTimeImmutable('2026-07-11 16:15:00 UTC'),
         );
         $email = $this->factory()->create($view);
 
-        $this->assertStringContainsString('Server: Api-1', (string) $email->getHtmlBody());
-        $this->assertStringContainsString('2026-07-10 16:19:00 UTC', (string) $email->getHtmlBody());
-        $this->assertStringContainsString('Last seen: 2026-07-10 16:19:00 UTC', (string) $email->getTextBody());
+        $this->assertStringContainsString('>Server:</td>', (string) $email->getHtmlBody());
+        $this->assertStringContainsString('>Api-1</td>', (string) $email->getHtmlBody());
+        $this->assertStringContainsString('2026-07-11 16:15:00 UTC', (string) $email->getHtmlBody());
+        $this->assertStringContainsString('&#9679; 65 min ago', (string) $email->getHtmlBody());
+        $this->assertStringContainsString('Last seen: 2026-07-11 16:15:00 UTC (65 min ago)', (string) $email->getTextBody());
     }
 
     public function testItRendersServerColorAndEnvironmentBadge(): void
@@ -97,7 +100,7 @@ final class AlarmEmailFactoryTest extends TestCase
         ]);
         $html = (string) $this->factory(presenter: $presenter)->create($this->view())->getHtmlBody();
 
-        $this->assertStringContainsString('border-bottom:4px solid #E88C02', $html);
+        $this->assertStringContainsString('width:16px; height:16px; background-color:#E88C02', $html);
         $this->assertStringContainsString('background-color:#f59e0b', $html);
         $this->assertStringContainsString('>TEST</span>', $html);
     }
