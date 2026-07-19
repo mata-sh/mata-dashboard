@@ -238,7 +238,9 @@ Retrieve database server information and statistics.
 
 Retrieve list of all applications/sites hosted on the server.
 
-**Response Format:** Object with application identifiers as keys
+**Response Format:** Object with application identifiers as keys.
+
+**Dashboard identity:** Each key is the application identifier stored by the dashboard. Keys must be globally unique across all monitored nodes. Reusing a key denotes the same application on multiple servers; its `title` and `env` must match because the dashboard stores one shared application record. Events remain server-specific. Use a server-specific suffix for deployments that must be separate applications.
 
 **Application Object Fields:**
 

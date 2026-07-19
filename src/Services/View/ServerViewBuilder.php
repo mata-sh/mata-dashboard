@@ -18,6 +18,7 @@ use Mata\Services\Monitor\Dto\EndpointTarget;
 use Mata\Services\Monitor\Dto\ServerDashboardServices;
 use Mata\Services\Monitor\NodeHealthMonitorInterface;
 use Mata\Services\Monitor\ServerMonitor;
+use Mata\Services\Sync\AppInventorySync;
 use Mata\Utils\Html;
 use Mata\Utils\Tools;
 use Monolog\Logger;
@@ -41,6 +42,7 @@ class ServerViewBuilder
     private Logger $logger;
     private CacheTypeResolver $cacheTypeResolver;
     private Tools $tools;
+    private ?AppInventorySync $appInventorySync;
 
     public function __construct(
         ServerMonitor $serverMonitor,
@@ -48,7 +50,8 @@ class ServerViewBuilder
         EventManager $eventManager,
         Logger $logger,
         CacheTypeResolver $cacheTypeResolver,
-        Tools $tools
+        Tools $tools,
+        ?AppInventorySync $appInventorySync = null
     ) {
         $this->serverMonitor = $serverMonitor;
         $this->logAnalyzer = $logAnalyzer;
@@ -56,6 +59,7 @@ class ServerViewBuilder
         $this->logger = $logger;
         $this->cacheTypeResolver = $cacheTypeResolver;
         $this->tools = $tools;
+        $this->appInventorySync = $appInventorySync;
     }
 
     /**
@@ -178,6 +182,9 @@ class ServerViewBuilder
         }
 
         $rawAppsData = $appsApiResponse['result'];
+        if ($forceRefresh) {
+            $this->appInventorySync?->sync($rawAppsData);
+        }
         $appsCacheAge = (int) ($appsApiResponse['cache_age'] ?? 0);
         $appsCacheTtl = (int) ($appsApiResponse['cache_ttl'] ?? 0);
 

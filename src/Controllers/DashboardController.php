@@ -36,6 +36,7 @@ use Mata\Services\Monitor\ServerMonitor;
 use Mata\Services\Navigation\MenuBuilder;
 use Mata\Services\Navigation\NotificationCenter;
 use Mata\Services\Notification\NotificationManager;
+use Mata\Services\Sync\AppInventorySync;
 use Mata\Services\View\LibrariesViewBuilder;
 use Mata\Services\View\ServerViewBuilder;
 use Mata\Utils\Tools;
@@ -110,19 +111,20 @@ class DashboardController extends BaseController
      * Sets up server configurations, API clients, and monitoring thresholds.
      * Configures per-request HMAC authentication for server communication.
      *
-     * @param App                 $app                 Application container with auth and paths
-     * @param Tools               $tools               Utility functions for formatting and icons
-     * @param Environment         $twig                Twig template rendering engine
-     * @param Logger              $logger              PSR-3 logger for system logging
-     * @param ApplicationConfig   $appConfig           Application configuration DTO
-     * @param NotificationManager $notificationManager System notification management
-     * @param EventManager        $eventManager        Server alarm and threshold management
-     * @param CacheStoreInterface $cacheStore          Cache persistence service
-     * @param ApiCacheKeyFactory  $cacheKeyFactory     API cache key factory
-     * @param CacheTtlResolver    $ttlResolver         Cache TTL configuration lookup
-     * @param Endpoints           $endpoints           Route endpoints for template access
-     * @param MenuBuilder         $menuBuilder         Navigation menu builder service
-     * @param array<string,mixed> $monitoringSettings  Complete monitoring configuration metadata
+     * @param App                   $app                 Application container with auth and paths
+     * @param Tools                 $tools               Utility functions for formatting and icons
+     * @param Environment           $twig                Twig template rendering engine
+     * @param Logger                $logger              PSR-3 logger for system logging
+     * @param ApplicationConfig     $appConfig           Application configuration DTO
+     * @param NotificationManager   $notificationManager System notification management
+     * @param EventManager          $eventManager        Server alarm and threshold management
+     * @param CacheStoreInterface   $cacheStore          Cache persistence service
+     * @param ApiCacheKeyFactory    $cacheKeyFactory     API cache key factory
+     * @param CacheTtlResolver      $ttlResolver         Cache TTL configuration lookup
+     * @param Endpoints             $endpoints           Route endpoints for template access
+     * @param MenuBuilder           $menuBuilder         Navigation menu builder service
+     * @param array<string,mixed>   $monitoringSettings  Complete monitoring configuration metadata
+     * @param null|AppInventorySync $appInventorySync    Syncs apps during manual force-refresh recovery
      */
     public function __construct(
         App $app,
@@ -138,6 +140,7 @@ class DashboardController extends BaseController
         Endpoints $endpoints,
         MenuBuilder $menuBuilder,
         array $monitoringSettings = [],
+        ?AppInventorySync $appInventorySync = null,
     ) {
         $this->logger = $logger;
         $this->appConfig = $appConfig;
@@ -184,7 +187,8 @@ class DashboardController extends BaseController
             $eventManager,
             $logger,
             $cacheTypeResolver,
-            $tools
+            $tools,
+            $appInventorySync
         );
 
         $demoAlarmMetricScenario = $this->appConfig->environment->env === 'demo' && $this->serversConfig !== []

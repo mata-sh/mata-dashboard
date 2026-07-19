@@ -11,7 +11,7 @@ use Mata\Services\Alarm\AlarmDirectProcessor;
 use Mata\Services\Alarm\Dto\Alarm;
 use Mata\Services\Alarm\Dto\AlarmLevel;
 use Mata\Services\Event\EventRecorderService;
-use Mata\Services\Foundation\SettingsDatabaseSync;
+use Mata\Services\Sync\SettingsDatabaseSync;
 use Mata\Utils\TypeConverter;
 use RuntimeException;
 

@@ -99,6 +99,53 @@ class ConfigSyncRepository
     }
 
     /**
+     * Insert or update an application definition discovered from node payloads.
+     *
+     * Skips the UPDATE when the stored definition already matches, so
+     * updated_at only moves when the application's definition changed.
+     *
+     * @return bool true when a new record was inserted, false otherwise
+     */
+    public function upsertApplication(
+        string $code,
+        string $displayName,
+        ?string $appEnv
+    ): bool {
+        $existing = $this->db->runQuery(
+            'SELECT id, display_name, app_env FROM applications WHERE code = ?',
+            [$code]
+        );
+
+        if (!empty($existing)) {
+            $current = $existing[0];
+            if (($current['display_name'] ?? null) === $displayName
+                && ($current['app_env'] ?? null) === $appEnv
+            ) {
+                return false;
+            }
+
+            $sql = <<<'SQL'
+                UPDATE applications
+                SET display_name = ?,
+                    app_env = ?,
+                    updated_at = CURRENT_TIMESTAMP
+                WHERE code = ?
+            SQL;
+            $this->db->runQuery($sql, [$displayName, $appEnv, $code]);
+
+            return false;
+        }
+
+        $sql = <<<'SQL'
+            INSERT INTO applications (code, display_name, app_env, created_at, updated_at)
+            VALUES (?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+        SQL;
+        $this->db->runQuery($sql, [$code, $displayName, $appEnv]);
+
+        return true;
+    }
+
+    /**
      * Fetch map of server names to IDs.
      *
      * @return array<string,int>

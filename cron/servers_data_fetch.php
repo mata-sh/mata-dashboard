@@ -16,6 +16,7 @@ use Mata\Services\Monitor\AppMonitorInterface;
 use Mata\Services\Monitor\Dto\EndpointTarget;
 use Mata\Services\Monitor\NodeHealthMonitor;
 use Mata\Services\Monitor\NodeHealthMonitorInterface;
+use Mata\Services\Sync\AppInventorySync;
 use Mata\Utils\TypeConverter;
 use Psr\Log\LoggerInterface;
 
@@ -33,6 +34,7 @@ $cron->log('Started');
 
 try {
     // All event/alarm infrastructure now loaded via bootstrap_events.php
+    $appInventorySync = new AppInventorySync($configSyncRepository, $idResolver, $log);
     $dataTransformer = new ApiResponseTransformer($log);
     // Must be the directory the dashboard reads (see public/index.php), otherwise nothing is warmed
     $cacheStore = new FileCacheStore($log, $paths->tempPath . '/api-cache');
@@ -94,7 +96,7 @@ try {
                 $log
             );
 
-            warmServerCaches($server, $collector, $appMonitor, $healthMonitor, $log);
+            warmServerCaches($server, $collector, $appMonitor, $healthMonitor, $appInventorySync, $log);
             ++$stats['warmed'];
         } catch (Throwable $e) {
             $log->error("{$server}: " . $e->getMessage());
@@ -132,6 +134,7 @@ function warmServerCaches(
     ServerDataCollectorInterface $collector,
     AppMonitorInterface $appMonitor,
     NodeHealthMonitorInterface $healthMonitor,
+    AppInventorySync $appInventorySync,
     LoggerInterface $log
 ): void {
     // Refresh the dashboard's normal cache entries regardless of their display TTL.
@@ -144,6 +147,8 @@ function warmServerCaches(
 
         return;
     }
+
+    $appInventorySync->sync($appsResponse['result']);
 
     // Same ping filter and probe defaults (timeout, cache type) as ServerViewBuilder;
     // the probe timeout is part of the availability cache key

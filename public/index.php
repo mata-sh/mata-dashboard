@@ -42,7 +42,8 @@ use Mata\Services\Event\EventManager;
 use Mata\Services\Event\EventRecorderService;
 use Mata\Services\Event\MockEventAggregatorService;
 use Mata\Services\Foundation\IdResolver;
-use Mata\Services\Foundation\SettingsDatabaseSync;
+use Mata\Services\Sync\AppInventorySync;
+use Mata\Services\Sync\SettingsDatabaseSync;
 use Mata\Services\Navigation\MenuBuilder;
 use Mata\Services\Notification\NotificationManager;
 use Mata\Services\Validation\MetricsRequestValidator;
@@ -115,7 +116,6 @@ try {
 
     $appConfig = $initResult->config;
     $validationWarnings = $initResult->warnings;
-
 } catch (EnvConfigFatalException $e) {
     $log->critical($e->getMessage(), ['context' => $e->getContext()]);
 
@@ -327,6 +327,7 @@ $settingsSync = new SettingsDatabaseSync($db, $log, $configSyncRepository);
 
 // --- Tools & Resolvers ---
 $idResolver = new IdResolver($configSyncRepository);
+$appInventorySync = new AppInventorySync($configSyncRepository, $idResolver, $log);
 
 // --- Limits & Locking ---
 $queueFailureThrottle = new AlarmQueueFailureThrottle($paths->tempPath . '/alarm-locks', $log);
@@ -350,7 +351,7 @@ if ($useMockEvents) {
     $eventAggregator = new MockEventAggregatorService($log, $demoData);
     $log->info('Using mock event aggregator for demo data.', ['path' => $demoDataPath]);
 } else {
-    $eventAggregator = new EventAggregatorService($eventRepository, $alarmRepository, $idResolver, $log);
+    $eventAggregator = new EventAggregatorService($eventRepository, $alarmRepository, $idResolver);
 }
 
 $eventManager = (new EventManager($appConfig, $alarmDirectProcessor))
@@ -411,6 +412,7 @@ $dashboardController = new DashboardController(
     $endpoints,
     $menuBuilder,
     $monitoringSettings,
+    $appInventorySync,
 );
 
 $logDataTransformer = new LogDataTransformer($log);

@@ -28,6 +28,8 @@ vi config/config.env
 vi config/apps.json
 ```
 
+!!! warning "Application identifiers"
+    Each top-level key in every monitored node's `apps.json` is a dashboard application identifier. It must be globally unique. Reusing a key means the same application on multiple servers and requires identical `title` and `env`; the dashboard stores one application record and keeps events separate by server. Use a server-specific suffix when deployments must be separate applications.
 
 ## 2. Server Dashboard 
 
