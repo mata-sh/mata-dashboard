@@ -24,6 +24,38 @@
         return element;
     }
 
+    function shortenedMessage(message) {
+        var characters = Array.from(message);
+
+        return characters.length > 50 ? characters.slice(0, 50).join('') + '…' : message;
+    }
+
+    function formatMessage(cell) {
+        var message = String(cell.getValue() || '');
+        var element = document.createElement('span');
+        element.textContent = shortenedMessage(message);
+        if (Array.from(message).length > 50) {
+            element.title = 'Click to show the full message';
+        }
+
+        return element;
+    }
+
+    function toggleMessage(cell) {
+        var message = String(cell.getValue() || '');
+        if (Array.from(message).length <= 50) {
+            return;
+        }
+
+        var element = cell.getElement();
+        var expanded = element.dataset.messageExpanded !== 'true';
+        var content = document.createElement('span');
+        content.textContent = expanded ? message : shortenedMessage(message);
+        content.title = expanded ? 'Click to shorten the message' : 'Click to show the full message';
+        element.replaceChildren(content);
+        element.dataset.messageExpanded = expanded ? 'true' : 'false';
+    }
+
     function initializeEventsTable(context) {
         var root = context instanceof Element ? context : document;
         var tableElement = root.matches && root.matches('#events-table')
@@ -62,7 +94,7 @@
                 {title: 'App', field: 'app', sorter: 'string', hozAlign: 'center'},
                 {title: 'Level', field: 'level', hozAlign: 'center', formatter: window.mataFormatLevel},
                 {title: 'Type', field: 'type', sorter: 'string', formatter: formatType},
-                {title: 'Message', field: 'message', sorter: 'string'},
+                {title: 'Message', field: 'message', sorter: 'string', cssClass: 'table-message-cell', formatter: formatMessage, cellClick: function (event, cell) { toggleMessage(cell); }},
                 {title: 'Context', field: 'context', sorter: 'string'},
             ],
         });
