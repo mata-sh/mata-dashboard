@@ -1335,6 +1335,29 @@ svg {
     padding: 8px 12px;
 }
 
+.table-message-trigger {
+    max-width: 100%;
+    padding: 0;
+    overflow: hidden;
+    border: 0;
+    background: transparent;
+    color: inherit;
+    font: inherit;
+    text-align: left;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    cursor: pointer;
+}
+
+.table-message-trigger:hover {
+    color: #9fe8f2;
+}
+
+.table-message-trigger:focus-visible {
+    outline: 2px solid #3f93a6;
+    outline-offset: 2px;
+}
+
 .tabulator .tabulator-footer {
     background: #0e1015;
     border-top: 1px solid #1f242e;
@@ -2727,6 +2750,98 @@ label.audit-chip:hover {
     background: #14171d;
     border-color: #3f93a6;
     color: #9fe8f2;
+}
+
+#message-modal.mata-message-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 1100;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+#message-modal.mata-message-modal[hidden] {
+    display: none;
+}
+
+#message-modal.mata-message-modal .modal-background {
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, .5);
+    cursor: pointer;
+}
+
+#message-modal.mata-message-modal > .modal-content {
+    position: relative;
+    z-index: 1;
+    width: min(calc(100% - 2rem), 760px);
+    max-height: calc(100vh - 4rem);
+    margin: 0 1rem;
+    padding: 0;
+    overflow: hidden;
+    background: #12151c;
+    border: 1px solid #262c38;
+    border-radius: 10px;
+    box-shadow: 0 12px 28px rgba(0, 0, 0, .45);
+}
+
+.message-modal__header {
+    display: flex;
+    align-items: center;
+    gap: .75rem;
+    padding: .8rem 1.1rem;
+    background: #0e1015;
+    border-bottom: 1px solid #2f6f7d;
+}
+
+.message-modal__header h2 {
+    margin: 0;
+    margin-right: auto;
+    color: #e8eaf0;
+    font-size: .85rem;
+    font-weight: 700;
+    letter-spacing: .07em;
+    text-transform: uppercase;
+}
+
+.message-modal__close {
+    box-sizing: border-box;
+    width: 30px;
+    height: 30px;
+    padding: 0;
+    border: 1px solid #262c38;
+    border-radius: 4px;
+    background: #14171d;
+    color: #8b93a5;
+    font-size: 1.25rem;
+    line-height: 1;
+    cursor: pointer;
+}
+
+.message-modal__close:hover,
+.message-modal__close:focus-visible {
+    border-color: #3f93a6;
+    color: #9fe8f2;
+    outline: none;
+}
+
+.message-modal__close:focus-visible {
+    box-shadow: 0 0 0 2px rgba(63, 147, 166, .2);
+}
+
+.message-modal__content {
+    max-height: min(60vh, 500px);
+    margin: 0;
+    padding: 1rem 1.1rem;
+    overflow: auto;
+    background: #0b0d12;
+    color: #c9cfda;
+    font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+    font-size: .85rem;
+    line-height: 1.5;
+    overflow-wrap: anywhere;
+    white-space: pre-wrap;
 }
 
 /* ── Modal data table ────────────────────────────────────────── */

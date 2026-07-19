@@ -27,28 +27,28 @@
 
     function formatMessage(cell) {
         var message = String(cell.getValue() || '');
-        var element = document.createElement('span');
-        element.textContent = shortenedMessage(message);
-        if (Array.from(message).length > 50) {
-            element.title = 'Click to show the full message';
+        var truncated = Array.from(message).length > 50;
+        var element = document.createElement(truncated ? 'button' : 'span');
+
+        if (truncated) {
+            element.type = 'button';
+            element.className = 'table-message-trigger';
+            element.title = 'Show the full message';
+            element.setAttribute('aria-label', 'Show the full message');
         }
+
+        element.textContent = shortenedMessage(message);
 
         return element;
     }
 
-    function toggleMessage(cell) {
+    function showMessage(cell) {
         var message = String(cell.getValue() || '');
-        if (Array.from(message).length <= 50) {
+        if (Array.from(message).length <= 50 || !window.mataOpenMessageModal) {
             return;
         }
 
-        var element = cell.getElement();
-        var expanded = element.dataset.messageExpanded !== 'true';
-        var content = document.createElement('span');
-        content.textContent = expanded ? message : shortenedMessage(message);
-        content.title = expanded ? 'Click to shorten the message' : 'Click to show the full message';
-        element.replaceChildren(content);
-        element.dataset.messageExpanded = expanded ? 'true' : 'false';
+        window.mataOpenMessageModal(message, cell.getElement().querySelector('.table-message-trigger'));
     }
 
     function formatDeliveries(cell) {
@@ -131,7 +131,7 @@
                 {title: 'App', field: 'app', sorter: 'string', hozAlign: 'center'},
                 {title: 'Level', field: 'level', hozAlign: 'center', formatter: window.mataFormatLevel},
                 {title: 'Type', field: 'type', sorter: 'string', formatter: formatType},
-                {title: 'Message', field: 'message', sorter: 'string', cssClass: 'table-message-cell', formatter: formatMessage, cellClick: function (event, cell) { toggleMessage(cell); }},
+                {title: 'Message', field: 'message', sorter: 'string', cssClass: 'table-message-cell', formatter: formatMessage, cellClick: function (event, cell) { showMessage(cell); }},
                 {title: 'Context', field: 'context', sorter: 'string'},
                 {title: 'Deliveries', field: 'deliveries', hozAlign: 'center', formatter: formatDeliveries},
                 {title: 'Acknowledged', field: 'acknowledged_at', width: 130, hozAlign: 'center', sorter: 'string', formatter: formatAcknowledged},
