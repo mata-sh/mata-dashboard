@@ -7,6 +7,7 @@ namespace Mata\Services\Monitor;
 use DateTimeImmutable;
 use DateTimeInterface;
 use Mata\Models\ServerMetrics\ServerMetricsRepository;
+use Mata\Services\Event\Dto\EventCommand;
 use Mata\Services\Event\EventManager;
 use Psr\Log\LoggerInterface;
 
@@ -218,33 +219,33 @@ final class ServerMetricsHealthMonitor
         $totalServers = count($report['per_server']);
         $stalledServers = array_keys($report['stalled']);
 
-        $this->eventManager->handleEvent(
+        $this->eventManager->handle(new EventCommand(
             type: 'server_metrics.ingestion',
             message: sprintf(
                 'Inserted %d new raw samples across %d servers',
                 $report['total_inserted'],
                 $totalServers
             ),
+            level: ($report['total_inserted'] === 0 && $totalServers > 0) ? 'warning' : 'info',
             context: [
                 'generated_at' => $report['generated_at'],
                 'total_inserted' => $report['total_inserted'],
                 'stalled_servers' => $stalledServers,
-            ],
-            level: ($report['total_inserted'] === 0 && $totalServers > 0) ? 'warning' : 'info'
-        );
+            ]
+        ));
 
         foreach ($report['stalled'] as $server => $details) {
-            $this->eventManager->handleEvent(
+            $this->eventManager->handle(new EventCommand(
                 type: 'server_metrics.ingestion_stall',
                 message: sprintf(
                     'No new server metrics ingested for %s (lag %d minutes)',
                     $server,
                     $details['lag_minutes']
                 ),
-                context: $details,
                 level: 'warning',
-                server: $server
-            );
+                server: $server,
+                context: $details
+            ));
         }
     }
 }

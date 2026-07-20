@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Mata\Tests\Unit\Services;
 
 use Mata\Services\Collect\ServerDataCollectorInterface;
+use Mata\Services\Event\Dto\EventCommand;
 use Mata\Services\Event\EventManager;
 use Mata\Services\Foundation\LogAnalyzer;
 use Mata\Tests\TestCase;
@@ -26,7 +27,12 @@ final class LogAnalyzerTest extends TestCase
     {
         parent::setUp();
 
-        $this->tools = $this->createStub(Tools::class);
+        $this->tools = new class('/tmp') extends Tools {
+            public function formatKilobytes(int $kilobytes): string
+            {
+                return $kilobytes . ' KB';
+            }
+        };
         $this->eventManager = $this->createMock(EventManager::class);
         $this->analyzer = new LogAnalyzer($this->tools, $this->eventManager);
     }
@@ -46,8 +52,6 @@ final class LogAnalyzerTest extends TestCase
             ],
         ];
 
-        $this->tools->method('formatKilobytes')->willReturnCallback(static fn (int $size): string => $size . ' KB');
-        $this->tools->method('formatCompactNumber')->willReturnCallback(static fn (int $value): string => (string) $value);
 
         $this->eventManager
             ->expects($this->once())
@@ -56,7 +60,7 @@ final class LogAnalyzerTest extends TestCase
             ->willReturn('')
         ;
 
-        $this->eventManager->expects($this->never())->method('handleEvent');
+        $this->eventManager->expects($this->never())->method('handle');
 
         $result = $this->analyzer->analyzeAppLogs(
             $appData,
@@ -85,9 +89,6 @@ final class LogAnalyzerTest extends TestCase
             ],
         ];
 
-        $this->tools->method('formatKilobytes')->willReturn('60000 KB');
-        $this->tools->method('formatCompactNumber')->willReturnCallback(static fn (int $value): string => (string) $value);
-
         $this->eventManager
             ->expects($this->once())
             ->method('getServerDataThresholdLevel')
@@ -97,16 +98,14 @@ final class LogAnalyzerTest extends TestCase
 
         $this->eventManager
             ->expects($this->once())
-            ->method('handleEvent')
-            ->with(
-                'logfile_too_large',
-                $this->callback(static fn (string $message): bool => str_contains($message, '60000 KB')),
-                [],
-                'critical',
-                'srv-1',
-                'app-1',
-                false
-            )
+            ->method('handle')
+            ->with($this->callback(static fn (EventCommand $event): bool => $event->type === 'logfile_too_large'
+                && str_contains($event->message, '60000 KB')
+                && $event->level === 'critical'
+                && $event->server === 'srv-1'
+                && $event->app === 'app-1'
+                && $event->context === []
+                && $event->metric === null))
             ->willReturn([
                 'eventRecorded' => true,
                 'eventId' => 1,
@@ -136,16 +135,13 @@ final class LogAnalyzerTest extends TestCase
             ],
         ];
 
-        $this->tools->method('formatKilobytes')->willReturn('60000 KB');
-        $this->tools->method('formatCompactNumber')->willReturnCallback(static fn (int $value): string => (string) $value);
-
         $this->eventManager
             ->expects($this->once())
             ->method('getServerDataThresholdLevel')
             ->with(60000, 'log_filesize_kb')
             ->willReturn('alarm')
         ;
-        $this->eventManager->expects($this->never())->method('handleEvent');
+        $this->eventManager->expects($this->never())->method('handle');
 
         $result = $this->analyzer->analyzeAppLogs(
             $appData,
@@ -172,9 +168,6 @@ final class LogAnalyzerTest extends TestCase
             ],
         ];
 
-        $this->tools->method('formatKilobytes')->willReturn('100 KB');
-        $this->tools->method('formatCompactNumber')->willReturnCallback(static fn (int $value): string => (string) $value);
-
         $this->eventManager
             ->expects($this->once())
             ->method('getServerDataThresholdLevel')
@@ -184,16 +177,14 @@ final class LogAnalyzerTest extends TestCase
 
         $this->eventManager
             ->expects($this->once())
-            ->method('handleEvent')
-            ->with(
-                'fatal_errors_occurring',
-                $this->callback(static fn (string $message): bool => str_contains($message, 'Fatal Error Detected')),
-                [],
-                'warning',
-                'srv-1',
-                'app-1',
-                false
-            )
+            ->method('handle')
+            ->with($this->callback(static fn (EventCommand $event): bool => $event->type === 'fatal_errors_occurring'
+                && str_contains($event->message, 'Fatal Error Detected')
+                && $event->level === 'warning'
+                && $event->server === 'srv-1'
+                && $event->app === 'app-1'
+                && $event->metric?->name === 'fatal_error_count'
+                && $event->metric->value === 3))
             ->willReturn([
                 'eventRecorded' => true,
                 'eventId' => 10,

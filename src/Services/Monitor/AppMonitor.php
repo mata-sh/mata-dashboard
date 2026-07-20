@@ -9,6 +9,7 @@ use Mata\Constants\CacheTypes;
 use Mata\Services\Cache\ApiCacheKeyFactory;
 use Mata\Services\Cache\CacheStoreInterface;
 use Mata\Services\Cache\CacheTtlResolver;
+use Mata\Services\Event\Dto\EventCommand;
 use Mata\Services\Event\EventManager;
 use Mata\Services\Foundation\ApiClient;
 use Mata\Services\Foundation\ProbeClient;
@@ -169,13 +170,16 @@ class AppMonitor implements AppMonitorInterface
             'httpCode' => $result['httpCode'] ?? null,
             'error' => $result['error'] ?? null,
         ]);
-        $this->eventManager->handleEvent(
+        $this->eventManager->handle(new EventCommand(
             type: 'app_unreachable',
             message: $message,
-            context: ['identifier' => $ctx['identifier'], 'url' => $ctx['url']],
             level: 'critical',
             server: $ctx['server'],
-            app: $ctx['app']
-        );
+            app: $ctx['app'],
+            context: [
+                'identifier' => $ctx['identifier'],
+                'url' => $ctx['url'],
+            ]
+        ));
     }
 }

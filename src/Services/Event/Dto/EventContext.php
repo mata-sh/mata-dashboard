@@ -12,6 +12,12 @@ namespace Mata\Services\Event\Dto;
  */
 final class EventContext
 {
+    /** Fields excluded from the context used for cooldown deduplication. */
+    private const COOLDOWN_IGNORED_KEYS = [
+        'actual_value' => true,
+        'additional_data' => true,
+    ];
+
     /** @var array<int|string,mixed> */
     private array $data;
 
@@ -54,6 +60,19 @@ final class EventContext
     public function isEmpty(): bool
     {
         return $this->data === [];
+    }
+
+    /**
+     * Return the context used to identify equivalent events during cooldown deduplication.
+     *
+     * Current measurements and diagnostic data are stored with the event, but do not
+     * create separate cooldowns.
+     */
+    public function forCooldownIdentity(): self
+    {
+        $context = array_diff_key($this->data, self::COOLDOWN_IGNORED_KEYS);
+
+        return $context === $this->data ? $this : self::fromArray($context);
     }
 
     /**

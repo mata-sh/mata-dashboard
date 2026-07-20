@@ -38,8 +38,7 @@ class TooltipEscapingTest extends TestCase
             $this->createStub(LogAnalyzer::class),
             $eventManager,
             $this->createStub(Logger::class),
-            new CacheTypeResolver(),
-            new Tools(__DIR__)
+            new CacheTypeResolver()
         );
 
         $result = $this->invokePrivate($builder, 'formatSessionDataForView', [[
@@ -69,8 +68,7 @@ class TooltipEscapingTest extends TestCase
             $this->createStub(LogAnalyzer::class),
             $eventManager,
             $this->createStub(Logger::class),
-            new CacheTypeResolver(),
-            new Tools(__DIR__)
+            new CacheTypeResolver()
         );
 
         $result = $this->invokePrivate($builder, 'formatSessionDataForView', [[

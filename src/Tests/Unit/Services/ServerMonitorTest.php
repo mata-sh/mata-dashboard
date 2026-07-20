@@ -6,6 +6,7 @@ namespace Mata\Tests\Unit\Services;
 
 use Exception;
 use Mata\Services\Collect\ServerDataCollectorInterface;
+use Mata\Services\Event\Dto\EventCommand;
 use Mata\Services\Event\EventManager;
 use Mata\Services\Monitor\ServerMonitor;
 use Mata\Tests\TestCase;
@@ -73,7 +74,7 @@ final class ServerMonitorTest extends TestCase
 
         $this->eventManager
             ->expects($this->never())
-            ->method('handleEvent')
+            ->method('handle')
         ;
 
         $payload = $this->monitor->collectServerHealthData($collector, 'srv-1', 'serverData');
@@ -109,16 +110,13 @@ final class ServerMonitorTest extends TestCase
 
         $this->eventManager
             ->expects($this->once())
-            ->method('handleEvent')
-            ->with(
-                'filecount_too_large',
-                $this->callback(static fn (string $message): bool => str_contains($message, '950.000')),
-                [],
-                'critical',
-                'critical-server',
-                null,
-                false
-            )
+            ->method('handle')
+            ->with($this->callback(static fn (EventCommand $event): bool => $event->type === 'filecount_too_large'
+                && str_contains($event->message, '950.000')
+                && $event->level === 'critical'
+                && $event->server === 'critical-server'
+                && $event->context === []
+                && $event->metric === null))
             ->willReturn([
                 'eventRecorded' => true,
                 'eventId' => 1,
@@ -152,16 +150,21 @@ final class ServerMonitorTest extends TestCase
 
         $this->eventManager
             ->expects($this->once())
-            ->method('handleEvent')
-            ->with(
-                'remaining_diskspace_too_low',
-                $this->callback(static fn (string $message): bool => str_contains($message, '95')),
-                [],
-                'critical',
-                'disk-server',
-                null,
-                false
-            )
+            ->method('getServerDataThresholdLimit')
+            ->with('disk_space_usage_percent')
+            ->willReturn(90)
+        ;
+
+        $this->eventManager
+            ->expects($this->once())
+            ->method('handle')
+            ->with($this->callback(static fn (EventCommand $event): bool => $event->type === 'remaining_diskspace_too_low'
+                && str_contains($event->message, '95')
+                && $event->level === 'critical'
+                && $event->server === 'disk-server'
+                && $event->metric?->name === 'disk_space_usage_percent'
+                && $event->metric->value === 95.0
+                && $event->metric->threshold === 90))
             ->willReturn([
                 'eventRecorded' => true,
                 'eventId' => 10,
@@ -189,7 +192,7 @@ final class ServerMonitorTest extends TestCase
             ->method('getServerDataThresholdLevel')
             ->willReturnOnConsecutiveCalls('', '', '', '', 'good')
         ;
-        $this->eventManager->expects($this->never())->method('handleEvent');
+        $this->eventManager->expects($this->never())->method('handle');
 
         $payload = $this->monitor->collectServerHealthData($collector, 'cron-server');
 
@@ -217,16 +220,21 @@ final class ServerMonitorTest extends TestCase
         ;
         $this->eventManager
             ->expects($this->once())
-            ->method('handleEvent')
-            ->with(
-                'cronjobs_failing',
-                'Cronjobs failing (1/3, stale: 1, missing: 0) on Server: cron-server',
-                [],
-                'critical',
-                'cron-server',
-                null,
-                false
-            )
+            ->method('getServerDataThresholdLimit')
+            ->with('cronjobs_failed_count')
+            ->willReturn(0)
+        ;
+        $this->eventManager
+            ->expects($this->once())
+            ->method('handle')
+            ->with($this->callback(static fn (EventCommand $event): bool => $event->type === 'cronjobs_failing'
+                && $event->message === 'Cronjobs failing (1/3, stale: 1, missing: 0) on Server: cron-server'
+                && $event->level === 'critical'
+                && $event->server === 'cron-server'
+                && $event->metric?->name === 'cronjobs_failed_count'
+                && $event->metric->value === 1
+                && $event->metric->threshold === 0
+                && $event->metric->additional === ['total' => 3, 'stale' => 1, 'missing' => 0]))
             ->willReturn(['eventRecorded' => true, 'eventId' => 1])
         ;
 
@@ -259,7 +267,7 @@ final class ServerMonitorTest extends TestCase
         $events = [];
         $this->eventManager
             ->expects($this->exactly(2))
-            ->method('handleEvent')
+            ->method('handle')
             ->willReturnCallback(static function (...$arguments) use (&$events): array {
                 $events[] = $arguments;
 
@@ -269,10 +277,10 @@ final class ServerMonitorTest extends TestCase
 
         $this->monitor->collectServerHealthData($collector, 'usage-server');
 
-        $this->assertSame('cpu_usage_too_high', $events[0][0]);
-        $this->assertSame('CPU usage critical (96 %) on Server: usage-server', $events[0][1]);
-        $this->assertSame('ram_usage_too_high', $events[1][0]);
-        $this->assertSame('RAM usage critical (95 %) on Server: usage-server', $events[1][1]);
+        $this->assertSame('cpu_usage_too_high', $events[0][0]->type);
+        $this->assertSame('CPU usage critical (96 %) on Server: usage-server', $events[0][0]->message);
+        $this->assertSame('ram_usage_too_high', $events[1][0]->type);
+        $this->assertSame('RAM usage critical (95 %) on Server: usage-server', $events[1][0]->message);
     }
 
     public function testCollectServerHealthDataDoesNotTriggerCpuAndRamUsageEventsBelowAlarm(): void
@@ -295,7 +303,7 @@ final class ServerMonitorTest extends TestCase
             ->method('getServerDataThresholdLevel')
             ->willReturnOnConsecutiveCalls('warning', 'critical', '', '')
         ;
-        $this->eventManager->expects($this->never())->method('handleEvent');
+        $this->eventManager->expects($this->never())->method('handle');
 
         $this->monitor->collectServerHealthData($collector, 'usage-server');
     }

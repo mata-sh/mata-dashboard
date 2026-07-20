@@ -17,7 +17,9 @@ use Mata\Config\Dto\RateLimitingConfig;
 use Mata\Config\Dto\TemplateConfig;
 use Mata\Models\Dto\EventRecordResult;
 use Mata\Services\Alarm\AlarmDirectProcessor;
+use Mata\Services\Event\Dto\EventCommand;
 use Mata\Services\Event\Dto\EventContext;
+use Mata\Services\Event\Dto\EventMetric;
 use Mata\Services\Event\EventAggregatorServiceInterface;
 use Mata\Services\Event\EventManager;
 use Mata\Services\Event\EventRecorderService;
@@ -38,13 +40,14 @@ final class EventManagerTest extends TestCase
     {
         parent::setUp();
 
-        $this->eventRecorder = $this->createMock(EventRecorderService::class);
+        $this->eventRecorder = $this->createStub(EventRecorderService::class);
         $this->eventAggregator = $this->createStub(EventAggregatorServiceInterface::class);
         $this->alarmDirectProcessor = $this->createStub(AlarmDirectProcessor::class);
     }
 
     public function testHandleEventRecordsEventOnly(): void
     {
+        $this->useMockEventRecorder();
         $this->alarmDirectProcessor = $this->createMock(AlarmDirectProcessor::class);
 
         $manager = $this->createManager(alarmsEnabled: false, eventsEnabled: true);
@@ -71,16 +74,17 @@ final class EventManagerTest extends TestCase
 
         $this->alarmDirectProcessor->expects($this->never())->method('process');
 
-        $result = $manager->handleEvent(
+        $result = $manager->handle(new EventCommand(
             type: 'test_event',
             message: 'Test message'
-        );
+        ));
 
         $this->assertSame(['eventRecorded' => true, 'eventId' => 1], $result);
     }
 
     public function testShouldCreateEventReturnsFalseWhenEventsDisabled(): void
     {
+        $this->useMockEventRecorder();
         $manager = $this->createManager(eventsEnabled: false);
 
         $this->eventRecorder
@@ -107,6 +111,7 @@ final class EventManagerTest extends TestCase
 
     public function testShouldCreateEventRespectsConfiguredCooldown(): void
     {
+        $this->useMockEventRecorder();
         $intervalsConfig = [
             'events' => [
                 'min_event_interval_minutes' => [
@@ -146,6 +151,7 @@ final class EventManagerTest extends TestCase
 
     public function testHandleEventSkipsWhenEventsDisabled(): void
     {
+        $this->useMockEventRecorder();
         $this->alarmDirectProcessor = $this->createMock(AlarmDirectProcessor::class);
 
         $manager = $this->createManager(eventsEnabled: false, alarmsEnabled: false);
@@ -153,10 +159,10 @@ final class EventManagerTest extends TestCase
         $this->eventRecorder->expects($this->never())->method('recordEvent');
         $this->alarmDirectProcessor->expects($this->never())->method('process');
 
-        $result = $manager->handleEvent(
+        $result = $manager->handle(new EventCommand(
             type: 'test_event',
             message: 'Test message'
-        );
+        ));
 
         $this->assertSame(
             ['eventRecorded' => false, 'eventId' => null],
@@ -166,6 +172,7 @@ final class EventManagerTest extends TestCase
 
     public function testHandleEventRecordsEventWithCooldownRespected(): void
     {
+        $this->useMockEventRecorder();
         $this->alarmDirectProcessor = $this->createMock(AlarmDirectProcessor::class);
 
         $intervalsConfig = [
@@ -216,15 +223,97 @@ final class EventManagerTest extends TestCase
 
         $this->alarmDirectProcessor->expects($this->never())->method('process');
 
-        $result = $manager->handleEvent(
+        $result = $manager->handle(new EventCommand(
             type: 'test_event',
             message: 'Test message'
-        );
+        ));
 
         $this->assertSame(
             ['eventRecorded' => true, 'eventId' => 123],
             $result
         );
+    }
+
+    public function testHandleEventStoresMetricFieldsAndUsesACooldownMetricHash(): void
+    {
+        $this->useMockEventRecorder();
+        $manager = $this->createManager(eventsEnabled: true);
+        $stableContext = EventContext::fromArray([
+            'metric' => 'disk_space_usage_percent',
+            'threshold' => 90,
+        ]);
+        $expectedHash = hash('sha256', json_encode([
+            'type' => 'disk_event',
+            'server' => 'srv-1',
+            'app' => '',
+            'context' => $stableContext->toJson(),
+            'channel' => '',
+        ], JSON_UNESCAPED_SLASHES));
+
+        $this->eventRecorder
+            ->expects($this->exactly(2))
+            ->method('hasActiveCooldown')
+            ->with($expectedHash)
+            ->willReturn(false)
+        ;
+        $contexts = [];
+        $this->eventRecorder
+            ->expects($this->exactly(2))
+            ->method('recordEvent')
+            ->willReturnCallback(function (...$arguments) use (&$contexts): EventRecordResult {
+                $contexts[] = $arguments[2];
+
+                return new EventRecordResult(1, null, null, null, null, null, null);
+            })
+        ;
+
+        $manager->handle(new EventCommand(
+            type: 'disk_event',
+            message: 'Disk usage',
+            server: 'srv-1',
+            context: [
+                'metric' => 'caller_metric',
+                'actual_value' => -1,
+                'threshold' => -1,
+            ],
+            metric: new EventMetric('disk_space_usage_percent', 91, 90, ['total' => 100])
+        ));
+        $manager->handle(new EventCommand(
+            type: 'disk_event',
+            message: 'Disk usage',
+            server: 'srv-1',
+            metric: new EventMetric('disk_space_usage_percent', 92, 90, ['total' => 100])
+        ));
+
+        $this->assertSame(
+            '{"actual_value":91,"additional_data":{"total":100},"metric":"disk_space_usage_percent","threshold":90}',
+            $contexts[0]
+        );
+        $this->assertSame(
+            '{"actual_value":92,"additional_data":{"total":100},"metric":"disk_space_usage_percent","threshold":90}',
+            $contexts[1]
+        );
+    }
+
+    public function testGetServerDataThresholdLimitReturnsOnlyNumericLimits(): void
+    {
+        $manager = $this->createManager();
+        $manager->setMonitoringSettings([
+            'thresholds' => ['server_data' => [
+                'disk_space_usage_percent' => ['alarm' => 90],
+                'invalid' => ['alarm' => 'none'],
+            ]],
+            'intervals' => [],
+        ]);
+
+        $this->assertSame(90, $manager->getServerDataThresholdLimit('disk_space_usage_percent'));
+        $this->assertNull($manager->getServerDataThresholdLimit('invalid'));
+        $this->assertNull($manager->getServerDataThresholdLimit('missing'));
+    }
+
+    private function useMockEventRecorder(): void
+    {
+        $this->eventRecorder = $this->createMock(EventRecorderService::class);
     }
 
     /**

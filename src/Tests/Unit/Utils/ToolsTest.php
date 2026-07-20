@@ -175,27 +175,6 @@ class ToolsTest extends TestCase
 
     /**
      * @group tools
-     * @group formatting
-     */
-    public function testItFormatsCompactNumbers(): void
-    {
-        $testCases = [
-            [999, '999'],
-            [1250, '1.2k'],
-            [238512, '238k'],
-            [240000, '240k'],
-            [2500000, '2.5m'],
-            ['abc', '0'],
-        ];
-
-        foreach ($testCases as [$number, $expected]) {
-            $result = $this->tools->formatCompactNumber($number);
-            $this->assertEquals($expected, $result, "Failed formatting number {$number}");
-        }
-    }
-
-    /**
-     * @group tools
      * @group icons
      */
     public function testItReturnsEmptyStringForMissingIconFiles(): void

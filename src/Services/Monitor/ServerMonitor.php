@@ -6,6 +6,8 @@ namespace Mata\Services\Monitor;
 
 use Exception;
 use Mata\Services\Collect\ServerDataCollectorInterface;
+use Mata\Services\Event\Dto\EventCommand;
+use Mata\Services\Event\Dto\EventMetric;
 use Mata\Services\Event\EventManager;
 use Monolog\Logger;
 
@@ -196,12 +198,12 @@ class ServerMonitor
             return;
         }
 
-        $this->eventManager->handleEvent(
+        $this->eventManager->handle(new EventCommand(
             type: 'cpu_usage_too_high',
             message: "CPU usage critical ({$cpuUsage} %) on Server: {$server}",
             level: 'critical',
             server: $server
-        );
+        ));
     }
 
     /**
@@ -213,12 +215,12 @@ class ServerMonitor
             return;
         }
 
-        $this->eventManager->handleEvent(
+        $this->eventManager->handle(new EventCommand(
             type: 'ram_usage_too_high',
             message: "RAM usage critical ({$ramUsagePercent} %) on Server: {$server}",
             level: 'critical',
             server: $server
-        );
+        ));
     }
 
     /**
@@ -236,12 +238,18 @@ class ServerMonitor
             return;
         }
 
-        $this->eventManager->handleEvent(
+        $this->eventManager->handle(new EventCommand(
             type: 'cronjobs_failing',
             message: "Cronjobs failing ({$failed}/{$total}, stale: {$stale}, missing: {$missing}) on Server: {$server}",
             level: 'critical',
-            server: $server
-        );
+            server: $server,
+            metric: new EventMetric(
+                'cronjobs_failed_count',
+                $failed,
+                $this->eventManager->getServerDataThresholdLimit('cronjobs_failed_count'),
+                ['total' => $total, 'stale' => $stale, 'missing' => $missing]
+            )
+        ));
     }
 
     /**
@@ -258,12 +266,12 @@ class ServerMonitor
         }
 
         $fileCount = number_format($serverData['total_system_filecount'], 0, '', '.');
-        $this->eventManager->handleEvent(
+        $this->eventManager->handle(new EventCommand(
             type: 'filecount_too_large',
             message: "Filecount ({$fileCount}) reached critical level on Server: {$server}",
             level: 'critical',
             server: $server
-        );
+        ));
     }
 
     /**
@@ -279,11 +287,16 @@ class ServerMonitor
             return;
         }
 
-        $this->eventManager->handleEvent(
+        $this->eventManager->handle(new EventCommand(
             type: 'remaining_diskspace_too_low',
             message: "Remaining diskspace is getting too low ({$diskSpaceUsed} % used) on Server: {$server}",
             level: 'critical',
-            server: $server
-        );
+            server: $server,
+            metric: new EventMetric(
+                'disk_space_usage_percent',
+                round($diskSpaceUsed, 2),
+                $this->eventManager->getServerDataThresholdLimit('disk_space_usage_percent')
+            )
+        ));
     }
 }

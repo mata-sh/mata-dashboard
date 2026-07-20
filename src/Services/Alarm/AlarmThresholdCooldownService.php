@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Mata\Services\Alarm;
 
 use Mata\Config\Dto\ApplicationConfig;
+use Mata\Services\Event\CooldownHashFactory;
 use Mata\Services\Event\Dto\EventContext;
 use Mata\Services\Event\EventAggregatorServiceInterface;
 use Mata\Services\Event\EventRecorderService;
@@ -53,22 +54,26 @@ class AlarmThresholdCooldownService
     private EventAggregatorServiceInterface $aggregator;
     private EventRecorderService $recorder;
     private ApplicationConfig $appConfig;
+    private CooldownHashFactory $cooldownHashFactory;
 
     /**
      * Initialize alarm evaluation service.
      *
-     * @param EventAggregatorServiceInterface $aggregator Event querying service for threshold checks
-     * @param EventRecorderService            $recorder   Event recorder for cooldown tracking
-     * @param ApplicationConfig               $appConfig  Application configuration for alarm settings
+     * @param EventAggregatorServiceInterface $aggregator          Event querying service for threshold checks
+     * @param EventRecorderService            $recorder            Event recorder for cooldown tracking
+     * @param ApplicationConfig               $appConfig           Application configuration for alarm settings
+     * @param null|CooldownHashFactory        $cooldownHashFactory Optional cooldown hash factory
      */
     public function __construct(
         EventAggregatorServiceInterface $aggregator,
         EventRecorderService $recorder,
-        ApplicationConfig $appConfig
+        ApplicationConfig $appConfig,
+        ?CooldownHashFactory $cooldownHashFactory = null
     ) {
         $this->aggregator = $aggregator;
         $this->recorder = $recorder;
         $this->appConfig = $appConfig;
+        $this->cooldownHashFactory = $cooldownHashFactory ?? new CooldownHashFactory();
     }
 
     /**
@@ -224,7 +229,8 @@ class AlarmThresholdCooldownService
      * Generate cooldown hash for alarm deduplication.
      *
      * Creates a unique hash for cooldown tracking based on alarm attributes.
-     * Hash format: SHA256(type|server|app|context|channel)
+     * Hash format: SHA256(type|server|app|context|channel). Threshold configuration changes
+     * alter hashes, causing one accepted extra alarm after a configuration edit.
      *
      * @param string          $type    Alarm type identifier
      * @param null|int|string $server  Server context
@@ -241,21 +247,13 @@ class AlarmThresholdCooldownService
         EventContext $context,
         string $channel
     ): string {
-        $payload = [
-            'type' => $type,
-            'server' => $server === null ? '' : (string) $server,
-            'app' => $app === null ? '' : (string) $app,
-            'context' => $context->toJson(),
-            'channel' => $channel,
-        ];
-
-        $encoded = json_encode($payload, JSON_UNESCAPED_SLASHES);
-
-        if ($encoded === false) {
-            return '';
-        }
-
-        return hash('sha256', $encoded);
+        return $this->cooldownHashFactory->forAlarmChannel(
+            type: $type,
+            server: $server,
+            app: $app,
+            context: $context,
+            channel: $channel
+        );
     }
 
     /**

@@ -88,7 +88,7 @@ final class AppMonitorTest extends TestCase
         $store->method('get')->willReturn(null);
         $store->expects($this->once())->method('put');
         $events = $this->createMock(EventManager::class);
-        $events->expects($this->never())->method('handleEvent');
+        $events->expects($this->never())->method('handle');
         $monitor = $this->monitor($store, $this->probe(new Response(503, [], '{"maintenance_mode":true}')), CacheTypes::PING, $events);
 
         $result = $monitor->checkMultipleEndpoints([
@@ -113,7 +113,7 @@ final class AppMonitorTest extends TestCase
             'httpCode' => 503,
         ], time()));
         $events = $this->createMock(EventManager::class);
-        $events->expects($this->never())->method('handleEvent');
+        $events->expects($this->never())->method('handle');
         $monitor = $this->monitor($store, new ProbeClient(), CacheTypes::PING, $events);
 
         $result = $monitor->checkMultipleEndpoints([
@@ -133,7 +133,7 @@ final class AppMonitorTest extends TestCase
         );
         $store->expects($this->exactly(2))->method('put');
         $events = $this->createMock(EventManager::class);
-        $events->expects($this->exactly(2))->method('handleEvent')->willReturn([]);
+        $events->expects($this->exactly(2))->method('handle')->willReturn([]);
         $monitor = $this->monitor($store, $this->probe(new Response(200), new Response(503)), CacheTypes::PING, $events);
 
         $results = $monitor->checkMultipleEndpoints([
@@ -159,7 +159,7 @@ final class AppMonitorTest extends TestCase
         $probe->method('settle')->willReturn([]);
 
         $events = $this->createMock(EventManager::class);
-        $events->expects($this->once())->method('handleEvent')->willReturn([]);
+        $events->expects($this->once())->method('handle')->willReturn([]);
         $monitor = $this->monitor($store, $probe, CacheTypes::PING, $events);
 
         $results = $monitor->checkMultipleEndpoints([
@@ -193,7 +193,7 @@ final class AppMonitorTest extends TestCase
             });
 
         $events = $this->createMock(EventManager::class);
-        $events->expects($this->never())->method('handleEvent');
+        $events->expects($this->never())->method('handle');
         $monitor = $this->monitor($store, $probe, CacheTypes::PING, $events);
         $targets = [];
         for ($index = 1; $index <= 10; ++$index) {

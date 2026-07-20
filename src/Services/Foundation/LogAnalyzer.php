@@ -5,7 +5,10 @@ declare(strict_types=1);
 namespace Mata\Services\Foundation;
 
 use Mata\Services\Collect\ServerDataCollectorInterface;
+use Mata\Services\Event\Dto\EventCommand;
+use Mata\Services\Event\Dto\EventMetric;
 use Mata\Services\Event\EventManager;
+use Mata\Utils\NumberFormatter;
 use Mata\Utils\Tools;
 
 /**
@@ -21,13 +24,16 @@ class LogAnalyzer
 {
     private Tools $tools;
     private EventManager $eventManager;
+    private NumberFormatter $numberFormatter;
 
     public function __construct(
         Tools $tools,
         EventManager $eventManager,
+        ?NumberFormatter $numberFormatter = null,
     ) {
         $this->tools = $tools;
         $this->eventManager = $eventManager;
+        $this->numberFormatter = $numberFormatter ?? new NumberFormatter();
     }
 
     /**
@@ -131,9 +137,9 @@ class LogAnalyzer
         bool $alarmsEnabled,
         array $logs
     ): array {
-        $fatalCount = $this->tools->formatCompactNumber($status['fatal']);
-        $warningCount = $this->tools->formatCompactNumber($status['warnings']);
-        $totalLineCount = $this->tools->formatCompactNumber($status['total']);
+        $fatalCount = $this->numberFormatter->formatCompact($status['fatal']);
+        $warningCount = $this->numberFormatter->formatCompact($status['warnings']);
+        $totalLineCount = $this->numberFormatter->formatCompact($status['total']);
 
         $showEventsCount = 0;
         $showEventsType = 'working';
@@ -145,7 +151,7 @@ class LogAnalyzer
 
             if ($alarmsEnabled) {
                 $alarmsEnabledClass = 'alarms-enabled';
-                $this->evaluateFatalErrorAlarm($fatalCount, $app, $server);
+                $this->evaluateFatalErrorAlarm((int) $status['fatal'], $app, $server);
             }
         } elseif ($status['warnings'] > 0) {
             $showEventsCount = $warningCount;
@@ -197,33 +203,36 @@ class LogAnalyzer
 
         $maxLogfileSizeFormatted = $this->tools->formatKilobytes($maxLogfileSize);
 
-        $this->eventManager->handleEvent(
+        $this->eventManager->handle(new EventCommand(
             type: 'logfile_too_large',
             message: "Log too large ({$maxLogfileSizeFormatted}) - {$maxLogFilePath} : {$app} on Server: {$server}",
             level: 'critical',
             server: $server,
             app: $app
-        );
+        ));
     }
 
     /**
      * Evaluate fatal error alarm conditions.
      *
-     * @param string $fatalCount Number of fatal errors as formatted string
+     * @param int    $fatalCount Number of fatal errors
      * @param string $app        Application name
      * @param string $server     Server name
      */
     private function evaluateFatalErrorAlarm(
-        string $fatalCount,
+        int $fatalCount,
         string $app,
         string $server
     ): void {
-        $this->eventManager->handleEvent(
+        $formattedFatalCount = $this->numberFormatter->formatCompact($fatalCount);
+
+        $this->eventManager->handle(new EventCommand(
             type: 'fatal_errors_occurring',
-            message: "Fatal Error Detected (Count: {$fatalCount}): {$app} on Server: {$server}",
+            message: "Fatal Error Detected (Count: {$formattedFatalCount}): {$app} on Server: {$server}",
             level: 'warning',
             server: $server,
-            app: $app
-        );
+            app: $app,
+            metric: new EventMetric('fatal_error_count', $fatalCount)
+        ));
     }
 }

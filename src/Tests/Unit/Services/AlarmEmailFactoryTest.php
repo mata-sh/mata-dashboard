@@ -65,7 +65,7 @@ final class AlarmEmailFactoryTest extends TestCase
         $this->assertStringContainsString('>Shop on</td>', $html);
         $this->assertStringContainsString('>Api-1</td>', $html);
         $this->assertStringContainsString('Detected fatal errors above threshold.', $html);
-        $this->assertStringContainsString('connection refused', $html);
+        $this->assertStringContainsString('&quot;actual_value&quot;:2000', $html);
         $this->assertStringContainsString('#ff3b4e', $html);
         $this->assertStringContainsString('CRITICAL · Api-1 · 2k fatal_errors_occurring · Alarm #123', $html);
         $this->assertStringContainsString('transmission by MATA monitoring', $html);
@@ -223,7 +223,7 @@ final class AlarmEmailFactoryTest extends TestCase
     private function view(?Alarm $alarm = null): AlarmEmailView
     {
         return new AlarmEmailView(
-            $alarm ?? new Alarm('fatal_errors_occurring', 'Fatal Error Detected (Count: 2k): Shop on Server: Api-1', 'connection refused', AlarmLevel::Critical, 'Api-1', 'Shop'),
+            $alarm ?? new Alarm('fatal_errors_occurring', 'Fatal Error Detected (Count: 2k): Shop on Server: Api-1', '{"actual_value":2000,"metric":"fatal_error_count"}', AlarmLevel::Critical, 'Api-1', 'Shop'),
             123,
             new DateTimeImmutable('2026-07-11 17:20:00 UTC'),
         );

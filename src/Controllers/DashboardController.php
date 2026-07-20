@@ -187,7 +187,6 @@ class DashboardController extends BaseController
             $eventManager,
             $logger,
             $cacheTypeResolver,
-            $tools,
             $appInventorySync
         );
 

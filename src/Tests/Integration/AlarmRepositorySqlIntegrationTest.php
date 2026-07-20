@@ -149,6 +149,10 @@ final class AlarmRepositorySqlIntegrationTest extends TestCase
         $this->assertSame('critical', $deliveries[0]->level);
         $this->assertSame('prod', $deliveries[0]->appEnvironment);
         $this->assertSame('email', $deliveries[0]->channel);
+        $this->assertSame(
+            '{"actual_value":91,"metric":"disk_space_usage_percent","threshold":90}',
+            $deliveries[0]->context
+        );
     }
 
     public function testPendingClaimIncludesPreviousAlarmForTheSameTypeAndTarget(): void
@@ -288,7 +292,7 @@ final class AlarmRepositorySqlIntegrationTest extends TestCase
             INSERT INTO events (id, server_id, application_id, type, message, context, level, datetime, evaluated_at)
             VALUES
                 (1, 1, 10, 'cpu', 'CPU high', '{"metric":"cpu"}', 'warning', '2026-01-01 00:00:00', NULL),
-                (2, 1, 10, 'disk', 'Disk full', '{"metric":"disk"}', 'critical', '2026-01-01 00:01:00', NULL);
+                (2, 1, 10, 'disk', 'Disk full', '{"actual_value":91,"metric":"disk_space_usage_percent","threshold":90}', 'critical', '2026-01-01 00:01:00', NULL);
 
             INSERT INTO alarms (id, event_id, created_at)
             VALUES (100, 1, '2026-01-01 00:02:00');

@@ -20,7 +20,7 @@ use Mata\Services\Monitor\NodeHealthMonitorInterface;
 use Mata\Services\Monitor\ServerMonitor;
 use Mata\Services\Sync\AppInventorySync;
 use Mata\Utils\Html;
-use Mata\Utils\Tools;
+use Mata\Utils\NumberFormatter;
 use Monolog\Logger;
 use Throwable;
 
@@ -41,8 +41,8 @@ class ServerViewBuilder
     private EventManager $eventManager;
     private Logger $logger;
     private CacheTypeResolver $cacheTypeResolver;
-    private Tools $tools;
     private ?AppInventorySync $appInventorySync;
+    private NumberFormatter $numberFormatter;
 
     public function __construct(
         ServerMonitor $serverMonitor,
@@ -50,16 +50,16 @@ class ServerViewBuilder
         EventManager $eventManager,
         Logger $logger,
         CacheTypeResolver $cacheTypeResolver,
-        Tools $tools,
-        ?AppInventorySync $appInventorySync = null
+        ?AppInventorySync $appInventorySync = null,
+        ?NumberFormatter $numberFormatter = null,
     ) {
         $this->serverMonitor = $serverMonitor;
         $this->logAnalyzer = $logAnalyzer;
         $this->eventManager = $eventManager;
         $this->logger = $logger;
         $this->cacheTypeResolver = $cacheTypeResolver;
-        $this->tools = $tools;
         $this->appInventorySync = $appInventorySync;
+        $this->numberFormatter = $numberFormatter ?? new NumberFormatter();
     }
 
     /**
@@ -433,7 +433,7 @@ class ServerViewBuilder
 
             return [
                 'level' => $this->eventManager->getAppDataThresholdLevel($lastHour, 'session_count'),
-                'formatted_count' => $this->tools->formatCompactNumber($lastHour),
+                'formatted_count' => $this->numberFormatter->formatCompact($lastHour),
                 'tooltip' => implode('<br>', $tooltipParts),
             ];
         }
@@ -443,7 +443,7 @@ class ServerViewBuilder
 
             return [
                 'level' => '',
-                'formatted_count' => $this->tools->formatCompactNumber($total),
+                'formatted_count' => $this->numberFormatter->formatCompact($total),
                 'tooltip' => sprintf(
                     '<strong>Type:</strong> %s<br><strong>Total:</strong> %s<br>Hourly/daily counts not available',
                     Html::escapeTooltipValue($session['type']),

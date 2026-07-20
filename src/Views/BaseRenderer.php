@@ -7,6 +7,7 @@ namespace Mata\Views;
 use Mata\Core\App;
 use Mata\Http\Routing\Endpoints;
 use Mata\Utils\Html;
+use Mata\Utils\NumberFormatter;
 use Mata\Utils\Tools;
 use Monolog\Logger;
 use Twig\Environment;
@@ -26,6 +27,7 @@ abstract class BaseRenderer
     protected Environment $twig;
     protected Logger $logger;
     protected Tools $tools;
+    protected NumberFormatter $numberFormatter;
     protected App $app;
     protected Endpoints $endpoints;
 
@@ -39,6 +41,7 @@ abstract class BaseRenderer
         $this->twig = $twig;
         $this->logger = $logger;
         $this->tools = $tools;
+        $this->numberFormatter = new NumberFormatter();
         $this->app = $app;
         $this->endpoints = $endpoints;
     }
@@ -148,7 +151,7 @@ abstract class BaseRenderer
      */
     protected function formatCompactNumber(mixed $number): string
     {
-        return $this->tools->formatCompactNumber($number);
+        return $this->numberFormatter->formatCompact($number);
     }
 
     // ────────────────────────────────────────────────

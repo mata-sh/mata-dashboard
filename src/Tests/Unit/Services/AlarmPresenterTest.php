@@ -20,24 +20,17 @@ final class AlarmPresenterTest extends TestCase
 
     protected function setUp(): void
     {
-        $this->presenter = new AlarmPresenter(
-            thresholds: [
-                'server_data' => [
-                    'disk_space_usage_percent' => ['alarm' => 90],
-                    'cronjobs_failed_count' => ['alarm' => 0],
-                ],
-            ],
-            servers: [
-                'api-1' => ['primary_color' => '#E88C02', 'env' => 'test'],
-            ],
-        );
+        $this->presenter = new AlarmPresenter(servers: [
+            'api-1' => ['primary_color' => '#E88C02', 'env' => 'test'],
+        ]);
     }
 
     public function testItPreservesTheExistingCompactFatalErrorCount(): void
     {
         $presentation = $this->presenter->present(new Alarm(
             'fatal_errors_occurring',
-            'Fatal Error Detected (Count: 2.1k): Shop on Server: api-1',
+            'Fatal Error Detected',
+            '{"actual_value":2100,"metric":"fatal_error_count"}',
         ), 'api-1', null);
 
         $this->assertSame('Detected fatal errors above threshold.', $presentation->description);
@@ -46,21 +39,34 @@ final class AlarmPresenterTest extends TestCase
         $this->assertNull($presentation->metric?->threshold);
     }
 
-    public function testItResolvesDiskAndCronjobMetricsWithConfiguredThresholds(): void
+    public function testItResolvesDiskAndCronjobMetricsWithCapturedThresholds(): void
     {
         $disk = $this->presenter->present(new Alarm(
             'remaining_diskspace_too_low',
-            'Remaining diskspace is getting too low (91 % used) on Server: api-1',
+            'Remaining diskspace is getting too low',
+            '{"actual_value":91,"metric":"disk_space_usage_percent","threshold":90}',
         ), 'api-1', null);
         $cronjobs = $this->presenter->present(new Alarm(
             'cronjobs_failing',
-            'Cronjobs failing (1200/1500, stale: 2, missing: 1) on Server: api-1',
+            'Cronjobs failing',
+            '{"actual_value":1200,"metric":"cronjobs_failed_count","threshold":0}',
         ), 'api-1', null);
 
         $this->assertSame('91%', $disk->metric?->value);
         $this->assertSame('threshold: 90%', $disk->metric?->threshold);
         $this->assertSame('1.200', $cronjobs->metric?->value);
         $this->assertSame('threshold: 0', $cronjobs->metric?->threshold);
+    }
+
+    public function testItUsesUnknownForMissingOrInvalidMetricContext(): void
+    {
+        $missing = $this->presenter->present(new Alarm('remaining_diskspace_too_low', 'Disk usage'), 'api-1', null);
+        $invalid = $this->presenter->present(new Alarm('cronjobs_failing', 'Cronjobs failing', 'not json'), 'api-1', null);
+
+        $this->assertSame('UNKNOWN', $missing->metric?->value);
+        $this->assertNull($missing->metric?->threshold);
+        $this->assertSame('UNKNOWN', $invalid->metric?->value);
+        $this->assertNull($invalid->metric?->threshold);
     }
 
     public function testItResolvesHealthStatesAndFallsBackForUnknownTypes(): void

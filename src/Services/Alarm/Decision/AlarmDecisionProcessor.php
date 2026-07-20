@@ -18,7 +18,7 @@ use Throwable;
 final class AlarmDecisionProcessor
 {
     public function __construct(
-        private AlarmThresholdCooldownService $alarmEvaluator,
+        private AlarmThresholdCooldownService $alarmCooldownService,
         private AlarmDecisionServiceInterface $alarmDecisionService,
         private AlarmCreatorInterface $alarmCreator,
         private EventRecorderService $eventRecorder,
@@ -43,7 +43,7 @@ final class AlarmDecisionProcessor
         $record = new AlarmEvaluationRecord();
         $eventId = (int) $event['id'];
 
-        if (!$this->alarmEvaluator->shouldTriggerAlarmForEvent(
+        if (!$this->alarmCooldownService->shouldTriggerAlarmForEvent(
             type: (string) $event['type'],
             server: $event['server_id'] ?? null,
             app: $event['application_id'] ?? null,
@@ -83,7 +83,7 @@ final class AlarmDecisionProcessor
             ->setRequestedChannels($decision->channels);
 
         $context = EventContext::fromArray(json_decode($event['context'] ?? '{}', true) ?: []);
-        $readyChannels = $this->alarmEvaluator->filterReadyChannels(
+        $readyChannels = $this->alarmCooldownService->filterReadyChannels(
             type: (string) $event['type'],
             requestedChannels: $decision->channels,
             server: $event['server_id'] ?? null,
@@ -99,7 +99,7 @@ final class AlarmDecisionProcessor
             $this->alarmCreator->create($eventId, $readyChannels, $decision->priority);
 
             foreach ($readyChannels as $channel) {
-                $alarmHash = $this->alarmEvaluator->generateCooldownHash(
+                $alarmHash = $this->alarmCooldownService->generateCooldownHash(
                     type: (string) $event['type'],
                     server: $event['server_id'] ?? null,
                     app: $event['application_id'] ?? null,
@@ -108,7 +108,7 @@ final class AlarmDecisionProcessor
                 );
                 $this->eventRecorder->upsertAlarmCooldown(
                     $alarmHash,
-                    $this->alarmEvaluator->getAlarmIntervalMinutes((string) $event['type'])
+                    $this->alarmCooldownService->getAlarmIntervalMinutes((string) $event['type'])
                 );
             }
         } catch (Throwable $exception) {

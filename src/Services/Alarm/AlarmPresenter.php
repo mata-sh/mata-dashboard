@@ -8,54 +8,58 @@ use Mata\Services\Alarm\Dto\Alarm;
 use Mata\Services\Alarm\Dto\AlarmEnvironment;
 use Mata\Services\Alarm\Dto\AlarmMetric;
 use Mata\Services\Alarm\Dto\AlarmPresentation;
+use Mata\Utils\NumberFormatter;
 
 /** Builds the presentation of an alarm for alarm emails: description, metric card, server color and environment. */
 final class AlarmPresenter
 {
     /**
-     * @param array<string,mixed> $thresholds
      * @param array<string,mixed> $servers
      */
     public function __construct(
-        private array $thresholds = [],
         private array $servers = [],
+        private NumberFormatter $numberFormatter = new NumberFormatter(),
     ) {}
 
     public function present(Alarm $alarm, string $server, ?string $appEnvironment): AlarmPresentation
     {
         $type = strtolower(trim($alarm->type));
+        $decodedContext = is_string($alarm->context) ? json_decode($alarm->context, true) : null;
+
+        /** @var array<string,mixed> $context */
+        $context = is_array($decodedContext) ? $decodedContext : [];
 
         // Each arm yields [description, metric value, metric threshold].
         [$description, $value, $threshold] = match ($type) {
             'fatal_errors_occurring' => [
                 'Detected fatal errors above threshold.',
-                $this->fatalErrorCount($alarm->message),
+                is_numeric($context['actual_value'] ?? null) ? $this->numberFormatter->formatCompact($context['actual_value']) : 'UNKNOWN',
                 null,
             ],
             'remaining_diskspace_too_low' => [
                 'Detected disk usage above threshold.',
-                $this->diskUsagePercent($alarm->message),
-                $this->threshold('server_data', 'disk_space_usage_percent', '%'),
+                is_numeric($context['actual_value'] ?? null) ? $this->formatPercent((float) $context['actual_value']) : 'UNKNOWN',
+                $this->thresholdLabel($context, '%'),
             ],
             'cronjobs_failing' => [
                 'Detected failing cronjobs.',
-                $this->failedCronjobCount($alarm->message),
-                $this->threshold('server_data', 'cronjobs_failed_count'),
+                is_numeric($context['actual_value'] ?? null) ? $this->formatNumber((int) $context['actual_value']) : 'UNKNOWN',
+                $this->thresholdLabel($context),
             ],
             'node_unhealthy' => [
                 'Detected an unhealthy health response.',
                 'UNHEALTHY',
-                null
+                null,
             ],
             'node_unreachable' => [
                 'Detected an unreachable server health endpoint.',
                 'UNREACHABLE',
-                null
+                null,
             ],
             default => [
                 $this->fallbackDescription($alarm->type),
                 null,
-                null
+                null,
             ],
         };
 
@@ -70,28 +74,6 @@ final class AlarmPresenter
         );
     }
 
-    private function fatalErrorCount(string $message): string
-    {
-        preg_match('/\bCount:\s*([^\)]+)/i', $message, $matches);
-        $value = isset($matches[1]) ? trim($matches[1]) : '';
-
-        return $value === '' ? 'UNKNOWN' : $value;
-    }
-
-    private function diskUsagePercent(string $message): string
-    {
-        preg_match('/\(([0-9]+(?:\.[0-9]+)?)\s*%\s*used\)/i', $message, $matches);
-
-        return isset($matches[1]) ? $this->formatPercent($matches[1]) : 'UNKNOWN';
-    }
-
-    private function failedCronjobCount(string $message): string
-    {
-        preg_match('/\(([0-9]+)\/[0-9]+(?:,|\))/i', $message, $matches);
-
-        return isset($matches[1]) ? $this->formatNumber((int) $matches[1]) : 'UNKNOWN';
-    }
-
     private function fallbackDescription(string $type): string
     {
         $type = trim($type);
@@ -99,9 +81,12 @@ final class AlarmPresenter
         return $type === '' ? 'Detected an alarm condition.' : 'Detected ' . str_replace('_', ' ', $type) . '.';
     }
 
-    private function threshold(string $section, string $key, string $suffix = ''): ?string
+    /**
+     * @param array<string,mixed> $context
+     */
+    private function thresholdLabel(array $context, string $suffix = ''): ?string
     {
-        $value = $this->thresholds[$section][$key]['alarm'] ?? null;
+        $value = $context['threshold'] ?? null;
         if (!is_numeric($value)) {
             return null;
         }
@@ -109,12 +94,11 @@ final class AlarmPresenter
         return 'threshold: ' . $this->formatNumber((float) $value) . $suffix;
     }
 
-    private function formatPercent(string $value): string
+    private function formatPercent(float $value): string
     {
-        $number = (float) $value;
-        $formatted = floor($number) === $number
-            ? $this->formatNumber($number)
-            : rtrim(rtrim(number_format($number, 2, ',', '.'), '0'), ',');
+        $formatted = floor($value) === $value
+            ? $this->formatNumber($value)
+            : rtrim(rtrim(number_format($value, 2, ',', '.'), '0'), ',');
 
         return $formatted . '%';
     }

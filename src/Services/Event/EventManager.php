@@ -9,7 +9,7 @@ use Mata\Config\Dto\ApplicationConfig;
 use Mata\Services\Alarm\AlarmDirectProcessor;
 use Mata\Services\Alarm\Dto\Alarm;
 use Mata\Services\Alarm\Dto\AlarmLevel;
-use Mata\Services\Event\Dto\EventContext;
+use Mata\Services\Event\Dto\EventCommand;
 use PDOException;
 
 /**
@@ -21,7 +21,7 @@ use PDOException;
  *
  * EventManager provides:
  * - Event threshold evaluation (server metrics, app metrics)
- * - Event creation with cooldown deduplication via handleEvent()
+ * - Event creation with cooldown deduplication via handle()
  * - Direct access to read/write operations via public properties
  *
  * ### Recommended Usage:
@@ -29,7 +29,7 @@ use PDOException;
  * **Most cases: Inject EventManager**
  * ```php
  * // Business logic + orchestrated write
- * $eventManager->handleEvent($type, $message, $context, $level);
+ * $eventManager->handle(new EventCommand(type: $type, message: $message, context: $context, level: $level));
  *
  * // Threshold evaluation
  * $level = $eventManager->getServerDataThresholdLevel($value, 'cpu_usage');
@@ -38,7 +38,7 @@ use PDOException;
  * $events = $eventManager->aggregator->getLatestEvents();
  * $events = $eventManager->aggregator->getLastEventsByContext(...);
  *
- * // Direct write (rare - usually use handleEvent)
+ * // Direct write (rare - usually use handle)
  * $eventManager->recorder->recordEvent(...);
  * ```
  *
@@ -81,10 +81,11 @@ class EventManager
 
     private ?AlarmDirectProcessor $alarmDirectProcessor;
     private ApplicationConfig $appConfig;
+    private CooldownHashFactory $cooldownHashFactory;
 
     /**
      * Event recorder for persistence and cooldown tracking.
-     * Public property for direct access when needed (rare - prefer handleEvent).
+     * Public property for direct access when needed (rare - prefer handle).
      */
     public ?EventRecorderService $recorder = null;
 
@@ -106,17 +107,20 @@ class EventManager
      * @param ApplicationConfig                    $appConfig            Application configuration for alarm/event settings
      * @param null|EventRecorderService            $eventRecorder        Optional event recorder (can be set later via setEventRecorder)
      * @param null|EventAggregatorServiceInterface $eventAggregator      Optional event aggregator (can be set later via setEventAggregator)
+     * @param null|CooldownHashFactory             $cooldownHashFactory  Optional cooldown hash factory
      */
     public function __construct(
         ApplicationConfig $appConfig,
         ?AlarmDirectProcessor $alarmDirectProcessor = null,
         ?EventRecorderService $eventRecorder = null,
-        ?EventAggregatorServiceInterface $eventAggregator = null
+        ?EventAggregatorServiceInterface $eventAggregator = null,
+        ?CooldownHashFactory $cooldownHashFactory = null
     ) {
         $this->alarmDirectProcessor = $alarmDirectProcessor;
         $this->appConfig = $appConfig;
         $this->recorder = $eventRecorder;
         $this->aggregator = $eventAggregator;
+        $this->cooldownHashFactory = $cooldownHashFactory ?? new CooldownHashFactory();
     }
 
     /**
@@ -193,6 +197,18 @@ class EventManager
     }
 
     /**
+     * Get a numeric threshold limit for a server metric and level.
+     *
+     * @return float|int|null Null when the metric level is not configured or is not numeric
+     */
+    public function getServerDataThresholdLimit(string $name, string $level = 'alarm'): float|int|null
+    {
+        $limit = $this->serverDataThresholds[$name][$level] ?? null;
+
+        return is_numeric($limit) ? $limit + 0 : null;
+    }
+
+    /**
      * Get threshold level for app/application metric value.
      *
      * Evaluates a application metric against configured thresholds to determine severity level.
@@ -257,31 +273,18 @@ class EventManager
     /**
      * Record an event with cooldown deduplication.
      *
-     * Simplified version that only handles event persistence.
-     *
-     * @param string                  $type       Event type identifier
-     * @param string                  $message    Human readable message
-     * @param array<int|string,mixed> $context    Additional context payload
-     * @param string                  $level      Severity level (info, warning, critical)
-     * @param null|int|string         $server     Server context (name or ID)
-     * @param null|int|string         $app        Application context (code or ID)
-     * @param mixed                   $forceAlarm
-     *
      * @return array{eventRecorded: bool, eventId:?int}
      */
-    public function handleEvent(
-        string $type,
-        string $message,
-        array $context = [],
-        string $level = 'info',
-        int|string|null $server = null,
-        int|string|null $app = null,
-        $forceAlarm = false
-    ): array {
-        $eventContext = EventContext::fromArray($context);
-
-        $cooldownMinutes = $this->getEventIntervalMinutes($type);
-        $cooldownHash = $this->generateCooldownHash($type, $server, $app, $eventContext, '');
+    public function handle(EventCommand $event): array
+    {
+        $context = $event->eventContext();
+        $cooldownMinutes = $this->getEventIntervalMinutes($event->type);
+        $cooldownHash = $this->cooldownHashFactory->forEvent(
+            type: $event->type,
+            server: $event->server,
+            app: $event->app,
+            context: $context
+        );
 
         $shouldCreateEvent = $this->shouldCreateEvent(
             cooldownHash: $cooldownHash,
@@ -297,27 +300,27 @@ class EventManager
 
         if ($this->recorder === null) {
             throw new LogicException(
-                'EventRecorder not initialized. Call setEventRecorder() before using handleEvent().'
+                'EventRecorder not initialized. Call setEventRecorder() before using handle().'
             );
         }
 
         try {
             $eventRecordResult = $this->recorder->recordEvent(
-                type: $type,
-                message: $message,
-                context: $eventContext->toJson(),
-                level: $level,
-                server: $server,
-                app: $app,
+                type: $event->type,
+                message: $event->message,
+                context: $context->toJson(),
+                level: $event->level,
+                server: $event->server,
+                app: $event->app,
                 cooldownHash: $cooldownHash,
                 cooldownMinutes: $cooldownMinutes
             );
 
-            if ($forceAlarm && $this->alarmDirectProcessor !== null) {
+            if ($event->forceAlarm && $this->alarmDirectProcessor !== null) {
                 $alarm = new Alarm(
-                    type: $type,
-                    message: $message,
-                    level: AlarmLevel::fromString($level),
+                    type: $event->type,
+                    message: $event->message,
+                    level: AlarmLevel::fromString($event->level),
                     server: $eventRecordResult->serverLabel,
                     app: $eventRecordResult->appLabel,
                     channels: ['email']
@@ -363,46 +366,5 @@ class EventManager
 
         // 3. Hardcoded fallback
         return self::DEFAULT_EVENT_INTERVAL_MINUTES;
-    }
-
-    /**
-     * Generate cooldown hash for event deduplication.
-     *
-     * Creates a unique hash for cooldown tracking based on event attributes.
-     * Hash format: SHA256(type|server|app|context|channel)
-     *
-     * NOTE: For event cooldowns, channel should always be empty string.
-     * For alarm cooldowns, use AlarmThresholdCooldownService::generateCooldownHash() instead.
-     *
-     * @param string          $type    Event type identifier
-     * @param null|int|string $server  Server context
-     * @param null|int|string $app     Application context
-     * @param EventContext    $context Event context payload
-     * @param string          $channel Channel name (should be empty for events)
-     *
-     * @return string SHA256 hash for cooldown lookup
-     */
-    private function generateCooldownHash(
-        string $type,
-        int|string|null $server,
-        int|string|null $app,
-        EventContext $context,
-        string $channel
-    ): string {
-        $payload = [
-            'type' => $type,
-            'server' => $server === null ? '' : (string) $server,
-            'app' => $app === null ? '' : (string) $app,
-            'context' => $context->toJson(),
-            'channel' => $channel,
-        ];
-
-        $encoded = json_encode($payload, JSON_UNESCAPED_SLASHES);
-
-        if ($encoded === false) {
-            return '';
-        }
-
-        return hash('sha256', $encoded);
     }
 }

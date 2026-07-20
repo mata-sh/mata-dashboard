@@ -9,6 +9,8 @@ use Mata\Constants\CacheTypes;
 use Mata\Services\Cache\ApiCacheKeyFactory;
 use Mata\Services\Cache\CacheStoreInterface;
 use Mata\Services\Cache\CacheTtlResolver;
+use Mata\Services\Event\Dto\EventCommand;
+use Mata\Services\Event\Dto\EventMetric;
 use Mata\Services\Event\EventManager;
 use Mata\Services\Foundation\ApiClient;
 use Mata\Services\Foundation\ProbeClient;
@@ -101,12 +103,24 @@ class NodeHealthMonitor implements NodeHealthMonitorInterface
             'httpCode' => $result['httpCode'] ?? null,
             'error' => $result['error'] ?? null,
         ]);
-        $this->eventManager->handleEvent(
+        $diagnostics = array_filter(
+            [
+                'http_code' => $result['httpCode'] ?? null,
+                'error' => $result['error'] ?? null,
+            ],
+            static fn (mixed $value): bool => $value !== null
+        );
+
+        $this->eventManager->handle(new EventCommand(
             type: $type,
             message: $message,
-            context: ['server' => $serverName],
             level: $level,
-            server: $serverName
-        );
+            server: $serverName,
+            metric: new EventMetric(
+                name: 'node_health',
+                value: $isUnreachable ? 0 : 1,
+                additional: $diagnostics
+            )
+        ));
     }
 }

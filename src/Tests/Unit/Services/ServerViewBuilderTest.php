@@ -19,7 +19,6 @@ use Mata\Services\Monitor\NodeHealthMonitorInterface;
 use Mata\Services\Monitor\ServerMonitor;
 use Mata\Services\Sync\AppInventorySync;
 use Mata\Services\View\ServerViewBuilder;
-use Mata\Utils\Tools;
 use Monolog\Logger;
 use PHPUnit\Framework\TestCase;
 use ReflectionMethod;
@@ -67,7 +66,6 @@ final class ServerViewBuilderTest extends TestCase
             $this->createStub(EventManager::class),
             new Logger('test'),
             new CacheTypeResolver(),
-            new Tools(__DIR__),
         );
 
         $result = $builder->buildServersViewData(
@@ -89,7 +87,6 @@ final class ServerViewBuilderTest extends TestCase
             $this->createStub(EventManager::class),
             new Logger('test'),
             new CacheTypeResolver(),
-            new Tools(__DIR__),
         );
         $method = new ReflectionMethod($builder, 'formatSessionDataForView');
 
@@ -117,7 +114,6 @@ final class ServerViewBuilderTest extends TestCase
             $this->createStub(EventManager::class),
             new Logger('test'),
             new CacheTypeResolver(),
-            new Tools(__DIR__),
         );
         $appMonitor = $this->createMock(AppMonitorInterface::class);
         $appMonitor->expects($this->once())
@@ -170,7 +166,6 @@ final class ServerViewBuilderTest extends TestCase
             $this->createStub(EventManager::class),
             new Logger('test'),
             new CacheTypeResolver(),
-            new Tools(__DIR__),
             $sync,
         );
 
@@ -204,7 +199,6 @@ final class ServerViewBuilderTest extends TestCase
             $this->createStub(EventManager::class),
             new Logger('test'),
             new CacheTypeResolver(),
-            new Tools(__DIR__),
             $sync,
         );
 
@@ -227,7 +221,6 @@ final class ServerViewBuilderTest extends TestCase
             $this->createStub(EventManager::class),
             new Logger('test'),
             new CacheTypeResolver(),
-            new Tools(__DIR__),
         );
 
         $result = $builder->buildServersViewData([], ['server-a' => []], false);

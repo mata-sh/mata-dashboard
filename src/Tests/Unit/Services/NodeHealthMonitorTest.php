@@ -15,6 +15,7 @@ use Mata\Services\Cache\ApiCacheKeyFactory;
 use Mata\Services\Cache\CacheEntry;
 use Mata\Services\Cache\CacheStoreInterface;
 use Mata\Services\Cache\CacheTtlResolver;
+use Mata\Services\Event\Dto\EventCommand;
 use Mata\Services\Event\EventManager;
 use Mata\Services\Foundation\ApiClient;
 use Mata\Services\Foundation\ProbeClient;
@@ -82,8 +83,15 @@ final class NodeHealthMonitorTest extends TestCase
         $store->expects($this->once())->method('put')->willReturn(true);
         $events = $this->createMock(EventManager::class);
         $events->expects($this->once())
-            ->method('handleEvent')
-            ->with('node_unhealthy', $this->isString(), ['server' => 'node-a'], 'warning', 'node-a')
+            ->method('handle')
+            ->with($this->callback(static fn (EventCommand $event): bool => $event->type === 'node_unhealthy'
+                && $event->message !== ''
+                && $event->level === 'warning'
+                && $event->server === 'node-a'
+                && $event->context === []
+                && $event->metric?->name === 'node_health'
+                && $event->metric->value === 1
+                && $event->metric->additional === ['http_code' => 200]))
             ->willReturn([]);
         $monitor = $this->monitor($store, $this->probe(['status' => 'unhealthy', 'maintenance_mode' => false]), $events);
 

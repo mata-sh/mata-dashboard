@@ -36,19 +36,6 @@ try {
         new FilesystemLoader($paths->appPath . '/templates'),
         ['autoescape' => 'name'],
     );
-    $thresholds = [];
-    try {
-        $contents = file_get_contents($paths->appPath . '/config/thresholds.json');
-        $thresholds = is_string($contents) ? json_decode($contents, true, flags: JSON_THROW_ON_ERROR) : [];
-        if (!is_array($thresholds)) {
-            throw new RuntimeException('Threshold configuration must contain a JSON object.');
-        }
-    } catch (Throwable $exception) {
-        $log->warning('Alarm email thresholds unavailable; rendering without thresholds.', [
-            'exception' => $exception->getMessage(),
-        ]);
-        $thresholds = [];
-    }
     $servers = [];
     try {
         $contents = file_get_contents($paths->appPath . '/config/servers.json');
@@ -66,7 +53,7 @@ try {
         $twig,
         $appConfig->mail,
         $appConfig->general->appName,
-        new AlarmPresenter($thresholds, $servers),
+        new AlarmPresenter($servers),
     );
     $emailSender = new AlarmEmailSender($mailer, $emailFactory, $log);
     $dispatcher = new AlarmDispatcher($deliveryRepository, $limitsConfig, $emailSender, $log);
