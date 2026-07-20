@@ -34,56 +34,61 @@ What that means in practice:
 
 ## Design tokens
 
-There is no CSS-variable system yet — these hexes are used literally in
-`main.css`. Reuse them verbatim; do not invent new shades.
+`:root` in `public/assets/css/main.css` is the canonical token source. New UI
+styles must use these variables. Introducing a new raw hex requires adding a
+semantic token first; legacy blocks retain their existing literals until their
+visual pass.
 
 ### Surfaces & borders
 
-| Token | Hex | Use |
-|---|---|---|
-| Surface, deepest | `#0b0d12` | Table body / component base background |
-| Surface, panel | `#0e1015` | Headers, footers, filter bars, panel rows |
-| Surface, raised | `#12151c` | Floating cards (dropdowns, popovers) |
-| Surface, control | `#10131a` / `#14171d` | Inputs, secondary buttons |
-| Surface, zebra | `#0f1218` | Even table rows |
-| Surface, hover | `#131c26` / `#182029` | Row & button hover fills |
-| Border, hairline | `#151a22` | Row separators inside a component |
-| Border, default | `#1f242e` | Component outlines, section dividers |
-| Border, control | `#262c38` | Input/button/card borders |
-| Border, strong | `#2a3040` / `#3a4150` | Outlined pills, bell trigger |
+| Name | Token | Value | Use |
+|---|---|---|---|
+| Surface, deepest | `--surface-base` | `#0b0d12` | Table body / component base background |
+| Surface, panel | `--surface-panel` | `#0e1015` | Headers, footers, filter bars, panel rows |
+| Surface, raised | `--surface-raised` | `#12151c` | Floating cards (dropdowns, popovers) |
+| Surface, control | `--surface-control` / `--surface-control-alt` | `#10131a` / `#14171d` | Inputs, secondary buttons |
+| Surface, chip | `--surface-chip` | `#161a22` | Neutral audit chips |
+| Surface, zebra | `--surface-zebra` | `#0f1218` | Even table rows |
+| Surface, hover | `--surface-hover` / `--surface-hover-alt` / `--surface-hover-header` | `#131c26` / `#182029` / `#131a22` | Row, button, and sortable-header hover fills |
+| Border, hairline | `--border-hairline` | `#151a22` | Row separators inside a component |
+| Border, default | `--border-default` | `#1f242e` | Component outlines, section dividers |
+| Border, control | `--border-control` | `#262c38` | Input/button/card borders |
+| Border, strong | `--border-strong` / `--border-strong-alt` | `#2a3040` / `#3a4150` | Outlined pills, bell trigger |
+| Border, control hover | `--border-control-hover` | `#333c4d` | Input hover border |
 
 ### Cyan accent
 
-| Token | Hex | Use |
-|---|---|---|
-| Accent border | `#3f93a6` | Hover/focus border, active-state border |
-| Accent edge | `#2f6f7d` | Structural accent lines (header underline, filter bar left edge) |
-| Accent fill | `#10262b` | Active/selected background (dark teal) |
-| Accent text | `#9fe8f2` / `#7fe3f0` | Highlighted text, hover text |
-| Focus ring | `rgba(63, 147, 166, .2)` | `box-shadow: 0 0 0 2px …` on focus |
+| Name | Token | Value | Use |
+|---|---|---|---|
+| Accent border | `--accent-border` | `#3f93a6` | Hover/focus border, active-state border |
+| Accent edge | `--accent-edge` | `#2f6f7d` | Structural accent lines (header underline, filter bar left edge) |
+| Accent fill | `--accent-fill` / `--accent-fill-hover` | `#10262b` / `#153238` | Active/selected background (dark teal) |
+| Accent text | `--accent-text` / `--accent-text-alt` / `--accent-text-bright` | `#9fe8f2` / `#7fe3f0` / `#c8f4fa` | Highlighted and hover text |
+| Focus ring | `--accent-focus-ring` | `rgba(63, 147, 166, .2)` | `box-shadow: 0 0 0 2px …` on focus |
 
 ### Text
 
-| Token | Hex | Use |
-|---|---|---|
-| Text, bright | `#e8eaf0` | Headings inside components, input values |
-| Text, body | `#c9cfda` / `#c5cad6` | Table cells, labels |
-| Text, muted | `#8b93a5` | Column headers, meta labels, secondary links |
-| Text, faint | `#5a6172` | Placeholders, counters, empty states |
+| Name | Token | Value | Use |
+|---|---|---|---|
+| Text, bright | `--text-bright` | `#e8eaf0` | Headings inside components, input values |
+| Text, body | `--text-body` | `#c9cfda` | Table cells, content text |
+| Text, label | `--text-label` | `#c5cad6` | Labels and floating-card rows |
+| Text, muted | `--text-muted` | `#8b93a5` | Column headers, meta labels, secondary links |
+| Text, faint | `--text-faint` | `#5a6172` | Placeholders, counters, empty states |
 
 ### Severity scale
 
 Solid badge/pill fills, their 1px light borders, and the light text tints used
 when a count sits on a dark surface (e.g. dropdown rows):
 
-| Level | Fill | Border | Text tint |
+| Level | Fill token / value | Border token / value | Text token / value |
 |---|---|---|---|
-| critical | `#c22a35` | `#e05561` | `#f09595` |
-| high / error | `#c05a1d` | `#e0854a` | `#f0b27b` |
-| medium / warning | `#9c7c14` | `#c4a53a` | `#e3ce7a` |
-| low / ok | `#2e7d43` | `#4da767` | `#7bd88f` |
-| unknown | `#4a5060` | `#6b7280` | `#9a9a9a` |
-| abandoned / inactive | `#343a47` | `#6b7280` dashed | `#c5cad6` |
+| critical | `--sev-critical-fill` / `#c22a35` | `--sev-critical-border` / `#e05561` | `--sev-critical-tint` / `#f09595` |
+| high / error | `--sev-high-fill` / `#c05a1d` | `--sev-high-border` / `#e0854a` | `--sev-high-tint` / `#f0b27b` |
+| medium / warning | `--sev-medium-fill` / `#9c7c14` | `--sev-medium-border` / `#c4a53a` | `--sev-medium-tint` / `#e3ce7a` |
+| low / ok | `--sev-low-fill` / `#2e7d43` | `--sev-low-border` / `#4da767` | `--sev-low-tint` / `#7bd88f` |
+| unknown | `--sev-unknown-fill` / `#4a5060` | `--sev-unknown-border` / `#6b7280` | `--sev-unknown-tint` / `#9a9a9a` |
+| abandoned / inactive | `--sev-abandoned-fill` / `#343a47` | `--sev-abandoned-border` / `#6b7280` dashed | `--sev-abandoned-tint` / `#c5cad6` |
 
 Solid severity fills always carry white (`#fff`) bold text.
 
