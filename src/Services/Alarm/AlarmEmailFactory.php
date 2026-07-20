@@ -88,8 +88,9 @@ final class AlarmEmailFactory
             'target' => [
                 'server' => $server,
                 'app' => $app === '' ? 'All applications' : $app,
-                'heading' => $app === '' ? "Server: {$server}" : "{$app} on {$server}",
-                'heading_prefix' => $app === '' ? 'Server:' : "{$app} on",
+                'heading' => $app === '' ? $server : "{$app} on {$server}",
+                'heading_prefix' => $app === '' ? '' : "{$app} on",
+                'is_server_only' => $app === '',
                 'color' => $presentation->serverColor,
                 'environment' => $presentation->environment,
             ],

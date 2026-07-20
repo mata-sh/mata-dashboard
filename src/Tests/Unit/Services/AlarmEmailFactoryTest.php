@@ -58,7 +58,7 @@ final class AlarmEmailFactoryTest extends TestCase
         $text = (string) $email->getTextBody();
 
         $this->assertStringContainsString('ALARM #123', $html);
-        $this->assertStringContainsString('2026-07-11 17:20:00 UTC', $html);
+        $this->assertStringNotContainsString('current: 2026-07-11 17:20:00 UTC', $html);
         $this->assertStringContainsString('Critical', $html);
         $this->assertStringContainsString('FATAL_ERRORS_OCCURRING', $html);
         $this->assertStringContainsString('>2k</div>', $html);
@@ -86,7 +86,7 @@ final class AlarmEmailFactoryTest extends TestCase
         );
         $email = $this->factory()->create($view);
 
-        $this->assertStringContainsString('>Server:</td>', (string) $email->getHtmlBody());
+        $this->assertStringNotContainsString('>Server:</td>', (string) $email->getHtmlBody());
         $this->assertStringContainsString('>Api-1</td>', (string) $email->getHtmlBody());
         $this->assertStringContainsString('2026-07-11 16:15:00 UTC', (string) $email->getHtmlBody());
         $this->assertStringContainsString('&#9679; 65 min ago', (string) $email->getHtmlBody());
@@ -103,6 +103,17 @@ final class AlarmEmailFactoryTest extends TestCase
         $this->assertStringContainsString('width:16px; height:16px; background-color:#E88C02', $html);
         $this->assertStringContainsString('background-color:#f59e0b', $html);
         $this->assertStringContainsString('>TEST</span>', $html);
+    }
+
+    public function testItStylesServerOnlyHeadingsAsColoredBadges(): void
+    {
+        $presenter = new AlarmPresenter(servers: ['Api-1' => ['primary_color' => '#E88C02']]);
+        $view = $this->view(new Alarm('node_unhealthy', 'Unhealthy health response', null, AlarmLevel::Warning, 'Api-1'));
+        $html = (string) $this->factory(presenter: $presenter)->create($view)->getHtmlBody();
+
+        $this->assertStringNotContainsString('>Server:</td>', $html);
+        $this->assertStringContainsString('background-color:#E88C02; padding:4px 12px;', $html);
+        $this->assertStringNotContainsString('width:16px; height:16px; background-color:#E88C02', $html);
     }
 
     public function testItUsesApplicationNameBrandingInTheHtmlFooter(): void
