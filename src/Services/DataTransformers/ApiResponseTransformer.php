@@ -165,7 +165,7 @@ class ApiResponseTransformer
                     ? TypeConverter::toBool($appData['composer'])
                     : false;
 
-                if ($title === null || $path === null || $url === null || !in_array($env, ['dev', 'test', 'stg', 'live'], true)
+                if ($title === null || $path === null || $url === null || !in_array($env, ['dev', 'test', 'stg', 'prod', 'live'], true)
                     || $statusUrl === false || !is_array($status) || !is_array($logs) || $composerEnabled === null) {
                     throw new InvalidNodePayloadException("Node returned an invalid application payload for {$appName}.", 'apps');
                 }
@@ -190,7 +190,7 @@ class ApiResponseTransformer
                     'title' => $title,
                     'path' => $path,
                     'url' => $url,
-                    'env' => $env,
+                    'env' => $env === 'live' ? 'prod' : $env,
                     'description' => $description,
                     'composer' => $composerEnabled,
                     'status' => ['fatal' => $fatal, 'warnings' => $warnings, 'total' => $total],

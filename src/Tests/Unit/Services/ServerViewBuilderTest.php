@@ -151,7 +151,7 @@ final class ServerViewBuilderTest extends TestCase
         $repository = $this->createMock(ConfigSyncRepository::class);
         $repository->expects($this->once())
             ->method('upsertApplication')
-            ->with('shop', 'Shop', 'live')
+            ->with('shop', 'Shop', 'prod')
             ->willReturn(true);
         $sync = new AppInventorySync($repository, new IdResolver(), new Logger('test'));
 
@@ -234,7 +234,7 @@ final class ServerViewBuilderTest extends TestCase
     {
         return [
             'title' => 'Shop',
-            'env' => 'live',
+            'env' => 'prod',
             'url' => 'https://shop.example.test',
             'ping' => 'off',
             'session' => [

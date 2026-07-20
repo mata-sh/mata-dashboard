@@ -249,7 +249,7 @@ Retrieve list of all applications/sites hosted on the server.
 | `title` | string | Human-readable application name |
 | `path` | string | Filesystem path to application |
 | `url` | string | Application URL |
-| `env` | string | Environment: dev, test, live |
+| `env` | string | Environment: dev, test, stg, prod |
 | `maintenance` | boolean | Maintenance mode status |
 | `error_count` | integer | Number of errors in log |
 | `warning_count` | integer | Number of warnings in log |
@@ -265,7 +265,7 @@ Retrieve list of all applications/sites hosted on the server.
     "title": "E-Commerce Platform",
     "path": "/var/www/ecommerce",
     "url": "https://shop.example.com",
-    "env": "live",
+    "env": "prod",
     "maintenance": false,
     "error_count": 3,
     "warning_count": 12,
@@ -277,7 +277,7 @@ Retrieve list of all applications/sites hosted on the server.
     "title": "Admin Portal",
     "path": "/var/www/admin",
     "url": "https://admin.example.com",
-    "env": "live",
+    "env": "prod",
     "maintenance": false,
     "error_count": 0,
     "warning_count": 5,
@@ -322,7 +322,7 @@ Retrieve detailed status for a specific application.
   "reachable": true,
   "httpCode": 200,
   "latency_ms": 142,
-  "env": "live",
+  "env": "prod",
   "maintenance": false,
   "error_count": 3,
   "warning_count": 12

@@ -428,11 +428,11 @@ final class MonitoringSettingsLoader
         }
 
         $environment = $serverConfig['env'];
-        if (is_string($environment) && in_array(strtolower(trim($environment)), ['live', 'test', 'dev', 'staging'], true)) {
+        if (is_string($environment) && in_array(strtolower(trim($environment)), ['prod', 'live', 'test', 'dev', 'staging'], true)) {
             return [];
         }
 
-        return ["Server '{$serverName}' env must be one of: live, test, dev, staging"];
+        return ["Server '{$serverName}' env must be one of: prod, test, dev, staging"];
     }
 
     /**

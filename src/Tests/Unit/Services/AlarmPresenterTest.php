@@ -86,8 +86,17 @@ final class AlarmPresenterTest extends TestCase
         $presentation = $this->presenter->present(new Alarm('custom_alarm', 'Custom alarm'), 'API-1', 'prod');
 
         $this->assertSame('#E88C02', $presentation->serverColor);
-        $this->assertSame(AlarmEnvironment::Live, $presentation->environment);
-        $this->assertSame('LIVE', $presentation->environment?->getLabel());
+        $this->assertSame(AlarmEnvironment::Prod, $presentation->environment);
+        $this->assertSame('PROD', $presentation->environment?->getLabel());
+        $this->assertSame('#098f00', $presentation->environment?->getBadgeColor());
+    }
+
+    public function testItNormalizesLegacyLiveApplicationEnvironment(): void
+    {
+        $presentation = $this->presenter->present(new Alarm('custom_alarm', 'Custom alarm'), 'api-1', 'live');
+
+        $this->assertSame(AlarmEnvironment::Prod, $presentation->environment);
+        $this->assertSame('PROD', $presentation->environment?->getLabel());
         $this->assertSame('#098f00', $presentation->environment?->getBadgeColor());
     }
 

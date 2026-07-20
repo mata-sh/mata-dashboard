@@ -149,14 +149,29 @@ final class MonitoringSettingsLoaderTest extends TestCase
         $this->assertEmpty($result['errors']);
     }
 
-    public function testValidateServersConfigAcceptsOptionalAlarmEmailEnvironment(): void
+    public function testValidateServersConfigAcceptsOptionalProdAlarmEmailEnvironment(): void
     {
         $result = $this->loader->validateServersConfig([
-            'staging-server' => [
-                'title' => 'Staging Server',
+            'production-server' => [
+                'title' => 'Production Server',
                 'api_url' => 'https://api.example.test',
                 'api_key' => 'key123',
-                'env' => 'staging',
+                'env' => 'prod',
+            ],
+        ]);
+
+        $this->assertTrue($result['is_valid']);
+        $this->assertSame([], $result['errors']);
+    }
+
+    public function testValidateServersConfigAcceptsLegacyLiveAlarmEmailEnvironment(): void
+    {
+        $result = $this->loader->validateServersConfig([
+            'production-server' => [
+                'title' => 'Production Server',
+                'api_url' => 'https://api.example.test',
+                'api_key' => 'key123',
+                'env' => 'live',
             ],
         ]);
 

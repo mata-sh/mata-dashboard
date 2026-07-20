@@ -30,7 +30,7 @@ final class ApiResponseTransformerValidationTest extends TestCase
                 'title' => 'Shop',
                 'path' => '/var/www/shop',
                 'url' => 'https://shop.example.test',
-                'env' => 'live',
+                'env' => 'prod',
                 'composer' => true,
                 'status_url' => 'https://shop.example.test/health/',
                 'status' => ['fatal' => '1', 'warnings' => 2, 'total' => '3'],
@@ -56,6 +56,20 @@ final class ApiResponseTransformerValidationTest extends TestCase
         $this->assertSame(4, $response['result']['shop']['session']['count_last_hour']);
         $this->assertTrue($response['result']['shop']['composer']);
         $this->assertNull($response['result']['shop']['session']['count_last_day']);
+        $this->assertSame('prod', $response['result']['shop']['env']);
+    }
+
+    public function testAppsPayloadNormalizesLegacyLiveEnvironment(): void
+    {
+        $response = $this->transformer->normalizeApiResponse([
+            'shop' => [
+                'title' => 'Shop', 'path' => '/var/www/shop', 'url' => 'https://shop.example.test', 'env' => 'live',
+                'status' => ['fatal' => 0, 'warnings' => 0, 'total' => 0], 'logs' => [],
+            ],
+        ], path: 'apps');
+
+        $this->assertNull($response['error']);
+        $this->assertSame('prod', $response['result']['shop']['env']);
     }
 
     public function testAppsPayloadSupportsStagingEnvironment(): void
@@ -89,7 +103,7 @@ final class ApiResponseTransformerValidationTest extends TestCase
     {
         $response = $this->transformer->normalizeApiResponse([
             'shop' => [
-                'title' => 'Shop', 'path' => '/var/www/shop', 'url' => 'https://shop.example.test', 'env' => 'live',
+                'title' => 'Shop', 'path' => '/var/www/shop', 'url' => 'https://shop.example.test', 'env' => 'prod',
                 'status_url' => null, 'status' => ['fatal' => 0, 'warnings' => 0, 'total' => 0], 'logs' => [],
             ],
         ], path: 'apps');
@@ -102,7 +116,7 @@ final class ApiResponseTransformerValidationTest extends TestCase
     {
         $response = $this->transformer->normalizeApiResponse([
             'shop' => [
-                'title' => 'Shop', 'path' => '/var/www/shop', 'url' => 'https://shop.example.test', 'env' => 'live',
+                'title' => 'Shop', 'path' => '/var/www/shop', 'url' => 'https://shop.example.test', 'env' => 'prod',
                 'description' => '', 'status' => ['fatal' => 0, 'warnings' => 0, 'total' => 0], 'logs' => [],
             ],
         ], path: 'apps');
@@ -115,7 +129,7 @@ final class ApiResponseTransformerValidationTest extends TestCase
     {
         $response = $this->transformer->normalizeApiResponse([
             'shop' => [
-                'title' => 'Shop', 'path' => '/var/www/shop', 'url' => 'https://shop.example.test', 'env' => 'live',
+                'title' => 'Shop', 'path' => '/var/www/shop', 'url' => 'https://shop.example.test', 'env' => 'prod',
                 'status_url' => '/health/', 'status' => ['fatal' => 0, 'warnings' => 0, 'total' => 0], 'logs' => [],
             ],
         ], path: 'apps');

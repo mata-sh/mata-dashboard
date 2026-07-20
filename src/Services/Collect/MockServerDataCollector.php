@@ -650,27 +650,27 @@ class MockServerDataCollector implements ServerDataCollectorInterface
                 'title' => 'E-Commerce Platform',
                 'description' => 'Customer-facing commerce and checkout platform.',
                 'path' => 'ecommerce',
-                'environment' => 'live',
+                'environment' => 'prod',
                 'category' => 'commerce',
-                'suitable_environments' => ['live', 'stg'],
+                'suitable_environments' => ['prod', 'stg'],
                 'log_templates' => ['logs/error.log', 'logs/access.log', 'logs/payment.log', 'logs/queue.log'],
             ],
             'admin-panel' => [
                 'title' => 'Admin Dashboard',
                 'description' => 'Internal dashboard for administration and operations.',
                 'path' => 'admin',
-                'environment' => 'live',
+                'environment' => 'prod',
                 'category' => 'internal',
-                'suitable_environments' => ['live', 'stg'],
+                'suitable_environments' => ['prod', 'stg'],
                 'log_templates' => ['logs/error.log', 'logs/access.log', 'logs/audit.log'],
             ],
             'api-gateway' => [
                 'title' => 'API Gateway',
                 'description' => 'Routes and authenticates requests for backend services.',
                 'path' => 'api',
-                'environment' => 'live',
+                'environment' => 'prod',
                 'category' => 'api',
-                'suitable_environments' => ['live', 'test', 'stg'],
+                'suitable_environments' => ['prod', 'test', 'stg'],
                 'log_templates' => ['logs/error.log', 'logs/access.log', 'logs/request.log'],
             ],
             'user-portal' => [
@@ -679,16 +679,16 @@ class MockServerDataCollector implements ServerDataCollectorInterface
                 'path' => 'portal',
                 'environment' => 'test',
                 'category' => 'customer',
-                'suitable_environments' => ['live', 'test', 'stg'],
+                'suitable_environments' => ['prod', 'test', 'stg'],
                 'log_templates' => ['logs/error.log', 'logs/access.log', 'logs/ui.log'],
             ],
             'inventory-system' => [
                 'title' => 'Inventory Management',
                 'description' => 'Tracks inventory, stock levels, and fulfillment operations.',
                 'path' => 'inventory',
-                'environment' => 'live',
+                'environment' => 'prod',
                 'category' => 'operations',
-                'suitable_environments' => ['live', 'stg'],
+                'suitable_environments' => ['prod', 'stg'],
                 'log_templates' => ['logs/error.log', 'logs/sync.log', 'logs/report.log'],
             ],
             'analytics-dashboard' => [
@@ -697,16 +697,16 @@ class MockServerDataCollector implements ServerDataCollectorInterface
                 'path' => 'analytics',
                 'environment' => 'dev',
                 'category' => 'analytics',
-                'suitable_environments' => ['live', 'test', 'stg'],
+                'suitable_environments' => ['prod', 'test', 'stg'],
                 'log_templates' => ['logs/error.log', 'logs/query.log', 'logs/etl.log'],
             ],
             'payment-processor' => [
                 'title' => 'Payment Gateway',
                 'description' => 'Processes payments and settlement workflows.',
                 'path' => 'payments',
-                'environment' => 'live',
+                'environment' => 'prod',
                 'category' => 'commerce',
-                'suitable_environments' => ['live'],
+                'suitable_environments' => ['prod'],
                 'log_templates' => ['logs/error.log', 'logs/access.log', 'logs/security.log', 'logs/settlement.log'],
             ],
             'notification-service' => [
@@ -715,52 +715,52 @@ class MockServerDataCollector implements ServerDataCollectorInterface
                 'path' => 'notifications',
                 'environment' => 'test',
                 'category' => 'communications',
-                'suitable_environments' => ['live', 'test', 'stg'],
+                'suitable_environments' => ['prod', 'test', 'stg'],
                 'log_templates' => ['logs/error.log', 'logs/queue.log', 'logs/delivery.log'],
             ],
             'warehouse-system' => [
                 'title' => 'Warenwirtschaft Backend',
                 'description' => 'Coordinates warehouse and enterprise resource operations.',
                 'path' => 'warenwirtschaft',
-                'environment' => 'live',
+                'environment' => 'prod',
                 'category' => 'operations',
-                'suitable_environments' => ['live', 'stg'],
+                'suitable_environments' => ['prod', 'stg'],
                 'log_templates' => ['logs/error.log', 'logs/integration.log', 'logs/erp.log'],
             ],
             'crm' => [
                 'title' => 'CRM Platform',
                 'description' => 'Manages customer relationships and account activity.',
                 'path' => 'crm',
-                'environment' => 'live',
+                'environment' => 'prod',
                 'category' => 'customer',
-                'suitable_environments' => ['live', 'stg', 'test'],
+                'suitable_environments' => ['prod', 'stg', 'test'],
                 'log_templates' => ['logs/error.log', 'logs/access.log', 'logs/integration.log'],
             ],
             'search-service' => [
                 'title' => 'Search Service',
                 'description' => 'Indexes and serves application search queries.',
                 'path' => 'search',
-                'environment' => 'live',
+                'environment' => 'prod',
                 'category' => 'api',
-                'suitable_environments' => ['live', 'stg', 'test'],
+                'suitable_environments' => ['prod', 'stg', 'test'],
                 'log_templates' => ['logs/error.log', 'logs/indexer.log', 'logs/query.log'],
             ],
             'load-balancer-node' => [
                 'title' => 'Load Balancer Node',
                 'description' => 'Balances traffic across application instances.',
                 'path' => 'load-balancer',
-                'environment' => 'live',
+                'environment' => 'prod',
                 'category' => 'infrastructure',
-                'suitable_environments' => ['live', 'stg'],
+                'suitable_environments' => ['prod', 'stg'],
                 'log_templates' => ['logs/error.log', 'logs/access.log', 'logs/health.log'],
             ],
             'shared-storage-cluster' => [
                 'title' => 'Shared Storage Cluster',
                 'description' => 'Provides shared storage for distributed services.',
                 'path' => 'shared-storage',
-                'environment' => 'live',
+                'environment' => 'prod',
                 'category' => 'infrastructure',
-                'suitable_environments' => ['live', 'stg'],
+                'suitable_environments' => ['prod', 'stg'],
                 'log_templates' => ['logs/error.log', 'logs/replication.log', 'logs/audit.log'],
             ],
             'ci-runner' => [
@@ -785,9 +785,9 @@ class MockServerDataCollector implements ServerDataCollectorInterface
                 'title' => 'Email Gateway',
                 'description' => 'Relays outbound email and delivery events.',
                 'path' => 'email',
-                'environment' => 'live',
+                'environment' => 'prod',
                 'category' => 'communications',
-                'suitable_environments' => ['live', 'stg', 'test'],
+                'suitable_environments' => ['prod', 'stg', 'test'],
                 'log_templates' => ['logs/error.log', 'logs/delivery.log', 'logs/relay.log'],
             ],
             'reporting-service' => [
@@ -796,7 +796,7 @@ class MockServerDataCollector implements ServerDataCollectorInterface
                 'path' => 'reporting',
                 'environment' => 'stg',
                 'category' => 'analytics',
-                'suitable_environments' => ['live', 'stg', 'test'],
+                'suitable_environments' => ['prod', 'stg', 'test'],
                 'log_templates' => ['logs/error.log', 'logs/report.log', 'logs/export.log'],
             ],
             'qa-automation' => [
@@ -821,18 +821,18 @@ class MockServerDataCollector implements ServerDataCollectorInterface
                 'title' => 'Catalog Service',
                 'description' => 'Maintains product catalog data and availability.',
                 'path' => 'catalog',
-                'environment' => 'live',
+                'environment' => 'prod',
                 'category' => 'commerce',
-                'suitable_environments' => ['live', 'stg'],
+                'suitable_environments' => ['prod', 'stg'],
                 'log_templates' => ['logs/error.log', 'logs/ingestion.log', 'logs/search.log'],
             ],
             'message-broker' => [
                 'title' => 'Message Broker',
                 'description' => 'Moves asynchronous messages between services.',
                 'path' => 'broker',
-                'environment' => 'live',
+                'environment' => 'prod',
                 'category' => 'infrastructure',
-                'suitable_environments' => ['live', 'test', 'stg'],
+                'suitable_environments' => ['prod', 'test', 'stg'],
                 'log_templates' => ['logs/error.log', 'logs/queue.log', 'logs/cluster.log'],
             ],
             'workflow-engine' => [
@@ -841,14 +841,14 @@ class MockServerDataCollector implements ServerDataCollectorInterface
                 'path' => 'workflow',
                 'environment' => 'stg',
                 'category' => 'internal',
-                'suitable_environments' => ['dev', 'test', 'stg', 'live'],
+                'suitable_environments' => ['dev', 'test', 'stg', 'prod'],
                 'log_templates' => ['logs/error.log', 'logs/execution.log', 'logs/audit.log'],
             ],
         ];
 
         $serverPresets = [
-            'production_live' => [
-                'environment_weights' => ['live' => 1.0],
+            'production_prod' => [
+                'environment_weights' => ['prod' => 1.0],
                 'app_count_range' => [4, 7],
                 'preferred_categories' => [
                     'commerce' => 3.4,
@@ -891,7 +891,7 @@ class MockServerDataCollector implements ServerDataCollectorInterface
                 'session_multiplier' => 1.15,
                 'log_files' => ['min' => 2, 'max' => 5],
                 'log_size_multiplier' => 1.0,
-                'live_environment_bias' => [
+                'prod_environment_bias' => [
                     'clean_probability' => 0.86,
                     'max_fatal' => 2,
                     'max_warnings' => 5,
@@ -995,7 +995,7 @@ class MockServerDataCollector implements ServerDataCollectorInterface
                 ],
             ],
             'mixed_all' => [
-                'environment_weights' => ['live' => 0.4, 'stg' => 0.25, 'test' => 0.25, 'dev' => 0.1],
+                'environment_weights' => ['prod' => 0.4, 'stg' => 0.25, 'test' => 0.25, 'dev' => 0.1],
                 'app_count_range' => [5, 8],
                 'preferred_categories' => [
                     'commerce' => 2.4,
@@ -1041,8 +1041,8 @@ class MockServerDataCollector implements ServerDataCollectorInterface
                     'distribution' => ['warnings' => 0.55, 'fatal' => 0.25, 'both' => 0.2],
                 ],
             ],
-            'staging_live' => [
-                'environment_weights' => ['stg' => 0.55, 'live' => 0.45],
+            'staging_prod' => [
+                'environment_weights' => ['stg' => 0.55, 'prod' => 0.45],
                 'app_count_range' => [4, 7],
                 'preferred_categories' => [
                     'commerce' => 2.2,
@@ -1089,7 +1089,7 @@ class MockServerDataCollector implements ServerDataCollectorInterface
                 ],
             ],
             'infra_mix' => [
-                'environment_weights' => ['live' => 0.4, 'stg' => 0.3, 'test' => 0.2, 'dev' => 0.1],
+                'environment_weights' => ['prod' => 0.4, 'stg' => 0.3, 'test' => 0.2, 'dev' => 0.1],
                 'app_count_range' => [3, 6],
                 'preferred_categories' => [
                     'infrastructure' => 3.5,
@@ -1136,11 +1136,11 @@ class MockServerDataCollector implements ServerDataCollectorInterface
         ];
 
         $presetKeyMap = [
-            'production-web' => 'production_live',
+            'production-web' => 'production_prod',
             'database-server' => 'mixed_all',
             'staging-server' => 'test_only',
             'development-server' => 'dev_test_mix',
-            'backup-server' => 'staging_live',
+            'backup-server' => 'staging_prod',
             'load-balancer' => 'infra_mix',
         ];
 
@@ -1148,7 +1148,7 @@ class MockServerDataCollector implements ServerDataCollectorInterface
         $preset = $serverPresets[$presetKey];
 
         $environmentSessionProfiles = [
-            'live' => ['hour' => [300, 1800], 'day' => [4000, 22000], 'total' => [50000, 280000]],
+            'prod' => ['hour' => [300, 1800], 'day' => [4000, 22000], 'total' => [50000, 280000]],
             'stg' => ['hour' => [60, 200], 'day' => [800, 4000], 'total' => [9000, 60000]],
             'test' => ['hour' => [20, 120], 'day' => [300, 1600], 'total' => [4000, 25000]],
             'dev' => ['hour' => [10, 80], 'day' => [200, 900], 'total' => [2500, 15000]],
@@ -1169,7 +1169,7 @@ class MockServerDataCollector implements ServerDataCollectorInterface
         ];
 
         $logSizeBase = [
-            'live' => [600, 50000],
+            'prod' => [600, 50000],
             'stg' => [200, 18000],
             'test' => [120, 12000],
             'dev' => [80, 8000],
@@ -1315,8 +1315,8 @@ class MockServerDataCollector implements ServerDataCollectorInterface
             $fatalCount = $rollProfile($preset['status_profile']['fatal']);
             $warningCount = $rollProfile($preset['status_profile']['warnings']);
 
-            if ($environment === 'live' && isset($preset['live_environment_bias'])) {
-                $bias = $preset['live_environment_bias'];
+            if ($environment === 'prod' && isset($preset['prod_environment_bias'])) {
+                $bias = $preset['prod_environment_bias'];
                 $cleanProbability = max(0.0, min(1.0, (float) ($bias['clean_probability'] ?? 0.8)));
                 if (mt_rand(1, 1000) <= (int) round($cleanProbability * 1000)) {
                     $fatalCount = 0;
@@ -1352,7 +1352,7 @@ class MockServerDataCollector implements ServerDataCollectorInterface
             $statusTotal += (int) round($warningCount * ($statusWeights['warnings'] ?? 5));
             $statusTotal = max($statusTotal, $fatalCount + $warningCount);
 
-            $sessionProfile = $environmentSessionProfiles[$environment] ?? $environmentSessionProfiles['live'];
+            $sessionProfile = $environmentSessionProfiles[$environment] ?? $environmentSessionProfiles['prod'];
             $categoryMultiplier = $categorySessionMultipliers[$category] ?? 0.8;
             $sessionMultiplier = ($preset['session_multiplier'] ?? 1.0) * $categoryMultiplier;
 
@@ -1381,7 +1381,7 @@ class MockServerDataCollector implements ServerDataCollectorInterface
                     'size_kb' => null,
                 ];
                 $unconfiguredAssigned = true;
-            } elseif ($environment === 'live' && mt_rand(1, 100) <= 25) {
+            } elseif ($environment === 'prod' && mt_rand(1, 100) <= 25) {
                 $session = [
                     'type' => 'redis',
                     'status' => 'ok',

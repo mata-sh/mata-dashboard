@@ -484,7 +484,7 @@ svg {
     background-color: orange;
 }
 
-.app-env.live {
+.app-env.prod {
     background-color: #098f00;
 }
 

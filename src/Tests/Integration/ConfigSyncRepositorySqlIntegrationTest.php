@@ -49,14 +49,14 @@ final class ConfigSyncRepositorySqlIntegrationTest extends TestCase
 
     public function testUpsertApplicationInsertsNewRow(): void
     {
-        $this->assertTrue($this->repository->upsertApplication('shop', 'Shop', 'live'));
+        $this->assertTrue($this->repository->upsertApplication('shop', 'Shop', 'prod'));
 
         $this->assertSame(['shop' => 1], $this->repository->fetchApplicationIdMap());
     }
 
     public function testUpsertApplicationUpdatesExistingRow(): void
     {
-        $this->repository->upsertApplication('shop', 'Shop', 'live');
+        $this->repository->upsertApplication('shop', 'Shop', 'prod');
 
         $this->assertFalse($this->repository->upsertApplication('shop', 'Shop v2', 'stg'));
         $this->assertSame(['shop' => 1], $this->repository->fetchApplicationIdMap());
@@ -70,10 +70,10 @@ final class ConfigSyncRepositorySqlIntegrationTest extends TestCase
 
     public function testUpsertApplicationSkipsUpdateWhenUnchanged(): void
     {
-        $this->repository->upsertApplication('shop', 'Shop', 'live');
+        $this->repository->upsertApplication('shop', 'Shop', 'prod');
         $this->db->pdo()->exec("UPDATE applications SET updated_at = 'sentinel' WHERE id = 1");
 
-        $this->assertFalse($this->repository->upsertApplication('shop', 'Shop', 'live'));
+        $this->assertFalse($this->repository->upsertApplication('shop', 'Shop', 'prod'));
 
         $updatedAt = $this->db->pdo()
             ->query('SELECT updated_at FROM applications WHERE id = 1')

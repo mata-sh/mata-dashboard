@@ -56,7 +56,7 @@ final class AppInventorySyncTest extends TestCase
     public function testSyncUpsertsApplicationsAndRefreshesResolver(): void
     {
         $synced = $this->sync->sync([
-            'shop' => ['title' => 'Shop', 'env' => 'live'],
+            'shop' => ['title' => 'Shop', 'env' => 'prod'],
             'api' => ['title' => '', 'env' => 'stg'],
         ]);
 
@@ -73,9 +73,9 @@ final class AppInventorySyncTest extends TestCase
     public function testSyncSkipsInvalidEntries(): void
     {
         $synced = $this->sync->sync([
-            '' => ['title' => 'Skip', 'env' => 'live'],
+            '' => ['title' => 'Skip', 'env' => 'prod'],
             'broken' => 'not-an-array',
-            'shop' => ['title' => 'Shop', 'env' => 'live'],
+            'shop' => ['title' => 'Shop', 'env' => 'prod'],
         ]);
 
         $this->assertSame(1, $synced);
@@ -84,7 +84,7 @@ final class AppInventorySyncTest extends TestCase
 
     public function testSyncFallsBackToCodeWhenTitleMissing(): void
     {
-        $this->sync->sync(['shop' => ['env' => 'live']]);
+        $this->sync->sync(['shop' => ['env' => 'prod']]);
 
         $this->assertSame(1, $this->idResolver->resolveApplication('shop')['id']);
     }

@@ -9,7 +9,7 @@ namespace Mata\Services\Alarm\Dto;
  */
 enum AlarmEnvironment: string
 {
-    case Live = 'live';
+    case Prod = 'prod';
     case Test = 'test';
     case Dev = 'dev';
     case Staging = 'staging';
@@ -28,7 +28,7 @@ enum AlarmEnvironment: string
     public function getBadgeColor(): string
     {
         return match ($this) {
-            self::Live => '#098f00',
+            self::Prod => '#098f00',
             self::Test => '#f59e0b',
             self::Dev => '#207bdc',
             self::Staging => '#663399',
@@ -41,7 +41,7 @@ enum AlarmEnvironment: string
     public static function tryFromString(?string $environment): ?self
     {
         return match (strtolower(trim((string) $environment))) {
-            'live', 'prod', 'production' => self::Live,
+            'prod', 'live' => self::Prod,
             'test', 'testing' => self::Test,
             'dev', 'development' => self::Dev,
             'staging', 'stage', 'stg' => self::Staging,
