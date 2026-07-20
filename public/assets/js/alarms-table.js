@@ -167,7 +167,7 @@
             },
             columns: [
                 {
-                    title: 'Acknowledged', field: 'acknowledged_at', width: 130, hozAlign: 'center', sorter: 'string', formatter: formatAcknowledged,
+                    title: 'Acknowledged', field: 'acknowledged_at', width: 50, hozAlign: 'center', sorter: 'string', formatter: formatAcknowledged,
                     cellClick: function (event, cell) {
                         if (!(event.target instanceof Element) || !event.target.closest('.alarm-ack-btn')) {
                             return;
