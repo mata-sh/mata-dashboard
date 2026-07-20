@@ -140,15 +140,6 @@
                 return response;
             },
             columns: [
-                {title: 'ID', field: 'id', sorter: 'number', hozAlign: 'center'},
-                {title: 'Datetime', field: 'datetime', sorter: 'datetime', hozAlign: 'center'},
-                {title: 'Server', field: 'server', sorter: 'string', hozAlign: 'center'},
-                {title: 'App', field: 'app', sorter: 'string', hozAlign: 'center'},
-                {title: 'Level', field: 'level', hozAlign: 'center', formatter: window.mataFormatLevel},
-                {title: 'Type', field: 'type', sorter: 'string', formatter: formatType},
-                {title: 'Message', field: 'message', sorter: 'string', cssClass: 'table-message-cell', formatter: formatMessage, cellClick: function (event, cell) { showMessage(cell); }},
-                {title: 'Deliveries', field: 'deliveries', hozAlign: 'center', formatter: formatDeliveries},
-                {title: 'Context', field: 'context', sorter: 'string'},
                 {
                     title: 'Acknowledged', field: 'acknowledged_at', width: 130, hozAlign: 'center', sorter: 'string', formatter: formatAcknowledged,
                     cellClick: function (event, cell) {
@@ -187,6 +178,15 @@
                             });
                     },
                 },
+                {title: 'ID', field: 'id', sorter: 'number', hozAlign: 'center'},
+                {title: 'Datetime', field: 'datetime', sorter: 'datetime', hozAlign: 'center'},
+                {title: 'Server', field: 'server', sorter: 'string', hozAlign: 'center'},
+                {title: 'App', field: 'app', sorter: 'string', hozAlign: 'center'},
+                {title: 'Level', field: 'level', hozAlign: 'center', formatter: window.mataFormatLevel},
+                {title: 'Type', field: 'type', sorter: 'string', formatter: formatType},
+                {title: 'Message', field: 'message', sorter: 'string', cssClass: 'table-message-cell', formatter: formatMessage, cellClick: function (event, cell) { showMessage(cell); }},
+                {title: 'Deliveries', field: 'deliveries', hozAlign: 'center', formatter: formatDeliveries},
+                {title: 'Context', field: 'context', sorter: 'string'},
             ],
             renderComplete: function () {
                 tippy('#alarms-table [data-tippy-content]', {allowHTML: true});
