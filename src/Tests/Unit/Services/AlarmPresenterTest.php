@@ -88,7 +88,7 @@ final class AlarmPresenterTest extends TestCase
         $this->assertSame('#E88C02', $presentation->serverColor);
         $this->assertSame(AlarmEnvironment::Prod, $presentation->environment);
         $this->assertSame('PROD', $presentation->environment?->getLabel());
-        $this->assertSame('#098f00', $presentation->environment?->getBadgeColor());
+        $this->assertSame('#1bbf0f', $presentation->environment?->getBadgeColor());
     }
 
     public function testItNormalizesLegacyLiveApplicationEnvironment(): void
@@ -97,7 +97,7 @@ final class AlarmPresenterTest extends TestCase
 
         $this->assertSame(AlarmEnvironment::Prod, $presentation->environment);
         $this->assertSame('PROD', $presentation->environment?->getLabel());
-        $this->assertSame('#098f00', $presentation->environment?->getBadgeColor());
+        $this->assertSame('#1bbf0f', $presentation->environment?->getBadgeColor());
     }
 
     public function testItUsesServerEnvironmentWhenApplicationEnvironmentIsUnknown(): void

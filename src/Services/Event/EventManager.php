@@ -199,7 +199,7 @@ class EventManager
     /**
      * Get a numeric threshold limit for a server metric and level.
      *
-     * @return float|int|null Null when the metric level is not configured or is not numeric
+     * @return null|float|int Null when the metric level is not configured or is not numeric
      */
     public function getServerDataThresholdLimit(string $name, string $level = 'alarm'): float|int|null
     {

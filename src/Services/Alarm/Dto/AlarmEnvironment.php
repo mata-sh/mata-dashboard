@@ -28,7 +28,7 @@ enum AlarmEnvironment: string
     public function getBadgeColor(): string
     {
         return match ($this) {
-            self::Prod => '#098f00',
+            self::Prod => '#1bbf0f',
             self::Test => '#f59e0b',
             self::Dev => '#207bdc',
             self::Staging => '#663399',

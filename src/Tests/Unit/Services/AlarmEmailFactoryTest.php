@@ -62,10 +62,12 @@ final class AlarmEmailFactoryTest extends TestCase
         $this->assertStringContainsString('Critical', $html);
         $this->assertStringContainsString('FATAL_ERRORS_OCCURRING', $html);
         $this->assertStringContainsString('>2k</div>', $html);
-        $this->assertStringContainsString('>Shop on</td>', $html);
+        $this->assertStringContainsString('background-color:#000000; padding:4px 12px', $html);
+        $this->assertStringContainsString('border:1px solid #7d8a9d', $html);
+        $this->assertStringContainsString('>Shop</td>', $html);
         $this->assertStringContainsString('>Api-1</td>', $html);
         $this->assertStringContainsString('Detected fatal errors above threshold.', $html);
-        $this->assertStringContainsString('&quot;actual_value&quot;:2000', $html);
+        $this->assertStringContainsString('&quot;actual_value&quot;: 2000', $html);
         $this->assertStringContainsString('#ff3b4e', $html);
         $this->assertStringContainsString('CRITICAL · Api-1 · 2k fatal_errors_occurring · Alarm #123', $html);
         $this->assertStringContainsString('transmission by MATA monitoring', $html);
@@ -100,9 +102,10 @@ final class AlarmEmailFactoryTest extends TestCase
         ]);
         $html = (string) $this->factory(presenter: $presenter)->create($this->view())->getHtmlBody();
 
-        $this->assertStringContainsString('width:16px; height:16px; background-color:#E88C02', $html);
-        $this->assertStringContainsString('background-color:#f59e0b', $html);
-        $this->assertStringContainsString('>TEST</span>', $html);
+        $this->assertStringContainsString('background-color:#E88C02; padding:4px 12px', $html);
+        $this->assertStringContainsString('border:1px solid #f59e0b', $html);
+        $this->assertStringContainsString('filter:brightness(1.15)', $html);
+        $this->assertStringContainsString('>TEST</td>', $html);
     }
 
     public function testItStylesServerOnlyHeadingsAsColoredBadges(): void

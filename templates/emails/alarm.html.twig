@@ -18,17 +18,17 @@
         }
     </style>
 </head>
-<body style="margin:0; padding:0; background-color:#07090e; color:#e8eef5; -webkit-text-size-adjust:100%;">
+<body style="margin:0; padding:0; background-color:#000000; color:#e8eef5; -webkit-text-size-adjust:100%;">
 <div style="display:none; max-height:0; overflow:hidden; mso-hide:all;">{{ severity.display_label|upper }} · {{ target.server }}{% if presentation.metric %} · {{ presentation.metric.value }} {{ presentation.metric.label|lower }}{% endif %} · Alarm #{{ alarm.id }}</div>
-<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#07090e;"><tr><td align="center" style="padding:32px 12px;">
-<table role="presentation" class="container" width="600" cellpadding="0" cellspacing="0" border="0" style="width:600px; max-width:600px;">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#000000;"><tr><td align="center" style="padding:32px 12px;">
+<table role="presentation" class="container" width="625" cellpadding="0" cellspacing="0" border="0" style="width:625px; max-width:625px;">
     <tr><td style="padding:0;">
         <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr>
             <td width="8" style="background-color:{{ severity.accent }}; font-size:0; line-height:0;">&nbsp;</td>
-            <td style="background-color:#0d1117; padding:14px 24px; border-top:1px solid #1d2632; border-right:1px solid #1d2632;">
+            <td style="background-color:#0d1117; padding:14px 24px; border-top:1px solid #1d2632; border-right:1px solid #1d2632; border-bottom:1px solid #1d2632;">
                 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr>
                     <td style="font-family:Consolas,'Courier New',monospace; font-size:12px; letter-spacing:3px; color:#3fd0e0; text-transform:uppercase;">{{ branding }}<span style="color:#2a3644;">://</span>monitoring</td>
-                    <td align="right">{% if target.environment %}<span style="display:inline-block; padding:4px 8px; background-color:{{ target.environment.badgeColor }}; color:#ffffff; font-family:Arial,Helvetica,sans-serif; font-size:10px; font-weight:700; letter-spacing:1px; line-height:12px; text-transform:uppercase;">{{ target.environment.label }}</span>{% endif %}</td>
+                    <td></td>
                 </tr></table>
             </td>
         </tr></table>
@@ -37,21 +37,21 @@
         <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td class="px" style="padding:32px 32px 0;">
             <table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr>
                 <td style="border:1px solid {{ severity.accent }}; padding:5px 12px; font-family:Consolas,'Courier New',monospace; font-size:12px; letter-spacing:4px; color:{{ severity.accent }}; text-transform:uppercase;">▲ {{ severity.display_label }}</td>
+                {% if target.environment %}<td width="8" style="width:8px; font-size:0; line-height:0;">&nbsp;</td><td style="border:1px solid {{ target.environment.badgeColor }}; padding:5px 12px; font-family:Consolas,'Courier New',monospace; font-size:12px; letter-spacing:4px; color:{{ target.environment.badgeColor }}; text-transform:uppercase; filter:brightness(1.15);">{{ target.environment.label }}</td>{% endif %}
                 <td style="padding-left:12px; font-family:Consolas,'Courier New',monospace; font-size:12px; letter-spacing:2px; color:#72849b;">{{ severity.code }} · ALARM #{{ alarm.id }}</td>
             </tr></table>
             <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="padding-top:20px;"><tr>
-                {% if target.heading_prefix %}<td style="font-family:Arial,Helvetica,sans-serif; font-size:26px; line-height:34px; font-weight:700; color:#e8eef5; padding-right:10px;">{{ target.heading_prefix }}</td>{% endif %}
-                {% if target.color and not target.is_server_only %}<td width="16" height="16" style="width:16px; height:16px; background-color:{{ target.color }}; font-size:0; line-height:0;">&nbsp;</td>{% endif %}
-                <td style="font-family:Arial,Helvetica,sans-serif; font-size:26px; line-height:34px; font-weight:700; color:#ffffff;{% if target.is_server_only and target.color %} background-color:{{ target.color }}; padding:4px 12px;{% else %} padding-left:{% if target.color %}10px{% else %}0{% endif %};{% endif %}">{{ target.server }}</td>
+                {% if not target.is_server_only %}<td style="background-color:#111823; padding:4px 12px; font-family:Arial,Helvetica,sans-serif; font-size:26px; line-height:34px; font-weight:bold; color:#ffffff; text-transform:uppercase; border:1px solid #1d2632;">{{ target.app }}</td>{% endif %}
+                <td style="background-color:{{ target.color|default('#2a3644') }}; padding:4px 12px; font-family:Arial,Helvetica,sans-serif; font-size:26px; line-height:34px; font-weight:bold; color:#ffffff; text-transform:uppercase; text-align:center;">{{ target.server }}</td>
             </tr></table>
-            <div style="font-family:Arial,Helvetica,sans-serif; font-size:21px; line-height:30px; color:#8a99ad; padding-top:8px; padding-bottom:28px;">{{ presentation.description }}</div>
+            <div style="font-family:Arial,Helvetica,sans-serif; font-size:18px; line-height:27px; color:#8a99ad; padding-top:8px; padding-bottom:28px;">{{ presentation.description }}</div>
         </td></tr></table>
 
         <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td class="px" style="padding:0 32px;">
             <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border:1px solid #1d2632; background-color:#0a0e14;"><tr>
                 {% if presentation.metric %}
                 <td class="metric-cell" width="50%" style="padding:20px 24px; border-right:1px solid #1d2632;">
-                    <div style="display:inline-block; padding:5px 9px; background-color:#ffffff; font-family:Consolas,'Courier New',monospace; font-size:11px; font-weight:bold; letter-spacing:2px; color:#0d1117; text-transform:uppercase;">{{ presentation.metric.label }}</div>
+                    <div style="font-family:Consolas,'Courier New',monospace; font-size:11px; font-weight:bold; letter-spacing:2px; color:#718399; text-transform:uppercase;">{{ presentation.metric.label }}</div>
                     <div style="font-family:Consolas,'Courier New',monospace; font-size:40px; line-height:48px; color:{{ severity.accent }}; padding-top:6px;">{{ presentation.metric.value }}</div>
                     {% if presentation.metric.threshold %}<div style="font-family:Consolas,'Courier New',monospace; font-size:17px; line-height:24px; color:#72849b; padding-top:4px;">{{ presentation.metric.threshold }}</div>{% endif %}
                 </td>
@@ -69,7 +69,7 @@
         </td></tr></table>
 
         <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td class="px" style="padding:24px 32px 0;">
-            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#0a0e14; border:1px solid #1d2632;"><tr><td style="padding:10px 16px; border-bottom:1px solid #1d2632; font-family:Consolas,'Courier New',monospace; font-size:14px; letter-spacing:2px; color:#3fd0e0;">&gt;_ alarm.context</td></tr><tr><td style="padding:16px; font-family:Consolas,'Courier New',monospace; font-size:16px; line-height:28px; white-space:pre-wrap;"><span style="display:inline-block; width:140px; color:#72849b;">server:</span> <span style="color:#e8eef5;">{{ target.server }}</span><br><span style="display:inline-block; width:140px; color:#72849b;">application:</span> <span style="color:#e8eef5;">{{ target.app }}</span><br><span style="display:inline-block; width:140px; color:#72849b;">type:</span> <span style="color:{{ severity.accent }};">{{ alarm.type }}</span><br><span style="display:inline-block; width:140px; color:#72849b;">alarm_id:</span> <span style="color:#e8eef5;">{{ alarm.id }}</span><br><span style="display:inline-block; width:140px; color:#72849b;">context:</span> <span style="color:#8a99ad;">{{ alarm.context ?: 'none_provided' }}</span></td></tr></table>
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#0a0e14; border:1px solid #1d2632;"><tr><td style="padding:10px 16px; border-bottom:1px solid #1d2632; font-family:Consolas,'Courier New',monospace; font-size:14px; letter-spacing:2px; color:#3fd0e0;">&gt;_ alarm.context</td></tr><tr><td style="padding:16px; font-family:Consolas,'Courier New',monospace; font-size:16px; line-height:28px; white-space:pre-wrap;"><span style="display:inline-block; width:140px; color:#72849b;">server:</span> <span style="color:#e8eef5;">{{ target.server }}</span><br><span style="display:inline-block; width:140px; color:#72849b;">application:</span> <span style="color:#e8eef5;">{{ target.app }}</span><br><span style="display:inline-block; width:140px; color:#72849b;">type:</span> <span style="color:{{ severity.accent }};">{{ alarm.type }}</span><br><span style="display:inline-block; width:140px; color:#72849b;">alarm_id:</span> <span style="color:#e8eef5;">{{ alarm.id }}</span><br><span style="display:inline-block; width:140px; color:#72849b;">context:</span><br><span style="color:#8a99ad;">{{ alarm.context }}</span></td></tr></table>
         </td></tr></table>
 
         {% if dashboard_url %}<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td class="px" align="left" style="padding:28px 32px 32px;"><table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr><td style="background-color:{{ severity.accent }}; border:1px solid {{ severity.accent }};"><a href="{{ dashboard_url }}" style="display:inline-block; padding:14px 32px; font-family:Consolas,'Courier New',monospace; font-size:13px; font-weight:bold; letter-spacing:3px; color:#07090e; text-transform:uppercase; text-decoration:none;">Open dashboard →</a></td></tr></table></td></tr></table>{% endif %}

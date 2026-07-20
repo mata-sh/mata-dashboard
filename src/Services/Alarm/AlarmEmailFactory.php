@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Mata\Services\Alarm;
 
+use DateTimeImmutable;
 use Mata\Config\Dto\MailConfig;
 use Mata\Services\Alarm\Dto\AlarmEmailView;
 use RuntimeException;
@@ -80,7 +81,7 @@ final class AlarmEmailFactory
                 'id' => $view->alarmId,
                 'type' => $alarm->type,
                 'message' => $alarm->message,
-                'context' => $alarm->context,
+                'context' => $this->formatContext($alarm->context),
                 'created_at' => $view->alarmCreatedAt->format('Y-m-d H:i:s T'),
                 'last_seen_at' => $view->previousAlarmCreatedAt?->format('Y-m-d H:i:s T'),
                 'last_seen_ago' => $this->elapsedTime($view->previousAlarmCreatedAt, $view->alarmCreatedAt),
@@ -88,8 +89,7 @@ final class AlarmEmailFactory
             'target' => [
                 'server' => $server,
                 'app' => $app === '' ? 'All applications' : $app,
-                'heading' => $app === '' ? $server : "{$app} on {$server}",
-                'heading_prefix' => $app === '' ? '' : "{$app} on",
+                'heading' => $app === '' ? "Server: {$server}" : "{$app} on {$server}",
                 'is_server_only' => $app === '',
                 'color' => $presentation->serverColor,
                 'environment' => $presentation->environment,
@@ -100,7 +100,22 @@ final class AlarmEmailFactory
         ];
     }
 
-    private function elapsedTime(?\DateTimeImmutable $lastSeenAt, \DateTimeImmutable $currentAt): ?string
+    private function formatContext(?string $context): string
+    {
+        $context = trim((string) $context);
+        if ($context === '') {
+            return 'none_provided';
+        }
+
+        $decoded = json_decode($context, true);
+        if (!is_array($decoded)) {
+            return $context;
+        }
+
+        return json_encode($decoded, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) ?: $context;
+    }
+
+    private function elapsedTime(?DateTimeImmutable $lastSeenAt, DateTimeImmutable $currentAt): ?string
     {
         if ($lastSeenAt === null) {
             return null;

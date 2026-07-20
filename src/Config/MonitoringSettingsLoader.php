@@ -14,6 +14,7 @@ use Mata\Services\Event\EventRecorderService;
 use Mata\Services\Sync\SettingsDatabaseSync;
 use Mata\Utils\TypeConverter;
 use RuntimeException;
+use Throwable;
 
 /**
  * Monitoring settings loader for servers, thresholds, and TTL settings.
@@ -691,10 +692,10 @@ final class MonitoringSettingsLoader
     /**
      * Load and parse JSON configuration file with consistent error handling.
      *
-     * @param string                        $filePath      Path to JSON configuration file
-     * @param string                        $configType    Configuration type for error messages (e.g., 'ttl', 'events', 'servers')
-     * @param null|array<string,mixed>      $defaultConfig Default configuration to return on failure
-     * @param null|class-string<\Throwable> $throwAs       If set, failures throw this exception class; if null, failures log a warning and return the defaults
+     * @param string                       $filePath      Path to JSON configuration file
+     * @param string                       $configType    Configuration type for error messages (e.g., 'ttl', 'events', 'servers')
+     * @param null|array<string,mixed>     $defaultConfig Default configuration to return on failure
+     * @param null|class-string<Throwable> $throwAs       If set, failures throw this exception class; if null, failures log a warning and return the defaults
      *
      * @return array<string,mixed> Parsed configuration array
      *
@@ -754,11 +755,11 @@ final class MonitoringSettingsLoader
     /**
      * Record a configuration load failure, then either throw or return the fallback config.
      *
-     * @param string                        $eventType        Event type identifier for the recorded event
-     * @param string                        $message          Human readable failure message
-     * @param string                        $exceptionMessage Message for the exception when throwAs is set
-     * @param null|class-string<\Throwable> $throwAs          If set, records a critical event and throws this class; if null, warns and returns defaults
-     * @param null|array<string,mixed>      $defaultConfig    Fallback configuration returned when not throwing
+     * @param string                       $eventType        Event type identifier for the recorded event
+     * @param string                       $message          Human readable failure message
+     * @param string                       $exceptionMessage Message for the exception when throwAs is set
+     * @param null|class-string<Throwable> $throwAs          If set, records a critical event and throws this class; if null, warns and returns defaults
+     * @param null|array<string,mixed>     $defaultConfig    Fallback configuration returned when not throwing
      *
      * @return array<string,mixed> The fallback configuration (empty array if none given)
      *

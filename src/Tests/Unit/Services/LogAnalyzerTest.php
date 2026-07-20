@@ -27,7 +27,7 @@ final class LogAnalyzerTest extends TestCase
     {
         parent::setUp();
 
-        $this->tools = new class('/tmp') extends Tools {
+        $this->tools = new class ('/tmp') extends Tools {
             public function formatKilobytes(int $kilobytes): string
             {
                 return $kilobytes . ' KB';
