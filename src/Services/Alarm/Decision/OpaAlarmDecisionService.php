@@ -35,6 +35,8 @@ final class OpaAlarmDecisionService implements AlarmDecisionServiceInterface
      */
     public function decide(array $event, array $supportedChannels = ['email']): AlarmDecision
     {
+        $supportedChannels = $this->normalizeChannels($supportedChannels);
+
         $payload = [
             'input' => $this->buildInput($event, $supportedChannels),
         ];

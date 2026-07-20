@@ -140,14 +140,22 @@ final class AlarmDecisionProcessor
         bool $enrichmentRequested,
         bool $skipped,
     ): AlarmProcessingResult {
-        $this->logger->info('alarm_decision', array_merge([
-            'event_id' => (int) $event['id'],
-            'type' => $event['type'] ?? null,
-            'level' => $event['level'] ?? null,
-            'server_id' => $event['server_id'] ?? null,
-            'application_id' => $event['application_id'] ?? null,
-        ], $record->toArray()));
-        $this->eventAggregator->markEventEvaluated((int) $event['id'], $record->toArray());
+        try {
+            $this->logger->info('alarm_decision', array_merge([
+                'event_id' => (int) $event['id'],
+                'type' => $event['type'] ?? null,
+                'level' => $event['level'] ?? null,
+                'server_id' => $event['server_id'] ?? null,
+                'application_id' => $event['application_id'] ?? null,
+            ], $record->toArray()));
+            $this->eventAggregator->markEventEvaluated((int) $event['id'], $record->toArray());
+        } catch (Throwable $exception) {
+            throw new AlarmDecisionProcessingException(
+                AlarmDecisionProcessingException::COMPLETION,
+                $exception,
+                $enrichmentRequested,
+            );
+        }
 
         return new AlarmProcessingResult(
             $record,

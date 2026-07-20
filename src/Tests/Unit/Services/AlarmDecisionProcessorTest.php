@@ -160,6 +160,27 @@ final class AlarmDecisionProcessorTest extends TestCase
         }
     }
 
+    public function testCompletionFailureIsClassifiedPerEvent(): void
+    {
+        $evaluator = $this->readyEvaluator([]);
+        $decisionService = $this->decisionService(new AlarmDecision(false, [], reason: 'maintenance_window'));
+        $creator = $this->createStub(AlarmCreatorInterface::class);
+        $recorder = $this->createStub(EventRecorderService::class);
+        $aggregator = $this->createMock(EventAggregatorServiceInterface::class);
+        $aggregator->expects($this->once())
+            ->method('markEventEvaluated')
+            ->willThrowException(new RuntimeException('database unavailable'));
+
+        try {
+            $this->processor($evaluator, $decisionService, $creator, $recorder, $aggregator)
+                ->process($this->event());
+            $this->fail('Expected completion processing exception.');
+        } catch (AlarmDecisionProcessingException $exception) {
+            $this->assertSame(AlarmDecisionProcessingException::COMPLETION, $exception->getStage());
+            $this->assertSame('database unavailable', $exception->getMessage());
+        }
+    }
+
     /** @param array<int,string> $readyChannels */
     private function readyEvaluator(array $readyChannels): AlarmThresholdCooldownService
     {

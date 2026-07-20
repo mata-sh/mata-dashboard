@@ -58,17 +58,15 @@ try {
             $eventId = $event['id'] ?? null;
             $error = $exception->getPrevious()?->getMessage() ?? $exception->getMessage();
 
-            if ($exception->getStage() === AlarmDecisionProcessingException::POLICY) {
-                $log->error('routine_alarm_decision.policy_failed', [
-                    'event_id' => $eventId,
-                    'error' => $error,
-                ]);
-            } else {
-                $log->error('routine_alarm_decision.enqueue_failed', [
-                    'event_id' => $eventId,
-                    'error' => $error,
-                ]);
-            }
+            $logName = match ($exception->getStage()) {
+                AlarmDecisionProcessingException::POLICY => 'routine_alarm_decision.policy_failed',
+                AlarmDecisionProcessingException::DELIVERY => 'routine_alarm_decision.enqueue_failed',
+                AlarmDecisionProcessingException::COMPLETION => 'routine_alarm_decision.completion_failed',
+            };
+            $log->error($logName, [
+                'event_id' => $eventId,
+                'error' => $error,
+            ]);
 
             continue;
         }

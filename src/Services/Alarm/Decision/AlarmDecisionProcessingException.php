@@ -11,6 +11,7 @@ final class AlarmDecisionProcessingException extends RuntimeException
 {
     public const POLICY = 'policy';
     public const DELIVERY = 'delivery';
+    public const COMPLETION = 'completion';
 
     public function __construct(
         private string $stage,
