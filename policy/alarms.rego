@@ -95,7 +95,6 @@ monitored_types := {
     "filecount_too_large",
     "logfile_too_large",
     "too_many_sql_connections",
-    "servers_config_not_found",
     "remaining_diskspace_too_low",
     "node_unreachable",
     "node_unhealthy",

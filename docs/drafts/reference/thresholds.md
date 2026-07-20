@@ -737,24 +737,7 @@ Database connection threshold alarm.
 
 ---
 
-### servers_config_not_found
-Missing servers.json configuration alarm.
-
-**Default Configuration:**
-```json
-{
-    "servers_config_not_found": {
-        "alarm_threshold_event_count": 1,
-        "alarm_threshold_window_minutes": 180,
-        "min_alarm_interval_minutes": 1440
-    }
-}
-```
-
-**Behavior:**
-- Immediate alarm (critical configuration issue)
-- Events within 3 hours aggregated
-- Daily notifications (prevents spam during outage)
+Configuration-load failures for missing or malformed `servers.json` are direct-only alarms. They bypass OPA policy, alarm thresholds, and alarm cooldown intervals.
 
 ---
 
@@ -852,11 +835,6 @@ Missing cronjob execution alarm.
             "alarm_threshold_event_count": 1,
             "alarm_threshold_window_minutes": 720,
             "min_alarm_interval_minutes": 60
-        },
-        "servers_config_not_found": {
-            "alarm_threshold_event_count": 1,
-            "alarm_threshold_window_minutes": 180,
-            "min_alarm_interval_minutes": 1440
         },
         "cronjobs_failing": {
             "alarm_threshold_event_count": 1,

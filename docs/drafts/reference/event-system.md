@@ -196,8 +196,10 @@ API key authentication failure.
 
 ### Resource Threshold Events
 
-#### `cpu_usage_high`
-CPU usage exceeded threshold.
+#### `cpu_usage_too_high`
+CPU usage exceeded the alarm threshold.
+
+**Event Type:** `cpu_usage_too_high`
 
 **Severity:** Warning or Critical (based on threshold)
 
@@ -401,18 +403,7 @@ servers.json configuration file missing or unreadable.
 }
 ```
 
-**Configuration:**
-```json
-{
-    "alarms": {
-        "servers_config_not_found": {
-            "alarm_threshold_event_count": 1,
-            "alarm_threshold_window_minutes": 180,
-            "min_alarm_interval_minutes": 1440
-        }
-    }
-}
-```
+This is a direct configuration-failure alarm. It is dispatched directly by the configuration loader and does not use OPA policy, alarm thresholds, or alarm cooldown intervals.
 
 #### `config_validation_failed`
 Configuration file failed validation.

@@ -414,10 +414,6 @@ This means one matching event in the previous 180 minutes passes the PHP count g
         "alarm_threshold_event_count": 1,
         "alarm_threshold_window_minutes": 60
     },
-    "servers_config_not_found": {
-        "alarm_threshold_event_count": 1,
-        "alarm_threshold_window_minutes": 1440
-    },
     "remaining_diskspace_too_low": {
         "alarm_threshold_event_count": 1,
         "alarm_threshold_window_minutes": 180

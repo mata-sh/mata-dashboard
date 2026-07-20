@@ -21,7 +21,7 @@ PHP applies count and frequency thresholds before OPA. OPA policy input is state
   "input": {
     "event": {
       "id": 42,
-      "type": "disk_usage",
+      "type": "remaining_diskspace_too_low",
       "level": "critical",
       "threshold": 0.9
     },

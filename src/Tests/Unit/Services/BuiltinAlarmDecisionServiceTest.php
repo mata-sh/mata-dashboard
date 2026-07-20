@@ -50,18 +50,6 @@ final class BuiltinAlarmDecisionServiceTest extends TestCase
         $this->assertSame('builtin_fatal_errors', $decision->reason);
     }
 
-    public function testSecurityLibraryOutdatedTypeIsAllowed(): void
-    {
-        $decision = (new BuiltinAlarmDecisionService())->decide([
-            'level' => 'warning',
-            'type' => 'library_outdated_security',
-        ]);
-
-        $this->assertTrue($decision->allow);
-        $this->assertSame(30, $decision->priority);
-        $this->assertSame('builtin_security_type', $decision->reason);
-    }
-
     public function testMissingEmailChannelDeniesAllowedDecision(): void
     {
         $decision = (new BuiltinAlarmDecisionService())->decide([

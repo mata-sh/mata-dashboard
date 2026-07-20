@@ -39,7 +39,7 @@ final class MockEventAggregatorServiceTest extends TestCase
             'events' => [[
                 'id' => 1,
                 'datetime' => '2026-07-11T12:00:00Z',
-                'type' => 'disk_usage',
+                'type' => 'remaining_diskspace_too_low',
                 'level' => 'critical',
                 'metrics' => ['counts' => ['same_type_level_or_higher' => ['1h' => 1]]],
             ]],

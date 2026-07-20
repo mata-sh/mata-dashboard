@@ -132,7 +132,7 @@ RewriteRule ^ index.php [QSA,L]
 
 #### Alarm decision driver
 
-Shared hosting requires `ALARM_DECISION_DRIVER=builtin`. This degraded mode allows critical-level events plus `fatal_errors_occurring` and `library_outdated_security` via email only, and denies everything else.
+Shared hosting requires `ALARM_DECISION_DRIVER=builtin`. This degraded mode allows critical-level events plus `fatal_errors_occurring` via email only, and denies everything else.
 
 This is an explicit configuration choice, not automatic failover from OPA.
 

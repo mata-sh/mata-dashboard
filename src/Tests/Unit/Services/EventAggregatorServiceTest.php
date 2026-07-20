@@ -22,7 +22,7 @@ final class EventAggregatorServiceTest extends TestCase
     {
         $events = [[
             'id' => 42,
-            'type' => 'disk_usage',
+            'type' => 'remaining_diskspace_too_low',
             'level' => 'critical',
             'datetime' => '2026-07-11T12:00:00Z',
         ]];

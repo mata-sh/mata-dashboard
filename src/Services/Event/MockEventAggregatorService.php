@@ -68,9 +68,9 @@ final class MockEventAggregatorService implements EventAggregatorServiceInterfac
         }
 
         $samples = [
-            'warning' => ['id' => 990001, 'event_id' => 980001, 'type' => 'library_outdated', 'message' => 'A dependency update is available'],
+            'warning' => ['id' => 990001, 'event_id' => 980001, 'type' => 'app_unreachable', 'message' => 'Application is unreachable'],
             'error' => ['id' => 990002, 'event_id' => 980002, 'type' => 'upstream_latency', 'message' => 'Checkout API latency exceeded 1.5s'],
-            'critical' => ['id' => 990003, 'event_id' => 980003, 'type' => 'disk_usage', 'message' => 'Disk usage exceeded 90% on /var'],
+            'critical' => ['id' => 990003, 'event_id' => 980003, 'type' => 'remaining_diskspace_too_low', 'message' => 'Disk usage exceeded 90% on /var'],
         ];
         $timestamp = gmdate(DATE_ATOM);
 

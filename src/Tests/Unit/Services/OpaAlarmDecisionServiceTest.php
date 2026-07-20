@@ -57,7 +57,7 @@ final class OpaAlarmDecisionServiceTest extends TestCase
 
         $service->decide([
             'id' => 42,
-            'type' => 'disk_usage',
+            'type' => 'remaining_diskspace_too_low',
             'level' => 'critical',
             'context' => '{"threshold": 0.9, "env": "prod"}',
             'metrics' => [

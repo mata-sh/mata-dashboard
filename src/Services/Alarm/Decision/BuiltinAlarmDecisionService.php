@@ -18,9 +18,6 @@ final class BuiltinAlarmDecisionService implements AlarmDecisionServiceInterface
         } elseif (($event['type'] ?? '') === 'fatal_errors_occurring') {
             $priority = 30;
             $reason = 'builtin_fatal_errors';
-        } elseif (($event['type'] ?? '') === 'library_outdated_security') {
-            $priority = 30;
-            $reason = 'builtin_security_type';
         } else {
             return new AlarmDecision(false, [], 100, false, 'builtin_default_deny');
         }
