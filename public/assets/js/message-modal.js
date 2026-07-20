@@ -3,6 +3,7 @@
 
     var modal;
     var messageElement;
+    var titleElement;
     var closeButton;
     var lastFocusedElement;
 
@@ -13,9 +14,10 @@
 
         modal = document.getElementById('message-modal');
         messageElement = document.getElementById('message-modal-content');
+        titleElement = document.getElementById('message-modal-title');
         closeButton = modal && modal.querySelector('[data-message-modal-close]');
 
-        return Boolean(modal && messageElement && closeButton);
+        return Boolean(modal && messageElement && titleElement && closeButton);
     }
 
     function isOpen() {
@@ -35,6 +37,7 @@
         modal.setAttribute('aria-hidden', 'true');
         modal.hidden = true;
         messageElement.textContent = '';
+        titleElement.textContent = 'Full message';
 
         var trigger = lastFocusedElement;
         lastFocusedElement = null;
@@ -43,12 +46,13 @@
         }
     }
 
-    function openMessageModal(message, trigger) {
+    function openMessageModal(message, trigger, title) {
         if (!findModal()) {
             return;
         }
 
         lastFocusedElement = trigger && trigger.isConnected ? trigger : document.activeElement;
+        titleElement.textContent = title || 'Full message';
         messageElement.textContent = message === null || message === undefined ? '' : String(message);
         modal.hidden = false;
         modal.classList.add('is-active');

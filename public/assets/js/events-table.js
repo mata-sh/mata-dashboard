@@ -56,6 +56,32 @@
         window.mataOpenMessageModal(message, cell.getElement().querySelector('.table-message-trigger'));
     }
 
+    function formatContext(cell) {
+        var context = String(cell.getValue() || '');
+        var truncated = Array.from(context).length > 50;
+        var element = document.createElement(truncated ? 'button' : 'span');
+
+        if (truncated) {
+            element.type = 'button';
+            element.className = 'table-message-trigger';
+            element.title = 'Show the full context';
+            element.setAttribute('aria-label', 'Show the full context');
+        }
+
+        element.textContent = shortenedMessage(context);
+
+        return element;
+    }
+
+    function showContext(cell) {
+        var context = String(cell.getValue() || '');
+        if (Array.from(context).length <= 50 || !window.mataOpenMessageModal) {
+            return;
+        }
+
+        window.mataOpenMessageModal(context, cell.getElement().querySelector('.table-message-trigger'), 'Full context');
+    }
+
     function destroyEventsTable(context) {
         var root = context instanceof Element ? context : document;
         var tableElement = root.matches && root.matches('#events-table')
@@ -110,7 +136,7 @@
                 {title: 'Level', field: 'level', hozAlign: 'center', formatter: window.mataFormatLevel},
                 {title: 'Type', field: 'type', sorter: 'string', formatter: formatType},
                 {title: 'Message', field: 'message', sorter: 'string', cssClass: 'table-message-cell', formatter: formatMessage, cellClick: function (event, cell) { showMessage(cell); }},
-                {title: 'Context', field: 'context', sorter: 'string'},
+                {title: 'Context', field: 'context', sorter: 'string', cssClass: 'table-message-cell', formatter: formatContext, cellClick: function (event, cell) { showContext(cell); }},
             ],
         });
 

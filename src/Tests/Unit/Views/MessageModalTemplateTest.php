@@ -35,12 +35,16 @@ final class MessageModalTemplateTest extends TestCase
         $this->assertStringContainsString('htmx:beforeSwap', $modalScript);
         $this->assertStringContainsString("target.id === 'main-section'", $modalScript);
         $this->assertStringContainsString('closeMessageModal(false)', $modalScript);
+        $this->assertStringContainsString("titleElement.textContent = title || 'Full message';", $modalScript);
 
         foreach (['events-table.js', 'alarms-table.js'] as $filename) {
             $script = (string) file_get_contents(__DIR__ . '/../../../../public/assets/js/' . $filename);
 
             $this->assertStringContainsString('Array.from(message).length > 50', $script);
             $this->assertStringContainsString('window.mataOpenMessageModal(message', $script);
+            $this->assertStringContainsString('function formatContext(cell)', $script);
+            $this->assertStringContainsString('Array.from(context).length > 50', $script);
+            $this->assertStringContainsString("window.mataOpenMessageModal(context, cell.getElement().querySelector('.table-message-trigger'), 'Full context');", $script);
             $this->assertStringNotContainsString('toggleMessage', $script);
         }
     }
