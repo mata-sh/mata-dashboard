@@ -9,6 +9,9 @@
             "too_many_sql_connections": 72,
             "servers_config_not_found": 18,
             "remaining_diskspace_too_low": 60,
+            "server_metrics.ingestion_run_completed": 5,
+            "server_metrics.ingestion_run_empty": 5,
+            "server_metrics.ingestion_stalled": 15,
             "fatal_errors_occurring": 72,
             "cpu_usage_too_high": 30,
             "ram_usage_too_high": 30
@@ -24,6 +27,8 @@
             "too_many_sql_connections": 72,
             "servers_config_not_found": 1440,
             "remaining_diskspace_too_low": 180,
+            "server_metrics.ingestion_run_empty": 30,
+            "server_metrics.ingestion_stalled": 60,
             "fatal_errors_occurring": 1440,
             "cpu_usage_too_high": 180,
             "ram_usage_too_high": 180

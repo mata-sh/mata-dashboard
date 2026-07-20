@@ -219,24 +219,40 @@ final class ServerMetricsHealthMonitor
         $totalServers = count($report['per_server']);
         $stalledServers = array_keys($report['stalled']);
 
+        $context = [
+            'generated_at' => $report['generated_at'],
+            'total_inserted' => $report['total_inserted'],
+            'total_servers' => $totalServers,
+            'stalled_servers' => $stalledServers,
+        ];
+
         $this->eventManager->handle(new EventCommand(
-            type: 'server_metrics.ingestion',
+            type: 'server_metrics.ingestion_run_completed',
             message: sprintf(
                 'Inserted %d new raw samples across %d servers',
                 $report['total_inserted'],
                 $totalServers
             ),
-            level: ($report['total_inserted'] === 0 && $totalServers > 0) ? 'warning' : 'info',
-            context: [
-                'generated_at' => $report['generated_at'],
-                'total_inserted' => $report['total_inserted'],
-                'stalled_servers' => $stalledServers,
-            ]
+            level: 'info',
+            context: $context
         ));
+
+        if ($report['total_inserted'] === 0 && $totalServers > 0) {
+            $this->eventManager->handle(new EventCommand(
+                type: 'server_metrics.ingestion_run_empty',
+                message: sprintf(
+                    'No new raw samples were inserted across %d %s',
+                    $totalServers,
+                    $totalServers === 1 ? 'server' : 'servers'
+                ),
+                level: 'warning',
+                context: $context
+            ));
+        }
 
         foreach ($report['stalled'] as $server => $details) {
             $this->eventManager->handle(new EventCommand(
-                type: 'server_metrics.ingestion_stall',
+                type: 'server_metrics.ingestion_stalled',
                 message: sprintf(
                     'No new server metrics ingested for %s (lag %d minutes)',
                     $server,

@@ -102,13 +102,42 @@ test_node_unreachable_critical_is_allowed if {
     decision.reason == "monitored_critical"
 }
 
-test_server_metrics_ingestion_info_is_denied if {
+test_server_metrics_ingestion_run_completed_info_is_denied if {
     decision := alarms.decision with input as {
-        "event": {"type": "server_metrics.ingestion", "level": "info"},
+        "event": {"type": "server_metrics.ingestion_run_completed", "level": "info"},
     }
 
     decision.allow == false
     decision.reason == "no_rule_match"
+}
+
+test_server_metrics_ingestion_run_completed_warning_is_denied if {
+    decision := alarms.decision with input as {
+        "event": {"type": "server_metrics.ingestion_run_completed", "level": "warning"},
+    }
+
+    decision.allow == false
+    decision.reason == "no_rule_match"
+}
+
+test_server_metrics_ingestion_run_empty_warning_is_allowed if {
+    decision := alarms.decision with input as {
+        "event": {"type": "server_metrics.ingestion_run_empty", "level": "warning"},
+    }
+
+    decision.allow == true
+    decision.priority == 60
+    decision.reason == "monitored_warning"
+}
+
+test_server_metrics_ingestion_stalled_warning_is_allowed if {
+    decision := alarms.decision with input as {
+        "event": {"type": "server_metrics.ingestion_stalled", "level": "warning"},
+    }
+
+    decision.allow == true
+    decision.priority == 60
+    decision.reason == "monitored_warning"
 }
 
 test_orders_export_stale_critical_is_denied if {

@@ -657,6 +657,15 @@ final class MonitoringSettingsLoaderTest extends TestCase
 
         $this->assertSame(['good' => -1, 'alarm' => 0], $thresholds['server_data']['cronjobs_failed_count']);
         $this->assertArrayNotHasKey('orders_export_stale', $thresholds['alarms']);
+        $this->assertArrayNotHasKey('server_metrics.ingestion_run_completed', $thresholds['alarms']);
+        $this->assertSame([
+            'alarm_threshold_event_count' => 3,
+            'alarm_threshold_window_minutes' => 30,
+        ], $thresholds['alarms']['server_metrics.ingestion_run_empty']);
+        $this->assertSame([
+            'alarm_threshold_event_count' => 1,
+            'alarm_threshold_window_minutes' => 60,
+        ], $thresholds['alarms']['server_metrics.ingestion_stalled']);
         $this->assertSame([
             'alarm_threshold_event_count' => 2,
             'alarm_threshold_window_minutes' => 30,
@@ -682,9 +691,15 @@ final class MonitoringSettingsLoaderTest extends TestCase
         $eventIntervals = $config['events']['min_event_interval_minutes'];
         $alarmIntervals = $config['alarms']['min_alarm_interval_minutes'];
         $this->assertSame(72, $eventIntervals['fatal_errors_occurring']);
+        $this->assertSame(5, $eventIntervals['server_metrics.ingestion_run_completed']);
+        $this->assertSame(5, $eventIntervals['server_metrics.ingestion_run_empty']);
+        $this->assertSame(15, $eventIntervals['server_metrics.ingestion_stalled']);
         $this->assertSame(30, $eventIntervals['cpu_usage_too_high']);
         $this->assertSame(30, $eventIntervals['ram_usage_too_high']);
         $this->assertArrayNotHasKey('orders_export_stale', $eventIntervals);
+        $this->assertSame(30, $alarmIntervals['server_metrics.ingestion_run_empty']);
+        $this->assertSame(60, $alarmIntervals['server_metrics.ingestion_stalled']);
+        $this->assertArrayNotHasKey('server_metrics.ingestion_run_completed', $alarmIntervals);
         $this->assertSame(180, $alarmIntervals['cpu_usage_too_high']);
         $this->assertSame(180, $alarmIntervals['ram_usage_too_high']);
         $this->assertArrayNotHasKey('orders_export_stale', $alarmIntervals);

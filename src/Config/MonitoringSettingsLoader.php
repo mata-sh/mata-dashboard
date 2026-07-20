@@ -225,6 +225,9 @@ final class MonitoringSettingsLoader
                     'too_many_sql_connections' => 72,
                     'servers_config_not_found' => 18,
                     'remaining_diskspace_too_low' => 60,
+                    'server_metrics.ingestion_run_completed' => 5,
+                    'server_metrics.ingestion_run_empty' => 5,
+                    'server_metrics.ingestion_stalled' => 15,
                     'cpu_usage_too_high' => 30,
                     'ram_usage_too_high' => 30,
                     'fatal_errors_occurring' => 72,
@@ -240,6 +243,8 @@ final class MonitoringSettingsLoader
                     'too_many_sql_connections' => 60,
                     'servers_config_not_found' => 1440,
                     'remaining_diskspace_too_low' => 180,
+                    'server_metrics.ingestion_run_empty' => 30,
+                    'server_metrics.ingestion_stalled' => 60,
                     'cpu_usage_too_high' => 180,
                     'ram_usage_too_high' => 180,
                     'fatal_errors_occurring' => 1440,
@@ -531,6 +536,14 @@ final class MonitoringSettingsLoader
                 'error_count' => ['info' => 1, 'warning' => 5, 'error' => 10, 'alarm' => 25],
             ],
             'alarms' => [
+                'server_metrics.ingestion_run_empty' => [
+                    'alarm_threshold_event_count' => 3,
+                    'alarm_threshold_window_minutes' => 30,
+                ],
+                'server_metrics.ingestion_stalled' => [
+                    'alarm_threshold_event_count' => 1,
+                    'alarm_threshold_window_minutes' => 60,
+                ],
                 'fatal_errors_occurring' => [
                     'alarm_threshold_event_count' => 1,
                     'alarm_threshold_window_minutes' => 1440,

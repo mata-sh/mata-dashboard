@@ -85,8 +85,8 @@ app_env() := env if {
     env := input.environment
 } else := "unknown"
 
-# Event types produced by dashboard (EventManager->handleEvent call sites)
-# adding a new producer requires adding its type here
+# Alarm-eligible warning/critical event types produced by dashboard.
+# Informational-only producers stay outside this set.
 monitored_types := {
     "app_unreachable",
     "cronjobs_failing",
@@ -99,8 +99,8 @@ monitored_types := {
     "remaining_diskspace_too_low",
     "node_unreachable",
     "node_unhealthy",
-    "server_metrics.ingestion",
-    "server_metrics.ingestion_stall",
+    "server_metrics.ingestion_run_empty",
+    "server_metrics.ingestion_stalled",
 }
 
 monitored_critical := result if {

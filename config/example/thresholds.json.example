@@ -86,6 +86,14 @@
             "alarm_threshold_event_count": 1,
             "alarm_threshold_window_minutes": 180
         },
+        "server_metrics.ingestion_run_empty": {
+            "alarm_threshold_event_count": 3,
+            "alarm_threshold_window_minutes": 30
+        },
+        "server_metrics.ingestion_stalled": {
+            "alarm_threshold_event_count": 1,
+            "alarm_threshold_window_minutes": 60
+        },
         "fatal_errors_occurring": {
             "alarm_threshold_event_count": 1,
             "alarm_threshold_window_minutes": 1440
