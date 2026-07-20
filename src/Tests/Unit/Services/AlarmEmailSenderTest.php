@@ -69,7 +69,13 @@ final class AlarmEmailSenderTest extends TestCase
 
     private function view(): AlarmEmailView
     {
-        return new AlarmEmailView(new Alarm('type', 'Message', null, server: 'server', app: 'app'), 1, new DateTimeImmutable());
+        return new AlarmEmailView(
+            alarm: new Alarm('type', 'Message', null, server: 'server', app: 'app'),
+            alarmId: 1,
+            alarmCreatedAt: new DateTimeImmutable(),
+            eventId: 1,
+            eventOccurredAt: new DateTimeImmutable(),
+        );
     }
 }
 

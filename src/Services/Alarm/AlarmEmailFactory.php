@@ -83,6 +83,8 @@ final class AlarmEmailFactory
                 'message' => $alarm->message,
                 'context' => $this->formatContext($alarm->context),
                 'created_at' => $view->alarmCreatedAt->format('Y-m-d H:i:s T'),
+                'event_id' => $view->eventId,
+                'event_occurred_at' => $view->eventOccurredAt->format('Y-m-d H:i:s T'),
                 'last_seen_at' => $view->previousAlarmCreatedAt?->format('Y-m-d H:i:s T'),
                 'last_seen_ago' => $this->elapsedTime($view->previousAlarmCreatedAt, $view->alarmCreatedAt),
             ],

@@ -40,7 +40,8 @@ final class AlarmDispatcherTest extends TestCase
                 type TEXT NOT NULL,
                 message TEXT NOT NULL,
                 level TEXT NOT NULL,
-                context TEXT
+                context TEXT,
+                datetime TEXT NOT NULL
             );
             CREATE TABLE alarms (id INTEGER PRIMARY KEY, event_id INTEGER NOT NULL, created_at TEXT NOT NULL);
             CREATE TABLE alarm_deliveries (
@@ -58,9 +59,9 @@ final class AlarmDispatcherTest extends TestCase
 
             INSERT INTO servers (id, name) VALUES (1, 'server-a');
             INSERT INTO applications (id, code, display_name) VALUES (1, 'app-a', 'App A');
-            INSERT INTO events (id, server_id, application_id, type, message, level, context) VALUES
-                (1, 1, 1, 'disk', 'Disk full', 'critical', NULL),
-                (2, 1, 1, 'disk', 'Disk full', 'critical', NULL);
+            INSERT INTO events (id, server_id, application_id, type, message, level, context, datetime) VALUES
+                (1, 1, 1, 'disk', 'Disk full', 'critical', NULL, '2025-12-31 23:58:00'),
+                (2, 1, 1, 'disk', 'Disk full', 'critical', NULL, '2026-01-01 00:00:05');
             INSERT INTO alarms (id, event_id, created_at) VALUES
                 (1, 1, '2026-01-01 00:00:00'),
                 (2, 2, '2026-01-01 00:00:10');
@@ -97,8 +98,8 @@ final class AlarmDispatcherTest extends TestCase
         // dispatcher crash two hours ago, plus one claimed moments ago by a
         // (hypothetical) still-running worker.
         $db->pdo()->exec(<<<'SQL'
-            INSERT INTO events (id, server_id, application_id, type, message, level, context)
-            VALUES (2, 1, 1, 'cpu', 'CPU high', 'critical', NULL), (3, 1, 1, 'ram', 'RAM high', 'critical', NULL);
+            INSERT INTO events (id, server_id, application_id, type, message, level, context, datetime)
+            VALUES (2, 1, 1, 'cpu', 'CPU high', 'critical', NULL, '2025-12-31 21:57:00'), (3, 1, 1, 'ram', 'RAM high', 'critical', NULL, '2025-12-31 23:57:00');
             INSERT INTO alarms (id, event_id, created_at)
             VALUES (43, 2, '2025-12-31 21:58:00'), (44, 3, '2025-12-31 23:58:30');
             INSERT INTO alarm_deliveries (id, alarm_id, channel, status, attempts, processed_at, created_at)
@@ -151,7 +152,11 @@ final class AlarmDispatcherTest extends TestCase
         $this->assertSame('sent', $delivery['status']);
         $this->assertSame(1, (int) $delivery['attempts']);
         $this->assertInstanceOf(Email::class, $sent);
-        $this->assertStringContainsString('42|2025-12-31 23:59:00 UTC', (string) $sent->getHtmlBody());
+        $html = (string) $sent->getHtmlBody();
+        $this->assertStringContainsString('Alarm ID: 42', $html);
+        $this->assertStringContainsString('Alarm time: 2025-12-31 23:59:00 UTC', $html);
+        $this->assertStringContainsString('Event ID: 1', $html);
+        $this->assertStringContainsString('Event time: 2025-12-31 23:58:00 UTC', $html);
     }
 
     public function testFactoryFailureMovesDeliveryFromRetryToFailedAtMaxAttempts(): void
@@ -180,10 +185,17 @@ final class AlarmDispatcherTest extends TestCase
 
     private function sender(MailerInterface $mailer, bool $configured = true): AlarmEmailSender
     {
+        $template = <<<'TWIG'
+            Alarm ID: {{ alarm.id }}
+            Alarm time: {{ alarm.created_at }}
+            Event ID: {{ alarm.event_id }}
+            Event time: {{ alarm.event_occurred_at }}
+            TWIG;
+
         $factory = new AlarmEmailFactory(
             new Environment(new ArrayLoader([
-                'emails/alarm.html.twig' => '{{ alarm.id }}|{{ alarm.created_at }}',
-                'emails/alarm.txt.twig' => '{{ alarm.id }}|{{ alarm.created_at }}',
+                'emails/alarm.html.twig' => $template,
+                'emails/alarm.txt.twig' => $template,
             ]), ['autoescape' => 'name']),
             new MailConfig(
                 null,
@@ -210,12 +222,12 @@ final class AlarmDispatcherTest extends TestCase
         $db->pdo()->exec(<<<'SQL'
             CREATE TABLE servers (id INTEGER PRIMARY KEY, name TEXT NOT NULL);
             CREATE TABLE applications (id INTEGER PRIMARY KEY, code TEXT NOT NULL, display_name TEXT NOT NULL, app_env TEXT);
-            CREATE TABLE events (id INTEGER PRIMARY KEY, server_id INTEGER, application_id INTEGER, type TEXT NOT NULL, message TEXT NOT NULL, level TEXT NOT NULL, context TEXT);
+            CREATE TABLE events (id INTEGER PRIMARY KEY, server_id INTEGER, application_id INTEGER, type TEXT NOT NULL, message TEXT NOT NULL, level TEXT NOT NULL, context TEXT, datetime TEXT NOT NULL);
             CREATE TABLE alarms (id INTEGER PRIMARY KEY, event_id INTEGER NOT NULL, created_at TEXT NOT NULL);
             CREATE TABLE alarm_deliveries (id INTEGER PRIMARY KEY, alarm_id INTEGER NOT NULL, channel TEXT NOT NULL, status TEXT NOT NULL, priority INTEGER NOT NULL DEFAULT 100, attempts INTEGER NOT NULL DEFAULT 0, processed_at TEXT, next_retry_at TEXT, error_payload TEXT, created_at TEXT NOT NULL);
             INSERT INTO servers (id, name) VALUES (1, 'server-a');
             INSERT INTO applications (id, code, display_name) VALUES (1, 'app-a', 'App A');
-            INSERT INTO events (id, server_id, application_id, type, message, level, context) VALUES (1, 1, 1, 'disk', 'Disk full', 'critical', NULL);
+            INSERT INTO events (id, server_id, application_id, type, message, level, context, datetime) VALUES (1, 1, 1, 'disk', 'Disk full', 'critical', NULL, '2025-12-31 23:58:00');
             INSERT INTO alarms (id, event_id, created_at) VALUES (42, 1, '2025-12-31 23:59:00');
             INSERT INTO alarm_deliveries (id, alarm_id, channel, status, created_at) VALUES (7, 42, 'email', 'pending', '2026-01-01 00:00:00');
             SQL);

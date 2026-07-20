@@ -176,29 +176,20 @@ final class AlarmRepositorySqlIntegrationTest extends TestCase
     public function testClaimAvailableOnlyClaimsQueueableDeliveriesThatAreDue(): void
     {
         $this->db->pdo()->exec(<<<'SQL'
-            INSERT INTO alarms (id, event_id, created_at) VALUES
-                (101, 3, '2026-01-01 00:02:00'),
-                (102, 4, '2026-01-01 00:02:00'),
-                (103, 5, '2026-01-01 00:02:00'),
-                (104, 6, '2026-01-01 00:02:00'),
-                (105, 7, '2026-01-01 00:02:00'),
-                (106, 8, '2026-01-01 00:02:00'),
-                (107, 9, '2026-01-01 00:02:00'),
-                (108, 10, '2026-01-01 00:02:00'),
-                (109, 11, '2026-01-01 00:02:00'),
-                (110, 12, '2026-01-01 00:02:00');
+            INSERT INTO alarms (id, event_id, created_at)
+            VALUES (101, 2, '2026-01-01 00:02:00');
 
             INSERT INTO alarm_deliveries (id, alarm_id, channel, status, next_retry_at, created_at) VALUES
                 (201, 101, 'email', 'pending', NULL, '2026-01-01 00:02:00'),
-                (202, 102, 'email', 'pending', '2026-01-01 00:04:00', '2026-01-01 00:02:00'),
-                (203, 103, 'email', 'pending', '2026-01-01 00:03:00', '2026-01-01 00:02:00'),
-                (204, 104, 'email', 'retry', '2026-01-01 00:04:00', '2026-01-01 00:02:00'),
-                (205, 105, 'email', 'retry', '2026-01-01 00:03:00', '2026-01-01 00:02:00'),
-                (206, 106, 'email', 'processing', NULL, '2026-01-01 00:02:00'),
-                (207, 107, 'email', 'sent', NULL, '2026-01-01 00:02:00'),
-                (208, 108, 'email', 'failed', NULL, '2026-01-01 00:02:00'),
-                (209, 109, 'email', 'throttled', NULL, '2026-01-01 00:02:00'),
-                (210, 110, 'email', 'discarded', NULL, '2026-01-01 00:02:00');
+                (202, 101, 'slack', 'pending', '2026-01-01 00:04:00', '2026-01-01 00:02:00'),
+                (203, 101, 'webhook', 'pending', '2026-01-01 00:03:00', '2026-01-01 00:02:00'),
+                (204, 101, 'sms', 'retry', '2026-01-01 00:04:00', '2026-01-01 00:02:00'),
+                (205, 101, 'pagerduty', 'retry', '2026-01-01 00:03:00', '2026-01-01 00:02:00'),
+                (206, 101, 'teams', 'processing', NULL, '2026-01-01 00:02:00'),
+                (207, 101, 'push', 'sent', NULL, '2026-01-01 00:02:00'),
+                (208, 101, 'discord', 'failed', NULL, '2026-01-01 00:02:00'),
+                (209, 101, 'opsgenie', 'throttled', NULL, '2026-01-01 00:02:00'),
+                (210, 101, 'victorops', 'discarded', NULL, '2026-01-01 00:02:00');
             SQL);
 
         $deliveries = $this->deliveryRepository->claimAvailable(new DateTimeImmutable('2026-01-01 00:03:00'));

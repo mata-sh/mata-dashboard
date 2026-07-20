@@ -147,6 +147,8 @@ final class AlarmDispatcher
                 alarm: $alarm,
                 alarmId: $queuedDelivery->alarmId,
                 alarmCreatedAt: $queuedDelivery->alarmCreatedAt,
+                eventId: $queuedDelivery->eventId,
+                eventOccurredAt: $queuedDelivery->eventOccurredAt,
                 previousAlarmCreatedAt: $queuedDelivery->previousAlarmCreatedAt,
                 appEnvironment: $queuedDelivery->appEnvironment,
             )),

@@ -14,6 +14,7 @@ final readonly class QueuedAlarmDelivery
         public int $alarmId,
         public DateTimeImmutable $alarmCreatedAt,
         public int $eventId,
+        public DateTimeImmutable $eventOccurredAt,
         public string $channel,
         public int $priority,
         public int $attempts,

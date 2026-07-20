@@ -29,6 +29,7 @@ logs/*
 !logs/.gitkeep
 docs/_drafts
 docs/plan
+docs/plans/
 config/*.json
 config/demo/*.json
 

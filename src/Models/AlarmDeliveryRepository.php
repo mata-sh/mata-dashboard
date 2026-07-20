@@ -65,13 +65,13 @@ final class AlarmDeliveryRepository
                       AND (previous_event.application_id = e.application_id OR (previous_event.application_id IS NULL AND e.application_id IS NULL))
                 ) AS previous_alarm_created_at,
                 ad.channel, ad.priority, ad.attempts, ad.next_retry_at, ad.created_at,
-                e.type, e.message, e.level, e.context,
+                e.datetime AS event_datetime, e.type, e.message, e.level, e.context,
                 COALESCE(s.name, '') AS server_name,
                 COALESCE(a.display_name, a.code, '') AS app_name,
                 a.app_env AS app_environment
             FROM alarm_deliveries AS ad
             INNER JOIN alarms AS al ON al.id = ad.alarm_id
-            LEFT JOIN events AS e ON e.id = al.event_id
+            INNER JOIN events AS e ON e.id = al.event_id
             LEFT JOIN servers AS s ON s.id = e.server_id
             LEFT JOIN applications AS a ON a.id = e.application_id
             WHERE (
@@ -193,7 +193,8 @@ final class AlarmDeliveryRepository
             alarmCreatedAt: empty($row['alarm_created_at'])
                 ? new DateTimeImmutable()
                 : new DateTimeImmutable((string) $row['alarm_created_at']),
-            eventId: (int) ($row['event_id'] ?? 0),
+            eventId: (int) $row['event_id'],
+            eventOccurredAt: new DateTimeImmutable((string) $row['event_datetime']),
             channel: strtolower((string) $row['channel']),
             priority: (int) $row['priority'],
             attempts: (int) $row['attempts'],

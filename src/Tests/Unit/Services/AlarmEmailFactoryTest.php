@@ -73,9 +73,13 @@ final class AlarmEmailFactoryTest extends TestCase
         $this->assertStringContainsString('&quot;actual_value&quot;: 2000', $html);
         $this->assertStringContainsString('#ff3b4e', $html);
         $this->assertStringContainsString('CRITICAL · Api-1 · 2k fatal_errors_occurring · Alarm #123', $html);
+        $this->assertStringContainsString('event_id:</span> <span style="color:#e8eef5;">456</span>', $html);
+        $this->assertStringContainsString('event_time:</span> <span style="color:#e8eef5;">2026-07-11 17:15:00 UTC</span>', $html);
         $this->assertStringContainsString('transmission by MATA monitoring', $html);
         $this->assertStringContainsString('[CRITICAL] Shop on Api-1', $text);
         $this->assertStringContainsString('Alarm ID: 123', $text);
+        $this->assertStringContainsString('Event ID: 456', $text);
+        $this->assertStringContainsString('Event time: 2026-07-11 17:15:00 UTC', $text);
         $this->assertStringContainsString('Current alarm: 2026-07-11 17:20:00 UTC', $text);
         $this->assertStringContainsString('Context:', $text);
         $this->assertStringNotContainsString('<table', $text);
@@ -84,10 +88,12 @@ final class AlarmEmailFactoryTest extends TestCase
     public function testItRendersThePreviousMatchingAlarmAsLastSeen(): void
     {
         $view = new AlarmEmailView(
-            new Alarm('node_unhealthy', 'Unhealthy health response', null, AlarmLevel::Warning, 'Api-1'),
-            123,
-            new DateTimeImmutable('2026-07-11 17:20:00 UTC'),
-            new DateTimeImmutable('2026-07-11 16:15:00 UTC'),
+            alarm: new Alarm('node_unhealthy', 'Unhealthy health response', null, AlarmLevel::Warning, 'Api-1'),
+            alarmId: 123,
+            alarmCreatedAt: new DateTimeImmutable('2026-07-11 17:20:00 UTC'),
+            eventId: 456,
+            eventOccurredAt: new DateTimeImmutable('2026-07-11 17:15:00 UTC'),
+            previousAlarmCreatedAt: new DateTimeImmutable('2026-07-11 16:15:00 UTC'),
         );
         $email = $this->factory()->create($view);
 
@@ -240,9 +246,11 @@ final class AlarmEmailFactoryTest extends TestCase
     private function view(?Alarm $alarm = null): AlarmEmailView
     {
         return new AlarmEmailView(
-            $alarm ?? new Alarm('fatal_errors_occurring', 'Fatal Error Detected (Count: 2k): Shop on Server: Api-1', '{"actual_value":2000,"metric":"fatal_error_count"}', AlarmLevel::Critical, 'Api-1', 'Shop'),
-            123,
-            new DateTimeImmutable('2026-07-11 17:20:00 UTC'),
+            alarm: $alarm ?? new Alarm('fatal_errors_occurring', 'Fatal Error Detected (Count: 2k): Shop on Server: Api-1', '{"actual_value":2000,"metric":"fatal_error_count"}', AlarmLevel::Critical, 'Api-1', 'Shop'),
+            alarmId: 123,
+            alarmCreatedAt: new DateTimeImmutable('2026-07-11 17:20:00 UTC'),
+            eventId: 456,
+            eventOccurredAt: new DateTimeImmutable('2026-07-11 17:15:00 UTC'),
         );
     }
 }

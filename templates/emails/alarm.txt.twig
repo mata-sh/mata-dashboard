@@ -8,6 +8,8 @@ Last seen: {{ alarm.last_seen_at ?: 'No previous alarm' }}{% if alarm.last_seen_
 Current alarm: {{ alarm.created_at }}
 
 Alarm ID: {{ alarm.id }}
+Event ID: {{ alarm.event_id }}
+Event time: {{ alarm.event_occurred_at }}
 Type: {{ alarm.type }}
 Server: {{ target.server }}
 Application: {{ target.app }}
