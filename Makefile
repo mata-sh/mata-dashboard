@@ -124,7 +124,7 @@ help:
 	@echo "  $(COLOR_GREEN)make opa-status$(COLOR_RESET)     Show OPA status"
 	@echo "  $(COLOR_GREEN)make opa-stop$(COLOR_RESET)       Stop OPA"
 	@echo "  $(COLOR_GREEN)make opa-test$(COLOR_RESET)       Validate OPA policies"
-	@echo "  $(COLOR_GREEN)make policy-validate$(COLOR_RESET) Validate example configs against policies (conftest)"
+	@echo "  $(COLOR_GREEN)make opa-validate$(COLOR_RESET)    Validate example configs against OPA policies"
 	@echo ""
 	@echo "$(COLOR_BOLD)DEVELOPMENT$(COLOR_RESET)"
 	@echo "  $(COLOR_GREEN)make test$(COLOR_RESET)           Run tests"
@@ -392,18 +392,28 @@ POLICY_VALIDATE_PAIRS := \
 	data_retention:config.data_retention \
 	intervals:config.intervals
 
-policy-validate:
-	@if command -v conftest >/dev/null 2>&1; then \
-		CONFTEST="conftest"; \
+opa-validate:
+	@if [ -x "$(OPA_BIN)" ]; then \
+		OPA="$(OPA_BIN)"; \
+	elif command -v opa >/dev/null 2>&1; then \
+		OPA="$$(command -v opa)"; \
+	elif command -v docker >/dev/null 2>&1; then \
+		OPA="docker run --rm -v $(CURDIR):/project:ro -w /project openpolicyagent/opa:latest"; \
 	else \
-		CONFTEST="docker run --rm -v $(CURDIR):/project -w /project openpolicyagent/conftest"; \
+		echo "$(COLOR_RED)❌ OPA not found. Run: make setup-opa$(COLOR_RESET)"; \
+		exit 1; \
 	fi; \
 	status=0; \
 	for pair in $(POLICY_VALIDATE_PAIRS); do \
 		file="config/example/$${pair%%:*}.json.example"; \
 		ns="$${pair#*:}"; \
-		echo "$(COLOR_BLUE)conftest: $$file ($$ns)$(COLOR_RESET)"; \
-		$$CONFTEST test "$$file" -p policy --parser json --namespace "$$ns" || status=1; \
+		echo "$(COLOR_BLUE)opa: $$file ($$ns)$(COLOR_RESET)"; \
+		result=$$($$OPA eval --format raw --data policy --input "$$file" "data.$$ns.deny") || { status=1; continue; }; \
+		if [ "$$result" != "[]" ]; then \
+			echo "$(COLOR_RED)❌ $$file failed policy validation$(COLOR_RESET)"; \
+			printf '%s\n' "$$result"; \
+			status=1; \
+		fi; \
 	done; \
 	exit $$status
 
@@ -895,7 +905,7 @@ docker-help:
 	@echo "  $(COLOR_YELLOW)make docker-clean$(COLOR_RESET)   - Clean mata-dashboard Docker resources only"
 	@echo "  $(COLOR_RED)make docker-clean-all$(COLOR_RESET)  - System-wide Docker cleanup (ALL projects!)"
 
-.PHONY: help help-all setup setup-local doctor install-hooks setup-opa opa-install-service opa-start opa-stop opa-status opa-test policy-validate \
+.PHONY: help help-all setup setup-local doctor install-hooks setup-opa opa-install-service opa-start opa-stop opa-status opa-test opa-validate \
 	test test-coverage \
 	db-migrate db-rollback db-status db-check db-hash-password db-backup db-restore db-shell \
 	users-list users-create users-unlock users-delete users-passwd \

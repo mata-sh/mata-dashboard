@@ -2,15 +2,15 @@
 
 ## Config evaluation
 
-These Conftest policies validate the example JSON configurations in `config/example/` so CI fails fast on invalid or unsafe templates.
+These OPA policies validate the example JSON configurations in `config/example/` so CI fails fast on invalid or unsafe templates.
 
 Local run:
 
 ```sh
-make policy-validate
+make opa-validate
 ```
 
-The policies live in `config.*` namespaces, so plain conftest without `--all-namespaces` matches nothing.
+The target uses `bin/opa` when installed for the native/systemd setup, then a system `opa` binary, then the OPA Docker image.
 
 ## Alarm evaluation
 
