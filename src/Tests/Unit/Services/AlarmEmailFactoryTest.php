@@ -62,8 +62,11 @@ final class AlarmEmailFactoryTest extends TestCase
         $this->assertStringContainsString('Critical', $html);
         $this->assertStringContainsString('FATAL_ERRORS_OCCURRING', $html);
         $this->assertStringContainsString('>2k</div>', $html);
-        $this->assertStringContainsString('background-color:#000000; padding:4px 12px', $html);
-        $this->assertStringContainsString('border:1px solid #7d8a9d', $html);
+        $this->assertStringContainsString(
+            'width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#000000;"',
+            $html
+        );
+        $this->assertStringContainsString('border:1px solid #1d2632', $html);
         $this->assertStringContainsString('>Shop</td>', $html);
         $this->assertStringContainsString('>Api-1</td>', $html);
         $this->assertStringContainsString('Detected fatal errors above threshold.', $html);
