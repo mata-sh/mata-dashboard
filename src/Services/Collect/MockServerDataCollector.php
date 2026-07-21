@@ -33,11 +33,11 @@ class MockServerDataCollector implements ServerDataCollectorInterface
     /**
      * Initialize mock server data collector.
      *
-     * @param LoggerInterface                   $logger             PSR-3 logger for demo logging
-     * @param CacheTtlResolver                  $ttlResolver        Cache TTL configuration lookup
-     * @param ApiResponseTransformer            $dataTransformer    Data transformer for response normalization
-     * @param string              $serverName   Server identifier for demo data generation
-     * @param array<string,mixed> $serverConfig Server configuration from demo-servers.json
+     * @param LoggerInterface        $logger          PSR-3 logger for demo logging
+     * @param CacheTtlResolver       $ttlResolver     Cache TTL configuration lookup
+     * @param ApiResponseTransformer $dataTransformer Data transformer for response normalization
+     * @param string                 $serverName      Server identifier for demo data generation
+     * @param array<string,mixed>    $serverConfig    Server configuration from demo-servers.json
      */
     public function __construct(
         LoggerInterface $logger,

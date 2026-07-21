@@ -173,8 +173,7 @@ class AlarmThresholdCooldownService
         int|string|null $server,
         int|string|null $app,
         AlarmRule $rule,
-    ): AlarmThresholdEvaluation
-    {
+    ): AlarmThresholdEvaluation {
         $required = $rule->requiredCount;
         $window = $rule->windowMinutes;
         $recent = $this->aggregator->getLastEventsByContext($type, null, $server, $app, $window);

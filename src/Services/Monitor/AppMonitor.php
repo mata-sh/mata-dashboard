@@ -30,8 +30,8 @@ class AppMonitor implements AppMonitorInterface
     private readonly ProbePolicy $probePolicy;
 
     /**
-     * @param Closure():int|null  $clock Current-time provider used by deterministic tests.
-     * @param Closure():void|null $retryDelay Retry-wait hook used by deterministic tests.
+     * @param null|Closure():int  $clock      current-time provider used by deterministic tests
+     * @param null|Closure():void $retryDelay retry-wait hook used by deterministic tests
      */
     public function __construct(
         private CacheStoreInterface $cacheStore,
@@ -257,7 +257,7 @@ class AppMonitor implements AppMonitorInterface
      * and failed at the transport layer. HTTP responses are app-level failures
      * and must remain separate.
      *
-     * @param array<int|string,EndpointTarget> $targets
+     * @param array<int|string,EndpointTarget>                                                                                        $targets
      * @param array<int|string,array{target:EndpointTarget,result:array<string,mixed>,streak:array{count:int,first_failure_at:?int}}> $freshResults
      */
     private function transportFailureServer(array $targets, array $freshResults): int|string|null

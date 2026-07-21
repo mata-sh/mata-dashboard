@@ -79,7 +79,7 @@ final class MonitoringSettingsLoader
         // Remove entries where array key begins with underscore
         $serversConfig = array_filter(
             $serversConfig,
-            static fn($key): bool => !str_starts_with((string) $key, '_'),
+            static fn ($key): bool => !str_starts_with((string) $key, '_'),
             ARRAY_FILTER_USE_KEY
         );
 
@@ -87,7 +87,7 @@ final class MonitoringSettingsLoader
         $configuredServerCount = count($serversConfig);
         $serversConfig = array_filter(
             $serversConfig,
-            static fn(mixed $config): bool => !is_array($config) || ($config['disabled'] ?? false) !== true
+            static fn (mixed $config): bool => !is_array($config) || ($config['disabled'] ?? false) !== true
         );
         $allServersDisabled = $configuredServerCount > 0 && $serversConfig === [];
 

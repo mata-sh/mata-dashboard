@@ -42,7 +42,7 @@ class NodeHealthMonitor implements NodeHealthMonitorInterface
 {
     private readonly ProbePolicy $probePolicy;
 
-    /** @param Closure(int):void|null $retryDelay Retry-delay hook used by deterministic tests. */
+    /** @param null|Closure(int):void $retryDelay Retry-delay hook used by deterministic tests. */
     public function __construct(
         private CacheStoreInterface $cacheStore,
         private ApiCacheKeyFactory $cacheKeyFactory,
@@ -91,7 +91,6 @@ class NodeHealthMonitor implements NodeHealthMonitorInterface
      *
      * Each resolved result carries its 1-based attempt number so diagnostics report retries.
      */
-    /** @return PromiseInterface */
     private function probeHealthWithRetries(string $healthEndpointUrl, int $attempt): PromiseInterface
     {
         return $this->probeClient->probeNodeHealthAsync($healthEndpointUrl, $this->probePolicy->timeoutSeconds)->then(

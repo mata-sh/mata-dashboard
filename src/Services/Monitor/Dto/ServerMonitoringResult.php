@@ -9,7 +9,7 @@ final readonly class ServerMonitoringResult
 {
     /**
      * @param array<string,ServerMonitoringServices> $servicesByServer keyed by server name
-     * @param array<string,string>                   $failures server name => reason
+     * @param array<string,string>                   $failures         server name => reason
      */
     public function __construct(
         public array $servicesByServer,

@@ -58,7 +58,7 @@ class ProbeClient
 
                 return $this->reachabilityFromResponse($url, $startedAt, $response, $timeout);
             },
-            fn(mixed $reason): array => $this->transportFailureResult($url, $reason, $timeout),
+            fn (mixed $reason): array => $this->transportFailureResult($url, $reason, $timeout),
         );
     }
 
@@ -73,8 +73,8 @@ class ProbeClient
             'http_errors' => false,
             'headers' => ['Accept' => 'application/json'],
         ])->then(
-            fn(ResponseInterface $response): array => $this->statusFromResponse($url, $startedAt, $response, $timeout),
-            fn(mixed $reason): array => $this->transportFailureResult($url, $reason, $timeout),
+            fn (ResponseInterface $response): array => $this->statusFromResponse($url, $startedAt, $response, $timeout),
+            fn (mixed $reason): array => $this->transportFailureResult($url, $reason, $timeout),
         );
     }
 
@@ -89,8 +89,8 @@ class ProbeClient
             'http_errors' => false,
             'headers' => ['Accept' => 'application/json'],
         ])->then(
-            fn(ResponseInterface $response): array => $this->healthFromResponse($startedAt, $response, $timeout),
-            fn(mixed $reason): array => $this->healthFromFailure($reason, $timeout),
+            fn (ResponseInterface $response): array => $this->healthFromResponse($startedAt, $response, $timeout),
+            fn (mixed $reason): array => $this->healthFromFailure($reason, $timeout),
         );
     }
 
