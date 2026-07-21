@@ -28,6 +28,7 @@ use Mata\Services\Foundation\ApiClient;
 use Mata\Services\Foundation\LogAnalyzer;
 use Mata\Services\Foundation\ProbeClient;
 use Mata\Services\Monitor\AppMonitor;
+use Mata\Services\Monitor\Dto\ProbePolicy;
 use Mata\Services\Monitor\Dto\ServerDashboardServices;
 use Mata\Services\Monitor\MockAppMonitor;
 use Mata\Services\Monitor\MockNodeHealthMonitor;
@@ -94,6 +95,11 @@ class DashboardController extends BaseController
     /** @var array<string,mixed> */
     private array $thresholdsConfig = [];
 
+    private ProbePolicy $probePolicy;
+
+    /** Reachability streak window; kept in sync with the app_unreachable alarm threshold. */
+    private int $unreachableWindowSeconds = 600;
+
     private string $monitoringEnvironment;
 
     /** @var array<string,ServerDashboardServices> */
@@ -155,6 +161,10 @@ class DashboardController extends BaseController
         $this->serversConfig = is_array($serversConfig) ? $serversConfig : [];
         $this->ttlConfig = $monitoringSettings['ttl'] ?? [];
         $this->thresholdsConfig = $monitoringSettings['thresholds'] ?? [];
+        $this->probePolicy = ProbePolicy::fromArray(
+            is_array($monitoringSettings['probes'] ?? null) ? $monitoringSettings['probes'] : []
+        );
+        $this->unreachableWindowSeconds = $this->resolveUnreachableWindowSeconds();
         $this->monitoringEnvironment = $monitoringSettings['environment'] ?? 'unset';
 
         // Initialize view renderers in dependency order
@@ -283,7 +293,9 @@ class DashboardController extends BaseController
                 $apiClient,
                 $probeClient,
                 $this->eventManager,
-                $this->logger
+                $this->logger,
+                $this->probePolicy,
+                $this->unreachableWindowSeconds
             ),
             new NodeHealthMonitor(
                 $this->cacheStore,
@@ -292,9 +304,24 @@ class DashboardController extends BaseController
                 $apiClient,
                 $probeClient,
                 $this->eventManager,
-                $this->logger
+                $this->logger,
+                $this->probePolicy
             ),
         );
+    }
+
+    /**
+     * Resolve the reachability streak window from the app_unreachable alarm threshold so
+     * the streak reset and the alarm's evaluation window cannot drift apart.
+     */
+    private function resolveUnreachableWindowSeconds(): int
+    {
+        $config = $this->thresholdsConfig['alarms']['app_unreachable'] ?? [];
+        $windowMinutes = is_array($config) && is_numeric($config['window_minutes'] ?? null)
+            ? (int) $config['window_minutes']
+            : 10;
+
+        return max(60, $windowMinutes * 60);
     }
 
     /**

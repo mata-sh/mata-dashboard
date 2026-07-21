@@ -140,7 +140,8 @@ final class AlarmDispatcher
             level: $alarmLevel,
             server: $queuedDelivery->serverName,
             app: $queuedDelivery->appName,
-            channels: [$channel]
+            channels: [$channel],
+            triggerEvidence: $queuedDelivery->triggerEvidence,
         );
         match ($channel) {
             'email' => $this->emailSender->send(new AlarmEmailView(

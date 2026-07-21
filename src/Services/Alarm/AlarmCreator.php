@@ -19,16 +19,17 @@ final class AlarmCreator implements AlarmCreatorInterface
     ) {}
 
     /**
-     * @param array<string> $readyChannels
+     * @param array<string>       $readyChannels
+     * @param array<string,mixed> $triggerEvidence
      *
      * @throws Throwable
      */
-    public function create(int $eventId, array $readyChannels, int $priority): int
+    public function create(int $eventId, array $readyChannels, int $priority, array $triggerEvidence = []): int
     {
         $this->db->beginTransaction();
 
         try {
-            $alarmId = $this->alarms->createForEvent($eventId);
+            $alarmId = $this->alarms->createForEvent($eventId, $triggerEvidence);
             foreach ($readyChannels as $channel) {
                 if (trim($channel) !== '') {
                     $this->deliveries->enqueue($alarmId, $channel, $priority);

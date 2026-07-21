@@ -43,7 +43,7 @@ final class AlarmDispatcherTest extends TestCase
                 context TEXT,
                 datetime TEXT NOT NULL
             );
-            CREATE TABLE alarms (id INTEGER PRIMARY KEY, event_id INTEGER NOT NULL, created_at TEXT NOT NULL);
+            CREATE TABLE alarms (id INTEGER PRIMARY KEY, event_id INTEGER NOT NULL, trigger_evidence TEXT NULL, created_at TEXT NOT NULL);
             CREATE TABLE alarm_deliveries (
                 id INTEGER PRIMARY KEY,
                 alarm_id INTEGER NOT NULL,
@@ -157,6 +157,7 @@ final class AlarmDispatcherTest extends TestCase
         $this->assertStringContainsString('Alarm time: 2025-12-31 23:59:00 UTC', $html);
         $this->assertStringContainsString('Event ID: 1', $html);
         $this->assertStringContainsString('Event time: 2025-12-31 23:58:00 UTC', $html);
+        $this->assertStringContainsString('Alarm rule: 2 consecutive failed cycles within 10 minutes', $html);
     }
 
     public function testFactoryFailureMovesDeliveryFromRetryToFailedAtMaxAttempts(): void
@@ -190,6 +191,7 @@ final class AlarmDispatcherTest extends TestCase
             Alarm time: {{ alarm.created_at }}
             Event ID: {{ alarm.event_id }}
             Event time: {{ alarm.event_occurred_at }}
+            {{ presentation.metric.detail }}
             TWIG;
 
         $factory = new AlarmEmailFactory(
@@ -223,12 +225,12 @@ final class AlarmDispatcherTest extends TestCase
             CREATE TABLE servers (id INTEGER PRIMARY KEY, name TEXT NOT NULL);
             CREATE TABLE applications (id INTEGER PRIMARY KEY, code TEXT NOT NULL, display_name TEXT NOT NULL, app_env TEXT);
             CREATE TABLE events (id INTEGER PRIMARY KEY, server_id INTEGER, application_id INTEGER, type TEXT NOT NULL, message TEXT NOT NULL, level TEXT NOT NULL, context TEXT, datetime TEXT NOT NULL);
-            CREATE TABLE alarms (id INTEGER PRIMARY KEY, event_id INTEGER NOT NULL, created_at TEXT NOT NULL);
+            CREATE TABLE alarms (id INTEGER PRIMARY KEY, event_id INTEGER NOT NULL, trigger_evidence TEXT NULL, created_at TEXT NOT NULL);
             CREATE TABLE alarm_deliveries (id INTEGER PRIMARY KEY, alarm_id INTEGER NOT NULL, channel TEXT NOT NULL, status TEXT NOT NULL, priority INTEGER NOT NULL DEFAULT 100, attempts INTEGER NOT NULL DEFAULT 0, processed_at TEXT, next_retry_at TEXT, error_payload TEXT, created_at TEXT NOT NULL);
             INSERT INTO servers (id, name) VALUES (1, 'server-a');
             INSERT INTO applications (id, code, display_name) VALUES (1, 'app-a', 'App A');
-            INSERT INTO events (id, server_id, application_id, type, message, level, context, datetime) VALUES (1, 1, 1, 'disk', 'Disk full', 'critical', NULL, '2025-12-31 23:58:00');
-            INSERT INTO alarms (id, event_id, created_at) VALUES (42, 1, '2025-12-31 23:59:00');
+            INSERT INTO events (id, server_id, application_id, type, message, level, context, datetime) VALUES (1, 1, 1, 'app_unreachable', 'App unavailable', 'critical', NULL, '2025-12-31 23:58:00');
+            INSERT INTO alarms (id, event_id, trigger_evidence, created_at) VALUES (42, 1, '{"strategy":"consecutive_failures","required_count":2,"observed_count":2,"window_minutes":10,"label":"2 consecutive failed cycles within 10 minutes"}', '2025-12-31 23:59:00');
             INSERT INTO alarm_deliveries (id, alarm_id, channel, status, created_at) VALUES (7, 42, 'email', 'pending', '2026-01-01 00:00:00');
             SQL);
 

@@ -79,6 +79,7 @@ final class EventRepositorySqlIntegrationTest extends TestCase
             CREATE TABLE alarms (
                 id INTEGER PRIMARY KEY,
                 event_id INTEGER UNIQUE NOT NULL,
+                trigger_evidence TEXT NULL,
                 created_at TEXT NOT NULL,
                 acknowledged_at TEXT,
                 acknowledged_by TEXT

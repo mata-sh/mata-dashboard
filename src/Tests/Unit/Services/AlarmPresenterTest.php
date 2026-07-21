@@ -53,9 +53,9 @@ final class AlarmPresenterTest extends TestCase
         ), 'api-1', null);
 
         $this->assertSame('91%', $disk->metric?->value);
-        $this->assertSame('threshold: 90%', $disk->metric?->threshold);
+        $this->assertSame('Threshold: 90%', $disk->metric?->detail);
         $this->assertSame('1.200', $cronjobs->metric?->value);
-        $this->assertSame('threshold: 0', $cronjobs->metric?->threshold);
+        $this->assertNull($cronjobs->metric?->detail);
     }
 
     public function testItUsesUnknownForMissingOrInvalidMetricContext(): void
@@ -79,6 +79,27 @@ final class AlarmPresenterTest extends TestCase
         $this->assertSame('UNREACHABLE', $unreachable->metric?->value);
         $this->assertSame('Detected custom alarm.', $unknown->description);
         $this->assertNull($unknown->metric);
+    }
+
+    public function testItRendersEvaluationDerivedRuleDetails(): void
+    {
+        $cases = [
+            ['app_unreachable', 'UNREACHABLE', '2 consecutive failed cycles within 10 minutes'],
+            ['cpu_usage_too_high', '1%', '2 events within 30 minutes'],
+            ['server_metrics.ingestion_run_empty', 'EMPTY', '3 events within 30 minutes'],
+            ['cronjobs_failing', '1', 'first event'],
+            ['node_unreachable', 'UNREACHABLE', 'first failed check'],
+        ];
+        foreach ($cases as [$type, $value, $label]) {
+            $presentation = $this->presenter->present(new Alarm(
+                $type,
+                'Alarm',
+                '{"actual_value":1}',
+                triggerEvidence: ['label' => $label, 'strategy' => 'event_count_window'],
+            ), 'api-1', null);
+            $this->assertSame($value, $presentation->metric?->value);
+            $this->assertSame('Alarm rule: ' . $label, $presentation->metric?->detail);
+        }
     }
 
     public function testItUsesApplicationEnvironmentBeforeTheServerFallback(): void

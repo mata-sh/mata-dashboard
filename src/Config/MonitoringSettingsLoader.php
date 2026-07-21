@@ -208,6 +208,45 @@ final class MonitoringSettingsLoader
     }
 
     /**
+     * Load probe retry/timeout configuration for the availability and health monitors.
+     *
+     * Falls back to default values (preserving historical monitor behavior) and logs a
+     * warning if the file is missing or invalid, so an absent probes.json changes nothing.
+     *
+     * @param string $probesConfigFile Path to probes.json configuration file
+     *
+     * @return array<string,mixed> Probe policy with timeout, retry count, backoff bounds, and retryable kinds
+     */
+    public function loadProbesConfig(string $probesConfigFile): array
+    {
+        $probesConfig = $this->loadJsonConfig(
+            filePath: $probesConfigFile,
+            configType: 'probes',
+            defaultConfig: $this->getDefaultProbesConfig()
+        );
+
+        return array_merge($this->getDefaultProbesConfig(), $probesConfig);
+    }
+
+    /**
+     * Get default probe policy configuration.
+     *
+     * Mirrors {@see \Mata\Services\Monitor\Dto\ProbePolicy::default()}.
+     *
+     * @return array<string,mixed> Default probe timeout, retry, and backoff settings
+     */
+    public function getDefaultProbesConfig(): array
+    {
+        return [
+            'timeout_seconds' => 5,
+            'max_retries' => 1,
+            'backoff_base_ms' => 500,
+            'backoff_max_ms' => 1500,
+            'retryable_kinds' => ['dns', 'connect', 'tls', 'timeout'],
+        ];
+    }
+
+    /**
      * Get default intervals configuration.
      *
      * @return array<string,mixed> Default interval values for events and alarms in minutes
@@ -483,12 +522,14 @@ final class MonitoringSettingsLoader
         $intervalsFile = $configPath . '/intervals.json';
         $thresholdsFile = $configPath . '/thresholds.json';
         $dataRetentionFile = $configPath . '/data_retention.json';
+        $probesFile = $configPath . '/probes.json';
 
         $config = [
             'servers' => $this->loadServersConfig($serversFile),
             'ttl' => $this->loadTtlConfig($ttlFile),
             'data_retention' => $this->loadDataRetentionConfig($dataRetentionFile),
             'intervals' => $this->loadIntervalsConfig($intervalsFile),
+            'probes' => $this->loadProbesConfig($probesFile),
             'environment' => $appEnvironment,
             'charts' => [],
         ];
@@ -533,6 +574,11 @@ final class MonitoringSettingsLoader
                 'error_count' => ['info' => 1, 'warning' => 5, 'error' => 10, 'alarm' => 25],
             ],
             'alarms' => [
+                'app_unreachable' => [
+                    'strategy' => 'consecutive_failures',
+                    'required_count' => 2,
+                    'window_minutes' => 10,
+                ],
                 'server_metrics.ingestion_run_empty' => [
                     'alarm_threshold_event_count' => 3,
                     'alarm_threshold_window_minutes' => 30,

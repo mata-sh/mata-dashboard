@@ -17,12 +17,14 @@ final class AlarmRepository
     /**
      * @throws PDOException
      */
-    public function createForEvent(int $eventId): int
+    public function createForEvent(int $eventId, array $triggerEvidence = []): int
     {
         try {
+            $evidence = $triggerEvidence === [] ? null : json_encode($triggerEvidence, JSON_UNESCAPED_SLASHES);
+
             return (int) $this->db->runQuery(
-                'INSERT INTO alarms (event_id, created_at) VALUES (?, CURRENT_TIMESTAMP)',
-                [$eventId]
+                'INSERT INTO alarms (event_id, trigger_evidence, created_at) VALUES (?, ?, CURRENT_TIMESTAMP)',
+                [$eventId, $evidence === false ? null : $evidence]
             );
         } catch (PDOException $exception) {
             $rows = $this->db->runQuery('SELECT id FROM alarms WHERE event_id = ?', [$eventId]);

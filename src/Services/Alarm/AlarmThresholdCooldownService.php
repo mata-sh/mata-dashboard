@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Mata\Services\Alarm;
 
 use Mata\Config\Dto\ApplicationConfig;
+use Mata\Services\Alarm\Dto\AlarmThresholdEvaluation;
 use Mata\Services\Event\CooldownHashFactory;
 use Mata\Services\Event\Dto\EventContext;
 use Mata\Services\Event\EventAggregatorServiceInterface;
@@ -112,36 +113,58 @@ class AlarmThresholdCooldownService
     public function shouldTriggerAlarmForEvent(
         string $type,
         int|string|null $server,
-        int|string|null $app
+        int|string|null $app,
+        ?EventContext $context = null,
     ): bool {
+        return $this->evaluateAlarmForEvent($type, $server, $app, $context)->passed;
+    }
+
+    /**
+     * Evaluate a rule and return the pass/fail result alongside immutable
+     * evidence for alarm persistence and rendering.
+     */
+    public function evaluateAlarmForEvent(
+        string $type,
+        int|string|null $server,
+        int|string|null $app,
+        ?EventContext $context = null,
+    ): AlarmThresholdEvaluation {
         if (!$this->appConfig->general->alarmsEnabled) {
-            return false;
+            return new AlarmThresholdEvaluation(false, ['strategy' => 'disabled', 'label' => 'alarms disabled']);
+        }
+        $config = $this->alarmThresholds[$type] ?? [];
+        // app_unreachable used the former count-window schema. Its legacy entry is
+        // intentionally upgraded here only; unrelated legacy rules keep their meaning.
+        $strategy = (string) ($config['strategy'] ?? ($type === 'app_unreachable' ? 'consecutive_failures' : 'event_count_window'));
+        if ($strategy === 'consecutive_failures') {
+            $required = max(1, (int) ($config['required_count'] ?? 2));
+            $window = max(1, (int) ($config['window_minutes'] ?? 10));
+            $data = $context?->toArray()['additional_data'] ?? [];
+            $observed = is_numeric($data['consecutive_failures'] ?? null) ? (int) $data['consecutive_failures'] : 0;
+            $first = isset($data['first_failure_at']) ? strtotime((string) $data['first_failure_at']) : false;
+            $withinWindow = $first !== false && $first >= time() - ($window * 60);
+
+            return new AlarmThresholdEvaluation($observed >= $required && $withinWindow, [
+                'strategy' => 'consecutive_failures', 'required_count' => $required, 'observed_count' => $observed,
+                'window_minutes' => $window, 'label' => "{$required} consecutive failed cycles within {$window} minutes",
+            ]);
         }
 
-        $config = $this->alarmThresholds[$type] ?? null;
-        if (!$config) {
-            return true;  // No config = always evaluate
+        if ($config === []) {
+            return new AlarmThresholdEvaluation(true, ['strategy' => 'immediate', 'required_count' => 1, 'observed_count' => 1, 'label' => 'first event']);
         }
-
-        $eventCountThreshold = (int) ($config['alarm_threshold_event_count'] ?? 1);
-
-        // If threshold is 0 or negative, always trigger
-        if ($eventCountThreshold <= 0) {
-            return true;
+        $required = (int) ($config['alarm_threshold_event_count'] ?? 1);
+        $window = max(1, (int) ($config['alarm_threshold_window_minutes'] ?? 720));
+        if ($required <= 0) {
+            return new AlarmThresholdEvaluation(true, ['strategy' => 'immediate', 'required_count' => 1, 'observed_count' => 1, 'label' => 'first event']);
         }
+        $recent = $this->aggregator->getLastEventsByContext($type, null, $server, $app, $window);
+        $observed = count($recent);
 
-        $alarmThresholdWindowMinutes = (int) ($config['alarm_threshold_window_minutes'] ?? 720);
-
-        // Check recent events to see if threshold met
-        $recentEvents = $this->aggregator->getLastEventsByContext(
-            type: $type,
-            context: null,
-            server: $server,
-            app: $app,
-            maxAgeMinutes: $alarmThresholdWindowMinutes
-        );
-
-        return count($recentEvents) >= $eventCountThreshold;
+        return new AlarmThresholdEvaluation($observed >= $required, [
+            'strategy' => 'event_count_window', 'required_count' => $required, 'observed_count' => $observed,
+            'window_minutes' => $window, 'label' => $required === 1 ? 'first event' : "{$required} events within {$window} minutes",
+        ]);
     }
 
     /**

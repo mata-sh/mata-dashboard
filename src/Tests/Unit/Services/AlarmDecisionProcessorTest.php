@@ -10,6 +10,7 @@ use Mata\Services\Alarm\Decision\AlarmDecisionProcessingException;
 use Mata\Services\Alarm\Decision\AlarmDecisionProcessor;
 use Mata\Services\Alarm\Decision\AlarmDecisionServiceInterface;
 use Mata\Services\Alarm\Dto\AlarmDecision;
+use Mata\Services\Alarm\Dto\AlarmThresholdEvaluation;
 use Mata\Services\Event\EventAggregatorServiceInterface;
 use Mata\Services\Event\EventRecorderService;
 use Mata\Tests\TestCase;
@@ -26,8 +27,8 @@ final class AlarmDecisionProcessorTest extends TestCase
     {
         $evaluator = $this->createMock(AlarmThresholdCooldownService::class);
         $evaluator->expects($this->once())
-            ->method('shouldTriggerAlarmForEvent')
-            ->willReturn(false);
+            ->method('evaluateAlarmForEvent')
+            ->willReturn(new AlarmThresholdEvaluation(false, ['strategy' => 'event_count_window']));
         $decisionService = $this->createMock(AlarmDecisionServiceInterface::class);
         $decisionService->expects($this->never())->method('decide');
         $creator = $this->createMock(AlarmCreatorInterface::class);
@@ -41,6 +42,7 @@ final class AlarmDecisionProcessorTest extends TestCase
         $this->assertTrue($result->skipped);
         $this->assertSame(0, $result->enqueuedCount);
         $this->assertSame('fail', $result->record->toArray()['threshold_gate']);
+        $this->assertSame(['strategy' => 'event_count_window'], $result->record->toArray()['trigger_evidence']);
     }
 
     public function testPolicyDenialIsRecordedAndMarkedEvaluated(): void
@@ -70,7 +72,7 @@ final class AlarmDecisionProcessorTest extends TestCase
         $creator = $this->createMock(AlarmCreatorInterface::class);
         $creator->expects($this->once())
             ->method('create')
-            ->with(42, [], 50)
+            ->with(42, [], 50, [])
             ->willReturn(99);
         $recorder = $this->createMock(EventRecorderService::class);
         $recorder->expects($this->never())->method('upsertAlarmCooldown');
@@ -86,10 +88,11 @@ final class AlarmDecisionProcessorTest extends TestCase
 
     public function testReadyChannelsCreateDeliveriesAndCooldowns(): void
     {
+        $evidence = ['strategy' => 'immediate', 'observed_count' => 1];
         $evaluator = $this->createMock(AlarmThresholdCooldownService::class);
         $evaluator->expects($this->once())
-            ->method('shouldTriggerAlarmForEvent')
-            ->willReturn(true);
+            ->method('evaluateAlarmForEvent')
+            ->willReturn(new AlarmThresholdEvaluation(true, $evidence));
         $evaluator->expects($this->once())
             ->method('filterReadyChannels')
             ->willReturn(['email']);
@@ -104,7 +107,7 @@ final class AlarmDecisionProcessorTest extends TestCase
         $creator = $this->createMock(AlarmCreatorInterface::class);
         $creator->expects($this->once())
             ->method('create')
-            ->with(42, ['email'], 50)
+            ->with(42, ['email'], 50, $evidence)
             ->willReturn(99);
         $recorder = $this->createMock(EventRecorderService::class);
         $recorder->expects($this->once())
@@ -185,7 +188,7 @@ final class AlarmDecisionProcessorTest extends TestCase
     private function readyEvaluator(array $readyChannels): AlarmThresholdCooldownService
     {
         $evaluator = $this->createStub(AlarmThresholdCooldownService::class);
-        $evaluator->method('shouldTriggerAlarmForEvent')->willReturn(true);
+        $evaluator->method('evaluateAlarmForEvent')->willReturn(new AlarmThresholdEvaluation(true, []));
         $evaluator->method('filterReadyChannels')->willReturn($readyChannels);
 
         return $evaluator;

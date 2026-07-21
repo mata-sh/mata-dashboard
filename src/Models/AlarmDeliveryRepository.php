@@ -51,7 +51,7 @@ final class AlarmDeliveryRepository
             ->format(self::SQL_DATETIME);
         $limit = max(1, $limit);
         $rows = $this->runSelect(<<<SQL
-            SELECT ad.id, al.id AS alarm_id, al.created_at AS alarm_created_at, al.event_id,
+            SELECT ad.id, al.id AS alarm_id, al.created_at AS alarm_created_at, al.event_id, al.trigger_evidence,
                 (
                     SELECT MAX(previous_alarm.created_at)
                     FROM alarms AS previous_alarm
@@ -212,6 +212,15 @@ final class AlarmDeliveryRepository
             previousAlarmCreatedAt: empty($row['previous_alarm_created_at'])
                 ? null
                 : new DateTimeImmutable((string) $row['previous_alarm_created_at']),
+            triggerEvidence: $this->triggerEvidence($row['trigger_evidence'] ?? null),
         );
+    }
+
+    /** @return array<string,mixed> */
+    private function triggerEvidence(mixed $storedEvidence): array
+    {
+        $evidence = is_string($storedEvidence) ? json_decode($storedEvidence, true) : null;
+
+        return is_array($evidence) ? $evidence : [];
     }
 }

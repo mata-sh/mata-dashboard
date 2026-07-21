@@ -12,6 +12,7 @@ use GuzzleHttp\Middleware;
 use GuzzleHttp\Psr7\Request;
 use GuzzleHttp\Psr7\Response;
 use Mata\Services\Foundation\ProbeClient;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -48,6 +49,31 @@ final class ProbeClientTest extends TestCase
         $this->assertFalse($result['reachable']);
         $this->assertNull($result['httpCode']);
         $this->assertSame('Connection refused', $result['error']);
+    }
+
+    #[DataProvider('transportFailures')]
+    public function testTransportFailureClassification(string $message, int $errno, string $kind): void
+    {
+        $probe = $this->probe([new ConnectException($message, new Request('HEAD', 'https://app.example.test'), null, ['errno' => $errno])]);
+
+        $result = $probe->checkAvailabilityAsync('https://app.example.test', 5)->wait();
+
+        $this->assertSame($kind, $result['failure_kind']);
+        $this->assertSame($errno, $result['curl_errno']);
+    }
+
+    /** @return iterable<string,array{string,int,string}> */
+    public static function transportFailures(): iterable
+    {
+        yield 'dns resolve' => ['Could not resolve host', 6, 'dns'];
+
+        yield 'dns resolving timeout' => ['Resolving timed out after 5000 milliseconds', 28, 'dns'];
+
+        yield 'ssl timeout' => ['SSL connection timeout', 28, 'tls'];
+
+        yield 'connect timeout' => ['Failed to connect: Connection timed out', 28, 'connect'];
+
+        yield 'operation timeout' => ['Operation timed out with 0 bytes received', 28, 'timeout'];
     }
 
     public function testStatusProbeReportsMaintenanceEvenWhenEndpointReturns503(): void

@@ -26,6 +26,9 @@ final class AlarmEvaluationRecord
     private bool $requestedChannelsSet = false;
     private bool $readyChannelsSet = false;
 
+    /** @var null|array<string,mixed> */
+    private ?array $triggerEvidence = null;
+
     /** Set the final evaluation outcome. */
     public function setOutcome(string $outcome): self
     {
@@ -38,6 +41,14 @@ final class AlarmEvaluationRecord
     public function setThresholdGate(string $thresholdGate): self
     {
         $this->thresholdGate = $thresholdGate;
+
+        return $this;
+    }
+
+    /** @param array<string,mixed> $triggerEvidence */
+    public function setTriggerEvidence(array $triggerEvidence): self
+    {
+        $this->triggerEvidence = $triggerEvidence;
 
         return $this;
     }
@@ -108,6 +119,7 @@ final class AlarmEvaluationRecord
      * @return array{
      *     outcome:string,
      *     threshold_gate:string,
+     *     trigger_evidence:?array<string,mixed>,
      *     policy_gate:?string,
      *     policy_reason:?string,
      *     requested_channels:array<int,string>,
@@ -122,6 +134,7 @@ final class AlarmEvaluationRecord
         return [
             'outcome' => $this->outcome,
             'threshold_gate' => $this->thresholdGate,
+            'trigger_evidence' => $this->triggerEvidence,
             'policy_gate' => $this->policyGate,
             'policy_reason' => $this->policyReason,
             'requested_channels' => $this->requestedChannels,

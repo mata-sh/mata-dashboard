@@ -64,6 +64,31 @@ final class AlarmThresholdCooldownServiceTest extends TestCase
         $this->assertSame($first, $second);
     }
 
+    public function testConsecutiveFailuresRequireTwoFreshCyclesWithinTheWindow(): void
+    {
+        $service = (new AlarmThresholdCooldownService(
+            $this->createStub(EventAggregatorServiceInterface::class),
+            $this->createStub(EventRecorderService::class),
+            $this->config(),
+        ))->setMonitoringSettings(['thresholds' => ['alarms' => [
+            'app_unreachable' => ['strategy' => 'consecutive_failures', 'required_count' => 2, 'window_minutes' => 10],
+        ]]]);
+        $first = EventContext::fromArray(['identifier' => 'one', 'additional_data' => [
+            'consecutive_failures' => 1, 'first_failure_at' => gmdate(DATE_ATOM),
+        ]]);
+        $second = EventContext::fromArray(['identifier' => 'one', 'additional_data' => [
+            'consecutive_failures' => 2, 'first_failure_at' => gmdate(DATE_ATOM),
+        ]]);
+        $stale = EventContext::fromArray(['identifier' => 'one', 'additional_data' => [
+            'consecutive_failures' => 2, 'first_failure_at' => gmdate(DATE_ATOM, time() - 601),
+        ]]);
+
+        $this->assertFalse($service->evaluateAlarmForEvent('app_unreachable', 'server', 'app-one', $first)->passed);
+        $this->assertTrue($service->evaluateAlarmForEvent('app_unreachable', 'server', 'app-one', $second)->passed);
+        $this->assertFalse($service->evaluateAlarmForEvent('app_unreachable', 'server', 'app-one', $stale)->passed);
+        $this->assertFalse($service->evaluateAlarmForEvent('app_unreachable', 'server', 'app-two', $first)->passed);
+    }
+
     private function config(): ApplicationConfig
     {
         return new ApplicationConfig(

@@ -4,11 +4,14 @@ declare(strict_types=1);
 
 namespace Mata\Tests\Unit\Services;
 
+use Closure;
 use GuzzleHttp\Client;
+use GuzzleHttp\Exception\ConnectException;
 use GuzzleHttp\Handler\MockHandler;
 use GuzzleHttp\HandlerStack;
 use GuzzleHttp\Promise\Create;
 use GuzzleHttp\Promise\PromiseInterface;
+use GuzzleHttp\Psr7\Request;
 use GuzzleHttp\Psr7\Response;
 use Mata\Constants\CacheTypes;
 use Mata\Services\Cache\ApiCacheKeyFactory;
@@ -21,6 +24,7 @@ use Mata\Services\Foundation\ApiClient;
 use Mata\Services\Foundation\ProbeClient;
 use Mata\Services\Monitor\AppMonitor;
 use Mata\Services\Monitor\Dto\EndpointTarget;
+use Mata\Services\Monitor\Dto\ProbePolicy;
 use PHPUnit\Framework\TestCase;
 use Psr\Log\NullLogger;
 
@@ -45,8 +49,8 @@ final class AppMonitorTest extends TestCase
     public function testTtlZeroStillProbesAndWritesThroughToStore(): void
     {
         $store = $this->createMock(CacheStoreInterface::class);
-        $store->expects($this->once())->method('get')->with($this->isString(), 0)->willReturn(null);
-        $store->expects($this->once())->method('put')->with($this->isString(), $this->isArray())->willReturn(true);
+        $store->expects($this->exactly(2))->method('get')->willReturn(null);
+        $store->expects($this->exactly(2))->method('put')->with($this->isString(), $this->isArray())->willReturn(true);
         $probe = $this->probe(new Response(503));
 
         $result = $this->monitor($store, $probe, CacheTypes::NONE)->checkEndpoint(
@@ -59,6 +63,169 @@ final class AppMonitorTest extends TestCase
         $this->assertSame(503, $result['httpCode']);
     }
 
+    public function testTransientFailureThatSucceedsOnRetryDoesNotEmitAnEvent(): void
+    {
+        $store = $this->createStub(CacheStoreInterface::class);
+        $store->method('get')->willReturn(null);
+        $events = $this->createMock(EventManager::class);
+        $events->expects($this->never())->method('handle');
+        $probe = $this->probe(
+            new ConnectException('Operation timed out', new Request('HEAD', 'https://app.example.test'), null, ['errno' => 28]),
+            new Response(200),
+        );
+
+        $result = $this->monitor($store, $probe, CacheTypes::PING, $events)->checkMultipleEndpoints([
+            'app' => new EndpointTarget('app', 'https://app.example.test'),
+        ]);
+
+        $this->assertTrue($result['app']['reachable']);
+        $this->assertSame(2, $result['app']['attempts']);
+    }
+
+    public function testFreshCyclesMaintainAndResetPerApplicationStreaks(): void
+    {
+        $values = [];
+        $store = new class ($values) implements CacheStoreInterface {
+            /** @var array<string,array<string,mixed>> */
+            public array $values;
+
+            public function __construct(array $values)
+            {
+                $this->values = $values;
+            }
+
+            public function get(string $key, int $ttl): ?CacheEntry
+            {
+                return isset($this->values[$key]) ? new CacheEntry($this->values[$key], time()) : null;
+            }
+
+            public function getStale(string $key, int $ttl): ?CacheEntry
+            {
+                return $this->get($key, $ttl);
+            }
+
+            public function put(string $key, array $value): bool
+            {
+                $this->values[$key] = $value;
+
+                return true;
+            }
+
+            public function delete(string $key): bool
+            {
+                unset($this->values[$key]);
+
+                return true;
+            }
+        };
+        $events = [];
+        $manager = $this->createMock(EventManager::class);
+        $manager->expects($this->exactly(3))->method('handle')->willReturnCallback(static function (EventCommand $event) use (&$events): array {
+            $events[] = $event;
+
+            return [];
+        });
+        $target = new EndpointTarget('shop', 'https://shop.example.test', serverName: 'node-a', applicationCode: 'shop');
+        $monitor = $this->monitor($store, $this->probe(new Response(503), new Response(503), new Response(200), new Response(503)), CacheTypes::NONE, $manager);
+
+        $monitor->checkMultipleEndpoints(['shop' => $target], forceRefresh: true);
+        $monitor->checkMultipleEndpoints(['shop' => $target], forceRefresh: true);
+        $monitor->checkMultipleEndpoints(['shop' => $target], forceRefresh: true);
+        $monitor->checkMultipleEndpoints(['shop' => $target], forceRefresh: true);
+
+        $this->assertSame([1, 2, 1], array_map(static fn (EventCommand $event): int => $event->metric->additional['consecutive_failures'], $events));
+        $this->assertSame('shop', $events[1]->app);
+    }
+
+    public function testTwoTransientFailuresExposeNormalizedDiagnostics(): void
+    {
+        $store = $this->createStub(CacheStoreInterface::class);
+        $store->method('get')->willReturn(null);
+        $event = null;
+        $events = $this->createMock(EventManager::class);
+        $events->expects($this->once())->method('handle')->willReturnCallback(static function (EventCommand $command) use (&$event): array {
+            $event = $command;
+
+            return [];
+        });
+        $failure = new ConnectException('Operation timed out with 0 bytes received', new Request('HEAD', 'https://app.example.test'), null, ['errno' => 28]);
+        $monitor = $this->monitor($store, $this->probe($failure, $failure), CacheTypes::PING, $events, retryDelay: static function (): void {});
+
+        $monitor->checkMultipleEndpoints(['app' => new EndpointTarget('app', 'https://app.example.test')]);
+
+        $this->assertSame(2, $event?->metric?->additional['attempts']);
+        $this->assertSame('timeout', $event?->metric?->additional['failure_kind']);
+        $this->assertSame(28, $event?->metric?->additional['curl_errno']);
+    }
+
+    public function testDeterministicHttpFailuresAreNotRetried(): void
+    {
+        $store = $this->createStub(CacheStoreInterface::class);
+        $store->method('get')->willReturn(null);
+        $events = $this->createStub(EventManager::class);
+        $result = $this->monitor($store, $this->probe(new Response(503), new Response(200)), CacheTypes::PING, $events, retryDelay: static function (): void {})
+            ->checkMultipleEndpoints(['app' => new EndpointTarget('app', 'https://app.example.test')]);
+
+        $this->assertSame(1, $result['app']['attempts']);
+        $this->assertSame(503, $result['app']['httpCode']);
+    }
+
+    public function testHonorsConfiguredRetryBudgetAndDelaysOncePerRetry(): void
+    {
+        $store = $this->createStub(CacheStoreInterface::class);
+        $store->method('get')->willReturn(null);
+        $events = $this->createStub(EventManager::class);
+        $failure = static fn (): ConnectException => new ConnectException(
+            'Operation timed out',
+            new Request('HEAD', 'https://app.example.test'),
+            null,
+            ['errno' => 28],
+        );
+        $delays = 0;
+        $monitor = $this->monitor(
+            $store,
+            $this->probe($failure(), $failure(), $failure()),
+            CacheTypes::PING,
+            $events,
+            retryDelay: function () use (&$delays): void { ++$delays; },
+            probePolicy: new ProbePolicy(5, 2, 500, 1500, ['timeout' => true]),
+        );
+
+        $result = $monitor->checkMultipleEndpoints(['app' => new EndpointTarget('app', 'https://app.example.test')]);
+
+        $this->assertFalse($result['app']['reachable']);
+        $this->assertSame(3, $result['app']['attempts']);
+        $this->assertSame(2, $delays);
+    }
+
+    public function testZeroRetryBudgetProbesExactlyOnce(): void
+    {
+        $store = $this->createStub(CacheStoreInterface::class);
+        $store->method('get')->willReturn(null);
+        $events = $this->createStub(EventManager::class);
+        $failure = new ConnectException(
+            'Operation timed out',
+            new Request('HEAD', 'https://app.example.test'),
+            null,
+            ['errno' => 28],
+        );
+        $delays = 0;
+        $monitor = $this->monitor(
+            $store,
+            $this->probe($failure, new Response(200)),
+            CacheTypes::PING,
+            $events,
+            retryDelay: function () use (&$delays): void { ++$delays; },
+            probePolicy: new ProbePolicy(5, 0, 500, 1500, ['timeout' => true]),
+        );
+
+        $result = $monitor->checkMultipleEndpoints(['app' => new EndpointTarget('app', 'https://app.example.test')]);
+
+        $this->assertFalse($result['app']['reachable']);
+        $this->assertSame(1, $result['app']['attempts']);
+        $this->assertSame(0, $delays);
+    }
+
     public function testForcedBatchBypassesCacheAndWritesTheNormalPingKey(): void
     {
         $target = new EndpointTarget('app', 'https://app.example.test');
@@ -66,7 +233,7 @@ final class AppMonitorTest extends TestCase
             'https://node.example.test/api',
             CacheTypes::PING,
             $target->resolveProbeUrl(),
-            2,
+            5,
         );
         $store = $this->createMock(CacheStoreInterface::class);
         $store->expects($this->never())->method('get');
@@ -87,7 +254,7 @@ final class AppMonitorTest extends TestCase
     {
         $store = $this->createMock(CacheStoreInterface::class);
         $store->method('get')->willReturn(null);
-        $store->expects($this->once())->method('put');
+        $store->expects($this->exactly(2))->method('put');
         $events = $this->createMock(EventManager::class);
         $recordedEvent = null;
         $events->expects($this->once())
@@ -157,10 +324,11 @@ final class AppMonitorTest extends TestCase
             new CacheEntry(['reachable' => false, 'httpCode' => null, 'error' => 'cached'], time()),
             null,
             null,
+            null,
         );
-        $store->expects($this->exactly(2))->method('put');
+        $store->expects($this->exactly(3))->method('put');
         $events = $this->createMock(EventManager::class);
-        $events->expects($this->exactly(2))->method('handle')->willReturn([]);
+        $events->expects($this->once())->method('handle')->willReturn([]);
         $monitor = $this->monitor($store, $this->probe(new Response(200), new Response(503)), CacheTypes::PING, $events);
 
         $results = $monitor->checkMultipleEndpoints([
@@ -179,7 +347,7 @@ final class AppMonitorTest extends TestCase
     {
         $store = $this->createMock(CacheStoreInterface::class);
         $store->method('get')->willReturn(null);
-        $store->expects($this->once())->method('put');
+        $store->expects($this->exactly(2))->method('put');
 
         $probe = $this->createStub(ProbeClient::class);
         $probe->method('checkAvailabilityAsync')->willReturn(Create::promiseFor([]));
@@ -238,6 +406,9 @@ final class AppMonitorTest extends TestCase
         ProbeClient $probe,
         string $cacheType = CacheTypes::PING,
         ?EventManager $events = null,
+        ?Closure $clock = null,
+        ?Closure $retryDelay = null,
+        ?ProbePolicy $probePolicy = null,
     ): AppMonitor {
         $apiClient = $this->createStub(ApiClient::class);
         $apiClient->method('getApiBase')->willReturn('https://node.example.test/api');
@@ -250,10 +421,14 @@ final class AppMonitorTest extends TestCase
             $probe,
             $events ?? $this->createStub(EventManager::class),
             new NullLogger(),
+            $probePolicy,
+            600,
+            $clock,
+            $retryDelay,
         );
     }
 
-    private function probe(Response ...$responses): ProbeClient
+    private function probe(mixed ...$responses): ProbeClient
     {
         return new ProbeClient(true, new Client([
             'handler' => HandlerStack::create(new MockHandler($responses)),

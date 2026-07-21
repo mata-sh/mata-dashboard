@@ -53,7 +53,7 @@
                 <td class="metric-cell" width="50%" style="padding:20px 24px; border-right:1px solid #1d2632;">
                     <div style="font-family:Consolas,'Courier New',monospace; font-size:11px; font-weight:bold; letter-spacing:2px; color:#718399; text-transform:uppercase;">{{ presentation.metric.label }}</div>
                     <div style="font-family:Consolas,'Courier New',monospace; font-size:40px; line-height:48px; color:{{ severity.accent }}; padding-top:6px;">{{ presentation.metric.value }}</div>
-                    {% if presentation.metric.threshold %}<div style="font-family:Consolas,'Courier New',monospace; font-size:17px; line-height:24px; color:#72849b; padding-top:4px;">{{ presentation.metric.threshold }}</div>{% endif %}
+                    {% if presentation.metric.detail %}<div style="font-family:Consolas,'Courier New',monospace; font-size:17px; line-height:24px; color:#72849b; padding-top:4px;">{{ presentation.metric.detail }}</div>{% endif %}
                 </td>
                 {% endif %}
                 <td class="metric-cell"{% if presentation.metric %} width="50%"{% endif %} style="padding:20px 24px;">

@@ -14,7 +14,7 @@ class MockAppMonitor implements AppMonitorInterface
 {
     public function checkEndpoint(
         EndpointTarget $target,
-        int $timeout = 2,
+        ?int $timeout = null,
         string $cacheType = CacheTypes::PING,
         bool $forceRefresh = false,
     ): array {
@@ -26,7 +26,7 @@ class MockAppMonitor implements AppMonitorInterface
      */
     public function checkMultipleEndpoints(
         array $targets,
-        int $timeout = 2,
+        ?int $timeout = null,
         string $cacheType = CacheTypes::PING,
         bool $forceRefresh = false,
     ): array {

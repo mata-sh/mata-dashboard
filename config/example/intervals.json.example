@@ -2,7 +2,7 @@
     "events": {
         "min_event_interval_minutes": {
             "_default": 60,
-            "app_unreachable": 15,
+            "app_unreachable": 0,
             "cronjobs_failing": 30,
             "filecount_too_large": 72,
             "logfile_too_large": 12,

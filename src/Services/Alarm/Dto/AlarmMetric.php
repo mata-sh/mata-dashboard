@@ -5,11 +5,17 @@ declare(strict_types=1);
 namespace Mata\Services\Alarm\Dto;
 
 /** A single metric shown in the alarm email metric card. */
-final readonly class AlarmMetric
+final class AlarmMetric
 {
     public function __construct(
-        public string $label,
-        public string $value,
-        public ?string $threshold = null,
+        public readonly string $label,
+        public readonly string $value,
+        public readonly ?string $detail = null,
     ) {}
+
+    /** Temporary read compatibility for integrations using the old presentation property. */
+    public function __get(string $name): ?string
+    {
+        return $name === 'threshold' ? $this->detail : null;
+    }
 }

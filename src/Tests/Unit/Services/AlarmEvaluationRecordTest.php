@@ -21,6 +21,7 @@ final class AlarmEvaluationRecordTest extends TestCase
         $this->assertSame([
             'outcome' => 'suppressed',
             'threshold_gate' => 'fail',
+            'trigger_evidence' => null,
             'policy_gate' => null,
             'policy_reason' => null,
             'requested_channels' => [],

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Mata\Services\Monitor;
 
+use Closure;
 use GuzzleHttp\Promise\PromiseInterface;
 use Mata\Constants\CacheTypes;
 use Mata\Services\Cache\ApiCacheKeyFactory;
@@ -14,14 +15,13 @@ use Mata\Services\Event\Dto\EventMetric;
 use Mata\Services\Event\EventManager;
 use Mata\Services\Foundation\ApiClient;
 use Mata\Services\Foundation\ProbeClient;
+use Mata\Services\Monitor\Dto\ProbePolicy;
 use Psr\Log\LoggerInterface;
 
-/**
- * Monitors the mata-node health endpoint with cache and event support.
- */
+/** Monitors the mata-node health endpoint with transient transport retry support. */
 class NodeHealthMonitor implements NodeHealthMonitorInterface
 {
-    private const HEALTH_TIMEOUT = 3;
+    private ProbePolicy $probePolicy;
 
     public function __construct(
         private CacheStoreInterface $cacheStore,
@@ -30,49 +30,74 @@ class NodeHealthMonitor implements NodeHealthMonitorInterface
         private ApiClient $apiClient,
         private ProbeClient $probeClient,
         private EventManager $eventManager,
-        private LoggerInterface $logger
-    ) {}
+        private LoggerInterface $logger,
+        ?ProbePolicy $probePolicy = null,
+        private ?Closure $retryDelay = null,
+    ) {
+        $this->probePolicy = $probePolicy ?? ProbePolicy::default();
+    }
 
-    public function checkOrWait(
-        string $serverName,
-        string $cacheType = CacheTypes::HEALTH,
-        bool $forceRefresh = false,
-    ): array {
+    public function checkOrWait(string $serverName, string $cacheType = CacheTypes::HEALTH, bool $forceRefresh = false): array
+    {
         $result = $this->checkAsync($serverName, $cacheType, $forceRefresh);
 
-        // @var array<string,mixed> $result
         return is_array($result) ? $result : $result->wait();
     }
 
-    public function checkAsync(
-        string $serverName,
-        string $cacheType = CacheTypes::HEALTH,
-        bool $forceRefresh = false,
-    ): array|PromiseInterface {
-        $cacheKey = $this->cacheKeyFactory->createApiRequestKey(
-            $this->apiClient->getApiBase(),
-            'GET',
-            'health'
-        );
+    public function checkAsync(string $serverName, string $cacheType = CacheTypes::HEALTH, bool $forceRefresh = false): array|PromiseInterface
+    {
+        $cacheKey = $this->cacheKeyFactory->createApiRequestKey($this->apiClient->getApiBase(), 'GET', 'health');
         $cached = $forceRefresh ? null : $this->cacheStore->get($cacheKey, $this->ttlResolver->get($cacheType));
         if ($cached !== null) {
             return $cached->value;
         }
-
         $healthUrl = rtrim($this->apiClient->getApiBase(), '/') . '/health';
-        $healthPromise = $this->probeClient->checkHealthAsync($healthUrl, self::HEALTH_TIMEOUT);
 
-        // Cache and emit events after the health probe resolves.
-        return $healthPromise->then(
-            fn (array $health): array => $this->completeCheck($serverName, $cacheKey, $health)
-        );
+        return $this->attemptHealth($healthUrl, 1)
+            ->then(fn (array $health): array => $this->completeCheck($serverName, $cacheKey, $health));
     }
 
     /**
-     * @param array<string,mixed> $result
+     * Probe the health endpoint, retrying transient transport failures up to the configured budget.
      *
-     * @return array<string,mixed>
+     * Each resolved result carries its 1-based attempt number so diagnostics report retries.
      */
+    private function attemptHealth(string $healthUrl, int $attempt): PromiseInterface
+    {
+        return $this->probeClient->checkHealthAsync($healthUrl, $this->probePolicy->timeoutSeconds)->then(
+            function (array $health) use ($healthUrl, $attempt): array|PromiseInterface {
+                $health['attempts'] = $attempt;
+                if ($attempt > $this->probePolicy->maxRetries || !$this->shouldRetry($health)) {
+                    return $health;
+                }
+                $this->waitForRetry($this->probePolicy->backoffMicros($attempt));
+
+                return $this->attemptHealth($healthUrl, $attempt + 1);
+            }
+        );
+    }
+
+    private function waitForRetry(int $micros): void
+    {
+        if ($this->retryDelay !== null) {
+            ($this->retryDelay)();
+
+            return;
+        }
+        if ($micros > 0) {
+            usleep($micros);
+        }
+    }
+
+    /** @param array<string,mixed> $result */
+    private function shouldRetry(array $result): bool
+    {
+        return ($result['status'] ?? null) === 'unreachable'
+            && $this->probePolicy->isRetryable($result['failure_kind'] ?? null);
+    }
+
+    /** @param array<string,mixed> $result
+     * @return array<string,mixed> */
     private function completeCheck(string $serverName, string $cacheKey, array $result): array
     {
         $result['state'] = NodeHealthStateResolver::resolve($result);
@@ -82,45 +107,30 @@ class NodeHealthMonitor implements NodeHealthMonitorInterface
         return $result;
     }
 
-    /**
-     * @param array<string,mixed> $result
-     */
+    /** @param array<string,mixed> $result */
     private function recordHealthEvent(string $serverName, array $result): void
     {
         $status = $result['status'] ?? 'unreachable';
         if ($status === 'healthy') {
             return;
         }
-
         $isUnreachable = $status === 'unreachable';
         $type = $isUnreachable ? 'node_unreachable' : 'node_unhealthy';
-        $level = $isUnreachable ? 'critical' : 'warning';
-        $message = $isUnreachable
-            ? "No health response from {$serverName}"
-            : "Unhealthy health response from {$serverName}";
-
-        $this->logger->warning("Node health -> {$message}", [
-            'httpCode' => $result['httpCode'] ?? null,
-            'error' => $result['error'] ?? null,
-        ]);
-        $diagnostics = array_filter(
-            [
-                'http_code' => $result['httpCode'] ?? null,
-                'error' => $result['error'] ?? null,
-            ],
-            static fn (mixed $value): bool => $value !== null
-        );
-
+        $message = $isUnreachable ? "No health response from {$serverName}" : "Unhealthy health response from {$serverName}";
+        $diagnostics = [
+            'failure_kind' => $result['failure_kind'] ?? ($isUnreachable ? 'unknown' : 'invalid_response'),
+            'http_code' => $result['httpCode'] ?? null, 'curl_errno' => $result['curl_errno'] ?? null,
+            'timeout_ms' => $result['timeout_ms'] ?? $this->probePolicy->timeoutSeconds * 1000,
+            'attempts' => $result['attempts'] ?? 1, 'error' => $result['error'] ?? null,
+            'checked_at' => isset($result['checked_at']) ? gmdate(DATE_ATOM, (int) $result['checked_at']) : gmdate(DATE_ATOM),
+        ];
+        $this->logger->warning("Node health -> {$message}", $diagnostics);
         $this->eventManager->handle(new EventCommand(
             type: $type,
             message: $message,
-            level: $level,
+            level: $isUnreachable ? 'critical' : 'warning',
             server: $serverName,
-            metric: new EventMetric(
-                name: 'node_health',
-                value: $isUnreachable ? 0 : 1,
-                additional: $diagnostics
-            )
+            metric: new EventMetric('node_health', $isUnreachable ? 0 : 1, additional: $diagnostics),
         ));
     }
 }

@@ -28,6 +28,8 @@ final readonly class QueuedAlarmDelivery
         public ?string $appEnvironment,
         public DateTimeImmutable $createdAt,
         public ?DateTimeImmutable $previousAlarmCreatedAt = null,
+        /** @var array<string,mixed> */
+        public array $triggerEvidence = [],
     ) {}
 
     public function getServerKey(): string

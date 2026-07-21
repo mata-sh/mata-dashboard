@@ -12,13 +12,14 @@ namespace Mata\Services\Alarm\Dto;
 final readonly class Alarm
 {
     /**
-     * @param string        $type     Event/alarm type identifier
-     * @param string        $message  Human-readable alarm message
-     * @param null|string   $context  Additional context payload (HTML/text)
-     * @param AlarmLevel    $level    Severity level
-     * @param null|string   $server   Server context (optional)
-     * @param null|string   $app      Application context (optional)
-     * @param array<string> $channels Delivery channels (email, slack, etc.)
+     * @param string              $type            Event/alarm type identifier
+     * @param string              $message         Human-readable alarm message
+     * @param null|string         $context         Additional context payload (HTML/text)
+     * @param AlarmLevel          $level           Severity level
+     * @param null|string         $server          Server context (optional)
+     * @param null|string         $app             Application context (optional)
+     * @param array<string>       $channels        Delivery channels (email, slack, etc.)
+     * @param array<string,mixed> $triggerEvidence Immutable alarm-rule evidence
      */
     public function __construct(
         public string $type,
@@ -27,7 +28,8 @@ final readonly class Alarm
         public AlarmLevel $level = AlarmLevel::Info,
         public ?string $server = null,
         public ?string $app = null,
-        public array $channels = ['email']
+        public array $channels = ['email'],
+        public array $triggerEvidence = [],
     ) {}
 
 }

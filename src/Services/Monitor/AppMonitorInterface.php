@@ -19,7 +19,7 @@ interface AppMonitorInterface
      * Check availability for a single application endpoint.
      *
      * @param EndpointTarget $target       target metadata for the endpoint to probe
-     * @param int            $timeout      timeout in seconds (default: 2)
+     * @param null|int       $timeout      timeout in seconds; null uses the configured probe policy timeout
      * @param string         $cacheType    cache key for TTL lookup (default: CacheTypes::PING)
      * @param bool           $forceRefresh bypass a cached result while preserving its cache key
      *
@@ -27,7 +27,7 @@ interface AppMonitorInterface
      */
     public function checkEndpoint(
         EndpointTarget $target,
-        int $timeout = 2,
+        ?int $timeout = null,
         string $cacheType = CacheTypes::PING,
         bool $forceRefresh = false,
     ): array;
@@ -36,7 +36,7 @@ interface AppMonitorInterface
      * Check availability for multiple application endpoints.
      *
      * @param array<int|string, EndpointTarget> $targets      endpoint targets keyed by identifier
-     * @param int                               $timeout      timeout in seconds (default: 2)
+     * @param null|int                          $timeout      timeout in seconds; null uses the configured probe policy timeout
      * @param string                            $cacheType    cache key for TTL lookup (default: CacheTypes::PING)
      * @param bool                              $forceRefresh bypass cached results while preserving their cache keys
      *
@@ -44,7 +44,7 @@ interface AppMonitorInterface
      */
     public function checkMultipleEndpoints(
         array $targets,
-        int $timeout = 2,
+        ?int $timeout = null,
         string $cacheType = CacheTypes::PING,
         bool $forceRefresh = false,
     ): array;

@@ -45,6 +45,7 @@ final class MonitoringSettingsLoaderTest extends TestCase
         file_put_contents($configPath . '/thresholds.json', '{"server_data": {}}');
         file_put_contents($configPath . '/intervals.json', '{"events": {}}');
         file_put_contents($configPath . '/data_retention.json', '{"retention": {}}');
+        file_put_contents($configPath . '/probes.json', '{"max_retries": 3}');
 
         try {
             $config = $this->loader->loadAllConfigs($configPath, 'demo');
@@ -54,6 +55,8 @@ final class MonitoringSettingsLoaderTest extends TestCase
 
         $this->assertSame('demo', $config['environment']);
         $this->assertArrayHasKey('server', $config['servers']);
+        $this->assertSame(3, $config['probes']['max_retries']);
+        $this->assertSame(5, $config['probes']['timeout_seconds'], 'omitted probe keys fall back to defaults');
     }
 
     public function testLoadTtlConfigAddsMissingCacheTtls(): void

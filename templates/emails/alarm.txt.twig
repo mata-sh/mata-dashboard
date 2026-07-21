@@ -2,7 +2,7 @@
 
 {{ presentation.description }}
 {% if presentation.metric %}
-{{ presentation.metric.label }}: {{ presentation.metric.value }}{% if presentation.metric.threshold %} ({{ presentation.metric.threshold }}){% endif %}
+{{ presentation.metric.label }}: {{ presentation.metric.value }}{% if presentation.metric.detail %} ({{ presentation.metric.detail }}){% endif %}
 {% endif %}
 Last seen: {{ alarm.last_seen_at ?: 'No previous alarm' }}{% if alarm.last_seen_ago %} ({{ alarm.last_seen_ago }}){% endif %}
 Current alarm: {{ alarm.created_at }}

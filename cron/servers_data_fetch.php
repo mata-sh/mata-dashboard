@@ -14,6 +14,7 @@ use Mata\Services\Foundation\ProbeClient;
 use Mata\Services\Monitor\AppMonitor;
 use Mata\Services\Monitor\AppMonitorInterface;
 use Mata\Services\Monitor\Dto\EndpointTarget;
+use Mata\Services\Monitor\Dto\ProbePolicy;
 use Mata\Services\Monitor\NodeHealthMonitor;
 use Mata\Services\Monitor\NodeHealthMonitorInterface;
 use Mata\Services\Sync\AppInventorySync;
@@ -41,6 +42,11 @@ try {
     $cacheKeyFactory = new ApiCacheKeyFactory();
     $ttlResolver = new CacheTtlResolver($monitoringSettings['ttl'] ?? []);
     $probeClient = new ProbeClient();
+    $probePolicy = ProbePolicy::fromArray(is_array($monitoringSettings['probes'] ?? null) ? $monitoringSettings['probes'] : []);
+    $appUnreachableThreshold = $monitoringSettings['thresholds']['alarms']['app_unreachable'] ?? [];
+    $unreachableWindowSeconds = max(60, (is_array($appUnreachableThreshold) && is_numeric($appUnreachableThreshold['window_minutes'] ?? null)
+        ? (int) $appUnreachableThreshold['window_minutes']
+        : 10) * 60);
 
     $stats = [
         'configured' => 0,
@@ -84,7 +90,9 @@ try {
                 $apiClient,
                 $probeClient,
                 $eventManager,
-                $log
+                $log,
+                $probePolicy,
+                $unreachableWindowSeconds
             );
             $healthMonitor = new NodeHealthMonitor(
                 $cacheStore,
@@ -93,7 +101,8 @@ try {
                 $apiClient,
                 $probeClient,
                 $eventManager,
-                $log
+                $log,
+                $probePolicy
             );
 
             warmServerCaches($server, $collector, $appMonitor, $healthMonitor, $appInventorySync, $log);

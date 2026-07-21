@@ -59,8 +59,9 @@
     },
     "alarms": {
         "app_unreachable": {
-            "alarm_threshold_event_count": 3,
-            "alarm_threshold_window_minutes": 60
+            "strategy": "consecutive_failures",
+            "required_count": 2,
+            "window_minutes": 10
         },
         "cronjobs_failing": {
             "alarm_threshold_event_count": 1,

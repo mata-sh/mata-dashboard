@@ -43,11 +43,16 @@ final class AlarmDecisionProcessor
         $record = new AlarmEvaluationRecord();
         $eventId = (int) $event['id'];
 
-        if (!$this->alarmCooldownService->shouldTriggerAlarmForEvent(
+        $context = EventContext::fromArray(json_decode($event['context'] ?? '{}', true) ?: []);
+        $evaluation = $this->alarmCooldownService->evaluateAlarmForEvent(
             type: (string) $event['type'],
             server: $event['server_id'] ?? null,
             app: $event['application_id'] ?? null,
-        )) {
+            context: $context,
+        );
+        $record->setTriggerEvidence($evaluation->evidence);
+
+        if (!$evaluation->passed) {
             $record
                 ->setOutcome('suppressed')
                 ->setThresholdGate('fail');
@@ -82,7 +87,6 @@ final class AlarmDecisionProcessor
             ->setEnrich($decision->enrich)
             ->setRequestedChannels($decision->channels);
 
-        $context = EventContext::fromArray(json_decode($event['context'] ?? '{}', true) ?: []);
         $readyChannels = $this->alarmCooldownService->filterReadyChannels(
             type: (string) $event['type'],
             requestedChannels: $decision->channels,
@@ -96,7 +100,7 @@ final class AlarmDecisionProcessor
             ->setOutcome($readyChannels === [] ? 'undelivered' : 'enqueued');
 
         try {
-            $this->alarmCreator->create($eventId, $readyChannels, $decision->priority);
+            $this->alarmCreator->create($eventId, $readyChannels, $decision->priority, $evaluation->evidence);
 
             foreach ($readyChannels as $channel) {
                 $alarmHash = $this->alarmCooldownService->generateCooldownHash(

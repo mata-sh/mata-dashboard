@@ -285,6 +285,7 @@ final class RetentionCleanupServiceSqlIntegrationTest extends TestCase
             CREATE TABLE alarms (
                 id INTEGER PRIMARY KEY,
                 event_id INTEGER NOT NULL UNIQUE REFERENCES events(id) ON DELETE RESTRICT,
+                trigger_evidence TEXT NULL,
                 created_at TEXT NOT NULL
             );
 
