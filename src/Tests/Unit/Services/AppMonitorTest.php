@@ -15,6 +15,7 @@ use Mata\Services\Cache\ApiCacheKeyFactory;
 use Mata\Services\Cache\CacheEntry;
 use Mata\Services\Cache\CacheStoreInterface;
 use Mata\Services\Cache\CacheTtlResolver;
+use Mata\Services\Event\Dto\EventCommand;
 use Mata\Services\Event\EventManager;
 use Mata\Services\Foundation\ApiClient;
 use Mata\Services\Foundation\ProbeClient;
@@ -80,6 +81,32 @@ final class AppMonitorTest extends TestCase
         );
 
         $this->assertTrue($results['app']['reachable']);
+    }
+
+    public function testUnreachableAppEventUsesTheApplicationCodeFromTheAppsPayload(): void
+    {
+        $store = $this->createMock(CacheStoreInterface::class);
+        $store->method('get')->willReturn(null);
+        $store->expects($this->once())->method('put');
+        $events = $this->createMock(EventManager::class);
+        $recordedEvent = null;
+        $events->expects($this->once())
+            ->method('handle')
+            ->willReturnCallback(static function (EventCommand $event) use (&$recordedEvent): array {
+                $recordedEvent = $event;
+
+                return ['eventRecorded' => true, 'eventId' => 1];
+            });
+        $targets = EndpointTarget::fromRawAppData([
+            'shop' => ['url' => 'https://shop.example.test'],
+        ], 'node-a');
+
+        $this->monitor($store, $this->probe(new Response(503)), CacheTypes::PING, $events)
+            ->checkMultipleEndpoints($targets);
+
+        $this->assertInstanceOf(EventCommand::class, $recordedEvent);
+        $this->assertSame('node-a', $recordedEvent->server);
+        $this->assertSame('shop', $recordedEvent->app);
     }
 
     public function testStatusEndpointMaintenanceDoesNotRecordUnreachableEvent(): void

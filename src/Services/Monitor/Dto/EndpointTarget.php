@@ -26,6 +26,7 @@ final class EndpointTarget
         public readonly ?int $applicationId = null,
         public readonly array $metadata = [],
         public readonly ?string $statusUrl = null,
+        public readonly ?string $applicationCode = null,
     ) {}
 
     /**
@@ -46,6 +47,7 @@ final class EndpointTarget
         $serverId = $serverId !== null && $serverId > 0 ? $serverId : null;
         $applicationId = TypeConverter::toInt($data['application_id'] ?? null);
         $applicationId = $applicationId !== null && $applicationId > 0 ? $applicationId : null;
+        $applicationCode = TypeConverter::toString($data['application_code'] ?? null);
         $serverName = TypeConverter::toString($data['server_name'] ?? null);
         $statusUrl = TypeConverter::toString($data['status_url'] ?? null);
 
@@ -56,6 +58,7 @@ final class EndpointTarget
             $metadata['server_id'],
             $metadata['server_name'],
             $metadata['application_id'],
+            $metadata['application_code'],
             $metadata['status_url']
         );
 
@@ -66,6 +69,7 @@ final class EndpointTarget
             serverName: $serverName,
             applicationId: $applicationId,
             statusUrl: $statusUrl,
+            applicationCode: $applicationCode,
             metadata: $metadata
         );
     }
@@ -107,6 +111,9 @@ final class EndpointTarget
             $candidate = $appData;
             if ($serverName !== null) {
                 $candidate['server_name'] ??= $serverName;
+            }
+            if (is_string($appKey) && trim($appKey) !== '') {
+                $candidate['application_code'] ??= $appKey;
             }
 
             $target = self::fromArray($candidate, $appKey);

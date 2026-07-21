@@ -162,7 +162,7 @@ class AppMonitor implements AppMonitorInterface
             'identifier' => $target->identifier,
             'url' => $target->resolveProbeUrl(),
             'server' => $target->serverId ?? $target->serverName,
-            'app' => $target->applicationId,
+            'app' => $target->applicationId ?? $target->applicationCode,
         ];
         $message = "No response from {$ctx['identifier']} ({$ctx['url']})";
 

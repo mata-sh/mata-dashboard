@@ -36,6 +36,16 @@ final class EndpointTargetTest extends TestCase
         self::assertSame('default', $target->resolveMetadataValue('missing', 'default'));
     }
 
+    public function testFromRawAppDataUsesTheAppKeyAsApplicationCode(): void
+    {
+        $targets = EndpointTarget::fromRawAppData([
+            'shop' => ['url' => 'https://shop.example.test'],
+        ], 'node-a');
+
+        self::assertSame('shop', $targets['shop']->applicationCode);
+        self::assertSame('node-a', $targets['shop']->serverName);
+    }
+
     public function testFromArrayRejectsNonPositiveIdsAndBlankOptionalStrings(): void
     {
         $target = EndpointTarget::fromArray([
