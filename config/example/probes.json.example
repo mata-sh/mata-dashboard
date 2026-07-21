@@ -2,5 +2,5 @@
     "timeout_seconds": 5,
     "max_retries": 1,
     "backoff_base_ms": 500,
-    "backoff_max_ms": 1500,
+    "backoff_max_ms": 1500
 }
