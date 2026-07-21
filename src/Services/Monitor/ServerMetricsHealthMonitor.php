@@ -226,17 +226,6 @@ final class ServerMetricsHealthMonitor
             'stalled_servers' => $stalledServers,
         ];
 
-        $this->eventManager->handle(new EventCommand(
-            type: 'server_metrics.ingestion_run_completed',
-            message: sprintf(
-                'Inserted %d new raw samples across %d servers',
-                $report['total_inserted'],
-                $totalServers
-            ),
-            level: 'info',
-            context: $context
-        ));
-
         if ($report['total_inserted'] === 0 && $totalServers > 0) {
             $this->eventManager->handle(new EventCommand(
                 type: 'server_metrics.ingestion_run_empty',

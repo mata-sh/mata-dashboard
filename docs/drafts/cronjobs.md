@@ -84,7 +84,7 @@ Copy [`cron/logrotate.shared-hosting.conf.template`](../../cron/logrotate.shared
 ## Monitoring Ingestion Health
 
 - Check `logs/health/collect_server_metrics_health.log` after each run for inserts, last sample timestamp, and computed lag per server.
-- Every run emits the informational `server_metrics.ingestion_run_completed` event. Empty runs with configured servers also emit the warning `server_metrics.ingestion_run_empty`; each stalled server emits `server_metrics.ingestion_stalled`.
+- Empty runs with configured servers emit the warning `server_metrics.ingestion_run_empty`; each stalled server emits `server_metrics.ingestion_stalled`.
 - Tune stall/retention thresholds in `config/data_retention.json` under `ingestion_health` (default window is 15 minutes).
 
 ## Manual Backfill / Rehydration

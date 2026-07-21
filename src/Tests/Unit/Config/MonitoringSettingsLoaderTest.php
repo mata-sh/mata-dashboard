@@ -691,7 +691,7 @@ final class MonitoringSettingsLoaderTest extends TestCase
         $eventIntervals = $config['events']['min_event_interval_minutes'];
         $alarmIntervals = $config['alarms']['min_alarm_interval_minutes'];
         $this->assertSame(72, $eventIntervals['fatal_errors_occurring']);
-        $this->assertSame(5, $eventIntervals['server_metrics.ingestion_run_completed']);
+        $this->assertArrayNotHasKey('server_metrics.ingestion_run_completed', $eventIntervals);
         $this->assertSame(5, $eventIntervals['server_metrics.ingestion_run_empty']);
         $this->assertSame(15, $eventIntervals['server_metrics.ingestion_stalled']);
         $this->assertSame(30, $eventIntervals['cpu_usage_too_high']);

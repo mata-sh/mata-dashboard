@@ -224,7 +224,6 @@ final class MonitoringSettingsLoader
                     'logfile_too_large' => 12,
                     'too_many_sql_connections' => 72,
                     'remaining_diskspace_too_low' => 60,
-                    'server_metrics.ingestion_run_completed' => 5,
                     'server_metrics.ingestion_run_empty' => 5,
                     'server_metrics.ingestion_stalled' => 15,
                     'cpu_usage_too_high' => 30,

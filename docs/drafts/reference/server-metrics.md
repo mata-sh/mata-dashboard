@@ -176,9 +176,8 @@ tail -f logs/health/collect_server_metrics_health.log
 ```
 
 The collector writes one JSON health report after each run with before/after raw
-counts, newest sample time, and lag per processed server. Every run emits the
-informational `server_metrics.ingestion_run_completed` summary. A run that
-inserts no rows while it has configured servers also emits the warning
+counts, newest sample time, and lag per processed server. A run that inserts
+no rows while it has configured servers emits the warning
 `server_metrics.ingestion_run_empty`; each server that adds no row and reaches
 the configured lag threshold emits `server_metrics.ingestion_stalled` (15
 minutes by default). The health report has application-managed rotation

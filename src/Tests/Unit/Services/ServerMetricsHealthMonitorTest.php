@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Mata\Tests\Unit\Services;
 
 use DateTimeImmutable;
-use DateTimeInterface;
 use Mata\Core\DatabaseInterface;
 use Mata\Models\ConfigSyncRepository;
 use Mata\Models\ServerMetrics\ServerMetricsRepository;
@@ -36,7 +35,7 @@ final class ServerMetricsHealthMonitorTest extends TestCase
         parent::tearDown();
     }
 
-    public function testHealthyRunEmitsCompletionOnly(): void
+    public function testHealthyRunEmitsNoEvents(): void
     {
         $now = new DateTimeImmutable('2026-07-20T12:00:00+00:00');
         $events = [];
@@ -46,24 +45,16 @@ final class ServerMetricsHealthMonitorTest extends TestCase
             afterCounts: $this->counts('api-a', 12),
             afterLatest: $this->latest('api-a', $now),
             events: $events,
-            expectedEventCount: 1,
+            expectedEventCount: 0,
         );
 
         $baseline = $monitor->snapshot();
         $monitor->evaluate(['api-a'], $baseline, $now);
 
-        self::assertCount(1, $events);
-        self::assertSame('server_metrics.ingestion_run_completed', $events[0]->type);
-        self::assertSame('info', $events[0]->level);
-        self::assertSame([
-            'generated_at' => $now->format(DateTimeInterface::ATOM),
-            'total_inserted' => 2,
-            'total_servers' => 1,
-            'stalled_servers' => [],
-        ], $events[0]->context);
+        self::assertSame([], $events);
     }
 
-    public function testEmptyRunEmitsCompletionAndEmptyWarning(): void
+    public function testEmptyRunEmitsEmptyWarning(): void
     {
         $now = new DateTimeImmutable('2026-07-20T12:00:00+00:00');
         $events = [];
@@ -73,19 +64,18 @@ final class ServerMetricsHealthMonitorTest extends TestCase
             afterCounts: $this->counts('api-a', 10),
             afterLatest: $this->latest('api-a', $now->modify('-2 minutes')),
             events: $events,
-            expectedEventCount: 2,
+            expectedEventCount: 1,
         );
 
         $baseline = $monitor->snapshot();
         $monitor->evaluate(['api-a'], $baseline, $now);
 
-        self::assertSame([
-            'server_metrics.ingestion_run_completed',
-            'server_metrics.ingestion_run_empty',
-        ], array_map(static fn (EventCommand $event): string => $event->type, $events));
-        self::assertSame('info', $events[0]->level);
-        self::assertSame('warning', $events[1]->level);
-        self::assertSame('No new raw samples were inserted across 1 server', $events[1]->message);
+        self::assertSame(['server_metrics.ingestion_run_empty'], array_map(
+            static fn (EventCommand $event): string => $event->type,
+            $events
+        ));
+        self::assertSame('warning', $events[0]->level);
+        self::assertSame('No new raw samples were inserted across 1 server', $events[0]->message);
     }
 
     public function testEmptyRunUsesPluralServerMessage(): void
@@ -106,13 +96,13 @@ final class ServerMetricsHealthMonitorTest extends TestCase
             afterCounts: $counts,
             afterLatest: $latest,
             events: $events,
-            expectedEventCount: 2,
+            expectedEventCount: 1,
         );
 
         $baseline = $monitor->snapshot();
         $monitor->evaluate(['api-a', 'api-b'], $baseline, $now);
 
-        self::assertSame('No new raw samples were inserted across 2 servers', $events[1]->message);
+        self::assertSame('No new raw samples were inserted across 2 servers', $events[0]->message);
     }
 
     public function testStalledServerEmitsPerServerWarning(): void
@@ -126,19 +116,19 @@ final class ServerMetricsHealthMonitorTest extends TestCase
             afterCounts: $this->counts('api-a', 10),
             afterLatest: $this->latest('api-a', $lastSampleAt),
             events: $events,
-            expectedEventCount: 3,
+            expectedEventCount: 2,
         );
 
         $baseline = $monitor->snapshot();
         $monitor->evaluate(['api-a'], $baseline, $now);
 
-        self::assertSame('server_metrics.ingestion_stalled', $events[2]->type);
-        self::assertSame('warning', $events[2]->level);
-        self::assertSame('api-a', $events[2]->server);
+        self::assertSame('server_metrics.ingestion_stalled', $events[1]->type);
+        self::assertSame('warning', $events[1]->level);
+        self::assertSame('api-a', $events[1]->server);
         self::assertSame([
             'lag_minutes' => 20,
-            'last_sample_at' => $lastSampleAt->format(DateTimeInterface::ATOM),
-        ], $events[2]->context);
+            'last_sample_at' => $lastSampleAt->format(DATE_ATOM),
+        ], $events[1]->context);
     }
 
     /**
