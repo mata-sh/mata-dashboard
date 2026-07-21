@@ -13,13 +13,13 @@ use Mata\Constants\CacheTypes;
 interface NodeHealthMonitorInterface
 {
     /**
-     * Check a node's health endpoint.
+     * Check a node's health endpoint and wait for a cache-miss probe to finish.
      *
      * @return array<string,mixed>
      */
-    public function checkOrWait(
+    public function checkSynchronously(
         string $serverName,
-        string $cacheType = CacheTypes::HEALTH,
+        string $cacheTtlType = CacheTypes::HEALTH,
         bool $forceRefresh = false,
     ): array;
 
@@ -30,7 +30,7 @@ interface NodeHealthMonitorInterface
      */
     public function checkAsync(
         string $serverName,
-        string $cacheType = CacheTypes::HEALTH,
+        string $cacheTtlType = CacheTypes::HEALTH,
         bool $forceRefresh = false,
     ): array|PromiseInterface;
 }

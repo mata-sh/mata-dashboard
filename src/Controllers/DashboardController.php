@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Mata\Controllers;
 
-use Exception;
 use InvalidArgumentException;
 use Mata\Config\Dto\ApplicationConfig;
 use Mata\Core\App;
@@ -16,23 +15,12 @@ use Mata\Services\Audit\AuditAggregator;
 use Mata\Services\Audit\AuditRowEnricher;
 use Mata\Services\Cache\ApiCacheKeyFactory;
 use Mata\Services\Cache\CacheStoreInterface;
-use Mata\Services\Cache\CacheTtlResolver;
 use Mata\Services\Cache\CacheTypeResolver;
-use Mata\Services\Collect\DemoAlarmMetricScenario;
-use Mata\Services\Collect\MockServerDataCollector;
-use Mata\Services\Collect\ServerDataCollector;
 use Mata\Services\Collect\ServerDataCollectorInterface;
-use Mata\Services\DataTransformers\ApiResponseTransformer;
 use Mata\Services\Event\EventManager;
-use Mata\Services\Foundation\ApiClient;
 use Mata\Services\Foundation\LogAnalyzer;
-use Mata\Services\Foundation\ProbeClient;
-use Mata\Services\Monitor\AppMonitor;
-use Mata\Services\Monitor\Dto\ProbePolicy;
-use Mata\Services\Monitor\Dto\ServerDashboardServices;
-use Mata\Services\Monitor\MockAppMonitor;
-use Mata\Services\Monitor\MockNodeHealthMonitor;
-use Mata\Services\Monitor\NodeHealthMonitor;
+use Mata\Services\Monitor\Dto\DashboardMonitoringContext;
+use Mata\Services\Monitor\Dto\ServerMonitoringServices;
 use Mata\Services\Monitor\ServerMonitor;
 use Mata\Services\Navigation\MenuBuilder;
 use Mata\Services\Navigation\NotificationCenter;
@@ -41,7 +29,6 @@ use Mata\Services\Sync\AppInventorySync;
 use Mata\Services\View\LibrariesViewBuilder;
 use Mata\Services\View\ServerViewBuilder;
 use Mata\Utils\Tools;
-use Mata\Utils\TypeConverter;
 use Mata\Views\AlarmsRenderer;
 use Mata\Views\DatabaseRenderer;
 use Mata\Views\EventsRenderer;
@@ -72,9 +59,6 @@ class DashboardController extends BaseController
     private Endpoints $endpoints;
     private ServerMonitor $serverMonitor;
     private LogAnalyzer $logAnalyzer;
-    private CacheStoreInterface $cacheStore;
-    private ApiCacheKeyFactory $cacheKeyFactory;
-    private CacheTtlResolver $ttlResolver;
     private ServerViewBuilder $serverViewBuilder;
     private ServerRenderer $serverRenderer;
     private DatabaseRenderer $databaseRenderer;
@@ -95,42 +79,34 @@ class DashboardController extends BaseController
     /** @var array<string,mixed> */
     private array $thresholdsConfig = [];
 
-    private ProbePolicy $probePolicy;
-
-    /** Reachability streak window; kept in sync with the app_unreachable alarm threshold. */
-    private int $unreachableWindowSeconds = 600;
-
     private string $monitoringEnvironment;
 
-    /** @var array<string,ServerDashboardServices> */
+    /** @var array<string,ServerMonitoringServices> */
     private array $dashboardServicesByServer = [];
 
     /** @var array<string,mixed> */
     private array $serversConfig;
 
     private ApplicationConfig $appConfig;
-    private ?ProbeClient $probeClient = null;
 
     /**
      * Initialize dashboard controller with dependencies.
      *
-     * Sets up server configurations, API clients, and monitoring thresholds.
-     * Configures per-request HMAC authentication for server communication.
+     * Uses prebuilt per-server monitoring services and configuration context.
      *
-     * @param App                   $app                 Application container with auth and paths
-     * @param Tools                 $tools               Utility functions for formatting and icons
-     * @param Environment           $twig                Twig template rendering engine
-     * @param Logger                $logger              PSR-3 logger for system logging
-     * @param ApplicationConfig     $appConfig           Application configuration DTO
-     * @param NotificationManager   $notificationManager System notification management
-     * @param EventManager          $eventManager        Server alarm and threshold management
-     * @param CacheStoreInterface   $cacheStore          Cache persistence service
-     * @param ApiCacheKeyFactory    $cacheKeyFactory     API cache key factory
-     * @param CacheTtlResolver      $ttlResolver         Cache TTL configuration lookup
-     * @param Endpoints             $endpoints           Route endpoints for template access
-     * @param MenuBuilder           $menuBuilder         Navigation menu builder service
-     * @param array<string,mixed>   $monitoringSettings  Complete monitoring configuration metadata
-     * @param null|AppInventorySync $appInventorySync    Syncs apps during manual force-refresh recovery
+     * @param App                        $app                 Application container with auth and paths
+     * @param Tools                      $tools               Utility functions for formatting and icons
+     * @param Environment                $twig                Twig template rendering engine
+     * @param Logger                     $logger              PSR-3 logger for system logging
+     * @param ApplicationConfig          $appConfig           Application configuration DTO
+     * @param NotificationManager        $notificationManager System notification management
+     * @param EventManager               $eventManager        Server alarm and threshold management
+     * @param CacheStoreInterface        $cacheStore          Cache persistence service
+     * @param ApiCacheKeyFactory         $cacheKeyFactory     API cache key factory
+     * @param Endpoints                  $endpoints           Route endpoints for template access
+     * @param MenuBuilder                $menuBuilder         Navigation menu builder service
+     * @param DashboardMonitoringContext $monitoringContext   Complete monitoring settings and prebuilt server services
+     * @param null|AppInventorySync      $appInventorySync    Syncs apps during manual force-refresh recovery
      */
     public function __construct(
         App $app,
@@ -142,10 +118,9 @@ class DashboardController extends BaseController
         EventManager $eventManager,
         CacheStoreInterface $cacheStore,
         ApiCacheKeyFactory $cacheKeyFactory,
-        CacheTtlResolver $ttlResolver,
         Endpoints $endpoints,
         MenuBuilder $menuBuilder,
-        array $monitoringSettings = [],
+        DashboardMonitoringContext $monitoringContext,
         ?AppInventorySync $appInventorySync = null,
     ) {
         $this->logger = $logger;
@@ -153,19 +128,12 @@ class DashboardController extends BaseController
         $this->notificationManager = $notificationManager;
         $this->eventManager = $eventManager;
         $this->endpoints = $endpoints;
-        $this->cacheStore = $cacheStore;
-        $this->cacheKeyFactory = $cacheKeyFactory;
-        $this->ttlResolver = $ttlResolver;
         $this->menuBuilder = $menuBuilder;
-        $serversConfig = $monitoringSettings['servers'] ?? [];
-        $this->serversConfig = is_array($serversConfig) ? $serversConfig : [];
-        $this->ttlConfig = $monitoringSettings['ttl'] ?? [];
-        $this->thresholdsConfig = $monitoringSettings['thresholds'] ?? [];
-        $this->probePolicy = ProbePolicy::fromArray(
-            is_array($monitoringSettings['probes'] ?? null) ? $monitoringSettings['probes'] : []
-        );
-        $this->unreachableWindowSeconds = $this->resolveUnreachableWindowSeconds();
-        $this->monitoringEnvironment = $monitoringSettings['environment'] ?? 'unset';
+        $this->serversConfig = $monitoringContext->serversConfig;
+        $this->ttlConfig = $monitoringContext->ttlConfig;
+        $this->thresholdsConfig = $monitoringContext->thresholdsConfig;
+        $this->monitoringEnvironment = $monitoringContext->monitoringEnvironment;
+        $this->dashboardServicesByServer = $monitoringContext->servicesByServer;
 
         // Initialize view renderers in dependency order
         $this->logRenderer = new LogRenderer($twig, $logger, $tools, $app, $endpoints);
@@ -199,129 +167,6 @@ class DashboardController extends BaseController
             $cacheTypeResolver,
             $appInventorySync
         );
-
-        $demoAlarmMetricScenario = $this->appConfig->environment->env === 'demo' && $this->serversConfig !== []
-            ? new DemoAlarmMetricScenario(array_keys($this->serversConfig))
-            : null;
-
-        // Initialize per-server service classes
-        foreach ($this->serversConfig as $server => $serverConfig) {
-            try {
-                $this->dashboardServicesByServer[$server] = $this->initializeServerMonitoring(
-                    $server,
-                    $serverConfig,
-                    $demoAlarmMetricScenario,
-                );
-            } catch (Exception $e) {
-                $this->logger->error($server, [
-                    'error' => $e->getMessage(),
-                    'file' => $e->getFile(),
-                    'line' => $e->getLine(),
-                ]);
-
-                $this->notificationManager->addConfigWarning(
-                    'server.monitoring.failed',
-                    "Couldnt initialize server monitoring/service for server: {$server}"
-                );
-            }
-        }
-    }
-
-    /**
-     * Initialize monitoring components for a server.
-     *
-     * @param string              $server       Server name
-     * @param array<string,mixed> $serverConfig Server configuration
-     */
-    private function initializeServerMonitoring(
-        string $server,
-        array $serverConfig,
-        ?DemoAlarmMetricScenario $demoAlarmMetricScenario = null,
-    ): ServerDashboardServices {
-        $environment = $this->appConfig->environment->env;
-        $dataTransformer = new ApiResponseTransformer($this->logger);
-
-        if ($environment === 'demo') {
-            return new ServerDashboardServices(
-                new MockServerDataCollector(
-                    $this->logger,
-                    $this->ttlResolver,
-                    $dataTransformer,
-                    $server,
-                    $serverConfig,
-                    $demoAlarmMetricScenario,
-                ),
-                new MockAppMonitor(),
-                new MockNodeHealthMonitor(),
-            );
-        }
-
-        if (!isset($serverConfig['api_key'], $serverConfig['api_url'])) {
-            throw new InvalidArgumentException("Server {$server} missing required config");
-        }
-
-        // Extract security flags with defaults
-        $allowHttp = TypeConverter::toBool($serverConfig['allow_http'] ?? null) ?? false;
-        $suppressHttpWarning = TypeConverter::toBool($serverConfig['suppress_http_warning'] ?? null) ?? false;
-
-        $apiClient = new ApiClient(
-            $this->logger,
-            $serverConfig['api_url'],
-            $server,
-            $serverConfig['api_key'],
-            10,
-            true,
-            $allowHttp,
-            $suppressHttpWarning
-        );
-
-        $probeClient = $this->probeClient ??= new ProbeClient();
-
-        return new ServerDashboardServices(
-            new ServerDataCollector(
-                $this->logger,
-                $this->cacheStore,
-                $this->cacheKeyFactory,
-                $this->ttlResolver,
-                $apiClient,
-                $dataTransformer
-            ),
-            new AppMonitor(
-                $this->cacheStore,
-                $this->cacheKeyFactory,
-                $this->ttlResolver,
-                $apiClient,
-                $probeClient,
-                $this->eventManager,
-                $this->logger,
-                $this->probePolicy,
-                $this->unreachableWindowSeconds
-            ),
-            new NodeHealthMonitor(
-                $this->cacheStore,
-                $this->cacheKeyFactory,
-                $this->ttlResolver,
-                $apiClient,
-                $probeClient,
-                $this->eventManager,
-                $this->logger,
-                $this->probePolicy
-            ),
-        );
-    }
-
-    /**
-     * Resolve the reachability streak window from the app_unreachable alarm threshold so
-     * the streak reset and the alarm's evaluation window cannot drift apart.
-     */
-    private function resolveUnreachableWindowSeconds(): int
-    {
-        $config = $this->thresholdsConfig['alarms']['app_unreachable'] ?? [];
-        $windowMinutes = is_array($config) && is_numeric($config['window_minutes'] ?? null)
-            ? (int) $config['window_minutes']
-            : 10;
-
-        return max(60, $windowMinutes * 60);
     }
 
     /**
@@ -337,7 +182,7 @@ class DashboardController extends BaseController
         return $collectors;
     }
 
-    private function requireDashboardServices(string $server): ServerDashboardServices
+    private function requireDashboardServices(string $server): ServerMonitoringServices
     {
         if (!isset($this->dashboardServicesByServer[$server])) {
             throw new InvalidArgumentException("Dashboard services unavailable for server: {$server}");

@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Mata\Tests\Unit\Services;
 
 use Mata\Services\Cache\CacheTtlResolver;
-use Mata\Services\Collect\DemoAlarmMetricScenario;
 use Mata\Services\Collect\MockServerDataCollector;
 use Mata\Services\DataTransformers\ApiResponseTransformer;
 use PHPUnit\Framework\TestCase;
@@ -59,38 +58,48 @@ final class MockServerDataCollectorTest extends TestCase
         }
     }
 
-    public function testDemoDashboardIncludesOneRandomAlarmMetric(): void
+    public function testProductionWebAlwaysHasAnAlarmLevelCpuUsage(): void
     {
         $logger = new NullLogger();
-        $servers = ['production-web', 'database-server', 'staging-server', 'development-server', 'backup-server'];
-        $scenario = new DemoAlarmMetricScenario($servers);
-        $alarmMetrics = [];
+        $collector = new MockServerDataCollector(
+            $logger,
+            new CacheTtlResolver([]),
+            new ApiResponseTransformer($logger),
+            'production-web',
+            ['url' => 'https://production-web.example.test'],
+        );
 
-        foreach ($servers as $server) {
+        $response = $collector->getServerSystemData();
+
+        $this->assertNull($response['error']);
+        $this->assertSame(97.0, $response['result']['cpu_usage']);
+    }
+
+    public function testNonProductionServersUseTheirGeneratedBaseCpuUsage(): void
+    {
+        $logger = new NullLogger();
+        $transformer = new ApiResponseTransformer($logger);
+        $cpuRanges = [
+            'database-server' => [25, 45],
+            'staging-server' => [10, 30],
+            'development-server' => [20, 40],
+            'backup-server' => [5, 25],
+            'load-balancer' => [15, 35],
+        ];
+
+        foreach ($cpuRanges as $server => [$minimum, $maximum]) {
             $collector = new MockServerDataCollector(
                 $logger,
                 new CacheTtlResolver([]),
-                new ApiResponseTransformer($logger),
+                $transformer,
                 $server,
                 ['url' => 'https://' . $server . '.example.test'],
-                $scenario,
             );
-            $data = $collector->getServerSystemData()['result'];
-            $failedCronjobs = $data['cronjobs']['total'] - $data['cronjobs']['working'];
-            $metrics = [
-                'cpu' => $data['cpu_usage'] >= 95,
-                'ram' => $data['ram_used'] / $data['ram_capacity'] * 100 >= 95,
-                'disk' => $data['disk_space_used'] / $data['disk_space_capacity'] * 100 >= 90,
-                'filecount' => $data['total_system_filecount'] >= 900000,
-                'cronjobs' => $failedCronjobs >= 1,
-            ];
+            $cpuUsage = $collector->getServerSystemData()['result']['cpu_usage'];
 
-            foreach (array_keys(array_filter($metrics)) as $metric) {
-                $alarmMetrics[] = $server . ':' . $metric;
-            }
+            $this->assertGreaterThanOrEqual($minimum, $cpuUsage, $server);
+            $this->assertLessThanOrEqual($maximum, $cpuUsage, $server);
         }
-
-        $this->assertCount(1, $alarmMetrics);
     }
 
     public function testDemoAppsAlwaysMatchTheAppsResponseContract(): void

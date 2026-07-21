@@ -44,7 +44,7 @@ final class NodeHealthMonitorTest extends TestCase
         $store->expects($this->once())->method('put')->willReturn(true);
         $monitor = $this->monitor($store, $this->probe($health));
 
-        $this->assertSame($state, $monitor->checkOrWait('node-a')['state']);
+        $this->assertSame($state, $monitor->checkSynchronously('node-a')['state']);
     }
 
     /** @return iterable<string,array{array<string,mixed>,string}> */
@@ -65,7 +65,7 @@ final class NodeHealthMonitorTest extends TestCase
         ], time()));
         $store->expects($this->never())->method('put');
 
-        $this->assertSame(NodeHealthState::HEALTHY, $this->monitor($store, new ProbeClient())->checkOrWait('node-a')['state']);
+        $this->assertSame(NodeHealthState::HEALTHY, $this->monitor($store, new ProbeClient())->checkSynchronously('node-a')['state']);
     }
 
     public function testForcedRefreshBypassesCachedHealth(): void
@@ -75,7 +75,7 @@ final class NodeHealthMonitorTest extends TestCase
         $store->expects($this->once())->method('put')->willReturn(true);
         $monitor = $this->monitor($store, $this->probe(['status' => 'healthy', 'maintenance_mode' => false]));
 
-        $health = $monitor->checkOrWait('node-a', forceRefresh: true);
+        $health = $monitor->checkSynchronously('node-a', forceRefresh: true);
 
         $this->assertSame(NodeHealthState::HEALTHY, $health['state']);
     }
@@ -114,8 +114,8 @@ final class NodeHealthMonitorTest extends TestCase
         $events->expects($this->never())->method('handle');
         $failure = new ConnectException('Operation timed out', new Request('GET', 'https://node.example.test/api/health'), null, ['errno' => 28]);
 
-        $result = $this->monitor($store, $this->probe($failure, ['status' => 'healthy']), $events, static function (): void {})
-            ->checkOrWait('node-a');
+        $result = $this->monitor($store, $this->probe($failure, ['status' => 'healthy']), $events, static function (int $micros): void {})
+            ->checkSynchronously('node-a');
 
         $this->assertSame('healthy', $result['status']);
         $this->assertSame(2, $result['attempts']);
@@ -134,7 +134,7 @@ final class NodeHealthMonitorTest extends TestCase
         });
         $failure = new ConnectException('Operation timed out', new Request('GET', 'https://node.example.test/api/health'), null, ['errno' => 28]);
 
-        $this->monitor($store, $this->probe($failure, $failure), $events, static function (): void {})->checkOrWait('node-a');
+        $this->monitor($store, $this->probe($failure, $failure), $events, static function (int $micros): void {})->checkSynchronously('node-a');
 
         $this->assertSame('node_unreachable', $event?->type);
         $this->assertSame(2, $event?->metric?->additional['attempts']);
@@ -152,18 +152,29 @@ final class NodeHealthMonitorTest extends TestCase
             null,
             ['errno' => 28],
         );
-        $delays = 0;
+        $retryDelays = [];
         $result = $this->monitor(
             $store,
             $this->probe($failure(), $failure(), ['status' => 'healthy']),
             $events,
-            function () use (&$delays): void { ++$delays; },
-            new ProbePolicy(5, 2, 500, 1500, ['timeout' => true]),
-        )->checkOrWait('node-a');
+            function (int $micros) use (&$retryDelays): void {
+                $retryDelays[] = $micros;
+            },
+            new ProbePolicy(
+                timeoutSeconds: 5,
+                maxRetries: 2,
+                backoffBaseMs: 500,
+                backoffMaxMs: 1500,
+            ),
+        )->checkSynchronously('node-a');
 
         $this->assertSame('healthy', $result['status']);
         $this->assertSame(3, $result['attempts']);
-        $this->assertSame(2, $delays);
+        $this->assertCount(2, $retryDelays);
+        foreach ($retryDelays as $micros) {
+            $this->assertGreaterThanOrEqual(0, $micros);
+            $this->assertLessThanOrEqual(1_500_000, $micros);
+        }
     }
 
     private function monitor(CacheStoreInterface $store, ProbeClient $probe, ?EventManager $events = null, ?Closure $retryDelay = null, ?ProbePolicy $probePolicy = null): NodeHealthMonitor

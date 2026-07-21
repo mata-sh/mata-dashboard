@@ -679,6 +679,34 @@ final class MonitoringSettingsLoaderTest extends TestCase
         ], $thresholds['alarms']['ram_usage_too_high']);
     }
 
+    public function testInvalidAlarmRuleUsesTheDefaultRuleWhenAvailable(): void
+    {
+        $this->useEventRecorderMock();
+        $this->eventRecorder
+            ->expects($this->exactly(2))
+            ->method('recordEvent')
+            ->willReturn(new EventRecordResult(1, null, null, null, null, null));
+        $path = tempnam(sys_get_temp_dir(), 'mata-thresholds-');
+        self::assertNotFalse($path);
+        file_put_contents($path, json_encode(['alarms' => [
+            'app_unreachable' => ['strategy' => 'unknown'],
+            'custom_alarm' => ['strategy' => 'unknown'],
+        ]], JSON_THROW_ON_ERROR));
+
+        try {
+            $thresholds = $this->loader->loadThresholdsConfig($path);
+        } finally {
+            unlink($path);
+        }
+
+        $this->assertSame([
+            'strategy' => 'consecutive_failures',
+            'required_count' => 2,
+            'window_minutes' => 10,
+        ], $thresholds['alarms']['app_unreachable']);
+        $this->assertArrayNotHasKey('custom_alarm', $thresholds['alarms']);
+    }
+
     public function testDefaultFatalErrorEventIntervalIsConfigured(): void
     {
         $path = tempnam(sys_get_temp_dir(), 'mata-intervals-');
@@ -693,6 +721,7 @@ final class MonitoringSettingsLoaderTest extends TestCase
 
         $eventIntervals = $config['events']['min_event_interval_minutes'];
         $alarmIntervals = $config['alarms']['min_alarm_interval_minutes'];
+        $this->assertSame(0, $eventIntervals['app_unreachable']);
         $this->assertSame(72, $eventIntervals['fatal_errors_occurring']);
         $this->assertArrayNotHasKey('server_metrics.ingestion_run_completed', $eventIntervals);
         $this->assertSame(5, $eventIntervals['server_metrics.ingestion_run_empty']);

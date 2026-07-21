@@ -14,7 +14,7 @@ use Mata\Services\Event\EventManager;
 use Mata\Services\Foundation\IdResolver;
 use Mata\Services\Foundation\LogAnalyzer;
 use Mata\Services\Monitor\AppMonitorInterface;
-use Mata\Services\Monitor\Dto\ServerDashboardServices;
+use Mata\Services\Monitor\Dto\ServerMonitoringServices;
 use Mata\Services\Monitor\NodeHealthMonitorInterface;
 use Mata\Services\Monitor\ServerMonitor;
 use Mata\Services\Sync\AppInventorySync;
@@ -69,7 +69,7 @@ final class ServerViewBuilderTest extends TestCase
         );
 
         $result = $builder->buildServersViewData(
-            ['server-a' => new ServerDashboardServices($collector, $appMonitor, $healthMonitor)],
+            ['server-a' => new ServerMonitoringServices($collector, $appMonitor, $healthMonitor)],
             ['server-a' => ['title' => 'Server A']],
             false,
         );

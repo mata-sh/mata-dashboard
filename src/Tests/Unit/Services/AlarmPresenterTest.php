@@ -36,7 +36,7 @@ final class AlarmPresenterTest extends TestCase
         $this->assertSame('Detected fatal errors above threshold.', $presentation->description);
         $this->assertSame('FATAL_ERRORS_OCCURRING', $presentation->metric?->label);
         $this->assertSame('2.1k', $presentation->metric?->value);
-        $this->assertNull($presentation->metric?->threshold);
+        $this->assertNull($presentation->metric?->detail);
     }
 
     public function testItResolvesDiskAndCronjobMetricsWithCapturedThresholds(): void
@@ -64,9 +64,9 @@ final class AlarmPresenterTest extends TestCase
         $invalid = $this->presenter->present(new Alarm('cronjobs_failing', 'Cronjobs failing', 'not json'), 'api-1', null);
 
         $this->assertSame('UNKNOWN', $missing->metric?->value);
-        $this->assertNull($missing->metric?->threshold);
+        $this->assertNull($missing->metric?->detail);
         $this->assertSame('UNKNOWN', $invalid->metric?->value);
-        $this->assertNull($invalid->metric?->threshold);
+        $this->assertNull($invalid->metric?->detail);
     }
 
     public function testItResolvesHealthStatesAndFallsBackForUnknownTypes(): void

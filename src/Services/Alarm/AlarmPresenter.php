@@ -25,22 +25,31 @@ final class AlarmPresenter
         $context = is_array($decodedContext) ? $decodedContext : [];
         $ruleDetail = $this->ruleDetail($alarm->triggerEvidence, $type);
 
-        [$description, $value, $detail] = match ($type) {
-            'fatal_errors_occurring' => ['Detected fatal errors above threshold.', is_numeric($context['actual_value'] ?? null) ? $this->numberFormatter->formatCompact($context['actual_value']) : 'UNKNOWN', $ruleDetail],
-            'remaining_diskspace_too_low' => ['Detected disk usage above threshold.', is_numeric($context['actual_value'] ?? null) ? $this->formatPercent((float) $context['actual_value']) : 'UNKNOWN', $this->metricThresholdLabel($context, '%') ?? $ruleDetail],
-            'cronjobs_failing' => ['Detected failing cronjobs.', is_numeric($context['actual_value'] ?? null) ? $this->formatNumber((int) $context['actual_value']) : 'UNKNOWN', $ruleDetail],
-            'cpu_usage_too_high', 'ram_usage_too_high' => ['Detected elevated server resource usage.', is_numeric($context['actual_value'] ?? null) ? $this->formatPercent((float) $context['actual_value']) : 'UNKNOWN', $ruleDetail],
-            'server_metrics.ingestion_run_empty' => ['Detected an empty metrics ingestion run.', 'EMPTY', $ruleDetail],
-            'node_unhealthy' => ['Detected an unhealthy health response.', 'UNHEALTHY', $ruleDetail],
-            'node_unreachable' => ['Detected an unreachable server health endpoint.', 'UNREACHABLE', $ruleDetail ?? 'Alarm rule: first failed check'],
-            'app_unreachable' => ['Detected an unreachable application endpoint.', 'UNREACHABLE', $ruleDetail],
-            default => [$this->fallbackDescription($alarm->type), null, null],
+        $value = $this->metricValue($type, $context['actual_value'] ?? null);
+        [$description, $detail] = match ($type) {
+            'fatal_errors_occurring' => ['Detected fatal errors above threshold.', $ruleDetail],
+            'remaining_diskspace_too_low' => ['Detected disk usage above threshold.', $this->thresholdDetail($context, '%') ?? $ruleDetail],
+            'cronjobs_failing' => ['Detected failing cronjobs.', $ruleDetail],
+            'cpu_usage_too_high', 'ram_usage_too_high' => ['Detected elevated server resource usage.', $ruleDetail],
+            'server_metrics.ingestion_run_empty' => ['Detected an empty metrics ingestion run.', $ruleDetail],
+            'node_unhealthy' => ['Detected an unhealthy health response.', $ruleDetail],
+            'node_unreachable' => ['Detected an unreachable server health endpoint.', $ruleDetail ?? 'Alarm rule: first failed check'],
+            'app_unreachable' => ['Detected an unreachable application endpoint.', $ruleDetail],
+            default => [$this->defaultDescription($alarm->type), null],
         };
 
         $config = $this->serverConfig($server);
         $serverEnv = is_string($config['env'] ?? null) ? $config['env'] : null;
 
-        return new AlarmPresentation($description, $value === null ? null : new AlarmMetric(strtoupper($type), $value, $detail), $this->serverColor($config['primary_color'] ?? null), AlarmEnvironment::tryFromString($appEnvironment) ?? AlarmEnvironment::tryFromString($serverEnv));
+        $metric = $value === null ? null : new AlarmMetric(strtoupper($type), $value, $detail);
+        $environment = AlarmEnvironment::tryFromString($appEnvironment) ?? AlarmEnvironment::tryFromString($serverEnv);
+
+        return new AlarmPresentation(
+            description: $description,
+            metric: $metric,
+            serverColor: $this->serverColor($config['primary_color'] ?? null),
+            environment: $environment,
+        );
     }
 
     /** @param array<string,mixed> $evidence */
@@ -60,7 +69,7 @@ final class AlarmPresenter
         return $evidence !== [] ? 'Alarm rule: first event' : null;
     }
 
-    private function fallbackDescription(string $type): string
+    private function defaultDescription(string $type): string
     {
         $type = trim($type);
 
@@ -68,11 +77,29 @@ final class AlarmPresenter
     }
 
     /** @param array<string,mixed> $context */
-    private function metricThresholdLabel(array $context, string $suffix = ''): ?string
+    private function thresholdDetail(array $context, string $suffix = ''): ?string
     {
         $value = $context['threshold'] ?? null;
 
         return is_numeric($value) ? 'Threshold: ' . $this->formatNumber((float) $value) . $suffix : null;
+    }
+
+    private function metricValue(string $type, mixed $actualValue): ?string
+    {
+        return match ($type) {
+            'fatal_errors_occurring' => $this->formatMetricValue($actualValue, $this->numberFormatter->formatCompact(...)),
+            'remaining_diskspace_too_low', 'cpu_usage_too_high', 'ram_usage_too_high' => $this->formatMetricValue($actualValue, $this->formatPercent(...)),
+            'cronjobs_failing' => $this->formatMetricValue($actualValue, $this->formatNumber(...)),
+            'server_metrics.ingestion_run_empty' => 'EMPTY',
+            'node_unhealthy' => 'UNHEALTHY',
+            'node_unreachable', 'app_unreachable' => 'UNREACHABLE',
+            default => null,
+        };
+    }
+
+    private function formatMetricValue(mixed $value, callable $formatter): string
+    {
+        return is_numeric($value) ? $formatter((float) $value) : 'UNKNOWN';
     }
 
     private function formatPercent(float $value): string
@@ -101,6 +128,10 @@ final class AlarmPresenter
 
     private function serverColor(mixed $color): ?string
     {
-        return is_string($color) && preg_match('/^#[0-9a-f]{6}$/i', $color) === 1 ? $color : null;
+        if (!is_string($color) || preg_match('/^#[0-9a-f]{6}$/i', $color) !== 1) {
+            return null;
+        }
+
+        return $color;
     }
 }

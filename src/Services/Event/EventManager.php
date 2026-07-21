@@ -354,12 +354,6 @@ class EventManager
      */
     private function getEventIntervalMinutes(string $type): int
     {
-        // Consecutive app reachability cycles must both be persisted. Legacy 15-minute
-        // config would hide the second five-minute cycle.
-        if ($type === 'app_unreachable') {
-            return 0;
-        }
-
         // 1. Check event-specific configuration from intervals.json
         if (isset($this->eventIntervals[$type])) {
             return max(0, (int) $this->eventIntervals[$type]);

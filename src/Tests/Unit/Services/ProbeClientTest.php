@@ -28,7 +28,7 @@ final class ProbeClientTest extends TestCase
         $probe = $this->probe([new Response(302)], $history);
 
         $result = $probe->settle([
-            'app' => $probe->checkAvailabilityAsync('https://app.example.test', 2),
+            'app' => $probe->probeReachabilityAsync('https://app.example.test', 2),
         ]);
 
         $this->assertSame(['app'], array_keys($result));
@@ -38,13 +38,24 @@ final class ProbeClientTest extends TestCase
         $this->assertFalse($history[0]['request']->hasHeader('X-Mata-Auth'));
     }
 
+    public function testReachabilityRecordsLatencyForHttpFailures(): void
+    {
+        $probe = $this->probe([new Response(500)]);
+
+        $result = $probe->probeReachabilityAsync('https://app.example.test', 2)->wait();
+
+        $this->assertFalse($result['reachable']);
+        $this->assertSame(500, $result['httpCode']);
+        $this->assertIsInt($result['latency_ms']);
+    }
+
     public function testAvailabilityNormalizesTransportFailure(): void
     {
         $probe = $this->probe([
             new ConnectException('Connection refused', new Request('HEAD', 'https://app.example.test')),
         ]);
 
-        $result = $probe->checkAvailabilityAsync('https://app.example.test', 2)->wait();
+        $result = $probe->probeReachabilityAsync('https://app.example.test', 2)->wait();
 
         $this->assertFalse($result['reachable']);
         $this->assertNull($result['httpCode']);
@@ -56,7 +67,7 @@ final class ProbeClientTest extends TestCase
     {
         $probe = $this->probe([new ConnectException($message, new Request('HEAD', 'https://app.example.test'), null, ['errno' => $errno])]);
 
-        $result = $probe->checkAvailabilityAsync('https://app.example.test', 5)->wait();
+        $result = $probe->probeReachabilityAsync('https://app.example.test', 5)->wait();
 
         $this->assertSame($kind, $result['failure_kind']);
         $this->assertSame($errno, $result['curl_errno']);
@@ -81,11 +92,12 @@ final class ProbeClientTest extends TestCase
         $history = [];
         $probe = $this->probe([new Response(503, [], '{"maintenance_mode":true}')], $history);
 
-        $result = $probe->checkStatusAsync('https://app.example.test/status.php', 2)->wait();
+        $result = $probe->probeStatusEndpointAsync('https://app.example.test/status.php', 2)->wait();
 
         $this->assertFalse($result['reachable']);
         $this->assertTrue($result['maintenance_mode']);
         $this->assertSame(503, $result['httpCode']);
+        $this->assertIsInt($result['latency_ms']);
         $this->assertSame('GET', $history[0]['request']->getMethod());
         $this->assertSame('application/json', $history[0]['request']->getHeaderLine('Accept'));
         $this->assertFalse($history[0]['request']->hasHeader('X-Mata-Auth'));
@@ -95,7 +107,7 @@ final class ProbeClientTest extends TestCase
     {
         $probe = $this->probe([new Response(200, [], '{"status":"ok"}')]);
 
-        $result = $probe->checkStatusAsync('https://app.example.test/health/', 2)->wait();
+        $result = $probe->probeStatusEndpointAsync('https://app.example.test/health/', 2)->wait();
 
         $this->assertTrue($result['reachable']);
         $this->assertFalse($result['maintenance_mode']);
@@ -105,7 +117,7 @@ final class ProbeClientTest extends TestCase
     {
         $probe = $this->probe([new Response(200, [], str_repeat(' ', 65537))]);
 
-        $result = $probe->checkStatusAsync('https://app.example.test/health/', 2)->wait();
+        $result = $probe->probeStatusEndpointAsync('https://app.example.test/health/', 2)->wait();
 
         $this->assertFalse($result['reachable']);
         $this->assertSame('Invalid status endpoint response', $result['error']);
@@ -118,14 +130,25 @@ final class ProbeClientTest extends TestCase
             new Response(302, ['Location' => 'https://login.example.test']),
         ]);
 
-        $invalid = $probe->checkStatusAsync('https://app.example.test/health/', 2)->wait();
-        $redirect = $probe->checkStatusAsync('https://app.example.test/health/', 2)->wait();
+        $invalid = $probe->probeStatusEndpointAsync('https://app.example.test/health/', 2)->wait();
+        $redirect = $probe->probeStatusEndpointAsync('https://app.example.test/health/', 2)->wait();
 
         $this->assertFalse($invalid['reachable']);
         $this->assertFalse($invalid['maintenance_mode']);
         $this->assertSame('Invalid status endpoint response', $invalid['error']);
         $this->assertFalse($redirect['reachable']);
         $this->assertSame(302, $redirect['httpCode']);
+    }
+
+    public function testHealthProbeRejectsOversizedBody(): void
+    {
+        $probe = $this->probe([new Response(200, [], str_repeat(' ', 65537))]);
+
+        $result = $probe->probeNodeHealthAsync('https://node.example.test/api/health', 3)->wait();
+
+        $this->assertSame('unreachable', $result['status']);
+        $this->assertSame('Health response is too large', $result['error']);
+        $this->assertIsInt($result['latency_ms']);
     }
 
     public function testHealthNormalizesHealthyUnhealthyAndMalformedResponses(): void
@@ -136,9 +159,9 @@ final class ProbeClientTest extends TestCase
             new Response(200, [], '{invalid'),
         ]);
 
-        $healthy = $probe->checkHealthAsync('https://node-a.example.test/api/health', 3)->wait();
-        $unhealthy = $probe->checkHealthAsync('https://node-b.example.test/api/health', 3)->wait();
-        $malformed = $probe->checkHealthAsync('https://node-c.example.test/api/health', 3)->wait();
+        $healthy = $probe->probeNodeHealthAsync('https://node-a.example.test/api/health', 3)->wait();
+        $unhealthy = $probe->probeNodeHealthAsync('https://node-b.example.test/api/health', 3)->wait();
+        $malformed = $probe->probeNodeHealthAsync('https://node-c.example.test/api/health', 3)->wait();
 
         $this->assertSame('healthy', $healthy['status']);
         $this->assertSame('unhealthy', $unhealthy['status']);

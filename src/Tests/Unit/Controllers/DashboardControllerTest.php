@@ -14,8 +14,13 @@ use Mata\Http\Routing\Endpoints;
 use Mata\Services\Cache\ApiCacheKeyFactory;
 use Mata\Services\Cache\CacheStoreInterface;
 use Mata\Services\Cache\CacheTtlResolver;
+use Mata\Services\DataTransformers\ApiResponseTransformer;
 use Mata\Services\Event\EventAggregatorServiceInterface;
 use Mata\Services\Event\EventManager;
+use Mata\Services\Foundation\ProbeClient;
+use Mata\Services\Monitor\Dto\DashboardMonitoringContext;
+use Mata\Services\Monitor\Dto\MonitoringPolicy;
+use Mata\Services\Monitor\ServerMonitoringFactory;
 use Mata\Services\Navigation\MenuBuilder;
 use Mata\Services\Notification\NotificationManager;
 use Mata\Tests\Helpers\ApplicationConfigFactory;
@@ -189,10 +194,9 @@ class DashboardControllerTest extends TestCase
             $this->eventManager,
             $this->cacheStore,
             $this->cacheKeyFactory,
-            $this->ttlResolver,
             $this->endpoints,
             $this->menuBuilder,
-            $this->monitoringSettings
+            $this->monitoringContext()
         );
 
         // Act
@@ -233,10 +237,9 @@ class DashboardControllerTest extends TestCase
             $this->eventManager,
             $this->cacheStore,
             $this->cacheKeyFactory,
-            $this->ttlResolver,
             $this->endpoints,
             $this->menuBuilder,
-            $this->monitoringSettings
+            $this->monitoringContext()
         );
 
         // Act
@@ -288,10 +291,9 @@ class DashboardControllerTest extends TestCase
             $this->eventManager,
             $this->cacheStore,
             $this->cacheKeyFactory,
-            $this->ttlResolver,
             $this->endpoints,
             $this->menuBuilder,
-            $this->monitoringSettings
+            $this->monitoringContext()
         );
 
         // Act
@@ -326,10 +328,9 @@ class DashboardControllerTest extends TestCase
             $this->eventManager,
             $this->cacheStore,
             $this->cacheKeyFactory,
-            $this->ttlResolver,
             $this->endpoints,
             $this->menuBuilder,
-            $this->monitoringSettings
+            $this->monitoringContext()
         );
 
         // Act
@@ -368,10 +369,9 @@ class DashboardControllerTest extends TestCase
             $this->eventManager,
             $this->cacheStore,
             $this->cacheKeyFactory,
-            $this->ttlResolver,
             $this->endpoints,
             $this->menuBuilder,
-            $this->monitoringSettings
+            $this->monitoringContext()
         );
 
         // Act: Request with force refresh
@@ -411,10 +411,9 @@ class DashboardControllerTest extends TestCase
             $this->eventManager,
             $this->cacheStore,
             $this->cacheKeyFactory,
-            $this->ttlResolver,
             $this->endpoints,
             $this->menuBuilder,
-            $this->monitoringSettings
+            $this->monitoringContext()
         );
 
         // Act: Even with potential errors, should return response
@@ -448,10 +447,9 @@ class DashboardControllerTest extends TestCase
             $this->eventManager,
             $this->cacheStore,
             $this->cacheKeyFactory,
-            $this->ttlResolver,
             $this->endpoints,
             $this->menuBuilder,
-            $this->monitoringSettings
+            $this->monitoringContext()
         );
 
         // Act
@@ -485,10 +483,9 @@ class DashboardControllerTest extends TestCase
             $this->eventManager,
             $this->cacheStore,
             $this->cacheKeyFactory,
-            $this->ttlResolver,
             $this->endpoints,
             $this->menuBuilder,
-            $this->monitoringSettings
+            $this->monitoringContext()
         );
 
         // Act
@@ -523,10 +520,9 @@ class DashboardControllerTest extends TestCase
             $this->eventManager,
             $this->cacheStore,
             $this->cacheKeyFactory,
-            $this->ttlResolver,
             $this->endpoints,
             $this->menuBuilder,
-            $this->monitoringSettings
+            $this->monitoringContext()
         );
 
         // Act
@@ -557,10 +553,9 @@ class DashboardControllerTest extends TestCase
             $this->eventManager,
             $this->cacheStore,
             $this->cacheKeyFactory,
-            $this->ttlResolver,
             $this->endpoints,
             $this->menuBuilder,
-            $this->monitoringSettings
+            $this->monitoringContext()
         );
 
         $this->twig
@@ -599,10 +594,9 @@ class DashboardControllerTest extends TestCase
             $this->eventManager,
             $this->cacheStore,
             $this->cacheKeyFactory,
-            $this->ttlResolver,
             $this->endpoints,
             $this->menuBuilder,
-            $this->monitoringSettings
+            $this->monitoringContext()
         );
 
         $this->endpoints
@@ -653,10 +647,9 @@ class DashboardControllerTest extends TestCase
             $this->eventManager,
             $this->cacheStore,
             $this->cacheKeyFactory,
-            $this->ttlResolver,
             $this->endpoints,
             $this->menuBuilder,
-            $this->monitoringSettings
+            $this->monitoringContext()
         );
 
         // Setup mock events data
@@ -721,10 +714,9 @@ class DashboardControllerTest extends TestCase
             $this->eventManager,
             $this->cacheStore,
             $this->cacheKeyFactory,
-            $this->ttlResolver,
             $this->endpoints,
             $this->menuBuilder,
-            $this->monitoringSettings
+            $this->monitoringContext()
         );
 
         // Mock the aggregator service to throw exception
@@ -773,10 +765,9 @@ class DashboardControllerTest extends TestCase
             $this->eventManager,
             $this->cacheStore,
             $this->cacheKeyFactory,
-            $this->ttlResolver,
             $this->endpoints,
             $this->menuBuilder,
-            $this->monitoringSettings
+            $this->monitoringContext()
         );
 
         $expectedAlarms = [
@@ -861,10 +852,9 @@ class DashboardControllerTest extends TestCase
             $this->eventManager,
             $this->cacheStore,
             $this->cacheKeyFactory,
-            $this->ttlResolver,
             $this->endpoints,
             $this->menuBuilder,
-            $this->monitoringSettings
+            $this->monitoringContext()
         );
 
         // Act
@@ -902,10 +892,9 @@ class DashboardControllerTest extends TestCase
             $this->eventManager,
             $this->cacheStore,
             $this->cacheKeyFactory,
-            $this->ttlResolver,
             $this->endpoints,
             $this->menuBuilder,
-            $this->monitoringSettings
+            $this->monitoringContext()
         );
 
         $_POST['action'] = 'dismiss';
@@ -944,10 +933,9 @@ class DashboardControllerTest extends TestCase
             $this->eventManager,
             $this->cacheStore,
             $this->cacheKeyFactory,
-            $this->ttlResolver,
             $this->endpoints,
             $this->menuBuilder,
-            $this->monitoringSettings
+            $this->monitoringContext()
         );
 
         // No POST data
@@ -989,10 +977,9 @@ class DashboardControllerTest extends TestCase
             $this->eventManager,
             $this->cacheStore,
             $this->cacheKeyFactory,
-            $this->ttlResolver,
             $this->endpoints,
             $this->menuBuilder,
-            $this->monitoringSettings
+            $this->monitoringContext()
         );
 
         $response = $this->controller->refreshServer('web-server-01');
@@ -1024,10 +1011,9 @@ class DashboardControllerTest extends TestCase
             $this->eventManager,
             $this->cacheStore,
             $this->cacheKeyFactory,
-            $this->ttlResolver,
             $this->endpoints,
             $this->menuBuilder,
-            $this->monitoringSettings
+            $this->monitoringContext()
         );
 
         $response = $this->controller->refreshServerStats('web-server-01');
@@ -1057,10 +1043,9 @@ class DashboardControllerTest extends TestCase
             $this->eventManager,
             $this->cacheStore,
             $this->cacheKeyFactory,
-            $this->ttlResolver,
             $this->endpoints,
             $this->menuBuilder,
-            [] // Empty monitoring settings
+            DashboardMonitoringContext::fromSettingsAndServices([], [])
         );
 
         // Assert: Controller is created successfully
@@ -1101,14 +1086,33 @@ class DashboardControllerTest extends TestCase
             $this->eventManager,
             $this->cacheStore,
             $this->cacheKeyFactory,
-            $this->ttlResolver,
             $this->endpoints,
             $this->menuBuilder,
-            $invalidSettings
+            DashboardMonitoringContext::fromSettingsAndServices($invalidSettings, [])
         );
 
         // Assert: Controller is created (doesn't crash)
         $this->assertInstanceOf(DashboardController::class, $controller);
+    }
+
+    private function monitoringContext(): DashboardMonitoringContext
+    {
+        $factory = new ServerMonitoringFactory(
+            $this->logger,
+            $this->cacheStore,
+            $this->cacheKeyFactory,
+            $this->ttlResolver,
+            $this->eventManager,
+            new ApiResponseTransformer($this->logger),
+            new ProbeClient(),
+            MonitoringPolicy::fromSettings($this->monitoringSettings),
+        );
+        $serverMonitoringBuild = $factory->createDemoAll($this->monitoringSettings['servers']);
+
+        return DashboardMonitoringContext::fromSettingsAndServices(
+            $this->monitoringSettings,
+            $serverMonitoringBuild->servicesByServer,
+        );
     }
 
     protected function tearDown(): void
@@ -1125,10 +1129,9 @@ class DashboardControllerTest extends TestCase
                 $this->eventManager,
                 $this->cacheStore,
                 $this->cacheKeyFactory,
-                $this->ttlResolver,
                 $this->endpoints,
                 $this->menuBuilder,
-                $this->monitoringSettings
+                $this->monitoringContext()
             );
         }
 

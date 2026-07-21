@@ -12,10 +12,4 @@ final class AlarmMetric
         public readonly string $value,
         public readonly ?string $detail = null,
     ) {}
-
-    /** Temporary read compatibility for integrations using the old presentation property. */
-    public function __get(string $name): ?string
-    {
-        return $name === 'threshold' ? $this->detail : null;
-    }
 }

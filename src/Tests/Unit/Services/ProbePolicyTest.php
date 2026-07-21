@@ -23,7 +23,6 @@ final class ProbePolicyTest extends TestCase
         $this->assertSame($default->maxRetries, $policy->maxRetries);
         $this->assertSame($default->backoffBaseMs, $policy->backoffBaseMs);
         $this->assertSame($default->backoffMaxMs, $policy->backoffMaxMs);
-        $this->assertSame(['dns' => true, 'connect' => true, 'tls' => true, 'timeout' => true], $policy->retryableKinds);
     }
 
     public function testClampsOutOfRangeValues(): void
@@ -41,26 +40,33 @@ final class ProbePolicyTest extends TestCase
         $this->assertSame(900, $policy->backoffMaxMs, 'max is raised to at least the base');
     }
 
-    public function testRetryableKindsAreParsedIntoASetAndFallBackWhenEmpty(): void
+    public function testRetryabilityFollowsTheFixedFailureSemantics(): void
     {
-        $custom = ProbePolicy::fromArray(['retryable_kinds' => ['dns', 'connect']]);
-        $this->assertSame(['dns' => true, 'connect' => true], $custom->retryableKinds);
-        $this->assertTrue($custom->isRetryable('dns'));
-        $this->assertFalse($custom->isRetryable('tls'));
-        $this->assertFalse($custom->isRetryable(null));
+        $policy = ProbePolicy::default();
 
-        $this->assertSame(ProbePolicy::default()->retryableKinds, ProbePolicy::fromArray(['retryable_kinds' => []])->retryableKinds);
+        // Transient failures the probe classifier can recover from on retry.
+        $this->assertTrue($policy->isRetryable('dns'));
+        $this->assertTrue($policy->isRetryable('connect'));
+        $this->assertTrue($policy->isRetryable('tls'));
+        $this->assertTrue($policy->isRetryable('timeout'));
+
+        // Deterministic outcomes and absent/unknown kinds are never retried.
+        $this->assertFalse($policy->isRetryable('http'));
+        $this->assertFalse($policy->isRetryable('invalid_response'));
+        $this->assertFalse($policy->isRetryable('unknown'));
+        $this->assertFalse($policy->isRetryable(null));
     }
 
     public function testBackoffIsBoundedGrowsAndDisablesWhenMaxIsZero(): void
     {
-        $policy = new ProbePolicy(5, 5, 500, 1500, ['timeout' => true]);
+        $policy = new ProbePolicy(5, 5, 500, 1500);
         for ($attempt = 1; $attempt <= 5; ++$attempt) {
             $micros = $policy->backoffMicros($attempt);
             $this->assertGreaterThanOrEqual(0, $micros);
             $this->assertLessThanOrEqual(1500 * 1000, $micros, 'never exceeds the configured ceiling');
         }
 
-        $this->assertSame(0, (new ProbePolicy(5, 1, 0, 0, ['timeout' => true]))->backoffMicros(1));
+        $this->assertSame(0, (new ProbePolicy(5, 1, 0, 1500))->backoffMicros(1));
+        $this->assertSame(0, (new ProbePolicy(5, 1, 500, 0))->backoffMicros(1));
     }
 }

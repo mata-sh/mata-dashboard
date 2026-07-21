@@ -9,9 +9,9 @@ use Mata\Services\Monitor\AppMonitorInterface;
 use Mata\Services\Monitor\NodeHealthMonitorInterface;
 
 /**
- * Dashboard dependencies belonging to one configured server.
+ * Monitoring dependencies belonging to one configured server.
  */
-final readonly class ServerDashboardServices
+final readonly class ServerMonitoringServices
 {
     public function __construct(
         public ServerDataCollectorInterface $collector,

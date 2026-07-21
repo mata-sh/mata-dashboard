@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Mata\Services\Alarm;
 
 use Mata\Config\Dto\ApplicationConfig;
+use Mata\Services\Alarm\Dto\AlarmRule;
 use Mata\Services\Alarm\Dto\AlarmThresholdEvaluation;
 use Mata\Services\Event\CooldownHashFactory;
 use Mata\Services\Event\Dto\EventContext;
@@ -46,8 +47,8 @@ use Mata\Services\Event\EventRecorderService;
  */
 class AlarmThresholdCooldownService
 {
-    /** @var array<string,mixed> Alarm threshold configuration */
-    private array $alarmThresholds = [];
+    /** @var array<string,AlarmRule> Alarm rules keyed by type */
+    private array $alarmRules = [];
 
     /** @var array<string,int> Alarm type to interval minutes mapping */
     private array $alarmIntervals = [];
@@ -91,7 +92,13 @@ class AlarmThresholdCooldownService
         $thresholdsConfig = $settings['thresholds'] ?? [];
         $intervalsConfig = $settings['intervals'] ?? [];
 
-        $this->alarmThresholds = $thresholdsConfig['alarms'] ?? [];
+        $rules = is_array($thresholdsConfig['alarms'] ?? null) ? $thresholdsConfig['alarms'] : [];
+        $this->alarmRules = [];
+        foreach ($rules as $type => $rule) {
+            $this->alarmRules[(string) $type] = is_array($rule)
+                ? AlarmRule::fromArray($rule)
+                : AlarmRule::invalid();
+        }
         $this->alarmIntervals = $intervalsConfig['alarms']['min_alarm_interval_minutes'] ?? [];
 
         return $this;
@@ -130,41 +137,76 @@ class AlarmThresholdCooldownService
         ?EventContext $context = null,
     ): AlarmThresholdEvaluation {
         if (!$this->appConfig->general->alarmsEnabled) {
-            return new AlarmThresholdEvaluation(false, ['strategy' => 'disabled', 'label' => 'alarms disabled']);
-        }
-        $config = $this->alarmThresholds[$type] ?? [];
-        // app_unreachable used the former count-window schema. Its legacy entry is
-        // intentionally upgraded here only; unrelated legacy rules keep their meaning.
-        $strategy = (string) ($config['strategy'] ?? ($type === 'app_unreachable' ? 'consecutive_failures' : 'event_count_window'));
-        if ($strategy === 'consecutive_failures') {
-            $required = max(1, (int) ($config['required_count'] ?? 2));
-            $window = max(1, (int) ($config['window_minutes'] ?? 10));
-            $data = $context?->toArray()['additional_data'] ?? [];
-            $observed = is_numeric($data['consecutive_failures'] ?? null) ? (int) $data['consecutive_failures'] : 0;
-            $first = isset($data['first_failure_at']) ? strtotime((string) $data['first_failure_at']) : false;
-            $withinWindow = $first !== false && $first >= time() - ($window * 60);
-
-            return new AlarmThresholdEvaluation($observed >= $required && $withinWindow, [
-                'strategy' => 'consecutive_failures', 'required_count' => $required, 'observed_count' => $observed,
-                'window_minutes' => $window, 'label' => "{$required} consecutive failed cycles within {$window} minutes",
-            ]);
+            return $this->disabledEvaluation();
         }
 
-        if ($config === []) {
-            return new AlarmThresholdEvaluation(true, ['strategy' => 'immediate', 'required_count' => 1, 'observed_count' => 1, 'label' => 'first event']);
-        }
-        $required = (int) ($config['alarm_threshold_event_count'] ?? 1);
-        $window = max(1, (int) ($config['alarm_threshold_window_minutes'] ?? 720));
-        if ($required <= 0) {
-            return new AlarmThresholdEvaluation(true, ['strategy' => 'immediate', 'required_count' => 1, 'observed_count' => 1, 'label' => 'first event']);
-        }
+        $rule = $this->alarmRules[$type] ?? AlarmRule::immediate();
+
+        return match ($rule->strategy) {
+            AlarmRule::STRATEGY_CONSECUTIVE_FAILURES => $this->evaluateConsecutiveFailures($rule, $context),
+            AlarmRule::STRATEGY_EVENT_COUNT_WINDOW => $this->evaluateEventCountWindow($type, $server, $app, $rule),
+            AlarmRule::STRATEGY_IMMEDIATE => $this->immediateEvaluation(),
+            default => $this->invalidEvaluation('invalid alarm strategy'),
+        };
+    }
+
+    private function evaluateConsecutiveFailures(AlarmRule $rule, ?EventContext $context): AlarmThresholdEvaluation
+    {
+        $required = $rule->requiredCount;
+        $window = $rule->windowMinutes;
+        $data = $context?->toArray()['additional_data'] ?? [];
+        $observed = is_numeric($data['consecutive_failures'] ?? null) ? (int) $data['consecutive_failures'] : 0;
+        $first = isset($data['first_failure_at']) ? strtotime((string) $data['first_failure_at']) : false;
+        $withinWindow = $first !== false && $first >= time() - ($window * 60);
+
+        return new AlarmThresholdEvaluation($observed >= $required && $withinWindow, [
+            'strategy' => AlarmRule::STRATEGY_CONSECUTIVE_FAILURES,
+            'required_count' => $required,
+            'observed_count' => $observed,
+            'window_minutes' => $window,
+            'label' => "{$required} consecutive failed cycles within {$window} minutes",
+        ]);
+    }
+
+    private function evaluateEventCountWindow(
+        string $type,
+        int|string|null $server,
+        int|string|null $app,
+        AlarmRule $rule,
+    ): AlarmThresholdEvaluation
+    {
+        $required = $rule->requiredCount;
+        $window = $rule->windowMinutes;
         $recent = $this->aggregator->getLastEventsByContext($type, null, $server, $app, $window);
         $observed = count($recent);
 
         return new AlarmThresholdEvaluation($observed >= $required, [
-            'strategy' => 'event_count_window', 'required_count' => $required, 'observed_count' => $observed,
-            'window_minutes' => $window, 'label' => $required === 1 ? 'first event' : "{$required} events within {$window} minutes",
+            'strategy' => AlarmRule::STRATEGY_EVENT_COUNT_WINDOW,
+            'required_count' => $required,
+            'observed_count' => $observed,
+            'window_minutes' => $window,
+            'label' => $required === 1 ? 'first event' : "{$required} events within {$window} minutes",
         ]);
+    }
+
+    private function disabledEvaluation(): AlarmThresholdEvaluation
+    {
+        return new AlarmThresholdEvaluation(false, ['strategy' => 'disabled', 'label' => 'alarms disabled']);
+    }
+
+    private function immediateEvaluation(): AlarmThresholdEvaluation
+    {
+        return new AlarmThresholdEvaluation(true, [
+            'strategy' => AlarmRule::STRATEGY_IMMEDIATE,
+            'required_count' => 1,
+            'observed_count' => 1,
+            'label' => 'first event',
+        ]);
+    }
+
+    private function invalidEvaluation(string $label): AlarmThresholdEvaluation
+    {
+        return new AlarmThresholdEvaluation(false, ['strategy' => AlarmRule::STRATEGY_INVALID, 'label' => $label]);
     }
 
     /**
@@ -277,17 +319,5 @@ class AlarmThresholdCooldownService
             context: $context,
             channel: $channel
         );
-    }
-
-    /**
-     * Get alarm configuration for a specific event type.
-     *
-     * @param string $type Event type for threshold lookup
-     *
-     * @return null|array<string,mixed> Alarm configuration or null if not found
-     */
-    public function getAlarmConfig(string $type): ?array
-    {
-        return $this->alarmThresholds[$type] ?? null;
     }
 }

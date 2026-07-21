@@ -6,19 +6,15 @@ declare(strict_types=1);
 use Mata\Services\Cache\ApiCacheKeyFactory;
 use Mata\Services\Cache\CacheTtlResolver;
 use Mata\Services\Cache\FileCacheStore;
-use Mata\Services\Collect\ServerDataCollector;
 use Mata\Services\Collect\ServerDataCollectorInterface;
 use Mata\Services\DataTransformers\ApiResponseTransformer;
-use Mata\Services\Foundation\ApiClient;
 use Mata\Services\Foundation\ProbeClient;
-use Mata\Services\Monitor\AppMonitor;
 use Mata\Services\Monitor\AppMonitorInterface;
 use Mata\Services\Monitor\Dto\EndpointTarget;
-use Mata\Services\Monitor\Dto\ProbePolicy;
-use Mata\Services\Monitor\NodeHealthMonitor;
+use Mata\Services\Monitor\Dto\MonitoringPolicy;
 use Mata\Services\Monitor\NodeHealthMonitorInterface;
+use Mata\Services\Monitor\ServerMonitoringFactory;
 use Mata\Services\Sync\AppInventorySync;
-use Mata\Utils\TypeConverter;
 use Psr\Log\LoggerInterface;
 
 $requiresDatabase = true;
@@ -41,12 +37,17 @@ try {
     $cacheStore = new FileCacheStore($log, $paths->tempPath . '/api-cache');
     $cacheKeyFactory = new ApiCacheKeyFactory();
     $ttlResolver = new CacheTtlResolver($monitoringSettings['ttl'] ?? []);
-    $probeClient = new ProbeClient();
-    $probePolicy = ProbePolicy::fromArray(is_array($monitoringSettings['probes'] ?? null) ? $monitoringSettings['probes'] : []);
-    $appUnreachableThreshold = $monitoringSettings['thresholds']['alarms']['app_unreachable'] ?? [];
-    $unreachableWindowSeconds = max(60, (is_array($appUnreachableThreshold) && is_numeric($appUnreachableThreshold['window_minutes'] ?? null)
-        ? (int) $appUnreachableThreshold['window_minutes']
-        : 10) * 60);
+    $monitoringPolicy = MonitoringPolicy::fromSettings($monitoringSettings);
+    $serverMonitoringFactory = new ServerMonitoringFactory(
+        $log,
+        $cacheStore,
+        $cacheKeyFactory,
+        $ttlResolver,
+        $eventManager,
+        $dataTransformer,
+        new ProbeClient(),
+        $monitoringPolicy,
+    );
 
     $stats = [
         'configured' => 0,
@@ -59,51 +60,12 @@ try {
         $cron->touchHeartbeat();
 
         try {
-            // Extract security flags with defaults
-            $allowHttp = TypeConverter::toBool($data['allow_http'] ?? null) ?? false;
-            $suppressHttpWarning = TypeConverter::toBool($data['suppress_http_warning'] ?? null) ?? false;
-
-            // Background refresh tolerates slower nodes than the dashboard's 10s;
-            // API cache keys do not include the timeout, so the same entries are warmed
-            $apiClient = new ApiClient(
-                $log,
-                $data['api_url'],
-                $server,
-                $data['api_key'],
-                30,
-                true,
-                $allowHttp,
-                $suppressHttpWarning
-            );
-            $collector = new ServerDataCollector(
-                $log,
-                $cacheStore,
-                $cacheKeyFactory,
-                $ttlResolver,
-                $apiClient,
-                $dataTransformer
-            );
-            $appMonitor = new AppMonitor(
-                $cacheStore,
-                $cacheKeyFactory,
-                $ttlResolver,
-                $apiClient,
-                $probeClient,
-                $eventManager,
-                $log,
-                $probePolicy,
-                $unreachableWindowSeconds
-            );
-            $healthMonitor = new NodeHealthMonitor(
-                $cacheStore,
-                $cacheKeyFactory,
-                $ttlResolver,
-                $apiClient,
-                $probeClient,
-                $eventManager,
-                $log,
-                $probePolicy
-            );
+            // Background refresh via this cron, tolerates slower nodes than the dashboard 10->30s;
+            // API cache keys do not include the timeout, so the same entries are warmed.
+            $services = $serverMonitoringFactory->createLive($server, $data, apiTimeoutSeconds: 30);
+            $collector = $services->collector;
+            $appMonitor = $services->appMonitor;
+            $healthMonitor = $services->healthMonitor;
 
             warmServerCaches($server, $collector, $appMonitor, $healthMonitor, $appInventorySync, $log);
             ++$stats['warmed'];
@@ -122,7 +84,6 @@ try {
         $stats['failed']
     ));
     $cron->touchHeartbeat();
-
 } catch (Throwable $e) {
     $cron->log('ERROR: ' . $e->getMessage());
 } finally {
@@ -163,7 +124,7 @@ function warmServerCaches(
     // the probe timeout is part of the availability cache key
     $pingableApps = array_filter(
         $appsResponse['result'],
-        static fn ($app): bool => is_array($app) && ($app['ping'] ?? 'on') !== 'off'
+        static fn($app): bool => is_array($app) && ($app['ping'] ?? 'on') !== 'off'
     );
     $targets = EndpointTarget::fromRawAppData($pingableApps, $server);
     if ($targets !== []) {

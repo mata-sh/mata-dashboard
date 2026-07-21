@@ -11,6 +11,7 @@ use Mata\Services\Alarm\AlarmDirectProcessor;
 use Mata\Services\Alarm\Dto\Alarm;
 use Mata\Services\Alarm\Dto\AlarmLevel;
 use Mata\Services\Event\EventRecorderService;
+use Mata\Services\Monitor\Dto\ProbePolicy;
 use Mata\Services\Sync\SettingsDatabaseSync;
 use Mata\Utils\TypeConverter;
 use RuntimeException;
@@ -78,7 +79,7 @@ final class MonitoringSettingsLoader
         // Remove entries where array key begins with underscore
         $serversConfig = array_filter(
             $serversConfig,
-            static fn ($key): bool => !str_starts_with((string) $key, '_'),
+            static fn($key): bool => !str_starts_with((string) $key, '_'),
             ARRAY_FILTER_USE_KEY
         );
 
@@ -86,7 +87,7 @@ final class MonitoringSettingsLoader
         $configuredServerCount = count($serversConfig);
         $serversConfig = array_filter(
             $serversConfig,
-            static fn (mixed $config): bool => !is_array($config) || ($config['disabled'] ?? false) !== true
+            static fn(mixed $config): bool => !is_array($config) || ($config['disabled'] ?? false) !== true
         );
         $allServersDisabled = $configuredServerCount > 0 && $serversConfig === [];
 
@@ -155,12 +156,14 @@ final class MonitoringSettingsLoader
      */
     public function loadThresholdsConfig(string $thresholdsConfigFile): array
     {
-        return $this->loadJsonConfig(
+        $thresholds = $this->loadJsonConfig(
             filePath: $thresholdsConfigFile,
             configType: 'thresholds',
             defaultConfig: null,
             throwAs: RuntimeException::class
         );
+
+        return $this->normalizeAlarmRules($thresholds);
     }
 
     /**
@@ -215,7 +218,7 @@ final class MonitoringSettingsLoader
      *
      * @param string $probesConfigFile Path to probes.json configuration file
      *
-     * @return array<string,mixed> Probe policy with timeout, retry count, backoff bounds, and retryable kinds
+     * @return array<string,mixed> Probe policy with timeout, retry count, and backoff bounds
      */
     public function loadProbesConfig(string $probesConfigFile): array
     {
@@ -225,25 +228,13 @@ final class MonitoringSettingsLoader
             defaultConfig: $this->getDefaultProbesConfig()
         );
 
-        return array_merge($this->getDefaultProbesConfig(), $probesConfig);
+        return ProbePolicy::fromArray(array_merge($this->getDefaultProbesConfig(), $probesConfig))->toConfigArray();
     }
 
-    /**
-     * Get default probe policy configuration.
-     *
-     * Mirrors {@see \Mata\Services\Monitor\Dto\ProbePolicy::default()}.
-     *
-     * @return array<string,mixed> Default probe timeout, retry, and backoff settings
-     */
+    /** @return array<string,mixed> */
     public function getDefaultProbesConfig(): array
     {
-        return [
-            'timeout_seconds' => 5,
-            'max_retries' => 1,
-            'backoff_base_ms' => 500,
-            'backoff_max_ms' => 1500,
-            'retryable_kinds' => ['dns', 'connect', 'tls', 'timeout'],
-        ];
+        return ProbePolicy::default()->toConfigArray();
     }
 
     /**
@@ -257,7 +248,7 @@ final class MonitoringSettingsLoader
             'events' => [
                 'min_event_interval_minutes' => [
                     '_default' => 60,
-                    'app_unreachable' => 15,
+                    'app_unreachable' => 0,
                     'cronjobs_failing' => 30,
                     'filecount_too_large' => 72,
                     'logfile_too_large' => 12,
@@ -608,6 +599,68 @@ final class MonitoringSettingsLoader
     }
 
     /**
+     * @param array<string,mixed> $thresholds
+     *
+     * @return array<string,mixed>
+     */
+    private function normalizeAlarmRules(array $thresholds): array
+    {
+        $rules = $thresholds['alarms'] ?? [];
+        if (!is_array($rules)) {
+            $this->recordConfigurationEvent(
+                'thresholds_config_validation_error',
+                'Alarm rules must be an object.',
+                'warning'
+            );
+            $thresholds['alarms'] = [];
+
+            return $thresholds;
+        }
+
+        $defaults = $this->getDefaultThresholdsConfig()['alarms'];
+        foreach ($rules as $type => $rule) {
+            if ($this->isValidAlarmRule($rule)) {
+                continue;
+            }
+
+            $type = (string) $type;
+            $this->recordConfigurationEvent(
+                'thresholds_config_validation_error',
+                "Invalid alarm rule for {$type}; using the default rule when available.",
+                'warning'
+            );
+            if (isset($defaults[$type])) {
+                $rules[$type] = $defaults[$type];
+            } else {
+                unset($rules[$type]);
+            }
+        }
+        $thresholds['alarms'] = $rules;
+
+        return $thresholds;
+    }
+
+    private function isValidAlarmRule(mixed $rule): bool
+    {
+        if (!is_array($rule)) {
+            return false;
+        }
+
+        $strategy = $rule['strategy'] ?? 'event_count_window';
+        if (!is_string($strategy) || !in_array($strategy, ['event_count_window', 'consecutive_failures'], true)) {
+            return false;
+        }
+        if ($strategy !== 'consecutive_failures') {
+            return true;
+        }
+
+        return is_numeric($rule['required_count'] ?? null)
+            && (int) $rule['required_count'] >= 1
+            && is_numeric($rule['window_minutes'] ?? null)
+            && (int) $rule['window_minutes'] >= 1;
+    }
+
+    /**
      * Get default data retention configuration.
      *
      * @return array<string,mixed> Default data retention values for alarms, events, and metrics
@@ -732,7 +785,7 @@ final class MonitoringSettingsLoader
     {
         return [
             '_default' => ['min_event_interval_minutes' => 60],
-            'app_unreachable' => ['min_event_interval_minutes' => 15],
+            'app_unreachable' => ['min_event_interval_minutes' => 0],
             'cronjobs_failing' => ['min_event_interval_minutes' => 30],
             'filecount_too_large' => ['min_event_interval_minutes' => 72],
             'logfile_too_large' => ['min_event_interval_minutes' => 12],

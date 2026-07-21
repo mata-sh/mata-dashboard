@@ -36,12 +36,11 @@ use Mata\Models\EventRepository;
 use Mata\Services\Alarm\AlarmThresholdCooldownService;
 use Mata\Services\Alarm\AlarmCreator;
 use Mata\Services\Alarm\AlarmDirectProcessor;
-use Mata\Services\Event\EventAggregatorService;
 use Mata\Services\Event\EventManager;
 use Mata\Services\Event\EventRecorderService;
-use Mata\Services\Event\MockEventAggregatorService;
 use Mata\Services\Foundation\IdResolver;
 use Mata\Services\Alarm\AlarmQueueFailureThrottle;
+use Mata\Services\Runtime\DashboardEnvironmentFactory;
 
 // Ensure bootstrap.php was loaded first
 if (!isset($db, $appConfig, $paths, $log)) {
@@ -79,28 +78,20 @@ $alarmDirectProcessor = new AlarmDirectProcessor(
 // ************************************************************************************************
 $idResolver = new IdResolver($configSyncRepository);
 $eventRecorder = new EventRecorderService($db, $idResolver);
-
-$useMockEvents = (getenv('MATA_EVENTS_MOCK') === '1' || $appConfig->environment->env === 'demo');
-if ($useMockEvents) {
-    $demoDataPath = getenv('MATA_EVENTS_MOCK_DATA_PATH') ?: $paths->appPath . '/config/demo/events.json';
-    $demoData = MockEventAggregatorService::loadDemoData($demoDataPath, $log);
-    $eventAggregator = new MockEventAggregatorService($log, $demoData);
-    $log->info('Using mock event aggregator for demo data.', ['path' => $demoDataPath]);
-} else {
-    $eventAggregator = new EventAggregatorService($eventRepository, $alarmRepository, $idResolver, $log);
-}
-
-$eventManager = (new EventManager($appConfig, $alarmDirectProcessor))
-    ->setEventRecorder($eventRecorder)
-    ->setEventAggregator($eventAggregator);
-
-// ************************************************************************************************
-// Alarm Evaluation Service
-// ************************************************************************************************
-$alarmEvaluator = new AlarmThresholdCooldownService(
-    $eventAggregator,
-    $eventRecorder,
-    $appConfig
+$dashboardEnvironmentFactory = new DashboardEnvironmentFactory(
+    $appConfig->environment->env,
+    $eventRepository,
+    $alarmRepository,
+    $idResolver,
+    $log,
+    $paths->appPath . '/config/demo/events.json',
+);
+$eventAggregator = $dashboardEnvironmentFactory->createEventAggregator();
+$eventManager = new EventManager(
+    appConfig: $appConfig,
+    alarmDirectProcessor: $alarmDirectProcessor,
+    eventRecorder: $eventRecorder,
+    eventAggregator: $eventAggregator,
 );
 
 // ************************************************************************************************
@@ -112,12 +103,17 @@ $monitoringSettings = $monitoringSettingsLoader->loadAllConfigs(
     $appConfig->environment->env
 );
 $eventManager->setMonitoringSettings($monitoringSettings);
-$alarmEvaluator->setMonitoringSettings($monitoringSettings);
+$idResolver->refreshFromRepository($monitoringSettings['servers'] ?? []);
 
 // ************************************************************************************************
-// Final ID Resolution Sync
+// Alarm Evaluation Service
 // ************************************************************************************************
-$idResolver->refreshFromRepository($monitoringSettings['servers'] ?? []);
+$alarmEvaluator = new AlarmThresholdCooldownService(
+    $eventAggregator,
+    $eventRecorder,
+    $appConfig
+);
+$alarmEvaluator->setMonitoringSettings($monitoringSettings);
 
 return compact(
     'deliveryRepository',

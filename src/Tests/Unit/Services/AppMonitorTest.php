@@ -24,6 +24,7 @@ use Mata\Services\Foundation\ApiClient;
 use Mata\Services\Foundation\ProbeClient;
 use Mata\Services\Monitor\AppMonitor;
 use Mata\Services\Monitor\Dto\EndpointTarget;
+use Mata\Services\Monitor\Dto\MonitoringPolicy;
 use Mata\Services\Monitor\Dto\ProbePolicy;
 use PHPUnit\Framework\TestCase;
 use Psr\Log\NullLogger;
@@ -187,8 +188,10 @@ final class AppMonitorTest extends TestCase
             $this->probe($failure(), $failure(), $failure()),
             CacheTypes::PING,
             $events,
-            retryDelay: function () use (&$delays): void { ++$delays; },
-            probePolicy: new ProbePolicy(5, 2, 500, 1500, ['timeout' => true]),
+            retryDelay: function () use (&$delays): void {
+                ++$delays;
+            },
+            policy: new MonitoringPolicy(new ProbePolicy(5, 2, 500, 1500), 600),
         );
 
         $result = $monitor->checkMultipleEndpoints(['app' => new EndpointTarget('app', 'https://app.example.test')]);
@@ -215,8 +218,10 @@ final class AppMonitorTest extends TestCase
             $this->probe($failure, new Response(200)),
             CacheTypes::PING,
             $events,
-            retryDelay: function () use (&$delays): void { ++$delays; },
-            probePolicy: new ProbePolicy(5, 0, 500, 1500, ['timeout' => true]),
+            retryDelay: function () use (&$delays): void {
+                ++$delays;
+            },
+            policy: new MonitoringPolicy(new ProbePolicy(5, 0, 500, 1500), 600),
         );
 
         $result = $monitor->checkMultipleEndpoints(['app' => new EndpointTarget('app', 'https://app.example.test')]);
@@ -350,7 +355,7 @@ final class AppMonitorTest extends TestCase
         $store->expects($this->exactly(2))->method('put');
 
         $probe = $this->createStub(ProbeClient::class);
-        $probe->method('checkAvailabilityAsync')->willReturn(Create::promiseFor([]));
+        $probe->method('probeReachabilityAsync')->willReturn(Create::promiseFor([]));
         $probe->method('settle')->willReturn([]);
 
         $events = $this->createMock(EventManager::class);
@@ -373,7 +378,7 @@ final class AppMonitorTest extends TestCase
 
         $probe = $this->createMock(ProbeClient::class);
         $probe->expects($this->exactly(10))
-            ->method('checkAvailabilityAsync')
+            ->method('probeReachabilityAsync')
             ->willReturnCallback(static fn (): PromiseInterface => Create::promiseFor([]));
         $batchSizes = [];
         $probe->expects($this->exactly(3))
@@ -408,7 +413,7 @@ final class AppMonitorTest extends TestCase
         ?EventManager $events = null,
         ?Closure $clock = null,
         ?Closure $retryDelay = null,
-        ?ProbePolicy $probePolicy = null,
+        ?MonitoringPolicy $policy = null,
     ): AppMonitor {
         $apiClient = $this->createStub(ApiClient::class);
         $apiClient->method('getApiBase')->willReturn('https://node.example.test/api');
@@ -421,8 +426,7 @@ final class AppMonitorTest extends TestCase
             $probe,
             $events ?? $this->createStub(EventManager::class),
             new NullLogger(),
-            $probePolicy,
-            600,
+            $policy ?? new MonitoringPolicy(ProbePolicy::default(), 600),
             $clock,
             $retryDelay,
         );

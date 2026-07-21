@@ -15,7 +15,7 @@ use Mata\Services\Event\EventManager;
 use Mata\Services\Foundation\LogAnalyzer;
 use Mata\Services\Monitor\AppMonitorInterface;
 use Mata\Services\Monitor\Dto\EndpointTarget;
-use Mata\Services\Monitor\Dto\ServerDashboardServices;
+use Mata\Services\Monitor\Dto\ServerMonitoringServices;
 use Mata\Services\Monitor\NodeHealthMonitorInterface;
 use Mata\Services\Monitor\ServerMonitor;
 use Mata\Services\Sync\AppInventorySync;
@@ -65,34 +65,34 @@ class ServerViewBuilder
     /**
      * Build view data for all configured servers.
      *
-     * @param array<string,ServerDashboardServices> $dashboardServicesByServer
-     * @param array<string,mixed>                   $serversConfig
+     * @param array<string,ServerMonitoringServices> $monitoringServicesByServer
+     * @param array<string,mixed>                    $serversConfig
      *
      * @return array<int,array<string,mixed>>
      */
     public function buildServersViewData(
-        array $dashboardServicesByServer,
+        array $monitoringServicesByServer,
         array $serversConfig,
         bool $forceRefresh
     ): array {
         $serversViewData = [];
-        $healthByServer = $this->resolveNodeHealthByServer($dashboardServicesByServer, $serversConfig);
+        $healthByServer = $this->resolveNodeHealthByServer($monitoringServicesByServer, $serversConfig);
 
         foreach ($serversConfig as $server => $serverConfig) {
-            $dashboardServices = $dashboardServicesByServer[$server] ?? null;
+            $monitoringServices = $monitoringServicesByServer[$server] ?? null;
 
             try {
-                if (!$dashboardServices instanceof ServerDashboardServices) {
+                if (!$monitoringServices instanceof ServerMonitoringServices) {
                     throw new Exception("Monitoring services unavailable for server {$server}");
                 }
 
                 $serversViewData[] = $this->buildServerViewData(
                     $server,
                     $serverConfig,
-                    $dashboardServices->collector,
-                    $dashboardServices->appMonitor,
+                    $monitoringServices->collector,
+                    $monitoringServices->appMonitor,
                     $forceRefresh,
-                    $dashboardServices->healthMonitor,
+                    $monitoringServices->healthMonitor,
                     $healthByServer[$server],
                 );
             } catch (Exception $e) {
@@ -304,19 +304,19 @@ class ServerViewBuilder
      *
      * Cached values return immediately; cache misses are settled together.
      *
-     * @param array<string,ServerDashboardServices> $dashboardServicesByServer
-     * @param array<string,mixed>                   $serversConfig
+     * @param array<string,ServerMonitoringServices> $monitoringServicesByServer
+     * @param array<string,mixed>                    $serversConfig
      *
      * @return array<string,array<string,mixed>>
      */
-    private function resolveNodeHealthByServer(array $dashboardServicesByServer, array $serversConfig): array
+    private function resolveNodeHealthByServer(array $monitoringServicesByServer, array $serversConfig): array
     {
         $healthByServer = [];
         $pending = [];
 
         foreach (array_keys($serversConfig) as $server) {
-            $services = $dashboardServicesByServer[$server] ?? null;
-            if (!$services instanceof ServerDashboardServices) {
+            $services = $monitoringServicesByServer[$server] ?? null;
+            if (!$services instanceof ServerMonitoringServices) {
                 $healthByServer[$server] = $this->unknownHealth();
 
                 continue;
@@ -367,7 +367,7 @@ class ServerViewBuilder
         }
 
         try {
-            return $healthMonitor->checkOrWait($serverName);
+            return $healthMonitor->checkSynchronously($serverName);
         } catch (Throwable $e) {
             $this->logger->warning("Health check failed for {$serverName}", ['error' => $e->getMessage()]);
 

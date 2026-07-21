@@ -35,13 +35,17 @@ use Mata\Services\Cache\CacheStoreInterface;
 use Mata\Services\Cache\CacheTtlResolver;
 use Mata\Services\Cache\FileCacheStore;
 use Mata\Services\Cache\MetricsCacheService;
+use Mata\Services\DataTransformers\ApiResponseTransformer;
 use Mata\Services\DataTransformers\ChartDataTransformer;
 use Mata\Services\DataTransformers\LogDataTransformer;
-use Mata\Services\Event\EventAggregatorService;
 use Mata\Services\Event\EventManager;
 use Mata\Services\Event\EventRecorderService;
-use Mata\Services\Event\MockEventAggregatorService;
 use Mata\Services\Foundation\IdResolver;
+use Mata\Services\Foundation\ProbeClient;
+use Mata\Services\Monitor\Dto\DashboardMonitoringContext;
+use Mata\Services\Monitor\Dto\MonitoringPolicy;
+use Mata\Services\Monitor\ServerMonitoringFactory;
+use Mata\Services\Runtime\DashboardEnvironmentFactory;
 use Mata\Services\Sync\AppInventorySync;
 use Mata\Services\Sync\SettingsDatabaseSync;
 use Mata\Services\Navigation\MenuBuilder;
@@ -340,23 +344,22 @@ $alarmDirectProcessor = new AlarmDirectProcessor($alarmCreator, $limitsConfig, $
 // --- Event Manager ---
 $eventRepository = new EventRepository($db);
 $eventRecorder = new EventRecorderService($db, $idResolver);
+$dashboardEnvironmentFactory = new DashboardEnvironmentFactory(
+    $environment,
+    $eventRepository,
+    $alarmRepository,
+    $idResolver,
+    $log,
+    $paths->appPath . '/config/demo/events.json',
+);
+$eventAggregator = $dashboardEnvironmentFactory->createEventAggregator();
 
-$useMockEvents = (getenv('MATA_EVENTS_MOCK') === '1' || $appConfig->environment->env === 'demo');
-if ($useMockEvents) {
-    $demoDataPath = getenv('MATA_EVENTS_MOCK_DATA_PATH') ?: $paths->appPath . '/config/demo/events.json';
-    $demoData = MockEventAggregatorService::loadDemoData($demoDataPath, $log);
-    if ($appConfig->environment->env === 'demo') {
-        $demoData = MockEventAggregatorService::withNotificationShowcase($demoData);
-    }
-    $eventAggregator = new MockEventAggregatorService($log, $demoData);
-    $log->info('Using mock event aggregator for demo data.', ['path' => $demoDataPath]);
-} else {
-    $eventAggregator = new EventAggregatorService($eventRepository, $alarmRepository, $idResolver);
-}
-
-$eventManager = (new EventManager($appConfig, $alarmDirectProcessor))
-    ->setEventRecorder($eventRecorder)
-    ->setEventAggregator($eventAggregator);
+$eventManager = new EventManager(
+    $appConfig,
+    $alarmDirectProcessor,
+    $eventRecorder,
+    $eventAggregator,
+);
 
 // ************************************************************************************************
 // Monitoring Configuration
@@ -381,9 +384,13 @@ try {
         'ttl' => $monitoringSettingsLoader->getDefaultTtlConfig(),
         'thresholds' => [],
         'events' => $monitoringSettingsLoader->getDefaultEventsConfig(),
+        'probes' => $monitoringSettingsLoader->getDefaultProbesConfig(),
         'environment' => 'prod',
     ];
 }
+
+$serverSettings = $monitoringSettings['servers'] ?? [];
+
 // ************************************************************************************************
 // Cache & Endpoints
 // ************************************************************************************************
@@ -393,6 +400,38 @@ $cacheKeyFactory = new ApiCacheKeyFactory();
 $ttlResolver = new CacheTtlResolver($monitoringSettings['ttl']);
 $endpoints = new Endpoints();
 $menuBuilder = new MenuBuilder($endpoints, $tools);
+
+// ************************************************************************************************
+// Server Monitoring Services (live API or demo mocks)
+// ************************************************************************************************
+$monitoringPolicy = MonitoringPolicy::fromSettings($monitoringSettings);
+$serverMonitoringFactory = new ServerMonitoringFactory(
+    $log,
+    $cacheStore,
+    $cacheKeyFactory,
+    $ttlResolver,
+    $eventManager,
+    new ApiResponseTransformer($log),
+    new ProbeClient(),
+    $monitoringPolicy,
+);
+
+$serverMonitoringBuild = $dashboardEnvironmentFactory->createMonitoring(
+    $serverSettings,
+    $serverMonitoringFactory,
+);
+
+foreach ($serverMonitoringBuild->failures as $server => $reason) {
+    $notificationManager->addConfigWarning(
+        'server.monitoring.failed',
+        "Could not initialize monitoring for server {$server}: {$reason}"
+    );
+}
+
+$dashboardMonitoringContext = DashboardMonitoringContext::fromSettingsAndServices(
+    $monitoringSettings,
+    $serverMonitoringBuild->servicesByServer,
+);
 
 // ************************************************************************************************
 // Controllers
@@ -408,10 +447,9 @@ $dashboardController = new DashboardController(
     $eventManager,
     $cacheStore,
     $cacheKeyFactory,
-    $ttlResolver,
     $endpoints,
     $menuBuilder,
-    $monitoringSettings,
+    $dashboardMonitoringContext,
     $appInventorySync,
 );
 
@@ -427,7 +465,7 @@ $auditController = new AuditController(
     $cacheKeyFactory,
     $ttlResolver,
     $endpoints,
-    $monitoringSettings['servers'],
+    $serverSettings,
 );
 
 $modalController = new ModalController(
@@ -441,7 +479,7 @@ $modalController = new ModalController(
     $ttlResolver,
     $logDataTransformer,
     $endpoints,
-    $monitoringSettings['servers'],
+    $serverSettings,
 );
 
 $metricsQueryFactory = new ServerMetricsQueryFactory($environment, $db, $idResolver);
@@ -464,7 +502,7 @@ $metricsCacheService = new MetricsCacheService(
     $cacheStore,
     $cacheKeyFactory,
     $log,
-    $monitoringSettings['servers'] ?? []
+    $serverSettings
 );
 $chartDataTransformer = new ChartDataTransformer();
 $chartViewBuilder = new ChartViewBuilder(
@@ -472,7 +510,7 @@ $chartViewBuilder = new ChartViewBuilder(
     $metricsRenderer,
     $metricsRequestValidator,
     $chartDataTransformer,
-    $monitoringSettings['servers'] ?? []
+    $serverSettings
 );
 
 $metricsController = new MetricsController(
@@ -482,7 +520,7 @@ $metricsController = new MetricsController(
     $metricsCacheService,
     $metricsRequestValidator,
     $chartViewBuilder,
-    $monitoringSettings['servers'] ?? [],
+    $serverSettings,
     isset($monitoringSettings['ttl']['metrics']) ? (int) $monitoringSettings['ttl']['metrics'] : null,
     $metricsDashboardConfig,
     $metricsDashboardTtl

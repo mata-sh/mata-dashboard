@@ -4,27 +4,50 @@ declare(strict_types=1);
 
 namespace Mata\Services\Monitor\Dto;
 
-/**
- * Immutable retry/timeout policy shared by the availability and health monitors.
- *
- * Sourced from the `probes` monitoring settings; {@see default()} reproduces the
- * historical hardcoded behavior so an absent config file changes nothing.
- */
+/** Immutable timeout, retry, and backoff policy for HTTP probes. */
 final readonly class ProbePolicy
 {
-    /** @param array<string,true> $retryableKinds failure kinds eligible for retry, stored as a set for O(1) lookup */
+    private const DEFAULT_TIMEOUT_SECONDS = 5;
+    private const DEFAULT_MAX_RETRIES = 1;
+    private const DEFAULT_BACKOFF_BASE_MS = 500;
+    private const DEFAULT_BACKOFF_MAX_MS = 1500;
+
+    /**
+     * Failure kinds (as emitted by {@see \Mata\Services\Foundation\ProbeClient})
+     * that a retry may recover from, stored as a set for O(1) lookup.
+     *
+     * Retryability follows failure semantics and is fixed in code rather than
+     * configuration, because the failure vocabulary is owned by the classifier.
+     * `tls` stays retryable on purpose: the classifier folds transient SSL
+     * handshake timeouts (curl errno 28) into `tls`, so excluding it would also
+     * suppress retries for genuinely transient failures. Deterministic outcomes
+     * (`http`, `invalid_response`, `unknown`) are intentionally omitted.
+     *
+     * @var array<string,true>
+     */
+    private const RETRYABLE_FAILURE_KINDS = [
+        'dns' => true,
+        'connect' => true,
+        'tls' => true,
+        'timeout' => true,
+    ];
+
     public function __construct(
         public int $timeoutSeconds,
         public int $maxRetries,
         public int $backoffBaseMs,
         public int $backoffMaxMs,
-        public array $retryableKinds,
     ) {}
 
-    /** Defaults preserving the monitors' original 5s timeout, single retry, and 0.5-1.5s jitter. */
+    /** Default policy: 5s timeout, one retry, and 0.5-1.5s jitter. */
     public static function default(): self
     {
-        return new self(5, 1, 500, 1500, ['dns' => true, 'connect' => true, 'tls' => true, 'timeout' => true]);
+        return new self(
+            timeoutSeconds: self::DEFAULT_TIMEOUT_SECONDS,
+            maxRetries: self::DEFAULT_MAX_RETRIES,
+            backoffBaseMs: self::DEFAULT_BACKOFF_BASE_MS,
+            backoffMaxMs: self::DEFAULT_BACKOFF_MAX_MS,
+        );
     }
 
     /**
@@ -35,23 +58,36 @@ final readonly class ProbePolicy
     public static function fromArray(array $config): self
     {
         $default = self::default();
-        $base = max(0, (int) ($config['backoff_base_ms'] ?? $default->backoffBaseMs));
-        $kinds = $config['retryable_kinds'] ?? null;
+        $timeoutSeconds = max(1, (int) ($config['timeout_seconds'] ?? $default->timeoutSeconds));
+        $maxRetries = max(0, (int) ($config['max_retries'] ?? $default->maxRetries));
+        $backoffBaseMs = max(0, (int) ($config['backoff_base_ms'] ?? $default->backoffBaseMs));
+        $backoffMaxMs = max(
+            $backoffBaseMs,
+            (int) ($config['backoff_max_ms'] ?? $default->backoffMaxMs),
+        );
 
         return new self(
-            timeoutSeconds: max(1, (int) ($config['timeout_seconds'] ?? $default->timeoutSeconds)),
-            maxRetries: max(0, (int) ($config['max_retries'] ?? $default->maxRetries)),
-            backoffBaseMs: $base,
-            backoffMaxMs: max($base, (int) ($config['backoff_max_ms'] ?? $default->backoffMaxMs)),
-            retryableKinds: is_array($kinds) && $kinds !== []
-                ? array_fill_keys(array_map('strval', array_values($kinds)), true)
-                : $default->retryableKinds,
+            timeoutSeconds: $timeoutSeconds,
+            maxRetries: $maxRetries,
+            backoffBaseMs: $backoffBaseMs,
+            backoffMaxMs: $backoffMaxMs,
         );
+    }
+
+    /** @return array<string,mixed> */
+    public function toConfigArray(): array
+    {
+        return [
+            'timeout_seconds' => $this->timeoutSeconds,
+            'max_retries' => $this->maxRetries,
+            'backoff_base_ms' => $this->backoffBaseMs,
+            'backoff_max_ms' => $this->backoffMaxMs,
+        ];
     }
 
     public function isRetryable(?string $failureKind): bool
     {
-        return isset($this->retryableKinds[$failureKind ?? '']);
+        return isset(self::RETRYABLE_FAILURE_KINDS[$failureKind ?? '']);
     }
 
     /**
@@ -63,11 +99,14 @@ final readonly class ProbePolicy
      */
     public function backoffMicros(int $attempt): int
     {
-        if ($this->backoffMaxMs <= 0) {
+        if ($this->backoffMaxMs <= 0 || $this->backoffBaseMs <= 0) {
             return 0;
         }
-        $ceilingMs = (int) min($this->backoffMaxMs, $this->backoffBaseMs * (2 ** max(0, $attempt - 1)));
 
-        return random_int(0, max(0, $ceilingMs)) * 1000;
+        $retryIndex = max(0, $attempt - 1);
+        $exponentialDelayMs = $this->backoffBaseMs * (2 ** $retryIndex);
+        $delayCeilingMs = (int) min($this->backoffMaxMs, $exponentialDelayMs);
+
+        return random_int(0, $delayCeilingMs) * 1000;
     }
 }

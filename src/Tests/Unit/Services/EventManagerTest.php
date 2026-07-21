@@ -109,6 +109,21 @@ final class EventManagerTest extends TestCase
         $this->assertFalse($result);
     }
 
+    public function testAppUnreachableUsesItsConfiguredEventCooldown(): void
+    {
+        $this->useMockEventRecorder();
+        $manager = $this->createManager(intervalsConfig: [
+            'events' => ['min_event_interval_minutes' => ['app_unreachable' => 15]],
+            'alarms' => ['min_alarm_interval_minutes' => []],
+        ]);
+        $this->eventRecorder->expects($this->once())->method('hasActiveCooldown')->willReturn(true);
+        $this->eventRecorder->expects($this->never())->method('recordEvent');
+
+        $result = $manager->handle(new EventCommand('app_unreachable', 'Application unreachable'));
+
+        $this->assertSame(['eventRecorded' => false, 'eventId' => null], $result);
+    }
+
     public function testShouldCreateEventRespectsConfiguredCooldown(): void
     {
         $this->useMockEventRecorder();
