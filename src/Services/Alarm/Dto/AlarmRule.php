@@ -10,9 +10,11 @@ final readonly class AlarmRule
     public const STRATEGY_EVENT_COUNT_WINDOW = 'event_count_window';
     public const STRATEGY_CONSECUTIVE_FAILURES = 'consecutive_failures';
     public const STRATEGY_IMMEDIATE = 'immediate';
+    public const STRATEGY_DISABLED = 'disabled';
     public const STRATEGY_INVALID = 'invalid';
 
     private function __construct(
+        public bool $enabled,
         public string $strategy,
         public int $requiredCount,
         public int $windowMinutes,
@@ -24,6 +26,9 @@ final readonly class AlarmRule
         if ($config === []) {
             return self::immediate();
         }
+        if (($config['enabled'] ?? true) === false) {
+            return self::disabled();
+        }
 
         $strategy = $config['strategy'] ?? self::STRATEGY_EVENT_COUNT_WINDOW;
         if (!is_string($strategy)) {
@@ -31,11 +36,7 @@ final readonly class AlarmRule
         }
 
         return match ($strategy) {
-            self::STRATEGY_CONSECUTIVE_FAILURES => new self(
-                $strategy,
-                max(1, (int) ($config['required_count'] ?? 2)),
-                max(1, (int) ($config['window_minutes'] ?? 10)),
-            ),
+            self::STRATEGY_CONSECUTIVE_FAILURES => self::consecutiveFailures($config),
             self::STRATEGY_EVENT_COUNT_WINDOW => self::eventCountWindow($config),
             self::STRATEGY_IMMEDIATE => self::immediate(),
             default => self::invalid(),
@@ -44,12 +45,28 @@ final readonly class AlarmRule
 
     public static function immediate(): self
     {
-        return new self(self::STRATEGY_IMMEDIATE, 1, 0);
+        return new self(true, self::STRATEGY_IMMEDIATE, 1, 0);
+    }
+
+    public static function disabled(): self
+    {
+        return new self(false, self::STRATEGY_DISABLED, 0, 0);
     }
 
     public static function invalid(): self
     {
-        return new self(self::STRATEGY_INVALID, 0, 0);
+        return new self(true, self::STRATEGY_INVALID, 0, 0);
+    }
+
+    /** @param array<string,mixed> $config */
+    private static function consecutiveFailures(array $config): self
+    {
+        return new self(
+            true,
+            self::STRATEGY_CONSECUTIVE_FAILURES,
+            max(1, (int) ($config['required_count'] ?? 2)),
+            max(1, (int) ($config['window_minutes'] ?? 10)),
+        );
     }
 
     /** @param array<string,mixed> $config */
@@ -61,6 +78,7 @@ final readonly class AlarmRule
         }
 
         return new self(
+            true,
             self::STRATEGY_EVENT_COUNT_WINDOW,
             $required,
             max(1, (int) ($config['alarm_threshold_window_minutes'] ?? 720)),

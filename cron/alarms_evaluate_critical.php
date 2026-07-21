@@ -6,6 +6,7 @@ declare(strict_types=1);
 use Mata\Services\Alarm\Decision\AlarmDecisionProcessingException;
 use Mata\Services\Alarm\Decision\AlarmDecisionProcessor;
 use Mata\Services\Alarm\Decision\AlarmDecisionServiceFactory;
+use Mata\Services\Alarm\NotificationRuleResolver;
 
 $requiresDatabase = true;
 
@@ -23,8 +24,14 @@ $exitCode = 0;
 
 try {
     $alarmDecisionService = AlarmDecisionServiceFactory::fromEnv();
+    $notificationRuleResolver = new NotificationRuleResolver($monitoringSettings['notification_rules']);
+    $events = $eventAggregator->getAlarmDecisionCandidates(
+        $alarmDecisionService->getBatchLimit(),
+        'critical'
+    );
     $alarmDecisionProcessor = new AlarmDecisionProcessor(
         $alarmEvaluator,
+        $notificationRuleResolver,
         $alarmDecisionService,
         $alarmCreator,
         $eventRecorder,
@@ -41,10 +48,6 @@ try {
         'enrich_requested' => 0,
     ];
 
-    $events = $eventAggregator->getAlarmDecisionCandidates(
-        $alarmDecisionService->getBatchLimit(),
-        'critical'
-    );
     foreach ($events as $event) {
         ++$stats['considered'];
 

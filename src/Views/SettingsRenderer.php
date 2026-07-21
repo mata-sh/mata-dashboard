@@ -79,6 +79,7 @@ class SettingsRenderer extends BaseRenderer
             ['name' => 'servers.json', 'description' => 'Defines monitored servers and their API credentials.', 'path' => $configRoot . '/servers.json'],
             ['name' => 'ttl.json', 'description' => 'Controls cache lifetimes for API calls.', 'path' => $configRoot . '/ttl.json'],
             ['name' => 'thresholds.json', 'description' => 'Configures alarm thresholds and escalation rules.', 'path' => $configRoot . '/thresholds.json'],
+            ['name' => 'notification_rules.json', 'description' => 'Controls notification enablement and email routing.', 'path' => $configRoot . '/notification_rules.json'],
             ['name' => 'data_retention.json', 'description' => 'Controls metric, event, and alarm retention.', 'path' => $configRoot . '/data_retention.json'],
             ['name' => 'intervals.json', 'description' => 'Controls event and alarm cooldown intervals.', 'path' => $configRoot . '/intervals.json'],
             ['name' => 'users.json', 'description' => 'Stores dashboard user accounts and authentication data.', 'path' => $usersFilePath],

@@ -89,6 +89,23 @@ final class AlarmThresholdCooldownServiceTest extends TestCase
         $this->assertFalse($service->evaluateAlarmForEvent('app_unreachable', 'server', 'app-two', $first)->passed);
     }
 
+    public function testDisabledAlarmRulePreventsLogicalAlarmCreation(): void
+    {
+        $service = (new AlarmThresholdCooldownService(
+            $this->createStub(EventAggregatorServiceInterface::class),
+            $this->createStub(EventRecorderService::class),
+            $this->config(),
+        ))->setMonitoringSettings(['thresholds' => ['alarms' => [
+            'app_unreachable' => ['enabled' => false],
+        ]]]);
+
+        $evaluation = $service->evaluateAlarmForEvent('app_unreachable', 'server', 'app');
+
+        $this->assertFalse($evaluation->passed);
+        $this->assertSame('disabled', $evaluation->evidence['strategy']);
+        $this->assertSame('alarm disabled by configuration', $evaluation->evidence['label']);
+    }
+
     private function config(): ApplicationConfig
     {
         return new ApplicationConfig(

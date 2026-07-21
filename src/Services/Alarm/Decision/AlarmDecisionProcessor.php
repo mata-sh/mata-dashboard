@@ -8,6 +8,7 @@ use Mata\Services\Alarm\AlarmCreatorInterface;
 use Mata\Services\Alarm\AlarmThresholdCooldownService;
 use Mata\Services\Alarm\Dto\AlarmEvaluationRecord;
 use Mata\Services\Alarm\Dto\AlarmProcessingResult;
+use Mata\Services\Alarm\NotificationRuleResolver;
 use Mata\Services\Event\Dto\EventContext;
 use Mata\Services\Event\EventAggregatorServiceInterface;
 use Mata\Services\Event\EventRecorderService;
@@ -19,6 +20,7 @@ final class AlarmDecisionProcessor
 {
     public function __construct(
         private AlarmThresholdCooldownService $alarmCooldownService,
+        private NotificationRuleResolver $notificationRuleResolver,
         private AlarmDecisionServiceInterface $alarmDecisionService,
         private AlarmCreatorInterface $alarmCreator,
         private EventRecorderService $eventRecorder,
@@ -34,11 +36,11 @@ final class AlarmDecisionProcessor
      * Evaluate, create, and record an alarm decision for one event.
      *
      * @param array<string,mixed> $event
-     * @param array<int,string>   $supportedChannels
+     * @param array<int,string>   $availableChannels
      *
      * @throws AlarmDecisionProcessingException
      */
-    public function process(array $event, array $supportedChannels = ['email']): AlarmProcessingResult
+    public function process(array $event, array $availableChannels = ['email']): AlarmProcessingResult
     {
         $record = new AlarmEvaluationRecord();
         $eventId = (int) $event['id'];
@@ -62,8 +64,20 @@ final class AlarmDecisionProcessor
 
         $record->setThresholdGate('pass');
 
+        $notificationRule = $this->notificationRuleResolver->resolve(
+            (string) $event['type'],
+            is_string($event['app_code'] ?? null) ? $event['app_code'] : null,
+        );
+        // Rules constrain deliveries; policy still decides logical alarm eligibility.
+        $candidateChannels = $notificationRule->enabled
+            ? array_values(array_intersect(
+                $notificationRule->channels,
+                $this->normalizeChannels($availableChannels),
+            ))
+            : [];
+
         try {
-            $decision = $this->alarmDecisionService->decide($event, $supportedChannels);
+            $decision = $this->alarmDecisionService->decide($event, $candidateChannels, $notificationRule);
         } catch (Throwable $exception) {
             throw new AlarmDecisionProcessingException(
                 AlarmDecisionProcessingException::POLICY,
@@ -75,7 +89,8 @@ final class AlarmDecisionProcessor
             $record
                 ->setOutcome('suppressed')
                 ->setPolicyGate('deny')
-                ->setPolicyReason($decision->reason);
+                ->setPolicyReason($decision->reason)
+                ->setRequestedChannels($decision->channels);
 
             return $this->complete($event, $record, 0, false, true);
         }
@@ -151,6 +166,7 @@ final class AlarmDecisionProcessor
                 'level' => $event['level'] ?? null,
                 'server_id' => $event['server_id'] ?? null,
                 'application_id' => $event['application_id'] ?? null,
+                'application' => $event['app_code'] ?? null,
             ], $record->toArray()));
             $this->eventAggregator->markEventEvaluated((int) $event['id'], $record->toArray());
         } catch (Throwable $exception) {
@@ -167,5 +183,19 @@ final class AlarmDecisionProcessor
             $enrichmentRequested,
             $skipped,
         );
+    }
+
+    /** @param array<int,string> $channels @return list<string> */
+    private function normalizeChannels(array $channels): array
+    {
+        $normalized = [];
+        foreach ($channels as $channel) {
+            if (!is_string($channel) || trim($channel) === '') {
+                continue;
+            }
+            $normalized[] = strtolower(trim($channel));
+        }
+
+        return array_values(array_unique($normalized));
     }
 }

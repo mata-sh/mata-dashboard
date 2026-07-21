@@ -44,4 +44,12 @@ final class AlarmRuleTest extends TestCase
         $this->assertSame(AlarmRule::STRATEGY_IMMEDIATE, $empty->strategy);
         $this->assertSame(AlarmRule::STRATEGY_IMMEDIATE, $disabled->strategy);
     }
+
+    public function testItDisablesAnAlarmRule(): void
+    {
+        $rule = AlarmRule::fromArray(['enabled' => false]);
+
+        $this->assertFalse($rule->enabled);
+        $this->assertSame(AlarmRule::STRATEGY_DISABLED, $rule->strategy);
+    }
 }

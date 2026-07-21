@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Mata\Config;
 
 use Exception;
+use JsonException;
 use Mata\Core\DatabaseInterface;
 use Mata\Core\NullDatabase;
 use Mata\Services\Alarm\AlarmDirectProcessor;
@@ -15,6 +16,7 @@ use Mata\Services\Monitor\Dto\ProbePolicy;
 use Mata\Services\Sync\SettingsDatabaseSync;
 use Mata\Utils\TypeConverter;
 use RuntimeException;
+use stdClass;
 use Throwable;
 
 /**
@@ -36,23 +38,27 @@ final class MonitoringSettingsLoader
     private ?AlarmDirectProcessor $alarmDirectProcessor;
     private ?DatabaseInterface $db;
     private ?SettingsDatabaseSync $settingsSync;
+    private NotificationRulesValidator $notificationRulesValidator;
 
     /**
-     * @param EventRecorderService      $eventRecorder        Event recorder for logging configuration failures
-     * @param null|AlarmDirectProcessor $alarmDirectProcessor Optional direct alarm processor for critical notifications
-     * @param null|DatabaseInterface    $db                   Optional database connection for settings sync
-     * @param null|SettingsDatabaseSync $settingsSync         Optional settings sync service
+     * @param EventRecorderService            $eventRecorder              Event recorder for logging configuration failures
+     * @param null|AlarmDirectProcessor       $alarmDirectProcessor       Optional direct alarm processor for critical notifications
+     * @param null|DatabaseInterface          $db                         Optional database connection for settings sync
+     * @param null|SettingsDatabaseSync       $settingsSync               Optional settings sync service
+     * @param null|NotificationRulesValidator $notificationRulesValidator Optional notification rules validator
      */
     public function __construct(
         EventRecorderService $eventRecorder,
         ?AlarmDirectProcessor $alarmDirectProcessor = null,
         ?DatabaseInterface $db = null,
-        ?SettingsDatabaseSync $settingsSync = null
+        ?SettingsDatabaseSync $settingsSync = null,
+        ?NotificationRulesValidator $notificationRulesValidator = null
     ) {
         $this->eventRecorder = $eventRecorder;
         $this->alarmDirectProcessor = $alarmDirectProcessor;
         $this->db = $db;
         $this->settingsSync = $settingsSync;
+        $this->notificationRulesValidator = $notificationRulesValidator ?? new NotificationRulesValidator();
     }
 
     /**
@@ -79,7 +85,7 @@ final class MonitoringSettingsLoader
         // Remove entries where array key begins with underscore
         $serversConfig = array_filter(
             $serversConfig,
-            static fn ($key): bool => !str_starts_with((string) $key, '_'),
+            static fn($key): bool => !str_starts_with((string) $key, '_'),
             ARRAY_FILTER_USE_KEY
         );
 
@@ -87,7 +93,7 @@ final class MonitoringSettingsLoader
         $configuredServerCount = count($serversConfig);
         $serversConfig = array_filter(
             $serversConfig,
-            static fn (mixed $config): bool => !is_array($config) || ($config['disabled'] ?? false) !== true
+            static fn(mixed $config): bool => !is_array($config) || ($config['disabled'] ?? false) !== true
         );
         $allServersDisabled = $configuredServerCount > 0 && $serversConfig === [];
 
@@ -229,6 +235,29 @@ final class MonitoringSettingsLoader
         );
 
         return ProbePolicy::fromArray(array_merge($this->getDefaultProbesConfig(), $probesConfig))->toConfigArray();
+    }
+
+    /** @return array<string,mixed> */
+    public function loadNotificationRulesConfig(string $notificationRulesConfigFile): array
+    {
+        if (!file_exists($notificationRulesConfigFile)) {
+            return $this->notificationRulesValidator->validate(new stdClass());
+        }
+
+        try {
+            return $this->notificationRulesValidator->validate(
+                $this->loadJsonObjectConfig($notificationRulesConfigFile, 'notification rules')
+            );
+        } catch (RuntimeException $exception) {
+            $this->recordConfigurationEvent(
+                type: 'notification_rules_config_invalid',
+                message: "Could not load {$notificationRulesConfigFile}; falling back to defaults: {$exception->getMessage()}",
+                level: 'warning',
+                forceAlarm: false
+            );
+
+            return $this->notificationRulesValidator->validate(new stdClass());
+        }
     }
 
     /** @return array<string,mixed> */
@@ -516,6 +545,7 @@ final class MonitoringSettingsLoader
         $thresholdsFile = $configPath . '/thresholds.json';
         $dataRetentionFile = $configPath . '/data_retention.json';
         $probesFile = $configPath . '/probes.json';
+        $notificationRulesFile = $configPath . '/notification_rules.json';
 
         $config = [
             'servers' => $this->loadServersConfig($serversFile),
@@ -523,6 +553,7 @@ final class MonitoringSettingsLoader
             'data_retention' => $this->loadDataRetentionConfig($dataRetentionFile),
             'intervals' => $this->loadIntervalsConfig($intervalsFile),
             'probes' => $this->loadProbesConfig($probesFile),
+            'notification_rules' => $this->loadNotificationRulesConfig($notificationRulesFile),
             'environment' => $appEnvironment,
             'charts' => [],
         ];
@@ -649,6 +680,14 @@ final class MonitoringSettingsLoader
     {
         if (!is_array($rule)) {
             return false;
+        }
+
+        if (array_key_exists('enabled', $rule) && !is_bool($rule['enabled'])) {
+            return false;
+        }
+
+        if (($rule['enabled'] ?? true) === false) {
+            return true;
         }
 
         $strategy = $rule['strategy'] ?? 'event_count_window';
@@ -861,6 +900,33 @@ final class MonitoringSettingsLoader
                 throwAs: $throwAs,
                 defaultConfig: $defaultConfig
             );
+        }
+
+        return $config;
+    }
+
+    private function loadJsonObjectConfig(string $filePath, string $configType): stdClass
+    {
+        if (!is_file($filePath) || !is_readable($filePath)) {
+            throw new RuntimeException("Cannot read {$configType} at {$filePath}");
+        }
+
+        $content = file_get_contents($filePath);
+        if ($content === false) {
+            throw new RuntimeException("Cannot read {$configType} at {$filePath}");
+        }
+
+        try {
+            $config = json_decode($content, false, 512, JSON_THROW_ON_ERROR);
+        } catch (JsonException $exception) {
+            throw new RuntimeException(
+                "Invalid {$configType} JSON: {$exception->getMessage()}",
+                previous: $exception
+            );
+        }
+
+        if (!$config instanceof stdClass) {
+            throw new RuntimeException(ucfirst($configType) . ' must be a JSON object.');
         }
 
         return $config;

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Mata\Services\Alarm\Decision;
 
 use Mata\Services\Alarm\Dto\AlarmDecision;
+use Mata\Services\Alarm\Dto\ResolvedNotificationRule;
 
 final class MockAlarmDecisionService implements AlarmDecisionServiceInterface
 {
@@ -27,8 +28,11 @@ final class MockAlarmDecisionService implements AlarmDecisionServiceInterface
      * @param array<string,mixed> $event
      * @param array<int,string>   $supportedChannels
      */
-    public function decide(array $event, array $supportedChannels = ['email']): AlarmDecision
-    {
+    public function decide(
+        array $event,
+        array $supportedChannels = ['email'],
+        ?ResolvedNotificationRule $notificationRule = null,
+    ): AlarmDecision {
         $eventId = (int) ($event['id'] ?? 0);
 
         return $this->byEventId[$eventId] ?? $this->defaultDecision;

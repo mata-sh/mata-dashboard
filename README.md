@@ -39,6 +39,13 @@ Deploy read-only nodes on each monitored environment, manage alarms and logs fro
 
 MATA consists of one dashboard and one or more nodes. The dashboard polls each node for snapshots and evaluates alarms centrally. Nodes expose read-only endpoints and do not send data anywhere on their own.
 
+### Events, alarms, and deliveries
+
+- **Event:** A recorded fact.
+- **Logical alarm:** A policy-approved event, visible in the dashboard.
+- **Delivery:** One channel attempt for a logical alarm.
+- **Notification rule:** Selects or suppresses deliveries only; it never suppresses a logical alarm.
+
 <div align="center">
 
 [![Product Name Screen Shot][product-screenshot]][demo-url]

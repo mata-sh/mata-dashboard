@@ -1,5 +1,14 @@
 # Architecture Overview
 
+## Alarm decision model
+
+- **Event:** A recorded fact.
+- **Logical alarm:** A policy-approved event, visible in the dashboard.
+- **Delivery:** One channel attempt for a logical alarm.
+- **Notification rule:** Selects or suppresses deliveries only; it never suppresses a logical alarm.
+
+See [Alarm Decision and Delivery Flow](../drafts/reference/alarms.md) for the pipeline.
+
 ## Component Layers
 
 ### 1. Presentation Layer

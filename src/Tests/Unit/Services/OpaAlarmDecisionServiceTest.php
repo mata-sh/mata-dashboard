@@ -11,6 +11,7 @@ use GuzzleHttp\Middleware;
 use GuzzleHttp\Psr7\Response;
 use Mata\Config\Dto\OpaAlarmDecisionConfig;
 use Mata\Services\Alarm\Decision\OpaAlarmDecisionService;
+use Mata\Services\Alarm\Dto\ResolvedNotificationRule;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -34,10 +35,19 @@ final class OpaAlarmDecisionServiceTest extends TestCase
             new Client(['base_uri' => 'http://opa.test', 'handler' => $stack])
         );
 
-        $decision = $service->decide([], [' Email ', 'email']);
+        $decision = $service->decide(
+            [],
+            [' Email ', 'email'],
+            new ResolvedNotificationRule(true, ['email'], null),
+        );
 
         $payload = json_decode((string) $history[0]['request']->getBody(), true, 512, JSON_THROW_ON_ERROR);
         $this->assertSame(['email'], $payload['input']['channels']);
+        $this->assertSame([
+            'enabled' => true,
+            'channels' => ['email'],
+            'reason' => null,
+        ], $payload['input']['notification_rule']);
         $this->assertSame(['email'], $decision->channels);
     }
 
@@ -72,5 +82,62 @@ final class OpaAlarmDecisionServiceTest extends TestCase
         $this->assertSame('prod', $payload['input']['application']['env']);
         $this->assertArrayNotHasKey('metrics', $payload['input']);
         $this->assertArrayNotHasKey('counts', $payload['input']['event']);
+    }
+
+    public function testAllowedResultWithoutChannelsCreatesDashboardOnlyAlarm(): void
+    {
+        $decision = $this->serviceForResult(['allow' => true, 'priority' => 10])->decide([]);
+
+        $this->assertTrue($decision->allow);
+        $this->assertSame([], $decision->channels);
+        $this->assertNull($decision->reason);
+    }
+
+    public function testUnsupportedOnlyChannelDeniesWholeResult(): void
+    {
+        $decision = $this->serviceForResult([
+            'allow' => true,
+            'channels' => ['webhook'],
+        ])->decide([]);
+
+        $this->assertFalse($decision->allow);
+        $this->assertSame([], $decision->channels);
+        $this->assertSame('unsupported_channels', $decision->reason);
+    }
+
+    public function testMixedUnsupportedChannelDeniesWholeResult(): void
+    {
+        $decision = $this->serviceForResult([
+            'allow' => true,
+            'channels' => ['email', 'sms'],
+        ])->decide([]);
+
+        $this->assertFalse($decision->allow);
+        $this->assertSame([], $decision->channels);
+        $this->assertSame('unsupported_channels', $decision->reason);
+    }
+
+    public function testMalformedChannelDeniesWholeResult(): void
+    {
+        $decision = $this->serviceForResult([
+            'allow' => true,
+            'channels' => ['email', null],
+        ])->decide([]);
+
+        $this->assertFalse($decision->allow);
+        $this->assertSame('unsupported_channels', $decision->reason);
+    }
+
+    /** @param array<string,mixed> $result */
+    private function serviceForResult(array $result): OpaAlarmDecisionService
+    {
+        $stack = HandlerStack::create(new MockHandler([
+            new Response(200, [], json_encode(['result' => $result], JSON_THROW_ON_ERROR)),
+        ]));
+
+        return new OpaAlarmDecisionService(
+            new OpaAlarmDecisionConfig('http://opa.test', '/v1/data/alarms/decision', 1, 10),
+            new Client(['base_uri' => 'http://opa.test', 'handler' => $stack])
+        );
     }
 }

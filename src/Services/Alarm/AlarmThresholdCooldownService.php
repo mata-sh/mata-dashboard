@@ -141,6 +141,9 @@ class AlarmThresholdCooldownService
         }
 
         $rule = $this->alarmRules[$type] ?? AlarmRule::immediate();
+        if (!$rule->enabled) {
+            return $this->disabledEvaluation('alarm disabled by configuration');
+        }
 
         return match ($rule->strategy) {
             AlarmRule::STRATEGY_CONSECUTIVE_FAILURES => $this->evaluateConsecutiveFailures($rule, $context),
@@ -188,9 +191,9 @@ class AlarmThresholdCooldownService
         ]);
     }
 
-    private function disabledEvaluation(): AlarmThresholdEvaluation
+    private function disabledEvaluation(string $label = 'alarms disabled'): AlarmThresholdEvaluation
     {
-        return new AlarmThresholdEvaluation(false, ['strategy' => 'disabled', 'label' => 'alarms disabled']);
+        return new AlarmThresholdEvaluation(false, ['strategy' => AlarmRule::STRATEGY_DISABLED, 'label' => $label]);
     }
 
     private function immediateEvaluation(): AlarmThresholdEvaluation

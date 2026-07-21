@@ -7,7 +7,7 @@ title: Alarm Decision and Delivery Flow
 ## Pipeline
 
 ```text
-thresholds.json -> OPA -> intervals.json -> queue -> limits.json -> transport
+thresholds.json -> notification_rules.json -> OPA -> intervals.json -> queue -> limits.json -> transport
 ```
 
 The stages run in this order:
@@ -15,7 +15,8 @@ The stages run in this order:
 | Layer | Responsibility |
 |---|---|
 | `thresholds.json` | Decides whether an event pattern is an alarm candidate. PHP applies count-based candidate thresholds. |
-| OPA | Stateless classification only: decides `allow`, `channels`, `priority`, and `reason` from event type, level, threshold, and environment. It never evaluates counts. |
+| `notification_rules.json` | Constrains delivery channels. It never decides whether a logical alarm exists. |
+| OPA | Stateless classification only: decides whether to create a logical alarm, then its delivery channels, priority, and reason from event type, level, threshold, and environment. It never evaluates counts. |
 | `intervals.json` | Deduplicates equivalent channel deliveries. |
 | Queue | Persists the logical alarm and every selected, non-deduplicated channel delivery. |
 | `limits.json` | Applies per-server, per-channel transport rate limits to queued deliveries. |
@@ -25,13 +26,19 @@ OPA does not perform counts, cooldown, or transport rate-limit logic. PHP owns a
 
 Delivery priority uses ascending dispatch order: `10` critical, `30` error/security, `60` warning, `100` info. Lower values dispatch first.
 
-In `thresholds.json`, alarm count gates use `alarm_threshold_window_minutes`.
+In `thresholds.json`, alarm count gates use `alarm_threshold_window_minutes`. An entry under `alarms` may set `enabled: false` to keep recording its events while preventing logical alarm creation.
 
-## Logical alarms and deliveries
+## Events, logical alarms, and deliveries
 
-A **logical alarm** is the policy result for one event. It remains visible in the dashboard even when it has no channel deliveries.
+An **event** is a recorded fact.
+
+A **logical alarm** is a policy-approved event. It remains visible in the dashboard even when it has no channel deliveries.
 
 A **delivery** is one queued attempt for a selected channel. A logical alarm can have multiple deliveries, one per channel. Queue state and retry metadata belong to deliveries, not logical alarms.
+
+A **notification rule** selects or suppresses deliveries only. A disabled rule or empty channel list still permits a logical alarm when OPA allows it; it creates no deliveries.
+
+Keep future event-emission controls and alarm-eligibility controls out of `notification_rules.json`. Add separate configuration only when those capabilities exist. Keep the current flat `config/` layout until a domain has multiple related files; then group that domain under a directory rather than creating ambiguous top-level rule files.
 
 `intervals.json` deduplicates a delivery before it enters the queue. Its identity is:
 
@@ -64,6 +71,10 @@ At 10:00, an event produces a logical alarm and an email delivery. `intervals.js
 At 10:20, an equivalent `app_unreachable` event for the same server, application, context, and `email` channel reaches OPA. OPA returns `allow: true` and selects `email`. PHP creates the second logical alarm, but finds the matching email cooldown. The email delivery is omitted permanently.
 
 The dashboard shows both logical alarms. Only the first has an email delivery.
+
+### Notification rule creates a dashboard-only alarm
+
+A critical event passes its threshold and OPA allows it. Its notification rule is disabled, so PHP supplies no candidate delivery channels. PHP persists the logical alarm without deliveries. The dashboard shows the alarm; no transport is attempted.
 
 ### Queued email is delayed by `limits.json`
 

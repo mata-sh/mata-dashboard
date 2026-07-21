@@ -12,7 +12,12 @@ use Mata\Utils\AlarmLimitHelper;
 use PDOException;
 use Psr\Log\LoggerInterface;
 
-/** Queues direct alarms and throttles unqueueable alarms when delivery storage is unavailable. */
+/**
+ * Emergency path for forced alarms.
+ *
+ * Direct alarms intentionally bypass notification rules and OPA so configuration
+ * and bootstrap failures can still request email delivery.
+ */
 class AlarmDirectProcessor
 {
     public function __construct(

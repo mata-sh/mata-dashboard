@@ -121,7 +121,7 @@ final class LogAnalyzerTest extends TestCase
         );
     }
 
-    public function testAnalyzeAppLogsDoesNotTriggerLargeLogFileAlarmWhenDisabled(): void
+    public function testAnalyzeAppLogsRecordsLargeLogFactWhenNodeAlarmsAreDisabled(): void
     {
         $collector = $this->createStub(ServerDataCollectorInterface::class);
         $appData = [
@@ -141,7 +141,9 @@ final class LogAnalyzerTest extends TestCase
             ->with(60000, 'log_filesize_kb')
             ->willReturn('alarm')
         ;
-        $this->eventManager->expects($this->never())->method('handle');
+        $this->eventManager->expects($this->once())
+            ->method('handle')
+            ->with($this->callback(static fn (EventCommand $event): bool => $event->type === 'logfile_too_large'));
 
         $result = $this->analyzer->analyzeAppLogs(
             $appData,
@@ -154,7 +156,7 @@ final class LogAnalyzerTest extends TestCase
         $this->assertSame('alarm', $result['log_analysis']['level']);
     }
 
-    public function testAnalyzeAppLogsTriggersHandleEventForFatalErrors(): void
+    public function testAnalyzeAppLogsRecordsFatalErrorFactWhenNodeAlarmsAreDisabled(): void
     {
         $collector = $this->createStub(ServerDataCollectorInterface::class);
         $appData = [
@@ -191,12 +193,14 @@ final class LogAnalyzerTest extends TestCase
             ])
         ;
 
-        $this->analyzer->analyzeAppLogs(
+        $result = $this->analyzer->analyzeAppLogs(
             $appData,
             'app-1',
             'srv-1',
             $collector,
-            alarmsEnabled: true
+            alarmsEnabled: false
         );
+
+        $this->assertSame('', $result['error_analysis']['alarms_enabled_class']);
     }
 }

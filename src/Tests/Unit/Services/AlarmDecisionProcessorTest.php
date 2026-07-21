@@ -11,9 +11,12 @@ use Mata\Services\Alarm\Decision\AlarmDecisionProcessor;
 use Mata\Services\Alarm\Decision\AlarmDecisionServiceInterface;
 use Mata\Services\Alarm\Dto\AlarmDecision;
 use Mata\Services\Alarm\Dto\AlarmThresholdEvaluation;
+use Mata\Services\Alarm\Dto\ResolvedNotificationRule;
+use Mata\Services\Alarm\NotificationRuleResolver;
 use Mata\Services\Event\EventAggregatorServiceInterface;
 use Mata\Services\Event\EventRecorderService;
 use Mata\Tests\TestCase;
+use Psr\Log\LoggerInterface;
 use RuntimeException;
 
 /**
@@ -63,6 +66,83 @@ final class AlarmDecisionProcessorTest extends TestCase
         $this->assertTrue($result->skipped);
         $this->assertSame('deny', $result->record->toArray()['policy_gate']);
         $this->assertSame('maintenance_window', $result->record->toArray()['policy_reason']);
+    }
+
+    public function testDisabledNotificationRuleCreatesDashboardOnlyAlarm(): void
+    {
+        $evaluator = $this->readyEvaluator([]);
+        $decisionService = $this->createMock(AlarmDecisionServiceInterface::class);
+        $decisionService->expects($this->once())
+            ->method('decide')
+            ->with(
+                $this->event(),
+                [],
+                $this->callback(static fn (ResolvedNotificationRule $rule): bool => $rule->toArray() === [
+                    'enabled' => false,
+                    'channels' => ['email'],
+                    'reason' => 'event_type_disabled',
+                ])
+            )
+            ->willReturn(new AlarmDecision(true, [], 50, reason: 'disk_alarm'));
+        $creator = $this->createMock(AlarmCreatorInterface::class);
+        $creator->expects($this->once())->method('create')->with(42, [], 50, [])->willReturn(99);
+
+        $result = $this->processor(
+            $evaluator,
+            $decisionService,
+            $creator,
+            $this->createStub(EventRecorderService::class),
+            $this->expectRecordedOutcome('undelivered'),
+            ['event_types' => ['disk' => ['enabled' => false]]],
+        )->process($this->event());
+
+        $this->assertFalse($result->skipped);
+        $this->assertSame(0, $result->enqueuedCount);
+    }
+
+    public function testEmptyConfiguredChannelsCreateDashboardOnlyAlarm(): void
+    {
+        $evaluator = $this->readyEvaluator([]);
+        $decisionService = $this->decisionService(new AlarmDecision(true, [], 50, reason: 'disk_alarm'));
+        $creator = $this->createMock(AlarmCreatorInterface::class);
+        $creator->expects($this->once())->method('create')->with(42, [], 50, [])->willReturn(99);
+
+        $result = $this->processor(
+            $evaluator,
+            $decisionService,
+            $creator,
+            $this->createStub(EventRecorderService::class),
+            $this->expectRecordedOutcome('undelivered'),
+            ['event_types' => ['disk' => ['channels' => []]]],
+        )->process($this->event());
+
+        $this->assertFalse($result->skipped);
+    }
+
+    public function testDecisionServiceReceivesConstrainedChannelsAndResolvedRule(): void
+    {
+        $evaluator = $this->readyEvaluator([]);
+        $decisionService = $this->createMock(AlarmDecisionServiceInterface::class);
+        $decisionService->expects($this->once())
+            ->method('decide')
+            ->with(
+                $this->event(),
+                ['email'],
+                $this->callback(static fn (ResolvedNotificationRule $rule): bool => $rule->toArray() === [
+                    'enabled' => true,
+                    'channels' => ['email'],
+                    'reason' => null,
+                ])
+            )
+            ->willReturn(new AlarmDecision(false, [], reason: 'maintenance_window'));
+
+        $this->processor(
+            $evaluator,
+            $decisionService,
+            $this->createStub(AlarmCreatorInterface::class),
+            $this->createStub(EventRecorderService::class),
+            $this->expectRecordedOutcome('suppressed'),
+        )->process($this->event(), ['email', 'sms']);
     }
 
     public function testNoReadyChannelsCreatesAnUndeliveredAlarm(): void
@@ -214,14 +294,31 @@ final class AlarmDecisionProcessorTest extends TestCase
         return $aggregator;
     }
 
+    /** @param array<string,mixed> $ruleOverrides */
     private function processor(
         AlarmThresholdCooldownService $evaluator,
         AlarmDecisionServiceInterface $decisionService,
         AlarmCreatorInterface $creator,
         EventRecorderService $recorder,
         EventAggregatorServiceInterface $aggregator,
+        array $ruleOverrides = [],
+        ?LoggerInterface $logger = null,
     ): AlarmDecisionProcessor {
-        return new AlarmDecisionProcessor($evaluator, $decisionService, $creator, $recorder, $aggregator);
+        $resolver = new NotificationRuleResolver(array_replace([
+            'defaults' => ['enabled' => true, 'channels' => ['email']],
+            'event_types' => [],
+            'application_overrides' => [],
+        ], $ruleOverrides));
+
+        return new AlarmDecisionProcessor(
+            $evaluator,
+            $resolver,
+            $decisionService,
+            $creator,
+            $recorder,
+            $aggregator,
+            $logger,
+        );
     }
 
     /** @return array<string,mixed> */

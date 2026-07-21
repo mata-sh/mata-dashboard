@@ -4,7 +4,7 @@ import rego.v1
 
 # The full pipeline is (see docs/drafts/reference/alarms.md):
 #
-#   thresholds.json -> OPA (this file) -> intervals.json -> queue -> limits.json -> email
+#   thresholds.json -> notification_rules.json -> OPA (this file) -> intervals.json -> queue -> limits.json -> email
 #
 # PHP owns everything stateful and evaluates it BEFORE and AFTER this policy:
 #   - thresholds.json: "did enough events happen?" (alarm_threshold_event_count
@@ -13,20 +13,22 @@ import rego.v1
 #     recording intervals, applied to the channels this policy selects.
 #   - limits.json: transport rate limits at dispatch time.
 #
-# This policy is deliberately STATELESS. Input is one event that already passed
-# the threshold gate: {event: {type, level, message, context, datetime},
-# server: {id, name}, application: {id, code, name, env}, channels: [...]}.
-# It answers only: should this event become a logical alarm at all, on which
-# channels, with which dispatch priority — pure classification by type/level/env.
+# This policy is deliberately STATELESS. Input is one event that passed the
+# threshold gate. notification_rules.json constrains input.channels, but never
+# suppresses logical alarm creation: an empty list means dashboard-only.
+# Input: {event: {type, level, message, context, datetime}, server: {id, name},
+# application: {id, code, name, env}, channels: [...], notification_rule:
+# {enabled, channels, reason}}. It decides whether to create a logical alarm,
+# which deliveries to select, and dispatch priority — pure classification by
+# type/level/env.
 # It sees no counts, no cooldown state, and no delivery history.
 #
 # Result fields:
-#   allow    - false => no alarm is created for this event (event is still
-#              marked evaluated with the reason persisted).
-#   channels - requested delivery channels; PHP intersects them with the
-#              channels it actually supports (currently ["email"]) and then
-#              applies cooldown dedup, so returning a channel is a request,
-#              not a guarantee.
+#   allow    - false => no logical alarm is created for this event (event is
+#              still marked evaluated with the reason persisted).
+#   channels - selected only from input.channels, which PHP has already
+#              constrained to configured and runtime-supported channels. An
+#              allowed empty list creates a dashboard-only logical alarm.
 #   priority - dispatch order, ASC: lower dispatches first. Scale matches PHP
 #              AlarmDirectProcessor::resolvePriority (10 critical, 30 error/
 #              security, 60 warning, 100 info).
@@ -68,13 +70,8 @@ fatal_prod_app_error := result if {
     }
 }
 
-# Channel selection with fallback to email
-# input.channels is the currently-supported-channel list
-configured_channels() := channels if {
-    channels := input.config.channels
-} else := channels if {
-    channels := input.channels
-} else := ["email"]
+# PHP supplies the channels allowed by notification rules and runtime support.
+configured_channels() := object.get(input, "channels", [])
 
 # Application environment with fallback to unknown
 # input.application.env is the event source environment
@@ -107,7 +104,7 @@ monitored_critical := result if {
     input.event.level == "critical"
     result := {
         "allow": true,
-        "channels": ["email"],
+        "channels": configured_channels(),
         "priority": 10,
         "enrich": false,
         "reason": "monitored_critical",
@@ -119,7 +116,7 @@ monitored_warning := result if {
     input.event.level == "warning"
     result := {
         "allow": true,
-        "channels": ["email"],
+        "channels": configured_channels(),
         "priority": 60,
         "enrich": false,
         "reason": "monitored_warning",

@@ -8,6 +8,7 @@ use GuzzleHttp\Client;
 use GuzzleHttp\Exception\GuzzleException;
 use Mata\Config\Dto\OpaAlarmDecisionConfig;
 use Mata\Services\Alarm\Dto\AlarmDecision;
+use Mata\Services\Alarm\Dto\ResolvedNotificationRule;
 use RuntimeException;
 
 final class OpaAlarmDecisionService implements AlarmDecisionServiceInterface
@@ -29,16 +30,20 @@ final class OpaAlarmDecisionService implements AlarmDecisionServiceInterface
 
     /**
      * @param array<string,mixed> $event
-     * @param array<int,string>   $supportedChannels
+     * @param array<int,string>   $candidateChannels
      *
      * @throws GuzzleException
      */
-    public function decide(array $event, array $supportedChannels = ['email']): AlarmDecision
-    {
-        $supportedChannels = $this->normalizeChannels($supportedChannels);
+    public function decide(
+        array $event,
+        array $candidateChannels = ['email'],
+        ?ResolvedNotificationRule $notificationRule = null,
+    ): AlarmDecision {
+        $candidateChannels = $this->normalizeChannels($candidateChannels);
+        $notificationRule ??= new ResolvedNotificationRule(true, $candidateChannels);
 
         $payload = [
-            'input' => $this->buildInput($event, $supportedChannels),
+            'input' => $this->buildInput($event, $candidateChannels, $notificationRule),
         ];
 
         $response = $this->client->post(ltrim($this->config->decisionPath, '/'), ['json' => $payload]);
@@ -53,7 +58,7 @@ final class OpaAlarmDecisionService implements AlarmDecisionServiceInterface
             throw new RuntimeException('OPA response missing result payload.');
         }
 
-        return $this->normalizeDecision($decoded, $event, $supportedChannels);
+        return $this->normalizeDecision($decoded, $candidateChannels);
     }
 
     public function getBatchLimit(): int
@@ -63,12 +68,15 @@ final class OpaAlarmDecisionService implements AlarmDecisionServiceInterface
 
     /**
      * @param array<string,mixed> $event
-     * @param array<int,string>   $supportedChannels
+     * @param array<int,string>   $candidateChannels
      *
      * @return array<string,mixed>
      */
-    private function buildInput(array $event, array $supportedChannels): array
-    {
+    private function buildInput(
+        array $event,
+        array $candidateChannels,
+        ResolvedNotificationRule $notificationRule,
+    ): array {
         $context = null;
         if (is_string($event['context'] ?? null) && $event['context'] !== '') {
             $decoded = json_decode((string) $event['context'], true);
@@ -99,7 +107,8 @@ final class OpaAlarmDecisionService implements AlarmDecisionServiceInterface
                 'name' => $event['app_name'] ?? null,
                 'app_env' => $event['app_env'] ?? null,
             ],
-            'channels' => $this->normalizeChannels($supportedChannels),
+            'channels' => $this->normalizeChannels($candidateChannels),
+            'notification_rule' => $notificationRule->toArray(),
         ];
 
         if ($threshold !== null) {
@@ -178,14 +187,10 @@ final class OpaAlarmDecisionService implements AlarmDecisionServiceInterface
 
     /**
      * @param array<string,mixed> $response
-     * @param array<string,mixed> $event
-     * @param array<int,string>   $supportedChannels
+     * @param array<int,string>   $candidateChannels
      */
-    private function normalizeDecision(
-        array $response,
-        array $event,
-        array $supportedChannels
-    ): AlarmDecision {
+    private function normalizeDecision(array $response, array $candidateChannels): AlarmDecision
+    {
         $result = $response['result'] ?? null;
         $data = is_array($result) ? $result : [];
         $reason = is_string($data['reason'] ?? null) && $data['reason'] !== ''
@@ -201,23 +206,8 @@ final class OpaAlarmDecisionService implements AlarmDecisionServiceInterface
             default => false,
         };
 
-        $channels = [];
-        if (is_array($data['channels'] ?? null)) {
-            foreach ($data['channels'] as $channel) {
-                if (is_string($channel) && $channel !== '') {
-                    $channels[] = strtolower(trim($channel));
-                }
-            }
-        } elseif (is_string($data['channel'] ?? null) && $data['channel'] !== '') {
-            $channels[] = strtolower(trim((string) $data['channel']));
-        }
-
-        if ($channels === [] && $allow) {
-            $fallback = is_string($event['alarm_channel'] ?? null) ? (string) $event['alarm_channel'] : 'email';
-            $channels = [strtolower(trim($fallback))];
-        }
-
-        $channels = array_values(array_unique(array_intersect($channels, $supportedChannels)));
+        [$channels, $invalidChannels] = $this->extractChannels($data);
+        $unsupportedChannels = array_values(array_diff($channels, $candidateChannels));
 
         $priority = isset($data['priority']) && is_numeric($data['priority'])
             ? (int) $data['priority']
@@ -230,11 +220,40 @@ final class OpaAlarmDecisionService implements AlarmDecisionServiceInterface
             $enrich = (bool) $data['llm_enrich'];
         }
 
-        if ($allow && $channels === []) {
-            $allow = false;
-            $reason = 'no_supported_channels';
+        if ($invalidChannels || $unsupportedChannels !== []) {
+            return new AlarmDecision(false, [], $priority, $enrich, 'unsupported_channels');
         }
 
+        $channels = array_values(array_intersect($channels, $candidateChannels));
+
         return new AlarmDecision($allow, $channels, $priority, $enrich, $reason);
+    }
+
+    /**
+     * @param array<string,mixed> $data
+     *
+     * @return array{list<string>,bool}
+     */
+    private function extractChannels(array $data): array
+    {
+        $rawChannels = [];
+        if (array_key_exists('channels', $data)) {
+            if (!is_array($data['channels']) || !array_is_list($data['channels'])) {
+                return [[], true];
+            }
+            $rawChannels = $data['channels'];
+        } elseif (array_key_exists('channel', $data)) {
+            $rawChannels = [$data['channel']];
+        }
+
+        $channels = [];
+        foreach ($rawChannels as $channel) {
+            if (!is_string($channel) || trim($channel) === '') {
+                return [[], true];
+            }
+            $channels[] = strtolower(trim($channel));
+        }
+
+        return [array_values(array_unique($channels)), false];
     }
 }

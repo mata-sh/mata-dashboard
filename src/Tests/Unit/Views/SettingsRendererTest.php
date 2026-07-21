@@ -48,6 +48,7 @@ final class SettingsRendererTest extends TestCase
                     'servers.json',
                     'ttl.json',
                     'thresholds.json',
+                    'notification_rules.json',
                     'data_retention.json',
                     'intervals.json',
                     'users.json',
@@ -57,6 +58,7 @@ final class SettingsRendererTest extends TestCase
             );
             $this->assertTrue($filesByName['limits.json']['exists']);
             $this->assertTrue($filesByName['thresholds.json']['exists']);
+            $this->assertFalse($filesByName['notification_rules.json']['exists']);
             $this->assertTrue($filesByName['events.json']['exists']);
             $this->assertFalse($filesByName['users.json']['exists']);
         } finally {

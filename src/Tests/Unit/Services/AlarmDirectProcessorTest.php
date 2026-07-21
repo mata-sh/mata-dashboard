@@ -1,0 +1,45 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Mata\Tests\Unit\Services;
+
+use Mata\Config\Dto\AlarmLimitsConfig;
+use Mata\Models\Dto\EventRecordResult;
+use Mata\Services\Alarm\AlarmCreatorInterface;
+use Mata\Services\Alarm\AlarmDirectProcessor;
+use Mata\Services\Alarm\AlarmQueueFailureThrottle;
+use Mata\Services\Alarm\Dto\Alarm;
+use Mata\Services\Alarm\Dto\AlarmLevel;
+use Mata\Services\Alarm\Dto\AlarmLimit;
+use PHPUnit\Framework\TestCase;
+use Psr\Log\NullLogger;
+
+/**
+ * @covers \Mata\Services\Alarm\AlarmDirectProcessor
+ *
+ * @internal
+ */
+final class AlarmDirectProcessorTest extends TestCase
+{
+    public function testForcedAlarmQueuesDirectlyWithoutNotificationRulesOrOpa(): void
+    {
+        $creator = $this->createMock(AlarmCreatorInterface::class);
+        $creator->expects($this->once())
+            ->method('create')
+            ->with(42, ['email'], 10)
+            ->willReturn(7);
+        $limit = new AlarmLimit(1, 1, 1);
+        $processor = new AlarmDirectProcessor(
+            $creator,
+            new AlarmLimitsConfig($limit, ['email' => $limit]),
+            new AlarmQueueFailureThrottle(sys_get_temp_dir() . '/mata-direct-' . bin2hex(random_bytes(8))),
+            new NullLogger(),
+        );
+
+        $processor->process(
+            new Alarm('config_failure', 'Configuration failed', level: AlarmLevel::Critical),
+            new EventRecordResult(42, null, null, null, null, null),
+        );
+    }
+}

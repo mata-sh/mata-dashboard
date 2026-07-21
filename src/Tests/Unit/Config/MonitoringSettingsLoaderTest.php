@@ -8,7 +8,9 @@ use Mata\Config\MonitoringSettingsLoader;
 use Mata\Models\Dto\EventRecordResult;
 use Mata\Services\Event\EventRecorderService;
 use Mata\Tests\TestCase;
+use PHPUnit\Framework\Attributes\DataProvider;
 use ReflectionMethod;
+use RuntimeException;
 
 /**
  * @covers \Mata\Config\MonitoringSettingsLoader
@@ -57,6 +59,81 @@ final class MonitoringSettingsLoaderTest extends TestCase
         $this->assertArrayHasKey('server', $config['servers']);
         $this->assertSame(3, $config['probes']['max_retries']);
         $this->assertSame(5, $config['probes']['timeout_seconds'], 'omitted probe keys fall back to defaults');
+        $this->assertSame(
+            ['enabled' => true, 'channels' => ['email']],
+            $config['notification_rules']['defaults']
+        );
+    }
+
+    public function testLoadNotificationRulesConfigNormalizesValidRules(): void
+    {
+        $rules = $this->loadNotificationRulesJson(<<<'JSON'
+            {
+              "defaults": {"enabled": true, "channels": [" Email ", "email"]},
+              "event_types": {"fatal_errors_occurring": {"enabled": false, "channels": []}},
+              "application_overrides": {"app": {"fatal_errors_occurring": {"enabled": true}}}
+            }
+            JSON);
+
+        $this->assertSame(['enabled' => true, 'channels' => ['email']], $rules['defaults']);
+        $this->assertSame(['enabled' => false, 'channels' => []], $rules['event_types']['fatal_errors_occurring']);
+        $this->assertSame(['enabled' => true], $rules['application_overrides']['app']['fatal_errors_occurring']);
+    }
+
+    public function testLoadNotificationRulesConfigFallsBackForUnreadablePath(): void
+    {
+        $path = sys_get_temp_dir() . '/mata-rules-dir-' . bin2hex(random_bytes(8));
+        mkdir($path);
+        $this->expectNotificationRulesFallback();
+
+        try {
+            $rules = $this->loader->loadNotificationRulesConfig($path);
+        } finally {
+            rmdir($path);
+        }
+
+        $this->assertDefaultNotificationRules($rules);
+    }
+
+    public function testLoadNotificationRulesConfigFallsBackForMalformedJson(): void
+    {
+        $this->expectNotificationRulesFallback();
+
+        $this->assertDefaultNotificationRules($this->loadNotificationRulesJson('{'));
+    }
+
+    public function testLoadNotificationRulesConfigFallsBackForNonObjectJson(): void
+    {
+        $this->expectNotificationRulesFallback();
+
+        $this->assertDefaultNotificationRules($this->loadNotificationRulesJson('[]'));
+    }
+
+    /** @param array<string,mixed> $rules */
+    #[DataProvider('invalidNotificationRulesProvider')]
+    public function testLoadNotificationRulesConfigFallsBackForInvalidSchema(array $rules): void
+    {
+        $this->expectNotificationRulesFallback();
+
+        $this->assertDefaultNotificationRules($this->loadNotificationRulesJson(json_encode($rules, JSON_THROW_ON_ERROR)));
+    }
+
+    /** @return iterable<string,array{array<string,mixed>}> */
+    public static function invalidNotificationRulesProvider(): iterable
+    {
+        yield 'unknown root key' => [['unknown' => true]];
+        yield 'null section' => [['event_types' => null]];
+        yield 'list section' => [['event_types' => []]];
+        yield 'null rule' => [['event_types' => ['fatal' => null]]];
+        yield 'unknown rule key' => [['defaults' => ['unknown' => true]]];
+        yield 'non boolean enabled' => [['defaults' => ['enabled' => 1]]];
+        yield 'null enabled' => [['defaults' => ['enabled' => null]]];
+        yield 'channels object' => [['defaults' => ['channels' => ['email' => true]]]];
+        yield 'null channels' => [['defaults' => ['channels' => null]]];
+        yield 'non string channel' => [['defaults' => ['channels' => [1]]]];
+        yield 'empty channel' => [['defaults' => ['channels' => [' ']]]];
+        yield 'unsupported channel' => [['defaults' => ['channels' => ['webhook']]]];
+        yield 'mixed unsupported channel' => [['defaults' => ['channels' => ['email', 'sms']]]];
     }
 
     public function testLoadTtlConfigAddsMissingCacheTtls(): void
@@ -807,6 +884,39 @@ final class MonitoringSettingsLoaderTest extends TestCase
         $this->assertSame(0, $config['metrics']['hourly_retention_days']);
         $this->assertSame(0, $config['events']['retention_days']);
         $this->assertSame(0, $config['alarms']['retention_days']);
+    }
+
+    private function expectNotificationRulesFallback(): void
+    {
+        $this->useEventRecorderMock();
+        $this->eventRecorder
+            ->expects($this->once())
+            ->method('recordEvent')
+            ->willReturn(new EventRecordResult(1, null, null, null, null, null));
+    }
+
+    /** @param array<string,mixed> $rules */
+    private function assertDefaultNotificationRules(array $rules): void
+    {
+        $this->assertSame([
+            'defaults' => ['enabled' => true, 'channels' => ['email']],
+            'event_types' => [],
+            'application_overrides' => [],
+        ], $rules);
+    }
+
+    /** @return array<string,mixed> */
+    private function loadNotificationRulesJson(string $json): array
+    {
+        $path = tempnam(sys_get_temp_dir(), 'mata-rules-');
+        self::assertNotFalse($path);
+        file_put_contents($path, $json);
+
+        try {
+            return $this->loader->loadNotificationRulesConfig($path);
+        } finally {
+            unlink($path);
+        }
     }
 
     private function useEventRecorderMock(): void

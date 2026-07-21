@@ -50,16 +50,16 @@ final class BuiltinAlarmDecisionServiceTest extends TestCase
         $this->assertSame('builtin_fatal_errors', $decision->reason);
     }
 
-    public function testMissingEmailChannelDeniesAllowedDecision(): void
+    public function testMissingEmailChannelCreatesDashboardOnlyAlarm(): void
     {
         $decision = (new BuiltinAlarmDecisionService())->decide([
             'level' => 'critical',
         ], [' SMS ']);
 
-        $this->assertFalse($decision->allow);
+        $this->assertTrue($decision->allow);
         $this->assertSame([], $decision->channels);
         $this->assertSame(10, $decision->priority);
-        $this->assertSame('no_supported_channels', $decision->reason);
+        $this->assertSame('builtin_critical_level', $decision->reason);
     }
 
     public function testReturnsConfiguredBatchLimit(): void

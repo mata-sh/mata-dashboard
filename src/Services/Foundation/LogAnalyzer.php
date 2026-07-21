@@ -54,8 +54,8 @@ class LogAnalyzer
         ServerDataCollectorInterface $serverDataCollector,
         bool $alarmsEnabled
     ): array {
-        // Analyze log file sizes
-        $logSizeAnalysis = $this->analyzeLogFileSizes($appData['logs'], $app, $server, $alarmsEnabled);
+        // Fact recording is independent of notification suppression.
+        $logSizeAnalysis = $this->analyzeLogFileSizes($appData['logs'], $app, $server);
 
         // Analyze error counts and generate status
         $errorAnalysis = $this->analyzeErrorCounts(
@@ -76,14 +76,13 @@ class LogAnalyzer
     /**
      * Analyze log file sizes and check thresholds.
      *
-     * @param array<string,int> $logs          Array containing log file data (path => size in KB)
-     * @param string            $app           Application name
-     * @param string            $server        Server name
-     * @param bool              $alarmsEnabled Whether alarms are enabled for this app
+     * @param array<string,int> $logs   Array containing log file data (path => size in KB)
+     * @param string            $app    Application name
+     * @param string            $server Server name
      *
      * @return array<string,mixed> Log file size analysis results
      */
-    private function analyzeLogFileSizes(array $logs, string $app, string $server, bool $alarmsEnabled): array
+    private function analyzeLogFileSizes(array $logs, string $app, string $server): array
     {
         // $logs = json_decode($logsJson, true);
         $maxLogfileSize = 0;
@@ -103,9 +102,7 @@ class LogAnalyzer
             'log_filesize_kb'
         );
 
-        if ($alarmsEnabled) {
-            $this->evaluateLogSizeAlarm($maxLogfileSize, $maxLogFilePath, $level, $app, $server);
-        }
+        $this->evaluateLogSizeAlarm($maxLogfileSize, $maxLogFilePath, $level, $app, $server);
 
         return [
             'max_size' => $maxLogfileSize,
@@ -151,8 +148,8 @@ class LogAnalyzer
 
             if ($alarmsEnabled) {
                 $alarmsEnabledClass = 'alarms-enabled';
-                $this->evaluateFatalErrorAlarm((int) $status['fatal'], $app, $server);
             }
+            $this->evaluateFatalErrorAlarm((int) $status['fatal'], $app, $server);
         } elseif ($status['warnings'] > 0) {
             $showEventsCount = $warningCount;
             $showEventsType = 'warnings';

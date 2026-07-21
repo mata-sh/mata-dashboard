@@ -67,11 +67,23 @@ test_monitored_critical_is_allowed if {
 test_monitored_warning_is_allowed if {
     decision := alarms.decision with input as {
         "event": {"type": "app_unreachable", "level": "warning"},
+        "channels": ["email"],
     }
 
     decision.allow == true
+    decision.channels == ["email"]
     decision.priority == 60
     decision.reason == "monitored_warning"
+}
+
+test_monitored_rule_does_not_add_a_channel if {
+    decision := alarms.decision with input as {
+        "event": {"type": "app_unreachable", "level": "warning"},
+        "channels": [],
+    }
+
+    decision.allow == true
+    decision.channels == []
 }
 
 test_monitored_info_is_denied if {

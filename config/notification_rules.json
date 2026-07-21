@@ -1,0 +1,8 @@
+{
+  "defaults": {
+    "enabled": true,
+    "channels": ["email"]
+  },
+  "event_types": {},
+  "application_overrides": {}
+}
