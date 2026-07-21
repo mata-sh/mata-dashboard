@@ -37,12 +37,27 @@ class ProbeClient
     {
         $startedAt = microtime(true);
 
-        return $this->client->requestAsync('HEAD', $url, [
+        return $this->requestReachabilityAsync($url, $timeout, $startedAt, 'HEAD');
+    }
+
+    /**
+     * HEAD is the normal low-cost availability probe. Some servers reject it
+     * despite serving GET, so retry a 405 once with GET.
+     */
+    private function requestReachabilityAsync(string $url, int $timeout, float $startedAt, string $method): PromiseInterface
+    {
+        return $this->client->requestAsync($method, $url, [
             'timeout' => $timeout,
             'allow_redirects' => true,
             'http_errors' => false,
         ])->then(
-            fn(ResponseInterface $response): array => $this->reachabilityFromResponse($url, $startedAt, $response, $timeout),
+            function (ResponseInterface $response) use ($url, $timeout, $startedAt, $method): array|PromiseInterface {
+                if ($method === 'HEAD' && $response->getStatusCode() === 405) {
+                    return $this->requestReachabilityAsync($url, $timeout, $startedAt, 'GET');
+                }
+
+                return $this->reachabilityFromResponse($url, $startedAt, $response, $timeout);
+            },
             fn(mixed $reason): array => $this->transportFailureResult($url, $reason, $timeout),
         );
     }

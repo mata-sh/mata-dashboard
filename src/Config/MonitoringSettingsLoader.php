@@ -207,7 +207,7 @@ final class MonitoringSettingsLoader
             defaultConfig: $this->getDefaultIntervalsConfig()
         );
 
-        return array_merge($this->getDefaultIntervalsConfig(), $intervalsConfig);
+        return array_replace_recursive($this->getDefaultIntervalsConfig(), $intervalsConfig);
     }
 
     /**
@@ -249,6 +249,7 @@ final class MonitoringSettingsLoader
                 'min_event_interval_minutes' => [
                     '_default' => 60,
                     'app_unreachable' => 0,
+                    'server_apps_transport_unreachable' => 0,
                     'cronjobs_failing' => 30,
                     'filecount_too_large' => 72,
                     'logfile_too_large' => 12,
@@ -265,6 +266,7 @@ final class MonitoringSettingsLoader
                 'min_alarm_interval_minutes' => [
                     '_default' => 1440,
                     'app_unreachable' => 60,
+                    'server_apps_transport_unreachable' => 60,
                     'cronjobs_failing' => 360,
                     'filecount_too_large' => 60,
                     'logfile_too_large' => 720,
@@ -570,6 +572,9 @@ final class MonitoringSettingsLoader
                     'required_count' => 2,
                     'window_minutes' => 10,
                 ],
+                'server_apps_transport_unreachable' => [
+                    'strategy' => 'immediate',
+                ],
                 'server_metrics.ingestion_run_empty' => [
                     'alarm_threshold_event_count' => 3,
                     'alarm_threshold_window_minutes' => 30,
@@ -647,7 +652,7 @@ final class MonitoringSettingsLoader
         }
 
         $strategy = $rule['strategy'] ?? 'event_count_window';
-        if (!is_string($strategy) || !in_array($strategy, ['event_count_window', 'consecutive_failures'], true)) {
+        if (!is_string($strategy) || !in_array($strategy, ['event_count_window', 'consecutive_failures', 'immediate'], true)) {
             return false;
         }
         if ($strategy !== 'consecutive_failures') {
@@ -786,6 +791,7 @@ final class MonitoringSettingsLoader
         return [
             '_default' => ['min_event_interval_minutes' => 60],
             'app_unreachable' => ['min_event_interval_minutes' => 0],
+            'server_apps_transport_unreachable' => ['min_event_interval_minutes' => 0],
             'cronjobs_failing' => ['min_event_interval_minutes' => 30],
             'filecount_too_large' => ['min_event_interval_minutes' => 72],
             'logfile_too_large' => ['min_event_interval_minutes' => 12],

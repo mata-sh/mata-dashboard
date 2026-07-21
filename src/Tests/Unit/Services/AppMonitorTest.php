@@ -138,6 +138,44 @@ final class AppMonitorTest extends TestCase
         $this->assertSame('shop', $events[1]->app);
     }
 
+    public function testAllApplicationTransportFailuresRecordOneServerEvent(): void
+    {
+        $store = $this->createStub(CacheStoreInterface::class);
+        $store->method('get')->willReturn(null);
+        $event = null;
+        $events = $this->createMock(EventManager::class);
+        $events->expects($this->once())->method('handle')->willReturnCallback(static function (EventCommand $command) use (&$event): array {
+            $event = $command;
+
+            return [];
+        });
+        $failure = static fn (): ConnectException => new ConnectException(
+            'Operation timed out',
+            new Request('HEAD', 'https://app.example.test'),
+            null,
+            ['errno' => 28],
+        );
+        $monitor = $this->monitor(
+            $store,
+            $this->probe($failure(), $failure(), $failure(), $failure()),
+            CacheTypes::PING,
+            $events,
+            retryDelay: static function (): void {},
+        );
+
+        $monitor->checkMultipleEndpoints([
+            'admin' => new EndpointTarget('admin', 'https://admin.example.test', serverName: 'node-a'),
+            'shop' => new EndpointTarget('shop', 'https://shop.example.test', serverName: 'node-a'),
+        ]);
+
+        $this->assertSame('server_apps_transport_unreachable', $event?->type);
+        $this->assertSame('node-a', $event?->server);
+        $this->assertNull($event?->app);
+        $this->assertSame(['admin', 'shop'], $event?->metric?->additional['affected_apps']);
+        $this->assertSame(['timeout'], $event?->metric?->additional['failure_kinds']);
+        $this->assertSame(2, $event?->metric?->additional['attempts']);
+    }
+
     public function testTwoTransientFailuresExposeNormalizedDiagnostics(): void
     {
         $store = $this->createStub(CacheStoreInterface::class);

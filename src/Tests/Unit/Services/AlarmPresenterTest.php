@@ -85,6 +85,7 @@ final class AlarmPresenterTest extends TestCase
     {
         $cases = [
             ['app_unreachable', 'UNREACHABLE', '2 consecutive failed cycles within 10 minutes'],
+            ['server_apps_transport_unreachable', 'UNREACHABLE', 'first event'],
             ['cpu_usage_too_high', '1%', '2 events within 30 minutes'],
             ['server_metrics.ingestion_run_empty', 'EMPTY', '3 events within 30 minutes'],
             ['cronjobs_failing', '1', 'first event'],

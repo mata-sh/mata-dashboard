@@ -37,6 +37,7 @@ final readonly class AlarmRule
                 max(1, (int) ($config['window_minutes'] ?? 10)),
             ),
             self::STRATEGY_EVENT_COUNT_WINDOW => self::eventCountWindow($config),
+            self::STRATEGY_IMMEDIATE => self::immediate(),
             default => self::invalid(),
         };
     }

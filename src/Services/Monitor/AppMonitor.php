@@ -103,15 +103,32 @@ class AppMonitor implements AppMonitorInterface
         }
 
         $ordered = [];
+        $freshResults = [];
         foreach ($targets as $identifier => $target) {
             $fresh = array_key_exists($identifier, $cacheKeys);
             $result = $results[$identifier] ?? $this->unavailableResult($target, 'Availability probe did not return a result', $timeout);
             if ($fresh) {
                 $this->cacheStore->put($cacheKeys[$identifier], $result);
-                $streak = $this->updateReachabilityStreak($target, $result);
-                $this->recordUnreachableTarget($target, $result, $streak);
+                $freshResults[$identifier] = [
+                    'target' => $target,
+                    'result' => $result,
+                    'streak' => $this->updateReachabilityStreak($target, $result),
+                ];
             }
             $ordered[$identifier] = $result;
+        }
+
+        $server = $this->transportFailureServer($targets, $freshResults);
+        if ($server !== null) {
+            $this->recordServerAppsTransportFailure($server, $freshResults);
+        } else {
+            foreach ($freshResults as $freshResult) {
+                $this->recordUnreachableTarget(
+                    $freshResult['target'],
+                    $freshResult['result'],
+                    $freshResult['streak'],
+                );
+            }
         }
 
         return $ordered;
@@ -233,6 +250,76 @@ class AppMonitor implements AppMonitorInterface
     private function availabilityCacheKey(string $url, string $cacheType, int $timeout): string
     {
         return $this->cacheKeyFactory->createAvailabilityKey($this->apiClient->getApiBase(), $cacheType, $url, $timeout);
+    }
+
+    /**
+     * Return the shared server when every configured app was freshly checked
+     * and failed at the transport layer. HTTP responses are app-level failures
+     * and must remain separate.
+     *
+     * @param array<int|string,EndpointTarget> $targets
+     * @param array<int|string,array{target:EndpointTarget,result:array<string,mixed>,streak:array{count:int,first_failure_at:?int}}> $freshResults
+     */
+    private function transportFailureServer(array $targets, array $freshResults): int|string|null
+    {
+        if (count($targets) < 2 || count($freshResults) !== count($targets)) {
+            return null;
+        }
+
+        $server = null;
+        foreach ($freshResults as $freshResult) {
+            $target = $freshResult['target'];
+            $result = $freshResult['result'];
+            $targetServer = $target->serverId ?? $target->serverName;
+            if ($targetServer === null || $targetServer === ''
+                || ($server !== null && (string) $server !== (string) $targetServer)
+                || $this->isReachableOrInMaintenance($result)
+                || !$this->probePolicy->isRetryable($result['failure_kind'] ?? null)) {
+                return null;
+            }
+            $server = $targetServer;
+        }
+
+        return $server;
+    }
+
+    /**
+     * Record one server incident for a shared transport failure instead of an
+     * identical alarm for each application.
+     *
+     * @param array<int|string,array{target:EndpointTarget,result:array<string,mixed>,streak:array{count:int,first_failure_at:?int}}> $freshResults
+     */
+    private function recordServerAppsTransportFailure(int|string $server, array $freshResults): void
+    {
+        $apps = [];
+        $failureKinds = [];
+        $attempts = 1;
+        foreach ($freshResults as $freshResult) {
+            $apps[] = $freshResult['target']->identifier;
+            $failureKinds[] = $freshResult['result']['failure_kind'] ?? 'unknown';
+            $attempts = max($attempts, (int) ($freshResult['result']['attempts'] ?? 1));
+        }
+        sort($apps);
+        $failureKinds = array_values(array_unique($failureKinds));
+        sort($failureKinds);
+
+        $message = "All application probes failed at the transport layer for {$server}";
+        $diagnostics = [
+            'affected_apps' => $apps,
+            'affected_app_count' => count($apps),
+            'failure_kinds' => $failureKinds,
+            'attempts' => $attempts,
+            'checked_at' => gmdate(DATE_ATOM, $this->now()),
+        ];
+        $this->logger->warning("Ping -> {$message}", $diagnostics);
+        $this->eventManager->handle(new EventCommand(
+            type: 'server_apps_transport_unreachable',
+            message: $message,
+            level: 'critical',
+            server: $server,
+            context: ['scope' => 'all_app_transport'],
+            metric: new EventMetric('application_transport_reachability', 0, additional: $diagnostics),
+        ));
     }
 
     /**

@@ -25,6 +25,7 @@ final class AlarmRuleTest extends TestCase
             'alarm_threshold_event_count' => 3,
             'alarm_threshold_window_minutes' => 30,
         ]);
+        $immediate = AlarmRule::fromArray(['strategy' => 'immediate']);
 
         $this->assertSame(AlarmRule::STRATEGY_CONSECUTIVE_FAILURES, $consecutive->strategy);
         $this->assertSame(2, $consecutive->requiredCount);
@@ -32,6 +33,7 @@ final class AlarmRuleTest extends TestCase
         $this->assertSame(AlarmRule::STRATEGY_EVENT_COUNT_WINDOW, $eventCount->strategy);
         $this->assertSame(3, $eventCount->requiredCount);
         $this->assertSame(30, $eventCount->windowMinutes);
+        $this->assertSame(AlarmRule::STRATEGY_IMMEDIATE, $immediate->strategy);
     }
 
     public function testItUsesImmediateRulesForEmptyOrDisabledCountRules(): void

@@ -38,6 +38,21 @@ final class ProbeClientTest extends TestCase
         $this->assertFalse($history[0]['request']->hasHeader('X-Mata-Auth'));
     }
 
+    public function testAvailabilityFallsBackToGetWhenHeadIsNotAllowed(): void
+    {
+        $history = [];
+        $probe = $this->probe([new Response(405), new Response(200)], $history);
+
+        $result = $probe->probeReachabilityAsync('https://app.example.test', 2)->wait();
+
+        $this->assertTrue($result['reachable']);
+        $this->assertSame(200, $result['httpCode']);
+        $this->assertSame(['HEAD', 'GET'], array_map(
+            static fn (array $entry): string => $entry['request']->getMethod(),
+            $history,
+        ));
+    }
+
     public function testReachabilityRecordsLatencyForHttpFailures(): void
     {
         $probe = $this->probe([new Response(500)]);

@@ -35,6 +35,7 @@ final class AlarmPresenter
             'node_unhealthy' => ['Detected an unhealthy health response.', $ruleDetail],
             'node_unreachable' => ['Detected an unreachable server health endpoint.', $ruleDetail ?? 'Alarm rule: first failed check'],
             'app_unreachable' => ['Detected an unreachable application endpoint.', $ruleDetail],
+            'server_apps_transport_unreachable' => ['Detected a transport failure affecting all application endpoints.', $ruleDetail],
             default => [$this->defaultDescription($alarm->type), null],
         };
 
@@ -92,7 +93,7 @@ final class AlarmPresenter
             'cronjobs_failing' => $this->formatMetricValue($actualValue, $this->formatNumber(...)),
             'server_metrics.ingestion_run_empty' => 'EMPTY',
             'node_unhealthy' => 'UNHEALTHY',
-            'node_unreachable', 'app_unreachable' => 'UNREACHABLE',
+            'node_unreachable', 'app_unreachable', 'server_apps_transport_unreachable' => 'UNREACHABLE',
             default => null,
         };
     }

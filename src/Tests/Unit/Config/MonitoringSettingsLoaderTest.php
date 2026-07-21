@@ -662,6 +662,9 @@ final class MonitoringSettingsLoaderTest extends TestCase
         $this->assertArrayNotHasKey('orders_export_stale', $thresholds['alarms']);
         $this->assertArrayNotHasKey('server_metrics.ingestion_run_completed', $thresholds['alarms']);
         $this->assertSame([
+            'strategy' => 'immediate',
+        ], $thresholds['alarms']['server_apps_transport_unreachable']);
+        $this->assertSame([
             'alarm_threshold_event_count' => 3,
             'alarm_threshold_window_minutes' => 30,
         ], $thresholds['alarms']['server_metrics.ingestion_run_empty']);
@@ -683,13 +686,14 @@ final class MonitoringSettingsLoaderTest extends TestCase
     {
         $this->useEventRecorderMock();
         $this->eventRecorder
-            ->expects($this->exactly(2))
+            ->expects($this->exactly(3))
             ->method('recordEvent')
             ->willReturn(new EventRecordResult(1, null, null, null, null, null));
         $path = tempnam(sys_get_temp_dir(), 'mata-thresholds-');
         self::assertNotFalse($path);
         file_put_contents($path, json_encode(['alarms' => [
             'app_unreachable' => ['strategy' => 'unknown'],
+            'server_apps_transport_unreachable' => ['strategy' => 'unknown'],
             'custom_alarm' => ['strategy' => 'unknown'],
         ]], JSON_THROW_ON_ERROR));
 
@@ -704,7 +708,29 @@ final class MonitoringSettingsLoaderTest extends TestCase
             'required_count' => 2,
             'window_minutes' => 10,
         ], $thresholds['alarms']['app_unreachable']);
+        $this->assertSame(['strategy' => 'immediate'], $thresholds['alarms']['server_apps_transport_unreachable']);
         $this->assertArrayNotHasKey('custom_alarm', $thresholds['alarms']);
+    }
+
+    public function testIntervalDefaultsFillMissingConfiguredEventTypes(): void
+    {
+        $path = tempnam(sys_get_temp_dir(), 'mata-intervals-');
+        self::assertNotFalse($path);
+        file_put_contents($path, json_encode([
+            'events' => ['min_event_interval_minutes' => ['_default' => 15]],
+            'alarms' => ['min_alarm_interval_minutes' => ['_default' => 30]],
+        ], JSON_THROW_ON_ERROR));
+
+        try {
+            $config = $this->loader->loadIntervalsConfig($path);
+        } finally {
+            unlink($path);
+        }
+
+        $this->assertSame(15, $config['events']['min_event_interval_minutes']['_default']);
+        $this->assertSame(0, $config['events']['min_event_interval_minutes']['server_apps_transport_unreachable']);
+        $this->assertSame(30, $config['alarms']['min_alarm_interval_minutes']['_default']);
+        $this->assertSame(60, $config['alarms']['min_alarm_interval_minutes']['server_apps_transport_unreachable']);
     }
 
     public function testDefaultFatalErrorEventIntervalIsConfigured(): void
@@ -722,6 +748,7 @@ final class MonitoringSettingsLoaderTest extends TestCase
         $eventIntervals = $config['events']['min_event_interval_minutes'];
         $alarmIntervals = $config['alarms']['min_alarm_interval_minutes'];
         $this->assertSame(0, $eventIntervals['app_unreachable']);
+        $this->assertSame(0, $eventIntervals['server_apps_transport_unreachable']);
         $this->assertSame(72, $eventIntervals['fatal_errors_occurring']);
         $this->assertArrayNotHasKey('server_metrics.ingestion_run_completed', $eventIntervals);
         $this->assertSame(5, $eventIntervals['server_metrics.ingestion_run_empty']);
@@ -729,6 +756,7 @@ final class MonitoringSettingsLoaderTest extends TestCase
         $this->assertSame(30, $eventIntervals['cpu_usage_too_high']);
         $this->assertSame(30, $eventIntervals['ram_usage_too_high']);
         $this->assertArrayNotHasKey('orders_export_stale', $eventIntervals);
+        $this->assertSame(60, $alarmIntervals['server_apps_transport_unreachable']);
         $this->assertSame(30, $alarmIntervals['server_metrics.ingestion_run_empty']);
         $this->assertSame(60, $alarmIntervals['server_metrics.ingestion_stalled']);
         $this->assertArrayNotHasKey('server_metrics.ingestion_run_completed', $alarmIntervals);
