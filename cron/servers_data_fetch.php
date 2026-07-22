@@ -108,7 +108,7 @@ function warmServerCaches(
     LoggerInterface $log
 ): void {
     // Refresh the dashboard's normal cache entries regardless of their display TTL.
-    $healthMonitor->checkOrWait($server, forceRefresh: true);
+    $healthMonitor->checkSynchronously($server, forceRefresh: true);
     $collector->getServerSystemData(forceRefresh: true);
 
     $appsResponse = $collector->getApps(forceRefresh: true);
