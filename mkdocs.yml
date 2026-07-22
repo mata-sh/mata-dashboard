@@ -28,7 +28,9 @@ nav:
       - User Management CLI: guides/user-management.md
       # - First Server: guides/first-server.md
       - Securing Application: guides/secure-application.md
-#     - Monitoring: guides/monitoring.md
+      - Monitoring:
+          - Overview: guides/monitoring.md
+          - Application Error Monitoring: guides/application-error-monitoring.md
 #     - Deployment: guides/deployment.md
 
   - Reference:

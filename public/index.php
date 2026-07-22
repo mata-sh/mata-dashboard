@@ -33,6 +33,7 @@ use Mata\Http\Security\CsrfGuard;
 use Mata\Http\SecurityHeaders;
 use Mata\Models\AlarmDeliveryRepository;
 use Mata\Models\AlarmRepository;
+use Mata\Models\AppFatalStateRepository;
 use Mata\Models\ConfigSyncRepository;
 use Mata\Models\EventRepository;
 use Mata\Services\Alarm\AlarmCreator;
@@ -49,6 +50,7 @@ use Mata\Services\DataTransformers\LogDataTransformer;
 use Mata\Services\Event\EventManager;
 use Mata\Services\Event\EventRecorderService;
 use Mata\Services\Foundation\IdResolver;
+use Mata\Services\Foundation\LogSizeEvaluator;
 use Mata\Services\Foundation\ProbeClient;
 use Mata\Services\Monitor\Dto\DashboardMonitoringContext;
 use Mata\Services\Monitor\Dto\MonitoringPolicy;
@@ -332,6 +334,7 @@ $mailCfg = [
 
 // --- Repositories ---
 $configSyncRepository = new ConfigSyncRepository($db);
+$fatalStateRepository = new AppFatalStateRepository($db);
 $alarmRepository = new AlarmRepository($db);
 $deliveryRepository = new AlarmDeliveryRepository($db);
 $alarmCreator = new AlarmCreator($db, $alarmRepository, $deliveryRepository);
@@ -425,6 +428,9 @@ $serverMonitoringFactory = new ServerMonitoringFactory(
     new ApiResponseTransformer($log),
     new ProbeClient(),
     $monitoringPolicy,
+    $idResolver,
+    $fatalStateRepository,
+    new LogSizeEvaluator($tools, $eventManager),
 );
 
 $serverMonitoringBuild = $dashboardEnvironmentFactory->createMonitoring(

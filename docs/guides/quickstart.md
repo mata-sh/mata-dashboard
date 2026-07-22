@@ -31,6 +31,14 @@ vi config/apps.json
 !!! warning "Application identifiers"
     Each top-level key in every monitored node's `apps.json` is a dashboard application identifier. It must be globally unique. Reusing a key means the same application on multiple servers and requires identical `title` and `env`; the dashboard stores one application record and keeps events separate by server. Use a server-specific suffix when deployments must be separate applications.
 
+Set literal monitoring booleans in node `apps.json`:
+
+```json
+{"shop":{"error_monitoring_enabled":true,"logsize_monitoring_enabled":true}}
+```
+
+The node `/apps` summary returns those booleans and, for positive fatals, a `v1:` cursor.
+
 ## 2. Server Dashboard 
 
 This is the Innterface that fetches data from the client nodes on the same or other servers.
@@ -67,7 +75,9 @@ vi config/db.config.env
 // Set Api key you generated for your client node (DASHBOARD_API_KEY)
 {
   "prod-web-01": {
-    "api_key": "32_character_hexadecimal_api_key_here"
+    "api_key": "32_character_hexadecimal_api_key_here",
+    "error_monitoring_enabled": true,
+    "logsize_monitoring_enabled": true
   }
 }
 ```
@@ -75,7 +85,7 @@ vi config/db.config.env
 The entry key (`prod-web-01` above) is the server's identifier and must exactly match
 `DASHBOARD_SERVER_ID` in that node's `config/config.env`; likewise `api_key` must match the
 node's `DASHBOARD_API_KEY`. Renaming the entry key later breaks authentication for that node
-until you update its `DASHBOARD_SERVER_ID` to match.
+until you update its `DASHBOARD_SERVER_ID` to match. Omitted monitoring flags default to `true`; `false` at either the server or app level disables only that matching check.
 
 ## 3. Subdomains
 

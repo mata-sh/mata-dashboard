@@ -8,6 +8,8 @@
     "production-web-server": {
         "title": "Production Server",
         "active": true,
+        "error_monitoring_enabled": true,
+        "logsize_monitoring_enabled": true,
         "url": "https://app.yourdomain.com/",
         "api_url": "https://api.yourdomain.com/",
         "api_key": "your_secure_api_key_here_32_characters",
@@ -140,7 +142,9 @@
         "primary_color": "Hex color code for server identification in dashboard",
         "secondary_color": "Secondary color for UI theming",
         "info": "Human-readable description of the server's purpose",
-        "check_disk_space": "Enable/disable disk space monitoring (on/off)"
+        "check_disk_space": "Enable/disable disk space monitoring (on/off)",
+        "error_monitoring_enabled": "Enable fatal-error cursor monitoring (true/false; omitted defaults to true; independent from logsize_monitoring_enabled)",
+        "logsize_monitoring_enabled": "Enable largest-log size monitoring (true/false; omitted defaults to true; independent from error_monitoring_enabled)"
     },
     "_COLOR_EXAMPLES": {
         "green_success": "#28a745",

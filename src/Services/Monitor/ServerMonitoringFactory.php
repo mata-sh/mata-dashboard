@@ -6,6 +6,7 @@ namespace Mata\Services\Monitor;
 
 use Exception;
 use InvalidArgumentException;
+use Mata\Models\AppFatalStateRepository;
 use Mata\Services\Cache\ApiCacheKeyFactory;
 use Mata\Services\Cache\CacheStoreInterface;
 use Mata\Services\Cache\CacheTtlResolver;
@@ -14,10 +15,14 @@ use Mata\Services\Collect\ServerDataCollector;
 use Mata\Services\DataTransformers\ApiResponseTransformer;
 use Mata\Services\Event\EventManager;
 use Mata\Services\Foundation\ApiClient;
+use Mata\Services\Foundation\IdResolver;
+use Mata\Services\Foundation\LogSizeEvaluator;
 use Mata\Services\Foundation\ProbeClient;
+use Mata\Services\Monitor\Dto\AppErrorMonitoringPolicy;
 use Mata\Services\Monitor\Dto\MonitoringPolicy;
 use Mata\Services\Monitor\Dto\ServerMonitoringResult;
 use Mata\Services\Monitor\Dto\ServerMonitoringServices;
+use Mata\Utils\NumberFormatter;
 use Mata\Utils\TypeConverter;
 use Psr\Log\LoggerInterface;
 
@@ -33,6 +38,9 @@ final readonly class ServerMonitoringFactory
         private ApiResponseTransformer $dataTransformer,
         private ProbeClient $probeClient,
         private MonitoringPolicy $policy,
+        private IdResolver $idResolver,
+        private AppFatalStateRepository $fatalStateRepository,
+        private LogSizeEvaluator $logSizeEvaluator,
     ) {}
 
     /** @param array<string,mixed> $servers */
@@ -126,6 +134,15 @@ final readonly class ServerMonitoringFactory
                 $this->logger,
                 $this->policy,
             ),
+            errorMonitor: new AppErrorMonitor(
+                $this->eventManager,
+                $this->idResolver,
+                $this->fatalStateRepository,
+                AppErrorMonitoringPolicy::fromServerConfig($serverConfig),
+                $this->logSizeEvaluator,
+                $this->logger,
+                new NumberFormatter(),
+            ),
             healthMonitor: new NodeHealthMonitor(
                 $this->cacheStore,
                 $this->cacheKeyFactory,
@@ -151,6 +168,7 @@ final readonly class ServerMonitoringFactory
                 $serverConfig,
             ),
             appMonitor: new MockAppMonitor(),
+            errorMonitor: new MockAppErrorMonitor(),
             healthMonitor: new MockNodeHealthMonitor(),
         );
     }

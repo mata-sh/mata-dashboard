@@ -106,9 +106,9 @@ class LogRenderer extends BaseRenderer
     }
 
     /**
-     * Format log analysis tooltip from LogAnalyzer data.
+     * Format log analysis tooltip from server view data.
      *
-     * @param array<string,mixed> $logAnalysisData Log analysis data from LogAnalyzer
+     * @param array<string,mixed> $logAnalysisData Log analysis data from ServerViewBuilder
      *
      * @return string HTML formatted tooltip content
      */
@@ -159,9 +159,9 @@ class LogRenderer extends BaseRenderer
     }
 
     /**
-     * Format error status tooltip from LogAnalyzer data.
+     * Format error status tooltip from server view data.
      *
-     * @param array<string,mixed> $errorAnalysisData Error analysis data from LogAnalyzer
+     * @param array<string,mixed> $errorAnalysisData Error analysis data from ServerViewBuilder
      *
      * @return string HTML formatted tooltip content
      */

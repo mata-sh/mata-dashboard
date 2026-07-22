@@ -17,6 +17,11 @@ use RuntimeException;
 
 final class ServersConfigLoader extends AbstractJsonConfigLoader implements MonitoringConfigLoaderInterface
 {
+    private const OPTIONAL_BOOLEAN_SETTINGS = [
+        'error_monitoring_enabled',
+        'logsize_monitoring_enabled',
+    ];
+
     public function __construct(
         private EventRecorderService $eventRecorder,
         private ?AlarmDirectProcessor $alarmDirectProcessor = null,
@@ -119,6 +124,11 @@ final class ServersConfigLoader extends AbstractJsonConfigLoader implements Moni
         }
         if (array_key_exists('disabled', $serverConfig) && !is_bool($serverConfig['disabled'])) {
             return ["Server '{$serverName}' disabled must be a boolean"];
+        }
+        foreach (self::OPTIONAL_BOOLEAN_SETTINGS as $setting) {
+            if (array_key_exists($setting, $serverConfig) && !is_bool($serverConfig[$setting])) {
+                return ["Server '{$serverName}' {$setting} must be a boolean"];
+            }
         }
         if (($serverConfig['disabled'] ?? false) === true) {
             return [];

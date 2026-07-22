@@ -1401,6 +1401,8 @@ class MockServerDataCollector implements ServerDataCollectorInterface
                 'status_url' => rtrim($this->serverConfig['url'], '/') . '/' . $template['path'] . '/status.php',
                 'env' => $environment,
                 'composer' => true,
+                'error_monitoring_enabled' => true,
+                'logsize_monitoring_enabled' => true,
                 'status' => [
                     'fatal' => $fatalCount,
                     'warnings' => $warningCount,
@@ -1492,11 +1494,14 @@ class MockServerDataCollector implements ServerDataCollectorInterface
             }
         }
 
-        foreach ($apps as &$app) {
+        foreach ($apps as $appKey => &$app) {
             $app['status']['total'] = max(
                 $app['status']['total'],
                 $app['status']['fatal'] + $app['status']['warnings']
             );
+            $app['status']['fatal_cursor'] = $app['status']['fatal'] === 0
+                ? null
+                : 'v1:' . hash('sha256', $appKey . ':' . $app['status']['fatal']);
         }
         unset($app);
 

@@ -268,6 +268,29 @@ final class MonitoringConfigLoadersTest extends TestCase
         $this->assertSame("Server 'server' disabled must be a boolean", $result['errors'][0]);
     }
 
+    #[DataProvider('nonBooleanApplicationMonitoringFlagProvider')]
+    public function testValidateServersConfigRejectsNonBooleanApplicationMonitoringFlags(string $setting): void
+    {
+        $result = $this->loader->validateServersConfig([
+            'server' => [
+                'title' => 'Server',
+                'api_url' => 'https://api.example.test',
+                'api_key' => 'key123',
+                $setting => 'false',
+            ],
+        ]);
+
+        $this->assertFalse($result['is_valid']);
+        $this->assertSame("Server 'server' {$setting} must be a boolean", $result['errors'][0]);
+    }
+
+    /** @return iterable<string,array{string}> */
+    public static function nonBooleanApplicationMonitoringFlagProvider(): iterable
+    {
+        yield 'error monitoring' => ['error_monitoring_enabled'];
+        yield 'log-size monitoring' => ['logsize_monitoring_enabled'];
+    }
+
     public function testValidateServersConfigHttpsUrlIsValid(): void
     {
         $config = [
@@ -919,7 +942,7 @@ final class MonitoringConfigLoadersTest extends TestCase
         $alarmIntervals = $config['alarms']['min_alarm_interval_minutes'];
         $this->assertSame(0, $eventIntervals['app_unreachable']);
         $this->assertSame(0, $eventIntervals['server_apps_transport_unreachable']);
-        $this->assertSame(72, $eventIntervals['fatal_errors_occurring']);
+        $this->assertSame(0, $eventIntervals['fatal_errors_occurring']);
         $this->assertArrayNotHasKey('server_metrics.ingestion_run_completed', $eventIntervals);
         $this->assertSame(5, $eventIntervals['server_metrics.ingestion_run_empty']);
         $this->assertSame(15, $eventIntervals['server_metrics.ingestion_stalled']);

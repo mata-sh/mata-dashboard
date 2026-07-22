@@ -12,7 +12,7 @@ use Mata\Constants\NodeHealthState;
 use Mata\Services\Cache\CacheTypeResolver;
 use Mata\Services\Collect\ServerDataCollectorInterface;
 use Mata\Services\Event\EventManager;
-use Mata\Services\Foundation\LogAnalyzer;
+use Mata\Services\Foundation\LogSizeEvaluator;
 use Mata\Services\Monitor\AppMonitorInterface;
 use Mata\Services\Monitor\Dto\EndpointTarget;
 use Mata\Services\Monitor\Dto\ServerMonitoringServices;
@@ -29,7 +29,7 @@ use Throwable;
  *
  * Orchestrates data collection from multiple services to build
  * view-ready data structures for server rendering:
- * - Coordinates ServerMonitor, AppMonitor, LogAnalyzer
+ * - Coordinates server, application, and log view data
  * - Handles error cases and partial data
  * - Enriches app data with metrics and availability
  * - Formats data for template consumption
@@ -37,7 +37,7 @@ use Throwable;
 class ServerViewBuilder
 {
     private ServerMonitor $serverMonitor;
-    private LogAnalyzer $logAnalyzer;
+    private LogSizeEvaluator $logSizeEvaluator;
     private EventManager $eventManager;
     private Logger $logger;
     private CacheTypeResolver $cacheTypeResolver;
@@ -46,7 +46,7 @@ class ServerViewBuilder
 
     public function __construct(
         ServerMonitor $serverMonitor,
-        LogAnalyzer $logAnalyzer,
+        LogSizeEvaluator $logSizeEvaluator,
         EventManager $eventManager,
         Logger $logger,
         CacheTypeResolver $cacheTypeResolver,
@@ -54,7 +54,7 @@ class ServerViewBuilder
         ?NumberFormatter $numberFormatter = null,
     ) {
         $this->serverMonitor = $serverMonitor;
-        $this->logAnalyzer = $logAnalyzer;
+        $this->logSizeEvaluator = $logSizeEvaluator;
         $this->eventManager = $eventManager;
         $this->logger = $logger;
         $this->cacheTypeResolver = $cacheTypeResolver;
@@ -256,13 +256,7 @@ class ServerViewBuilder
         foreach ($rawAppsData as $appKey => $appData) {
             $alarmsEnabled = ($appData['alarms_enabled'] ?? 'on') !== 'off';
 
-            $logAnalysis = $this->logAnalyzer->analyzeAppLogs(
-                $appData,
-                $appKey,
-                $serverName,
-                $collector,
-                $alarmsEnabled
-            );
+            $logAnalysis = $this->buildAppLogViewData($appData, $alarmsEnabled);
 
             $sessionData = $this->formatSessionDataForView($appData);
 
@@ -276,6 +270,51 @@ class ServerViewBuilder
         }
 
         return $appsViewData;
+    }
+
+    /** @param array<string,mixed> $appData @return array<string,mixed> */
+    private function buildAppLogViewData(array $appData, bool $showAlarmsEnabledClass): array
+    {
+        $logs = $appData['logs'];
+        $status = $appData['status'];
+        $fatalCount = $this->numberFormatter->formatCompact($status['fatal']);
+        $warningCount = $this->numberFormatter->formatCompact($status['warnings']);
+        $totalLineCount = $this->numberFormatter->formatCompact($status['total']);
+        $showEventsCount = 0;
+        $showEventsType = 'working';
+        $alarmsEnabledClass = '';
+
+        if ($status['fatal'] > 0) {
+            $showEventsCount = $fatalCount;
+            $showEventsType = 'errors';
+            $alarmsEnabledClass = $showAlarmsEnabledClass ? 'alarms-enabled' : '';
+        } elseif ($status['warnings'] > 0) {
+            $showEventsCount = $warningCount;
+            $showEventsType = 'warnings';
+        }
+
+        $firstLog = '';
+        foreach ($logs as $log => $size) {
+            $firstLog = $log;
+
+            break;
+        }
+
+        return [
+            'log_analysis' => $this->logSizeEvaluator->evaluate($logs)->toArray(),
+            'error_analysis' => [
+                'fatal_count' => $fatalCount,
+                'warning_count' => $warningCount,
+                'total_count' => $totalLineCount,
+                'show_events_count' => $showEventsCount,
+                'show_events_type' => $showEventsType,
+                'alarms_enabled_class' => $alarmsEnabledClass,
+                'fatal_count_raw' => (int) $status['fatal'],
+                'warning_count_raw' => (int) $status['warnings'],
+                'total_count_raw' => (int) $status['total'],
+                'first_log' => $firstLog,
+            ],
+        ];
     }
 
     /**

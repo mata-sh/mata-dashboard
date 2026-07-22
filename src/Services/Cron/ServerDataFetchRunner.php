@@ -1,0 +1,61 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Mata\Services\Cron;
+
+use Mata\Services\Collect\ServerDataCollectorInterface;
+use Mata\Services\Cron\Dto\ServerDataFetchResult;
+use Mata\Services\Monitor\AppErrorMonitorInterface;
+use Mata\Services\Monitor\AppMonitorInterface;
+use Mata\Services\Monitor\Dto\AppErrorMonitoringResult;
+use Mata\Services\Monitor\Dto\EndpointTarget;
+use Mata\Services\Monitor\NodeHealthMonitorInterface;
+use Mata\Services\Sync\AppInventorySync;
+use Psr\Log\LoggerInterface;
+use Throwable;
+
+/** Runs one server data fetch from a single forced /apps response. */
+final class ServerDataFetchRunner
+{
+    public function __construct(private LoggerInterface $logger) {}
+
+    public function run(
+        string $server,
+        ServerDataCollectorInterface $collector,
+        AppMonitorInterface $appMonitor,
+        AppErrorMonitorInterface $errorMonitor,
+        NodeHealthMonitorInterface $healthMonitor,
+        AppInventorySync $appInventorySync,
+    ): ServerDataFetchResult {
+        $healthMonitor->checkSynchronously($server, forceRefresh: true);
+        $collector->getServerSystemData(forceRefresh: true);
+        $appsResponse = $collector->getApps(forceRefresh: true);
+        if ($appsResponse === null || !is_array($appsResponse['result'] ?? null)) {
+            $this->logger->warning("{$server}: apps could not be fetched, skipping application monitoring and availability probes");
+
+            return new ServerDataFetchResult(false, 0, 0, AppErrorMonitoringResult::empty());
+        }
+
+        $apps = $appsResponse['result'];
+        $synced = $appInventorySync->sync($apps);
+
+        try {
+            $monitoring = $errorMonitor->monitor($server, $apps);
+        } catch (Throwable $exception) {
+            $this->logger->warning("{$server}: application error monitoring failed", ['exception' => $exception]);
+            $monitoring = AppErrorMonitoringResult::empty(count($apps), failures: 1);
+        }
+
+        $pingableApps = array_filter(
+            $apps,
+            static fn ($app): bool => is_array($app) && ($app['ping'] ?? 'on') !== 'off',
+        );
+        $targets = EndpointTarget::fromRawAppData($pingableApps, $server);
+        if ($targets !== []) {
+            $appMonitor->checkMultipleEndpoints($targets, forceRefresh: true);
+        }
+
+        return new ServerDataFetchResult(true, $synced, count($targets), $monitoring);
+    }
+}

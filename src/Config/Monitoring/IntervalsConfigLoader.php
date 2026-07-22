@@ -66,7 +66,7 @@ final class IntervalsConfigLoader extends AbstractJsonConfigLoader implements Mo
                     'server_metrics.ingestion_stalled' => 15,
                     'cpu_usage_too_high' => 30,
                     'ram_usage_too_high' => 30,
-                    'fatal_errors_occurring' => 72,
+                    'fatal_errors_occurring' => 0,
                 ],
             ],
             'alarms' => [

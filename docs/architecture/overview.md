@@ -45,7 +45,6 @@ Business logic and core functionality:
 - `NotificationManager`: Email notification handling
 - `CacheManager`: Cache management with TTL
 - `ServerMonitor`: Metric evaluation and thresholds
-- `LogAnalyzer`: Log file analysis
 
 **View Renderers** (`src/View/`)
 

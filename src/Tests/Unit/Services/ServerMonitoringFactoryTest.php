@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace Mata\Tests\Unit\Services;
 
 use InvalidArgumentException;
+use Mata\Core\DatabaseInterface;
+use Mata\Models\AppFatalStateRepository;
 use Mata\Services\Cache\ApiCacheKeyFactory;
 use Mata\Services\Cache\CacheStoreInterface;
 use Mata\Services\Cache\CacheTtlResolver;
@@ -12,13 +14,17 @@ use Mata\Services\Collect\MockServerDataCollector;
 use Mata\Services\Collect\ServerDataCollector;
 use Mata\Services\DataTransformers\ApiResponseTransformer;
 use Mata\Services\Event\EventManager;
+use Mata\Services\Foundation\IdResolver;
+use Mata\Services\Foundation\LogSizeEvaluator;
 use Mata\Services\Foundation\ProbeClient;
 use Mata\Services\Monitor\AppMonitor;
 use Mata\Services\Monitor\Dto\MonitoringPolicy;
+use Mata\Services\Monitor\MockAppErrorMonitor;
 use Mata\Services\Monitor\MockAppMonitor;
 use Mata\Services\Monitor\MockNodeHealthMonitor;
 use Mata\Services\Monitor\NodeHealthMonitor;
 use Mata\Services\Monitor\ServerMonitoringFactory;
+use Mata\Utils\Tools;
 use PHPUnit\Framework\TestCase;
 use Psr\Log\NullLogger;
 
@@ -38,6 +44,7 @@ final class ServerMonitoringFactoryTest extends TestCase
 
         $this->assertInstanceOf(ServerDataCollector::class, $services->collector);
         $this->assertInstanceOf(AppMonitor::class, $services->appMonitor);
+        $this->assertInstanceOf(\Mata\Services\Monitor\AppErrorMonitor::class, $services->errorMonitor);
         $this->assertInstanceOf(NodeHealthMonitor::class, $services->healthMonitor);
     }
 
@@ -76,6 +83,7 @@ final class ServerMonitoringFactoryTest extends TestCase
 
         $this->assertInstanceOf(MockServerDataCollector::class, $services->collector);
         $this->assertInstanceOf(MockAppMonitor::class, $services->appMonitor);
+        $this->assertInstanceOf(MockAppErrorMonitor::class, $services->errorMonitor);
         $this->assertInstanceOf(MockNodeHealthMonitor::class, $services->healthMonitor);
         $this->assertSame([], $result->failures);
     }
@@ -107,6 +115,9 @@ final class ServerMonitoringFactoryTest extends TestCase
             new ApiResponseTransformer($logger),
             new ProbeClient(),
             MonitoringPolicy::fromSettings([]),
+            new IdResolver(),
+            new AppFatalStateRepository($this->createStub(DatabaseInterface::class)),
+            new LogSizeEvaluator(new Tools('/tmp'), $this->createStub(EventManager::class)),
         );
     }
 }

@@ -8,7 +8,7 @@ use Mata\Core\App;
 use Mata\Http\Routing\Endpoints;
 use Mata\Services\Cache\CacheTypeResolver;
 use Mata\Services\Event\EventManager;
-use Mata\Services\Foundation\LogAnalyzer;
+use Mata\Services\Foundation\LogSizeEvaluator;
 use Mata\Services\Monitor\ServerMonitor;
 use Mata\Services\View\ServerViewBuilder;
 use Mata\Utils\Tools;
@@ -35,7 +35,7 @@ class TooltipEscapingTest extends TestCase
 
         $builder = new ServerViewBuilder(
             $this->createStub(ServerMonitor::class),
-            $this->createStub(LogAnalyzer::class),
+            new LogSizeEvaluator(new Tools('/tmp'), $eventManager),
             $eventManager,
             $this->createStub(Logger::class),
             new CacheTypeResolver()
@@ -65,7 +65,7 @@ class TooltipEscapingTest extends TestCase
         $eventManager = $this->createStub(EventManager::class);
         $builder = new ServerViewBuilder(
             $this->createStub(ServerMonitor::class),
-            $this->createStub(LogAnalyzer::class),
+            new LogSizeEvaluator(new Tools('/tmp'), $eventManager),
             $eventManager,
             $this->createStub(Logger::class),
             new CacheTypeResolver()

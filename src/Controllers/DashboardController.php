@@ -18,7 +18,7 @@ use Mata\Services\Cache\CacheStoreInterface;
 use Mata\Services\Cache\CacheTypeResolver;
 use Mata\Services\Collect\ServerDataCollectorInterface;
 use Mata\Services\Event\EventManager;
-use Mata\Services\Foundation\LogAnalyzer;
+use Mata\Services\Foundation\LogSizeEvaluator;
 use Mata\Services\Monitor\Dto\DashboardMonitoringContext;
 use Mata\Services\Monitor\Dto\ServerMonitoringServices;
 use Mata\Services\Monitor\ServerMonitor;
@@ -58,7 +58,6 @@ class DashboardController extends BaseController
     private EventManager $eventManager;
     private Endpoints $endpoints;
     private ServerMonitor $serverMonitor;
-    private LogAnalyzer $logAnalyzer;
     private ServerViewBuilder $serverViewBuilder;
     private ServerRenderer $serverRenderer;
     private DatabaseRenderer $databaseRenderer;
@@ -157,11 +156,10 @@ class DashboardController extends BaseController
 
         // Initialize Monitoring service classes
         $this->serverMonitor = new ServerMonitor($logger, $eventManager);
-        $this->logAnalyzer = new LogAnalyzer($tools, $eventManager);
         $cacheTypeResolver = new CacheTypeResolver();
         $this->serverViewBuilder = new ServerViewBuilder(
             $this->serverMonitor,
-            $this->logAnalyzer,
+            new LogSizeEvaluator($tools, $eventManager),
             $eventManager,
             $logger,
             $cacheTypeResolver,

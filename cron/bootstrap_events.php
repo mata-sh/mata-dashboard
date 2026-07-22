@@ -11,6 +11,7 @@ declare(strict_types=1);
  * Exports:
  * - $deliveryRepository  Alarm delivery persistence
  * - $configSyncRepository  Config synchronization
+ * - $fatalStateRepository  Application fatal-state persistence
  * - $eventRepository       Event persistence
  * - $queueFailureThrottle  Queue-failure throttling for direct alarms
  * - $alarmLimits           Rate limiting configuration
@@ -38,6 +39,7 @@ use Mata\Config\Monitoring\ThresholdsConfigLoader;
 use Mata\Config\Monitoring\TtlConfigLoader;
 use Mata\Models\AlarmDeliveryRepository;
 use Mata\Models\AlarmRepository;
+use Mata\Models\AppFatalStateRepository;
 use Mata\Models\ConfigSyncRepository;
 use Mata\Models\EventRepository;
 use Mata\Services\Alarm\AlarmCreator;
@@ -61,6 +63,7 @@ $alarmRepository = new AlarmRepository($db);
 $deliveryRepository = new AlarmDeliveryRepository($db);
 $alarmCreator = new AlarmCreator($db, $alarmRepository, $deliveryRepository);
 $configSyncRepository = new ConfigSyncRepository($db);
+$fatalStateRepository = new AppFatalStateRepository($db);
 $eventRepository = new EventRepository($db);
 
 // ************************************************************************************************
@@ -143,6 +146,7 @@ return compact(
     'alarmRepository',
     'alarmCreator',
     'configSyncRepository',
+    'fatalStateRepository',
     'eventRepository',
     'queueFailureThrottle',
     'alarmLimits',

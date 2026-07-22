@@ -164,17 +164,25 @@ class ApiResponseTransformer
                 $composerEnabled = array_key_exists('composer', $appData)
                     ? TypeConverter::toBool($appData['composer'])
                     : false;
+                $errorMonitoringEnabled = $appData['error_monitoring_enabled'] ?? null;
+                $logsizeMonitoringEnabled = $appData['logsize_monitoring_enabled'] ?? null;
 
                 if ($title === null || $path === null || $url === null || !in_array($env, ['dev', 'test', 'stg', 'prod', 'live'], true)
-                    || $statusUrl === false || !is_array($status) || !is_array($logs) || $composerEnabled === null) {
+                    || $statusUrl === false || !is_array($status) || !is_array($logs) || $composerEnabled === null
+                    || !is_bool($errorMonitoringEnabled) || !is_bool($logsizeMonitoringEnabled)) {
                     throw new InvalidNodePayloadException("Node returned an invalid application payload for {$appName}.", 'apps');
                 }
 
                 $fatal = TypeConverter::toInt($status['fatal'] ?? null);
                 $warnings = TypeConverter::toInt($status['warnings'] ?? null);
                 $total = TypeConverter::toInt($status['total'] ?? null);
+                $fatalCursor = $status['fatal_cursor'] ?? null;
+                $validFatalCursor = $fatal === 0
+                    ? $fatalCursor === null
+                    : is_string($fatalCursor) && preg_match('/^v1:[a-f0-9]{64}$/', $fatalCursor) === 1;
                 $normalizedLogs = $this->normalizeLogSizes($logs);
-                if ($fatal === null || $warnings === null || $total === null || $fatal < 0 || $warnings < 0 || $total < 0 || $normalizedLogs === null) {
+                if ($fatal === null || $warnings === null || $total === null || $fatal < 0 || $warnings < 0 || $total < 0
+                    || !$validFatalCursor || $normalizedLogs === null) {
                     throw new InvalidNodePayloadException("Node returned invalid monitoring data for {$appName}.", 'apps');
                 }
 
@@ -193,7 +201,9 @@ class ApiResponseTransformer
                     'env' => $env === 'live' ? 'prod' : $env,
                     'description' => $description,
                     'composer' => $composerEnabled,
-                    'status' => ['fatal' => $fatal, 'warnings' => $warnings, 'total' => $total],
+                    'error_monitoring_enabled' => $errorMonitoringEnabled,
+                    'logsize_monitoring_enabled' => $logsizeMonitoringEnabled,
+                    'status' => ['fatal' => $fatal, 'warnings' => $warnings, 'total' => $total, 'fatal_cursor' => $fatalCursor],
                     'logs' => $normalizedLogs,
                     'session' => $this->normalizeSessionData(
                         isset($appData['session']) && is_array($appData['session']) ? $appData['session'] : []

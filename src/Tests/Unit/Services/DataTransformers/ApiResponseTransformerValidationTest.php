@@ -33,7 +33,8 @@ final class ApiResponseTransformerValidationTest extends TestCase
                 'env' => 'prod',
                 'composer' => true,
                 'status_url' => 'https://shop.example.test/health/',
-                'status' => ['fatal' => '1', 'warnings' => 2, 'total' => '3'],
+                'status' => ['fatal' => '1', 'warnings' => 2, 'total' => '3', 'fatal_cursor' => 'v1:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'],
+                'error_monitoring_enabled' => true, 'logsize_monitoring_enabled' => true,
                 'logs' => ['logs/error.log' => '42'],
                 'session' => [
                     'type' => 'file',
@@ -51,7 +52,10 @@ final class ApiResponseTransformerValidationTest extends TestCase
         $this->assertNull($response['error']);
         $this->assertArrayNotHasKey('maintenance', $response['result']['shop']);
         $this->assertSame('https://shop.example.test/health/', $response['result']['shop']['status_url']);
-        $this->assertSame(['fatal' => 1, 'warnings' => 2, 'total' => 3], $response['result']['shop']['status']);
+        $this->assertSame([
+            'fatal' => 1, 'warnings' => 2, 'total' => 3,
+            'fatal_cursor' => 'v1:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+        ], $response['result']['shop']['status']);
         $this->assertSame(42, $response['result']['shop']['logs']['logs/error.log']);
         $this->assertSame(4, $response['result']['shop']['session']['count_last_hour']);
         $this->assertTrue($response['result']['shop']['composer']);
@@ -64,7 +68,8 @@ final class ApiResponseTransformerValidationTest extends TestCase
         $response = $this->transformer->normalizeApiResponse([
             'shop' => [
                 'title' => 'Shop', 'path' => '/var/www/shop', 'url' => 'https://shop.example.test', 'env' => 'live',
-                'status' => ['fatal' => 0, 'warnings' => 0, 'total' => 0], 'logs' => [],
+                'status' => ['fatal' => 0, 'warnings' => 0, 'total' => 0, 'fatal_cursor' => null],
+                'error_monitoring_enabled' => true, 'logsize_monitoring_enabled' => true, 'logs' => [],
             ],
         ], path: 'apps');
 
@@ -80,7 +85,8 @@ final class ApiResponseTransformerValidationTest extends TestCase
                 'path' => '/var/www/staging-shop',
                 'url' => 'https://staging-shop.example.test',
                 'env' => 'stg',
-                'status' => ['fatal' => 0, 'warnings' => 0, 'total' => 0],
+                'status' => ['fatal' => 0, 'warnings' => 0, 'total' => 0, 'fatal_cursor' => null],
+                'error_monitoring_enabled' => true, 'logsize_monitoring_enabled' => true,
                 'logs' => ['logs/error.log' => 0],
                 'session' => [
                     'type' => 'file',
@@ -104,7 +110,8 @@ final class ApiResponseTransformerValidationTest extends TestCase
         $response = $this->transformer->normalizeApiResponse([
             'shop' => [
                 'title' => 'Shop', 'path' => '/var/www/shop', 'url' => 'https://shop.example.test', 'env' => 'prod',
-                'status_url' => null, 'status' => ['fatal' => 0, 'warnings' => 0, 'total' => 0], 'logs' => [],
+                'status_url' => null, 'status' => ['fatal' => 0, 'warnings' => 0, 'total' => 0, 'fatal_cursor' => null],
+                'error_monitoring_enabled' => true, 'logsize_monitoring_enabled' => true, 'logs' => [],
             ],
         ], path: 'apps');
 
@@ -117,7 +124,8 @@ final class ApiResponseTransformerValidationTest extends TestCase
         $response = $this->transformer->normalizeApiResponse([
             'shop' => [
                 'title' => 'Shop', 'path' => '/var/www/shop', 'url' => 'https://shop.example.test', 'env' => 'prod',
-                'description' => '', 'status' => ['fatal' => 0, 'warnings' => 0, 'total' => 0], 'logs' => [],
+                'description' => '', 'status' => ['fatal' => 0, 'warnings' => 0, 'total' => 0, 'fatal_cursor' => null],
+                'error_monitoring_enabled' => true, 'logsize_monitoring_enabled' => true, 'logs' => [],
             ],
         ], path: 'apps');
 
@@ -125,12 +133,34 @@ final class ApiResponseTransformerValidationTest extends TestCase
         $this->assertNull($response['result']['shop']['description']);
     }
 
+    public function testAppsRequireStrictMonitoringBooleansAndConsistentFatalCursor(): void
+    {
+        $app = [
+            'title' => 'Shop', 'path' => '/var/www/shop', 'url' => 'https://shop.example.test', 'env' => 'prod',
+            'status' => ['fatal' => 0, 'warnings' => 0, 'total' => 0, 'fatal_cursor' => null],
+            'error_monitoring_enabled' => true, 'logsize_monitoring_enabled' => true, 'logs' => [],
+        ];
+        $this->assertNull($this->transformer->normalizeApiResponse(['shop' => $app], path: 'apps')['error']);
+
+        $app['error_monitoring_enabled'] = 'true';
+        $this->assertSame('invalid_payload', $this->transformer->normalizeApiResponse(['shop' => $app], path: 'apps')['error']['kind']);
+        $app['error_monitoring_enabled'] = true;
+        unset($app['logsize_monitoring_enabled']);
+        $this->assertSame('invalid_payload', $this->transformer->normalizeApiResponse(['shop' => $app], path: 'apps')['error']['kind']);
+        $app['logsize_monitoring_enabled'] = true;
+        $app['status'] = ['fatal' => 1, 'warnings' => 0, 'total' => 1, 'fatal_cursor' => null];
+        $this->assertSame('invalid_payload', $this->transformer->normalizeApiResponse(['shop' => $app], path: 'apps')['error']['kind']);
+        $app['status']['fatal_cursor'] = 'v2:' . str_repeat('a', 64);
+        $this->assertSame('invalid_payload', $this->transformer->normalizeApiResponse(['shop' => $app], path: 'apps')['error']['kind']);
+    }
+
     public function testInvalidStatusUrlIsAnExplicitError(): void
     {
         $response = $this->transformer->normalizeApiResponse([
             'shop' => [
                 'title' => 'Shop', 'path' => '/var/www/shop', 'url' => 'https://shop.example.test', 'env' => 'prod',
-                'status_url' => '/health/', 'status' => ['fatal' => 0, 'warnings' => 0, 'total' => 0], 'logs' => [],
+                'status_url' => '/health/', 'status' => ['fatal' => 0, 'warnings' => 0, 'total' => 0, 'fatal_cursor' => null],
+                'error_monitoring_enabled' => true, 'logsize_monitoring_enabled' => true, 'logs' => [],
             ],
         ], path: 'apps');
 

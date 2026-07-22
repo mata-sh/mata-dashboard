@@ -12,13 +12,15 @@ use Mata\Services\Cache\CacheTypeResolver;
 use Mata\Services\Collect\ServerDataCollectorInterface;
 use Mata\Services\Event\EventManager;
 use Mata\Services\Foundation\IdResolver;
-use Mata\Services\Foundation\LogAnalyzer;
+use Mata\Services\Foundation\LogSizeEvaluator;
+use Mata\Services\Monitor\AppErrorMonitorInterface;
 use Mata\Services\Monitor\AppMonitorInterface;
 use Mata\Services\Monitor\Dto\ServerMonitoringServices;
 use Mata\Services\Monitor\NodeHealthMonitorInterface;
 use Mata\Services\Monitor\ServerMonitor;
 use Mata\Services\Sync\AppInventorySync;
 use Mata\Services\View\ServerViewBuilder;
+use Mata\Utils\Tools;
 use Monolog\Logger;
 use PHPUnit\Framework\TestCase;
 use ReflectionMethod;
@@ -62,14 +64,14 @@ final class ServerViewBuilderTest extends TestCase
 
         $builder = new ServerViewBuilder(
             $serverMonitor,
-            $this->createStub(LogAnalyzer::class),
+            $this->logSizeEvaluator(),
             $this->createStub(EventManager::class),
             new Logger('test'),
             new CacheTypeResolver(),
         );
 
         $result = $builder->buildServersViewData(
-            ['server-a' => new ServerMonitoringServices($collector, $appMonitor, $healthMonitor)],
+            ['server-a' => new ServerMonitoringServices($collector, $appMonitor, $this->createStub(AppErrorMonitorInterface::class), $healthMonitor)],
             ['server-a' => ['title' => 'Server A']],
             false,
         );
@@ -83,7 +85,7 @@ final class ServerViewBuilderTest extends TestCase
     {
         $builder = new ServerViewBuilder(
             $this->createStub(ServerMonitor::class),
-            $this->createStub(LogAnalyzer::class),
+            $this->logSizeEvaluator(),
             $this->createStub(EventManager::class),
             new Logger('test'),
             new CacheTypeResolver(),
@@ -106,11 +108,46 @@ final class ServerViewBuilderTest extends TestCase
         $this->assertSame('236k', $result['formatted_count']);
     }
 
+    public function testBuildsAppLogViewDataWithoutRecordingEvents(): void
+    {
+        $tools = new class ('/tmp') extends Tools {
+            public function formatKilobytes(int $kilobytes): string
+            {
+                return $kilobytes . ' KB';
+            }
+        };
+        $events = $this->createMock(EventManager::class);
+        $events->expects($this->once())
+            ->method('getServerDataThresholdLevel')
+            ->with(15000, 'log_filesize_kb')
+            ->willReturn('alarm');
+        $events->expects($this->never())->method('handle');
+        $builder = new ServerViewBuilder(
+            $this->createStub(ServerMonitor::class),
+            new LogSizeEvaluator($tools, $events),
+            $events,
+            new Logger('test'),
+            new CacheTypeResolver(),
+        );
+
+        $method = new ReflectionMethod($builder, 'buildAppLogViewData');
+        $result = $method->invoke($builder, [
+            'logs' => ['/var/log/app/error.log' => 5000, '/var/log/app/debug.log' => 15000],
+            'status' => ['fatal' => 3, 'warnings' => 2, 'total' => 200],
+        ], true);
+
+        $this->assertSame('/var/log/app/debug.log', $result['log_analysis']['max_path']);
+        $this->assertSame('15000 KB', $result['log_analysis']['max_size_formatted']);
+        $this->assertSame('alarm', $result['log_analysis']['level']);
+        $this->assertSame('errors', $result['error_analysis']['show_events_type']);
+        $this->assertSame('alarms-enabled', $result['error_analysis']['alarms_enabled_class']);
+    }
+
     public function testSkipsAppsWithPingDisabled(): void
     {
         $builder = new ServerViewBuilder(
             $this->createStub(ServerMonitor::class),
-            $this->createStub(LogAnalyzer::class),
+            $this->logSizeEvaluator(),
             $this->createStub(EventManager::class),
             new Logger('test'),
             new CacheTypeResolver(),
@@ -155,14 +192,9 @@ final class ServerViewBuilderTest extends TestCase
             ->willReturn(true);
         $sync = new AppInventorySync($repository, new IdResolver(), new Logger('test'));
 
-        $logAnalyzer = $this->createMock(LogAnalyzer::class);
-        $logAnalyzer->expects($this->once())
-            ->method('analyzeAppLogs')
-            ->willReturn([]);
-
         $builder = new ServerViewBuilder(
             $serverMonitor,
-            $logAnalyzer,
+            $this->logSizeEvaluator(),
             $this->createStub(EventManager::class),
             new Logger('test'),
             new CacheTypeResolver(),
@@ -195,7 +227,7 @@ final class ServerViewBuilderTest extends TestCase
 
         $builder = new ServerViewBuilder(
             $this->createStub(ServerMonitor::class),
-            $this->createStub(LogAnalyzer::class),
+            $this->logSizeEvaluator(),
             $this->createStub(EventManager::class),
             new Logger('test'),
             new CacheTypeResolver(),
@@ -217,7 +249,7 @@ final class ServerViewBuilderTest extends TestCase
     {
         $builder = new ServerViewBuilder(
             $this->createStub(ServerMonitor::class),
-            $this->createStub(LogAnalyzer::class),
+            $this->logSizeEvaluator(),
             $this->createStub(EventManager::class),
             new Logger('test'),
             new CacheTypeResolver(),
@@ -229,6 +261,14 @@ final class ServerViewBuilderTest extends TestCase
         $this->assertSame(NodeHealthState::UNKNOWN, $result[0]['health']['state']);
     }
 
+    private function logSizeEvaluator(): LogSizeEvaluator
+    {
+        $events = $this->createStub(EventManager::class);
+        $events->method('getServerDataThresholdLevel')->willReturn('good');
+
+        return new LogSizeEvaluator(new Tools('/tmp'), $events);
+    }
+
     /** @return array<string,mixed> */
     private function appPayload(): array
     {
@@ -237,6 +277,8 @@ final class ServerViewBuilderTest extends TestCase
             'env' => 'prod',
             'url' => 'https://shop.example.test',
             'ping' => 'off',
+            'logs' => [],
+            'status' => ['fatal' => 0, 'warnings' => 0, 'total' => 0],
             'session' => [
                 'type' => 'file',
                 'status' => 'unconfigured',

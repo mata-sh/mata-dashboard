@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Mata\Tests\Unit\Services;
 
+use InvalidArgumentException;
+use Mata\Services\Monitor\Dto\AppErrorMonitoringPolicy;
 use Mata\Services\Monitor\Dto\MonitoringPolicy;
 use Mata\Services\Monitor\Dto\ProbePolicy;
 use PHPUnit\Framework\TestCase;
@@ -42,6 +44,17 @@ final class MonitoringPolicyTest extends TestCase
         $this->assertSame(100, $policy->probe->backoffBaseMs);
         $this->assertSame(400, $policy->probe->backoffMaxMs);
         $this->assertSame(900, $policy->unreachableWindowSeconds);
+    }
+
+    public function testApplicationErrorMonitoringSettingsAreIndependentAndStrict(): void
+    {
+        $policy = AppErrorMonitoringPolicy::fromServerConfig(['error_monitoring_enabled' => false]);
+        $this->assertFalse($policy->errorMonitoringEnabled(['error_monitoring_enabled' => true]));
+        $this->assertTrue($policy->logsizeMonitoringEnabled(['logsize_monitoring_enabled' => true]));
+        $this->assertFalse($policy->logsizeMonitoringEnabled(['logsize_monitoring_enabled' => false]));
+
+        $this->expectException(InvalidArgumentException::class);
+        AppErrorMonitoringPolicy::fromServerConfig(['error_monitoring_enabled' => 'false']);
     }
 
     public function testUnreachableWindowIsClampedToOneMinute(): void

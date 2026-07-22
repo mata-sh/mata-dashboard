@@ -6,6 +6,7 @@ namespace Mata\Tests\Unit\Services\Runtime;
 
 use Mata\Core\DatabaseInterface;
 use Mata\Models\AlarmRepository;
+use Mata\Models\AppFatalStateRepository;
 use Mata\Models\EventRepository;
 use Mata\Services\Cache\ApiCacheKeyFactory;
 use Mata\Services\Cache\CacheStoreInterface;
@@ -16,10 +17,12 @@ use Mata\Services\Event\EventAggregatorService;
 use Mata\Services\Event\EventManager;
 use Mata\Services\Event\MockEventAggregatorService;
 use Mata\Services\Foundation\IdResolver;
+use Mata\Services\Foundation\LogSizeEvaluator;
 use Mata\Services\Foundation\ProbeClient;
 use Mata\Services\Monitor\Dto\MonitoringPolicy;
 use Mata\Services\Monitor\ServerMonitoringFactory;
 use Mata\Services\Runtime\DashboardEnvironmentFactory;
+use Mata\Utils\Tools;
 use PHPUnit\Framework\TestCase;
 use Psr\Log\NullLogger;
 
@@ -74,6 +77,9 @@ final class DashboardEnvironmentFactoryTest extends TestCase
             new ApiResponseTransformer($logger),
             new ProbeClient(),
             MonitoringPolicy::fromSettings([]),
+            new IdResolver(),
+            new AppFatalStateRepository($this->createStub(DatabaseInterface::class)),
+            new LogSizeEvaluator(new Tools('/tmp'), $this->createStub(EventManager::class)),
         );
     }
 }

@@ -263,7 +263,7 @@ Control how often the same event can be logged (in minutes).
     "min_event_interval_minutes": {
       "_default": 60,
       "app_unreachable": 15,
-      "fatal_errors_occurring": 72,
+      "fatal_errors_occurring": 0,
       "remaining_diskspace_too_low": 60
     }
   }
