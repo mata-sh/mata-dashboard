@@ -10,7 +10,8 @@ use Mata\Services\Event\EventManager;
 use Mata\Services\Foundation\IdResolver;
 use Mata\Services\Foundation\LogSizeEvaluator;
 use Mata\Services\Monitor\AppErrorMonitor;
-use Mata\Services\Monitor\Dto\AppErrorMonitoringPolicy;
+use Mata\Services\Monitor\Dto\AppFatalErrorPolicy;
+use Mata\Services\Monitor\Dto\AppLogSizePolicy;
 use Mata\Tests\Helpers\SqliteTestDatabase;
 use Mata\Tests\TestCase;
 use Mata\Utils\NumberFormatter;
@@ -192,7 +193,8 @@ final class AppErrorMonitorTest extends TestCase
             $this->events,
             $resolver,
             $this->states,
-            AppErrorMonitoringPolicy::fromServerConfig($serverConfig),
+            AppFatalErrorPolicy::fromServerConfig($serverConfig),
+            AppLogSizePolicy::fromServerConfig($serverConfig),
             new LogSizeEvaluator($tools, $this->events),
             new NullLogger(),
             new NumberFormatter(),

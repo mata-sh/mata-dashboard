@@ -52,8 +52,8 @@ use Mata\Services\Event\EventRecorderService;
 use Mata\Services\Foundation\IdResolver;
 use Mata\Services\Foundation\LogSizeEvaluator;
 use Mata\Services\Foundation\ProbeClient;
+use Mata\Services\Monitor\Dto\AppReachabilityPolicy;
 use Mata\Services\Monitor\Dto\DashboardMonitoringContext;
-use Mata\Services\Monitor\Dto\MonitoringPolicy;
 use Mata\Services\Monitor\ServerMonitoringFactory;
 use Mata\Services\Navigation\MenuBuilder;
 use Mata\Services\Notification\NotificationManager;
@@ -418,7 +418,7 @@ $menuBuilder = new MenuBuilder($endpoints, $tools);
 // ************************************************************************************************
 // Server Monitoring Services (live API or demo mocks)
 // ************************************************************************************************
-$monitoringPolicy = MonitoringPolicy::fromSettings($monitoringSettings);
+$monitoringPolicy = AppReachabilityPolicy::fromSettings($monitoringSettings);
 $serverMonitoringFactory = new ServerMonitoringFactory(
     $log,
     $cacheStore,

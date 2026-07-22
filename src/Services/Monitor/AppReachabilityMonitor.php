@@ -15,8 +15,8 @@ use Mata\Services\Event\Dto\EventMetric;
 use Mata\Services\Event\EventManager;
 use Mata\Services\Foundation\ApiClient;
 use Mata\Services\Foundation\ProbeClient;
+use Mata\Services\Monitor\Dto\AppReachabilityPolicy;
 use Mata\Services\Monitor\Dto\EndpointTarget;
-use Mata\Services\Monitor\Dto\MonitoringPolicy;
 use Mata\Services\Monitor\Dto\ProbePolicy;
 use Psr\Log\LoggerInterface;
 use Throwable;
@@ -41,7 +41,7 @@ class AppReachabilityMonitor implements AppReachabilityMonitorInterface
         private ProbeClient $probeClient,
         private EventManager $eventManager,
         private LoggerInterface $logger,
-        private MonitoringPolicy $policy,
+        private AppReachabilityPolicy $policy,
         private ?Closure $clock = null,
         private ?Closure $retryDelay = null,
     ) {

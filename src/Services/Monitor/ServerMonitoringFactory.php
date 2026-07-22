@@ -18,8 +18,9 @@ use Mata\Services\Foundation\ApiClient;
 use Mata\Services\Foundation\IdResolver;
 use Mata\Services\Foundation\LogSizeEvaluator;
 use Mata\Services\Foundation\ProbeClient;
-use Mata\Services\Monitor\Dto\AppErrorMonitoringPolicy;
-use Mata\Services\Monitor\Dto\MonitoringPolicy;
+use Mata\Services\Monitor\Dto\AppFatalErrorPolicy;
+use Mata\Services\Monitor\Dto\AppLogSizePolicy;
+use Mata\Services\Monitor\Dto\AppReachabilityPolicy;
 use Mata\Services\Monitor\Dto\ServerMonitoringResult;
 use Mata\Services\Monitor\Dto\ServerMonitoringServices;
 use Mata\Utils\NumberFormatter;
@@ -37,7 +38,7 @@ final readonly class ServerMonitoringFactory
         private EventManager $eventManager,
         private ApiResponseTransformer $dataTransformer,
         private ProbeClient $probeClient,
-        private MonitoringPolicy $policy,
+        private AppReachabilityPolicy $policy,
         private IdResolver $idResolver,
         private AppFatalStateRepository $fatalStateRepository,
         private LogSizeEvaluator $logSizeEvaluator,
@@ -138,7 +139,8 @@ final readonly class ServerMonitoringFactory
                 $this->eventManager,
                 $this->idResolver,
                 $this->fatalStateRepository,
-                AppErrorMonitoringPolicy::fromServerConfig($serverConfig),
+                AppFatalErrorPolicy::fromServerConfig($serverConfig),
+                AppLogSizePolicy::fromServerConfig($serverConfig),
                 $this->logSizeEvaluator,
                 $this->logger,
                 new NumberFormatter(),

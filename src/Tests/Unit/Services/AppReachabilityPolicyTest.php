@@ -4,22 +4,20 @@ declare(strict_types=1);
 
 namespace Mata\Tests\Unit\Services;
 
-use InvalidArgumentException;
-use Mata\Services\Monitor\Dto\AppErrorMonitoringPolicy;
-use Mata\Services\Monitor\Dto\MonitoringPolicy;
+use Mata\Services\Monitor\Dto\AppReachabilityPolicy;
 use Mata\Services\Monitor\Dto\ProbePolicy;
 use PHPUnit\Framework\TestCase;
 
 /**
- * @covers \Mata\Services\Monitor\Dto\MonitoringPolicy
+ * @covers \Mata\Services\Monitor\Dto\AppReachabilityPolicy
  *
  * @internal
  */
-final class MonitoringPolicyTest extends TestCase
+final class AppReachabilityPolicyTest extends TestCase
 {
     public function testDefaultsUseTheProbePolicyAndTenMinuteUnreachableWindow(): void
     {
-        $policy = MonitoringPolicy::fromSettings([]);
+        $policy = AppReachabilityPolicy::fromSettings([]);
 
         $this->assertEquals(ProbePolicy::default(), $policy->probe);
         $this->assertSame(600, $policy->unreachableWindowSeconds);
@@ -27,7 +25,7 @@ final class MonitoringPolicyTest extends TestCase
 
     public function testCustomProbeAndUnreachableSettingsAreResolvedTogether(): void
     {
-        $policy = MonitoringPolicy::fromSettings([
+        $policy = AppReachabilityPolicy::fromSettings([
             'probes' => [
                 'timeout_seconds' => 12,
                 'max_retries' => 3,
@@ -46,20 +44,9 @@ final class MonitoringPolicyTest extends TestCase
         $this->assertSame(900, $policy->unreachableWindowSeconds);
     }
 
-    public function testApplicationErrorMonitoringSettingsAreIndependentAndStrict(): void
-    {
-        $policy = AppErrorMonitoringPolicy::fromServerConfig(['error_monitoring_enabled' => false]);
-        $this->assertFalse($policy->errorMonitoringEnabled(['error_monitoring_enabled' => true]));
-        $this->assertTrue($policy->logsizeMonitoringEnabled(['logsize_monitoring_enabled' => true]));
-        $this->assertFalse($policy->logsizeMonitoringEnabled(['logsize_monitoring_enabled' => false]));
-
-        $this->expectException(InvalidArgumentException::class);
-        AppErrorMonitoringPolicy::fromServerConfig(['error_monitoring_enabled' => 'false']);
-    }
-
     public function testUnreachableWindowIsClampedToOneMinute(): void
     {
-        $policy = MonitoringPolicy::fromSettings([
+        $policy = AppReachabilityPolicy::fromSettings([
             'thresholds' => ['alarms' => ['app_unreachable' => ['window_minutes' => 0]]],
         ]);
 

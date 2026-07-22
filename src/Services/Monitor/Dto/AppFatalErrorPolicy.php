@@ -6,33 +6,21 @@ namespace Mata\Services\Monitor\Dto;
 
 use InvalidArgumentException;
 
-/** Resolves the independent fatal-error and log-size monitoring switches. */
-final readonly class AppErrorMonitoringPolicy
+/** Resolves the fatal-error monitoring switch. */
+final readonly class AppFatalErrorPolicy
 {
-    public function __construct(
-        private bool $serverErrorMonitoringEnabled,
-        private bool $serverLogsizeMonitoringEnabled,
-    ) {}
+    public function __construct(private bool $serverEnabled) {}
 
     /** @param array<string,mixed> $serverConfig */
     public static function fromServerConfig(array $serverConfig): self
     {
-        return new self(
-            self::serverSetting($serverConfig, 'error_monitoring_enabled'),
-            self::serverSetting($serverConfig, 'logsize_monitoring_enabled'),
-        );
+        return new self(self::serverSetting($serverConfig, 'error_monitoring_enabled'));
     }
 
     /** @param array<string,mixed> $appData */
-    public function errorMonitoringEnabled(array $appData): bool
+    public function isEnabled(array $appData): bool
     {
-        return $this->serverErrorMonitoringEnabled && self::appSetting($appData, 'error_monitoring_enabled');
-    }
-
-    /** @param array<string,mixed> $appData */
-    public function logsizeMonitoringEnabled(array $appData): bool
-    {
-        return $this->serverLogsizeMonitoringEnabled && self::appSetting($appData, 'logsize_monitoring_enabled');
+        return $this->serverEnabled && self::appSetting($appData, 'error_monitoring_enabled');
     }
 
     /** @param array<string,mixed> $config */

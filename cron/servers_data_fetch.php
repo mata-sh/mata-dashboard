@@ -11,7 +11,7 @@ use Mata\Services\Cron\ServerDataFetchStats;
 use Mata\Services\DataTransformers\ApiResponseTransformer;
 use Mata\Services\Foundation\LogSizeEvaluator;
 use Mata\Services\Foundation\ProbeClient;
-use Mata\Services\Monitor\Dto\MonitoringPolicy;
+use Mata\Services\Monitor\Dto\AppReachabilityPolicy;
 use Mata\Services\Monitor\ServerMonitoringFactory;
 use Mata\Services\Sync\AppInventorySync;
 
@@ -40,7 +40,7 @@ try {
         $eventManager,
         new ApiResponseTransformer($log),
         new ProbeClient(),
-        MonitoringPolicy::fromSettings($monitoringSettings),
+        AppReachabilityPolicy::fromSettings($monitoringSettings),
         $idResolver,
         $fatalStateRepository,
         $eventMonitor,

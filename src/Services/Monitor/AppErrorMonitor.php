@@ -11,8 +11,9 @@ use Mata\Services\Event\Dto\EventMetric;
 use Mata\Services\Event\EventManager;
 use Mata\Services\Foundation\IdResolver;
 use Mata\Services\Foundation\LogSizeEvaluator;
-use Mata\Services\Monitor\Dto\AppErrorMonitoringPolicy;
 use Mata\Services\Monitor\Dto\AppErrorMonitoringResult;
+use Mata\Services\Monitor\Dto\AppFatalErrorPolicy;
+use Mata\Services\Monitor\Dto\AppLogSizePolicy;
 use Mata\Utils\NumberFormatter;
 use Psr\Log\LoggerInterface;
 use RuntimeException;
@@ -24,7 +25,8 @@ final class AppErrorMonitor implements AppErrorMonitorInterface
         private EventManager $eventManager,
         private IdResolver $idResolver,
         private AppFatalStateRepository $stateRepository,
-        private AppErrorMonitoringPolicy $policy,
+        private AppFatalErrorPolicy $fatalErrorPolicy,
+        private AppLogSizePolicy $logSizePolicy,
         private LogSizeEvaluator $logSizeEvaluator,
         private LoggerInterface $logger,
         private NumberFormatter $numberFormatter,
@@ -43,8 +45,8 @@ final class AppErrorMonitor implements AppErrorMonitorInterface
                 if (!is_array($appData)) {
                     throw new RuntimeException('Application payload must be an array');
                 }
-                $errorEnabled = $this->policy->errorMonitoringEnabled($appData);
-                $logsizeEnabled = $this->policy->logsizeMonitoringEnabled($appData);
+                $errorEnabled = $this->fatalErrorPolicy->isEnabled($appData);
+                $logsizeEnabled = $this->logSizePolicy->isEnabled($appData);
                 if (!$errorEnabled) {
                     ++$stats['errorMonitoringDisabled'];
                 }

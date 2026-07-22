@@ -23,8 +23,8 @@ use Mata\Services\Event\EventManager;
 use Mata\Services\Foundation\ApiClient;
 use Mata\Services\Foundation\ProbeClient;
 use Mata\Services\Monitor\AppReachabilityMonitor;
+use Mata\Services\Monitor\Dto\AppReachabilityPolicy;
 use Mata\Services\Monitor\Dto\EndpointTarget;
-use Mata\Services\Monitor\Dto\MonitoringPolicy;
 use Mata\Services\Monitor\Dto\ProbePolicy;
 use PHPUnit\Framework\TestCase;
 use Psr\Log\NullLogger;
@@ -229,7 +229,7 @@ final class AppReachabilityMonitorTest extends TestCase
             retryDelay: function () use (&$delays): void {
                 ++$delays;
             },
-            policy: new MonitoringPolicy(new ProbePolicy(5, 2, 500, 1500), 600),
+            policy: new AppReachabilityPolicy(new ProbePolicy(5, 2, 500, 1500), 600),
         );
 
         $result = $monitor->checkMultipleEndpoints(['app' => new EndpointTarget('app', 'https://app.example.test')]);
@@ -259,7 +259,7 @@ final class AppReachabilityMonitorTest extends TestCase
             retryDelay: function () use (&$delays): void {
                 ++$delays;
             },
-            policy: new MonitoringPolicy(new ProbePolicy(5, 0, 500, 1500), 600),
+            policy: new AppReachabilityPolicy(new ProbePolicy(5, 0, 500, 1500), 600),
         );
 
         $result = $monitor->checkMultipleEndpoints(['app' => new EndpointTarget('app', 'https://app.example.test')]);
@@ -451,7 +451,7 @@ final class AppReachabilityMonitorTest extends TestCase
         ?EventManager $events = null,
         ?Closure $clock = null,
         ?Closure $retryDelay = null,
-        ?MonitoringPolicy $policy = null,
+        ?AppReachabilityPolicy $policy = null,
     ): AppReachabilityMonitor {
         $apiClient = $this->createStub(ApiClient::class);
         $apiClient->method('getApiBase')->willReturn('https://node.example.test/api');
@@ -464,7 +464,7 @@ final class AppReachabilityMonitorTest extends TestCase
             $probe,
             $events ?? $this->createStub(EventManager::class),
             new NullLogger(),
-            $policy ?? new MonitoringPolicy(ProbePolicy::default(), 600),
+            $policy ?? new AppReachabilityPolicy(ProbePolicy::default(), 600),
             $clock,
             $retryDelay,
         );

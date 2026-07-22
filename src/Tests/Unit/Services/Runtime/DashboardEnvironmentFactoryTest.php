@@ -19,7 +19,7 @@ use Mata\Services\Event\MockEventAggregatorService;
 use Mata\Services\Foundation\IdResolver;
 use Mata\Services\Foundation\LogSizeEvaluator;
 use Mata\Services\Foundation\ProbeClient;
-use Mata\Services\Monitor\Dto\MonitoringPolicy;
+use Mata\Services\Monitor\Dto\AppReachabilityPolicy;
 use Mata\Services\Monitor\ServerMonitoringFactory;
 use Mata\Services\Runtime\DashboardEnvironmentFactory;
 use Mata\Utils\Tools;
@@ -76,7 +76,7 @@ final class DashboardEnvironmentFactoryTest extends TestCase
             $this->createStub(EventManager::class),
             new ApiResponseTransformer($logger),
             new ProbeClient(),
-            MonitoringPolicy::fromSettings([]),
+            AppReachabilityPolicy::fromSettings([]),
             new IdResolver(),
             new AppFatalStateRepository($this->createStub(DatabaseInterface::class)),
             new LogSizeEvaluator(new Tools('/tmp'), $this->createStub(EventManager::class)),

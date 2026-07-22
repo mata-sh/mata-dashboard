@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Mata\Services\Monitor\Dto;
 
 /** Immutable monitoring policy resolved from complete monitoring settings. */
-final readonly class MonitoringPolicy
+final readonly class AppReachabilityPolicy
 {
     public function __construct(
         public ProbePolicy $probe,

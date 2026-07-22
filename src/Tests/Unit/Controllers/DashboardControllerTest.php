@@ -22,8 +22,8 @@ use Mata\Services\Event\EventManager;
 use Mata\Services\Foundation\IdResolver;
 use Mata\Services\Foundation\LogSizeEvaluator;
 use Mata\Services\Foundation\ProbeClient;
+use Mata\Services\Monitor\Dto\AppReachabilityPolicy;
 use Mata\Services\Monitor\Dto\DashboardMonitoringContext;
-use Mata\Services\Monitor\Dto\MonitoringPolicy;
 use Mata\Services\Monitor\ServerMonitoringFactory;
 use Mata\Services\Navigation\MenuBuilder;
 use Mata\Services\Notification\NotificationManager;
@@ -1109,7 +1109,7 @@ class DashboardControllerTest extends TestCase
             $this->eventManager,
             new ApiResponseTransformer($this->logger),
             new ProbeClient(),
-            MonitoringPolicy::fromSettings($this->monitoringSettings),
+            AppReachabilityPolicy::fromSettings($this->monitoringSettings),
             new IdResolver(),
             new AppFatalStateRepository($this->createStub(DatabaseInterface::class)),
             new LogSizeEvaluator($this->tools, $this->eventManager),
