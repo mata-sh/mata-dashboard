@@ -74,10 +74,12 @@ final class AlarmDecisionProcessor
             return $this->complete($event, $record, 0, false, true);
         }
 
-        $notificationRule = $this->notificationRuleResolver->resolve(
+        $notificationRule = $this->notificationRuleResolver->resolveFor(
             (string) $event['type'],
             is_string($event['app_code'] ?? null) ? $event['app_code'] : null,
         );
+        $record->setNotificationRuleReason($notificationRule->suppressionReason);
+
         // Rules constrain deliveries; policy still decides logical alarm eligibility.
         $candidateChannels = $notificationRule->enabled
             ? array_values(array_intersect(

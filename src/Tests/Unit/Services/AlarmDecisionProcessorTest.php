@@ -101,7 +101,7 @@ final class AlarmDecisionProcessorTest extends TestCase
                 $this->callback(static fn (ResolvedNotificationRule $rule): bool => $rule->toArray() === [
                     'enabled' => false,
                     'channels' => ['email'],
-                    'reason' => 'event_type_disabled',
+                    'suppression_reason' => 'event_type_disabled',
                 ])
             )
             ->willReturn(new AlarmDecision(true, [], 50, reason: 'disk_alarm'));
@@ -119,6 +119,8 @@ final class AlarmDecisionProcessorTest extends TestCase
 
         $this->assertFalse($result->skipped);
         $this->assertSame(0, $result->enqueuedCount);
+        $this->assertSame('disk_alarm', $result->record->toArray()['policy_reason']);
+        $this->assertSame('event_type_disabled', $result->record->toArray()['notification_rule_reason']);
     }
 
     public function testEmptyConfiguredChannelsCreateDashboardOnlyAlarm(): void
@@ -152,7 +154,7 @@ final class AlarmDecisionProcessorTest extends TestCase
                 $this->callback(static fn (ResolvedNotificationRule $rule): bool => $rule->toArray() === [
                     'enabled' => true,
                     'channels' => ['email'],
-                    'reason' => null,
+                    'suppression_reason' => null,
                 ])
             )
             ->willReturn(new AlarmDecision(false, [], reason: 'maintenance_window'));

@@ -11,6 +11,7 @@ final class AlarmEvaluationRecord
     private string $thresholdGate = 'fail';
     private ?string $policyGate = null;
     private ?string $policyReason = null;
+    private ?string $notificationRuleReason = null;
 
     /** @var array<int,string> */
     private array $requestedChannels = [];
@@ -69,6 +70,14 @@ final class AlarmEvaluationRecord
         return $this;
     }
 
+    /** Set the resolved notification-rule reason. */
+    public function setNotificationRuleReason(?string $notificationRuleReason): self
+    {
+        $this->notificationRuleReason = $notificationRuleReason;
+
+        return $this;
+    }
+
     /**
      * Set the channels requested by policy.
      *
@@ -122,6 +131,7 @@ final class AlarmEvaluationRecord
      *     trigger_evidence:?array<string,mixed>,
      *     policy_gate:?string,
      *     policy_reason:?string,
+     *     notification_rule_reason:?string,
      *     requested_channels:array<int,string>,
      *     ready_channels:array<int,string>,
      *     unavailable_channels:array<int,string>,
@@ -137,6 +147,7 @@ final class AlarmEvaluationRecord
             'trigger_evidence' => $this->triggerEvidence,
             'policy_gate' => $this->policyGate,
             'policy_reason' => $this->policyReason,
+            'notification_rule_reason' => $this->notificationRuleReason,
             'requested_channels' => $this->requestedChannels,
             'ready_channels' => $this->readyChannels,
             'unavailable_channels' => $this->unavailableChannels,

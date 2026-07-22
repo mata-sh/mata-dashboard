@@ -43,7 +43,7 @@ class LogAnalyzer
      * @param string                       $app                 Application name
      * @param string                       $server              Server name
      * @param ServerDataCollectorInterface $serverDataCollector Server API client
-     * @param bool                         $alarmsEnabled       Whether alarms are enabled for this app
+     * @param bool                         $showAlarmsEnabledClass Whether to show the alarms-enabled CSS class
      *
      * @return array<string,mixed> Log analysis results
      */
@@ -52,7 +52,7 @@ class LogAnalyzer
         string $app,
         string $server,
         ServerDataCollectorInterface $serverDataCollector,
-        bool $alarmsEnabled
+        bool $showAlarmsEnabledClass
     ): array {
         // Fact recording is independent of notification suppression.
         $logSizeAnalysis = $this->analyzeLogFileSizes($appData['logs'], $app, $server);
@@ -63,7 +63,7 @@ class LogAnalyzer
             $app,
             $server,
             $serverDataCollector,
-            $alarmsEnabled,
+            $showAlarmsEnabledClass,
             $appData['logs']
         );
 
@@ -121,7 +121,7 @@ class LogAnalyzer
      * @param string                       $app                 Application name
      * @param string                       $server              Server name
      * @param ServerDataCollectorInterface $serverDataCollector Server API client
-     * @param bool                         $alarmsEnabled       Whether alarms are enabled
+     * @param bool                         $showAlarmsEnabledClass Whether to show the alarms-enabled CSS class
      * @param array<string,mixed>          $logs                Log file data array
      *
      * @return array<string,mixed> Error count analysis results
@@ -131,7 +131,7 @@ class LogAnalyzer
         string $app,
         string $server,
         ServerDataCollectorInterface $serverDataCollector,
-        bool $alarmsEnabled,
+        bool $showAlarmsEnabledClass,
         array $logs
     ): array {
         $fatalCount = $this->numberFormatter->formatCompact($status['fatal']);
@@ -146,7 +146,7 @@ class LogAnalyzer
             $showEventsCount = $fatalCount;
             $showEventsType = 'errors';
 
-            if ($alarmsEnabled) {
+            if ($showAlarmsEnabledClass) {
                 $alarmsEnabledClass = 'alarms-enabled';
             }
             $this->evaluateFatalErrorAlarm((int) $status['fatal'], $app, $server);

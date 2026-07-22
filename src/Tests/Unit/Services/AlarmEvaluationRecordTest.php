@@ -24,6 +24,7 @@ final class AlarmEvaluationRecordTest extends TestCase
             'trigger_evidence' => null,
             'policy_gate' => null,
             'policy_reason' => null,
+            'notification_rule_reason' => null,
             'requested_channels' => [],
             'ready_channels' => [],
             'unavailable_channels' => [],

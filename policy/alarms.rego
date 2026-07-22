@@ -18,7 +18,8 @@ import rego.v1
 # suppresses logical alarm creation: an empty list means dashboard-only.
 # Input: {event: {type, level, message, context, datetime}, server: {id, name},
 # application: {id, code, name, env}, channels: [...], notification_rule:
-# {enabled, channels, reason}}. It decides whether to create a logical alarm,
+# {enabled, channels, suppression_reason}}. It decides whether to
+# create a logical alarm,
 # which deliveries to select, and dispatch priority — pure classification by
 # type/level/env.
 # It sees no counts, no cooldown state, and no delivery history.

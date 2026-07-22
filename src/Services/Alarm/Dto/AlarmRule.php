@@ -26,6 +26,9 @@ final readonly class AlarmRule
         if ($config === []) {
             return self::immediate();
         }
+        if (array_key_exists('enabled', $config) && !is_bool($config['enabled'])) {
+            return self::invalid();
+        }
         if (($config['enabled'] ?? true) === false) {
             return self::disabled();
         }

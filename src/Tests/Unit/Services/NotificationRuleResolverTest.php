@@ -16,11 +16,11 @@ final class NotificationRuleResolverTest extends TestCase
 {
     public function testDefaultsAreInherited(): void
     {
-        $rule = $this->resolver()->resolve('unknown', null);
+        $rule = $this->resolver()->resolveFor('unknown', null);
 
         $this->assertTrue($rule->enabled);
         $this->assertSame(['email'], $rule->channels);
-        $this->assertNull($rule->reason);
+        $this->assertNull($rule->suppressionReason);
     }
 
     public function testEventRuleOverlaysFieldsAndCanClearChannels(): void
@@ -32,29 +32,29 @@ final class NotificationRuleResolverTest extends TestCase
             ],
         ]);
 
-        $disabled = $resolver->resolve('disabled', null);
+        $disabled = $resolver->resolveFor('disabled', null);
         $this->assertFalse($disabled->enabled);
         $this->assertSame(['email'], $disabled->channels);
-        $this->assertSame('event_type_disabled', $disabled->reason);
+        $this->assertSame('event_type_disabled', $disabled->suppressionReason);
 
-        $silent = $resolver->resolve('silent', null);
+        $silent = $resolver->resolveFor('silent', null);
         $this->assertTrue($silent->enabled);
         $this->assertSame([], $silent->channels);
-        $this->assertNull($silent->reason);
+        $this->assertNull($silent->suppressionReason);
     }
 
-    public function testDefaultsDisabledTracksDefaultReasonAcrossChannelOverlays(): void
+    public function testDefaultsDisabledTracksDefaultSuppressionReasonAcrossChannelOverlays(): void
     {
         $resolver = $this->resolver([
             'defaults' => ['enabled' => false, 'channels' => ['email']],
             'event_types' => ['fatal' => ['channels' => []]],
         ]);
 
-        $disabled = $resolver->resolve('fatal', null);
+        $disabled = $resolver->resolveFor('fatal', null);
 
         $this->assertFalse($disabled->enabled);
         $this->assertSame([], $disabled->channels);
-        $this->assertSame('default_disabled', $disabled->reason);
+        $this->assertSame('default_disabled', $disabled->suppressionReason);
     }
 
     public function testApplicationOverrideOnlyChangesChannelsWithoutClaimingInheritedDisable(): void
@@ -66,14 +66,14 @@ final class NotificationRuleResolverTest extends TestCase
             ],
         ]);
 
-        $disabled = $resolver->resolve('fatal', 'channels-only-app');
+        $disabled = $resolver->resolveFor('fatal', 'channels-only-app');
 
         $this->assertFalse($disabled->enabled);
         $this->assertSame([], $disabled->channels);
-        $this->assertSame('event_type_disabled', $disabled->reason);
+        $this->assertSame('event_type_disabled', $disabled->suppressionReason);
     }
 
-    public function testExplicitApplicationEnabledFieldUpdatesDisableReason(): void
+    public function testExplicitApplicationEnabledFieldUpdatesSuppressionReason(): void
     {
         $resolver = $this->resolver([
             'event_types' => ['fatal' => ['enabled' => false, 'channels' => []]],
@@ -83,15 +83,15 @@ final class NotificationRuleResolverTest extends TestCase
             ],
         ]);
 
-        $enabled = $resolver->resolve('fatal', 'enabled-app');
+        $enabled = $resolver->resolveFor('fatal', 'enabled-app');
         $this->assertTrue($enabled->enabled);
         $this->assertSame(['email'], $enabled->channels);
-        $this->assertNull($enabled->reason);
+        $this->assertNull($enabled->suppressionReason);
 
-        $disabled = $resolver->resolve('fatal', 'disabled-app');
+        $disabled = $resolver->resolveFor('fatal', 'disabled-app');
         $this->assertFalse($disabled->enabled);
         $this->assertSame(['email'], $disabled->channels);
-        $this->assertSame('application_override_disabled', $disabled->reason);
+        $this->assertSame('application_override_disabled', $disabled->suppressionReason);
     }
 
     /** @param array<string,mixed> $overrides */

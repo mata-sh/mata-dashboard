@@ -18,16 +18,16 @@ final class NotificationRuleResolver
      */
     public function __construct(private array $config) {}
 
-    public function resolve(string $eventType, ?string $appCode): ResolvedNotificationRule
+    public function resolveFor(string $eventType, ?string $appCode): ResolvedNotificationRule
     {
         $resolved = $this->config['defaults'];
-        $reason = $resolved['enabled'] ? null : 'default_disabled';
+        $suppressionReason = $resolved['enabled'] ? null : 'default_disabled';
 
         if (isset($this->config['event_types'][$eventType])) {
             $eventRule = $this->config['event_types'][$eventType];
             $resolved = $this->overlay($resolved, $eventRule);
             if (array_key_exists('enabled', $eventRule)) {
-                $reason = $eventRule['enabled'] ? null : 'event_type_disabled';
+                $suppressionReason = $eventRule['enabled'] ? null : 'event_type_disabled';
             }
         }
 
@@ -35,11 +35,15 @@ final class NotificationRuleResolver
             $applicationRule = $this->config['application_overrides'][$appCode][$eventType];
             $resolved = $this->overlay($resolved, $applicationRule);
             if (array_key_exists('enabled', $applicationRule)) {
-                $reason = $applicationRule['enabled'] ? null : 'application_override_disabled';
+                $suppressionReason = $applicationRule['enabled'] ? null : 'application_override_disabled';
             }
         }
 
-        return new ResolvedNotificationRule($resolved['enabled'], $resolved['channels'], $reason);
+        return new ResolvedNotificationRule(
+            $resolved['enabled'],
+            $resolved['channels'],
+            $suppressionReason,
+        );
     }
 
     /**

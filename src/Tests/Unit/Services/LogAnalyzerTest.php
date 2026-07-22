@@ -67,7 +67,7 @@ final class LogAnalyzerTest extends TestCase
             'app-1',
             'srv-1',
             $collector,
-            alarmsEnabled: true
+            showAlarmsEnabledClass: true
         );
 
         $this->assertSame('/var/log/app/debug.log', $result['log_analysis']['max_path']);
@@ -117,7 +117,7 @@ final class LogAnalyzerTest extends TestCase
             'app-1',
             'srv-1',
             $collector,
-            alarmsEnabled: true
+            showAlarmsEnabledClass: true
         );
     }
 
@@ -150,7 +150,7 @@ final class LogAnalyzerTest extends TestCase
             'app-1',
             'srv-1',
             $collector,
-            alarmsEnabled: false
+            showAlarmsEnabledClass: false
         );
 
         $this->assertSame('alarm', $result['log_analysis']['level']);
@@ -198,7 +198,7 @@ final class LogAnalyzerTest extends TestCase
             'app-1',
             'srv-1',
             $collector,
-            alarmsEnabled: false
+            showAlarmsEnabledClass: false
         );
 
         $this->assertSame('', $result['error_analysis']['alarms_enabled_class']);

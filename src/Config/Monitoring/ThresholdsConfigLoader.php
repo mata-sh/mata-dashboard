@@ -119,9 +119,6 @@ final class ThresholdsConfigLoader extends AbstractJsonConfigLoader implements M
         if (!is_array($rule) || (array_key_exists('enabled', $rule) && !is_bool($rule['enabled']))) {
             return false;
         }
-        if (($rule['enabled'] ?? true) === false) {
-            return true;
-        }
         $strategy = $rule['strategy'] ?? 'event_count_window';
         if (!is_string($strategy) || !in_array($strategy, ['event_count_window', 'consecutive_failures', 'immediate'], true)) {
             return false;

@@ -10,16 +10,16 @@ final readonly class ResolvedNotificationRule
     public function __construct(
         public bool $enabled,
         public array $channels,
-        public ?string $reason = null,
+        public ?string $suppressionReason = null,
     ) {}
 
-    /** @return array{enabled:bool,channels:list<string>,reason:?string} */
+    /** @return array{enabled:bool,channels:list<string>,suppression_reason:?string} */
     public function toArray(): array
     {
         return [
             'enabled' => $this->enabled,
             'channels' => $this->channels,
-            'reason' => $this->reason,
+            'suppression_reason' => $this->suppressionReason,
         ];
     }
 }

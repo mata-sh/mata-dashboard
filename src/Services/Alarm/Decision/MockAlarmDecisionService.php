@@ -26,11 +26,11 @@ final class MockAlarmDecisionService implements AlarmDecisionServiceInterface
 
     /**
      * @param array<string,mixed> $event
-     * @param array<int,string>   $supportedChannels
+     * @param array<int,string>   $candidateChannels
      */
     public function decide(
         array $event,
-        array $supportedChannels = ['email'],
+        array $candidateChannels = ['email'],
         ?ResolvedNotificationRule $notificationRule = null,
     ): AlarmDecision {
         $eventId = (int) ($event['id'] ?? 0);

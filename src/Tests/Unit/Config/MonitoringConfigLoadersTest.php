@@ -844,6 +844,44 @@ final class MonitoringConfigLoadersTest extends TestCase
         $this->assertArrayNotHasKey('custom_alarm', $thresholds['alarms']);
     }
 
+    public function testDisabledAlarmRulesStillRequireValidConfiguration(): void
+    {
+        $this->useEventRecorderMock();
+        $this->eventRecorder
+            ->expects($this->exactly(2))
+            ->method('recordEvent')
+            ->willReturn(new EventRecordResult(1, null, null, null, null, null));
+        $path = tempnam(sys_get_temp_dir(), 'mata-thresholds-');
+        self::assertNotFalse($path);
+        file_put_contents($path, json_encode(['alarms' => [
+            'app_unreachable' => [
+                'enabled' => false,
+                'strategy' => 'consecutive_failures',
+                'required_count' => 'invalid',
+                'window_minutes' => 10,
+            ],
+            'server_apps_transport_unreachable' => [
+                'enabled' => false,
+                'strategy' => 'unknown',
+            ],
+            'custom_disabled' => ['enabled' => false],
+        ]], JSON_THROW_ON_ERROR));
+
+        try {
+            $thresholds = $this->thresholdsLoader->loadThresholdsConfig($path);
+        } finally {
+            unlink($path);
+        }
+
+        $this->assertSame([
+            'strategy' => 'consecutive_failures',
+            'required_count' => 2,
+            'window_minutes' => 10,
+        ], $thresholds['alarms']['app_unreachable']);
+        $this->assertSame(['strategy' => 'immediate'], $thresholds['alarms']['server_apps_transport_unreachable']);
+        $this->assertSame(['enabled' => false], $thresholds['alarms']['custom_disabled']);
+    }
+
     public function testIntervalDefaultsFillMissingConfiguredEventTypes(): void
     {
         $path = tempnam(sys_get_temp_dir(), 'mata-intervals-');

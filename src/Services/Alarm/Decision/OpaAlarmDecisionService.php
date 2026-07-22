@@ -219,7 +219,7 @@ final class OpaAlarmDecisionService implements AlarmDecisionServiceInterface
             $enrich = (bool) $data['llm_enrich'];
         }
 
-        if ($invalidChannels) {
+        if ($allow && $invalidChannels) {
             return new AlarmDecision(false, [], $priority, $enrich, 'unsupported_channels');
         }
 

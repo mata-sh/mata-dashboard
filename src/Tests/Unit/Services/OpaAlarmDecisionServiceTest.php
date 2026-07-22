@@ -46,7 +46,7 @@ final class OpaAlarmDecisionServiceTest extends TestCase
         $this->assertSame([
             'enabled' => true,
             'channels' => ['email'],
-            'reason' => null,
+            'suppression_reason' => null,
         ], $payload['input']['notification_rule']);
         $this->assertSame(['email'], $decision->channels);
     }
@@ -127,6 +127,18 @@ final class OpaAlarmDecisionServiceTest extends TestCase
         $this->assertTrue($decision->allow);
         $this->assertSame([], $decision->channels);
         $this->assertNull($decision->reason);
+    }
+
+    public function testMalformedChannelsDoNotReplaceADenyReason(): void
+    {
+        $decision = $this->serviceForResult([
+            'allow' => false,
+            'channels' => ['email', null],
+            'reason' => 'maintenance_window',
+        ])->decide([]);
+
+        $this->assertFalse($decision->allow);
+        $this->assertSame('maintenance_window', $decision->reason);
     }
 
     public function testMalformedChannelDeniesWholeResult(): void

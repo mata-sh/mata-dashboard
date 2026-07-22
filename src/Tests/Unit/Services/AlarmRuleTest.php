@@ -45,6 +45,16 @@ final class AlarmRuleTest extends TestCase
         $this->assertSame(AlarmRule::STRATEGY_IMMEDIATE, $disabled->strategy);
     }
 
+    public function testItRejectsNonBooleanEnabledValues(): void
+    {
+        foreach ([0, 'false'] as $enabled) {
+            $rule = AlarmRule::fromArray(['enabled' => $enabled, 'strategy' => 'immediate']);
+
+            $this->assertTrue($rule->enabled);
+            $this->assertSame(AlarmRule::STRATEGY_INVALID, $rule->strategy);
+        }
+    }
+
     public function testItDisablesAnAlarmRule(): void
     {
         $rule = AlarmRule::fromArray(['enabled' => false]);
