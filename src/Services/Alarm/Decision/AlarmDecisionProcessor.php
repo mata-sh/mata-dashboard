@@ -35,12 +35,12 @@ final class AlarmDecisionProcessor
     /**
      * Evaluate, create, and record an alarm decision for one event.
      *
-     * @param array<string,mixed> $event
-     * @param array<int,string>   $availableChannels
+     * @param array<string,mixed>    $event
+     * @param null|array<int,string> $availableChannels
      *
      * @throws AlarmDecisionProcessingException
      */
-    public function process(array $event, array $availableChannels = ['email']): AlarmProcessingResult
+    public function process(array $event, ?array $availableChannels = null): AlarmProcessingResult
     {
         $record = new AlarmEvaluationRecord();
         $eventId = (int) $event['id'];
@@ -63,6 +63,16 @@ final class AlarmDecisionProcessor
         }
 
         $record->setThresholdGate('pass');
+
+        if ($availableChannels === null) {
+            $record
+                ->setOutcome('suppressed')
+                ->setPolicyGate('deny')
+                ->setPolicyReason('no_channels_supplied')
+                ->setRequestedChannels([]);
+
+            return $this->complete($event, $record, 0, false, true);
+        }
 
         $notificationRule = $this->notificationRuleResolver->resolve(
             (string) $event['type'],

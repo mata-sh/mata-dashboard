@@ -48,6 +48,27 @@ final class AlarmDecisionProcessorTest extends TestCase
         $this->assertSame(['strategy' => 'event_count_window'], $result->record->toArray()['trigger_evidence']);
     }
 
+    public function testMissingChannelsAreRecordedWithoutPolicyEvaluation(): void
+    {
+        $evaluator = $this->readyEvaluator([]);
+        $decisionService = $this->createMock(AlarmDecisionServiceInterface::class);
+        $decisionService->expects($this->never())->method('decide');
+        $creator = $this->createMock(AlarmCreatorInterface::class);
+        $creator->expects($this->never())->method('create');
+
+        $result = $this->processor(
+            $evaluator,
+            $decisionService,
+            $creator,
+            $this->createStub(EventRecorderService::class),
+            $this->expectRecordedOutcome('suppressed'),
+        )->process($this->event());
+
+        $this->assertTrue($result->skipped);
+        $this->assertSame('deny', $result->record->toArray()['policy_gate']);
+        $this->assertSame('no_channels_supplied', $result->record->toArray()['policy_reason']);
+    }
+
     public function testPolicyDenialIsRecordedAndMarkedEvaluated(): void
     {
         $evaluator = $this->readyEvaluator([]);
@@ -61,7 +82,7 @@ final class AlarmDecisionProcessorTest extends TestCase
         $aggregator = $this->expectRecordedOutcome('suppressed');
 
         $result = $this->processor($evaluator, $decisionService, $creator, $recorder, $aggregator)
-            ->process($this->event());
+            ->process($this->event(), ['email']);
 
         $this->assertTrue($result->skipped);
         $this->assertSame('deny', $result->record->toArray()['policy_gate']);
@@ -94,7 +115,7 @@ final class AlarmDecisionProcessorTest extends TestCase
             $this->createStub(EventRecorderService::class),
             $this->expectRecordedOutcome('undelivered'),
             ['event_types' => ['disk' => ['enabled' => false]]],
-        )->process($this->event());
+        )->process($this->event(), ['email']);
 
         $this->assertFalse($result->skipped);
         $this->assertSame(0, $result->enqueuedCount);
@@ -114,7 +135,7 @@ final class AlarmDecisionProcessorTest extends TestCase
             $this->createStub(EventRecorderService::class),
             $this->expectRecordedOutcome('undelivered'),
             ['event_types' => ['disk' => ['channels' => []]]],
-        )->process($this->event());
+        )->process($this->event(), ['email']);
 
         $this->assertFalse($result->skipped);
     }
@@ -159,7 +180,7 @@ final class AlarmDecisionProcessorTest extends TestCase
         $aggregator = $this->expectRecordedOutcome('undelivered');
 
         $result = $this->processor($evaluator, $decisionService, $creator, $recorder, $aggregator)
-            ->process($this->event());
+            ->process($this->event(), ['email']);
 
         $this->assertFalse($result->skipped);
         $this->assertSame(0, $result->enqueuedCount);
@@ -196,7 +217,7 @@ final class AlarmDecisionProcessorTest extends TestCase
         $aggregator = $this->expectRecordedOutcome('enqueued');
 
         $result = $this->processor($evaluator, $decisionService, $creator, $recorder, $aggregator)
-            ->process($this->event());
+            ->process($this->event(), ['email']);
 
         $this->assertSame(1, $result->enqueuedCount);
         $this->assertTrue($result->enrichmentRequested);
@@ -214,7 +235,7 @@ final class AlarmDecisionProcessorTest extends TestCase
 
         try {
             $this->processor($evaluator, $decisionService, $creator, $recorder, $aggregator)
-                ->process($this->event());
+                ->process($this->event(), ['email']);
             $this->fail('Expected policy processing exception.');
         } catch (AlarmDecisionProcessingException $exception) {
             $this->assertSame(AlarmDecisionProcessingException::POLICY, $exception->getStage());
@@ -234,7 +255,7 @@ final class AlarmDecisionProcessorTest extends TestCase
 
         try {
             $this->processor($evaluator, $decisionService, $creator, $recorder, $aggregator)
-                ->process($this->event());
+                ->process($this->event(), ['email']);
             $this->fail('Expected delivery processing exception.');
         } catch (AlarmDecisionProcessingException $exception) {
             $this->assertSame(AlarmDecisionProcessingException::DELIVERY, $exception->getStage());
@@ -256,7 +277,7 @@ final class AlarmDecisionProcessorTest extends TestCase
 
         try {
             $this->processor($evaluator, $decisionService, $creator, $recorder, $aggregator)
-                ->process($this->event());
+                ->process($this->event(), ['email']);
             $this->fail('Expected completion processing exception.');
         } catch (AlarmDecisionProcessingException $exception) {
             $this->assertSame(AlarmDecisionProcessingException::COMPLETION, $exception->getStage());
