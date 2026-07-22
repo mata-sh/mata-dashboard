@@ -93,28 +93,40 @@ final class OpaAlarmDecisionServiceTest extends TestCase
         $this->assertNull($decision->reason);
     }
 
-    public function testUnsupportedOnlyChannelDeniesWholeResult(): void
+    public function testNonCandidateOnlyChannelCreatesDashboardOnlyAlarm(): void
     {
         $decision = $this->serviceForResult([
             'allow' => true,
             'channels' => ['webhook'],
-        ])->decide([]);
+        ])->decide([], []);
 
-        $this->assertFalse($decision->allow);
+        $this->assertTrue($decision->allow);
         $this->assertSame([], $decision->channels);
-        $this->assertSame('unsupported_channels', $decision->reason);
+        $this->assertNull($decision->reason);
     }
 
-    public function testMixedUnsupportedChannelDeniesWholeResult(): void
+    public function testMixedCandidateAndNonCandidateChannelsDeliverCandidateSubset(): void
     {
         $decision = $this->serviceForResult([
             'allow' => true,
             'channels' => ['email', 'sms'],
-        ])->decide([]);
+        ])->decide([], ['email']);
 
-        $this->assertFalse($decision->allow);
+        $this->assertTrue($decision->allow);
+        $this->assertSame(['email'], $decision->channels);
+        $this->assertNull($decision->reason);
+    }
+
+    public function testDisabledNotificationRuleDoesNotSuppressAlarm(): void
+    {
+        $decision = $this->serviceForResult([
+            'allow' => true,
+            'channels' => ['email'],
+        ])->decide([], [], new ResolvedNotificationRule(false, []));
+
+        $this->assertTrue($decision->allow);
         $this->assertSame([], $decision->channels);
-        $this->assertSame('unsupported_channels', $decision->reason);
+        $this->assertNull($decision->reason);
     }
 
     public function testMalformedChannelDeniesWholeResult(): void

@@ -207,7 +207,6 @@ final class OpaAlarmDecisionService implements AlarmDecisionServiceInterface
         };
 
         [$channels, $invalidChannels] = $this->extractChannels($data);
-        $unsupportedChannels = array_values(array_diff($channels, $candidateChannels));
 
         $priority = isset($data['priority']) && is_numeric($data['priority'])
             ? (int) $data['priority']
@@ -220,7 +219,7 @@ final class OpaAlarmDecisionService implements AlarmDecisionServiceInterface
             $enrich = (bool) $data['llm_enrich'];
         }
 
-        if ($invalidChannels || $unsupportedChannels !== []) {
+        if ($invalidChannels) {
             return new AlarmDecision(false, [], $priority, $enrich, 'unsupported_channels');
         }
 
