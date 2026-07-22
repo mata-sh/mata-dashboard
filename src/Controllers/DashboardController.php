@@ -420,7 +420,7 @@ class DashboardController extends BaseController
                     $server,
                     $this->serversConfig[$server],
                     $dashboardServices->collector,
-                    $dashboardServices->appMonitor,
+                    $dashboardServices->reachabilityMonitor,
                     $forceRefresh,
                     $dashboardServices->healthMonitor
                 );

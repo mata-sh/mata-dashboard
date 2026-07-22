@@ -8,9 +8,9 @@ use Mata\Constants\CacheTypes;
 use Mata\Services\Monitor\Dto\EndpointTarget;
 
 /**
- * Demo implementation of the AppMonitor that simulates availability.
+ * Demo implementation of the AppReachabilityMonitor that simulates endpoint reachability.
  */
-class MockAppMonitor implements AppMonitorInterface
+class MockAppReachabilityMonitor implements AppReachabilityMonitorInterface
 {
     public function checkEndpoint(
         EndpointTarget $target,

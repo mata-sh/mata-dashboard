@@ -21,8 +21,8 @@ use Mata\Services\Monitor\Dto\ProbePolicy;
 use Psr\Log\LoggerInterface;
 use Throwable;
 
-/** Application availability monitoring with retry, persistent streaks, cache and event support. */
-class AppMonitor implements AppMonitorInterface
+/** Application endpoint reachability monitoring with retry, persistent streaks, cache and event support. */
+class AppReachabilityMonitor implements AppReachabilityMonitorInterface
 {
     private const MAX_CONCURRENT_PROBES = 4;
 

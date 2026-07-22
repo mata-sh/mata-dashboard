@@ -17,10 +17,10 @@ use Mata\Services\Event\EventManager;
 use Mata\Services\Foundation\IdResolver;
 use Mata\Services\Foundation\LogSizeEvaluator;
 use Mata\Services\Foundation\ProbeClient;
-use Mata\Services\Monitor\AppMonitor;
+use Mata\Services\Monitor\AppReachabilityMonitor;
 use Mata\Services\Monitor\Dto\MonitoringPolicy;
 use Mata\Services\Monitor\MockAppErrorMonitor;
-use Mata\Services\Monitor\MockAppMonitor;
+use Mata\Services\Monitor\MockAppReachabilityMonitor;
 use Mata\Services\Monitor\MockNodeHealthMonitor;
 use Mata\Services\Monitor\NodeHealthMonitor;
 use Mata\Services\Monitor\ServerMonitoringFactory;
@@ -43,7 +43,7 @@ final class ServerMonitoringFactoryTest extends TestCase
         ], 10);
 
         $this->assertInstanceOf(ServerDataCollector::class, $services->collector);
-        $this->assertInstanceOf(AppMonitor::class, $services->appMonitor);
+        $this->assertInstanceOf(AppReachabilityMonitor::class, $services->reachabilityMonitor);
         $this->assertInstanceOf(\Mata\Services\Monitor\AppErrorMonitor::class, $services->errorMonitor);
         $this->assertInstanceOf(NodeHealthMonitor::class, $services->healthMonitor);
     }
@@ -82,7 +82,7 @@ final class ServerMonitoringFactoryTest extends TestCase
         $services = $result->servicesByServer['server-a'];
 
         $this->assertInstanceOf(MockServerDataCollector::class, $services->collector);
-        $this->assertInstanceOf(MockAppMonitor::class, $services->appMonitor);
+        $this->assertInstanceOf(MockAppReachabilityMonitor::class, $services->reachabilityMonitor);
         $this->assertInstanceOf(MockAppErrorMonitor::class, $services->errorMonitor);
         $this->assertInstanceOf(MockNodeHealthMonitor::class, $services->healthMonitor);
         $this->assertSame([], $result->failures);

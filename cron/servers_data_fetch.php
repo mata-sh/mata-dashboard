@@ -6,12 +6,12 @@ declare(strict_types=1);
 use Mata\Services\Cache\ApiCacheKeyFactory;
 use Mata\Services\Cache\CacheTtlResolver;
 use Mata\Services\Cache\FileCacheStore;
+use Mata\Services\Cron\ServerDataFetchRunner;
+use Mata\Services\Cron\ServerDataFetchStats;
 use Mata\Services\DataTransformers\ApiResponseTransformer;
 use Mata\Services\Foundation\LogSizeEvaluator;
 use Mata\Services\Foundation\ProbeClient;
 use Mata\Services\Monitor\Dto\MonitoringPolicy;
-use Mata\Services\Cron\ServerDataFetchRunner;
-use Mata\Services\Cron\ServerDataFetchStats;
 use Mata\Services\Monitor\ServerMonitoringFactory;
 use Mata\Services\Sync\AppInventorySync;
 
@@ -60,7 +60,7 @@ try {
             $result = $dataFetchRunner->run(
                 $server,
                 $services->collector,
-                $services->appMonitor,
+                $services->reachabilityMonitor,
                 $services->errorMonitor,
                 $services->healthMonitor,
                 $appInventorySync,

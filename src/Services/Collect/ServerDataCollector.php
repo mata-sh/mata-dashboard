@@ -399,5 +399,5 @@ class ServerDataCollector implements ServerDataCollectorInterface
         return $this->dataTransformer->isValidJsonArray($json);
     }
 
-    // Availability checks were moved to AppMonitor.
+    // Availability checks were moved to AppReachabilityMonitor.
 }

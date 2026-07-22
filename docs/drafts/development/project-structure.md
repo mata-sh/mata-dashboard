@@ -80,7 +80,7 @@ src/Services/
 │   └── MockServerDataCollector.php  # Mock for testing
 ├── Monitoring/
 │   ├── ServerMonitor.php            # Server metrics evaluation
-│   ├── AppMonitor.php               # Application monitoring
+│   ├── AppReachabilityMonitor.php   # Application reachability monitoring
 │   └── ServerMetricsHealthMonitor.php  # Metrics health checks
 ├── Foundation/
 │   ├── CacheManager.php             # Cache management

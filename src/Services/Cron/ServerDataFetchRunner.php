@@ -7,7 +7,7 @@ namespace Mata\Services\Cron;
 use Mata\Services\Collect\ServerDataCollectorInterface;
 use Mata\Services\Cron\Dto\ServerDataFetchResult;
 use Mata\Services\Monitor\AppErrorMonitorInterface;
-use Mata\Services\Monitor\AppMonitorInterface;
+use Mata\Services\Monitor\AppReachabilityMonitorInterface;
 use Mata\Services\Monitor\Dto\AppErrorMonitoringResult;
 use Mata\Services\Monitor\Dto\EndpointTarget;
 use Mata\Services\Monitor\NodeHealthMonitorInterface;
@@ -23,7 +23,7 @@ final class ServerDataFetchRunner
     public function run(
         string $server,
         ServerDataCollectorInterface $collector,
-        AppMonitorInterface $appMonitor,
+        AppReachabilityMonitorInterface $reachabilityMonitor,
         AppErrorMonitorInterface $errorMonitor,
         NodeHealthMonitorInterface $healthMonitor,
         AppInventorySync $appInventorySync,
@@ -53,7 +53,7 @@ final class ServerDataFetchRunner
         );
         $targets = EndpointTarget::fromRawAppData($pingableApps, $server);
         if ($targets !== []) {
-            $appMonitor->checkMultipleEndpoints($targets, forceRefresh: true);
+            $reachabilityMonitor->checkMultipleEndpoints($targets, forceRefresh: true);
         }
 
         return new ServerDataFetchResult(true, $synced, count($targets), $monitoring);

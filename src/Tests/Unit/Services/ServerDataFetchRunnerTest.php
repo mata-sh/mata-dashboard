@@ -6,12 +6,12 @@ namespace Mata\Tests\Unit\Services;
 
 use Mata\Models\ConfigSyncRepository;
 use Mata\Services\Collect\ServerDataCollectorInterface;
+use Mata\Services\Cron\ServerDataFetchRunner;
 use Mata\Services\Foundation\IdResolver;
 use Mata\Services\Monitor\AppErrorMonitorInterface;
-use Mata\Services\Monitor\AppMonitorInterface;
+use Mata\Services\Monitor\AppReachabilityMonitorInterface;
 use Mata\Services\Monitor\Dto\AppErrorMonitoringResult;
 use Mata\Services\Monitor\NodeHealthMonitorInterface;
-use Mata\Services\Cron\ServerDataFetchRunner;
 use Mata\Services\Sync\AppInventorySync;
 use Mata\Tests\Helpers\SqliteTestDatabase;
 use PHPUnit\Framework\TestCase;
@@ -37,8 +37,8 @@ final class ServerDataFetchRunnerTest extends TestCase
 
         $health = $this->createMock(NodeHealthMonitorInterface::class);
         $health->expects($this->once())->method('checkSynchronously')->with('srv', true);
-        $appMonitor = $this->createMock(AppMonitorInterface::class);
-        $appMonitor->expects($this->never())->method('checkMultipleEndpoints');
+        $reachabilityMonitor = $this->createMock(AppReachabilityMonitorInterface::class);
+        $reachabilityMonitor->expects($this->never())->method('checkMultipleEndpoints');
         $errorMonitor = $this->createMock(AppErrorMonitorInterface::class);
         $errorMonitor->expects($this->once())->method('monitor')->with('srv', $this->isArray())
             ->willReturn(AppErrorMonitoringResult::empty(1));
@@ -46,7 +46,7 @@ final class ServerDataFetchRunnerTest extends TestCase
         $result = (new ServerDataFetchRunner(new NullLogger()))->run(
             'srv',
             $collector,
-            $appMonitor,
+            $reachabilityMonitor,
             $errorMonitor,
             $health,
             $this->inventorySync(),
@@ -64,13 +64,13 @@ final class ServerDataFetchRunnerTest extends TestCase
         ]]);
         $errorMonitor = $this->createMock(AppErrorMonitorInterface::class);
         $errorMonitor->expects($this->once())->method('monitor')->willThrowException(new RuntimeException('broken'));
-        $appMonitor = $this->createMock(AppMonitorInterface::class);
-        $appMonitor->expects($this->once())->method('checkMultipleEndpoints')->willReturn([]);
+        $reachabilityMonitor = $this->createMock(AppReachabilityMonitorInterface::class);
+        $reachabilityMonitor->expects($this->once())->method('checkMultipleEndpoints')->willReturn([]);
 
         $result = (new ServerDataFetchRunner(new NullLogger()))->run(
             'srv',
             $collector,
-            $appMonitor,
+            $reachabilityMonitor,
             $errorMonitor,
             $this->createStub(NodeHealthMonitorInterface::class),
             $this->inventorySync(),
@@ -86,13 +86,13 @@ final class ServerDataFetchRunnerTest extends TestCase
         $collector->method('getApps')->willReturn(null);
         $errorMonitor = $this->createMock(AppErrorMonitorInterface::class);
         $errorMonitor->expects($this->never())->method('monitor');
-        $appMonitor = $this->createMock(AppMonitorInterface::class);
-        $appMonitor->expects($this->never())->method('checkMultipleEndpoints');
+        $reachabilityMonitor = $this->createMock(AppReachabilityMonitorInterface::class);
+        $reachabilityMonitor->expects($this->never())->method('checkMultipleEndpoints');
 
         $result = (new ServerDataFetchRunner(new NullLogger()))->run(
             'srv',
             $collector,
-            $appMonitor,
+            $reachabilityMonitor,
             $errorMonitor,
             $this->createStub(NodeHealthMonitorInterface::class),
             $this->inventorySync(),
@@ -107,13 +107,13 @@ final class ServerDataFetchRunnerTest extends TestCase
         $collector->method('getApps')->willReturn(['result' => 'invalid']);
         $errorMonitor = $this->createMock(AppErrorMonitorInterface::class);
         $errorMonitor->expects($this->never())->method('monitor');
-        $appMonitor = $this->createMock(AppMonitorInterface::class);
-        $appMonitor->expects($this->never())->method('checkMultipleEndpoints');
+        $reachabilityMonitor = $this->createMock(AppReachabilityMonitorInterface::class);
+        $reachabilityMonitor->expects($this->never())->method('checkMultipleEndpoints');
 
         $result = (new ServerDataFetchRunner(new NullLogger()))->run(
             'srv',
             $collector,
-            $appMonitor,
+            $reachabilityMonitor,
             $errorMonitor,
             $this->createStub(NodeHealthMonitorInterface::class),
             $this->inventorySync(),

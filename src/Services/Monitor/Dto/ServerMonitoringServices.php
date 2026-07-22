@@ -6,7 +6,7 @@ namespace Mata\Services\Monitor\Dto;
 
 use Mata\Services\Collect\ServerDataCollectorInterface;
 use Mata\Services\Monitor\AppErrorMonitorInterface;
-use Mata\Services\Monitor\AppMonitorInterface;
+use Mata\Services\Monitor\AppReachabilityMonitorInterface;
 use Mata\Services\Monitor\NodeHealthMonitorInterface;
 
 /**
@@ -16,7 +16,7 @@ final readonly class ServerMonitoringServices
 {
     public function __construct(
         public ServerDataCollectorInterface $collector,
-        public AppMonitorInterface $appMonitor,
+        public AppReachabilityMonitorInterface $reachabilityMonitor,
         public AppErrorMonitorInterface $errorMonitor,
         public NodeHealthMonitorInterface $healthMonitor,
     ) {}

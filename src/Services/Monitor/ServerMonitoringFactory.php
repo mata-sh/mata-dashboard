@@ -124,7 +124,7 @@ final readonly class ServerMonitoringFactory
                 $apiClient,
                 $this->dataTransformer,
             ),
-            appMonitor: new AppMonitor(
+            reachabilityMonitor: new AppReachabilityMonitor(
                 $this->cacheStore,
                 $this->cacheKeyFactory,
                 $this->ttlResolver,
@@ -167,7 +167,7 @@ final readonly class ServerMonitoringFactory
                 $server,
                 $serverConfig,
             ),
-            appMonitor: new MockAppMonitor(),
+            reachabilityMonitor: new MockAppReachabilityMonitor(),
             errorMonitor: new MockAppErrorMonitor(),
             healthMonitor: new MockNodeHealthMonitor(),
         );

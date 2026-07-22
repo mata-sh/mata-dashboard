@@ -8,15 +8,15 @@ use Mata\Constants\CacheTypes;
 use Mata\Services\Monitor\Dto\EndpointTarget;
 
 /**
- * Contract for monitoring application availability and health metrics.
+ * Contract for monitoring application endpoint reachability.
  *
- * Provides methods to check single or multiple application endpoints
+ * Provides methods to probe single or multiple application endpoints
  * with optional cache and timeout configuration.
  */
-interface AppMonitorInterface
+interface AppReachabilityMonitorInterface
 {
     /**
-     * Check availability for a single application endpoint.
+     * Check reachability for a single application endpoint.
      *
      * @param EndpointTarget $target       target metadata for the endpoint to probe
      * @param null|int       $timeout      timeout in seconds; null uses the configured probe policy timeout
@@ -33,7 +33,7 @@ interface AppMonitorInterface
     ): array;
 
     /**
-     * Check availability for multiple application endpoints.
+     * Check reachability for multiple application endpoints.
      *
      * @param array<int|string, EndpointTarget> $targets      endpoint targets keyed by identifier
      * @param null|int                          $timeout      timeout in seconds; null uses the configured probe policy timeout

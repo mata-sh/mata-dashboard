@@ -72,11 +72,11 @@ $this->serverDataCollector = new CustomServerDataCollector(/* dependencies */);
 
 ---
 
-### AppMonitorInterface
+### AppReachabilityMonitorInterface
 
 Customize application availability checking and health monitoring.
 
-**Location:** `src/Services/Monitor/AppMonitorInterface.php`
+**Location:** `src/Services/Monitor/AppReachabilityMonitorInterface.php`
 
 **Use Cases:**
 - Custom ping mechanisms
@@ -108,9 +108,9 @@ public function multiPing(
 
 namespace Your\Namespace;
 
-use Watcher\Services\Monitor\AppMonitorInterface;
+use Watcher\Services\Monitor\AppReachabilityMonitorInterface;
 
-class EnhancedAppMonitor implements AppMonitorInterface
+class EnhancedAppReachabilityMonitor implements AppReachabilityMonitorInterface
 {
     public function ping(string $url, int $timeout = 2, string $cacheType = 'ping'): array
     {

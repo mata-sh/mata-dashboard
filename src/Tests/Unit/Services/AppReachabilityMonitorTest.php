@@ -22,7 +22,7 @@ use Mata\Services\Event\Dto\EventCommand;
 use Mata\Services\Event\EventManager;
 use Mata\Services\Foundation\ApiClient;
 use Mata\Services\Foundation\ProbeClient;
-use Mata\Services\Monitor\AppMonitor;
+use Mata\Services\Monitor\AppReachabilityMonitor;
 use Mata\Services\Monitor\Dto\EndpointTarget;
 use Mata\Services\Monitor\Dto\MonitoringPolicy;
 use Mata\Services\Monitor\Dto\ProbePolicy;
@@ -30,11 +30,11 @@ use PHPUnit\Framework\TestCase;
 use Psr\Log\NullLogger;
 
 /**
- * @covers \Mata\Services\Monitor\AppMonitor
+ * @covers \Mata\Services\Monitor\AppReachabilityMonitor
  *
  * @internal
  */
-final class AppMonitorTest extends TestCase
+final class AppReachabilityMonitorTest extends TestCase
 {
     public function testUsesCachedAvailabilityResult(): void
     {
@@ -452,11 +452,11 @@ final class AppMonitorTest extends TestCase
         ?Closure $clock = null,
         ?Closure $retryDelay = null,
         ?MonitoringPolicy $policy = null,
-    ): AppMonitor {
+    ): AppReachabilityMonitor {
         $apiClient = $this->createStub(ApiClient::class);
         $apiClient->method('getApiBase')->willReturn('https://node.example.test/api');
 
-        return new AppMonitor(
+        return new AppReachabilityMonitor(
             $store,
             new ApiCacheKeyFactory(),
             new CacheTtlResolver([$cacheType => $cacheType === CacheTypes::NONE ? 0 : 60]),

@@ -14,7 +14,7 @@ use Mata\Services\Event\EventManager;
 use Mata\Services\Foundation\IdResolver;
 use Mata\Services\Foundation\LogSizeEvaluator;
 use Mata\Services\Monitor\AppErrorMonitorInterface;
-use Mata\Services\Monitor\AppMonitorInterface;
+use Mata\Services\Monitor\AppReachabilityMonitorInterface;
 use Mata\Services\Monitor\Dto\ServerMonitoringServices;
 use Mata\Services\Monitor\NodeHealthMonitorInterface;
 use Mata\Services\Monitor\ServerMonitor;
@@ -50,8 +50,8 @@ final class ServerViewBuilderTest extends TestCase
             ->with($collector, 'server-a', CacheTypes::SERVER_DATA)
             ->willReturn(['cpu' => []]);
 
-        $appMonitor = $this->createMock(AppMonitorInterface::class);
-        $appMonitor->expects($this->never())->method('checkMultipleEndpoints');
+        $reachabilityMonitor = $this->createMock(AppReachabilityMonitorInterface::class);
+        $reachabilityMonitor->expects($this->never())->method('checkMultipleEndpoints');
 
         $healthMonitor = $this->createMock(NodeHealthMonitorInterface::class);
         $healthMonitor->expects($this->once())
@@ -71,7 +71,7 @@ final class ServerViewBuilderTest extends TestCase
         );
 
         $result = $builder->buildServersViewData(
-            ['server-a' => new ServerMonitoringServices($collector, $appMonitor, $this->createStub(AppErrorMonitorInterface::class), $healthMonitor)],
+            ['server-a' => new ServerMonitoringServices($collector, $reachabilityMonitor, $this->createStub(AppErrorMonitorInterface::class), $healthMonitor)],
             ['server-a' => ['title' => 'Server A']],
             false,
         );
@@ -152,8 +152,8 @@ final class ServerViewBuilderTest extends TestCase
             new Logger('test'),
             new CacheTypeResolver(),
         );
-        $appMonitor = $this->createMock(AppMonitorInterface::class);
-        $appMonitor->expects($this->once())
+        $reachabilityMonitor = $this->createMock(AppReachabilityMonitorInterface::class);
+        $reachabilityMonitor->expects($this->once())
             ->method('checkMultipleEndpoints')
             ->willReturnCallback(function (array $targets): array {
                 $this->assertSame(['enabled'], array_keys($targets));
@@ -166,7 +166,7 @@ final class ServerViewBuilderTest extends TestCase
         $result = $method->invoke($builder, [
             'enabled' => ['url' => 'https://enabled.example.test'],
             'disabled' => ['url' => 'https://disabled.example.test', 'ping' => 'off'],
-        ], $appMonitor, 'server-a');
+        ], $reachabilityMonitor, 'server-a');
 
         $this->assertSame(['enabled' => ['reachable' => true]], $result);
     }
@@ -205,7 +205,7 @@ final class ServerViewBuilderTest extends TestCase
             'server-a',
             [],
             $collector,
-            $this->createStub(AppMonitorInterface::class),
+            $this->createStub(AppReachabilityMonitorInterface::class),
             true,
         );
 
@@ -238,7 +238,7 @@ final class ServerViewBuilderTest extends TestCase
             'server-a',
             [],
             $collector,
-            $this->createStub(AppMonitorInterface::class),
+            $this->createStub(AppReachabilityMonitorInterface::class),
             false,
         );
 

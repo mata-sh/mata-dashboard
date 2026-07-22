@@ -13,7 +13,7 @@ use Mata\Services\Cache\CacheTypeResolver;
 use Mata\Services\Collect\ServerDataCollectorInterface;
 use Mata\Services\Event\EventManager;
 use Mata\Services\Foundation\LogSizeEvaluator;
-use Mata\Services\Monitor\AppMonitorInterface;
+use Mata\Services\Monitor\AppReachabilityMonitorInterface;
 use Mata\Services\Monitor\Dto\EndpointTarget;
 use Mata\Services\Monitor\Dto\ServerMonitoringServices;
 use Mata\Services\Monitor\NodeHealthMonitorInterface;
@@ -90,7 +90,7 @@ class ServerViewBuilder
                     $server,
                     $serverConfig,
                     $monitoringServices->collector,
-                    $monitoringServices->appMonitor,
+                    $monitoringServices->reachabilityMonitor,
                     $forceRefresh,
                     $monitoringServices->healthMonitor,
                     $healthByServer[$server],
@@ -161,7 +161,7 @@ class ServerViewBuilder
         string $serverName,
         array $serverConfig,
         ServerDataCollectorInterface $collector,
-        AppMonitorInterface $appMonitor,
+        AppReachabilityMonitorInterface $reachabilityMonitor,
         bool $forceRefresh,
         ?NodeHealthMonitorInterface $healthMonitor = null,
         ?array $resolvedHealth = null,
@@ -188,7 +188,7 @@ class ServerViewBuilder
         $appsCacheAge = (int) ($appsApiResponse['cache_age'] ?? 0);
         $appsCacheTtl = (int) ($appsApiResponse['cache_ttl'] ?? 0);
 
-        $appsAvailability = $this->checkAppsAvailability($rawAppsData, $appMonitor, $serverName);
+        $appsAvailability = $this->checkAppsAvailability($rawAppsData, $reachabilityMonitor, $serverName);
         $appsViewData = $this->enrichAppsWithMetrics($rawAppsData, $appsAvailability, $serverName, $collector);
 
         // Extend base data with app information
@@ -211,7 +211,7 @@ class ServerViewBuilder
      */
     private function checkAppsAvailability(
         array $rawAppsData,
-        AppMonitorInterface $appMonitor,
+        AppReachabilityMonitorInterface $reachabilityMonitor,
         string $serverName,
     ): array {
 
@@ -226,7 +226,7 @@ class ServerViewBuilder
             );
             $targets = EndpointTarget::fromRawAppData($pingableApps, $serverName);
 
-            return $appMonitor->checkMultipleEndpoints($targets);
+            return $reachabilityMonitor->checkMultipleEndpoints($targets);
         } catch (Exception $e) {
             $this->logger->warning(
                 "Availability checks failed for {$serverName}",
