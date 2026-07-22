@@ -67,7 +67,8 @@ Specialized HTML rendering:
 **Configuration** (`src/Config/`)
 
 - `EnvConfigLoader`: Environment configuration (DTOs from .env)
-- `MonitoringSettingsLoader`: Monitoring settings (arrays from .json)
+- `MonitoringConfigManager`: Orchestrates section loaders for monitoring JSON settings (servers, TTL, retention, intervals, probes, notification rules, thresholds)
+- `AlarmLimitsConfigLoader`: Loads typed alarm-delivery limits from `limits.json`
 - `DatabaseSetup`: Database initialization
 
 **HTTP** (`src/Http/`)

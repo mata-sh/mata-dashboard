@@ -3,12 +3,12 @@
 
 declare(strict_types=1);
 
-use Mata\Config\AlarmLimitsLoader;
+use Mata\Config\Monitoring\AlarmLimitsConfigLoader;
 use Mata\Models\AlarmDeliveryRepository;
 use Mata\Services\Alarm\AlarmDispatcher;
 use Mata\Services\Alarm\AlarmEmailFactory;
-use Mata\Services\Alarm\AlarmPresenter;
 use Mata\Services\Alarm\AlarmEmailSender;
+use Mata\Services\Alarm\AlarmPresenter;
 use Twig\Environment;
 use Twig\Loader\FilesystemLoader;
 
@@ -28,7 +28,7 @@ try {
     $deliveryRepository = new AlarmDeliveryRepository($db);
 
     // --- Alarm Limits ---
-    $limitsLoader = new AlarmLimitsLoader($log);
+    $limitsLoader = new AlarmLimitsConfigLoader($log);
     $limitsConfig = $limitsLoader->load($paths->appPath . '/config/limits.json');
 
     // --- Senders & Dispatchers ---
@@ -37,6 +37,7 @@ try {
         ['autoescape' => 'name'],
     );
     $servers = [];
+
     try {
         $contents = file_get_contents($paths->appPath . '/config/servers.json');
         $servers = is_string($contents) ? json_decode($contents, true, flags: JSON_THROW_ON_ERROR) : [];

@@ -4,23 +4,35 @@ declare(strict_types=1);
 
 namespace Mata\Tests\Unit\Config;
 
-use Mata\Config\MonitoringSettingsLoader;
+use Mata\Config\Monitoring\DataRetentionConfigLoader;
+use Mata\Config\Monitoring\IntervalsConfigLoader;
+use Mata\Config\Monitoring\MonitoringConfigManager;
+use Mata\Config\Monitoring\NotificationRulesConfigLoader;
+use Mata\Config\Monitoring\ProbesConfigLoader;
+use Mata\Config\Monitoring\ServersConfigLoader;
+use Mata\Config\Monitoring\ThresholdsConfigLoader;
+use Mata\Config\Monitoring\TtlConfigLoader;
 use Mata\Models\Dto\EventRecordResult;
 use Mata\Services\Event\EventRecorderService;
 use Mata\Tests\TestCase;
 use PHPUnit\Framework\Attributes\DataProvider;
 use ReflectionMethod;
-use RuntimeException;
 
 /**
- * @covers \Mata\Config\MonitoringSettingsLoader
- *
  * @internal
+ *
+ * @coversNothing
  */
-final class MonitoringSettingsLoaderTest extends TestCase
+final class MonitoringConfigLoadersTest extends TestCase
 {
     private EventRecorderService $eventRecorder;
-    private MonitoringSettingsLoader $loader;
+    private ServersConfigLoader $loader;
+    private MonitoringConfigManager $manager;
+    private TtlConfigLoader $ttlLoader;
+    private NotificationRulesConfigLoader $notificationRulesLoader;
+    private ThresholdsConfigLoader $thresholdsLoader;
+    private IntervalsConfigLoader $intervalsLoader;
+    private DataRetentionConfigLoader $dataRetentionLoader;
 
     protected function setUp(): void
     {
@@ -28,9 +40,7 @@ final class MonitoringSettingsLoaderTest extends TestCase
 
         $this->eventRecorder = $this->createStub(EventRecorderService::class);
 
-        // MonitoringSettingsLoader accepts optional parameters for direct alarm processing, db, and settings sync
-        // We only need eventRecorder for validation tests
-        $this->loader = new MonitoringSettingsLoader($this->eventRecorder);
+        $this->initializeLoaders();
     }
 
     public function testLoadAllConfigsUsesConfigurationRootForEveryRuntimeEnvironment(): void
@@ -50,7 +60,7 @@ final class MonitoringSettingsLoaderTest extends TestCase
         file_put_contents($configPath . '/probes.json', '{"max_retries": 3}');
 
         try {
-            $config = $this->loader->loadAllConfigs($configPath, 'demo');
+            $config = $this->manager->loadAllConfigs($configPath, 'demo');
         } finally {
             $this->cleanupTempFiles([$configPath]);
         }
@@ -63,6 +73,39 @@ final class MonitoringSettingsLoaderTest extends TestCase
             ['enabled' => true, 'channels' => ['email']],
             $config['notification_rules']['defaults']
         );
+    }
+
+    public function testFallbackDefaultsKeepTheCompleteMonitoringShape(): void
+    {
+        $this->useEventRecorderMock();
+        $this->eventRecorder
+            ->expects($this->exactly(6))
+            ->method('recordEvent')
+            ->willReturn(new EventRecordResult(1, null, null, null, null, null));
+        $configPath = $this->createTempDirectory();
+        $manager = new MonitoringConfigManager([
+            new ServersConfigLoader(eventRecorder: $this->eventRecorder, fallbackOnFailure: true),
+            new TtlConfigLoader(eventRecorder: $this->eventRecorder, fallbackOnFailure: true),
+            new DataRetentionConfigLoader(eventRecorder: $this->eventRecorder, fallbackOnFailure: true),
+            new IntervalsConfigLoader(eventRecorder: $this->eventRecorder, fallbackOnFailure: true),
+            new ProbesConfigLoader(eventRecorder: $this->eventRecorder, fallbackOnFailure: true),
+            new NotificationRulesConfigLoader(eventRecorder: $this->eventRecorder, fallbackOnFailure: true),
+            new ThresholdsConfigLoader(eventRecorder: $this->eventRecorder, fallbackOnFailure: true),
+        ]);
+
+        try {
+            $config = $manager->loadAllConfigs($configPath, 'demo');
+        } finally {
+            $this->cleanupTempFiles([$configPath]);
+        }
+
+        $this->assertSame([], $config['servers']);
+        $this->assertSame(60, $config['ttl']['apps']);
+        $this->assertSame(['enabled' => true, 'channels' => ['email']], $config['notification_rules']['defaults']);
+        $this->assertSame('consecutive_failures', $config['thresholds']['alarms']['app_unreachable']['strategy']);
+        $this->assertSame('demo', $config['environment']);
+        $this->assertSame([], $config['charts']);
+        $this->assertArrayNotHasKey('events', $config);
     }
 
     public function testLoadNotificationRulesConfigNormalizesValidRules(): void
@@ -82,14 +125,14 @@ final class MonitoringSettingsLoaderTest extends TestCase
 
     public function testLoadNotificationRulesConfigFallsBackForUnreadablePath(): void
     {
-        $path = sys_get_temp_dir() . '/mata-rules-dir-' . bin2hex(random_bytes(8));
-        mkdir($path);
+        $configPath = $this->createTempDirectory();
+        mkdir($configPath . '/notification_rules.json');
         $this->expectNotificationRulesFallback();
 
         try {
-            $rules = $this->loader->loadNotificationRulesConfig($path);
+            $rules = (new MonitoringConfigManager([$this->notificationRulesLoader]))->loadAllConfigs($configPath)['notification_rules'];
         } finally {
-            rmdir($path);
+            $this->cleanupTempFiles([$configPath]);
         }
 
         $this->assertDefaultNotificationRules($rules);
@@ -122,17 +165,29 @@ final class MonitoringSettingsLoaderTest extends TestCase
     public static function invalidNotificationRulesProvider(): iterable
     {
         yield 'unknown root key' => [['unknown' => true]];
+
         yield 'null section' => [['event_types' => null]];
+
         yield 'list section' => [['event_types' => []]];
+
         yield 'null rule' => [['event_types' => ['fatal' => null]]];
+
         yield 'unknown rule key' => [['defaults' => ['unknown' => true]]];
+
         yield 'non boolean enabled' => [['defaults' => ['enabled' => 1]]];
+
         yield 'null enabled' => [['defaults' => ['enabled' => null]]];
+
         yield 'channels object' => [['defaults' => ['channels' => ['email' => true]]]];
+
         yield 'null channels' => [['defaults' => ['channels' => null]]];
+
         yield 'non string channel' => [['defaults' => ['channels' => [1]]]];
+
         yield 'empty channel' => [['defaults' => ['channels' => [' ']]]];
+
         yield 'unsupported channel' => [['defaults' => ['channels' => ['webhook']]]];
+
         yield 'mixed unsupported channel' => [['defaults' => ['channels' => ['email', 'sms']]]];
     }
 
@@ -143,7 +198,7 @@ final class MonitoringSettingsLoaderTest extends TestCase
         file_put_contents($path, json_encode(['apps' => 120], JSON_THROW_ON_ERROR));
 
         try {
-            $ttl = $this->loader->loadTtlConfig($path);
+            $ttl = $this->ttlLoader->loadTtlConfig($path);
         } finally {
             unlink($path);
         }
@@ -732,8 +787,8 @@ final class MonitoringSettingsLoaderTest extends TestCase
 
     public function testDefaultThresholdsIncludeCronjobCountAndResourceUsageAlarms(): void
     {
-        $method = new ReflectionMethod($this->loader, 'getDefaultThresholdsConfig');
-        $thresholds = $method->invoke($this->loader);
+        $method = new ReflectionMethod($this->thresholdsLoader, 'getDefaultConfig');
+        $thresholds = $method->invoke($this->thresholdsLoader);
 
         $this->assertSame(['good' => -1, 'alarm' => 0], $thresholds['server_data']['cronjobs_failed_count']);
         $this->assertArrayNotHasKey('orders_export_stale', $thresholds['alarms']);
@@ -775,7 +830,7 @@ final class MonitoringSettingsLoaderTest extends TestCase
         ]], JSON_THROW_ON_ERROR));
 
         try {
-            $thresholds = $this->loader->loadThresholdsConfig($path);
+            $thresholds = $this->thresholdsLoader->loadThresholdsConfig($path);
         } finally {
             unlink($path);
         }
@@ -799,7 +854,7 @@ final class MonitoringSettingsLoaderTest extends TestCase
         ], JSON_THROW_ON_ERROR));
 
         try {
-            $config = $this->loader->loadIntervalsConfig($path);
+            $config = $this->intervalsLoader->loadIntervalsConfig($path);
         } finally {
             unlink($path);
         }
@@ -817,7 +872,7 @@ final class MonitoringSettingsLoaderTest extends TestCase
         file_put_contents($path, '{"unused": true}');
 
         try {
-            $config = $this->loader->loadIntervalsConfig($path);
+            $config = $this->intervalsLoader->loadIntervalsConfig($path);
         } finally {
             unlink($path);
         }
@@ -908,21 +963,45 @@ final class MonitoringSettingsLoaderTest extends TestCase
     /** @return array<string,mixed> */
     private function loadNotificationRulesJson(string $json): array
     {
-        $path = tempnam(sys_get_temp_dir(), 'mata-rules-');
-        self::assertNotFalse($path);
-        file_put_contents($path, $json);
+        $configPath = $this->createTempDirectory();
+        file_put_contents($configPath . '/notification_rules.json', $json);
 
         try {
-            return $this->loader->loadNotificationRulesConfig($path);
+            return (new MonitoringConfigManager([$this->notificationRulesLoader]))->loadAllConfigs($configPath)['notification_rules'];
         } finally {
-            unlink($path);
+            $this->cleanupTempFiles([$configPath]);
         }
+    }
+
+    private function initializeLoaders(): void
+    {
+        $this->loader = new ServersConfigLoader(eventRecorder: $this->eventRecorder, fallbackOnFailure: false);
+        $this->ttlLoader = new TtlConfigLoader(eventRecorder: $this->eventRecorder, fallbackOnFailure: true);
+        $this->notificationRulesLoader = new NotificationRulesConfigLoader(
+            eventRecorder: $this->eventRecorder,
+            fallbackOnFailure: true,
+        );
+        $this->thresholdsLoader = new ThresholdsConfigLoader(
+            eventRecorder: $this->eventRecorder,
+            fallbackOnFailure: true,
+        );
+        $this->intervalsLoader = new IntervalsConfigLoader(eventRecorder: $this->eventRecorder, fallbackOnFailure: true);
+        $this->dataRetentionLoader = new DataRetentionConfigLoader(eventRecorder: $this->eventRecorder, fallbackOnFailure: true);
+        $this->manager = new MonitoringConfigManager([
+            $this->loader,
+            $this->ttlLoader,
+            $this->dataRetentionLoader,
+            $this->intervalsLoader,
+            new ProbesConfigLoader(eventRecorder: $this->eventRecorder, fallbackOnFailure: true),
+            $this->notificationRulesLoader,
+            $this->thresholdsLoader,
+        ]);
     }
 
     private function useEventRecorderMock(): void
     {
         $this->eventRecorder = $this->createMock(EventRecorderService::class);
-        $this->loader = new MonitoringSettingsLoader($this->eventRecorder);
+        $this->initializeLoaders();
     }
 
     /** @param array<string,mixed> $config */
@@ -933,7 +1012,7 @@ final class MonitoringSettingsLoaderTest extends TestCase
         file_put_contents($path, json_encode($config, JSON_THROW_ON_ERROR));
 
         try {
-            return $this->loader->loadDataRetentionConfig($path);
+            return $this->dataRetentionLoader->loadDataRetentionConfig($path);
         } finally {
             unlink($path);
         }

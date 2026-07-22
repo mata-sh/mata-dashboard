@@ -2,12 +2,19 @@
 <?php
 
 use Bramus\Router\Router;
-use Mata\Config\AlarmLimitsLoader;
 use Mata\Config\DatabaseIntegrityChecker;
 use Mata\Config\EnvConfigFatalException;
 use Mata\Config\EnvConfigManager;
 use Mata\Config\LogConfigurator;
-use Mata\Config\MonitoringSettingsLoader;
+use Mata\Config\Monitoring\AlarmLimitsConfigLoader;
+use Mata\Config\Monitoring\DataRetentionConfigLoader;
+use Mata\Config\Monitoring\IntervalsConfigLoader;
+use Mata\Config\Monitoring\MonitoringConfigManager;
+use Mata\Config\Monitoring\NotificationRulesConfigLoader;
+use Mata\Config\Monitoring\ProbesConfigLoader;
+use Mata\Config\Monitoring\ServersConfigLoader;
+use Mata\Config\Monitoring\ThresholdsConfigLoader;
+use Mata\Config\Monitoring\TtlConfigLoader;
 use Mata\Controllers\AuditController;
 use Mata\Controllers\DashboardController;
 use Mata\Controllers\LoginController;
@@ -30,6 +37,7 @@ use Mata\Models\ConfigSyncRepository;
 use Mata\Models\EventRepository;
 use Mata\Services\Alarm\AlarmCreator;
 use Mata\Services\Alarm\AlarmDirectProcessor;
+use Mata\Services\Alarm\AlarmQueueFailureThrottle;
 use Mata\Services\Cache\ApiCacheKeyFactory;
 use Mata\Services\Cache\CacheStoreInterface;
 use Mata\Services\Cache\CacheTtlResolver;
@@ -45,15 +53,14 @@ use Mata\Services\Foundation\ProbeClient;
 use Mata\Services\Monitor\Dto\DashboardMonitoringContext;
 use Mata\Services\Monitor\Dto\MonitoringPolicy;
 use Mata\Services\Monitor\ServerMonitoringFactory;
+use Mata\Services\Navigation\MenuBuilder;
+use Mata\Services\Notification\NotificationManager;
 use Mata\Services\Runtime\DashboardEnvironmentFactory;
 use Mata\Services\Sync\AppInventorySync;
 use Mata\Services\Sync\SettingsDatabaseSync;
-use Mata\Services\Navigation\MenuBuilder;
-use Mata\Services\Notification\NotificationManager;
 use Mata\Services\Validation\MetricsRequestValidator;
 use Mata\Services\View\ChartViewBuilder;
 use Mata\Services\View\MetricsViewBuilder;
-use Mata\Services\Alarm\AlarmQueueFailureThrottle;
 use Mata\Utils\PathResolver;
 use Mata\Utils\Tools;
 use Mata\Utils\UsersFilePathResolver;
@@ -187,6 +194,7 @@ $favicon = ['path' => 'assets/images/favicon.png', 'type' => 'image/png'];
 foreach (['favicon.svg' => 'image/svg+xml', 'favicon.png' => 'image/png'] as $file => $type) {
     if (is_file($brandingDir . '/' . $file)) {
         $favicon = ['path' => 'branding/' . $file, 'type' => $type];
+
         break;
     }
 
@@ -200,15 +208,16 @@ foreach (['favicon.svg' => 'image/svg+xml', 'favicon.png' => 'image/png'] as $fi
             $log->warning('Could not seed default branding file: public/branding/' . $file);
             $favicon = ['path' => 'assets/branding/' . $file, 'type' => $type];
         }
+
         break;
     }
 }
 
 $twig->addGlobal('branding', [
-    'app_name'    => $appConfig->general->appName,
-    'logo'        => $brandingAssets['logo'],
+    'app_name' => $appConfig->general->appName,
+    'logo' => $brandingAssets['logo'],
     'logo_topbar' => $brandingAssets['logo_topbar'],
-    'favicon'     => $favicon['path'],
+    'favicon' => $favicon['path'],
     'favicon_type' => $favicon['type'],
 ]);
 
@@ -232,6 +241,7 @@ if ($appConfig->template->debugEnabled) {
 // Initialize App & Authentication
 // ************************************************************************************************
 $usersFilePath = null;
+
 try {
     $usersFilePath = UsersFilePathResolver::resolve($paths->appPath);
     $auth = new Auth($log, $usersFilePath);
@@ -335,7 +345,7 @@ $appInventorySync = new AppInventorySync($configSyncRepository, $idResolver, $lo
 
 // --- Limits & Locking ---
 $queueFailureThrottle = new AlarmQueueFailureThrottle($paths->tempPath . '/alarm-locks', $log);
-$limitsLoader = new AlarmLimitsLoader($log);
+$limitsLoader = new AlarmLimitsConfigLoader($log);
 $limitsConfig = $limitsLoader->load($paths->appPath . '/config/limits.json');
 
 // --- Alarm Manager ---
@@ -364,30 +374,31 @@ $eventManager = new EventManager(
 // ************************************************************************************************
 // Monitoring Configuration
 // ************************************************************************************************
-$monitoringSettingsLoader = new MonitoringSettingsLoader($eventManager->recorder, $alarmDirectProcessor, $db, $settingsSync);
+$monitoringConfigManager = new MonitoringConfigManager([
+    new ServersConfigLoader(
+        eventRecorder: $eventManager->recorder,
+        alarmDirectProcessor: $alarmDirectProcessor,
+        db: $db,
+        settingsSync: $settingsSync,
+        fallbackOnFailure: true,
+    ),
+    new TtlConfigLoader(eventRecorder: $eventManager->recorder, fallbackOnFailure: true),
+    new DataRetentionConfigLoader(eventRecorder: $eventManager->recorder, fallbackOnFailure: true),
+    new IntervalsConfigLoader(eventRecorder: $eventManager->recorder, fallbackOnFailure: true),
+    new ProbesConfigLoader(eventRecorder: $eventManager->recorder, fallbackOnFailure: true),
+    new NotificationRulesConfigLoader(eventRecorder: $eventManager->recorder, fallbackOnFailure: true),
+    new ThresholdsConfigLoader(
+        eventRecorder: $eventManager->recorder,
+        alarmDirectProcessor: $alarmDirectProcessor,
+        fallbackOnFailure: true,
+    ),
+]);
 
-try {
-    $configPath = $paths->appPath . '/config';
-    $log->info("Loading monitoring configuration for environment: {$environment}");
-    $monitoringSettings = $monitoringSettingsLoader->loadAllConfigs($configPath, $environment);
-    $eventManager->setMonitoringSettings($monitoringSettings);
-
-    // Update ServerId->ServerName Map with servers.json content
-    $idResolver->refreshFromRepository(
-        $monitoringSettings['servers'] ?? [],
-    );
-} catch (Exception $e) {
-    $log->error('Failed to load monitoring configuration: ' . $e->getMessage());
-    // Use default configurations
-    $monitoringSettings = [
-        'servers' => [],
-        'ttl' => $monitoringSettingsLoader->getDefaultTtlConfig(),
-        'thresholds' => [],
-        'events' => $monitoringSettingsLoader->getDefaultEventsConfig(),
-        'probes' => $monitoringSettingsLoader->getDefaultProbesConfig(),
-        'environment' => 'prod',
-    ];
-}
+$configPath = $paths->appPath . '/config';
+$log->info("Loading monitoring configuration for environment: {$environment}");
+$monitoringSettings = $monitoringConfigManager->loadAllConfigs($configPath, $environment);
+$eventManager->setMonitoringSettings($monitoringSettings);
+$idResolver->refreshFromRepository($monitoringSettings['servers'] ?? []);
 
 $serverSettings = $monitoringSettings['servers'] ?? [];
 

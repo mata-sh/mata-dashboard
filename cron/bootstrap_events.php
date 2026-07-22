@@ -27,19 +27,26 @@ declare(strict_types=1);
  *   extract(require_once __DIR__ . '/bootstrap_events.php');
  */
 
-use Mata\Config\AlarmLimitsLoader;
-use Mata\Config\MonitoringSettingsLoader;
+use Mata\Config\Monitoring\AlarmLimitsConfigLoader;
+use Mata\Config\Monitoring\DataRetentionConfigLoader;
+use Mata\Config\Monitoring\IntervalsConfigLoader;
+use Mata\Config\Monitoring\MonitoringConfigManager;
+use Mata\Config\Monitoring\NotificationRulesConfigLoader;
+use Mata\Config\Monitoring\ProbesConfigLoader;
+use Mata\Config\Monitoring\ServersConfigLoader;
+use Mata\Config\Monitoring\ThresholdsConfigLoader;
+use Mata\Config\Monitoring\TtlConfigLoader;
 use Mata\Models\AlarmDeliveryRepository;
 use Mata\Models\AlarmRepository;
 use Mata\Models\ConfigSyncRepository;
 use Mata\Models\EventRepository;
-use Mata\Services\Alarm\AlarmThresholdCooldownService;
 use Mata\Services\Alarm\AlarmCreator;
 use Mata\Services\Alarm\AlarmDirectProcessor;
+use Mata\Services\Alarm\AlarmQueueFailureThrottle;
+use Mata\Services\Alarm\AlarmThresholdCooldownService;
 use Mata\Services\Event\EventManager;
 use Mata\Services\Event\EventRecorderService;
 use Mata\Services\Foundation\IdResolver;
-use Mata\Services\Alarm\AlarmQueueFailureThrottle;
 use Mata\Services\Runtime\DashboardEnvironmentFactory;
 
 // Ensure bootstrap.php was loaded first
@@ -60,7 +67,7 @@ $eventRepository = new EventRepository($db);
 // Limits & Queue-Failure Throttling
 // ************************************************************************************************
 $queueFailureThrottle = new AlarmQueueFailureThrottle($paths->tempPath . '/alarm-locks', $log);
-$limitsLoader = new AlarmLimitsLoader($log);
+$limitsLoader = new AlarmLimitsConfigLoader($log);
 $alarmLimits = $limitsLoader->load($paths->appPath . '/config/limits.json');
 
 // ************************************************************************************************
@@ -97,8 +104,24 @@ $eventManager = new EventManager(
 // ************************************************************************************************
 // Monitoring Settings
 // ************************************************************************************************
-$monitoringSettingsLoader = new MonitoringSettingsLoader($eventRecorder, $alarmDirectProcessor);
-$monitoringSettings = $monitoringSettingsLoader->loadAllConfigs(
+$monitoringConfigManager = new MonitoringConfigManager([
+    new ServersConfigLoader(
+        eventRecorder: $eventRecorder,
+        alarmDirectProcessor: $alarmDirectProcessor,
+        fallbackOnFailure: false,
+    ),
+    new TtlConfigLoader(eventRecorder: $eventRecorder, fallbackOnFailure: true),
+    new DataRetentionConfigLoader(eventRecorder: $eventRecorder, fallbackOnFailure: true),
+    new IntervalsConfigLoader(eventRecorder: $eventRecorder, fallbackOnFailure: true),
+    new ProbesConfigLoader(eventRecorder: $eventRecorder, fallbackOnFailure: true),
+    new NotificationRulesConfigLoader(eventRecorder: $eventRecorder, fallbackOnFailure: true),
+    new ThresholdsConfigLoader(
+        eventRecorder: $eventRecorder,
+        alarmDirectProcessor: $alarmDirectProcessor,
+        fallbackOnFailure: true,
+    ),
+]);
+$monitoringSettings = $monitoringConfigManager->loadAllConfigs(
     $paths->appPath . '/config',
     $appConfig->environment->env
 );
