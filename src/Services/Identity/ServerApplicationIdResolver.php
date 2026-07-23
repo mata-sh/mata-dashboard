@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Mata\Persistence\Identity;
+namespace Mata\Services\Identity;
 
 use Mata\Models\ConfigSyncRepository;
 

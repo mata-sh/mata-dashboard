@@ -13,7 +13,7 @@ use Mata\Http\Responses\HtmlResponse;
 use Mata\Http\Responses\JsonResponse;
 use Mata\Http\Routing\Endpoints;
 use Mata\Models\AppFatalStateRepository;
-use Mata\Persistence\Identity\ServerApplicationIdResolver;
+use Mata\Services\Identity\ServerApplicationIdResolver;
 use Mata\Services\Cache\ApiCacheKeyFactory;
 use Mata\Services\Cache\CacheStoreInterface;
 use Mata\Services\Cache\CacheTtlResolver;

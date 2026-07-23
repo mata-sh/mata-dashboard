@@ -7,7 +7,7 @@ namespace Mata\Tests\Unit\Services;
 use Mata\Core\DatabaseInterface;
 use Mata\Models\AlarmRepository;
 use Mata\Models\EventRepository;
-use Mata\Persistence\Identity\ServerApplicationIdResolver;
+use Mata\Services\Identity\ServerApplicationIdResolver;
 use Mata\Services\Event\EventAggregatorService;
 use PHPUnit\Framework\TestCase;
 

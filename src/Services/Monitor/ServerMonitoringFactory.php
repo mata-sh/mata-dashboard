@@ -7,7 +7,7 @@ namespace Mata\Services\Monitor;
 use Exception;
 use InvalidArgumentException;
 use Mata\Models\AppFatalStateRepository;
-use Mata\Persistence\Identity\ServerApplicationIdResolver;
+use Mata\Services\Identity\ServerApplicationIdResolver;
 use Mata\Services\Cache\ApiCacheKeyFactory;
 use Mata\Services\Cache\CacheStoreInterface;
 use Mata\Services\Cache\CacheTtlResolver;

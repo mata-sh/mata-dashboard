@@ -8,7 +8,7 @@ use DateTimeImmutable;
 use Mata\Core\DatabaseInterface;
 use Mata\Models\ConfigSyncRepository;
 use Mata\Models\ServerMetrics\ServerMetricsRepository;
-use Mata\Persistence\Identity\ServerApplicationIdResolver;
+use Mata\Services\Identity\ServerApplicationIdResolver;
 use Mata\Services\Event\Dto\EventCommand;
 use Mata\Services\Event\EventManager;
 use Mata\Services\Monitor\ServerMetricsHealthMonitor;

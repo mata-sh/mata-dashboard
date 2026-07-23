@@ -6,7 +6,7 @@ namespace Mata\Services\Event;
 
 use Mata\Models\AlarmRepository;
 use Mata\Models\EventRepository;
-use Mata\Persistence\Identity\ServerApplicationIdResolver;
+use Mata\Services\Identity\ServerApplicationIdResolver;
 
 /**
  * Event aggregator and query service for decision engines.

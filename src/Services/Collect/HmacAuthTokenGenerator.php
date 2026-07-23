@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Mata\Security;
+namespace Mata\Services\Collect;
 
 /**
  * Generates one-time HMAC tokens for dashboard-to-node requests.

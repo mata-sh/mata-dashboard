@@ -8,7 +8,7 @@ use GuzzleHttp\Promise\Create;
 use Mata\Constants\CacheTypes;
 use Mata\Constants\NodeHealthState;
 use Mata\Models\ConfigSyncRepository;
-use Mata\Persistence\Identity\ServerApplicationIdResolver;
+use Mata\Services\Identity\ServerApplicationIdResolver;
 use Mata\Services\Cache\CacheTypeResolver;
 use Mata\Services\Collect\ServerDataCollectorInterface;
 use Mata\Services\Event\EventManager;

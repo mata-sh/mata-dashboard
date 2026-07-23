@@ -10,7 +10,7 @@ use Mata\Core\DatabaseInterface;
 use Mata\Models\ServerMetrics\Dto\ServerMetricDailyAggregate;
 use Mata\Models\ServerMetrics\Dto\ServerMetricHourlyAggregate;
 use Mata\Models\ServerMetrics\Dto\ServerMetricRawSnapshot;
-use Mata\Persistence\Identity\ServerApplicationIdResolver;
+use Mata\Services\Identity\ServerApplicationIdResolver;
 use RuntimeException;
 use Throwable;
 

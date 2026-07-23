@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Mata\Services\Sync;
 
 use Mata\Models\ConfigSyncRepository;
-use Mata\Persistence\Identity\ServerApplicationIdResolver;
+use Mata\Services\Identity\ServerApplicationIdResolver;
 use Mata\Utils\TypeConverter;
 use Psr\Log\LoggerInterface;
 use Throwable;

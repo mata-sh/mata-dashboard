@@ -7,7 +7,7 @@ namespace Mata\Services\Event;
 use Mata\Core\DatabaseInterface;
 use Mata\Models\Dto\EventRecordResult;
 use Mata\Models\EventRepository;
-use Mata\Persistence\Identity\ServerApplicationIdResolver;
+use Mata\Services\Identity\ServerApplicationIdResolver;
 
 /**
  * Event logging service.

@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Mata\Utils;
 
-use Mata\Security\HmacAuthTokenGenerator;
+use Mata\Services\Collect\HmacAuthTokenGenerator;
 use Psr\Log\LoggerInterface;
 use Psr\Log\NullLogger;
 use RuntimeException;

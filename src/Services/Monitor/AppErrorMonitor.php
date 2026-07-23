@@ -6,7 +6,7 @@ namespace Mata\Services\Monitor;
 
 use Mata\Models\AppFatalStateRepository;
 use Mata\Models\Dto\AppFatalState;
-use Mata\Persistence\Identity\ServerApplicationIdResolver;
+use Mata\Services\Identity\ServerApplicationIdResolver;
 use Mata\Services\Event\Dto\EventCommand;
 use Mata\Services\Event\Dto\EventMetric;
 use Mata\Services\Event\EventManager;

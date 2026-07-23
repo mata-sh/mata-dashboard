@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Mata\Services\ServerMetrics;
 
 use Mata\Core\DatabaseInterface;
-use Mata\Persistence\Identity\ServerApplicationIdResolver;
+use Mata\Services\Identity\ServerApplicationIdResolver;
 
 /**
  * Factory responsible for creating the appropriate server metrics query
