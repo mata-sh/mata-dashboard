@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Mata\Models\ServerMetrics;
+namespace Mata\Services\ServerMetrics;
 
 use DateInterval;
 use DateTimeImmutable;

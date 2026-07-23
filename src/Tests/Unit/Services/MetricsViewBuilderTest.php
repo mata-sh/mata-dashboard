@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Mata\Tests\Unit\Services;
 
 use DateTimeImmutable;
-use Mata\Models\ServerMetrics\ServerMetricsQueryInterface;
+use Mata\Services\ServerMetrics\ServerMetricsQueryInterface;
 use Mata\Services\View\MetricsViewBuilder;
 use PHPUnit\Framework\TestCase;
 use Psr\Log\NullLogger;

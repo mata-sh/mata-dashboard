@@ -36,7 +36,7 @@ use Mata\Models\AlarmRepository;
 use Mata\Models\AppFatalStateRepository;
 use Mata\Models\ConfigSyncRepository;
 use Mata\Models\EventRepository;
-use Mata\Models\ServerMetrics\ServerMetricsQueryFactory;
+use Mata\Services\ServerMetrics\ServerMetricsQueryFactory;
 use Mata\Persistence\Identity\ServerApplicationIdResolver;
 use Mata\Services\Alarm\AlarmCreator;
 use Mata\Services\Alarm\AlarmDirectProcessor;

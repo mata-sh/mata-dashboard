@@ -11,7 +11,7 @@ use InvalidArgumentException;
 use Mata\Models\ServerMetrics\Dto\ServerMetricDailyAggregate;
 use Mata\Models\ServerMetrics\Dto\ServerMetricHourlyAggregate;
 use Mata\Models\ServerMetrics\Dto\ServerMetricRawSnapshot;
-use Mata\Models\ServerMetrics\ServerMetricsQueryInterface;
+use Mata\Services\ServerMetrics\ServerMetricsQueryInterface;
 use Psr\Log\LoggerInterface;
 
 /**

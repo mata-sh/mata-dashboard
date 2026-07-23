@@ -3,8 +3,8 @@
 
 declare(strict_types=1);
 
-use Mata\Models\ServerMetrics\AggregationWindowPlanner;
-use Mata\Models\ServerMetrics\ServerMetricsAggregator;
+use Mata\Services\ServerMetrics\AggregationWindowPlanner;
+use Mata\Services\ServerMetrics\ServerMetricsAggregator;
 use Mata\Models\ServerMetrics\ServerMetricsRepository;
 
 $requiresDatabase = true;

@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Mata\Models\ServerMetrics;
+namespace Mata\Services\ServerMetrics;
 
 use Mata\Core\DatabaseInterface;
 use Mata\Persistence\Identity\ServerApplicationIdResolver;

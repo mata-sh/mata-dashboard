@@ -2,15 +2,15 @@
 
 declare(strict_types=1);
 
-namespace Mata\Tests\Unit\Models\ServerMetrics;
+namespace Mata\Tests\Unit\Services\ServerMetrics;
 
 use DateTimeImmutable;
 use DateTimeZone;
-use Mata\Models\ServerMetrics\AggregationWindowPlanner;
+use Mata\Services\ServerMetrics\AggregationWindowPlanner;
 use PHPUnit\Framework\TestCase;
 
 /**
- * @covers \Mata\Models\ServerMetrics\AggregationWindowPlanner
+ * @covers \Mata\Services\ServerMetrics\AggregationWindowPlanner
  *
  * @internal
  */

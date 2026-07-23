@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Mata\Models\ServerMetrics;
+namespace Mata\Services\ServerMetrics;
 
 use DateInterval;
 use DateTimeImmutable;
@@ -10,6 +10,7 @@ use DateTimeZone;
 use Mata\Core\DatabaseInterface;
 use Mata\Models\ServerMetrics\Dto\ServerMetricDailyAggregate;
 use Mata\Models\ServerMetrics\Dto\ServerMetricHourlyAggregate;
+use Mata\Models\ServerMetrics\ServerMetricsRepository;
 use Mata\Utils\TypeConverter;
 use Psr\Log\LoggerInterface;
 use Throwable;
