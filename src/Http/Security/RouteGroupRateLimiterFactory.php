@@ -2,10 +2,9 @@
 
 declare(strict_types=1);
 
-namespace Mata\Factory;
+namespace Mata\Http\Security;
 
 use Mata\Config\Dto\RateLimitingConfig;
-use Mata\Services\Foundation\RateLimiterService;
 use MataSh\RateLimiter\RateLimiter;
 use Psr\Log\LoggerInterface;
 use Redis;
@@ -13,25 +12,25 @@ use RuntimeException;
 use Throwable;
 
 /**
- * Factory for creating RateLimiterService instances.
+ * Factory for creating RouteGroupRateLimiter instances.
  *
  * Handles initialization of rate limiter with different storage backends
  * (file, Redis) based on configuration.
  */
-final class RateLimiterFactory
+final class RouteGroupRateLimiterFactory
 {
     /**
-     * Create RateLimiterService from configuration.
+     * Create RouteGroupRateLimiter from configuration.
      *
      * @param RateLimitingConfig $config Configuration for rate limiting
      * @param LoggerInterface    $logger Logger for initialization messages
      *
-     * @return null|RateLimiterService Service instance or null if initialization fails
+     * @return null|RouteGroupRateLimiter Service instance or null if initialization fails
      */
     public static function create(
         RateLimitingConfig $config,
         LoggerInterface $logger
-    ): ?RateLimiterService {
+    ): ?RouteGroupRateLimiter {
         try {
             $redis = null;
 
@@ -70,15 +69,14 @@ final class RateLimiterFactory
                 logger: $logger
             );
 
-            // Wrap in service layer
-            $rateLimiterService = new RateLimiterService($rateLimiter, $config);
+            $routeGroupRateLimiter = new RouteGroupRateLimiter($rateLimiter, $config);
 
             $logger->info('Rate limiting initialized', [
                 'storage' => $config->storageType,
                 'enabled' => $config->enabled,
             ]);
 
-            return $rateLimiterService;
+            return $routeGroupRateLimiter;
         } catch (Throwable $e) {
             $logger->error('Failed to initialize rate limiter: ' . $e->getMessage());
 

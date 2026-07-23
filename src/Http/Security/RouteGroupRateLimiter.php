@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Mata\Services\Foundation;
+namespace Mata\Http\Security;
 
 use Mata\Config\Dto\RateLimitingConfig;
 use MataSh\RateLimiter\RateLimiter;
@@ -14,7 +14,7 @@ use MataSh\RateLimiter\RateLimitIdentifier;
  * Provides application-specific rate limiting logic with
  * route group awareness and IP-based identification.
  */
-class RateLimiterService
+class RouteGroupRateLimiter
 {
     private RateLimiter $rateLimiter;
     private RateLimitingConfig $config;
@@ -29,7 +29,7 @@ class RateLimiterService
     }
 
     /**
-     * Check if request should be rate limited for specific route group.
+     * Check if request should be rate limited for a specific route group.
      *
      * @param string      $group Route group: 'login', 'dashboard', 'api'
      * @param null|string $ip    Optional IP address (defaults to $_SERVER['REMOTE_ADDR'])

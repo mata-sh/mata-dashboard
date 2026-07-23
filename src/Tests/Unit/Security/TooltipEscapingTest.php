@@ -8,7 +8,7 @@ use Mata\Core\App;
 use Mata\Http\Routing\Endpoints;
 use Mata\Services\Cache\CacheTypeResolver;
 use Mata\Services\Event\EventManager;
-use Mata\Services\Foundation\LogSizeEvaluator;
+use Mata\Services\Monitor\LogSizeEvaluator;
 use Mata\Services\Monitor\ServerMonitor;
 use Mata\Services\View\ServerViewBuilder;
 use Mata\Utils\Tools;

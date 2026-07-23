@@ -8,14 +8,14 @@ use GuzzleHttp\Promise\Create;
 use Mata\Constants\CacheTypes;
 use Mata\Constants\NodeHealthState;
 use Mata\Models\ConfigSyncRepository;
+use Mata\Persistence\Identity\ServerApplicationIdResolver;
 use Mata\Services\Cache\CacheTypeResolver;
 use Mata\Services\Collect\ServerDataCollectorInterface;
 use Mata\Services\Event\EventManager;
-use Mata\Services\Foundation\IdResolver;
-use Mata\Services\Foundation\LogSizeEvaluator;
 use Mata\Services\Monitor\AppErrorMonitorInterface;
 use Mata\Services\Monitor\AppReachabilityMonitorInterface;
 use Mata\Services\Monitor\Dto\ServerMonitoringServices;
+use Mata\Services\Monitor\LogSizeEvaluator;
 use Mata\Services\Monitor\NodeHealthMonitorInterface;
 use Mata\Services\Monitor\ServerMonitor;
 use Mata\Services\Sync\AppInventorySync;
@@ -190,7 +190,7 @@ final class ServerViewBuilderTest extends TestCase
             ->method('upsertApplication')
             ->with('shop', 'Shop', 'prod')
             ->willReturn(true);
-        $sync = new AppInventorySync($repository, new IdResolver(), new Logger('test'));
+        $sync = new AppInventorySync($repository, new ServerApplicationIdResolver(), new Logger('test'));
 
         $builder = new ServerViewBuilder(
             $serverMonitor,
@@ -216,7 +216,7 @@ final class ServerViewBuilderTest extends TestCase
     {
         $repository = $this->createMock(ConfigSyncRepository::class);
         $repository->expects($this->never())->method('upsertApplication');
-        $sync = new AppInventorySync($repository, new IdResolver(), new Logger('test'));
+        $sync = new AppInventorySync($repository, new ServerApplicationIdResolver(), new Logger('test'));
 
         $collector = $this->createStub(ServerDataCollectorInterface::class);
         $collector->method('getApps')->willReturn([

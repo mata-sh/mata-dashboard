@@ -13,17 +13,17 @@ use Mata\Http\Responses\HtmlResponse;
 use Mata\Http\Responses\JsonResponse;
 use Mata\Http\Routing\Endpoints;
 use Mata\Models\AppFatalStateRepository;
+use Mata\Persistence\Identity\ServerApplicationIdResolver;
 use Mata\Services\Cache\ApiCacheKeyFactory;
 use Mata\Services\Cache\CacheStoreInterface;
 use Mata\Services\Cache\CacheTtlResolver;
 use Mata\Services\DataTransformers\ApiResponseTransformer;
 use Mata\Services\Event\EventAggregatorServiceInterface;
 use Mata\Services\Event\EventManager;
-use Mata\Services\Foundation\IdResolver;
-use Mata\Services\Foundation\LogSizeEvaluator;
-use Mata\Services\Foundation\ProbeClient;
 use Mata\Services\Monitor\Dto\AppReachabilityPolicy;
 use Mata\Services\Monitor\Dto\DashboardMonitoringContext;
+use Mata\Services\Monitor\HttpProbeClient;
+use Mata\Services\Monitor\LogSizeEvaluator;
 use Mata\Services\Monitor\ServerMonitoringFactory;
 use Mata\Services\Navigation\MenuBuilder;
 use Mata\Services\Notification\NotificationManager;
@@ -1108,9 +1108,9 @@ class DashboardControllerTest extends TestCase
             $this->ttlResolver,
             $this->eventManager,
             new ApiResponseTransformer($this->logger),
-            new ProbeClient(),
+            new HttpProbeClient(),
             AppReachabilityPolicy::fromSettings($this->monitoringSettings),
-            new IdResolver(),
+            new ServerApplicationIdResolver(),
             new AppFatalStateRepository($this->createStub(DatabaseInterface::class)),
             new LogSizeEvaluator($this->tools, $this->eventManager),
         );

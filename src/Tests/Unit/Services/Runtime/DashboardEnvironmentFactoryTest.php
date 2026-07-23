@@ -8,6 +8,7 @@ use Mata\Core\DatabaseInterface;
 use Mata\Models\AlarmRepository;
 use Mata\Models\AppFatalStateRepository;
 use Mata\Models\EventRepository;
+use Mata\Persistence\Identity\ServerApplicationIdResolver;
 use Mata\Services\Cache\ApiCacheKeyFactory;
 use Mata\Services\Cache\CacheStoreInterface;
 use Mata\Services\Cache\CacheTtlResolver;
@@ -16,10 +17,9 @@ use Mata\Services\DataTransformers\ApiResponseTransformer;
 use Mata\Services\Event\EventAggregatorService;
 use Mata\Services\Event\EventManager;
 use Mata\Services\Event\MockEventAggregatorService;
-use Mata\Services\Foundation\IdResolver;
-use Mata\Services\Foundation\LogSizeEvaluator;
-use Mata\Services\Foundation\ProbeClient;
 use Mata\Services\Monitor\Dto\AppReachabilityPolicy;
+use Mata\Services\Monitor\HttpProbeClient;
+use Mata\Services\Monitor\LogSizeEvaluator;
 use Mata\Services\Monitor\ServerMonitoringFactory;
 use Mata\Services\Runtime\DashboardEnvironmentFactory;
 use Mata\Utils\Tools;
@@ -58,7 +58,7 @@ final class DashboardEnvironmentFactoryTest extends TestCase
             $environment,
             new EventRepository($database),
             new AlarmRepository($database),
-            new IdResolver(),
+            new ServerApplicationIdResolver(),
             new NullLogger(),
             __DIR__ . '/missing-events.json',
         );
@@ -75,9 +75,9 @@ final class DashboardEnvironmentFactoryTest extends TestCase
             new CacheTtlResolver([]),
             $this->createStub(EventManager::class),
             new ApiResponseTransformer($logger),
-            new ProbeClient(),
+            new HttpProbeClient(),
             AppReachabilityPolicy::fromSettings([]),
-            new IdResolver(),
+            new ServerApplicationIdResolver(),
             new AppFatalStateRepository($this->createStub(DatabaseInterface::class)),
             new LogSizeEvaluator(new Tools('/tmp'), $this->createStub(EventManager::class)),
         );

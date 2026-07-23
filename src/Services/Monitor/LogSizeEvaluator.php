@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace Mata\Services\Foundation;
+namespace Mata\Services\Monitor;
 
 use Mata\Services\Event\EventManager;
-use Mata\Services\Foundation\Dto\LogSizeEvaluation;
+use Mata\Services\Monitor\Dto\LogSizeEvaluation;
 use Mata\Utils\Tools;
 
 final class LogSizeEvaluator

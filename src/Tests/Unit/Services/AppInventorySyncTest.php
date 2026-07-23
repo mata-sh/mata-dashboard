@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Mata\Tests\Unit\Services;
 
 use Mata\Models\ConfigSyncRepository;
-use Mata\Services\Foundation\IdResolver;
+use Mata\Persistence\Identity\ServerApplicationIdResolver;
 use Mata\Services\Sync\AppInventorySync;
 use Mata\Tests\Helpers\SqliteTestDatabase;
 use Mata\Tests\TestCase;
@@ -19,7 +19,7 @@ use Monolog\Logger;
 final class AppInventorySyncTest extends TestCase
 {
     private ConfigSyncRepository $repository;
-    private IdResolver $idResolver;
+    private ServerApplicationIdResolver $idResolver;
     private AppInventorySync $sync;
 
     protected function setUp(): void
@@ -29,7 +29,7 @@ final class AppInventorySyncTest extends TestCase
         $db = new SqliteTestDatabase();
         $this->createSchema($db);
         $this->repository = new ConfigSyncRepository($db);
-        $this->idResolver = new IdResolver($this->repository);
+        $this->idResolver = new ServerApplicationIdResolver($this->repository);
         $this->idResolver->refreshFromRepository();
         $this->sync = new AppInventorySync($this->repository, $this->idResolver, new Logger('test'));
     }

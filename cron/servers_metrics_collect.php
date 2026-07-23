@@ -10,7 +10,7 @@ use Mata\Services\Cache\CacheTtlResolver;
 use Mata\Services\Cache\FileCacheStore;
 use Mata\Services\Collect\ServerDataCollector;
 use Mata\Services\DataTransformers\ApiResponseTransformer;
-use Mata\Services\Foundation\ApiClient;
+use Mata\Services\Collect\NodeApiClient;
 use Mata\Services\Monitor\ServerMetricsHealthMonitor;
 use Mata\Services\Monitor\ServerMonitor;
 use Mata\Utils\TypeConverter;
@@ -108,7 +108,7 @@ try {
             $allowHttp = TypeConverter::toBool($serverConfig['allow_http'] ?? null) ?? false;
             $suppressHttpWarning = TypeConverter::toBool($serverConfig['suppress_http_warning'] ?? null) ?? false;
 
-            $apiClient = new ApiClient(
+            $apiClient = new NodeApiClient(
                 $log,
                 $apiUrl,
                 (string) $serverName,

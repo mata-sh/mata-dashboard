@@ -2,13 +2,10 @@
 
 declare(strict_types=1);
 
-namespace Mata\Factory;
+namespace Mata\Models\ServerMetrics;
 
 use Mata\Core\DatabaseInterface;
-use Mata\Models\ServerMetrics\MockServerMetricsQuery;
-use Mata\Models\ServerMetrics\ServerMetricsQuery;
-use Mata\Models\ServerMetrics\ServerMetricsQueryInterface;
-use Mata\Services\Foundation\IdResolver;
+use Mata\Persistence\Identity\ServerApplicationIdResolver;
 
 /**
  * Factory responsible for creating the appropriate server metrics query
@@ -22,12 +19,12 @@ final class ServerMetricsQueryFactory
 {
     private string $environment;
     private DatabaseInterface $database;
-    private IdResolver $idResolver;
+    private ServerApplicationIdResolver $idResolver;
 
     public function __construct(
         string $environment,
         DatabaseInterface $database,
-        IdResolver $idResolver
+        ServerApplicationIdResolver $idResolver
     ) {
         $this->environment = strtolower(trim($environment));
         $this->database = $database;

@@ -48,7 +48,7 @@ use Mata\Services\Alarm\AlarmQueueFailureThrottle;
 use Mata\Services\Alarm\AlarmThresholdCooldownService;
 use Mata\Services\Event\EventManager;
 use Mata\Services\Event\EventRecorderService;
-use Mata\Services\Foundation\IdResolver;
+use Mata\Persistence\Identity\ServerApplicationIdResolver;
 use Mata\Services\Runtime\DashboardEnvironmentFactory;
 
 // Ensure bootstrap.php was loaded first
@@ -86,7 +86,7 @@ $alarmDirectProcessor = new AlarmDirectProcessor(
 // ************************************************************************************************
 // Resolvers & Event Services
 // ************************************************************************************************
-$idResolver = new IdResolver($configSyncRepository);
+$idResolver = new ServerApplicationIdResolver($configSyncRepository);
 $eventRecorder = new EventRecorderService($db, $idResolver);
 $dashboardEnvironmentFactory = new DashboardEnvironmentFactory(
     $appConfig->environment->env,

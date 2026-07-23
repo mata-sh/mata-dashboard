@@ -10,7 +10,7 @@ use Mata\Core\DatabaseInterface;
 use Mata\Models\ServerMetrics\Dto\ServerMetricDailyAggregate;
 use Mata\Models\ServerMetrics\Dto\ServerMetricHourlyAggregate;
 use Mata\Models\ServerMetrics\Dto\ServerMetricRawSnapshot;
-use Mata\Services\Foundation\IdResolver;
+use Mata\Persistence\Identity\ServerApplicationIdResolver;
 use RuntimeException;
 use Throwable;
 
@@ -23,12 +23,12 @@ use Throwable;
 final class ServerMetricsQuery implements ServerMetricsQueryInterface
 {
     private DatabaseInterface $db;
-    private IdResolver $idResolver;
+    private ServerApplicationIdResolver $idResolver;
 
-    public function __construct(DatabaseInterface $db, ?IdResolver $idResolver = null)
+    public function __construct(DatabaseInterface $db, ?ServerApplicationIdResolver $idResolver = null)
     {
         $this->db = $db;
-        $this->idResolver = $idResolver ?? new IdResolver();
+        $this->idResolver = $idResolver ?? new ServerApplicationIdResolver();
     }
 
     public function getHourlyMetrics(

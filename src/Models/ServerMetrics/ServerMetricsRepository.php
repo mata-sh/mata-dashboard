@@ -12,7 +12,7 @@ use Mata\Models\ConfigSyncRepository;
 use Mata\Models\ServerMetrics\Dto\ServerMetricDailyAggregate;
 use Mata\Models\ServerMetrics\Dto\ServerMetricHourlyAggregate;
 use Mata\Models\ServerMetrics\Dto\ServerMetricRawSnapshot;
-use Mata\Services\Foundation\IdResolver;
+use Mata\Persistence\Identity\ServerApplicationIdResolver;
 use RuntimeException;
 use Throwable;
 
@@ -32,7 +32,7 @@ use Throwable;
 final class ServerMetricsRepository
 {
     private DatabaseInterface $db;
-    private IdResolver $idResolver;
+    private ServerApplicationIdResolver $idResolver;
     private ConfigSyncRepository $configSyncRepository;
 
     /** @var array<string,int> */
@@ -40,7 +40,7 @@ final class ServerMetricsRepository
 
     public function __construct(
         DatabaseInterface $db,
-        IdResolver $idResolver,
+        ServerApplicationIdResolver $idResolver,
         ConfigSyncRepository $configSyncRepository
     ) {
         $this->db = $db;
@@ -347,7 +347,7 @@ SQL
 
     private function resolveServerId(string $serverName): int
     {
-        // Try resolving via IdResolver first (uses in-memory cache + database maps)
+        // Try resolving via ServerApplicationIdResolver first (uses in-memory cache + database maps)
         $resolved = $this->idResolver->resolveServer($serverName);
 
         if ($resolved['id'] !== null) {
@@ -363,7 +363,7 @@ SQL
                 '{}' // empty metadata JSON
             );
 
-            // Refresh IdResolver to pick up the newly created server
+            // Refresh ServerApplicationIdResolver to pick up the newly created server
             $this->idResolver->refreshFromRepository();
 
             // Resolve again after creation

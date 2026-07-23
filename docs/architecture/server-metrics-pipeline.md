@@ -50,7 +50,7 @@ docker exec <web-container> mata-cron-smoke-check
 
 ## 1. Collection: node response to raw snapshot
 
-`cron/servers_metrics_collect.php` creates an authenticated `ApiClient`, then
+`cron/servers_metrics_collect.php` creates an authenticated `NodeApiClient`, then
 uses `ServerDataCollector` and `ServerMonitor` to fetch server health data from
 the configured node API.
 

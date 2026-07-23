@@ -7,6 +7,7 @@ namespace Mata\Tests\Unit\Services;
 use InvalidArgumentException;
 use Mata\Core\DatabaseInterface;
 use Mata\Models\AppFatalStateRepository;
+use Mata\Persistence\Identity\ServerApplicationIdResolver;
 use Mata\Services\Cache\ApiCacheKeyFactory;
 use Mata\Services\Cache\CacheStoreInterface;
 use Mata\Services\Cache\CacheTtlResolver;
@@ -14,11 +15,10 @@ use Mata\Services\Collect\MockServerDataCollector;
 use Mata\Services\Collect\ServerDataCollector;
 use Mata\Services\DataTransformers\ApiResponseTransformer;
 use Mata\Services\Event\EventManager;
-use Mata\Services\Foundation\IdResolver;
-use Mata\Services\Foundation\LogSizeEvaluator;
-use Mata\Services\Foundation\ProbeClient;
 use Mata\Services\Monitor\AppReachabilityMonitor;
 use Mata\Services\Monitor\Dto\AppReachabilityPolicy;
+use Mata\Services\Monitor\HttpProbeClient;
+use Mata\Services\Monitor\LogSizeEvaluator;
 use Mata\Services\Monitor\MockAppErrorMonitor;
 use Mata\Services\Monitor\MockAppReachabilityMonitor;
 use Mata\Services\Monitor\MockNodeHealthMonitor;
@@ -113,9 +113,9 @@ final class ServerMonitoringFactoryTest extends TestCase
             new CacheTtlResolver([]),
             $this->createStub(EventManager::class),
             new ApiResponseTransformer($logger),
-            new ProbeClient(),
+            new HttpProbeClient(),
             AppReachabilityPolicy::fromSettings([]),
-            new IdResolver(),
+            new ServerApplicationIdResolver(),
             new AppFatalStateRepository($this->createStub(DatabaseInterface::class)),
             new LogSizeEvaluator(new Tools('/tmp'), $this->createStub(EventManager::class)),
         );

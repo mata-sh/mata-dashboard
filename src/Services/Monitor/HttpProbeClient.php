@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Mata\Services\Foundation;
+namespace Mata\Services\Monitor;
 
 use GuzzleHttp\Client;
 use GuzzleHttp\ClientInterface;
@@ -15,7 +15,7 @@ use RuntimeException;
 use Throwable;
 
 /** Unauthenticated concurrent HTTP probes with normalized failure diagnostics. */
-class ProbeClient
+class HttpProbeClient
 {
     private const MAX_JSON_RESPONSE_BYTES = 65536;
     private const DNS_CURL_ERRNOS = [6];

@@ -18,14 +18,14 @@ use Mata\Services\Cache\ApiCacheKeyFactory;
 use Mata\Services\Cache\CacheEntry;
 use Mata\Services\Cache\CacheStoreInterface;
 use Mata\Services\Cache\CacheTtlResolver;
+use Mata\Services\Collect\NodeApiClient;
 use Mata\Services\Event\Dto\EventCommand;
 use Mata\Services\Event\EventManager;
-use Mata\Services\Foundation\ApiClient;
-use Mata\Services\Foundation\ProbeClient;
 use Mata\Services\Monitor\AppReachabilityMonitor;
 use Mata\Services\Monitor\Dto\AppReachabilityPolicy;
 use Mata\Services\Monitor\Dto\EndpointTarget;
 use Mata\Services\Monitor\Dto\ProbePolicy;
+use Mata\Services\Monitor\HttpProbeClient;
 use PHPUnit\Framework\TestCase;
 use Psr\Log\NullLogger;
 
@@ -42,7 +42,7 @@ final class AppReachabilityMonitorTest extends TestCase
         $store->expects($this->once())->method('get')->willReturn(new CacheEntry(['reachable' => true], time() - 1));
         $store->expects($this->never())->method('put');
 
-        $this->assertSame(['reachable' => true], $this->monitor($store, new ProbeClient())->checkEndpoint(
+        $this->assertSame(['reachable' => true], $this->monitor($store, new HttpProbeClient())->checkEndpoint(
             new EndpointTarget('app', 'https://app.example.test')
         ));
     }
@@ -351,7 +351,7 @@ final class AppReachabilityMonitorTest extends TestCase
         ], time()));
         $events = $this->createMock(EventManager::class);
         $events->expects($this->never())->method('handle');
-        $monitor = $this->monitor($store, new ProbeClient(), CacheTypes::PING, $events);
+        $monitor = $this->monitor($store, new HttpProbeClient(), CacheTypes::PING, $events);
 
         $result = $monitor->checkMultipleEndpoints([
             'app' => new EndpointTarget('app', 'https://app.example.test'),
@@ -392,7 +392,7 @@ final class AppReachabilityMonitorTest extends TestCase
         $store->method('get')->willReturn(null);
         $store->expects($this->exactly(2))->method('put');
 
-        $probe = $this->createStub(ProbeClient::class);
+        $probe = $this->createStub(HttpProbeClient::class);
         $probe->method('probeReachabilityAsync')->willReturn(Create::promiseFor([]));
         $probe->method('settle')->willReturn([]);
 
@@ -414,7 +414,7 @@ final class AppReachabilityMonitorTest extends TestCase
         $store->method('get')->willReturn(null);
         $store->expects($this->exactly(10))->method('put');
 
-        $probe = $this->createMock(ProbeClient::class);
+        $probe = $this->createMock(HttpProbeClient::class);
         $probe->expects($this->exactly(10))
             ->method('probeReachabilityAsync')
             ->willReturnCallback(static fn (): PromiseInterface => Create::promiseFor([]));
@@ -446,14 +446,14 @@ final class AppReachabilityMonitorTest extends TestCase
 
     private function monitor(
         CacheStoreInterface $store,
-        ProbeClient $probe,
+        HttpProbeClient $probe,
         string $cacheType = CacheTypes::PING,
         ?EventManager $events = null,
         ?Closure $clock = null,
         ?Closure $retryDelay = null,
         ?AppReachabilityPolicy $policy = null,
     ): AppReachabilityMonitor {
-        $apiClient = $this->createStub(ApiClient::class);
+        $apiClient = $this->createStub(NodeApiClient::class);
         $apiClient->method('getApiBase')->willReturn('https://node.example.test/api');
 
         return new AppReachabilityMonitor(
@@ -470,9 +470,9 @@ final class AppReachabilityMonitorTest extends TestCase
         );
     }
 
-    private function probe(mixed ...$responses): ProbeClient
+    private function probe(mixed ...$responses): HttpProbeClient
     {
-        return new ProbeClient(true, new Client([
+        return new HttpProbeClient(true, new Client([
             'handler' => HandlerStack::create(new MockHandler($responses)),
         ]));
     }

@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Mata\Services\Foundation;
+namespace Mata\Services\Collect;
 
 use GuzzleHttp\Client;
 use GuzzleHttp\Exception\RequestException;
@@ -25,7 +25,7 @@ use Throwable;
  * - Response retrieval and basic validation
  * - Error handling and logging
  */
-class ApiClient
+class NodeApiClient
 {
     private Client $client;
     private LoggerInterface $logger;

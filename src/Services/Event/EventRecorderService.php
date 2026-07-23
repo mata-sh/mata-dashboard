@@ -7,7 +7,7 @@ namespace Mata\Services\Event;
 use Mata\Core\DatabaseInterface;
 use Mata\Models\Dto\EventRecordResult;
 use Mata\Models\EventRepository;
-use Mata\Services\Foundation\IdResolver;
+use Mata\Persistence\Identity\ServerApplicationIdResolver;
 
 /**
  * Event logging service.
@@ -19,20 +19,20 @@ use Mata\Services\Foundation\IdResolver;
 class EventRecorderService
 {
     private EventRepository $repository;
-    private IdResolver $idResolver;
+    private ServerApplicationIdResolver $idResolver;
 
     /**
-     * @param DatabaseInterface    $db         Primary database connection
-     * @param null|IdResolver      $idResolver Optional identifier resolver (default: new instance)
-     * @param null|EventRepository $repository Optional repository override
+     * @param DatabaseInterface                $db         Primary database connection
+     * @param null|ServerApplicationIdResolver $idResolver Optional identifier resolver (default: new instance)
+     * @param null|EventRepository             $repository Optional repository override
      */
     public function __construct(
         DatabaseInterface $db,
-        ?IdResolver $idResolver = null,
+        ?ServerApplicationIdResolver $idResolver = null,
         ?EventRepository $repository = null
     ) {
         $this->repository = $repository ?? new EventRepository($db);
-        $this->idResolver = $idResolver ?? new IdResolver();
+        $this->idResolver = $idResolver ?? new ServerApplicationIdResolver();
     }
 
     /**

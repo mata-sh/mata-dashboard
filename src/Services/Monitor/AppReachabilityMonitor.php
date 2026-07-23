@@ -10,11 +10,10 @@ use Mata\Constants\CacheTypes;
 use Mata\Services\Cache\ApiCacheKeyFactory;
 use Mata\Services\Cache\CacheStoreInterface;
 use Mata\Services\Cache\CacheTtlResolver;
+use Mata\Services\Collect\NodeApiClient;
 use Mata\Services\Event\Dto\EventCommand;
 use Mata\Services\Event\Dto\EventMetric;
 use Mata\Services\Event\EventManager;
-use Mata\Services\Foundation\ApiClient;
-use Mata\Services\Foundation\ProbeClient;
 use Mata\Services\Monitor\Dto\AppReachabilityPolicy;
 use Mata\Services\Monitor\Dto\EndpointTarget;
 use Mata\Services\Monitor\Dto\ProbePolicy;
@@ -37,8 +36,8 @@ class AppReachabilityMonitor implements AppReachabilityMonitorInterface
         private CacheStoreInterface $cacheStore,
         private ApiCacheKeyFactory $cacheKeyFactory,
         private CacheTtlResolver $ttlResolver,
-        private ApiClient $apiClient,
-        private ProbeClient $probeClient,
+        private NodeApiClient $apiClient,
+        private HttpProbeClient $probeClient,
         private EventManager $eventManager,
         private LoggerInterface $logger,
         private AppReachabilityPolicy $policy,

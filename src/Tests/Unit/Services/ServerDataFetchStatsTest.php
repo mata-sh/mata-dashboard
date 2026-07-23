@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Mata\Tests\Unit\Services;
 
-use Mata\Services\Monitor\Dto\AppErrorMonitoringResult;
 use Mata\Services\Cron\Dto\ServerDataFetchResult;
 use Mata\Services\Cron\ServerDataFetchStats;
+use Mata\Services\Monitor\Dto\AppErrorMonitoringResult;
 use PHPUnit\Framework\TestCase;
 
 /**

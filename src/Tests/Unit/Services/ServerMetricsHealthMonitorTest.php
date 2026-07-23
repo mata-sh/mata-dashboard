@@ -8,9 +8,9 @@ use DateTimeImmutable;
 use Mata\Core\DatabaseInterface;
 use Mata\Models\ConfigSyncRepository;
 use Mata\Models\ServerMetrics\ServerMetricsRepository;
+use Mata\Persistence\Identity\ServerApplicationIdResolver;
 use Mata\Services\Event\Dto\EventCommand;
 use Mata\Services\Event\EventManager;
-use Mata\Services\Foundation\IdResolver;
 use Mata\Services\Monitor\ServerMetricsHealthMonitor;
 use PHPUnit\Framework\TestCase;
 use Psr\Log\NullLogger;
@@ -152,7 +152,7 @@ final class ServerMetricsHealthMonitorTest extends TestCase
             ->willReturnOnConsecutiveCalls($baselineCounts, $baselineLatest, $afterCounts, $afterLatest);
         $repository = new ServerMetricsRepository(
             $database,
-            new IdResolver(),
+            new ServerApplicationIdResolver(),
             new ConfigSyncRepository($database),
         );
         $eventManager = $this->createMock(EventManager::class);

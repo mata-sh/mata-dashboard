@@ -6,7 +6,7 @@ namespace Mata\Services\Event;
 
 use Mata\Models\AlarmRepository;
 use Mata\Models\EventRepository;
-use Mata\Services\Foundation\IdResolver;
+use Mata\Persistence\Identity\ServerApplicationIdResolver;
 
 /**
  * Event aggregator and query service for decision engines.
@@ -18,12 +18,12 @@ class EventAggregatorService implements EventAggregatorServiceInterface
     private const DEFAULT_LATEST_ALARMS_LIMIT = 50;
     private EventRepository $repository;
     private AlarmRepository $alarmRepository;
-    private IdResolver $idResolver;
+    private ServerApplicationIdResolver $idResolver;
 
     public function __construct(
         EventRepository $repository,
         AlarmRepository $alarmRepository,
-        IdResolver $idResolver
+        ServerApplicationIdResolver $idResolver
     ) {
         $this->repository = $repository;
         $this->alarmRepository = $alarmRepository;

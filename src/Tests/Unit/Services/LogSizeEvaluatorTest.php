@@ -5,13 +5,13 @@ declare(strict_types=1);
 namespace Mata\Tests\Unit\Services;
 
 use Mata\Services\Event\EventManager;
-use Mata\Services\Foundation\LogSizeEvaluator;
+use Mata\Services\Monitor\LogSizeEvaluator;
 use Mata\Tests\TestCase;
 use Mata\Utils\Tools;
 use PHPUnit\Framework\MockObject\MockObject;
 
 /**
- * @covers \Mata\Services\Foundation\LogSizeEvaluator
+ * @covers \Mata\Services\Monitor\LogSizeEvaluator
  *
  * @internal
  */

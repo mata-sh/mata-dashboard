@@ -11,16 +11,16 @@ use GuzzleHttp\HandlerStack;
 use GuzzleHttp\Middleware;
 use GuzzleHttp\Psr7\Request;
 use GuzzleHttp\Psr7\Response;
-use Mata\Services\Foundation\ProbeClient;
+use Mata\Services\Monitor\HttpProbeClient;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
 /**
- * @covers \Mata\Services\Foundation\ProbeClient
+ * @covers \Mata\Services\Monitor\HttpProbeClient
  *
  * @internal
  */
-final class ProbeClientTest extends TestCase
+final class HttpProbeClientTest extends TestCase
 {
     public function testAvailabilityNormalizesRedirectAndDoesNotSendAuth(): void
     {
@@ -189,11 +189,11 @@ final class ProbeClientTest extends TestCase
      * @param list<ConnectException|Response> $responses
      * @param list<array<string,mixed>>       $history
      */
-    private function probe(array $responses, array &$history = []): ProbeClient
+    private function probe(array $responses, array &$history = []): HttpProbeClient
     {
         $stack = HandlerStack::create(new MockHandler($responses));
         $stack->push(Middleware::history($history));
 
-        return new ProbeClient(true, new Client(['handler' => $stack]));
+        return new HttpProbeClient(true, new Client(['handler' => $stack]));
     }
 }

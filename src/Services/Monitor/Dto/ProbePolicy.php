@@ -13,7 +13,7 @@ final readonly class ProbePolicy
     private const DEFAULT_BACKOFF_MAX_MS = 1500;
 
     /**
-     * Failure kinds (as emitted by {@see \Mata\Services\Foundation\ProbeClient})
+     * Failure kinds (as emitted by {@see \Mata\Services\Monitor\HttpProbeClient})
      * that a retry may recover from, stored as a set for O(1) lookup.
      *
      * Retryability follows failure semantics and is fixed in code rather than

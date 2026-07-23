@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Mata\Services\Foundation\Dto;
+namespace Mata\Services\Monitor\Dto;
 
 final readonly class LogSizeEvaluation
 {

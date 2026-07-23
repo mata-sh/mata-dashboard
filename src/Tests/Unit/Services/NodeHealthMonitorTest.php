@@ -18,11 +18,11 @@ use Mata\Services\Cache\ApiCacheKeyFactory;
 use Mata\Services\Cache\CacheEntry;
 use Mata\Services\Cache\CacheStoreInterface;
 use Mata\Services\Cache\CacheTtlResolver;
+use Mata\Services\Collect\NodeApiClient;
 use Mata\Services\Event\Dto\EventCommand;
 use Mata\Services\Event\EventManager;
-use Mata\Services\Foundation\ApiClient;
-use Mata\Services\Foundation\ProbeClient;
 use Mata\Services\Monitor\Dto\ProbePolicy;
+use Mata\Services\Monitor\HttpProbeClient;
 use Mata\Services\Monitor\NodeHealthMonitor;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
@@ -65,7 +65,7 @@ final class NodeHealthMonitorTest extends TestCase
         ], time()));
         $store->expects($this->never())->method('put');
 
-        $this->assertSame(NodeHealthState::HEALTHY, $this->monitor($store, new ProbeClient())->checkSynchronously('node-a')['state']);
+        $this->assertSame(NodeHealthState::HEALTHY, $this->monitor($store, new HttpProbeClient())->checkSynchronously('node-a')['state']);
     }
 
     public function testForcedRefreshBypassesCachedHealth(): void
@@ -177,9 +177,9 @@ final class NodeHealthMonitorTest extends TestCase
         }
     }
 
-    private function monitor(CacheStoreInterface $store, ProbeClient $probe, ?EventManager $events = null, ?Closure $retryDelay = null, ?ProbePolicy $probePolicy = null): NodeHealthMonitor
+    private function monitor(CacheStoreInterface $store, HttpProbeClient $probe, ?EventManager $events = null, ?Closure $retryDelay = null, ?ProbePolicy $probePolicy = null): NodeHealthMonitor
     {
-        $apiClient = $this->createStub(ApiClient::class);
+        $apiClient = $this->createStub(NodeApiClient::class);
         $apiClient->method('getApiBase')->willReturn('https://node.example.test/api');
 
         return new NodeHealthMonitor(
@@ -195,13 +195,13 @@ final class NodeHealthMonitorTest extends TestCase
         );
     }
 
-    private function probe(mixed ...$results): ProbeClient
+    private function probe(mixed ...$results): HttpProbeClient
     {
         $responses = array_map(static fn (mixed $result): mixed => is_array($result)
             ? new Response($result['httpCode'] ?? 200, [], json_encode($result, JSON_THROW_ON_ERROR))
             : $result, $results);
 
-        return new ProbeClient(true, new Client([
+        return new HttpProbeClient(true, new Client([
             'handler' => HandlerStack::create(new MockHandler($responses)),
         ]));
     }

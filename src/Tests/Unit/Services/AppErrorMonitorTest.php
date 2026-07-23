@@ -5,13 +5,13 @@ declare(strict_types=1);
 namespace Mata\Tests\Unit\Services;
 
 use Mata\Models\AppFatalStateRepository;
+use Mata\Persistence\Identity\ServerApplicationIdResolver;
 use Mata\Services\Event\Dto\EventCommand;
 use Mata\Services\Event\EventManager;
-use Mata\Services\Foundation\IdResolver;
-use Mata\Services\Foundation\LogSizeEvaluator;
 use Mata\Services\Monitor\AppErrorMonitor;
 use Mata\Services\Monitor\Dto\AppFatalErrorPolicy;
 use Mata\Services\Monitor\Dto\AppLogSizePolicy;
+use Mata\Services\Monitor\LogSizeEvaluator;
 use Mata\Tests\Helpers\SqliteTestDatabase;
 use Mata\Tests\TestCase;
 use Mata\Utils\NumberFormatter;
@@ -181,7 +181,7 @@ final class AppErrorMonitorTest extends TestCase
     /** @param array<string,mixed> $serverConfig */
     private function monitor(array $serverConfig = []): AppErrorMonitor
     {
-        $resolver = new IdResolver(serverIdMap: ['srv' => 1], applicationIdMap: ['shop' => 2]);
+        $resolver = new ServerApplicationIdResolver(serverIdMap: ['srv' => 1], applicationIdMap: ['shop' => 2]);
         $tools = new class ('/tmp') extends Tools {
             public function formatKilobytes(int $kilobytes): string
             {

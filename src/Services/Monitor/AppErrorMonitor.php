@@ -6,11 +6,10 @@ namespace Mata\Services\Monitor;
 
 use Mata\Models\AppFatalStateRepository;
 use Mata\Models\Dto\AppFatalState;
+use Mata\Persistence\Identity\ServerApplicationIdResolver;
 use Mata\Services\Event\Dto\EventCommand;
 use Mata\Services\Event\Dto\EventMetric;
 use Mata\Services\Event\EventManager;
-use Mata\Services\Foundation\IdResolver;
-use Mata\Services\Foundation\LogSizeEvaluator;
 use Mata\Services\Monitor\Dto\AppErrorMonitoringResult;
 use Mata\Services\Monitor\Dto\AppFatalErrorPolicy;
 use Mata\Services\Monitor\Dto\AppLogSizePolicy;
@@ -23,7 +22,7 @@ final class AppErrorMonitor implements AppErrorMonitorInterface
 {
     public function __construct(
         private EventManager $eventManager,
-        private IdResolver $idResolver,
+        private ServerApplicationIdResolver $idResolver,
         private AppFatalStateRepository $stateRepository,
         private AppFatalErrorPolicy $fatalErrorPolicy,
         private AppLogSizePolicy $logSizePolicy,

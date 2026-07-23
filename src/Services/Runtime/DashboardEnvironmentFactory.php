@@ -6,10 +6,10 @@ namespace Mata\Services\Runtime;
 
 use Mata\Models\AlarmRepository;
 use Mata\Models\EventRepository;
+use Mata\Persistence\Identity\ServerApplicationIdResolver;
 use Mata\Services\Event\EventAggregatorService;
 use Mata\Services\Event\EventAggregatorServiceInterface;
 use Mata\Services\Event\MockEventAggregatorService;
-use Mata\Services\Foundation\IdResolver;
 use Mata\Services\Monitor\Dto\ServerMonitoringResult;
 use Mata\Services\Monitor\ServerMonitoringFactory;
 use Psr\Log\LoggerInterface;
@@ -23,7 +23,7 @@ final readonly class DashboardEnvironmentFactory
         private string $environment,
         private EventRepository $eventRepository,
         private AlarmRepository $alarmRepository,
-        private IdResolver $idResolver,
+        private ServerApplicationIdResolver $idResolver,
         private LoggerInterface $logger,
         private string $demoEventDataPath,
     ) {}

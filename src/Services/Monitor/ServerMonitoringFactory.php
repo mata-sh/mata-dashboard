@@ -7,17 +7,15 @@ namespace Mata\Services\Monitor;
 use Exception;
 use InvalidArgumentException;
 use Mata\Models\AppFatalStateRepository;
+use Mata\Persistence\Identity\ServerApplicationIdResolver;
 use Mata\Services\Cache\ApiCacheKeyFactory;
 use Mata\Services\Cache\CacheStoreInterface;
 use Mata\Services\Cache\CacheTtlResolver;
 use Mata\Services\Collect\MockServerDataCollector;
+use Mata\Services\Collect\NodeApiClient;
 use Mata\Services\Collect\ServerDataCollector;
 use Mata\Services\DataTransformers\ApiResponseTransformer;
 use Mata\Services\Event\EventManager;
-use Mata\Services\Foundation\ApiClient;
-use Mata\Services\Foundation\IdResolver;
-use Mata\Services\Foundation\LogSizeEvaluator;
-use Mata\Services\Foundation\ProbeClient;
 use Mata\Services\Monitor\Dto\AppFatalErrorPolicy;
 use Mata\Services\Monitor\Dto\AppLogSizePolicy;
 use Mata\Services\Monitor\Dto\AppReachabilityPolicy;
@@ -37,9 +35,9 @@ final readonly class ServerMonitoringFactory
         private CacheTtlResolver $ttlResolver,
         private EventManager $eventManager,
         private ApiResponseTransformer $dataTransformer,
-        private ProbeClient $probeClient,
+        private HttpProbeClient $probeClient,
         private AppReachabilityPolicy $policy,
-        private IdResolver $idResolver,
+        private ServerApplicationIdResolver $idResolver,
         private AppFatalStateRepository $fatalStateRepository,
         private LogSizeEvaluator $logSizeEvaluator,
     ) {}
@@ -105,7 +103,7 @@ final readonly class ServerMonitoringFactory
             throw new InvalidArgumentException("Server {$server} missing required api_url or api_key config");
         }
 
-        $apiClient = new ApiClient(
+        $apiClient = new NodeApiClient(
             logger: $this->logger,
             apiBase: $apiUrl,
             server: $server,

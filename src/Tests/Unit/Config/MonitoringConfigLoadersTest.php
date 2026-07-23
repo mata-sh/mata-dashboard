@@ -288,6 +288,7 @@ final class MonitoringConfigLoadersTest extends TestCase
     public static function nonBooleanApplicationMonitoringFlagProvider(): iterable
     {
         yield 'error monitoring' => ['error_monitoring_enabled'];
+
         yield 'log-size monitoring' => ['logsize_monitoring_enabled'];
     }
 

@@ -11,7 +11,6 @@ use Mata\Services\Cache\ApiCacheKeyFactory;
 use Mata\Services\Cache\CacheStoreInterface;
 use Mata\Services\Cache\CacheTtlResolver;
 use Mata\Services\DataTransformers\ApiResponseTransformer;
-use Mata\Services\Foundation\ApiClient;
 use Psr\Log\LoggerInterface;
 use RuntimeException;
 
@@ -19,7 +18,7 @@ use RuntimeException;
  * Server data collection coordination service.
  *
  * Coordinates data collection from remote server nodes:
- * - Orchestrates API communication via ApiClient
+ * - Orchestrates API communication via NodeApiClient
  * - Manages response caching with TTL via CacheStoreInterface
  * - Transforms responses via DataTransformer
  * - Provides low-level data fetching primitives for monitors
@@ -30,7 +29,7 @@ class ServerDataCollector implements ServerDataCollectorInterface
     private CacheStoreInterface $cacheStore;
     private ApiCacheKeyFactory $cacheKeyFactory;
     private CacheTtlResolver $ttlResolver;
-    private ApiClient $apiClient;
+    private NodeApiClient $apiClient;
     private ApiResponseTransformer $dataTransformer;
 
     /**
@@ -40,7 +39,7 @@ class ServerDataCollector implements ServerDataCollectorInterface
      * @param CacheStoreInterface    $cacheStore      Cache persistence service
      * @param ApiCacheKeyFactory     $cacheKeyFactory API cache key factory
      * @param CacheTtlResolver       $ttlResolver     Cache TTL configuration lookup
-     * @param ApiClient              $apiClient       HTTP communication client
+     * @param NodeApiClient          $apiClient       HTTP communication client
      * @param ApiResponseTransformer $dataTransformer Response parsing and transformation service
      */
     public function __construct(
@@ -48,7 +47,7 @@ class ServerDataCollector implements ServerDataCollectorInterface
         CacheStoreInterface $cacheStore,
         ApiCacheKeyFactory $cacheKeyFactory,
         CacheTtlResolver $ttlResolver,
-        ApiClient $apiClient,
+        NodeApiClient $apiClient,
         ApiResponseTransformer $dataTransformer,
     ) {
         $this->logger = $logger;

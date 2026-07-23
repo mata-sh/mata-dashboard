@@ -17,10 +17,10 @@ use Mata\Services\Cache\ApiCacheKeyFactory;
 use Mata\Services\Cache\CacheStoreInterface;
 use Mata\Services\Cache\CacheTtlResolver;
 use Mata\Services\Collect\MockServerDataCollector;
+use Mata\Services\Collect\NodeApiClient;
 use Mata\Services\Collect\ServerDataCollector;
 use Mata\Services\Collect\ServerDataCollectorInterface;
 use Mata\Services\DataTransformers\ApiResponseTransformer;
-use Mata\Services\Foundation\ApiClient;
 use Mata\Utils\Tools;
 use Mata\Utils\TypeConverter;
 use Mata\Views\AuditRenderer;
@@ -222,7 +222,7 @@ class AuditController extends BaseController
             throw new InvalidArgumentException("Server {$server} missing required config");
         }
 
-        $apiClient = new ApiClient(
+        $apiClient = new NodeApiClient(
             $this->logger,
             $serverConfig['api_url'],
             $server,

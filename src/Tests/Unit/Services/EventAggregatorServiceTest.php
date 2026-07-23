@@ -7,8 +7,8 @@ namespace Mata\Tests\Unit\Services;
 use Mata\Core\DatabaseInterface;
 use Mata\Models\AlarmRepository;
 use Mata\Models\EventRepository;
+use Mata\Persistence\Identity\ServerApplicationIdResolver;
 use Mata\Services\Event\EventAggregatorService;
-use Mata\Services\Foundation\IdResolver;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -36,7 +36,7 @@ final class EventAggregatorServiceTest extends TestCase
         $database = $this->createMock(DatabaseInterface::class);
         $database->expects($this->never())->method('runQuery');
         $alarmRepository = new AlarmRepository($database);
-        $idResolver = $this->createStub(IdResolver::class);
+        $idResolver = $this->createStub(ServerApplicationIdResolver::class);
 
         $service = new EventAggregatorService($eventRepository, $alarmRepository, $idResolver);
 

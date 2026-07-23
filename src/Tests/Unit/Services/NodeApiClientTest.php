@@ -9,16 +9,16 @@ use GuzzleHttp\HandlerStack;
 use GuzzleHttp\Middleware;
 use GuzzleHttp\Promise\Utils;
 use GuzzleHttp\Psr7\Response;
-use Mata\Services\Foundation\ApiClient;
+use Mata\Services\Collect\NodeApiClient;
 use PHPUnit\Framework\TestCase;
 use Psr\Log\NullLogger;
 
 /**
- * @covers \Mata\Services\Foundation\ApiClient
+ * @covers \Mata\Services\Collect\NodeApiClient
  *
  * @internal
  */
-final class ApiClientTest extends TestCase
+final class NodeApiClientTest extends TestCase
 {
     public function testConcurrentRequestsReceiveUniqueValidAuthenticationTokens(): void
     {
@@ -67,9 +67,9 @@ final class ApiClientTest extends TestCase
         $this->assertValidToken($secondToken);
     }
 
-    private function apiClient(HandlerStack $stack): ApiClient
+    private function apiClient(HandlerStack $stack): NodeApiClient
     {
-        return new ApiClient(
+        return new NodeApiClient(
             new NullLogger(),
             'https://node.example.test/api',
             'node-1',

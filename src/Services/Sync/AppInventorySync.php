@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Mata\Services\Sync;
 
 use Mata\Models\ConfigSyncRepository;
-use Mata\Services\Foundation\IdResolver;
+use Mata\Persistence\Identity\ServerApplicationIdResolver;
 use Mata\Utils\TypeConverter;
 use Psr\Log\LoggerInterface;
 use Throwable;
@@ -21,7 +21,7 @@ final class AppInventorySync
 {
     public function __construct(
         private ConfigSyncRepository $repository,
-        private IdResolver $idResolver,
+        private ServerApplicationIdResolver $idResolver,
         private LoggerInterface $log,
     ) {}
 

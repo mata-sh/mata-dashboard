@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Mata\Services\Foundation;
+namespace Mata\Persistence\Identity;
 
 use Mata\Models\ConfigSyncRepository;
 
@@ -12,7 +12,7 @@ use Mata\Models\ConfigSyncRepository;
  * Keeps in-memory lookup tables that can be hydrated from the database via ConfigSyncRepository
  * and enriched with names sourced from configuration files.
  */
-class IdResolver
+class ServerApplicationIdResolver
 {
     private ?ConfigSyncRepository $repository;
 

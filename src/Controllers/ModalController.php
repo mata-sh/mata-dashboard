@@ -18,11 +18,11 @@ use Mata\Services\Cache\CacheTtlResolver;
 use Mata\Services\Cache\CacheTypeResolver;
 use Mata\Services\Cache\ModalCacheService;
 use Mata\Services\Collect\MockServerDataCollector;
+use Mata\Services\Collect\NodeApiClient;
 use Mata\Services\Collect\ServerDataCollector;
 use Mata\Services\Collect\ServerDataCollectorInterface;
 use Mata\Services\DataTransformers\ApiResponseTransformer;
 use Mata\Services\DataTransformers\LogDataTransformer;
-use Mata\Services\Foundation\ApiClient;
 use Mata\Utils\Tools;
 use Mata\Utils\TypeConverter;
 use Mata\Views\ModalRenderer;
@@ -137,7 +137,7 @@ class ModalController extends BaseController
         $allowHttp = TypeConverter::toBool($serverConfig['allow_http'] ?? null) ?? false;
         $suppressHttpWarning = TypeConverter::toBool($serverConfig['suppress_http_warning'] ?? null) ?? false;
 
-        $apiClient = new ApiClient(
+        $apiClient = new NodeApiClient(
             $this->logger,
             $serverConfig['api_url'],
             $server,

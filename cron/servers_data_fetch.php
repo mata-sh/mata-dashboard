@@ -9,8 +9,8 @@ use Mata\Services\Cache\FileCacheStore;
 use Mata\Services\Cron\ServerDataFetchRunner;
 use Mata\Services\Cron\ServerDataFetchStats;
 use Mata\Services\DataTransformers\ApiResponseTransformer;
-use Mata\Services\Foundation\LogSizeEvaluator;
-use Mata\Services\Foundation\ProbeClient;
+use Mata\Services\Monitor\HttpProbeClient;
+use Mata\Services\Monitor\LogSizeEvaluator;
 use Mata\Services\Monitor\Dto\AppReachabilityPolicy;
 use Mata\Services\Monitor\ServerMonitoringFactory;
 use Mata\Services\Sync\AppInventorySync;
@@ -39,7 +39,7 @@ try {
         $ttlResolver,
         $eventManager,
         new ApiResponseTransformer($log),
-        new ProbeClient(),
+        new HttpProbeClient(),
         AppReachabilityPolicy::fromSettings($monitoringSettings),
         $idResolver,
         $fatalStateRepository,

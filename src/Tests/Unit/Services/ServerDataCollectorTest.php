@@ -13,9 +13,9 @@ use Mata\Services\Cache\CacheEntry;
 use Mata\Services\Cache\CacheStoreInterface;
 use Mata\Services\Cache\CacheTtlResolver;
 use Mata\Services\Cache\FileCacheStore;
+use Mata\Services\Collect\NodeApiClient;
 use Mata\Services\Collect\ServerDataCollector;
 use Mata\Services\DataTransformers\ApiResponseTransformer;
-use Mata\Services\Foundation\ApiClient;
 use PHPUnit\Framework\TestCase;
 use Psr\Log\NullLogger;
 
@@ -30,7 +30,7 @@ final class ServerDataCollectorTest extends TestCase
     {
         $cache = $this->createStub(CacheStoreInterface::class);
         $paths = ['server/data', 'server/info', 'server/php', 'server/databases', 'server/cronjobs'];
-        $apiClient = $this->createMock(ApiClient::class);
+        $apiClient = $this->createMock(NodeApiClient::class);
         $apiClient->method('getApiBase')->willReturn('https://node.example.test/api');
         $apiClient->expects($this->exactly(5))
             ->method('request')
@@ -62,7 +62,7 @@ final class ServerDataCollectorTest extends TestCase
     {
         $cache = $this->createMock(CacheStoreInterface::class);
         $cache->expects($this->once())->method('get')->willReturn(new CacheEntry(['cpu_usage' => 12], time() - 5));
-        $apiClient = $this->createMock(ApiClient::class);
+        $apiClient = $this->createMock(NodeApiClient::class);
         $apiClient->method('getApiBase')->willReturn('https://node.example.test/api');
         $apiClient->expects($this->never())->method('request');
 
@@ -95,7 +95,7 @@ final class ServerDataCollectorTest extends TestCase
             ->method('put')
             ->with($cacheKey, [])
             ->willReturn(true);
-        $apiClient = $this->createMock(ApiClient::class);
+        $apiClient = $this->createMock(NodeApiClient::class);
         $apiClient->method('getApiBase')->willReturn('https://node.example.test/api');
         $apiClient->expects($this->once())->method('request')->willReturn('[]');
 
@@ -119,7 +119,7 @@ final class ServerDataCollectorTest extends TestCase
         $cache = $this->createMock(CacheStoreInterface::class);
         $cache->method('get')->willReturn(null);
         $cache->expects($this->once())->method('getStale')->willReturn(new CacheEntry(['apps' => []], time() - 120));
-        $apiClient = $this->createStub(ApiClient::class);
+        $apiClient = $this->createStub(NodeApiClient::class);
         $apiClient->method('getApiBase')->willReturn('https://node.example.test/api');
         $apiClient->method('request')->willThrowException(new RequestException('Unavailable', new Request('GET', 'apps')));
 
@@ -150,7 +150,7 @@ final class ServerDataCollectorTest extends TestCase
         touch($path, time() - 60);
         clearstatcache(true, $path);
         $oldStoredAt = filemtime($path);
-        $apiClient = $this->createMock(ApiClient::class);
+        $apiClient = $this->createMock(NodeApiClient::class);
         $apiClient->method('getApiBase')->willReturn('https://node.example.test/api');
         $apiClient->expects($this->once())->method('request')->willReturn('{"apps":["fresh"]}');
 
@@ -177,7 +177,7 @@ final class ServerDataCollectorTest extends TestCase
         $cache = new FileCacheStore(new NullLogger(), $directory);
         $key = (new ApiCacheKeyFactory())->createApiRequestKey('https://node.example.test/api', 'GET', 'apps');
         $cache->put($key, ['apps' => ['old']]);
-        $apiClient = $this->createStub(ApiClient::class);
+        $apiClient = $this->createStub(NodeApiClient::class);
         $apiClient->method('getApiBase')->willReturn('https://node.example.test/api');
         $apiClient->method('request')->willThrowException(new RequestException('Unavailable', new Request('GET', 'apps')));
 
@@ -199,7 +199,7 @@ final class ServerDataCollectorTest extends TestCase
         $cache = $this->createMock(CacheStoreInterface::class);
         $cache->method('get')->willReturn(null);
         $cache->expects($this->once())->method('getStale')->willReturn(new CacheEntry(['apps' => []], time() - 120));
-        $apiClient = $this->createStub(ApiClient::class);
+        $apiClient = $this->createStub(NodeApiClient::class);
         $apiClient->method('getApiBase')->willReturn('https://node.example.test/api');
         $apiClient->method('request')->willThrowException(new ConnectException(
             'cURL error 28: Operation timed out after 10001 milliseconds with 0 bytes received',
@@ -225,7 +225,7 @@ final class ServerDataCollectorTest extends TestCase
     {
         $cache = $this->createStub(CacheStoreInterface::class);
 
-        $apiClient = $this->createStub(ApiClient::class);
+        $apiClient = $this->createStub(NodeApiClient::class);
         $apiClient->method('getApiBase')->willReturn('https://node.example.test/api');
         $apiClient->method('request')->willThrowException(new RequestException(
             'Client error',

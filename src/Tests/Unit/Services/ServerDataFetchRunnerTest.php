@@ -5,9 +5,9 @@ declare(strict_types=1);
 namespace Mata\Tests\Unit\Services;
 
 use Mata\Models\ConfigSyncRepository;
+use Mata\Persistence\Identity\ServerApplicationIdResolver;
 use Mata\Services\Collect\ServerDataCollectorInterface;
 use Mata\Services\Cron\ServerDataFetchRunner;
-use Mata\Services\Foundation\IdResolver;
 use Mata\Services\Monitor\AppErrorMonitorInterface;
 use Mata\Services\Monitor\AppReachabilityMonitorInterface;
 use Mata\Services\Monitor\Dto\AppErrorMonitoringResult;
@@ -128,6 +128,6 @@ final class ServerDataFetchRunnerTest extends TestCase
         $db->pdo()->exec('CREATE TABLE applications (id INTEGER PRIMARY KEY, code TEXT UNIQUE, display_name TEXT, app_env TEXT, created_at TEXT, updated_at TEXT); CREATE TABLE servers (id INTEGER PRIMARY KEY, name TEXT)');
         $repository = new ConfigSyncRepository($db);
 
-        return new AppInventorySync($repository, new IdResolver($repository), new NullLogger());
+        return new AppInventorySync($repository, new ServerApplicationIdResolver($repository), new NullLogger());
     }
 }

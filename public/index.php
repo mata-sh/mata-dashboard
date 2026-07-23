@@ -25,17 +25,18 @@ use Mata\Core\Auth;
 use Mata\Core\Database;
 use Mata\Core\ExceptionHandler;
 use Mata\Core\NullDatabase;
-use Mata\Factory\RateLimiterFactory;
-use Mata\Factory\ServerMetricsQueryFactory;
 use Mata\Http\Routing\Endpoints;
 use Mata\Http\Routing\RouterSetup;
 use Mata\Http\Security\CsrfGuard;
+use Mata\Http\Security\RouteGroupRateLimiterFactory;
 use Mata\Http\SecurityHeaders;
 use Mata\Models\AlarmDeliveryRepository;
 use Mata\Models\AlarmRepository;
 use Mata\Models\AppFatalStateRepository;
 use Mata\Models\ConfigSyncRepository;
 use Mata\Models\EventRepository;
+use Mata\Models\ServerMetrics\ServerMetricsQueryFactory;
+use Mata\Persistence\Identity\ServerApplicationIdResolver;
 use Mata\Services\Alarm\AlarmCreator;
 use Mata\Services\Alarm\AlarmDirectProcessor;
 use Mata\Services\Alarm\AlarmQueueFailureThrottle;
@@ -49,11 +50,10 @@ use Mata\Services\DataTransformers\ChartDataTransformer;
 use Mata\Services\DataTransformers\LogDataTransformer;
 use Mata\Services\Event\EventManager;
 use Mata\Services\Event\EventRecorderService;
-use Mata\Services\Foundation\IdResolver;
-use Mata\Services\Foundation\LogSizeEvaluator;
-use Mata\Services\Foundation\ProbeClient;
 use Mata\Services\Monitor\Dto\AppReachabilityPolicy;
 use Mata\Services\Monitor\Dto\DashboardMonitoringContext;
+use Mata\Services\Monitor\HttpProbeClient;
+use Mata\Services\Monitor\LogSizeEvaluator;
 use Mata\Services\Monitor\ServerMonitoringFactory;
 use Mata\Services\Navigation\MenuBuilder;
 use Mata\Services\Notification\NotificationManager;
@@ -278,8 +278,8 @@ try {
 // ************************************************************************************************
 // Rate Limiter Setup
 // ************************************************************************************************
-$rateLimiterService = RateLimiterFactory::create($appConfig->rateLimiting, $log);
-$app = new App($auth, $appConfig, $paths, $rateLimiterService);
+$routeGroupRateLimiter = RouteGroupRateLimiterFactory::create($appConfig->rateLimiting, $log);
+$app = new App($auth, $appConfig, $paths, $routeGroupRateLimiter);
 $app->setBaseUrl($appConfig->environment->domain);
 $csrf = new CsrfGuard();
 $twig->addGlobal('csrf', $csrf);
@@ -343,7 +343,7 @@ $alarmCreator = new AlarmCreator($db, $alarmRepository, $deliveryRepository);
 $settingsSync = new SettingsDatabaseSync($db, $log, $configSyncRepository);
 
 // --- Tools & Resolvers ---
-$idResolver = new IdResolver($configSyncRepository);
+$idResolver = new ServerApplicationIdResolver($configSyncRepository);
 $appInventorySync = new AppInventorySync($configSyncRepository, $idResolver, $log);
 
 // --- Limits & Locking ---
@@ -426,7 +426,7 @@ $serverMonitoringFactory = new ServerMonitoringFactory(
     $ttlResolver,
     $eventManager,
     new ApiResponseTransformer($log),
-    new ProbeClient(),
+    new HttpProbeClient(),
     $monitoringPolicy,
     $idResolver,
     $fatalStateRepository,
