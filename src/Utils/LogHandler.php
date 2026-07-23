@@ -72,11 +72,3 @@ class LogHandler
         return ['DEBUG', 'INFO', 'NOTICE', 'WARNING', 'ERROR', 'CRITICAL', 'ALERT', 'EMERGENCY'];
     }
 }
-
-// // Example usage:
-// $reader = new LogReader('path/to/your.log');
-// $criticalLogs = $reader->getEntriesByLevel('CRITICAL');
-
-// foreach ($criticalLogs as $log) {
-//     echo $log . PHP_EOL;
-// }
