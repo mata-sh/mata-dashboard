@@ -2,14 +2,14 @@
 
 declare(strict_types=1);
 
-namespace Mata\Tests\Unit\Http;
+namespace Mata\Tests\Unit\Http\Security;
 
-use Mata\Http\SecurityHeaders;
+use Mata\Http\Security\SecurityHeaders;
 use Mata\Tests\TestCase;
 use PHPUnit\Framework\Attributes\DataProvider;
 
 /**
- * @covers \Mata\Http\SecurityHeaders
+ * @covers \Mata\Http\Security\SecurityHeaders
  *
  * @internal
  */

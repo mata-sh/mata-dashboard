@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Mata\Http;
+namespace Mata\Http\Security;
 
 class SecurityHeaders
 {

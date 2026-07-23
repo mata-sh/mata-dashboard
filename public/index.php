@@ -30,7 +30,7 @@ use Mata\Http\Routing\Endpoints;
 use Mata\Http\Routing\RouterSetup;
 use Mata\Http\Security\CsrfGuard;
 use Mata\Http\Security\RouteGroupRateLimiterFactory;
-use Mata\Http\SecurityHeaders;
+use Mata\Http\Security\SecurityHeaders;
 use Mata\Models\AlarmDeliveryRepository;
 use Mata\Models\AlarmRepository;
 use Mata\Models\AppFatalStateRepository;
