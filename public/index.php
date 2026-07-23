@@ -9,6 +9,7 @@ use Mata\Config\LogConfigurator;
 use Mata\Config\Monitoring\AlarmLimitsConfigLoader;
 use Mata\Config\Monitoring\DataRetentionConfigLoader;
 use Mata\Config\Monitoring\IntervalsConfigLoader;
+use Mata\Config\Monitoring\MenuConfigLoader;
 use Mata\Config\Monitoring\MonitoringConfigManager;
 use Mata\Config\Monitoring\NotificationRulesConfigLoader;
 use Mata\Config\Monitoring\ProbesConfigLoader;
@@ -390,6 +391,11 @@ $monitoringConfigManager = new MonitoringConfigManager([
     new IntervalsConfigLoader(eventRecorder: $eventManager->recorder, fallbackOnFailure: true),
     new ProbesConfigLoader(eventRecorder: $eventManager->recorder, fallbackOnFailure: true),
     new NotificationRulesConfigLoader(eventRecorder: $eventManager->recorder, fallbackOnFailure: true),
+    new MenuConfigLoader(
+        eventRecorder: $eventManager->recorder,
+        validKeys: MenuBuilder::MENU_KEYS,
+        fallbackOnFailure: true,
+    ),
     new ThresholdsConfigLoader(
         eventRecorder: $eventManager->recorder,
         alarmDirectProcessor: $alarmDirectProcessor,
@@ -413,7 +419,7 @@ $cacheStore = new FileCacheStore($log, $paths->tempPath . '/api-cache');
 $cacheKeyFactory = new ApiCacheKeyFactory();
 $ttlResolver = new CacheTtlResolver($monitoringSettings['ttl']);
 $endpoints = new Endpoints();
-$menuBuilder = new MenuBuilder($endpoints, $tools);
+$menuBuilder = new MenuBuilder($endpoints, $tools, $monitoringSettings['menu'] ?? []);
 
 // ************************************************************************************************
 // Server Monitoring Services (live API or demo mocks)

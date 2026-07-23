@@ -1,0 +1,9 @@
+{
+    "events": true,
+    "alarms": true,
+    "libraries": true,
+    "metrics": false,
+    "databases": true,
+    "force_refresh": true,
+    "settings": true
+}

@@ -6,6 +6,7 @@ namespace Mata\Tests\Unit\Config;
 
 use Mata\Config\Monitoring\DataRetentionConfigLoader;
 use Mata\Config\Monitoring\IntervalsConfigLoader;
+use Mata\Config\Monitoring\MenuConfigLoader;
 use Mata\Config\Monitoring\MonitoringConfigManager;
 use Mata\Config\Monitoring\NotificationRulesConfigLoader;
 use Mata\Config\Monitoring\ProbesConfigLoader;
@@ -14,6 +15,7 @@ use Mata\Config\Monitoring\ThresholdsConfigLoader;
 use Mata\Config\Monitoring\TtlConfigLoader;
 use Mata\Models\Dto\EventRecordResult;
 use Mata\Services\Event\EventRecorderService;
+use Mata\Services\Navigation\MenuBuilder;
 use Mata\Tests\TestCase;
 use PHPUnit\Framework\Attributes\DataProvider;
 use ReflectionMethod;
@@ -33,6 +35,7 @@ final class MonitoringConfigLoadersTest extends TestCase
     private ThresholdsConfigLoader $thresholdsLoader;
     private IntervalsConfigLoader $intervalsLoader;
     private DataRetentionConfigLoader $dataRetentionLoader;
+    private MenuConfigLoader $menuLoader;
 
     protected function setUp(): void
     {
@@ -206,6 +209,68 @@ final class MonitoringConfigLoadersTest extends TestCase
         $this->assertSame(120, $ttl['apps']);
         $this->assertSame(86400, $ttl['serverInfo']);
         $this->assertSame(86400, $ttl['audit']);
+    }
+
+    public function testLoadMenuConfigKeepsValidBooleanOverrides(): void
+    {
+        $path = tempnam(sys_get_temp_dir(), 'mata-menu-');
+        self::assertNotFalse($path);
+        file_put_contents($path, json_encode(['metrics' => true, 'databases' => false], JSON_THROW_ON_ERROR));
+
+        try {
+            $menu = $this->menuLoader->loadMenuConfig($path);
+        } finally {
+            unlink($path);
+        }
+
+        $this->assertSame(['metrics' => true, 'databases' => false], $menu);
+    }
+
+    public function testLoadMenuConfigReturnsNoOverridesWhenFileMissing(): void
+    {
+        $this->useEventRecorderMock();
+        $this->eventRecorder->expects($this->never())->method('recordEvent');
+
+        $menu = $this->menuLoader->loadMenuConfig(sys_get_temp_dir() . '/mata-menu-does-not-exist.json');
+
+        $this->assertSame([], $menu, 'a missing optional menu.json keeps built-in defaults silently');
+    }
+
+    public function testLoadMenuConfigWarnsAndDropsUnknownMenuKey(): void
+    {
+        $this->useEventRecorderMock();
+        $this->eventRecorder
+            ->expects($this->once())
+            ->method('recordEvent')
+            ->willReturn(new EventRecordResult(1, null, null, null, null, null));
+
+        $menu = $this->loadMenuJson(json_encode(['events' => false, 'unknown' => true], JSON_THROW_ON_ERROR));
+
+        $this->assertSame(['events' => false], $menu, 'valid entries survive while the unknown key is dropped');
+    }
+
+    public function testLoadMenuConfigWarnsAndDropsNonBooleanValue(): void
+    {
+        $this->useEventRecorderMock();
+        $this->eventRecorder
+            ->expects($this->once())
+            ->method('recordEvent')
+            ->willReturn(new EventRecordResult(1, null, null, null, null, null));
+
+        $menu = $this->loadMenuJson(json_encode(['alarms' => 'yes', 'settings' => true], JSON_THROW_ON_ERROR));
+
+        $this->assertSame(['settings' => true], $menu);
+    }
+
+    public function testLoadMenuConfigFallsBackForMalformedJson(): void
+    {
+        $this->useEventRecorderMock();
+        $this->eventRecorder
+            ->expects($this->once())
+            ->method('recordEvent')
+            ->willReturn(new EventRecordResult(1, null, null, null, null, null));
+
+        $this->assertSame([], $this->loadMenuJson('{'));
     }
 
     // ==================== HTTPS Validation Tests ====================
@@ -1035,6 +1100,19 @@ final class MonitoringConfigLoadersTest extends TestCase
         }
     }
 
+    /** @return array<string,bool> */
+    private function loadMenuJson(string $json): array
+    {
+        $configPath = $this->createTempDirectory();
+        file_put_contents($configPath . '/menu.json', $json);
+
+        try {
+            return (new MonitoringConfigManager([$this->menuLoader]))->loadAllConfigs($configPath)['menu'];
+        } finally {
+            $this->cleanupTempFiles([$configPath]);
+        }
+    }
+
     private function initializeLoaders(): void
     {
         $this->loader = new ServersConfigLoader(eventRecorder: $this->eventRecorder, fallbackOnFailure: false);
@@ -1049,6 +1127,11 @@ final class MonitoringConfigLoadersTest extends TestCase
         );
         $this->intervalsLoader = new IntervalsConfigLoader(eventRecorder: $this->eventRecorder, fallbackOnFailure: true);
         $this->dataRetentionLoader = new DataRetentionConfigLoader(eventRecorder: $this->eventRecorder, fallbackOnFailure: true);
+        $this->menuLoader = new MenuConfigLoader(
+            eventRecorder: $this->eventRecorder,
+            validKeys: MenuBuilder::MENU_KEYS,
+            fallbackOnFailure: true,
+        );
         $this->manager = new MonitoringConfigManager([
             $this->loader,
             $this->ttlLoader,

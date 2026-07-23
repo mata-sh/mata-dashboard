@@ -16,16 +16,43 @@ use Mata\Utils\Tools;
  */
 class MenuBuilder
 {
+    /**
+     * Canonical list of menu item keys the dashboard knows about.
+     *
+     * Shared with MenuConfigLoader so menu.json can be validated against the
+     * same set of keys that buildDashboardMenu() emits. A drift guard test
+     * keeps this list in sync with the items built below.
+     *
+     * @var list<string>
+     */
+    public const MENU_KEYS = [
+        'events',
+        'alarms',
+        'libraries',
+        'metrics',
+        'databases',
+        'force_refresh',
+        'settings',
+    ];
+
     private Endpoints $endpoints;
     private Tools $tools;
 
+    /** @var array<string,bool> */
+    private array $enabledOverrides;
+
     /**
-     * @param Endpoints $endpoints Route endpoints for menu item references
+     * @param Endpoints          $endpoints        Route endpoints for menu item references
+     * @param Tools              $tools            Icon/utility helpers
+     * @param array<string,bool> $enabledOverrides Per-item visibility overrides from menu.json,
+     *                                             keyed by menu item key. Missing keys keep the
+     *                                             built-in default.
      */
-    public function __construct(Endpoints $endpoints, Tools $tools)
+    public function __construct(Endpoints $endpoints, Tools $tools, array $enabledOverrides = [])
     {
         $this->endpoints = $endpoints;
         $this->tools = $tools;
+        $this->enabledOverrides = $enabledOverrides;
     }
 
     /**
@@ -95,7 +122,7 @@ class MenuBuilder
             ],
         ];
 
-        // Resolve endpoint URLs from registry
+        // Resolve endpoint URLs from registry and apply menu.json visibility overrides
         return array_map(function ($item) {
             return [
                 'key' => $item['key'],
@@ -103,7 +130,7 @@ class MenuBuilder
                 'icon' => $item['icon'],
                 'endpoint' => $item['endpoint_key'],
                 'url' => $this->endpoints->url($item['endpoint_key']),
-                'enabled' => $item['enabled'],
+                'enabled' => $this->enabledOverrides[$item['key']] ?? $item['enabled'],
             ];
         }, $menuItems);
     }
