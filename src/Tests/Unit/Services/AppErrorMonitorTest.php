@@ -5,9 +5,9 @@ declare(strict_types=1);
 namespace Mata\Tests\Unit\Services;
 
 use Mata\Models\AppFatalStateRepository;
-use Mata\Services\Identity\ServerApplicationIdResolver;
 use Mata\Services\Event\Dto\EventCommand;
 use Mata\Services\Event\EventManager;
+use Mata\Services\Identity\ServerApplicationIdResolver;
 use Mata\Services\Monitor\AppErrorMonitor;
 use Mata\Services\Monitor\Dto\AppFatalErrorPolicy;
 use Mata\Services\Monitor\Dto\AppLogSizePolicy;

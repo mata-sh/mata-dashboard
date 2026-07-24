@@ -5,9 +5,9 @@ declare(strict_types=1);
 namespace Mata\Tests\Unit\Services;
 
 use Mata\Models\ConfigSyncRepository;
-use Mata\Services\Identity\ServerApplicationIdResolver;
 use Mata\Services\Collect\ServerDataCollectorInterface;
 use Mata\Services\Cron\ServerDataFetchRunner;
+use Mata\Services\Identity\ServerApplicationIdResolver;
 use Mata\Services\Monitor\AppErrorMonitorInterface;
 use Mata\Services\Monitor\AppReachabilityMonitorInterface;
 use Mata\Services\Monitor\Dto\AppErrorMonitoringResult;

@@ -48,7 +48,7 @@ use Mata\Services\Alarm\AlarmQueueFailureThrottle;
 use Mata\Services\Alarm\AlarmThresholdCooldownService;
 use Mata\Services\Event\EventManager;
 use Mata\Services\Event\EventRecorderService;
-use Mata\Persistence\Identity\ServerApplicationIdResolver;
+use Mata\Services\Identity\ServerApplicationIdResolver;
 use Mata\Services\Runtime\DashboardEnvironmentFactory;
 
 // Ensure bootstrap.php was loaded first

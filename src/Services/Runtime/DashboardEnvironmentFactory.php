@@ -6,10 +6,10 @@ namespace Mata\Services\Runtime;
 
 use Mata\Models\AlarmRepository;
 use Mata\Models\EventRepository;
-use Mata\Services\Identity\ServerApplicationIdResolver;
 use Mata\Services\Event\EventAggregatorService;
 use Mata\Services\Event\EventAggregatorServiceInterface;
 use Mata\Services\Event\MockEventAggregatorService;
+use Mata\Services\Identity\ServerApplicationIdResolver;
 use Mata\Services\Monitor\Dto\ServerMonitoringResult;
 use Mata\Services\Monitor\ServerMonitoringFactory;
 use Psr\Log\LoggerInterface;
