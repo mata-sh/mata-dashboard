@@ -39,7 +39,7 @@ final class ServerMetricsAggregator
     {
         $hourStart = $hourStart->setTimezone(new DateTimeZone('UTC'));
         $hourStart = $hourStart->setTime((int) $hourStart->format('H'), 0, 0);
-        $stats = $this->fetchHourlyStats($serverName, $hourStart);
+        $stats = $this->fetchRawStats($serverName, $hourStart, new DateInterval('PT1H'));
         if ($stats === null || ((int) ($stats['sample_count'] ?? 0)) === 0) {
             return false;
         }
@@ -56,7 +56,7 @@ final class ServerMetricsAggregator
     public function aggregateDay(string $serverName, DateTimeImmutable $dayDate): bool
     {
         $dayDate = $dayDate->setTimezone(new DateTimeZone('UTC'))->setTime(0, 0, 0);
-        $stats = $this->fetchDailyStats($serverName, $dayDate);
+        $stats = $this->fetchRawStats($serverName, $dayDate, new DateInterval('P1D'));
         if ($stats === null || ((int) ($stats['sample_count'] ?? 0)) === 0) {
             $stats = $this->fetchDailyHourlyStats($serverName, $dayDate);
         }
@@ -79,11 +79,14 @@ final class ServerMetricsAggregator
     }
 
     /**
+     * Aggregates raw samples in the window [$windowStart, $windowStart + $length).
+     * first_sample/last_sample are always selected; daily aggregation ignores them.
+     *
      * @return null|array<string,mixed>
      */
-    private function fetchHourlyStats(string $serverName, DateTimeImmutable $hourStart): ?array
+    private function fetchRawStats(string $serverName, DateTimeImmutable $windowStart, DateInterval $length): ?array
     {
-        $hourEnd = $hourStart->add(new DateInterval('PT1H'));
+        $windowEnd = $windowStart->add($length);
 
         $sql = <<<'SQL'
 SELECT
@@ -117,53 +120,8 @@ SQL;
 
         $rows = $this->db->runQuery($sql, [
             $serverName,
-            $hourStart->format('Y-m-d H:i:s'),
-            $hourEnd->format('Y-m-d H:i:s'),
-        ]);
-
-        return $rows[0] ?? null;
-    }
-
-    /**
-     * @return null|array<string,mixed>
-     */
-    private function fetchDailyStats(string $serverName, DateTimeImmutable $dayDate): ?array
-    {
-        $startOfDay = $dayDate->setTime(0, 0, 0);
-        $dayEnd = $startOfDay->add(new DateInterval('P1D'));
-
-        $sql = <<<'SQL'
-SELECT
-    COUNT(*) AS sample_count,
-    AVG(r.cpu_usage) AS cpu_avg,
-    MIN(r.cpu_usage) AS cpu_min,
-    MAX(r.cpu_usage) AS cpu_max,
-    AVG(r.ram_used) AS ram_used_avg,
-    MIN(r.ram_used) AS ram_used_min,
-    MAX(r.ram_used) AS ram_used_max,
-    AVG(r.ram_usage_percent) AS ram_percent_avg,
-    MAX(r.ram_usage_percent) AS ram_percent_max,
-    AVG(r.disk_used) AS disk_used_avg,
-    MIN(r.disk_used) AS disk_used_min,
-    MAX(r.disk_used) AS disk_used_max,
-    AVG(r.disk_usage_percent) AS disk_percent_avg,
-    MAX(r.disk_usage_percent) AS disk_percent_max,
-    AVG(r.total_file_count) AS file_count_avg,
-    MAX(r.total_file_count) AS file_count_max,
-    AVG(r.process_count) AS process_count_avg,
-    MAX(r.process_count) AS process_count_max
-FROM server_metrics_raw AS r
-INNER JOIN servers AS s ON s.id = r.server_id
-WHERE
-    s.name = ?
-    AND r.collected_at >= ?
-    AND r.collected_at < ?
-SQL;
-
-        $rows = $this->db->runQuery($sql, [
-            $serverName,
-            $startOfDay->format('Y-m-d H:i:s'),
-            $dayEnd->format('Y-m-d H:i:s'),
+            $windowStart->format('Y-m-d H:i:s'),
+            $windowEnd->format('Y-m-d H:i:s'),
         ]);
 
         return $rows[0] ?? null;
