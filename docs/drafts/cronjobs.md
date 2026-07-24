@@ -92,15 +92,19 @@ Copy [`cron/logrotate.shared-hosting.conf.template`](../../cron/logrotate.shared
 - Fix the upstream node, then rerun `php cron/servers_metrics_collect.php` to repopulate raw samples.
 - If raw samples exist but hourly/daily aggregates are missing, run the targeted backfill below:
 
+See [`docs/architecture/server-metrics-pipeline.md`](../architecture/server-metrics-pipeline.md)
+for how the repository, aggregator, and window planner fit together.
+
 ```bash
 SERVER_METRICS_SERVER=frontend-1 \
 SERVER_METRICS_START='2024-04-18T04:00:00' \
 SERVER_METRICS_END='2024-04-18T12:00:00' \
 php -r '
-require __DIR__ . "/../vendor/autoload.php";
-$bootstrap = require __DIR__ . "/bootstrap.php";
-$repository = new Watcher\Models\ServerMetrics\ServerMetricsRepository($db);
-$aggregator = new Watcher\Models\ServerMetrics\ServerMetricsAggregator($db, $repository, $log);
+$requiresDatabase = true;
+extract(require __DIR__ . "/bootstrap.php");
+extract(require __DIR__ . "/bootstrap_events.php");
+$repository = new Mata\Models\ServerMetrics\ServerMetricsRepository($db, $idResolver, $configSyncRepository);
+$aggregator = new Mata\Services\ServerMetrics\ServerMetricsAggregator($db, $repository, $log);
 
 $server = getenv("SERVER_METRICS_SERVER");
 $start = getenv("SERVER_METRICS_START");

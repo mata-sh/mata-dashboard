@@ -37,7 +37,7 @@ Replace or extend how the dashboard collects data from nodes.
 
 namespace Your\Namespace;
 
-use Watcher\Services\Collect\ServerDataCollectorInterface;
+use Mata\Services\Collect\ServerDataCollectorInterface;
 
 class CustomServerDataCollector implements ServerDataCollectorInterface
 {
@@ -108,7 +108,7 @@ public function multiPing(
 
 namespace Your\Namespace;
 
-use Watcher\Services\Monitor\AppReachabilityMonitorInterface;
+use Mata\Services\Monitor\AppReachabilityMonitorInterface;
 
 class EnhancedAppReachabilityMonitor implements AppReachabilityMonitorInterface
 {
@@ -156,11 +156,10 @@ Replace database implementation for alternative storage backends.
 **Required Methods:**
 
 ```php
-public function getConnection(): PDO;
-public function runQuery(string $sql, array $params = []): PDOStatement|false;
-public function fetchAll(string $sql, array $params = []): array;
-public function fetchOne(string $sql, array $params = []): mixed;
-public function lastInsertId(): string|false;
+public function runQuery(string $sql, array $params = []): array|int;
+public function beginTransaction(): void;
+public function commit(): void;
+public function rollback(): void;
 ```
 
 **Integration:**
@@ -171,111 +170,48 @@ Configure in application bootstrap or dependency injection container.
 
 ## Event System Hooks
 
-### EventRecorder Extension
+### EventRecorderService Extension
 
-Hook into event logging and alarm processing.
+Hook into event persistence and alarm cooldown tracking. See [Server Metrics Pipeline](../../architecture/server-metrics-pipeline.md) for how `EventManager` produces events/alarms upstream of this service.
 
-**Location:** `src/Models/EventRecorder.php`
+**Location:** `src/Services/Event/EventRecorderService.php`
 
-**Available Hook Points:**
-
-#### 1. Custom Event Processing
-
-Extend EventRecorder to add custom logic:
+**Extension Example:**
 
 ```php
 <?php
 
 namespace Your\Namespace;
 
-use Watcher\Models\EventRecorder;
+use Mata\Models\Dto\EventRecordResult;
+use Mata\Services\Event\EventRecorderService;
 
-class CustomEventRecorder extends EventRecorder
+class CustomEventRecorder extends EventRecorderService
 {
-    public function logEvent(
+    public function recordEvent(
         string $type,
         string $message,
         string $context = '',
         string $level = 'info',
-        string|int|null $server = null,
-        string|int|null $app = null,
-        string $channel = 'default',
-        bool $isAlarm = false,
-        ?int $serverId = null,
-        ?int $applicationId = null
-    ): void {
-        // Pre-processing hook
-        $this->beforeLogEvent($type, $message, $level);
-
-        // Call parent implementation
-        parent::logEvent($type, $message, $context, $level, $server, $app, $channel, $isAlarm, $serverId, $applicationId);
-
-        // Post-processing hook
-        $this->afterLogEvent($type, $message, $level);
-    }
-
-    protected function beforeLogEvent(string $type, string $message, string $level): void
-    {
-        // Custom logic before logging
-        // - Enrich event data
-        // - Send to external logging service
-        // - Trigger webhooks
+        int|string|null $server = null,
+        int|string|null $app = null,
+        bool $forceAlarm = false,
+        ?string $cooldownHash = null,
+        int $cooldownMinutes = 0,
+    ): EventRecordResult {
         if ($level === 'critical') {
             $this->sendToSlack($message);
-            $this->createPagerDutyIncident($message);
         }
-    }
 
-    protected function afterLogEvent(string $type, string $message, string $level): void
-    {
-        // Custom logic after logging
-        // - Update metrics
-        // - Trigger automation
+        return parent::recordEvent(
+            $type, $message, $context, $level, $server, $app,
+            $forceAlarm, $cooldownHash, $cooldownMinutes
+        );
     }
 }
 ```
 
-#### 2. Custom Email Notifications
-
-Override email sending behavior:
-
-```php
-public function emailEvent(string $message, string $subject): void
-{
-    // Add custom email templates
-    $htmlBody = $this->renderCustomEmailTemplate($message, $subject);
-
-    // Add attachments
-    $email = (new Email())
-        ->from("{$this->mailCfg['from_name']} <{$this->mailCfg['from_email']}>")
-        ->to(...$this->mailCfg['recipients'])
-        ->subject($subject)
-        ->html($htmlBody)
-        ->attach($this->generateReportPdf());
-
-    $this->mailer->send($email);
-}
-```
-
-#### 3. Event Filtering
-
-Filter which events are logged:
-
-```php
-protected function shouldLogEvent(string $type, string $level): bool
-{
-    // Custom filtering logic
-    if ($this->isMaintenanceWindow() && $level !== 'critical') {
-        return false; // Suppress non-critical events during maintenance
-    }
-
-    if ($this->isDuplicateEvent($type)) {
-        return false; // Deduplicate events
-    }
-
-    return true;
-}
-```
+**Integration:** inject the custom recorder via `EventManager::setEventRecorder()`.
 
 ---
 
@@ -291,7 +227,6 @@ Extend base renderer classes to customize HTML output.
 - `ServerRenderer` - Server card and container rendering
 - `DatabaseRenderer` - Database card rendering
 - `LibrariesRenderer` - Libraries comparison rendering
-- `CronjobRenderer` - Cron job status rendering
 - `ModalRenderer` - Modal content rendering
 - `LogRenderer` - Log analysis rendering
 
@@ -302,17 +237,19 @@ Extend base renderer classes to customize HTML output.
 
 namespace Your\Namespace;
 
-use Watcher\Views\ServerRenderer;
+use Mata\Views\ServerRenderer;
 
 class CustomServerRenderer extends ServerRenderer
 {
     /**
      * Override server card rendering with custom template
      */
-    public function renderServerCard(array $serverData, string $serverKey): string
+    public function renderServerCard(array $serverRenderData): string
     {
+        $serverKey = (string) ($serverRenderData['server'] ?? 'unknown');
+
         // Add custom data processing
-        $enrichedData = $this->enrichServerData($serverData);
+        $enrichedData = $this->enrichServerData($serverRenderData);
 
         // Use custom template
         return $this->twig->render('custom/server-card.html.twig', [
@@ -340,7 +277,7 @@ class CustomServerRenderer extends ServerRenderer
 
 Replace in controller:
 ```php
-$this->serverRenderer = new CustomServerRenderer($twig, $logger, $tools, $app, $logRenderer);
+$this->serverRenderer = new CustomServerRenderer($twig, $logger, $tools, $app, $endpoints, $logRenderer);
 ```
 
 ---
@@ -351,13 +288,12 @@ $this->serverRenderer = new CustomServerRenderer($twig, $logger, $tools, $app, $
 
 Extend alarm evaluation and threshold management.
 
-**Location:** `src/Services/Foundation/EventManager.php`
+**Location:** `src/Services/Event/EventManager.php`
 
 **Use Cases:**
 - Custom threshold logic
 - Machine learning-based anomaly detection
 - Dynamic thresholds based on time/load
-- Multi-dimensional threshold evaluation
 
 **Extension Example:**
 
@@ -366,104 +302,37 @@ Extend alarm evaluation and threshold management.
 
 namespace Your\Namespace;
 
-use Watcher\Services\Foundation\EventManager;
+use Mata\Services\Event\EventManager;
 
 class SmartEventManager extends EventManager
 {
     /**
-     * Enhanced threshold evaluation with ML
+     * Enhanced threshold evaluation with ML-based anomaly detection
      */
-    public function evaluateMetric(string $metricName, float $value, string $context = ''): array
+    public function getServerDataThresholdLevel(int $value, string $name): string
     {
-        // Get baseline from ML model
-        $baseline = $this->mlModel->getBaseline($metricName, $context);
-        $anomalyScore = $this->mlModel->detectAnomaly($value, $baseline);
+        $baseline = $this->mlModel->getBaseline($name);
 
-        // Dynamic threshold adjustment
-        if ($this->isHighTrafficPeriod()) {
-            $threshold = $this->adjustThresholdForHighTraffic($metricName);
-        } else {
-            $threshold = $this->getStaticThreshold($metricName);
+        if ($this->mlModel->detectAnomaly($value, $baseline)) {
+            return 'alarm';
         }
 
-        // Evaluate with enhanced logic
-        $result = parent::evaluateMetric($metricName, $value, $context);
-        $result['anomaly_score'] = $anomalyScore;
-        $result['dynamic_threshold'] = $threshold;
-
-        return $result;
+        return parent::getServerDataThresholdLevel($value, $name);
     }
 }
 ```
 
 ---
 
-### NotificationManager Extensions
+### NotificationManager
 
-Customize notification delivery channels.
+`Mata\Services\Notification\NotificationManager` is `final` — it manages the in-app notification center (create/read/dismiss) and is not an extension point.
 
-**Location:** `src/Services/Foundation/NotificationManager.php`
+**Location:** `src/Services/Notification/NotificationManager.php`
 
-**Use Cases:**
-- Slack/Discord/Teams integration
-- SMS notifications
-- PagerDuty/Opsgenie integration
-- Custom notification routing
+**Key methods:** `addNotification()`, `getActiveNotifications()`, `markAsRead()`, `deactivateNotification()`.
 
-**Extension Example:**
-
-```php
-<?php
-
-namespace Your\Namespace;
-
-use Watcher\Services\Foundation\NotificationManager;
-
-class MultiChannelNotificationManager extends NotificationManager
-{
-    public function sendDelivery(array $alarm): void
-    {
-        // Send to multiple channels based on severity
-        switch ($alarm['level']) {
-            case 'critical':
-                $this->sendToEmail($alarm);
-                $this->sendToSMS($alarm);
-                $this->sendToPagerDuty($alarm);
-                break;
-
-            case 'warning':
-                $this->sendToEmail($alarm);
-                $this->sendToSlack($alarm);
-                break;
-
-            case 'info':
-                $this->sendToSlack($alarm);
-                break;
-        }
-    }
-
-    private function sendToSlack(array $alarm): void
-    {
-        // Slack webhook integration
-        $this->slackClient->sendMessage([
-            'channel' => $this->getSlackChannel($alarm),
-            'text' => $alarm['message'],
-            'attachments' => $this->formatSlackAttachment($alarm),
-        ]);
-    }
-
-    private function sendToPagerDuty(array $alarm): void
-    {
-        // PagerDuty API integration
-        $this->pagerDutyClient->createIncident([
-            'title' => $alarm['subject'],
-            'body' => $alarm['message'],
-            'urgency' => 'high',
-            'service_id' => $this->getPagerDutyService($alarm),
-        ]);
-    }
-}
-```
+Alarm delivery routing (email, throttling, direct/emergency dispatch) is handled by `Mata\Services\Alarm\AlarmDirectProcessor` and the `ALARM_DECISION_DRIVER` (`opa`/`builtin`) config — see [Server Metrics Pipeline](../../architecture/server-metrics-pipeline.md).
 
 ---
 
@@ -691,9 +560,9 @@ $this->router->after('GET|POST', '/.*', function () {
 
 ### Custom Cron Scripts
 
-Add custom automated tasks by extending the Cronjob base class.
+`Mata\Utils\CronJob` is used compositionally (not subclassed) — instantiate it via `cron/bootstrap.php`, which returns a ready `$cron` bound to the script's job name, lock file, and heartbeat file.
 
-**Base Class:** `src/Utils/Cronjob.php`
+**Base Class:** `src/Utils/CronJob.php`
 
 **Example: Custom Metrics Collection**
 
@@ -701,48 +570,42 @@ Add custom automated tasks by extending the Cronjob base class.
 <?php
 // cron/collect_custom_metrics.php
 
-require __DIR__ . '/../cron/bootstrap.php';
+declare(strict_types=1);
 
-use Watcher\Utils\Cronjob;
+$requiresDatabase = true;
+extract(require_once __DIR__ . '/bootstrap.php');
+extract(require_once __DIR__ . '/bootstrap_events.php');
 
-class CustomMetricsCollector extends Cronjob
-{
-    protected string $name = 'Custom Metrics Collector';
-    protected int $lockTimeout = 300;
+if (!$cron->acquireLock()) {
+    exit("Already running.\n");
+}
 
-    protected function execute(): void
-    {
-        $this->log('Starting custom metrics collection');
+$cron->startTimer();
+$cron->log('Starting custom metrics collection');
 
-        foreach ($this->servers as $serverId => $serverConfig) {
-            $customData = $this->fetchCustomMetrics($serverId);
-            $this->storeCustomMetrics($serverId, $customData);
-        }
+try {
+    foreach ($monitoringSettings['servers'] as $serverId => $serverConfig) {
+        $cron->touchHeartbeat();
 
-        $this->log('Custom metrics collection completed');
-    }
-
-    private function fetchCustomMetrics(string $serverId): array
-    {
-        // Custom data collection logic
-        return [
-            'network_throughput' => $this->measureNetworkThroughput($serverId),
-            'security_score' => $this->calculateSecurityScore($serverId),
-        ];
-    }
-
-    private function storeCustomMetrics(string $serverId, array $metrics): void
-    {
-        // Store in database or cache
-        $this->db->runQuery(
+        $metrics = fetchCustomMetrics($serverId);
+        $db->runQuery(
             'INSERT INTO custom_metrics (server_id, metric_name, metric_value, collected_at) VALUES (?, ?, ?, NOW())',
             [$serverId, 'network_throughput', $metrics['network_throughput']]
         );
     }
+
+    $cron->log(sprintf('Completed in %.3fs (%s)', $cron->endTimer(), $cron->memoryUsage()));
+} finally {
+    $cron->releaseLock();
 }
 
-$collector = new CustomMetricsCollector($logger, $db, $monitoringSettings);
-$collector->run();
+function fetchCustomMetrics(string $serverId): array
+{
+    return [
+        'network_throughput' => measureNetworkThroughput($serverId),
+        'security_score' => calculateSecurityScore($serverId),
+    ];
+}
 ```
 
 **Crontab Entry:**

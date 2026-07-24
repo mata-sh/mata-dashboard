@@ -23,27 +23,31 @@ mata-dashboard/
 
 ## Configuration Directory (`config/`)
 
-Contains all application configuration files.
+Contains all application configuration files. Examples live under `config/example/`, not as `.example` siblings.
 
 ### Configuration Files
 
 ```
 config/
-├── config.env                 # Main application settings
-├── config.env.example         # Example configuration
-├── mail.config.env           # Email/SMTP settings
-├── mail.config.env.example   # Example email config
-├── servers.json              # Monitored servers definition
-├── servers.json.example      # Example servers config
-├── users.json                # User authentication data
-├── users.json.example        # Example users
-├── thresholds.json           # Alarm thresholds (optional)
-├── ttl.json                  # Cache TTL settings (optional)
-├── data_retention.json       # Metrics retention (optional)
-└── mysql.mata.env           # Database config (optional)
+├── config.env                     # Main application settings
+├── db.config.env                  # Database config
+├── mail.config.env                # Email/SMTP settings
+├── servers.json                   # Monitored servers definition
+├── users.json                     # User authentication data
+├── thresholds.json                # Alarm thresholds
+├── ttl.json                       # Cache TTL settings
+├── intervals.json                 # Collection/aggregation intervals
+├── limits.json                    # Alarm limits
+├── menu.json                      # Dashboard menu visibility
+├── notification_rules.json        # Notification routing rules
+├── probes.json                    # Reachability probe definitions
+├── data_retention.json            # Metrics retention policy
+├── phinx.php                      # Phinx migration config
+├── demo/                          # Demo/mock data (e.g. events.json)
+└── example/                       # *.example counterparts of the files above
 ```
 
-**Security Note:** Never commit actual configuration files (without `.example` suffix) to version control.
+**Security Note:** Never commit actual configuration files (only `config/example/*.example` and `config/demo/`) to version control.
 
 ## Source Code Directory (`src/`)
 
@@ -59,7 +63,8 @@ src/Controllers/
 ├── DashboardController.php      # Main dashboard and data refresh
 ├── LoginController.php          # Authentication handling
 ├── ModalController.php          # Dynamic modal content
-└── MetricsController.php        # Metrics API endpoints
+├── MetricsController.php        # Metrics API endpoints
+└── AuditController.php          # Audit log endpoints
 ```
 
 **Responsibilities:**
@@ -75,31 +80,23 @@ Business logic organized by domain.
 
 ```
 src/Services/
-├── Collection/
-│   ├── ServerDataCollector.php      # Real node communication
-│   └── MockServerDataCollector.php  # Mock for testing
-├── Monitoring/
-│   ├── ServerMonitor.php            # Server metrics evaluation
-│   ├── AppReachabilityMonitor.php   # Application reachability monitoring
-│   └── ServerMetricsHealthMonitor.php  # Metrics health checks
-├── Foundation/
-│   ├── CacheManager.php             # Cache management
-│   ├── EventManager.php             # Alarm/event management
-│   ├── NotificationManager.php      # Email notifications
-│   ├── LogAnalyzer.php              # Log file analysis
-│   ├── ApiClient.php                # HTTP API client
-│   ├── ConfigDatabaseSync.php       # Config to DB sync
-│   └── IdResolver.php               # ID resolution
-├── Cache/
-│   ├── MetricsCacheService.php      # Metrics caching
-│   ├── ModalCacheService.php        # Modal content caching
-│   └── CacheTypeResolver.php        # Cache type resolution
-├── View/
-│   ├── ServerViewBuilder.php        # Server view data
-│   ├── MetricsViewBuilder.php       # Metrics view data
-│   └── ChartViewBuilder.php         # Chart data preparation
-└── Validation/
-    └── MetricsRequestValidator.php  # Request validation
+├── Alarm/             # Creation, dispatch, rate limiting, decision policies (Decision/, Dto/)
+├── Audit/             # Audit log aggregation and row enrichment
+├── Cache/              # Cache store, TTL/type resolution (MetricsCacheService, ModalCacheService)
+├── Collect/           # Node data collection & HMAC auth (ServerDataCollector, NodeApiClient, HmacAuthTokenGenerator, Demo/)
+├── Cron/              # Cron run orchestration (ServerDataFetchRunner)
+├── DataTransformers/  # API/log/chart payload transformation
+├── Event/             # Event recording and aggregation (EventManager, EventRecorderService)
+├── Identity/          # Server/application id resolution (ServerApplicationIdResolver)
+├── Monitor/           # Server/app health monitoring — reachability, errors, node health
+├── Navigation/        # Menu building, notification center
+├── Notification/      # Email notifications (NotificationManager)
+├── Retention/         # Metrics retention cleanup
+├── Runtime/           # Dashboard environment assembly (DashboardEnvironmentFactory)
+├── ServerMetrics/     # Metrics aggregation/query — see server-metrics-pipeline.md
+├── Sync/              # Config-to-DB sync (servers, settings)
+├── Validation/        # Request validation
+└── View/              # View-model builders for templates
 ```
 
 **Responsibilities:**
@@ -115,17 +112,26 @@ Data access and database interactions.
 
 ```
 src/Models/
-├── EventRecorder.php            # Event logging
-├── Settings.php                 # Application settings
-├── Users.php                    # User management
-├── ConfigSyncRepository.php     # Config sync data access
+├── AlarmDeliveryRepository.php    # Alarm delivery data access
+├── AlarmRepository.php            # Alarm data access
+├── AppFatalStateRepository.php    # App fatal-state data access
+├── ConfigSyncRepository.php       # Config sync data access
+├── EventRepository.php            # Event data access
+├── Dto/
+│   ├── AppFatalState.php
+│   └── EventRecordResult.php
 └── ServerMetrics/
     ├── ServerMetricsRepository.php   # Metrics data access
-    ├── ServerMetricsQuery.php        # Query builder
-    ├── RawMetric.php                 # Raw metric DTO
-    ├── HourlyMetric.php             # Hourly aggregate DTO
-    └── DailyMetric.php              # Daily aggregate DTO
+    ├── ServerMetricRaw.php           # Raw metric row model
+    ├── ServerMetricHourly.php        # Hourly aggregate row model
+    ├── ServerMetricDaily.php         # Daily aggregate row model
+    └── Dto/
+        ├── ServerMetricRawSnapshot.php
+        ├── ServerMetricHourlyAggregate.php
+        └── ServerMetricDailyAggregate.php
 ```
+
+Query building for server metrics lives in `src/Services/ServerMetrics/ServerMetricsQuery.php` (behavior), not here — see [Server Metrics Pipeline](../architecture/server-metrics-pipeline.md).
 
 **Responsibilities:**
 
@@ -134,20 +140,24 @@ src/Models/
 - Data retrieval
 - Transaction management
 
-### View Renderers (`src/View/`)
+### View Renderers (`src/Views/`)
 
 HTML rendering components for templates.
 
 ```
-src/View/
-├── ServerRenderer.php       # Server cards and containers
-├── DatabaseRenderer.php     # Database cards
-├── LibrariesRenderer.php    # Library information
-├── CronjobRenderer.php      # Cron job status
-├── LogRenderer.php          # Log display
-├── ModalRenderer.php        # Modal content
-├── SettingsRenderer.php     # Settings UI
-└── MetricsRenderer.php      # Metrics visualization
+src/Views/
+├── BaseRenderer.php                 # Shared renderer base
+├── ServerRenderer.php               # Server cards and containers
+├── DatabaseRenderer.php             # Database cards
+├── LibrariesRenderer.php            # Library information
+├── LogRenderer.php                  # Log display
+├── ModalRenderer.php                # Modal content
+├── SettingsRenderer.php             # Settings UI
+├── MetricsRenderer.php              # Metrics visualization
+├── AlarmsRenderer.php               # Alarms table
+├── AuditRenderer.php                # Audit log view
+├── EventsRenderer.php               # Events table
+└── NotificationCenterRenderer.php   # Notification center panel
 ```
 
 **Responsibilities:**
@@ -165,6 +175,7 @@ Core application services and infrastructure.
 src/Core/
 ├── App.php                  # Application container
 ├── Auth.php                 # Authentication service
+├── Session.php              # Session handling
 ├── Database.php             # Database wrapper
 ├── DatabaseInterface.php    # Database contract
 ├── NullDatabase.php         # Null object pattern
@@ -184,10 +195,15 @@ Configuration loading and management.
 
 ```
 src/Config/
+├── Env.php                       # Environment access
 ├── EnvConfigLoader.php           # Load .env files to DTOs
-├── MonitoringSettingsLoader.php  # Load .json files to arrays
-├── DatabaseSetup.php             # Database initialization
-└── DatabaseIntegrityChecker.php  # Database health checks
+├── EnvConfigManager.php          # Env config lifecycle
+├── EnvConfigCreator.php          # Scaffold env config
+├── EnvConfigFatalException.php   # Fatal config-load error
+├── LogConfigurator.php           # Logging setup
+├── DatabaseIntegrityChecker.php  # Database health checks
+├── Dto/                          # Config DTOs (DatabaseConfig, MailConfig, DashboardConfig, ...)
+└── Monitoring/                   # .json config loaders (ServersConfigLoader, ThresholdsConfigLoader, ...)
 ```
 
 **Responsibilities:**
@@ -203,12 +219,21 @@ HTTP-related functionality.
 
 ```
 src/Http/
-├── RouterSetup.php      # Route definitions
-├── Endpoints.php        # Endpoint constants
-├── SecurityHeaders.php  # HTTP security headers
-└── Response/
-    ├── JsonResponse.php     # JSON responses
-    └── HtmlResponse.php     # HTML responses
+├── Routing/
+│   ├── RouterSetup.php   # Route definitions
+│   └── Endpoints.php     # Endpoint constants
+├── Security/
+│   ├── SecurityHeaders.php            # HTTP security headers
+│   ├── CsrfGuard.php                  # CSRF protection
+│   ├── RouteGroupRateLimiter.php      # Per-route-group rate limiting
+│   ├── RouteGroupRateLimiterFactory.php
+│   └── RouteParameter.php
+└── Responses/
+    ├── Response.php          # Response contract
+    ├── ResponseFactory.php   # Response construction
+    ├── JsonResponse.php      # JSON responses
+    ├── HtmlResponse.php      # HTML responses
+    └── RedirectResponse.php  # Redirect responses
 ```
 
 **Responsibilities:**
@@ -224,13 +249,17 @@ Helper classes and utilities.
 
 ```
 src/Utils/
-├── PathResolver.php      # Path management
-├── Cronjob.php          # Base class for cron scripts
-├── LogHandler.php       # Logging utilities
-├── Markdown.php         # Markdown processing
-├── Tools.php            # General utilities
-├── TypeConverter.php    # Type conversion helpers
-└── FileStateStore.php   # File state management
+├── PathResolver.php            # Path management
+├── UsersFilePathResolver.php   # users.json path resolution
+├── CronJob.php                 # Base class for cron scripts
+├── LogHandler.php              # Logging utilities
+├── Markdown.php                # Markdown processing
+├── Html.php                    # HTML helpers
+├── NumberFormatter.php         # Number formatting
+├── AlarmLimitHelper.php        # Alarm limit helpers
+├── Tools.php                   # General utilities
+├── TypeConverter.php           # Type conversion helpers
+└── FileStateStore.php          # File state management
 ```
 
 **Responsibilities:**
@@ -241,6 +270,13 @@ src/Utils/
 - Type conversion
 - File operations
 
+### Other `src/` Directories
+
+```
+src/Constants/    # Shared enums/constants (AppAvailabilityStatus, CacheTypes, NodeHealthState, Severities)
+src/Tests/        # PHPUnit tests (Unit/, Integration/, Fixtures/, Helpers/) — see composer autoload-dev
+```
+
 ## Public Directory (`public/`)
 
 Web-accessible files (document root).
@@ -248,19 +284,14 @@ Web-accessible files (document root).
 ```
 public/
 ├── assets/
-│   ├── css/
-│   │   ├── bulma.css           # Compiled Bulma CSS
-│   │   └── bulma.purged.min.css  # Optimized CSS
-│   ├── js/
-│   │   └── htmx.min.js         # HTMX library
-│   ├── images/
-│   │   └── favicon.png
-│   └── branding/               # Default logos (seed source, do not edit)
-│       ├── logo.png
-│       └── logo_topbar.png
-├── branding/               # Instance logos (gitignored, seeded on first run)
-├── index.php              # Application entry point
-└── .htaccess             # Apache configuration
+│   ├── css/       # Compiled Bulma CSS + purged/minified variant, main.css, fonts.css, tabulator themes
+│   ├── js/        # htmx, tabulator, chart.js, hyperscript, tippy/popper, main.js, page scripts
+│   ├── icons/     # Feather-style SVG icon set (large; not itemized here)
+│   ├── fonts/     # Raleway, Nunito webfonts
+│   ├── images/    # favicon.png
+│   └── branding/  # Default logos (seed source, do not edit)
+├── branding/      # Instance logos (gitignored, seeded from assets/branding/ on first run)
+└── index.php      # Application entry point
 ```
 
 **Important:** The web server document root **must** point to this directory for security.
@@ -272,29 +303,31 @@ Twig template files.
 ```
 templates/
 ├── layouts/
-│   ├── main.html.twig          # Main layout
-│   └── auth.html.twig          # Authentication layout
+│   └── main.html.twig       # Main layout
 ├── pages/
-│   ├── dashboard.html.twig     # Dashboard page
-│   ├── login.html.twig         # Login page
-│   ├── servers.html.twig       # Servers page
-│   ├── events.html.twig        # Events page
-│   └── metrics.html.twig       # Metrics page
+│   ├── start.html.twig      # Dashboard/entry page
+│   ├── login.html.twig      # Login page
+│   └── error.html.twig      # Error page
+├── emails/
+│   ├── alarm.html.twig      # Alarm email (HTML)
+│   └── alarm.txt.twig       # Alarm email (plain text)
 └── partials/
-    ├── server-card.html.twig   # Server card component
-    ├── database-card.html.twig # Database card
-    ├── navigation.html.twig    # Navigation menu
-    ├── modal.html.twig         # Modal template
-    └── charts/
-        ├── line-chart.html.twig
-        └── bar-chart.html.twig
+    ├── cards/        # server-card, database-card, app-card, server-stats
+    ├── containers/   # servers/databases/alarms/events/errors/... section wrappers
+    ├── modals/       # server-info, server-metrics, log-files, database-processes, ...
+    ├── components/   # logs-table, notification, progress-bar
+    ├── structure/    # head, footer, topbar, notification-bell
+    ├── audit/        # audit run/summary chips
+    ├── errors/       # auth-error, config-error
+    └── backup/       # legacy .tpl.php/.html.twig pairs, not in active render path
 ```
 
 ### Template Organization
 
 - **layouts/**: Base page structures
 - **pages/**: Full page templates
-- **partials/**: Reusable components
+- **emails/**: Notification email templates
+- **partials/**: Reusable components, grouped by kind
 
 ## Cron Directory (`cron/`)
 
@@ -302,35 +335,35 @@ Automated data collection scripts.
 
 ```
 cron/
-├── bootstrap.php                  # Cron initialization
-├── servers_metrics_collect.php     # Collect raw metrics (every 5 min)
-├── servers_metrics_aggregate.php   # Aggregate metrics (hourly)
-└── README.md                      # Cron documentation
+├── bootstrap.php                        # Cron initialization
+├── bootstrap_events.php                 # Event-driven cron initialization
+├── servers_data_fetch.php               # Fetch server/app data
+├── servers_metrics_collect.php          # Collect raw metrics
+├── servers_metrics_aggregate.php        # Aggregate metrics
+├── alarms_evaluate_critical.php         # Evaluate critical alarms
+├── alarms_evaluate_non_critical.php     # Evaluate non-critical alarms
+├── alarms_dispatch.php                  # Dispatch queued alarm notifications
+├── retention_cleanup.php                # Purge expired metrics
+├── crontab.shared-hosting.template      # Sample crontab for shared hosting
+└── logrotate.shared-hosting.conf.template  # Sample logrotate config
 ```
 
 ### Cron Script Naming Convention
 
-- `collect_*`: Gather raw data from external sources
-- `aggregate_*`: Process/summarize existing data
-- `monitor_*`: Health checks and status validation
+- `<domain>_<action>`: e.g. `servers_metrics_collect`, `alarms_evaluate_critical`
+- `bootstrap*`: Shared cron initialization, not run directly
 
 ## Temporary Directory (`temp/`)
 
-Cache and temporary files (not in version control).
+Cache and runtime files (not in version control). Subdirectories are created on demand — exact contents vary by environment. Application logs live in the top-level `logs/` directory, not under `temp/`.
 
 ```
 temp/
-├── api-cache/            # API response cache
-│   └── [host]/
-│       └── [method]/
-│           └── [path]/
-│               └── cache.json
-├── templates-cache/      # Twig compiled templates
-├── logs/                 # Application logs
-│   ├── application.log
-│   ├── cron-collect.log
-│   └── cron-aggregate.log
-└── uploads/             # Temporary uploads (if any)
+├── api-cache/          # Cached node/API responses
+├── cache/              # General application cache
+├── templates-cache/    # Twig compiled templates
+├── sessions/           # PHP session files
+└── runtime/            # Other runtime state
 ```
 
 ## Scripts Directory (`scripts/`)
@@ -339,9 +372,22 @@ Utility and maintenance scripts.
 
 ```
 scripts/
-├── hash-password.php              # Generate password hashes
-├── setup-database.php             # Database initialization
-└── ai-docs/                      # AI documentation scripts
+├── bootstrap.php                   # Script bootstrap
+├── cron_database_probe.php         # DB reachability probe for cron
+├── server_metrics_diagnostic.php   # Ad-hoc metrics diagnostics
+├── setup.sh                        # Environment setup
+├── database/
+│   ├── migrate.php              # Run Phinx migrations
+│   ├── database-integrity.php   # Integrity check
+│   ├── hash-password.php        # Generate password hashes
+│   └── mysql-operation.php      # DB maintenance ops
+├── user-management/
+│   └── manage-users.php         # Create/update/remove users
+├── build/
+│   └── generate-changelog.sh    # Changelog generation
+├── systemd/                     # Unit/timer files (critical-alarm eval, OPA)
+└── docs/
+    └── ai-update.sh              # AI-assisted doc updates
 ```
 
 ## Documentation Directory (`docs/`)
@@ -351,13 +397,14 @@ MkDocs documentation source.
 ```
 docs/
 ├── index.md
-├── guides/              # User guides
-├── architecture/        # Architecture docs
-├── reference/          # Reference documentation
-├── api/                # API documentation
-├── development/        # Development guides
-├── tutorials/          # Step-by-step tutorials
-└── images/             # Documentation images
+├── guides/        # User guides
+├── architecture/  # Architecture docs
+├── development/   # Development guides
+├── examples/      # Worked examples
+├── drafts/        # Work-in-progress docs (this file lives here)
+├── plans/         # Planning docs
+├── styles/        # Doc site styling
+└── images/        # Documentation images
 ```
 
 ## File Naming Conventions
@@ -366,11 +413,15 @@ docs/
 
 - **Classes**: PascalCase matching class name
   - `ServerDataCollector.php`
-  - `DatabaseSetup.php`
+  - `DatabaseIntegrityChecker.php`
 
-- **Scripts**: snake_case with action-first naming
+- **Cron scripts** (`cron/`): snake_case, domain-first
   - `servers_metrics_collect.php`
-  - `hash_password.php`
+  - `alarms_evaluate_critical.php`
+
+- **Utility scripts** (`scripts/`): kebab-case
+  - `hash-password.php`
+  - `manage-users.php`
 
 ### Configuration Files
 
@@ -385,7 +436,7 @@ docs/
 ### Templates
 
 - **Twig templates**: `.html.twig` extension
-  - `dashboard.html.twig`
+  - `start.html.twig`
   - `server-card.html.twig`
 
 ## Autoloading
@@ -398,7 +449,12 @@ MATA Dashboard uses PSR-4 autoloading via Composer.
 {
   "autoload": {
     "psr-4": {
-      "IDS\\": "src/"
+      "Mata\\": "src/"
+    }
+  },
+  "autoload-dev": {
+    "psr-4": {
+      "Mata\\Tests\\": "src/tests/"
     }
   }
 }
@@ -407,9 +463,9 @@ MATA Dashboard uses PSR-4 autoloading via Composer.
 **Example usage:**
 
 ```php
-use IDS\Controllers\DashboardController;
-use IDS\Services\Foundation\CacheManager;
-use IDS\Models\EventRecorder;
+use Mata\Controllers\DashboardController;
+use Mata\Services\Cache\MetricsCacheService;
+use Mata\Models\EventRepository;
 ```
 
 ## Import Paths
@@ -417,8 +473,8 @@ use IDS\Models\EventRecorder;
 ### Absolute Imports (Recommended)
 
 ```php
-use IDS\Services\Collection\ServerDataCollector;
-use IDS\Core\Database;
+use Mata\Services\Collect\ServerDataCollector;
+use Mata\Core\Database;
 ```
 
 ### Relative Imports (Avoid)
@@ -432,17 +488,21 @@ Not used in this project. Always use absolute namespaced imports.
 ```json
 {
   "require": {
-    "bramus/router": "dev-master",
-    "twig/twig": "^3.0",
-    "ids/helper": "dev-main",
-    "ids/security": "dev-main",
+    "symfony/mailer": "^7.2",
     "guzzlehttp/guzzle": "^7.0",
     "monolog/monolog": "^3.0",
-    "symfony/mailer": "^6.0"
+    "bramus/router": "^1.6",
+    "league/commonmark": "^2.8",
+    "vlucas/phpdotenv": "^5.6",
+    "twig/twig": "^3.0",
+    "robmorgan/phinx": "^0.16",
+    "mata-sh/rate-limiter": "^0.1"
   },
   "require-dev": {
-    "phpstan/phpstan": "^1.10",
-    "squizlabs/php_codesniffer": "^3.7"
+    "phpstan/phpstan": "^2.1",
+    "phpunit/phpunit": "^12.4",
+    "friendsofphp/php-cs-fixer": "^3.89",
+    "cyclonedx/cyclonedx-php-composer": "^6.0"
   }
 }
 ```
@@ -452,32 +512,38 @@ Not used in this project. Always use absolute namespaced imports.
 ```json
 {
   "dependencies": {
-    "bulma": "^0.9.4",
-    "htmx.org": "^1.9.0"
+    "bulma": "^1.0.0",
+    "htmx.org": "^1.9.12",
+    "sass": "^1.72.0"
   },
   "devDependencies": {
-    "postcss": "^8.4.0",
-    "postcss-cli": "^10.0.0",
-    "sass": "^1.60.0"
+    "@fullhuman/postcss-purgecss": "^7.0.2",
+    "cssnano": "^7.0.6",
+    "postcss": "^8.5.3",
+    "postcss-cli": "^11.0.1",
+    "postcss-import": "^16.1.0"
   }
 }
 ```
 
 ## Environment Files
 
+Two tiers: root `.env` for Docker/infra settings, `config/config.env` for application settings.
+
 ### Development
 
 ```bash
-.env.local          # Local development overrides
-config.env          # Main config (gitignored)
+.env                 # Docker Compose infra settings (gitignored; see .env.example)
+config/config.env    # Application settings (gitignored; see config/example/config.env.example)
 ```
 
 ### Production
 
 ```bash
-config.env          # Production settings
-mail.config.env     # SMTP configuration
-servers.json        # Monitored servers
+config/config.env         # Application settings
+config/mail.config.env    # SMTP configuration
+config/db.config.env      # Database configuration
+config/servers.json       # Monitored servers
 ```
 
 ## Build Artifacts
@@ -485,11 +551,11 @@ servers.json        # Monitored servers
 Generated files not in version control:
 
 ```
-vendor/             # Composer packages
-node_modules/       # NPM packages
-temp/               # Cache and logs
-public/assets/css/bulma.css     # Compiled CSS
-public/assets/js/htmx.min.js    # Copied from node_modules
+vendor/                                 # Composer packages
+node_modules/                           # NPM packages
+temp/                                   # Cache and runtime files
+public/assets/css/bulma.css             # Compiled from src/main.scss (npm run build-bulma)
+public/assets/css/bulma.purged.min.css  # Purged/minified via postcss
 ```
 
 ## Version Control
@@ -497,22 +563,23 @@ public/assets/js/htmx.min.js    # Copied from node_modules
 ### .gitignore Structure
 
 ```
-# Configuration
-config/*.env
-config/*.json
-!config/*.example
-
 # Dependencies
 vendor/
 node_modules/
 
-# Temporary files
+# Runtime
 temp/
+logs/*
+!logs/.gitkeep
 
-# Build artifacts
-public/assets/css/bulma.css
-public/assets/css/bulma.purged.min.css
-public/assets/js/htmx.min.js
+# Config (JSON is instance data; examples live in config/example/)
+config/*.json
+config/demo/*.json
+
+# Build artifacts / local files
+*.env
+*.log
+package-lock.json
 ```
 
 ## Best Practices
@@ -540,6 +607,6 @@ public/assets/js/htmx.min.js
 
 ## Next Steps
 
-- [Components](../architecture/components.md) - Detailed component documentation
+- [Architecture Overview](../architecture/overview.md) - Detailed component documentation
 - [Code Quality](code-quality.md) - Code standards and tools
 - [Contributing](contributing.md) - Contribution guidelines

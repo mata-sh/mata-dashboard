@@ -705,7 +705,7 @@ Run cron script manually:
 
 **If error:**
 ```
-PHP Fatal error: Class 'Watcher\...' not found
+PHP Fatal error: Class 'Mata\...' not found
 ```
 
 This indicates autoloader or path issues.
