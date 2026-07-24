@@ -14,6 +14,7 @@ use Mata\Services\Event\EventManager;
 use Mata\Services\Identity\ServerApplicationIdResolver;
 use Mata\Services\Monitor\AppErrorMonitorInterface;
 use Mata\Services\Monitor\AppReachabilityMonitorInterface;
+use Mata\Services\Monitor\Dto\AppFatalErrorPolicy;
 use Mata\Services\Monitor\Dto\ServerMonitoringServices;
 use Mata\Services\Monitor\LogSizeEvaluator;
 use Mata\Services\Monitor\NodeHealthMonitorInterface;
@@ -22,6 +23,7 @@ use Mata\Services\Sync\AppInventorySync;
 use Mata\Services\View\ServerViewBuilder;
 use Mata\Utils\Tools;
 use Monolog\Logger;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use ReflectionMethod;
 
@@ -141,6 +143,67 @@ final class ServerViewBuilderTest extends TestCase
         $this->assertSame('alarm', $result['log_analysis']['level']);
         $this->assertSame('errors', $result['error_analysis']['show_events_type']);
         $this->assertSame('alarms-enabled', $result['error_analysis']['alarms_enabled_class']);
+        $this->assertTrue($result['error_analysis']['error_monitoring_enabled']);
+    }
+
+    /**
+     * The effective alarm state is the server setting AND the app setting, and it
+     * never changes the observed counts reported by the node.
+     */
+    #[DataProvider('errorAlarmStateProvider')]
+    public function testResolvesEffectiveErrorAlarmState(
+        ?bool $serverSetting,
+        bool $appSetting,
+        bool $expected
+    ): void {
+        $builder = new ServerViewBuilder(
+            $this->createStub(ServerMonitor::class),
+            $this->logSizeEvaluator(),
+            $this->createStub(EventManager::class),
+            new Logger('test'),
+            new CacheTypeResolver(),
+        );
+        $serverConfig = $serverSetting === null ? [] : ['error_monitoring_enabled' => $serverSetting];
+
+        $policy = (new ReflectionMethod($builder, 'buildFatalErrorPolicy'))
+            ->invoke($builder, 'web01', $serverConfig);
+        $resolved = (new ReflectionMethod($builder, 'resolveErrorAlarmsEnabled'))
+            ->invoke($builder, $policy, ['error_monitoring_enabled' => $appSetting]);
+
+        $this->assertSame($expected, $resolved);
+    }
+
+    /** @return array<string,array{null|bool,bool,bool}> */
+    public static function errorAlarmStateProvider(): array
+    {
+        return [
+            'omitted server setting defaults to enabled' => [null, true, true],
+            'both enabled' => [true, true, true],
+            'app disabled' => [true, false, false],
+            'server disabled' => [false, true, false],
+            'both disabled' => [false, false, false],
+        ];
+    }
+
+    public function testFallsBackToEnabledOnUnusableConfiguration(): void
+    {
+        $builder = new ServerViewBuilder(
+            $this->createStub(ServerMonitor::class),
+            $this->logSizeEvaluator(),
+            $this->createStub(EventManager::class),
+            new Logger('test'),
+            new CacheTypeResolver(),
+        );
+
+        $policy = (new ReflectionMethod($builder, 'buildFatalErrorPolicy'))
+            ->invoke($builder, 'web01', ['error_monitoring_enabled' => 'false']);
+        $this->assertNull($policy);
+
+        $method = new ReflectionMethod($builder, 'resolveErrorAlarmsEnabled');
+        $this->assertTrue($method->invoke($builder, null, []));
+        $this->assertTrue(
+            $method->invoke($builder, AppFatalErrorPolicy::fromServerConfig([]), ['error_monitoring_enabled' => 'no'])
+        );
     }
 
     public function testSkipsAppsWithPingDisabled(): void

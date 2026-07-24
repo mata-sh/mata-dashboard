@@ -7,12 +7,14 @@ namespace Mata\Services\View;
 use Exception;
 use GuzzleHttp\Promise\PromiseInterface;
 use GuzzleHttp\Promise\Utils;
+use InvalidArgumentException;
 use Mata\Constants\CacheTypes;
 use Mata\Constants\NodeHealthState;
 use Mata\Services\Cache\CacheTypeResolver;
 use Mata\Services\Collect\ServerDataCollectorInterface;
 use Mata\Services\Event\EventManager;
 use Mata\Services\Monitor\AppReachabilityMonitorInterface;
+use Mata\Services\Monitor\Dto\AppFatalErrorPolicy;
 use Mata\Services\Monitor\Dto\EndpointTarget;
 use Mata\Services\Monitor\Dto\ServerMonitoringServices;
 use Mata\Services\Monitor\LogSizeEvaluator;
@@ -189,7 +191,13 @@ class ServerViewBuilder
         $appsCacheTtl = (int) ($appsApiResponse['cache_ttl'] ?? 0);
 
         $appsAvailability = $this->checkAppsAvailability($rawAppsData, $reachabilityMonitor, $serverName);
-        $appsViewData = $this->enrichAppsWithMetrics($rawAppsData, $appsAvailability, $serverName, $collector);
+        $appsViewData = $this->enrichAppsWithMetrics(
+            $rawAppsData,
+            $appsAvailability,
+            $serverName,
+            $collector,
+            $this->buildFatalErrorPolicy($serverName, $serverConfig),
+        );
 
         // Extend base data with app information
         $serverData['apps'] = $appsViewData;
@@ -238,6 +246,25 @@ class ServerViewBuilder
     }
 
     /**
+     * Build the fatal-error alarm policy for a server, or null when unusable.
+     *
+     * @param array<string,mixed> $serverConfig
+     */
+    private function buildFatalErrorPolicy(string $serverName, array $serverConfig): ?AppFatalErrorPolicy
+    {
+        try {
+            return AppFatalErrorPolicy::fromServerConfig($serverConfig);
+        } catch (InvalidArgumentException $e) {
+            $this->logger->warning(
+                "Invalid error_monitoring_enabled for {$serverName}",
+                ['error' => $e->getMessage()]
+            );
+
+            return null;
+        }
+    }
+
+    /**
      * Prepare app view data with enrichments (logs, sessions, availability).
      *
      * @param array<string,mixed> $rawAppsData
@@ -249,14 +276,19 @@ class ServerViewBuilder
         array $rawAppsData,
         array $availabilityResults,
         string $serverName,
-        ServerDataCollectorInterface $collector
+        ServerDataCollectorInterface $collector,
+        ?AppFatalErrorPolicy $fatalErrorPolicy = null
     ): array {
         $appsViewData = [];
 
         foreach ($rawAppsData as $appKey => $appData) {
             $alarmsEnabled = ($appData['alarms_enabled'] ?? 'on') !== 'off';
 
-            $logAnalysis = $this->buildAppLogViewData($appData, $alarmsEnabled);
+            $logAnalysis = $this->buildAppLogViewData(
+                $appData,
+                $alarmsEnabled,
+                $this->resolveErrorAlarmsEnabled($fatalErrorPolicy, $appData),
+            );
 
             $sessionData = $this->formatSessionDataForView($appData);
 
@@ -272,9 +304,33 @@ class ServerViewBuilder
         return $appsViewData;
     }
 
-    /** @param array<string,mixed> $appData @return array<string,mixed> */
-    private function buildAppLogViewData(array $appData, bool $showAlarmsEnabledClass): array
+    /**
+     * Resolve the effective fatal-error alarm state for presentation.
+     *
+     * Invalid configuration is authoritatively reported by the monitoring cron,
+     * which logs it per server/app; the view must never fail to render over it.
+     *
+     * @param array<string,mixed> $appData
+     */
+    private function resolveErrorAlarmsEnabled(?AppFatalErrorPolicy $policy, array $appData): bool
     {
+        if (!$policy instanceof AppFatalErrorPolicy) {
+            return true;
+        }
+
+        try {
+            return $policy->isEnabled($appData);
+        } catch (InvalidArgumentException) {
+            return true;
+        }
+    }
+
+    /** @param array<string,mixed> $appData @return array<string,mixed> */
+    private function buildAppLogViewData(
+        array $appData,
+        bool $showAlarmsEnabledClass,
+        bool $errorAlarmsEnabled = true
+    ): array {
         $logs = $appData['logs'];
         $status = $appData['status'];
         $fatalCount = $this->numberFormatter->formatCompact($status['fatal']);
@@ -313,6 +369,7 @@ class ServerViewBuilder
                 'warning_count_raw' => (int) $status['warnings'],
                 'total_count_raw' => (int) $status['total'],
                 'first_log' => $firstLog,
+                'error_monitoring_enabled' => $errorAlarmsEnabled,
             ],
         ];
     }

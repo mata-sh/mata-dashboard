@@ -124,10 +124,15 @@ class LogRenderer extends BaseRenderer
     /**
      * Format error status tooltip.
      *
-     * @param string $firstLog     Path to first log file
-     * @param int    $fatalCount   Number of fatal errors
-     * @param int    $warningCount Number of warnings
-     * @param int    $totalCount   Total line count
+     * The counts always describe what the node actually observed. Fatal-error
+     * alarms can be switched off independently, so the alarm state is stated
+     * separately instead of altering the reported counts.
+     *
+     * @param string $firstLog           Path to first log file
+     * @param int    $fatalCount         Number of fatal errors
+     * @param int    $warningCount       Number of warnings
+     * @param int    $totalCount         Total line count
+     * @param bool   $errorAlarmsEnabled Effective fatal-error alarm state
      *
      * @return string HTML formatted tooltip content
      */
@@ -135,18 +140,21 @@ class LogRenderer extends BaseRenderer
         string $firstLog,
         int $fatalCount,
         int $warningCount,
-        int $totalCount
+        int $totalCount,
+        bool $errorAlarmsEnabled = true
     ): string {
         $fatalFormatted = $this->formatNumber($fatalCount);
         $warningFormatted = $this->formatNumber($warningCount);
         $totalFormatted = $this->formatNumber($totalCount);
+        $alarmState = $this->formatErrorAlarmState($errorAlarmsEnabled);
 
         // Check if there are any errors or warnings
         if ($fatalCount === 0 && $warningCount === 0) {
             return <<< HTML
                 {$this->escape($firstLog)}<br>
                 <span style='font-weight: bold; color:green'>✓ Works fine!</span><br>
-                {$totalFormatted} Total Lines
+                {$totalFormatted} Total Lines<br>
+                {$alarmState}
             HTML;
         }
 
@@ -154,7 +162,8 @@ class LogRenderer extends BaseRenderer
             {$this->escape($firstLog)}<br>
             <span style='color:red'>{$fatalFormatted} Errors</span> |
             <span style='color:orange'>{$warningFormatted} Warnings</span><br>
-            {$totalFormatted} Total Lines
+            {$totalFormatted} Total Lines<br>
+            {$alarmState}
         HTML;
     }
 
@@ -172,7 +181,16 @@ class LogRenderer extends BaseRenderer
             fatalCount: $errorAnalysisData['fatal_count_raw'] ?? 0,
             warningCount: $errorAnalysisData['warning_count_raw'] ?? 0,
             totalCount: $errorAnalysisData['total_count_raw'] ?? 0,
+            errorAlarmsEnabled: $errorAnalysisData['error_monitoring_enabled'] ?? true,
         );
+    }
+
+    /** Render the fatal-error alarm state line of the error status tooltip. */
+    private function formatErrorAlarmState(bool $enabled): string
+    {
+        return $enabled
+            ? "Error Alarms: <span style='color:green'>On</span>"
+            : "Error Alarms: <span style='color:gray'>Off</span>";
     }
 
     /**
