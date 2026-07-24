@@ -282,11 +282,8 @@ class ServerViewBuilder
         $appsViewData = [];
 
         foreach ($rawAppsData as $appKey => $appData) {
-            $alarmsEnabled = ($appData['alarms_enabled'] ?? 'on') !== 'off';
-
             $logAnalysis = $this->buildAppLogViewData(
                 $appData,
-                $alarmsEnabled,
                 $this->resolveErrorAlarmsEnabled($fatalErrorPolicy, $appData),
             );
 
@@ -326,11 +323,8 @@ class ServerViewBuilder
     }
 
     /** @param array<string,mixed> $appData @return array<string,mixed> */
-    private function buildAppLogViewData(
-        array $appData,
-        bool $showAlarmsEnabledClass,
-        bool $errorAlarmsEnabled = true
-    ): array {
+    private function buildAppLogViewData(array $appData, bool $errorAlarmsEnabled = true): array
+    {
         $logs = $appData['logs'];
         $status = $appData['status'];
         $fatalCount = $this->numberFormatter->formatCompact($status['fatal']);
@@ -338,12 +332,10 @@ class ServerViewBuilder
         $totalLineCount = $this->numberFormatter->formatCompact($status['total']);
         $showEventsCount = 0;
         $showEventsType = 'working';
-        $alarmsEnabledClass = '';
 
         if ($status['fatal'] > 0) {
             $showEventsCount = $fatalCount;
             $showEventsType = 'errors';
-            $alarmsEnabledClass = $showAlarmsEnabledClass ? 'alarms-enabled' : '';
         } elseif ($status['warnings'] > 0) {
             $showEventsCount = $warningCount;
             $showEventsType = 'warnings';
@@ -364,7 +356,6 @@ class ServerViewBuilder
                 'total_count' => $totalLineCount,
                 'show_events_count' => $showEventsCount,
                 'show_events_type' => $showEventsType,
-                'alarms_enabled_class' => $alarmsEnabledClass,
                 'fatal_count_raw' => (int) $status['fatal'],
                 'warning_count_raw' => (int) $status['warnings'],
                 'total_count_raw' => (int) $status['total'],

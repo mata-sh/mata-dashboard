@@ -136,13 +136,13 @@ final class ServerViewBuilderTest extends TestCase
         $result = $method->invoke($builder, [
             'logs' => ['/var/log/app/error.log' => 5000, '/var/log/app/debug.log' => 15000],
             'status' => ['fatal' => 3, 'warnings' => 2, 'total' => 200],
-        ], true);
+        ]);
 
         $this->assertSame('/var/log/app/debug.log', $result['log_analysis']['max_path']);
         $this->assertSame('15000 KB', $result['log_analysis']['max_size_formatted']);
         $this->assertSame('alarm', $result['log_analysis']['level']);
         $this->assertSame('errors', $result['error_analysis']['show_events_type']);
-        $this->assertSame('alarms-enabled', $result['error_analysis']['alarms_enabled_class']);
+        $this->assertArrayNotHasKey('alarms_enabled_class', $result['error_analysis']);
         $this->assertTrue($result['error_analysis']['error_monitoring_enabled']);
     }
 

@@ -16,7 +16,7 @@
         <span class="libis-security">2.0.6.0</span>        
     </span>  --> #}
   <span class="app-env {{ app.env }}" data-tippy-content="{{ app.path_tooltip }}">{{ app.env }}</span>
-  <span id="app-status-{{ app.id }}" class="app-status {{ config.errors_alarms_enabled }}" data-tippy-content="{{ app.status_tooltip }}" hx-get="{{ endpoints.modal_app_logs_render }}" hx-target="#modal-container" hx-trigger="click" hx-toggle="modal">
+  <span id="app-status-{{ app.id }}" class="app-status" data-tippy-content="{{ app.status_tooltip }}" hx-get="{{ endpoints.modal_app_logs_render }}" hx-target="#modal-container" hx-trigger="click" hx-toggle="modal">
     <span class="app-status-count {{ app.status_type }}">
       {% if app.status_count %}
         {{ app.status_count }}

@@ -164,7 +164,6 @@ class TooltipEscapingTest extends TestCase
                 'error_analysis' => [
                     'show_events_count' => 0,
                     'show_events_type' => 'working',
-                    'alarms_enabled_class' => '',
                 ],
                 'log_analysis' => [
                     'level' => 'good',

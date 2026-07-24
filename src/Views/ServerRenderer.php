@@ -476,10 +476,6 @@ class ServerRenderer extends BaseRenderer
                 'count_level' => $sessionData['level'],
                 'tooltip' => $sessionData['tooltip'],
             ],
-            'config' => [
-                // TODO: alarms_enabled_class sounds wrong?
-                'errors_alarms_enabled' => $logAnalysis['error_analysis']['alarms_enabled_class'],
-            ],
         ];
     }
 
