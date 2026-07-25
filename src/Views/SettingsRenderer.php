@@ -82,10 +82,13 @@ class SettingsRenderer extends BaseRenderer
             ['name' => 'notification_rules.json', 'description' => 'Controls notification enablement and email routing.', 'path' => $configRoot . '/notification_rules.json'],
             ['name' => 'data_retention.json', 'description' => 'Controls metric, event, and alarm retention.', 'path' => $configRoot . '/data_retention.json'],
             ['name' => 'intervals.json', 'description' => 'Controls event and alarm cooldown intervals.', 'path' => $configRoot . '/intervals.json'],
+            ['name' => 'probes.json', 'description' => 'Controls probe timeout, retry, and backoff behaviour.', 'path' => $configRoot . '/probes.json'],
+            ['name' => 'menu.json', 'description' => 'Overrides top-menu item visibility.', 'path' => $configRoot . '/menu.json'],
             ['name' => 'users.json', 'description' => 'Stores dashboard user accounts and authentication data.', 'path' => $usersFilePath],
         ];
 
         $knownPaths = array_column($files, 'path');
+        $additional = [];
         if (is_dir($configRoot) && is_readable($configRoot)) {
             try {
                 foreach (new DirectoryIterator($configRoot) as $file) {
@@ -100,7 +103,7 @@ class SettingsRenderer extends BaseRenderer
                         continue;
                     }
 
-                    $files[] = [
+                    $additional[] = [
                         'name' => $file->getFilename(),
                         'description' => 'Additional dashboard configuration file.',
                         'path' => $path,
@@ -111,6 +114,10 @@ class SettingsRenderer extends BaseRenderer
                 // Expected file metadata remains available when the directory cannot be listed.
             }
         }
+
+        // Directory iteration order is filesystem-dependent, so sort for a stable listing.
+        usort($additional, static fn (array $a, array $b): int => strcmp($a['name'], $b['name']));
+        $files = array_merge($files, $additional);
 
         return array_map(function (array $file) {
             return [

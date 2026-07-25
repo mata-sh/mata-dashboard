@@ -33,6 +33,8 @@ final class SettingsRendererTest extends TestCase
         file_put_contents($configPath . '/limits.json', '{}');
         file_put_contents($configPath . '/thresholds.json', '{}');
         file_put_contents($configPath . '/events.json', '{}');
+        file_put_contents($configPath . '/zz-extra.json', '{}');
+        file_put_contents($configPath . '/aa-extra.env', 'A=1');
 
         try {
             $method = new ReflectionMethod(SettingsRenderer::class, 'buildConfigFilesMetadata');
@@ -51,14 +53,20 @@ final class SettingsRendererTest extends TestCase
                     'notification_rules.json',
                     'data_retention.json',
                     'intervals.json',
+                    'probes.json',
+                    'menu.json',
                     'users.json',
+                    'aa-extra.env',
                     'events.json',
+                    'zz-extra.json',
                 ],
                 array_column($files, 'name')
             );
             $this->assertTrue($filesByName['limits.json']['exists']);
             $this->assertTrue($filesByName['thresholds.json']['exists']);
             $this->assertFalse($filesByName['notification_rules.json']['exists']);
+            $this->assertFalse($filesByName['probes.json']['exists']);
+            $this->assertFalse($filesByName['menu.json']['exists']);
             $this->assertTrue($filesByName['events.json']['exists']);
             $this->assertFalse($filesByName['users.json']['exists']);
         } finally {
