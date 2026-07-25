@@ -11,10 +11,12 @@ use Mata\Controllers\LoginController;
 use Mata\Controllers\MetricsController;
 use Mata\Controllers\ModalController;
 use Mata\Core\App;
+use Mata\Http\Responses\HtmlResponse;
 use Mata\Http\Responses\Response;
 use Mata\Http\Responses\ResponseFactory;
 use Mata\Http\Security\CsrfGuard;
 use Mata\Http\Security\RouteParameter;
+use Twig\Environment;
 
 /**
  * Centralizes routing configuration including authentication, rate limiting, and error handling.
@@ -35,6 +37,7 @@ class RouterSetup
     private MetricsController $metricsController;
     private Endpoints $endpoints;
     private CsrfGuard $csrf;
+    private Environment $twig;
     private string $baseRoute;
 
     /**
@@ -51,7 +54,8 @@ class RouterSetup
         ModalController $modalController,
         MetricsController $metricsController,
         Endpoints $endpoints,
-        CsrfGuard $csrf
+        CsrfGuard $csrf,
+        Environment $twig
     ) {
         $this->router = $router;
         $this->app = $app;
@@ -62,6 +66,7 @@ class RouterSetup
         $this->metricsController = $metricsController;
         $this->endpoints = $endpoints;
         $this->csrf = $csrf;
+        $this->twig = $twig;
     }
 
     /**
@@ -167,12 +172,32 @@ class RouterSetup
             $clientIp = $_SERVER['REMOTE_ADDR'];
 
             if (!in_array($clientIp, $config->allowedIps, true)) {
-                error_log("SECURITY: Blocked IP access to login: {$clientIp}");
-                http_response_code(403);
+                error_log("SECURITY: Blocked IP access: {$clientIp}");
+                $this->ipAccessDeniedResponse()->send();
 
-                exit('Access forbidden');
+                exit;
             }
         });
+    }
+
+    private function ipAccessDeniedResponse(): Response
+    {
+        if (ResponseFactory::expectsJson()) {
+            return ResponseFactory::forbidden('Access forbidden');
+        }
+
+        return new HtmlResponse(
+            $this->twig->render('pages/error.html.twig', [
+                'asset_base_url' => rtrim($this->app->getBasePath(), '/') . '/assets',
+                'error' => [
+                    'type' => 'error',
+                    'title' => 'Access forbidden',
+                    'heading' => 'Access denied',
+                    'message' => 'This network is not allowed to access the application.',
+                ],
+            ]),
+            403
+        );
     }
 
     /**

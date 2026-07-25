@@ -36,8 +36,6 @@ use Mata\Models\AlarmRepository;
 use Mata\Models\AppFatalStateRepository;
 use Mata\Models\ConfigSyncRepository;
 use Mata\Models\EventRepository;
-use Mata\Services\ServerMetrics\ServerMetricsQueryFactory;
-use Mata\Services\Identity\ServerApplicationIdResolver;
 use Mata\Services\Alarm\AlarmCreator;
 use Mata\Services\Alarm\AlarmDirectProcessor;
 use Mata\Services\Alarm\AlarmQueueFailureThrottle;
@@ -51,6 +49,7 @@ use Mata\Services\DataTransformers\ChartDataTransformer;
 use Mata\Services\DataTransformers\LogDataTransformer;
 use Mata\Services\Event\EventManager;
 use Mata\Services\Event\EventRecorderService;
+use Mata\Services\Identity\ServerApplicationIdResolver;
 use Mata\Services\Metrics\MetricCatalog;
 use Mata\Services\Monitor\Dto\AppReachabilityPolicy;
 use Mata\Services\Monitor\Dto\DashboardMonitoringContext;
@@ -60,6 +59,7 @@ use Mata\Services\Monitor\ServerMonitoringFactory;
 use Mata\Services\Navigation\MenuBuilder;
 use Mata\Services\Notification\NotificationManager;
 use Mata\Services\Runtime\DashboardEnvironmentFactory;
+use Mata\Services\ServerMetrics\ServerMetricsQueryFactory;
 use Mata\Services\Sync\AppInventorySync;
 use Mata\Services\Sync\SettingsDatabaseSync;
 use Mata\Services\Validation\MetricsRequestValidator;
@@ -565,7 +565,8 @@ $routerSetup = new RouterSetup(
     $modalController,
     $metricsController,
     $endpoints,
-    $csrf
+    $csrf,
+    $twig
 );
 
 $routerSetup->setup();

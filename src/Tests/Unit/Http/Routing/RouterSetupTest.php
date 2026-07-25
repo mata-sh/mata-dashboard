@@ -13,6 +13,7 @@ use Mata\Controllers\MetricsController;
 use Mata\Controllers\ModalController;
 use Mata\Core\App;
 use Mata\Core\Auth;
+use Mata\Http\Responses\HtmlResponse;
 use Mata\Http\Routing\Endpoints;
 use Mata\Http\Routing\RouterSetup;
 use Mata\Http\Security\CsrfGuard;
@@ -21,6 +22,7 @@ use Mata\Tests\TestCase;
 use PHPUnit\Framework\Attributes\DataProvider;
 use ReflectionClass;
 use RuntimeException;
+use Twig\Environment;
 
 /**
  * @covers \Mata\Http\Routing\RouterSetup
@@ -57,6 +59,44 @@ class RouterSetupTest extends TestCase
         $this->assertTrue($this->routeMatchesAnyPattern('/login', ['/(?!health$).*']));
         $this->assertTrue($this->routeMatchesAnyPattern('/watch', ['/(?!health$).*']));
         $this->assertFalse($this->routeMatchesAnyPattern('/health', ['/(?!health$).*']));
+    }
+
+    public function testItRendersBrandedForbiddenPageForBlockedBrowserRequests(): void
+    {
+        $server = $_SERVER;
+        unset($_SERVER['HTTP_ACCEPT'], $_SERVER['HTTP_HX_REQUEST']);
+        $_SERVER['REQUEST_URI'] = '/watch';
+
+        try {
+            $twig = $this->createMock(Environment::class);
+            $twig->expects($this->once())
+                ->method('render')
+                ->with(
+                    'pages/error.html.twig',
+                    $this->callback(static fn (array $context): bool => $context === [
+                        'asset_base_url' => '/assets',
+                        'error' => [
+                            'type' => 'error',
+                            'title' => 'Access forbidden',
+                            'heading' => 'Access denied',
+                            'message' => 'This network is not allowed to access the application.',
+                        ],
+                    ])
+                )
+                ->willReturn('<html>Access denied</html>')
+            ;
+
+            $response = $this->invokeMethod(
+                $this->createRouterSetup(twig: $twig),
+                'ipAccessDeniedResponse'
+            );
+
+            $this->assertInstanceOf(HtmlResponse::class, $response);
+            $this->assertSame(403, $response->getStatusCode());
+            $this->assertSame('<html>Access denied</html>', $response->getContent());
+        } finally {
+            $_SERVER = $server;
+        }
     }
 
     public function testItRunsAuthenticationMiddlewareForTheWatchRootRoute(): void
@@ -341,7 +381,8 @@ class RouterSetupTest extends TestCase
     private function createRouterSetup(
         ?Router $router = null,
         ?App $app = null,
-        ?Endpoints $endpoints = null
+        ?Endpoints $endpoints = null,
+        ?Environment $twig = null
     ): RouterSetup {
         return new RouterSetup(
             $router ?? $this->createStub(Router::class),
@@ -352,7 +393,8 @@ class RouterSetupTest extends TestCase
             $this->createStub(ModalController::class),
             $this->createMetricsController(),
             $endpoints ?? new Endpoints(),
-            new CsrfGuard()
+            new CsrfGuard(),
+            $twig ?? $this->createStub(Environment::class)
         );
     }
 
