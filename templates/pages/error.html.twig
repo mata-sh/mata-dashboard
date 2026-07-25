@@ -27,9 +27,28 @@
       src: url("{{ asset_base_url }}/fonts/nunito/nunito-700-latin.woff2") format("woff2");
     }
 
+    :root {
+      --surface-base: #0b0d12;
+      --surface-panel: #0e1015;
+      --surface-raised: #12151c;
+      --surface-control: #10131a;
+      --border-default: #1f242e;
+      --border-control: #262c38;
+      --text-bright: #e8eaf0;
+      --text-body: #c9cfda;
+      --text-muted: #8b93a5;
+      --accent-border: #3f93a6;
+      --accent-fill: #10262b;
+      --accent-text: #9fe8f2;
+      --sev-critical-border: #e05561;
+      --sev-critical-tint: #f09595;
+      --sev-medium-border: #c4a53a;
+      --sev-medium-tint: #e3ce7a;
+    }
+
     * { box-sizing: border-box; }
 
-    body { margin: 0; }
+    body { margin: 0; background: var(--surface-base); color: var(--text-body); }
 
     .error-page {
       min-height: 100vh;
@@ -37,41 +56,45 @@
       align-items: center;
       justify-content: center;
       padding: 24px 16px;
-      background: linear-gradient(135deg, #999 0%, #fff 100%);
+      background:
+        radial-gradient(circle at 50% -20%, rgba(63, 147, 166, .16), transparent 48%),
+        var(--surface-base);
       font-family: "Nunito", Arial, sans-serif;
     }
 
     .error-card {
       width: 100%;
-      max-width: 760px;
-      background: #fff;
+      max-width: 680px;
+      background: var(--surface-panel);
+      border: 1px solid var(--border-default);
       border-radius: 8px;
       overflow: hidden;
-      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+      box-shadow: 0 12px 28px rgba(0, 0, 0, .45);
     }
 
     .error-card[data-type="warning"] {
-      --error-bg: #fff3cd;
-      --error-border: #ffc107;
-      --error-text: #856404;
+      --error-bg: rgba(156, 124, 20, .12);
+      --error-border: var(--sev-medium-border);
+      --error-text: var(--sev-medium-tint);
     }
 
     .error-card[data-type="error"] {
-      --error-bg: #f8d7da;
-      --error-border: #dc3545;
-      --error-text: #721c24;
+      --error-bg: rgba(194, 42, 53, .12);
+      --error-border: var(--sev-critical-border);
+      --error-text: var(--sev-critical-tint);
     }
 
     .error-card[data-type="info"] {
-      --error-bg: #d1ecf1;
-      --error-border: #17a2b8;
-      --error-text: #0c5460;
+      --error-bg: var(--accent-fill);
+      --error-border: var(--accent-border);
+      --error-text: var(--accent-text);
     }
 
     .error-header {
-      background: var(--error-bg);
-      border-left: 4px solid var(--error-border);
-      padding: 28px 30px;
+      background: var(--surface-raised);
+      border-bottom: 1px solid var(--border-default);
+      border-left: 3px solid var(--error-border);
+      padding: 24px 28px;
       color: var(--error-text);
       display: flex;
       align-items: center;
@@ -82,8 +105,9 @@
       width: 34px;
       height: 34px;
       border-radius: 999px;
-      background: var(--error-border);
-      color: #fff;
+      background: var(--error-bg);
+      border: 1px solid var(--error-border);
+      color: var(--error-text);
       display: inline-flex;
       align-items: center;
       justify-content: center;
@@ -96,18 +120,19 @@
       font-size: 13px;
       letter-spacing: 0.04em;
       text-transform: uppercase;
-      opacity: 0.8;
+      color: var(--text-muted);
     }
 
     .error-title {
       font-size: 24px;
-      font-weight: 600;
+      font-weight: 700;
+      color: var(--text-bright);
       margin: 2px 0 0;
     }
 
     .error-body {
-      padding: 28px 30px;
-      color: #333;
+      padding: 28px;
+      color: var(--text-body);
     }
 
     .error-message {
@@ -120,7 +145,7 @@
     .error-subtitle {
       display: block;
       margin-bottom: 8px;
-      color: #555;
+      color: var(--text-body);
       font-weight: 600;
     }
 
@@ -133,23 +158,24 @@
     .error-list li {
       padding: 8px 12px;
       margin: 6px 0;
-      background: #f8f9fa;
-      border-left: 3px solid var(--error-border);
-      border-radius: 3px;
+      background: var(--surface-control);
+      border-left: 2px solid var(--error-border);
+      border-radius: 4px;
       font-family: "Courier New", monospace;
       font-size: 14px;
     }
 
-    .error-technical { color: #6c757d; font-size: 14px; }
+    .error-technical { color: var(--text-muted); font-size: 14px; }
 
     .error-technical code,
     .error-command code {
-      background: #f8f9fa;
+      background: var(--surface-control);
       padding: 2px 6px;
+      border: 1px solid var(--border-control);
       border-radius: 3px;
       font-family: "Courier New", monospace;
       font-size: 13px;
-      color: #e83e8c;
+      color: var(--accent-text);
     }
 
     .error-hint {
@@ -163,11 +189,11 @@
     }
 
     .error-footer {
-      background: #f8f9fa;
-      padding: 18px 30px;
-      border-top: 1px solid #dee2e6;
+      background: var(--surface-raised);
+      padding: 18px 28px;
+      border-top: 1px solid var(--border-default);
       font-size: 14px;
-      color: #6c757d;
+      color: var(--text-muted);
     }
 
     .error-doc-link {
@@ -176,15 +202,16 @@
       gap: 8px;
       margin-top: 12px;
       padding: 10px 16px;
-      background: var(--error-border);
-      color: #fff;
+      background: var(--accent-fill);
+      border: 1px solid var(--accent-border);
+      color: var(--accent-text);
       text-decoration: none;
       border-radius: 5px;
       font-weight: 600;
-      transition: opacity 0.2s;
+      transition: background 0.2s;
     }
 
-    .error-doc-link:hover { opacity: 0.85; }
+    .error-doc-link:hover { background: #153238; }
     .error-doc-icon { font-size: 18px; }
   </style>
 </head>
