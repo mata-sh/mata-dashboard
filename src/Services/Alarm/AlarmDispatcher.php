@@ -12,7 +12,6 @@ use Mata\Services\Alarm\Dto\Alarm;
 use Mata\Services\Alarm\Dto\AlarmEmailView;
 use Mata\Services\Alarm\Dto\AlarmLevel;
 use Mata\Services\Alarm\Dto\QueuedAlarmDelivery;
-use Mata\Utils\AlarmLimitHelper;
 use Psr\Log\LoggerInterface;
 use Psr\Log\NullLogger;
 use RuntimeException;
@@ -101,7 +100,7 @@ final class AlarmDispatcher
                 'channel' => $channel,
                 'limit' => $limit,
             ]);
-            $spacing = AlarmLimitHelper::calculateSpacingSeconds($limit);
+            $spacing = AlarmDispatchSpacingCalculator::calculateSpacingSeconds($limit);
             $nextRetry = $spacing > 0 ? $now->add(new DateInterval('PT' . $spacing . 'S')) : null;
             $this->deliveryRepository->updateStatus($queuedDelivery->id, 'pending', $queuedDelivery->attempts, $nextRetry);
 

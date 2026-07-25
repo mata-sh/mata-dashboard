@@ -16,7 +16,7 @@ use Mata\Models\AppFatalStateRepository;
 use Mata\Services\Cache\ApiCacheKeyFactory;
 use Mata\Services\Cache\CacheStoreInterface;
 use Mata\Services\Cache\CacheTtlResolver;
-use Mata\Services\DataTransformers\ApiResponseTransformer;
+use Mata\Services\Collect\NodeResponseNormalizer;
 use Mata\Services\Event\EventAggregatorServiceInterface;
 use Mata\Services\Event\EventManager;
 use Mata\Services\Identity\ServerApplicationIdResolver;
@@ -1107,7 +1107,7 @@ class DashboardControllerTest extends TestCase
             $this->cacheKeyFactory,
             $this->ttlResolver,
             $this->eventManager,
-            new ApiResponseTransformer($this->logger),
+            new NodeResponseNormalizer($this->logger),
             new HttpProbeClient(),
             AppReachabilityPolicy::fromSettings($this->monitoringSettings),
             new ServerApplicationIdResolver(),

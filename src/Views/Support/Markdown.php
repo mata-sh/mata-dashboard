@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Mata\Utils;
+namespace Mata\Views\Support;
 
 use League\CommonMark\GithubFlavoredMarkdownConverter;
 use League\CommonMark\Output\RenderedContentInterface;

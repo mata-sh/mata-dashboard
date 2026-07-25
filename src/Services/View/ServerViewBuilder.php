@@ -21,8 +21,8 @@ use Mata\Services\Monitor\LogSizeEvaluator;
 use Mata\Services\Monitor\NodeHealthMonitorInterface;
 use Mata\Services\Monitor\ServerMonitor;
 use Mata\Services\Sync\AppInventorySync;
-use Mata\Utils\Html;
-use Mata\Utils\NumberFormatter;
+use Mata\Views\Support\Html;
+use Mata\Views\Support\NumberFormatter;
 use Monolog\Logger;
 use Throwable;
 

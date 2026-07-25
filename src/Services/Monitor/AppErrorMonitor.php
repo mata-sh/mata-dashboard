@@ -13,7 +13,7 @@ use Mata\Services\Identity\ServerApplicationIdResolver;
 use Mata\Services\Monitor\Dto\AppErrorMonitoringResult;
 use Mata\Services\Monitor\Dto\AppFatalErrorPolicy;
 use Mata\Services\Monitor\Dto\AppLogSizePolicy;
-use Mata\Utils\NumberFormatter;
+use Mata\Views\Support\NumberFormatter;
 use Psr\Log\LoggerInterface;
 use RuntimeException;
 use Throwable;

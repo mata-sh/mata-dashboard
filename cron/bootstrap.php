@@ -7,7 +7,7 @@ use Mata\Config\EnvConfigLoader;
 use Mata\Config\LogConfigurator;
 use Mata\Core\Database;
 use Mata\Core\NullDatabase;
-use Mata\Utils\CronJob;
+use Mata\Services\Cron\CronJob;
 use Mata\Utils\PathResolver;
 use Mata\Utils\Tools;
 use Symfony\Component\Mailer\Mailer;

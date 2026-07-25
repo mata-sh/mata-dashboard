@@ -6,7 +6,7 @@ namespace Mata\Tests\Unit\Services;
 
 use Mata\Services\Cache\CacheTtlResolver;
 use Mata\Services\Collect\MockServerDataCollector;
-use Mata\Services\DataTransformers\ApiResponseTransformer;
+use Mata\Services\Collect\NodeResponseNormalizer;
 use PHPUnit\Framework\TestCase;
 use Psr\Log\NullLogger;
 
@@ -23,7 +23,7 @@ final class MockServerDataCollectorTest extends TestCase
         $collector = new MockServerDataCollector(
             $logger,
             new CacheTtlResolver([]),
-            new ApiResponseTransformer($logger),
+            new NodeResponseNormalizer($logger),
             'database-server',
             ['url' => 'https://database-server.example.test'],
         );
@@ -64,7 +64,7 @@ final class MockServerDataCollectorTest extends TestCase
         $collector = new MockServerDataCollector(
             $logger,
             new CacheTtlResolver([]),
-            new ApiResponseTransformer($logger),
+            new NodeResponseNormalizer($logger),
             'production-web',
             ['url' => 'https://production-web.example.test'],
         );
@@ -78,7 +78,7 @@ final class MockServerDataCollectorTest extends TestCase
     public function testNonProductionServersUseTheirGeneratedBaseCpuUsage(): void
     {
         $logger = new NullLogger();
-        $transformer = new ApiResponseTransformer($logger);
+        $normalizer = new NodeResponseNormalizer($logger);
         $cpuRanges = [
             'database-server' => [25, 45],
             'staging-server' => [10, 30],
@@ -91,7 +91,7 @@ final class MockServerDataCollectorTest extends TestCase
             $collector = new MockServerDataCollector(
                 $logger,
                 new CacheTtlResolver([]),
-                $transformer,
+                $normalizer,
                 $server,
                 ['url' => 'https://' . $server . '.example.test'],
             );
@@ -105,13 +105,13 @@ final class MockServerDataCollectorTest extends TestCase
     public function testDemoAppsAlwaysMatchTheAppsResponseContract(): void
     {
         $logger = new NullLogger();
-        $transformer = new ApiResponseTransformer($logger);
+        $normalizer = new NodeResponseNormalizer($logger);
 
         foreach (['database-server', 'backup-server'] as $server) {
             $collector = new MockServerDataCollector(
                 $logger,
                 new CacheTtlResolver([]),
-                $transformer,
+                $normalizer,
                 $server,
                 ['url' => 'https://' . $server . '.example.test'],
             );

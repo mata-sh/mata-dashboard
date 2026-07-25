@@ -14,8 +14,8 @@ use Mata\Services\Monitor\Dto\AppLogSizePolicy;
 use Mata\Services\Monitor\LogSizeEvaluator;
 use Mata\Tests\Helpers\SqliteTestDatabase;
 use Mata\Tests\TestCase;
-use Mata\Utils\NumberFormatter;
 use Mata\Utils\Tools;
+use Mata\Views\Support\NumberFormatter;
 use PHPUnit\Framework\MockObject\MockObject;
 use Psr\Log\NullLogger;
 

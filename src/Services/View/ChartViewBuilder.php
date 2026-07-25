@@ -6,6 +6,7 @@ namespace Mata\Services\View;
 
 use InvalidArgumentException;
 use Mata\Services\DataTransformers\ChartDataTransformer;
+use Mata\Services\Metrics\MetricCatalog;
 use Mata\Services\Validation\MetricsRequestValidator;
 use Mata\Views\MetricsRenderer;
 
@@ -50,21 +51,11 @@ class ChartViewBuilder
 
     private const DASHBOARD_DATA_ENDPOINT = '/api/metrics/dashboard';
 
-    /** @var string[] */
-    private const SUPPORTED_METRICS = [
-        'cpu',
-        'ram_percent',
-        'ram_used',
-        'disk_percent',
-        'disk_used',
-        'file_count',
-        'process_count',
-    ];
-
     private MetricsViewBuilder $metricsViewBuilder;
     private MetricsRenderer $metricsRenderer;
     private MetricsRequestValidator $validator;
     private ChartDataTransformer $chartTransformer;
+    private MetricCatalog $metricCatalog;
 
     /** @var array<string,mixed> */
     private array $serversConfig;
@@ -77,12 +68,14 @@ class ChartViewBuilder
         MetricsRenderer $metricsRenderer,
         MetricsRequestValidator $validator,
         ChartDataTransformer $chartTransformer,
+        MetricCatalog $metricCatalog,
         array $serversConfig
     ) {
         $this->metricsViewBuilder = $metricsViewBuilder;
         $this->metricsRenderer = $metricsRenderer;
         $this->validator = $validator;
         $this->chartTransformer = $chartTransformer;
+        $this->metricCatalog = $metricCatalog;
         $this->serversConfig = $serversConfig;
     }
 
@@ -356,7 +349,7 @@ class ChartViewBuilder
                 $label = $this->metricsRenderer->getMetricLabel($metricKey);
             }
 
-            if (!in_array($metricKey, self::SUPPORTED_METRICS, true)) {
+            if (!$this->metricCatalog->supports($metricKey)) {
                 continue;
             }
 

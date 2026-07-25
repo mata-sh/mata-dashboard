@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Mata\Tests\Unit\Services\Validation;
 
+use Mata\Services\Metrics\MetricCatalog;
 use Mata\Services\Validation\MetricsRequestValidator;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
@@ -18,7 +19,7 @@ final class MetricsRequestValidatorTest extends TestCase
     #[DataProvider('automaticGranularityRanges')]
     public function testResolvesAutomaticGranularityAtRangeBoundaries(string $range, string $expected): void
     {
-        $validator = new MetricsRequestValidator([], ['auto', 'raw', 'hourly', 'daily']);
+        $validator = new MetricsRequestValidator(new MetricCatalog());
 
         self::assertSame($expected, $validator->resolveGranularity($range, 'auto'));
     }

@@ -8,7 +8,7 @@ use Mata\Services\Cache\CacheTtlResolver;
 use Mata\Services\Cache\FileCacheStore;
 use Mata\Services\Cron\ServerDataFetchRunner;
 use Mata\Services\Cron\ServerDataFetchStats;
-use Mata\Services\DataTransformers\ApiResponseTransformer;
+use Mata\Services\Collect\NodeResponseNormalizer;
 use Mata\Services\Monitor\HttpProbeClient;
 use Mata\Services\Monitor\LogSizeEvaluator;
 use Mata\Services\Monitor\Dto\AppReachabilityPolicy;
@@ -38,7 +38,7 @@ try {
         new ApiCacheKeyFactory(),
         $ttlResolver,
         $eventManager,
-        new ApiResponseTransformer($log),
+        new NodeResponseNormalizer($log),
         new HttpProbeClient(),
         AppReachabilityPolicy::fromSettings($monitoringSettings),
         $idResolver,

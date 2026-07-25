@@ -2,14 +2,14 @@
 
 declare(strict_types=1);
 
-namespace Mata\Utils;
+namespace Mata\Services\Alarm;
 
 use Mata\Services\Alarm\Dto\AlarmLimit;
 
 /**
  * Helper utilities for working with {@see AlarmLimit} windows.
  */
-final class AlarmLimitHelper
+final class AlarmDispatchSpacingCalculator
 {
     private function __construct() {}
 

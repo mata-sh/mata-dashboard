@@ -11,6 +11,7 @@ use Mata\Http\Responses\HtmlResponse;
 use Mata\Http\Responses\JsonResponse;
 use Mata\Http\Responses\Response;
 use Mata\Services\Cache\MetricsCacheService;
+use Mata\Services\Metrics\MetricCatalog;
 use Mata\Services\Validation\MetricsRequestValidator;
 use Mata\Services\Validation\MetricsValidationResult;
 use Mata\Services\View\ChartViewBuilder;
@@ -163,6 +164,7 @@ class MetricsControllerTest extends TestCase
             $this->mockCacheService,
             $this->mockValidator,
             $this->mockChartViewBuilder,
+            new MetricCatalog(),
             $this->testServersConfig,
             300, // Cache TTL
             $this->testDashboardChartConfig,

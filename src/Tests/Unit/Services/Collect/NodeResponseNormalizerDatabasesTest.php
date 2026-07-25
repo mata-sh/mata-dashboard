@@ -2,23 +2,23 @@
 
 declare(strict_types=1);
 
-namespace Mata\Tests\Unit\Services\DataTransformers;
+namespace Mata\Tests\Unit\Services\Collect;
 
-use Mata\Services\DataTransformers\ApiResponseTransformer;
+use Mata\Services\Collect\NodeResponseNormalizer;
 use PHPUnit\Framework\TestCase;
 use Psr\Log\LoggerInterface;
 use Psr\Log\NullLogger;
 
 /**
- * @covers \Mata\Services\DataTransformers\ApiResponseTransformer
+ * @covers \Mata\Services\Collect\NodeResponseNormalizer
  *
  * @internal
  */
-final class ApiResponseTransformerDatabasesTest extends TestCase
+final class NodeResponseNormalizerDatabasesTest extends TestCase
 {
     public function testNormalizesDatabaseEntryToTheCanonicalContract(): void
     {
-        $normalized = $this->transformer()->normalizeDatabaseData([
+        $normalized = $this->normalizer()->normalizeDatabaseData([
             'processes' => ['sql' => '4'],
             'databases' => [
                 'main' => [
@@ -69,7 +69,7 @@ final class ApiResponseTransformerDatabasesTest extends TestCase
 
     public function testNullsInvalidPortsAndCounts(): void
     {
-        $normalized = $this->transformer()->normalizeDatabaseData([
+        $normalized = $this->normalizer()->normalizeDatabaseData([
             'processes' => ['sql' => 0],
             'databases' => [
                 'port_zero' => ['port' => 0],
@@ -100,7 +100,7 @@ final class ApiResponseTransformerDatabasesTest extends TestCase
 
     public function testPreservesDatabaseMapKeyOrderIncludingNumericLookingKeys(): void
     {
-        $normalized = $this->transformer()->normalizeDatabaseData([
+        $normalized = $this->normalizer()->normalizeDatabaseData([
             'processes' => ['sql' => 0],
             'databases' => [
                 'first' => [],
@@ -114,7 +114,7 @@ final class ApiResponseTransformerDatabasesTest extends TestCase
 
     public function testFiltersInvalidProcessListRows(): void
     {
-        $normalized = $this->transformer()->normalizeDatabaseData([
+        $normalized = $this->normalizer()->normalizeDatabaseData([
             'processes' => ['sql' => 0],
             'databases' => [
                 'main' => [
@@ -143,7 +143,7 @@ final class ApiResponseTransformerDatabasesTest extends TestCase
                     && $context['database'] === 'broken'),
             );
 
-        $normalized = (new ApiResponseTransformer($logger))->normalizeDatabaseData([
+        $normalized = (new NodeResponseNormalizer($logger))->normalizeDatabaseData([
             'processes' => ['sql' => 0],
             'databases' => ['broken' => 'invalid'],
         ]);
@@ -153,7 +153,7 @@ final class ApiResponseTransformerDatabasesTest extends TestCase
 
     public function testReplacesEntryWithNonScalarConnectionErrorWithSyntheticError(): void
     {
-        $normalized = $this->transformer()->normalizeDatabaseData([
+        $normalized = $this->normalizer()->normalizeDatabaseData([
             'processes' => ['sql' => 0],
             'databases' => ['broken' => ['connection_error' => ['invalid']]],
         ]);
@@ -163,11 +163,11 @@ final class ApiResponseTransformerDatabasesTest extends TestCase
 
     public function testKeepsAbsentDatabasesAbsentAndAcceptsNullAndEmptyMaps(): void
     {
-        $transformer = $this->transformer();
+        $normalizer = $this->normalizer();
 
-        $absent = $transformer->normalizeDatabaseData(['processes' => ['sql' => 0]]);
-        $null = $transformer->normalizeDatabaseData(['processes' => ['sql' => 0], 'databases' => null]);
-        $empty = $transformer->normalizeDatabaseData(['processes' => ['sql' => 0], 'databases' => []]);
+        $absent = $normalizer->normalizeDatabaseData(['processes' => ['sql' => 0]]);
+        $null = $normalizer->normalizeDatabaseData(['processes' => ['sql' => 0], 'databases' => null]);
+        $empty = $normalizer->normalizeDatabaseData(['processes' => ['sql' => 0], 'databases' => []]);
 
         $this->assertArrayNotHasKey('databases', $absent);
         $this->assertArrayNotHasKey('databases', $null);
@@ -176,7 +176,7 @@ final class ApiResponseTransformerDatabasesTest extends TestCase
 
     public function testReturnsErrorEnvelopeForNonMapDatabasesValue(): void
     {
-        $response = $this->transformer()->normalizeApiResponse([
+        $response = $this->normalizer()->normalizeApiResponse([
             'processes' => ['sql' => 0],
             'databases' => 'invalid',
         ], path: 'server/databases');
@@ -189,8 +189,8 @@ final class ApiResponseTransformerDatabasesTest extends TestCase
 
     public function testDatabaseNormalizationIsIdempotent(): void
     {
-        $transformer = $this->transformer();
-        $normalized = $transformer->normalizeDatabaseData([
+        $normalizer = $this->normalizer();
+        $normalized = $normalizer->normalizeDatabaseData([
             'processes' => ['sql' => '2'],
             'databases' => [
                 'main' => [
@@ -201,12 +201,12 @@ final class ApiResponseTransformerDatabasesTest extends TestCase
             ],
         ]);
 
-        $this->assertSame($normalized, $transformer->normalizeDatabaseData($normalized));
+        $this->assertSame($normalized, $normalizer->normalizeDatabaseData($normalized));
     }
 
-    private function transformer(): ApiResponseTransformer
+    private function normalizer(): NodeResponseNormalizer
     {
-        return new ApiResponseTransformer(new NullLogger());
+        return new NodeResponseNormalizer(new NullLogger());
     }
 
     /**

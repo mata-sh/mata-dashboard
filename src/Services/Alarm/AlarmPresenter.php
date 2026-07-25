@@ -8,7 +8,7 @@ use Mata\Services\Alarm\Dto\Alarm;
 use Mata\Services\Alarm\Dto\AlarmEnvironment;
 use Mata\Services\Alarm\Dto\AlarmMetric;
 use Mata\Services\Alarm\Dto\AlarmPresentation;
-use Mata\Utils\NumberFormatter;
+use Mata\Views\Support\NumberFormatter;
 
 /** Builds the presentation of an alarm for alarm emails. */
 final class AlarmPresenter

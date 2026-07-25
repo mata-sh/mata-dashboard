@@ -10,7 +10,6 @@ use Mata\Constants\CacheTypes;
 use Mata\Services\Cache\ApiCacheKeyFactory;
 use Mata\Services\Cache\CacheStoreInterface;
 use Mata\Services\Cache\CacheTtlResolver;
-use Mata\Services\DataTransformers\ApiResponseTransformer;
 use Psr\Log\LoggerInterface;
 use RuntimeException;
 
@@ -30,17 +29,17 @@ class ServerDataCollector implements ServerDataCollectorInterface
     private ApiCacheKeyFactory $cacheKeyFactory;
     private CacheTtlResolver $ttlResolver;
     private NodeApiClient $apiClient;
-    private ApiResponseTransformer $dataTransformer;
+    private NodeResponseNormalizer $responseNormalizer;
 
     /**
      * Initialize server data collector with coordinated services.
      *
-     * @param LoggerInterface        $logger          PSR-3 logger for system logging and debugging
-     * @param CacheStoreInterface    $cacheStore      Cache persistence service
-     * @param ApiCacheKeyFactory     $cacheKeyFactory API cache key factory
-     * @param CacheTtlResolver       $ttlResolver     Cache TTL configuration lookup
-     * @param NodeApiClient          $apiClient       HTTP communication client
-     * @param ApiResponseTransformer $dataTransformer Response parsing and transformation service
+     * @param LoggerInterface        $logger             PSR-3 logger for system logging and debugging
+     * @param CacheStoreInterface    $cacheStore         Cache persistence service
+     * @param ApiCacheKeyFactory     $cacheKeyFactory    API cache key factory
+     * @param CacheTtlResolver       $ttlResolver        Cache TTL configuration lookup
+     * @param NodeApiClient          $apiClient          HTTP communication client
+     * @param NodeResponseNormalizer $responseNormalizer Node response parsing and normalization
      */
     public function __construct(
         LoggerInterface $logger,
@@ -48,14 +47,14 @@ class ServerDataCollector implements ServerDataCollectorInterface
         ApiCacheKeyFactory $cacheKeyFactory,
         CacheTtlResolver $ttlResolver,
         NodeApiClient $apiClient,
-        ApiResponseTransformer $dataTransformer,
+        NodeResponseNormalizer $responseNormalizer,
     ) {
         $this->logger = $logger;
         $this->cacheStore = $cacheStore;
         $this->cacheKeyFactory = $cacheKeyFactory;
         $this->ttlResolver = $ttlResolver;
         $this->apiClient = $apiClient;
-        $this->dataTransformer = $dataTransformer;
+        $this->responseNormalizer = $responseNormalizer;
     }
 
     /**
@@ -257,7 +256,7 @@ class ServerDataCollector implements ServerDataCollectorInterface
             return null;
         }
 
-        return $this->dataTransformer->normalizeApiResponse(
+        return $this->responseNormalizer->normalizeApiResponse(
             data: $entry->value,
             cacheAge: max(0, time() - $entry->storedAt),
             cacheTtl: $ttlSeconds,
@@ -311,7 +310,7 @@ class ServerDataCollector implements ServerDataCollectorInterface
         // 1. Try fresh cache
         $cachedEntry = $forceRefresh ? null : $this->cacheStore->get($cacheKey, $ttlSeconds);
         if ($cachedEntry !== null) {
-            return $this->dataTransformer->normalizeApiResponse(
+            return $this->responseNormalizer->normalizeApiResponse(
                 data: $cachedEntry->value,
                 cacheAge: max(0, time() - $cachedEntry->storedAt),
                 cacheTtl: $ttlSeconds,
@@ -325,7 +324,7 @@ class ServerDataCollector implements ServerDataCollectorInterface
             $rawData = $this->fetchFromApi($method, $path, $requestOptions);
             $this->cacheStore->put($cacheKey, $rawData);
 
-            return $this->dataTransformer->normalizeApiResponse(
+            return $this->responseNormalizer->normalizeApiResponse(
                 data: $rawData,
                 cacheTtl: $ttlSeconds,
                 path: $path,
@@ -337,7 +336,7 @@ class ServerDataCollector implements ServerDataCollectorInterface
             // 3. Try stale cache
             $staleEntry = $this->cacheStore->getStale($cacheKey, $ttlSeconds);
             if ($staleEntry !== null) {
-                return $this->dataTransformer->normalizeApiResponse(
+                return $this->responseNormalizer->normalizeApiResponse(
                     data: $staleEntry->value,
                     cacheAge: max(0, time() - $staleEntry->storedAt),
                     cacheTtl: $ttlSeconds,
@@ -350,13 +349,13 @@ class ServerDataCollector implements ServerDataCollectorInterface
             // 4. Surface a structured node error when the failed response carried one
             $response = $e instanceof RequestException ? $e->getResponse() : null;
             if ($response !== null) {
-                $nodeError = $this->dataTransformer->normalizeNodeErrorResponse(
+                $nodeError = $this->responseNormalizer->normalizeNodeErrorResponse(
                     (string) $response->getBody(),
                     $path,
                     $response->getStatusCode(),
                 );
                 if ($nodeError !== null) {
-                    return $this->dataTransformer->errorApiResponse(
+                    return $this->responseNormalizer->errorApiResponse(
                         $nodeError,
                         cacheTtl: $ttlSeconds,
                     );
@@ -383,7 +382,7 @@ class ServerDataCollector implements ServerDataCollectorInterface
     {
         $responseBody = $this->apiClient->request($method, $path, $requestOptions);
 
-        return $this->dataTransformer->transformResponse($responseBody, $path);
+        return $this->responseNormalizer->transformResponse($responseBody, $path);
     }
 
     /**
@@ -395,7 +394,7 @@ class ServerDataCollector implements ServerDataCollectorInterface
      */
     public function isValidJsonArray(string $json): bool
     {
-        return $this->dataTransformer->isValidJsonArray($json);
+        return $this->responseNormalizer->isValidJsonArray($json);
     }
 
     // Availability checks were moved to AppReachabilityMonitor.

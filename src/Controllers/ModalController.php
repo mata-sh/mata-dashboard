@@ -19,9 +19,9 @@ use Mata\Services\Cache\CacheTypeResolver;
 use Mata\Services\Cache\ModalCacheService;
 use Mata\Services\Collect\MockServerDataCollector;
 use Mata\Services\Collect\NodeApiClient;
+use Mata\Services\Collect\NodeResponseNormalizer;
 use Mata\Services\Collect\ServerDataCollector;
 use Mata\Services\Collect\ServerDataCollectorInterface;
-use Mata\Services\DataTransformers\ApiResponseTransformer;
 use Mata\Services\DataTransformers\LogDataTransformer;
 use Mata\Utils\Tools;
 use Mata\Utils\TypeConverter;
@@ -120,12 +120,12 @@ class ModalController extends BaseController
         $environment = $this->appConfig->environment->env;
 
         if ($environment === 'demo') {
-            $dataTransformer = new ApiResponseTransformer($this->logger);
+            $responseNormalizer = new NodeResponseNormalizer($this->logger);
 
             return new MockServerDataCollector(
                 $this->logger,
                 $this->ttlResolver,
-                $dataTransformer,
+                $responseNormalizer,
                 $server,
                 $serverConfig
             );
@@ -147,7 +147,7 @@ class ModalController extends BaseController
             $allowHttp,
             $suppressHttpWarning
         );
-        $dataTransformer = new ApiResponseTransformer($this->logger);
+        $responseNormalizer = new NodeResponseNormalizer($this->logger);
 
         return new ServerDataCollector(
             $this->logger,
@@ -155,7 +155,7 @@ class ModalController extends BaseController
             $this->cacheKeyFactory,
             $this->ttlResolver,
             $apiClient,
-            $dataTransformer
+            $responseNormalizer
         );
     }
 

@@ -9,6 +9,7 @@ use Mata\Http\Responses\HtmlResponse;
 use Mata\Http\Responses\JsonResponse;
 use Mata\Http\Responses\Response;
 use Mata\Services\Cache\MetricsCacheService;
+use Mata\Services\Metrics\MetricCatalog;
 use Mata\Services\Validation\MetricsRequestValidator;
 use Mata\Services\View\ChartViewBuilder;
 use Mata\Services\View\MetricsViewBuilder;
@@ -28,26 +29,13 @@ final class MetricsController extends BaseController
     private MetricsCacheService $cacheService;
     private MetricsRequestValidator $validator;
     private ChartViewBuilder $chartViewBuilder;
+    private MetricCatalog $metricCatalog;
 
     /** @var array<string,mixed> */
     private array $serversConfig;
 
     /** @var array<string,mixed> */
     private array $dashboardChartConfig = [];
-
-    /** @var string[] */
-    public const SUPPORTED_METRICS = [
-        'cpu',
-        'ram_percent',
-        'ram_used',
-        'disk_percent',
-        'disk_used',
-        'file_count',
-        'process_count',
-    ];
-
-    /** @var string[] */
-    public const ALLOWED_GRANULARITIES = ['auto', 'raw', 'hourly', 'daily'];
 
     /** @var array<string,string> */
     private const SERVER_METRICS_MODAL_RANGES = [
@@ -70,6 +58,7 @@ final class MetricsController extends BaseController
         MetricsCacheService $cacheService,
         MetricsRequestValidator $validator,
         ChartViewBuilder $chartViewBuilder,
+        MetricCatalog $metricCatalog,
         array $serversConfig = [],
         ?int $cacheTtlSeconds = null,
         array $dashboardChartConfig = [],
@@ -81,6 +70,7 @@ final class MetricsController extends BaseController
         $this->cacheService = $cacheService;
         $this->validator = $validator;
         $this->chartViewBuilder = $chartViewBuilder;
+        $this->metricCatalog = $metricCatalog;
         $this->serversConfig = $serversConfig;
         $this->cacheTtlSeconds = $cacheTtlSeconds ?? 300;
         $this->dashboardChartConfig = $this->chartViewBuilder->buildChartConfig($dashboardChartConfig);
@@ -447,7 +437,7 @@ final class MetricsController extends BaseController
                 }
 
                 // Validate granularity
-                if (!in_array($granularityInput, self::ALLOWED_GRANULARITIES, true)) {
+                if (!$this->metricCatalog->allowsGranularity($granularityInput)) {
                     return $this->handleValidationError([
                         'granularity' => sprintf("Invalid granularity '%s'", $granularityInput),
                     ]);
@@ -464,7 +454,7 @@ final class MetricsController extends BaseController
                 $normalizedMetrics = [];
                 foreach ($metrics as $metric) {
                     $normalized = $this->validator->normalizeMetric($metric);
-                    if (!in_array($normalized, self::SUPPORTED_METRICS, true)) {
+                    if (!$this->metricCatalog->supports($normalized)) {
                         return $this->handleValidationError(['metric' => sprintf("Unsupported metric '%s'", $metric)]);
                     }
                     $normalizedMetrics[] = $normalized;

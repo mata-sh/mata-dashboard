@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Mata\Views;
 
 use Exception;
-use Mata\Utils\Markdown;
+use Mata\Views\Support\Markdown;
 
 /**
  * Modal rendering service.

@@ -46,11 +46,12 @@ use Mata\Services\Cache\CacheStoreInterface;
 use Mata\Services\Cache\CacheTtlResolver;
 use Mata\Services\Cache\FileCacheStore;
 use Mata\Services\Cache\MetricsCacheService;
-use Mata\Services\DataTransformers\ApiResponseTransformer;
+use Mata\Services\Collect\NodeResponseNormalizer;
 use Mata\Services\DataTransformers\ChartDataTransformer;
 use Mata\Services\DataTransformers\LogDataTransformer;
 use Mata\Services\Event\EventManager;
 use Mata\Services\Event\EventRecorderService;
+use Mata\Services\Metrics\MetricCatalog;
 use Mata\Services\Monitor\Dto\AppReachabilityPolicy;
 use Mata\Services\Monitor\Dto\DashboardMonitoringContext;
 use Mata\Services\Monitor\HttpProbeClient;
@@ -431,7 +432,7 @@ $serverMonitoringFactory = new ServerMonitoringFactory(
     $cacheKeyFactory,
     $ttlResolver,
     $eventManager,
-    new ApiResponseTransformer($log),
+    new NodeResponseNormalizer($log),
     new HttpProbeClient(),
     $monitoringPolicy,
     $idResolver,
@@ -509,10 +510,8 @@ $metricsQueryFactory = new ServerMetricsQueryFactory($environment, $db, $idResol
 $metricsQuery = $metricsQueryFactory->create();
 $metricsViewBuilder = new MetricsViewBuilder($metricsQuery, $log);
 $metricsRenderer = new MetricsRenderer($twig, $log, $tools, $app, $endpoints);
-$metricsRequestValidator = new MetricsRequestValidator(
-    MetricsController::SUPPORTED_METRICS,
-    MetricsController::ALLOWED_GRANULARITIES
-);
+$metricCatalog = new MetricCatalog();
+$metricsRequestValidator = new MetricsRequestValidator($metricCatalog);
 $metricsDashboardConfig = isset($monitoringSettings['charts']['dashboard']) && is_array($monitoringSettings['charts']['dashboard'])
     ? $monitoringSettings['charts']['dashboard']
     : [];
@@ -533,6 +532,7 @@ $chartViewBuilder = new ChartViewBuilder(
     $metricsRenderer,
     $metricsRequestValidator,
     $chartDataTransformer,
+    $metricCatalog,
     $serverSettings
 );
 
@@ -543,6 +543,7 @@ $metricsController = new MetricsController(
     $metricsCacheService,
     $metricsRequestValidator,
     $chartViewBuilder,
+    $metricCatalog,
     $serverSettings,
     isset($monitoringSettings['ttl']['metrics']) ? (int) $monitoringSettings['ttl']['metrics'] : null,
     $metricsDashboardConfig,

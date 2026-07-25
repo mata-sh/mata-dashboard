@@ -157,7 +157,11 @@ src/Views/
 ├── AlarmsRenderer.php               # Alarms table
 ├── AuditRenderer.php                # Audit log view
 ├── EventsRenderer.php               # Events table
-└── NotificationCenterRenderer.php   # Notification center panel
+├── NotificationCenterRenderer.php   # Notification center panel
+└── Support/                         # Presentation helpers
+    ├── Html.php                     # HTML escaping helpers
+    ├── Markdown.php                 # Markdown processing
+    └── NumberFormatter.php          # Number formatting
 ```
 
 **Responsibilities:**
@@ -251,12 +255,7 @@ Helper classes and utilities.
 src/Utils/
 ├── PathResolver.php            # Path management
 ├── UsersFilePathResolver.php   # users.json path resolution
-├── CronJob.php                 # Base class for cron scripts
 ├── LogHandler.php              # Logging utilities
-├── Markdown.php                # Markdown processing
-├── Html.php                    # HTML helpers
-├── NumberFormatter.php         # Number formatting
-├── AlarmLimitHelper.php        # Alarm limit helpers
 ├── Tools.php                   # General utilities
 ├── TypeConverter.php           # Type conversion helpers
 └── FileStateStore.php          # File state management
@@ -269,6 +268,10 @@ src/Utils/
 - Logging
 - Type conversion
 - File operations
+
+Classes with a clear owning domain live with that domain instead of here:
+`CronJob` under `Services\Cron`, `AlarmDispatchSpacingCalculator` under
+`Services\Alarm`, and the presentation helpers under `Views\Support`.
 
 ### Other `src/` Directories
 

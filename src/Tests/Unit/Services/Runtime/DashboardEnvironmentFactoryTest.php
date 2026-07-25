@@ -12,7 +12,7 @@ use Mata\Services\Cache\ApiCacheKeyFactory;
 use Mata\Services\Cache\CacheStoreInterface;
 use Mata\Services\Cache\CacheTtlResolver;
 use Mata\Services\Collect\MockServerDataCollector;
-use Mata\Services\DataTransformers\ApiResponseTransformer;
+use Mata\Services\Collect\NodeResponseNormalizer;
 use Mata\Services\Event\EventAggregatorService;
 use Mata\Services\Event\EventManager;
 use Mata\Services\Event\MockEventAggregatorService;
@@ -74,7 +74,7 @@ final class DashboardEnvironmentFactoryTest extends TestCase
             new ApiCacheKeyFactory(),
             new CacheTtlResolver([]),
             $this->createStub(EventManager::class),
-            new ApiResponseTransformer($logger),
+            new NodeResponseNormalizer($logger),
             new HttpProbeClient(),
             AppReachabilityPolicy::fromSettings([]),
             new ServerApplicationIdResolver(),

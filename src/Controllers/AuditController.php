@@ -18,9 +18,9 @@ use Mata\Services\Cache\CacheStoreInterface;
 use Mata\Services\Cache\CacheTtlResolver;
 use Mata\Services\Collect\MockServerDataCollector;
 use Mata\Services\Collect\NodeApiClient;
+use Mata\Services\Collect\NodeResponseNormalizer;
 use Mata\Services\Collect\ServerDataCollector;
 use Mata\Services\Collect\ServerDataCollectorInterface;
-use Mata\Services\DataTransformers\ApiResponseTransformer;
 use Mata\Utils\Tools;
 use Mata\Utils\TypeConverter;
 use Mata\Views\AuditRenderer;
@@ -213,7 +213,7 @@ class AuditController extends BaseController
             return new MockServerDataCollector(
                 $this->logger,
                 $this->ttlResolver,
-                new ApiResponseTransformer($this->logger),
+                new NodeResponseNormalizer($this->logger),
                 $server,
                 $serverConfig
             );
@@ -239,7 +239,7 @@ class AuditController extends BaseController
             $this->cacheKeyFactory,
             $this->ttlResolver,
             $apiClient,
-            new ApiResponseTransformer($this->logger)
+            new NodeResponseNormalizer($this->logger)
         );
     }
 }

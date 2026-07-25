@@ -2,15 +2,15 @@
 
 declare(strict_types=1);
 
-namespace Mata\Tests\Unit\Utils;
+namespace Mata\Tests\Unit\Views;
 
-use Mata\Utils\Markdown;
+use Mata\Views\Support\Markdown;
 use PHPUnit\Framework\TestCase;
 
 /**
  * @internal
  *
- * @covers \Mata\Utils\Markdown
+ * @covers \Mata\Views\Support\Markdown
  */
 class MarkdownTest extends TestCase
 {

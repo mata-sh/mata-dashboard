@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Mata\Utils;
+namespace Mata\Views\Support;
 
 /**
  * HTML escaping helpers for values embedded into generated markup.

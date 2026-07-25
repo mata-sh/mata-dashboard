@@ -560,9 +560,9 @@ $this->router->after('GET|POST', '/.*', function () {
 
 ### Custom Cron Scripts
 
-`Mata\Utils\CronJob` is used compositionally (not subclassed) — instantiate it via `cron/bootstrap.php`, which returns a ready `$cron` bound to the script's job name, lock file, and heartbeat file.
+`Mata\Services\Cron\CronJob` is used compositionally (not subclassed) — instantiate it via `cron/bootstrap.php`, which returns a ready `$cron` bound to the script's job name, lock file, and heartbeat file.
 
-**Base Class:** `src/Utils/CronJob.php`
+**Base Class:** `src/Services/Cron/CronJob.php`
 
 **Example: Custom Metrics Collection**
 

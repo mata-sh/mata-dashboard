@@ -2,30 +2,30 @@
 
 declare(strict_types=1);
 
-namespace Mata\Tests\Unit\Services\DataTransformers;
+namespace Mata\Tests\Unit\Services\Collect;
 
-use Mata\Services\DataTransformers\ApiResponseTransformer;
+use Mata\Services\Collect\NodeResponseNormalizer;
 use PHPUnit\Framework\TestCase;
 use Psr\Log\LoggerInterface;
 use Psr\Log\NullLogger;
 
 /**
- * @covers \Mata\Services\DataTransformers\ApiResponseTransformer
+ * @covers \Mata\Services\Collect\NodeResponseNormalizer
  *
  * @internal
  */
-final class ApiResponseTransformerValidationTest extends TestCase
+final class NodeResponseNormalizerValidationTest extends TestCase
 {
-    private ApiResponseTransformer $transformer;
+    private NodeResponseNormalizer $normalizer;
 
     protected function setUp(): void
     {
-        $this->transformer = new ApiResponseTransformer(new NullLogger());
+        $this->normalizer = new NodeResponseNormalizer(new NullLogger());
     }
 
     public function testAppsPayloadCoercesRecognizedScalars(): void
     {
-        $response = $this->transformer->normalizeApiResponse([
+        $response = $this->normalizer->normalizeApiResponse([
             'shop' => [
                 'title' => 'Shop',
                 'path' => '/var/www/shop',
@@ -65,7 +65,7 @@ final class ApiResponseTransformerValidationTest extends TestCase
 
     public function testAppsPayloadNormalizesLegacyLiveEnvironment(): void
     {
-        $response = $this->transformer->normalizeApiResponse([
+        $response = $this->normalizer->normalizeApiResponse([
             'shop' => [
                 'title' => 'Shop', 'path' => '/var/www/shop', 'url' => 'https://shop.example.test', 'env' => 'live',
                 'status' => ['fatal' => 0, 'warnings' => 0, 'total' => 0, 'fatal_cursor' => null],
@@ -79,7 +79,7 @@ final class ApiResponseTransformerValidationTest extends TestCase
 
     public function testAppsPayloadSupportsStagingEnvironment(): void
     {
-        $response = $this->transformer->normalizeApiResponse([
+        $response = $this->normalizer->normalizeApiResponse([
             'staging-shop' => [
                 'title' => 'Staging Shop',
                 'path' => '/var/www/staging-shop',
@@ -107,7 +107,7 @@ final class ApiResponseTransformerValidationTest extends TestCase
 
     public function testNullStatusUrlIsAccepted(): void
     {
-        $response = $this->transformer->normalizeApiResponse([
+        $response = $this->normalizer->normalizeApiResponse([
             'shop' => [
                 'title' => 'Shop', 'path' => '/var/www/shop', 'url' => 'https://shop.example.test', 'env' => 'prod',
                 'status_url' => null, 'status' => ['fatal' => 0, 'warnings' => 0, 'total' => 0, 'fatal_cursor' => null],
@@ -121,7 +121,7 @@ final class ApiResponseTransformerValidationTest extends TestCase
 
     public function testEmptyDescriptionIsAccepted(): void
     {
-        $response = $this->transformer->normalizeApiResponse([
+        $response = $this->normalizer->normalizeApiResponse([
             'shop' => [
                 'title' => 'Shop', 'path' => '/var/www/shop', 'url' => 'https://shop.example.test', 'env' => 'prod',
                 'description' => '', 'status' => ['fatal' => 0, 'warnings' => 0, 'total' => 0, 'fatal_cursor' => null],
@@ -140,23 +140,23 @@ final class ApiResponseTransformerValidationTest extends TestCase
             'status' => ['fatal' => 0, 'warnings' => 0, 'total' => 0, 'fatal_cursor' => null],
             'error_monitoring_enabled' => true, 'logsize_monitoring_enabled' => true, 'logs' => [],
         ];
-        $this->assertNull($this->transformer->normalizeApiResponse(['shop' => $app], path: 'apps')['error']);
+        $this->assertNull($this->normalizer->normalizeApiResponse(['shop' => $app], path: 'apps')['error']);
 
         $app['error_monitoring_enabled'] = 'true';
-        $this->assertSame('invalid_payload', $this->transformer->normalizeApiResponse(['shop' => $app], path: 'apps')['error']['kind']);
+        $this->assertSame('invalid_payload', $this->normalizer->normalizeApiResponse(['shop' => $app], path: 'apps')['error']['kind']);
         $app['error_monitoring_enabled'] = true;
         unset($app['logsize_monitoring_enabled']);
-        $this->assertSame('invalid_payload', $this->transformer->normalizeApiResponse(['shop' => $app], path: 'apps')['error']['kind']);
+        $this->assertSame('invalid_payload', $this->normalizer->normalizeApiResponse(['shop' => $app], path: 'apps')['error']['kind']);
         $app['logsize_monitoring_enabled'] = true;
         $app['status'] = ['fatal' => 1, 'warnings' => 0, 'total' => 1, 'fatal_cursor' => null];
-        $this->assertSame('invalid_payload', $this->transformer->normalizeApiResponse(['shop' => $app], path: 'apps')['error']['kind']);
+        $this->assertSame('invalid_payload', $this->normalizer->normalizeApiResponse(['shop' => $app], path: 'apps')['error']['kind']);
         $app['status']['fatal_cursor'] = 'v2:' . str_repeat('a', 64);
-        $this->assertSame('invalid_payload', $this->transformer->normalizeApiResponse(['shop' => $app], path: 'apps')['error']['kind']);
+        $this->assertSame('invalid_payload', $this->normalizer->normalizeApiResponse(['shop' => $app], path: 'apps')['error']['kind']);
     }
 
     public function testInvalidStatusUrlIsAnExplicitError(): void
     {
-        $response = $this->transformer->normalizeApiResponse([
+        $response = $this->normalizer->normalizeApiResponse([
             'shop' => [
                 'title' => 'Shop', 'path' => '/var/www/shop', 'url' => 'https://shop.example.test', 'env' => 'prod',
                 'status_url' => '/health/', 'status' => ['fatal' => 0, 'warnings' => 0, 'total' => 0, 'fatal_cursor' => null],
@@ -170,7 +170,7 @@ final class ApiResponseTransformerValidationTest extends TestCase
 
     public function testInvalidAppsPayloadIsAnExplicitError(): void
     {
-        $response = $this->transformer->normalizeApiResponse([
+        $response = $this->normalizer->normalizeApiResponse([
             'shop' => ['title' => 'Shop'],
         ], path: 'apps');
 
@@ -194,12 +194,12 @@ final class ApiResponseTransformerValidationTest extends TestCase
                 ]),
             );
 
-        (new ApiResponseTransformer($logger))->normalizeApiResponse($payload, path: 'apps');
+        (new NodeResponseNormalizer($logger))->normalizeApiResponse($payload, path: 'apps');
     }
 
     public function testServerStorageKilobytesArePreserved(): void
     {
-        $response = $this->transformer->normalizeApiResponse([
+        $response = $this->normalizer->normalizeApiResponse([
             'cpu_usage' => 25,
             'ram_capacity' => 16 * 1024 * 1024,
             'ram_used' => 8 * 1024 * 1024,
@@ -217,7 +217,7 @@ final class ApiResponseTransformerValidationTest extends TestCase
 
     public function testInvalidServerMetricIsAnExplicitError(): void
     {
-        $response = $this->transformer->normalizeApiResponse([
+        $response = $this->normalizer->normalizeApiResponse([
             'cpu_usage' => 'not-a-number',
         ], path: 'server/data');
 
@@ -228,8 +228,8 @@ final class ApiResponseTransformerValidationTest extends TestCase
 
     public function testInvalidDatabaseAndLibrariesPayloadsAreExplicitErrors(): void
     {
-        $databaseResponse = $this->transformer->normalizeApiResponse([], path: 'server/databases');
-        $librariesResponse = $this->transformer->normalizeApiResponse([
+        $databaseResponse = $this->normalizer->normalizeApiResponse([], path: 'server/databases');
+        $librariesResponse = $this->normalizer->normalizeApiResponse([
             'shop' => [['name' => 'vendor/package']],
         ], path: 'apps/libraries');
 
@@ -241,7 +241,7 @@ final class ApiResponseTransformerValidationTest extends TestCase
 
     public function testNodeErrorPayloadIsNotTreatedAsEndpointData(): void
     {
-        $response = $this->transformer->normalizeApiResponse([
+        $response = $this->normalizer->normalizeApiResponse([
             'error' => true,
             'message' => 'Application not found.',
         ], path: 'missing-app/sessions');
@@ -262,11 +262,11 @@ final class ApiResponseTransformerValidationTest extends TestCase
             'message' => 'Unknown app.',
             'endpoint' => 'apps/foo',
             'status_code' => 404,
-        ], $this->transformer->normalizeNodeErrorResponse(
+        ], $this->normalizer->normalizeNodeErrorResponse(
             '{"error":true,"message":"Unknown app."}',
             'apps/foo',
             404,
         ));
-        $this->assertNull($this->transformer->normalizeNodeErrorResponse('<h1>Not Found</h1>', 'apps/foo', 404));
+        $this->assertNull($this->normalizer->normalizeNodeErrorResponse('<h1>Not Found</h1>', 'apps/foo', 404));
     }
 }

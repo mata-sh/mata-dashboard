@@ -2,13 +2,13 @@
 
 declare(strict_types=1);
 
-namespace Mata\Tests\Unit\Utils;
+namespace Mata\Tests\Unit\Views;
 
 use Mata\Tests\TestCase;
-use Mata\Utils\NumberFormatter;
+use Mata\Views\Support\NumberFormatter;
 
 /**
- * @covers \Mata\Utils\NumberFormatter
+ * @covers \Mata\Views\Support\NumberFormatter
  *
  * @internal
  */

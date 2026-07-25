@@ -6,7 +6,7 @@ namespace Mata\Tests\Unit\Views;
 
 use Mata\Core\App;
 use Mata\Http\Routing\Endpoints;
-use Mata\Services\DataTransformers\ApiResponseTransformer;
+use Mata\Services\Collect\NodeResponseNormalizer;
 use Mata\Utils\Tools;
 use Mata\Views\DatabaseRenderer;
 use Monolog\Logger;
@@ -150,7 +150,7 @@ final class DatabaseRendererTest extends TestCase
 
     public function testTreatsNormalizedNullDatabasesAsNotReported(): void
     {
-        $normalized = (new ApiResponseTransformer(new NullLogger()))->normalizeDatabaseData([
+        $normalized = (new NodeResponseNormalizer(new NullLogger()))->normalizeDatabaseData([
             'processes' => ['sql' => 0],
             'databases' => null,
         ]);
@@ -172,7 +172,7 @@ final class DatabaseRendererTest extends TestCase
 
     public function testAcceptsTransformerNormalizedDatabaseContract(): void
     {
-        $normalized = (new ApiResponseTransformer(new NullLogger()))->normalizeDatabaseData([
+        $normalized = (new NodeResponseNormalizer(new NullLogger()))->normalizeDatabaseData([
             'processes' => ['sql' => '7'],
             'databases' => [
                 'main' => ['database' => 'main', 'active_threads' => '1.6'],

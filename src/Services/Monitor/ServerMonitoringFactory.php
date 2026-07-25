@@ -12,8 +12,8 @@ use Mata\Services\Cache\CacheStoreInterface;
 use Mata\Services\Cache\CacheTtlResolver;
 use Mata\Services\Collect\MockServerDataCollector;
 use Mata\Services\Collect\NodeApiClient;
+use Mata\Services\Collect\NodeResponseNormalizer;
 use Mata\Services\Collect\ServerDataCollector;
-use Mata\Services\DataTransformers\ApiResponseTransformer;
 use Mata\Services\Event\EventManager;
 use Mata\Services\Identity\ServerApplicationIdResolver;
 use Mata\Services\Monitor\Dto\AppFatalErrorPolicy;
@@ -21,8 +21,8 @@ use Mata\Services\Monitor\Dto\AppLogSizePolicy;
 use Mata\Services\Monitor\Dto\AppReachabilityPolicy;
 use Mata\Services\Monitor\Dto\ServerMonitoringResult;
 use Mata\Services\Monitor\Dto\ServerMonitoringServices;
-use Mata\Utils\NumberFormatter;
 use Mata\Utils\TypeConverter;
+use Mata\Views\Support\NumberFormatter;
 use Psr\Log\LoggerInterface;
 
 /** Builds monitoring dependencies for one configured server. */
@@ -34,7 +34,7 @@ final readonly class ServerMonitoringFactory
         private ApiCacheKeyFactory $cacheKeyFactory,
         private CacheTtlResolver $ttlResolver,
         private EventManager $eventManager,
-        private ApiResponseTransformer $dataTransformer,
+        private NodeResponseNormalizer $responseNormalizer,
         private HttpProbeClient $probeClient,
         private AppReachabilityPolicy $policy,
         private ServerApplicationIdResolver $idResolver,
@@ -121,7 +121,7 @@ final readonly class ServerMonitoringFactory
                 $this->cacheKeyFactory,
                 $this->ttlResolver,
                 $apiClient,
-                $this->dataTransformer,
+                $this->responseNormalizer,
             ),
             reachabilityMonitor: new AppReachabilityMonitor(
                 $this->cacheStore,
@@ -163,7 +163,7 @@ final readonly class ServerMonitoringFactory
             collector: new MockServerDataCollector(
                 $this->logger,
                 $this->ttlResolver,
-                $this->dataTransformer,
+                $this->responseNormalizer,
                 $server,
                 $serverConfig,
             ),

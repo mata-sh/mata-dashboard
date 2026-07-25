@@ -10,7 +10,6 @@ use Mata\Services\Collect\Demo\DemoAppCatalog;
 use Mata\Services\Collect\Demo\DemoAppGenerator;
 use Mata\Services\Collect\Demo\DemoServerCatalog;
 use Mata\Services\Collect\Demo\WeightedRandom;
-use Mata\Services\DataTransformers\ApiResponseTransformer;
 use Psr\Log\LoggerInterface;
 
 /**
@@ -26,7 +25,7 @@ class MockServerDataCollector implements ServerDataCollectorInterface
 {
     private LoggerInterface $logger;
     private CacheTtlResolver $ttlResolver;
-    private ApiResponseTransformer $dataTransformer;
+    private NodeResponseNormalizer $responseNormalizer;
     private string $serverName;
 
     /** @var array<string,mixed> */
@@ -40,22 +39,22 @@ class MockServerDataCollector implements ServerDataCollectorInterface
     /**
      * Initialize mock server data collector.
      *
-     * @param LoggerInterface        $logger          PSR-3 logger for demo logging
-     * @param CacheTtlResolver       $ttlResolver     Cache TTL configuration lookup
-     * @param ApiResponseTransformer $dataTransformer Data transformer for response normalization
-     * @param string                 $serverName      Server identifier for demo data generation
-     * @param array<string,mixed>    $serverConfig    Server configuration from demo-servers.json
+     * @param LoggerInterface        $logger             PSR-3 logger for demo logging
+     * @param CacheTtlResolver       $ttlResolver        Cache TTL configuration lookup
+     * @param NodeResponseNormalizer $responseNormalizer Node response normalizer
+     * @param string                 $serverName         Server identifier for demo data generation
+     * @param array<string,mixed>    $serverConfig       Server configuration from demo-servers.json
      */
     public function __construct(
         LoggerInterface $logger,
         CacheTtlResolver $ttlResolver,
-        ApiResponseTransformer $dataTransformer,
+        NodeResponseNormalizer $responseNormalizer,
         string $serverName,
         array $serverConfig,
     ) {
         $this->logger = $logger;
         $this->ttlResolver = $ttlResolver;
-        $this->dataTransformer = $dataTransformer;
+        $this->responseNormalizer = $responseNormalizer;
         $this->serverName = $serverName;
         $this->serverConfig = $serverConfig;
         $this->cacheAge = mt_rand(10, 180); // Simulate cache age
@@ -95,7 +94,7 @@ class MockServerDataCollector implements ServerDataCollectorInterface
             'cronjobs' => ['total' => 5, 'working' => 5, 'stale' => 0, 'missing' => 0],
         ];
 
-        return $this->dataTransformer->normalizeApiResponse($data, $this->cacheAge, $ttlSeconds, false, false, 'server/data');
+        return $this->responseNormalizer->normalizeApiResponse($data, $this->cacheAge, $ttlSeconds, false, false, 'server/data');
     }
 
     /**
@@ -130,7 +129,7 @@ class MockServerDataCollector implements ServerDataCollectorInterface
             'hostname' => $this->serverName . '.example.com',
         ];
 
-        return $this->dataTransformer->normalizeApiResponse($data, $this->cacheAge, $ttlSeconds, false);
+        return $this->responseNormalizer->normalizeApiResponse($data, $this->cacheAge, $ttlSeconds, false);
     }
 
     /**
@@ -141,7 +140,7 @@ class MockServerDataCollector implements ServerDataCollectorInterface
         $ttlSeconds = $this->ttlResolver->get($cacheType);
         $data = $this->appGenerator->generate($this->serverName, $this->serverConfig);
 
-        return $this->dataTransformer->normalizeApiResponse(
+        return $this->responseNormalizer->normalizeApiResponse(
             $data,
             $this->cacheAge,
             $ttlSeconds,
@@ -173,7 +172,7 @@ class MockServerDataCollector implements ServerDataCollectorInterface
             ];
         }
 
-        return $this->dataTransformer->normalizeApiResponse($processes, $this->cacheAge, $ttlSeconds, false);
+        return $this->responseNormalizer->normalizeApiResponse($processes, $this->cacheAge, $ttlSeconds, false);
     }
 
     /**
@@ -185,7 +184,7 @@ class MockServerDataCollector implements ServerDataCollectorInterface
 
         $data = $this->serverCatalog->serverDatabases();
 
-        return $this->dataTransformer->normalizeApiResponse($data, $this->cacheAge, $ttlSeconds, false, false, 'server/databases');
+        return $this->responseNormalizer->normalizeApiResponse($data, $this->cacheAge, $ttlSeconds, false, false, 'server/databases');
     }
 
     /**
@@ -202,7 +201,7 @@ class MockServerDataCollector implements ServerDataCollectorInterface
             $libraries[$app] = $this->generateLibrariesForApp($app);
         }
 
-        return $this->dataTransformer->normalizeApiResponse($libraries, $this->cacheAge, $ttlSeconds, false, false, 'apps/libraries');
+        return $this->responseNormalizer->normalizeApiResponse($libraries, $this->cacheAge, $ttlSeconds, false, false, 'apps/libraries');
     }
 
     /**
@@ -213,7 +212,7 @@ class MockServerDataCollector implements ServerDataCollectorInterface
         $ttlSeconds = $this->ttlResolver->get($cacheType);
         $data = $this->generateLibrariesForApp($app);
 
-        return $this->dataTransformer->normalizeApiResponse($data, $this->cacheAge, $ttlSeconds, false, false, "{$app}/libraries");
+        return $this->responseNormalizer->normalizeApiResponse($data, $this->cacheAge, $ttlSeconds, false, false, "{$app}/libraries");
     }
 
     /**
@@ -225,7 +224,7 @@ class MockServerDataCollector implements ServerDataCollectorInterface
 
         $readmeContent = $this->generateReadmeContent($app);
 
-        return $this->dataTransformer->normalizeApiResponse($readmeContent, $this->cacheAge, $ttlSeconds, false);
+        return $this->responseNormalizer->normalizeApiResponse($readmeContent, $this->cacheAge, $ttlSeconds, false);
     }
 
     /**
@@ -266,7 +265,7 @@ class MockServerDataCollector implements ServerDataCollectorInterface
             $groupedLogs[$logFile] = $entries;
         }
 
-        return $this->dataTransformer->normalizeApiResponse(
+        return $this->responseNormalizer->normalizeApiResponse(
             ['entries' => $groupedLogs, 'readout_limit' => 200],
             $this->cacheAge,
             $ttlSeconds,
@@ -301,7 +300,7 @@ class MockServerDataCollector implements ServerDataCollectorInterface
             ],
         ];
 
-        return $this->dataTransformer->normalizeApiResponse($logsStatus, $this->cacheAge, $ttlSeconds, false);
+        return $this->responseNormalizer->normalizeApiResponse($logsStatus, $this->cacheAge, $ttlSeconds, false);
     }
 
     /**
@@ -324,7 +323,7 @@ class MockServerDataCollector implements ServerDataCollectorInterface
 
         $sessions = $sessionVariants[abs((int) crc32($app)) % count($sessionVariants)];
 
-        return $this->dataTransformer->normalizeApiResponse($sessions, $this->cacheAge, $ttlSeconds, false, path: "{$app}/sessions");
+        return $this->responseNormalizer->normalizeApiResponse($sessions, $this->cacheAge, $ttlSeconds, false, path: "{$app}/sessions");
     }
 
     /**
@@ -336,7 +335,7 @@ class MockServerDataCollector implements ServerDataCollectorInterface
     {
         $ttlSeconds = $this->ttlResolver->get($cacheType);
 
-        return $this->dataTransformer->normalizeApiResponse(
+        return $this->responseNormalizer->normalizeApiResponse(
             $this->generateComposerAuditForApp($app),
             $this->cacheAge,
             $ttlSeconds,
@@ -356,7 +355,7 @@ class MockServerDataCollector implements ServerDataCollectorInterface
         $ttlSeconds = $this->ttlResolver->get(CacheTypes::AUDIT);
         $cacheAge = 14400 + (abs((int) crc32($this->serverName . $app)) % 14400);
 
-        return $this->dataTransformer->normalizeApiResponse(
+        return $this->responseNormalizer->normalizeApiResponse(
             $this->generateComposerAuditForApp($app),
             $cacheAge,
             $ttlSeconds,
@@ -382,7 +381,7 @@ class MockServerDataCollector implements ServerDataCollectorInterface
 
         $cronjobs = $this->serverCatalog->cronjobs();
 
-        return $this->dataTransformer->normalizeApiResponse($cronjobs, $this->cacheAge, $ttlSeconds, false, path: 'server/cronjobs');
+        return $this->responseNormalizer->normalizeApiResponse($cronjobs, $this->cacheAge, $ttlSeconds, false, path: 'server/cronjobs');
     }
 
     /**

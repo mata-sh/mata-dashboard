@@ -9,7 +9,7 @@ use Mata\Services\Cache\ApiCacheKeyFactory;
 use Mata\Services\Cache\CacheTtlResolver;
 use Mata\Services\Cache\FileCacheStore;
 use Mata\Services\Collect\ServerDataCollector;
-use Mata\Services\DataTransformers\ApiResponseTransformer;
+use Mata\Services\Collect\NodeResponseNormalizer;
 use Mata\Services\Collect\NodeApiClient;
 use Mata\Services\Monitor\ServerMetricsHealthMonitor;
 use Mata\Services\Monitor\ServerMonitor;
@@ -36,7 +36,7 @@ try {
     $cacheStore = new FileCacheStore($log, $paths->tempPath . '/api-cache');
     $cacheKeyFactory = new ApiCacheKeyFactory();
     $ttlResolver = new CacheTtlResolver($monitoringSettings['ttl'] ?? []);
-    $dataTransformer = new ApiResponseTransformer($log);
+    $responseNormalizer = new NodeResponseNormalizer($log);
     $repository = new ServerMetricsRepository($db, $idResolver, $configSyncRepository);
     $serverMonitor = new ServerMonitor($log, $eventManager);
 
@@ -124,7 +124,7 @@ try {
                 $cacheKeyFactory,
                 $ttlResolver,
                 $apiClient,
-                $dataTransformer
+                $responseNormalizer
             );
 
             $metricsPayload = $serverMonitor->collectServerHealthData($collector, (string) $serverName);

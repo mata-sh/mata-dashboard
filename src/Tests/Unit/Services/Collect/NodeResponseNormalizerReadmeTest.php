@@ -2,24 +2,24 @@
 
 declare(strict_types=1);
 
-namespace Mata\Tests\Unit\Services\DataTransformers;
+namespace Mata\Tests\Unit\Services\Collect;
 
-use Mata\Services\DataTransformers\ApiResponseTransformer;
+use Mata\Services\Collect\NodeResponseNormalizer;
 use PHPUnit\Framework\TestCase;
 use Psr\Log\NullLogger;
 
 /**
- * @covers \Mata\Services\DataTransformers\ApiResponseTransformer
+ * @covers \Mata\Services\Collect\NodeResponseNormalizer
  *
  * @internal
  */
-final class ApiResponseTransformerReadmeTest extends TestCase
+final class NodeResponseNormalizerReadmeTest extends TestCase
 {
     public function testNormalizeReadmeDataUsesContentField(): void
     {
-        $transformer = new ApiResponseTransformer(new NullLogger());
+        $normalizer = new NodeResponseNormalizer(new NullLogger());
 
-        $response = $transformer->normalizeApiResponse(
+        $response = $normalizer->normalizeApiResponse(
             data: ['content' => "# Test\n\nREADME"],
             path: 'test-app/readme',
         );
@@ -29,9 +29,9 @@ final class ApiResponseTransformerReadmeTest extends TestCase
 
     public function testNormalizeReadmeDataPreservesAContextualNotice(): void
     {
-        $transformer = new ApiResponseTransformer(new NullLogger());
+        $normalizer = new NodeResponseNormalizer(new NullLogger());
 
-        $response = $transformer->normalizeApiResponse(
+        $response = $normalizer->normalizeApiResponse(
             data: [
                 'content' => '',
                 'notice' => [

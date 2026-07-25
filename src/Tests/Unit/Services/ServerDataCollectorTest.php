@@ -14,8 +14,8 @@ use Mata\Services\Cache\CacheStoreInterface;
 use Mata\Services\Cache\CacheTtlResolver;
 use Mata\Services\Cache\FileCacheStore;
 use Mata\Services\Collect\NodeApiClient;
+use Mata\Services\Collect\NodeResponseNormalizer;
 use Mata\Services\Collect\ServerDataCollector;
-use Mata\Services\DataTransformers\ApiResponseTransformer;
 use PHPUnit\Framework\TestCase;
 use Psr\Log\NullLogger;
 
@@ -47,7 +47,7 @@ final class ServerDataCollectorTest extends TestCase
             new ApiCacheKeyFactory(),
             new CacheTtlResolver([]),
             $apiClient,
-            new ApiResponseTransformer(new NullLogger()),
+            new NodeResponseNormalizer(new NullLogger()),
         );
 
         $this->assertNull($collector->getServerSystemData());
@@ -72,7 +72,7 @@ final class ServerDataCollectorTest extends TestCase
             new ApiCacheKeyFactory(),
             new CacheTtlResolver(['serverData' => 60]),
             $apiClient,
-            new ApiResponseTransformer(new NullLogger()),
+            new NodeResponseNormalizer(new NullLogger()),
         );
 
         $response = $collector->getServerSystemData();
@@ -105,7 +105,7 @@ final class ServerDataCollectorTest extends TestCase
             new ApiCacheKeyFactory(),
             new CacheTtlResolver(['apps' => 300]),
             $apiClient,
-            new ApiResponseTransformer(new NullLogger()),
+            new NodeResponseNormalizer(new NullLogger()),
         );
 
         $response = $collector->getApps(forceRefresh: true);
@@ -129,7 +129,7 @@ final class ServerDataCollectorTest extends TestCase
             new ApiCacheKeyFactory(),
             new CacheTtlResolver(['apps' => 60]),
             $apiClient,
-            new ApiResponseTransformer(new NullLogger()),
+            new NodeResponseNormalizer(new NullLogger()),
         );
 
         $response = $collector->getApps();
@@ -160,7 +160,7 @@ final class ServerDataCollectorTest extends TestCase
             $keys,
             new CacheTtlResolver(['none' => 0]),
             $apiClient,
-            new ApiResponseTransformer(new NullLogger()),
+            new NodeResponseNormalizer(new NullLogger()),
         );
 
         $response = $collector->getApps('none');
@@ -187,7 +187,7 @@ final class ServerDataCollectorTest extends TestCase
             new ApiCacheKeyFactory(),
             new CacheTtlResolver(['none' => 0]),
             $apiClient,
-            new ApiResponseTransformer(new NullLogger()),
+            new NodeResponseNormalizer(new NullLogger()),
         );
 
         $this->assertNull($collector->getApps('none'));
@@ -212,7 +212,7 @@ final class ServerDataCollectorTest extends TestCase
             new ApiCacheKeyFactory(),
             new CacheTtlResolver(['apps' => 60]),
             $apiClient,
-            new ApiResponseTransformer(new NullLogger()),
+            new NodeResponseNormalizer(new NullLogger()),
         );
 
         $response = $collector->getApps();
@@ -239,7 +239,7 @@ final class ServerDataCollectorTest extends TestCase
             new ApiCacheKeyFactory(),
             new CacheTtlResolver(['apps' => 60]),
             $apiClient,
-            new ApiResponseTransformer(new NullLogger()),
+            new NodeResponseNormalizer(new NullLogger()),
         );
 
         $response = $collector->getApps();

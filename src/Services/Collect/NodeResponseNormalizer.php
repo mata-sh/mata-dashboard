@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Mata\Services\DataTransformers;
+namespace Mata\Services\Collect;
 
 use Mata\Constants\Severities;
 use Mata\Utils\TypeConverter;
@@ -12,7 +12,7 @@ use RuntimeException;
 /**
  * Parses API JSON and converts endpoint payloads into dashboard contracts.
  */
-class ApiResponseTransformer
+class NodeResponseNormalizer
 {
     public function __construct(private LoggerInterface $logger) {}
 

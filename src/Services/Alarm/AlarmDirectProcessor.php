@@ -8,7 +8,6 @@ use Mata\Config\Dto\AlarmLimitsConfig;
 use Mata\Models\Dto\EventRecordResult;
 use Mata\Services\Alarm\Dto\Alarm;
 use Mata\Services\Alarm\Dto\AlarmLevel;
-use Mata\Utils\AlarmLimitHelper;
 use PDOException;
 use Psr\Log\LoggerInterface;
 
@@ -51,7 +50,7 @@ class AlarmDirectProcessor
     private function throttleQueueFailure(string $serverKey, string $channel): void
     {
         $channel = strtolower(trim($channel));
-        $spacingSeconds = AlarmLimitHelper::calculateSpacingSeconds($this->limitsConfig->resolve($serverKey, $channel));
+        $spacingSeconds = AlarmDispatchSpacingCalculator::calculateSpacingSeconds($this->limitsConfig->resolve($serverKey, $channel));
         if ($spacingSeconds <= 0) {
             $this->logger->warning("Dropping alarm due to unavailable delivery storage and zero spacing limit [channel={$channel}, server={$serverKey}]");
 

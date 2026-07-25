@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Mata\Services\DataTransformers;
+namespace Mata\Services\Collect;
 
 use RuntimeException;
 

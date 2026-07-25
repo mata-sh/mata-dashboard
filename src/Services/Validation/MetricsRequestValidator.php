@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Mata\Services\Validation;
 
 use InvalidArgumentException;
+use Mata\Services\Metrics\MetricCatalog;
 
 /**
  * Validates metrics API request parameters.
@@ -16,13 +17,9 @@ use InvalidArgumentException;
 class MetricsRequestValidator
 {
     /**
-     * @param string[] $supportedMetrics     List of valid metric keys
-     * @param string[] $allowedGranularities List of valid granularity values
+     * @param MetricCatalog $catalog Metric keys and granularities accepted by the dashboard
      */
-    public function __construct(
-        private array $supportedMetrics,
-        private array $allowedGranularities
-    ) {}
+    public function __construct(private MetricCatalog $catalog) {}
 
     /**
      * Validate all metrics request filters.
@@ -49,11 +46,11 @@ class MetricsRequestValidator
             $errors['server'] = sprintf("Unknown server '%s'", $server);
         }
 
-        if (!in_array($normalizedMetric, $this->supportedMetrics, true)) {
+        if (!$this->catalog->supports($normalizedMetric)) {
             $errors['metric'] = sprintf("Unsupported metric '%s'", $metric);
         }
 
-        if (!in_array($granularity, $this->allowedGranularities, true)) {
+        if (!$this->catalog->allowsGranularity($granularity)) {
             $errors['granularity'] = sprintf("Invalid granularity '%s'", $granularity);
         }
 

@@ -43,7 +43,7 @@
     },
     "autoload-dev": {
         "psr-4": {
-            "Mata\\Tests\\": "src/tests/"
+            "Mata\\Tests\\": "src/Tests/"
         }
     },
     "scripts": {

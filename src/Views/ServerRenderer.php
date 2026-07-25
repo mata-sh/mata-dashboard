@@ -9,8 +9,8 @@ use Mata\Constants\AppAvailabilityStatus;
 use Mata\Constants\NodeHealthState;
 use Mata\Core\App;
 use Mata\Http\Routing\Endpoints;
-use Mata\Utils\Html;
 use Mata\Utils\Tools;
+use Mata\Views\Support\Html;
 use Monolog\Logger;
 use Twig\Environment;
 

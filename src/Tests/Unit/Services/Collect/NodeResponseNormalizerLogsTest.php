@@ -2,19 +2,19 @@
 
 declare(strict_types=1);
 
-namespace Mata\Tests\Unit\Services\DataTransformers;
+namespace Mata\Tests\Unit\Services\Collect;
 
-use Mata\Services\DataTransformers\ApiResponseTransformer;
+use Mata\Services\Collect\NodeResponseNormalizer;
 use PHPUnit\Framework\TestCase;
 use Psr\Log\LoggerInterface;
 use Psr\Log\NullLogger;
 
 /**
- * @covers \Mata\Services\DataTransformers\ApiResponseTransformer
+ * @covers \Mata\Services\Collect\NodeResponseNormalizer
  *
  * @internal
  */
-final class ApiResponseTransformerLogsTest extends TestCase
+final class NodeResponseNormalizerLogsTest extends TestCase
 {
     public function testNormalizeAppLogsRejectsPayloadWithoutReadoutMetadata(): void
     {
@@ -28,9 +28,9 @@ final class ApiResponseTransformerLogsTest extends TestCase
             ],
         ];
 
-        $transformer = new ApiResponseTransformer(new NullLogger());
+        $normalizer = new NodeResponseNormalizer(new NullLogger());
 
-        $response = $transformer->normalizeApiResponse(
+        $response = $normalizer->normalizeApiResponse(
             data: $logs,
             path: 'test-app/logs',
         );
@@ -50,9 +50,9 @@ final class ApiResponseTransformerLogsTest extends TestCase
             ],
         ];
 
-        $transformer = new ApiResponseTransformer(new NullLogger());
+        $normalizer = new NodeResponseNormalizer(new NullLogger());
 
-        $response = $transformer->normalizeApiResponse(
+        $response = $normalizer->normalizeApiResponse(
             data: ['entries' => $entries, 'readout_limit' => 200],
             path: 'test-app/logs/php-error.log',
         );
@@ -72,9 +72,9 @@ final class ApiResponseTransformerLogsTest extends TestCase
             ],
         ];
 
-        $transformer = new ApiResponseTransformer(new NullLogger());
+        $normalizer = new NodeResponseNormalizer(new NullLogger());
 
-        $response = $transformer->normalizeApiResponse(
+        $response = $normalizer->normalizeApiResponse(
             data: ['entries' => $entries, 'readout_limit' => 200],
             path: 'test-app/logs',
         );
@@ -106,9 +106,9 @@ final class ApiResponseTransformerLogsTest extends TestCase
                 $this->callback(static fn (array $context): bool => $context['file'] === 'old.log'),
             );
 
-        $transformer = new ApiResponseTransformer($logger);
+        $normalizer = new NodeResponseNormalizer($logger);
 
-        $response = $transformer->normalizeApiResponse(
+        $response = $normalizer->normalizeApiResponse(
             data: ['entries' => $entries, 'readout_limit' => 200],
             path: 'test-app/logs',
         );
@@ -118,9 +118,9 @@ final class ApiResponseTransformerLogsTest extends TestCase
 
     public function testNormalizeAppLogsDropsAllStringifiedGroups(): void
     {
-        $transformer = new ApiResponseTransformer(new NullLogger());
+        $normalizer = new NodeResponseNormalizer(new NullLogger());
 
-        $response = $transformer->normalizeApiResponse(
+        $response = $normalizer->normalizeApiResponse(
             data: [
                 'entries' => [
                     'old.log' => 'Error: boom',
@@ -141,9 +141,9 @@ final class ApiResponseTransformerLogsTest extends TestCase
             'total_size' => 123,
         ];
 
-        $transformer = new ApiResponseTransformer(new NullLogger());
+        $normalizer = new NodeResponseNormalizer(new NullLogger());
 
-        $response = $transformer->normalizeApiResponse(
+        $response = $normalizer->normalizeApiResponse(
             data: $payload,
             path: 'test-app/logs-status',
         );
@@ -157,9 +157,9 @@ final class ApiResponseTransformerLogsTest extends TestCase
             'anything' => ['nested' => true],
         ];
 
-        $transformer = new ApiResponseTransformer(new NullLogger());
+        $normalizer = new NodeResponseNormalizer(new NullLogger());
 
-        $response = $transformer->normalizeApiResponse(
+        $response = $normalizer->normalizeApiResponse(
             data: $payload,
             path: 'something-else',
         );

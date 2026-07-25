@@ -6,9 +6,9 @@ namespace Mata\Views;
 
 use Mata\Core\App;
 use Mata\Http\Routing\Endpoints;
-use Mata\Utils\Html;
-use Mata\Utils\NumberFormatter;
 use Mata\Utils\Tools;
+use Mata\Views\Support\Html;
+use Mata\Views\Support\NumberFormatter;
 use Monolog\Logger;
 use Twig\Environment;
 
