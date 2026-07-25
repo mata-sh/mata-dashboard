@@ -153,11 +153,11 @@ class RouterSetup
     }
 
     /**
-     * Apply IP whitelisting to login routes.
+     * Apply IP whitelisting to every route except the health check.
      */
     private function setupIpWhitelist(): void
     {
-        $this->router->before(self::ALL_REQUEST_METHODS, '/login', function () {
+        $this->router->before(self::ALL_REQUEST_METHODS, '/(?!health$).*', function () {
             $config = $this->app->config->general;
 
             if (!$config->ipWhitelistEnabled) {

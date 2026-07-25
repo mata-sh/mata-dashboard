@@ -126,7 +126,7 @@ MAINTENANCE_MODE_ENABLED=OFF
 ```
 
 #### IP_WHITELIST_ENABLED
-Enable IP-based access restriction for login page protection.
+Enable IP-based access restriction for the application.
 
 | Field | Value |
 |-------|-------|
@@ -135,7 +135,7 @@ Enable IP-based access restriction for login page protection.
 | **Default** | `OFF` |
 | **Required** | No |
 
-**Description:** When enabled, only IP addresses listed in `ALLOWED_IPS` can access the login page. Useful for enterprise environments with known static IP addresses.
+**Description:** When enabled, only IP addresses listed in `ALLOWED_IPS` can access the application. The unauthenticated `/health` endpoint remains available for monitoring.
 
 **Example:**
 ```env
@@ -152,7 +152,7 @@ Comma-separated list of allowed IP addresses when IP whitelisting is enabled.
 | **Default** | `127.0.0.1,::1` |
 | **Required** | If IP_WHITELIST_ENABLED=ON |
 
-**Description:** When `IP_WHITELIST_ENABLED=ON`, only these IP addresses can access the login page. All other IPs will receive a 403 Forbidden response. The feature applies only to login routes, not the entire application.
+**Description:** When `IP_WHITELIST_ENABLED=ON`, only these IP addresses can access the application. All other application requests receive a 403 Forbidden response; `/health` remains available for monitoring.
 
 **Example:**
 ```env

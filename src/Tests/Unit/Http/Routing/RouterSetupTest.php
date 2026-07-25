@@ -39,6 +39,26 @@ class RouterSetupTest extends TestCase
         $this->assertNotContains(['*', '/watch/.*'], $beforeCalls);
     }
 
+    public function testItProtectsEveryRouteExceptHealthWhenIpWhitelistingIsEnabled(): void
+    {
+        $beforeCalls = [];
+        $router = $this->createStub(Router::class);
+        $router->method('before')
+            ->willReturnCallback(function (string $methods, string $pattern, callable $handler) use (&$beforeCalls): void {
+                $beforeCalls[] = [$methods, $pattern];
+            })
+        ;
+
+        $setup = $this->createRouterSetup(router: $router);
+        $this->invokeMethod($setup, 'setupIpWhitelist');
+
+        $methods = 'GET|POST|PUT|PATCH|DELETE|OPTIONS';
+        $this->assertContains([$methods, '/(?!health$).*'], $beforeCalls);
+        $this->assertTrue($this->routeMatchesAnyPattern('/login', ['/(?!health$).*']));
+        $this->assertTrue($this->routeMatchesAnyPattern('/watch', ['/(?!health$).*']));
+        $this->assertFalse($this->routeMatchesAnyPattern('/health', ['/(?!health$).*']));
+    }
+
     public function testItRunsAuthenticationMiddlewareForTheWatchRootRoute(): void
     {
         $auth = $this->createMock(Auth::class);

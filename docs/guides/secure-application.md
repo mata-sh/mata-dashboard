@@ -21,7 +21,7 @@ DEBUG_MODE=false
 # redis rate limiting with filesystem fallback
 RATE_LIMIT_ENABLED=true
 
-# restrict access to dashboard to certain ips
+# restrict access to the application to certain IPs (/health remains public)
 IP_WHITELIST_ENABLED=ON
 ALLOWED_IPS=127.0.0.1,::1
 

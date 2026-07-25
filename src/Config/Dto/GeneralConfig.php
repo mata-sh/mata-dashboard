@@ -13,7 +13,7 @@ namespace Mata\Config\Dto;
 final class GeneralConfig
 {
     /**
-     * @param array<int,string> $allowedIps List of IP addresses allowed to access protected endpoints
+     * @param array<int,string> $allowedIps List of IP addresses allowed to access application endpoints
      */
     public function __construct(
         public readonly string $organizationName,
