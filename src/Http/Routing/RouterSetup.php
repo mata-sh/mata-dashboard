@@ -16,6 +16,7 @@ use Mata\Http\Responses\Response;
 use Mata\Http\Responses\ResponseFactory;
 use Mata\Http\Security\CsrfGuard;
 use Mata\Http\Security\RouteParameter;
+use Psr\Log\LoggerInterface;
 use Twig\Environment;
 
 /**
@@ -38,6 +39,7 @@ class RouterSetup
     private Endpoints $endpoints;
     private CsrfGuard $csrf;
     private Environment $twig;
+    private LoggerInterface $logger;
     private string $baseRoute;
 
     /**
@@ -55,7 +57,8 @@ class RouterSetup
         MetricsController $metricsController,
         Endpoints $endpoints,
         CsrfGuard $csrf,
-        Environment $twig
+        Environment $twig,
+        LoggerInterface $logger
     ) {
         $this->router = $router;
         $this->app = $app;
@@ -67,6 +70,7 @@ class RouterSetup
         $this->endpoints = $endpoints;
         $this->csrf = $csrf;
         $this->twig = $twig;
+        $this->logger = $logger;
     }
 
     /**
@@ -172,16 +176,17 @@ class RouterSetup
             $clientIp = $_SERVER['REMOTE_ADDR'];
 
             if (!in_array($clientIp, $config->allowedIps, true)) {
-                error_log("SECURITY: Blocked IP access: {$clientIp}");
-                $this->ipAccessDeniedResponse()->send();
+                $this->ipAccessDeniedResponse($clientIp)->send();
 
                 exit;
             }
         });
     }
 
-    private function ipAccessDeniedResponse(): Response
+    private function ipAccessDeniedResponse(string $clientIp): Response
     {
+        $this->logger->warning('Blocked IP access', ['ip' => $clientIp]);
+
         if (ResponseFactory::expectsJson()) {
             return ResponseFactory::forbidden('Access forbidden');
         }

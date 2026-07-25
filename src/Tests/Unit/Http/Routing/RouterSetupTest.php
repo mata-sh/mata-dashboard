@@ -20,6 +20,7 @@ use Mata\Http\Security\CsrfGuard;
 use Mata\Http\Security\RouteParameter;
 use Mata\Tests\TestCase;
 use PHPUnit\Framework\Attributes\DataProvider;
+use Psr\Log\LoggerInterface;
 use ReflectionClass;
 use RuntimeException;
 use Twig\Environment;
@@ -86,9 +87,16 @@ class RouterSetupTest extends TestCase
                 ->willReturn('<html>Access denied</html>')
             ;
 
+            $logger = $this->createMock(LoggerInterface::class);
+            $logger->expects($this->once())
+                ->method('warning')
+                ->with('Blocked IP access', ['ip' => '203.0.113.10'])
+            ;
+
             $response = $this->invokeMethod(
-                $this->createRouterSetup(twig: $twig),
-                'ipAccessDeniedResponse'
+                $this->createRouterSetup(twig: $twig, logger: $logger),
+                'ipAccessDeniedResponse',
+                ['203.0.113.10']
             );
 
             $this->assertInstanceOf(HtmlResponse::class, $response);
@@ -382,7 +390,8 @@ class RouterSetupTest extends TestCase
         ?Router $router = null,
         ?App $app = null,
         ?Endpoints $endpoints = null,
-        ?Environment $twig = null
+        ?Environment $twig = null,
+        ?LoggerInterface $logger = null
     ): RouterSetup {
         return new RouterSetup(
             $router ?? $this->createStub(Router::class),
@@ -394,7 +403,8 @@ class RouterSetupTest extends TestCase
             $this->createMetricsController(),
             $endpoints ?? new Endpoints(),
             new CsrfGuard(),
-            $twig ?? $this->createStub(Environment::class)
+            $twig ?? $this->createStub(Environment::class),
+            $logger ?? $this->createStub(LoggerInterface::class)
         );
     }
 

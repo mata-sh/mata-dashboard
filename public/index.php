@@ -566,7 +566,8 @@ $routerSetup = new RouterSetup(
     $metricsController,
     $endpoints,
     $csrf,
-    $twig
+    $twig,
+    $log
 );
 
 $routerSetup->setup();
