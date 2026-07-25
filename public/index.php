@@ -2,7 +2,8 @@
 <?php
 
 use Bramus\Router\Router;
-use Mata\Config\DatabaseIntegrityChecker;
+use Mata\Bootstrap\BrandingResolver;
+use Mata\Bootstrap\DatabaseBootstrap;
 use Mata\Config\EnvConfigFatalException;
 use Mata\Config\EnvConfigManager;
 use Mata\Config\LogConfigurator;
@@ -23,9 +24,7 @@ use Mata\Controllers\MetricsController;
 use Mata\Controllers\ModalController;
 use Mata\Core\App;
 use Mata\Core\Auth;
-use Mata\Core\Database;
 use Mata\Core\ExceptionHandler;
-use Mata\Core\NullDatabase;
 use Mata\Http\Routing\Endpoints;
 use Mata\Http\Routing\RouterSetup;
 use Mata\Http\Security\CsrfGuard;
@@ -177,52 +176,18 @@ ini_set('display_errors', 0);
 // ************************************************************************************************
 // Seed public/branding/ with default assets on first run; instance assets placed there
 // override the defaults and are gitignored (see public/branding/README.md).
-$brandingDir = $paths->appPath . '/public/branding';
-$brandingDefaultsDir = $paths->appPath . '/public/assets/branding';
-$brandingAssets = [];
-foreach (['logo' => 'logo.png', 'logo_topbar' => 'logo_topbar.png'] as $key => $file) {
-    if (!file_exists($brandingDir . '/' . $file) && is_file($brandingDefaultsDir . '/' . $file)) {
-        if (!is_dir($brandingDir)) {
-            @mkdir($brandingDir, 0755, true);
-        }
-        if (!@copy($brandingDefaultsDir . '/' . $file, $brandingDir . '/' . $file)) {
-            $log->warning('Could not seed default branding file: public/branding/' . $file);
-        }
-    }
-    $brandingAssets[$key] = file_exists($brandingDir . '/' . $file)
-        ? 'branding/' . $file
-        : 'assets/branding/' . $file;
-}
-
-$favicon = ['path' => 'assets/images/favicon.png', 'type' => 'image/png'];
-foreach (['favicon.svg' => 'image/svg+xml', 'favicon.png' => 'image/png'] as $file => $type) {
-    if (is_file($brandingDir . '/' . $file)) {
-        $favicon = ['path' => 'branding/' . $file, 'type' => $type];
-
-        break;
-    }
-
-    if (is_file($brandingDefaultsDir . '/' . $file)) {
-        if (!is_dir($brandingDir)) {
-            @mkdir($brandingDir, 0755, true);
-        }
-        if (@copy($brandingDefaultsDir . '/' . $file, $brandingDir . '/' . $file)) {
-            $favicon = ['path' => 'branding/' . $file, 'type' => $type];
-        } else {
-            $log->warning('Could not seed default branding file: public/branding/' . $file);
-            $favicon = ['path' => 'assets/branding/' . $file, 'type' => $type];
-        }
-
-        break;
-    }
-}
+$brandingAssets = (new BrandingResolver(
+    $paths->appPath . '/public/branding',
+    $paths->appPath . '/public/assets/branding',
+    $log,
+))->resolve();
 
 $twig->addGlobal('branding', [
     'app_name' => $appConfig->general->appName,
     'logo' => $brandingAssets['logo'],
     'logo_topbar' => $brandingAssets['logo_topbar'],
-    'favicon' => $favicon['path'],
-    'favicon_type' => $favicon['type'],
+    'favicon' => $brandingAssets['favicon'],
+    'favicon_type' => $brandingAssets['favicon_type'],
 ]);
 
 // ************************************************************************************************
@@ -289,22 +254,7 @@ $twig->addGlobal('csrf', $csrf);
 // ************************************************************************************************
 // Database Setup
 // ************************************************************************************************
-try {
-    $db = new Database($appConfig->database);
-
-    $databaseProbe = new DatabaseIntegrityChecker($db);
-
-    try {
-        $databaseProbe->assertReady();
-    } catch (Throwable $probeException) {
-        $log->error('Database quick probe failed; falling back to NullDatabase. ' . $probeException->getMessage());
-        $log->debug('Database quick probe failure details', ['exception' => $probeException]);
-        $db = new NullDatabase($log);
-    }
-} catch (Exception $e) {
-    $log->error('Failed to initialize DB Connection: ' . $e->getMessage());
-    $db = new NullDatabase($log);
-}
+$db = (new DatabaseBootstrap($appConfig->database, $log))->initialize();
 
 // ************************************************************************************************
 // Notification Manager & Config Warnings
