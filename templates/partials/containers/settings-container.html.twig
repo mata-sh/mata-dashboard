@@ -165,4 +165,197 @@
       </div>
     </div>
   </section>
+
+  <section class="settings-card">
+    <div class="settings-subcard" id="cooldown-intervals">
+      <h3 class="settings-title" role="button" tabindex="0" aria-controls="cooldown-intervals-details"
+          _="on click or keydown[key=='Enter'] toggle .is-open on #cooldown-intervals">
+        Cooldown Intervals <span class="settings-caret" aria-hidden="true">&#9656;</span>
+      </h3>
+      <div class="settings-details" id="cooldown-intervals-details">
+      <p class="settings-subtitle">
+        Values from <code>intervals.json</code>, in minutes. <code>_default</code> applies to any key not listed; <em>no cooldown</em> means every occurrence is recorded.
+      </p>
+      <div class="settings-thresholds">
+        {% for section in settings.intervals %}
+          <section>
+            <h4>{{ section.section }}</h4>
+            {% for group in section.groups %}
+              <p class="settings-subtitle"><code>{{ group.group }}</code></p>
+              <ul>
+                {% for entry in group.entries %}
+                  <li>
+                    <span class="settings-key">{{ entry.key }}</span>
+                    <span class="settings-value">
+                      {{ entry.formatted }}{% if entry.minutes %} <em>({{ entry.minutes }}m)</em>{% endif %}
+                    </span>
+                  </li>
+                {% endfor %}
+              </ul>
+            {% endfor %}
+          </section>
+        {% else %}
+          <p class="settings-empty">Interval configuration not available.</p>
+        {% endfor %}
+      </div>
+      </div>
+    </div>
+    <div class="settings-subcard" id="probe-behaviour">
+      <h3 class="settings-title" role="button" tabindex="0" aria-controls="probe-behaviour-details"
+          _="on click or keydown[key=='Enter'] toggle .is-open on #probe-behaviour">
+        Probe Behaviour <span class="settings-caret" aria-hidden="true">&#9656;</span>
+      </h3>
+      <div class="settings-details" id="probe-behaviour-details">
+      <p class="settings-subtitle">
+        Values from <code>probes.json</code>. Controls how reachability checks time out and retry.
+      </p>
+      <ul class="settings-ttl-list">
+        {% for probe in settings.probes %}
+          <li>
+            <span class="settings-key">{{ probe.key }}</span>
+            <span class="settings-value">{{ probe.formatted }}</span>
+          </li>
+        {% else %}
+          <li class="settings-empty">Probe configuration not available.</li>
+        {% endfor %}
+      </ul>
+      </div>
+    </div>
+  </section>
+
+  <section class="settings-card">
+    <div class="settings-subcard" id="alarm-rate-limits">
+      <h3 class="settings-title" role="button" tabindex="0" aria-controls="alarm-rate-limits-details"
+          _="on click or keydown[key=='Enter'] toggle .is-open on #alarm-rate-limits">
+        Alarm Rate Limits <span class="settings-caret" aria-hidden="true">&#9656;</span>
+      </h3>
+      <div class="settings-details" id="alarm-rate-limits-details">
+      <p class="settings-subtitle">
+        Values from <code>limits.json</code>. Delivery ceilings resolve as server override &rarr; channel &rarr; default.
+      </p>
+      <div class="settings-thresholds">
+        {% if settings.limits.default %}
+          <section>
+            <h4>default</h4>
+            <ul>
+              <li>
+                <span class="settings-key">all channels</span>
+                <span class="settings-threshold-values">
+                  <span class="settings-threshold-chip"><span>per minute</span><strong>{{ settings.limits.default.per_minute }}</strong></span>
+                  <span class="settings-threshold-chip"><span>per hour</span><strong>{{ settings.limits.default.per_hour }}</strong></span>
+                  <span class="settings-threshold-chip"><span>per day</span><strong>{{ settings.limits.default.per_day }}</strong></span>
+                </span>
+              </li>
+            </ul>
+          </section>
+        {% endif %}
+        {% if settings.limits.channels %}
+          <section>
+            <h4>channels</h4>
+            <ul>
+              {% for channel in settings.limits.channels %}
+                <li>
+                  <span class="settings-key">{{ channel.channel }}</span>
+                  <span class="settings-threshold-values">
+                    <span class="settings-threshold-chip"><span>per minute</span><strong>{{ channel.limits.per_minute }}</strong></span>
+                    <span class="settings-threshold-chip"><span>per hour</span><strong>{{ channel.limits.per_hour }}</strong></span>
+                    <span class="settings-threshold-chip"><span>per day</span><strong>{{ channel.limits.per_day }}</strong></span>
+                  </span>
+                </li>
+              {% endfor %}
+            </ul>
+          </section>
+        {% endif %}
+        {% for override in settings.limits.overrides %}
+          <section>
+            <h4>override: {{ override.server }}</h4>
+            <ul>
+              {% for channel in override.channels %}
+                <li>
+                  <span class="settings-key">{{ channel.channel }}</span>
+                  <span class="settings-threshold-values">
+                    <span class="settings-threshold-chip"><span>per minute</span><strong>{{ channel.limits.per_minute }}</strong></span>
+                    <span class="settings-threshold-chip"><span>per hour</span><strong>{{ channel.limits.per_hour }}</strong></span>
+                    <span class="settings-threshold-chip"><span>per day</span><strong>{{ channel.limits.per_day }}</strong></span>
+                  </span>
+                </li>
+              {% endfor %}
+            </ul>
+          </section>
+        {% endfor %}
+        {% if not settings.limits.default and not settings.limits.channels %}
+          <p class="settings-empty">Alarm limit configuration not available.</p>
+        {% endif %}
+      </div>
+      </div>
+    </div>
+    <div class="settings-subcard" id="mail-transport">
+      <h3 class="settings-title" role="button" tabindex="0" aria-controls="mail-transport-details"
+          _="on click or keydown[key=='Enter'] toggle .is-open on #mail-transport">
+        Mail Transport <span class="settings-caret" aria-hidden="true">&#9656;</span>
+      </h3>
+      <div class="settings-details" id="mail-transport-details">
+      <p class="settings-subtitle">
+        Values from <code>mail.config.env</code>. The transport password is never displayed.
+      </p>
+      {% if settings.mail.configured %}
+        <ul class="settings-ttl-list">
+          {% if settings.mail.transport.configured %}
+            <li>
+              <span class="settings-key">transport</span>
+              <span class="settings-value">{{ settings.mail.transport.scheme ? : 'unknown' }}</span>
+            </li>
+            <li>
+              <span class="settings-key">server</span>
+              <span class="settings-value">
+                {{ settings.mail.transport.host ? : 'not set' }}{% if settings.mail.transport.port %} <em>(port {{ settings.mail.transport.port }})</em>{% endif %}
+              </span>
+            </li>
+            <li>
+              <span class="settings-key">username</span>
+              <span class="settings-value">{{ settings.mail.transport.username ? : 'not set' }}</span>
+            </li>
+            <li>
+              <span class="settings-key">password</span>
+              <span class="settings-value">{{ settings.mail.transport.has_password ? 'set (hidden)' : 'not set' }}</span>
+            </li>
+          {% else %}
+            <li>
+              <span class="settings-key">transport</span>
+              <span class="settings-value">not configured</span>
+            </li>
+          {% endif %}
+          <li>
+            <span class="settings-key">from</span>
+            <span class="settings-value">
+              {{ settings.mail.from_email ? : 'not set' }}{% if settings.mail.from_name %} <em>({{ settings.mail.from_name }})</em>{% endif %}
+            </span>
+          </li>
+          <li>
+            <span class="settings-key">mailer (app / dev)</span>
+            <span class="settings-value">{{ settings.mail.mailer_app }} / {{ settings.mail.mailer_dev }}</span>
+          </li>
+          <li>
+            <span class="settings-key">charset</span>
+            <span class="settings-value">{{ settings.mail.charset }} <em>(wrap {{ settings.mail.word_wrap }})</em></span>
+          </li>
+          {% if settings.mail.dashboard_url %}
+            <li>
+              <span class="settings-key">dashboard URL</span>
+              <span class="settings-value">{{ settings.mail.dashboard_url }}</span>
+            </li>
+          {% endif %}
+          {% for recipient in settings.mail.recipients %}
+            <li>
+              <span class="settings-key">{{ recipient.label }} recipients</span>
+              <span class="settings-value">{{ recipient.addresses ? recipient.addresses|join(', ') : 'none' }}</span>
+            </li>
+          {% endfor %}
+        </ul>
+      {% else %}
+        <p class="settings-empty">Mail configuration not available.</p>
+      {% endif %}
+      </div>
+    </div>
+  </section>
 </div>

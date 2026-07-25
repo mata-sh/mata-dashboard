@@ -12,6 +12,8 @@ final readonly class DashboardMonitoringContext
      * @param array<string,mixed>                    $ttlConfig
      * @param array<string,mixed>                    $thresholdsConfig
      * @param array<string,ServerMonitoringServices> $servicesByServer
+     * @param array<string,mixed>                    $intervalsConfig
+     * @param array<string,mixed>                    $probesConfig
      */
     public function __construct(
         public array $serversConfig,
@@ -19,6 +21,8 @@ final readonly class DashboardMonitoringContext
         public array $thresholdsConfig,
         public string $monitoringEnvironment,
         public array $servicesByServer,
+        public array $intervalsConfig = [],
+        public array $probesConfig = [],
     ) {}
 
     /**
@@ -33,6 +37,8 @@ final readonly class DashboardMonitoringContext
             thresholdsConfig: is_array($monitoringSettings['thresholds'] ?? null) ? $monitoringSettings['thresholds'] : [],
             monitoringEnvironment: is_string($monitoringSettings['environment'] ?? null) ? $monitoringSettings['environment'] : 'unset',
             servicesByServer: $servicesByServer,
+            intervalsConfig: is_array($monitoringSettings['intervals'] ?? null) ? $monitoringSettings['intervals'] : [],
+            probesConfig: is_array($monitoringSettings['probes'] ?? null) ? $monitoringSettings['probes'] : [],
         );
     }
 }

@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace Mata\Views;
 
 use DirectoryIterator;
+use Mata\Config\Dto\AlarmLimitsConfig;
+use Mata\Config\Dto\MailConfig;
 use Mata\Utils\UsersFilePathResolver;
 use UnexpectedValueException;
 
@@ -27,6 +29,10 @@ class SettingsRenderer extends BaseRenderer
      * @param array<string,mixed>     $serversConfig    Servers configuration
      * @param array<string,float|int> $ttlConfig        TTL configuration
      * @param array<string,mixed>     $thresholdsConfig Thresholds configuration
+     * @param array<string,mixed>     $intervalsConfig  Event and alarm cooldown intervals
+     * @param array<string,mixed>     $probesConfig     Probe timeout and retry configuration
+     * @param null|AlarmLimitsConfig  $alarmLimits      Alarm delivery rate limits
+     * @param null|MailConfig         $mailConfig       Mail transport and recipient configuration
      *
      * @return string Rendered HTML
      */
@@ -35,7 +41,11 @@ class SettingsRenderer extends BaseRenderer
         string $appEnvironment,
         array $serversConfig,
         array $ttlConfig,
-        array $thresholdsConfig
+        array $thresholdsConfig,
+        array $intervalsConfig = [],
+        array $probesConfig = [],
+        ?AlarmLimitsConfig $alarmLimits = null,
+        ?MailConfig $mailConfig = null
     ): string {
         $configRoot = $this->app->paths->appPath . '/config';
         $usersFilePath = UsersFilePathResolver::resolve($this->app->paths->appPath);
@@ -49,6 +59,10 @@ class SettingsRenderer extends BaseRenderer
                 'servers' => $this->summarizeServersConfig($serversConfig),
                 'ttl' => $this->summarizeTtlConfig($ttlConfig),
                 'thresholds' => $this->summarizeThresholdsConfig($thresholdsConfig),
+                'intervals' => $this->summarizeIntervalsConfig($intervalsConfig),
+                'probes' => $this->summarizeProbesConfig($probesConfig),
+                'limits' => $this->summarizeAlarmLimits($alarmLimits),
+                'mail' => $this->summarizeMailConfig($mailConfig),
             ],
         ]);
     }
@@ -310,6 +324,246 @@ class SettingsRenderer extends BaseRenderer
         usort($summary, static fn ($a, $b) => strcmp($a['section'], $b['section']));
 
         return $summary;
+    }
+
+    // ────────────────────────────────────────────────
+    // Intervals Configuration Summarization
+    // ────────────────────────────────────────────────
+
+    /**
+     * Flatten cooldown intervals for display.
+     *
+     * Values are minutes; a zero means the cooldown is disabled.
+     *
+     * @param array<string,mixed> $intervals Intervals configuration
+     *
+     * @return array<int,array<string,mixed>> Flattened interval data
+     */
+    private function summarizeIntervalsConfig(array $intervals): array
+    {
+        $summary = [];
+
+        foreach ($intervals as $section => $groups) {
+            if (!is_array($groups)) {
+                continue;
+            }
+
+            $sectionGroups = [];
+
+            foreach ($groups as $group => $entries) {
+                $groupEntries = [];
+
+                foreach (is_array($entries) ? $entries : ['value' => $entries] as $key => $value) {
+                    if (!is_numeric($value)) {
+                        continue;
+                    }
+
+                    $minutes = (int) $value;
+                    $groupEntries[] = [
+                        'key' => (string) $key,
+                        'minutes' => $minutes,
+                        'formatted' => $minutes === 0 ? 'no cooldown' : $this->tools->formatDuration($minutes * 60),
+                        'is_default' => $key === '_default',
+                    ];
+                }
+
+                if ($groupEntries !== []) {
+                    usort($groupEntries, static fn ($a, $b) => strcmp($a['key'], $b['key']));
+
+                    $sectionGroups[] = [
+                        'group' => (string) $group,
+                        'entries' => $groupEntries,
+                    ];
+                }
+            }
+
+            if ($sectionGroups !== []) {
+                usort($sectionGroups, static fn ($a, $b) => strcmp($a['group'], $b['group']));
+
+                $summary[] = [
+                    'section' => (string) $section,
+                    'groups' => $sectionGroups,
+                ];
+            }
+        }
+
+        usort($summary, static fn ($a, $b) => strcmp($a['section'], $b['section']));
+
+        return $summary;
+    }
+
+    // ────────────────────────────────────────────────
+    // Probes Configuration Summarization
+    // ────────────────────────────────────────────────
+
+    /**
+     * Build display data for probe timeout and retry configuration.
+     *
+     * @param array<string,mixed> $probes Probes configuration
+     *
+     * @return array<int,array<string,mixed>> Formatted probe data
+     */
+    private function summarizeProbesConfig(array $probes): array
+    {
+        $summary = [];
+
+        foreach ($probes as $key => $value) {
+            if (!is_scalar($value)) {
+                continue;
+            }
+
+            $summary[] = [
+                'key' => (string) $key,
+                'value' => $value,
+                'formatted' => $this->formatProbeValue((string) $key, $value),
+            ];
+        }
+
+        usort($summary, static fn ($a, $b) => strcmp($a['key'], $b['key']));
+
+        return $summary;
+    }
+
+    /**
+     * Render a probe value with the unit implied by its key suffix.
+     *
+     * @param string               $key   Configuration key
+     * @param bool|float|int|string $value Raw configuration value
+     *
+     * @return string Human readable value
+     */
+    private function formatProbeValue(string $key, bool|float|int|string $value): string
+    {
+        if (is_bool($value)) {
+            return $value ? 'enabled' : 'disabled';
+        }
+
+        if (!is_numeric($value)) {
+            return (string) $value;
+        }
+
+        if (str_ends_with($key, '_ms')) {
+            return ((int) $value) . ' ms';
+        }
+
+        if (str_ends_with($key, '_seconds')) {
+            return $this->tools->formatDuration((int) $value);
+        }
+
+        return (string) $value;
+    }
+
+    // ────────────────────────────────────────────────
+    // Alarm Limits Summarization
+    // ────────────────────────────────────────────────
+
+    /**
+     * Build display data for alarm delivery rate limits.
+     *
+     * @param null|AlarmLimitsConfig $limits Alarm limits configuration
+     *
+     * @return array<string,mixed> Formatted limits data
+     */
+    private function summarizeAlarmLimits(?AlarmLimitsConfig $limits): array
+    {
+        if ($limits === null) {
+            return ['default' => null, 'channels' => [], 'overrides' => []];
+        }
+
+        $channels = [];
+        foreach ($limits->getChannelLimits() as $channel => $limit) {
+            $channels[] = ['channel' => (string) $channel, 'limits' => $limit->toArray()];
+        }
+        usort($channels, static fn ($a, $b) => strcmp($a['channel'], $b['channel']));
+
+        $overrides = [];
+        foreach ($limits->getServerOverrides() as $server => $channelLimits) {
+            $serverChannels = [];
+            foreach ($channelLimits as $channel => $limit) {
+                $serverChannels[] = ['channel' => (string) $channel, 'limits' => $limit->toArray()];
+            }
+            usort($serverChannels, static fn ($a, $b) => strcmp($a['channel'], $b['channel']));
+
+            $overrides[] = ['server' => (string) $server, 'channels' => $serverChannels];
+        }
+        usort($overrides, static fn ($a, $b) => strcmp($a['server'], $b['server']));
+
+        return [
+            'default' => $limits->getGlobalDefault()->toArray(),
+            'channels' => $channels,
+            'overrides' => $overrides,
+        ];
+    }
+
+    // ────────────────────────────────────────────────
+    // Mail Configuration Summarization
+    // ────────────────────────────────────────────────
+
+    /**
+     * Build display data for mail transport and recipient configuration.
+     *
+     * The transport password is never exposed, and a credential carried in the
+     * DSN user component (API-key style DSNs) is masked as well.
+     *
+     * @param null|MailConfig $mail Mail configuration
+     *
+     * @return array<string,mixed> Formatted mail data
+     */
+    private function summarizeMailConfig(?MailConfig $mail): array
+    {
+        if ($mail === null) {
+            return ['configured' => false];
+        }
+
+        return [
+            'configured' => true,
+            'transport' => $this->summarizeMailerDsn($mail->dsn),
+            'from_email' => (string) $mail->fromEmail,
+            'from_name' => (string) $mail->fromName,
+            'mailer_app' => $mail->mailerApp,
+            'mailer_dev' => $mail->mailerDev,
+            'charset' => $mail->charset,
+            'word_wrap' => $mail->wordWrap,
+            'dashboard_url' => (string) $mail->dashboardUrl,
+            'recipients' => [
+                ['label' => 'Alarm', 'addresses' => $mail->alarmRecipients],
+                ['label' => 'Test', 'addresses' => $mail->testRecipients],
+                ['label' => 'Dev', 'addresses' => $mail->devRecipients],
+            ],
+        ];
+    }
+
+    /**
+     * Split a mailer DSN into displayable parts, hiding the credentials.
+     *
+     * @param null|string $dsn Symfony mailer DSN
+     *
+     * @return array<string,mixed> Transport parts
+     */
+    private function summarizeMailerDsn(?string $dsn): array
+    {
+        $dsn = (string) $dsn;
+        if ($dsn === '') {
+            return ['configured' => false];
+        }
+
+        $parts = parse_url($dsn);
+        if ($parts === false) {
+            return ['configured' => true, 'scheme' => '', 'host' => '', 'port' => null, 'username' => '', 'has_password' => false];
+        }
+
+        $user = isset($parts['user']) ? urldecode((string) $parts['user']) : '';
+        $hasPassword = isset($parts['pass']) && (string) $parts['pass'] !== '';
+
+        return [
+            'configured' => true,
+            'scheme' => (string) ($parts['scheme'] ?? ''),
+            'host' => (string) ($parts['host'] ?? ''),
+            'port' => isset($parts['port']) ? (int) $parts['port'] : null,
+            // Without a password component the user field is itself the secret (e.g. sendgrid+api://KEY@default).
+            'username' => $hasPassword ? $user : $this->maskSecret($user),
+            'has_password' => $hasPassword,
+        ];
     }
 
     // ────────────────────────────────────────────────

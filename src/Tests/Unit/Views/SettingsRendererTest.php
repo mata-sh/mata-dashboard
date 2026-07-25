@@ -5,8 +5,11 @@ declare(strict_types=1);
 namespace Mata\Tests\Unit\Views;
 
 use FilesystemIterator;
+use Mata\Config\Dto\AlarmLimitsConfig;
+use Mata\Config\Dto\MailConfig;
 use Mata\Core\App;
 use Mata\Http\Routing\Endpoints;
+use Mata\Services\Alarm\Dto\AlarmLimit;
 use Mata\Utils\PathResolver;
 use Mata\Utils\Tools;
 use Mata\Views\SettingsRenderer;
@@ -95,6 +98,124 @@ final class SettingsRendererTest extends TestCase
         }
     }
 
+    public function testSummarizesMailConfigWithoutExposingThePassword(): void
+    {
+        $password = 'sup3rSecretPassw0rd';
+        $mail = $this->createMailConfig("smtp://dev@xarc.dev:{$password}@mail.example.com:587");
+
+        $method = new ReflectionMethod(SettingsRenderer::class, 'summarizeMailConfig');
+        $summary = $method->invoke($this->createRenderer('/tmp/mata-mail'), $mail);
+
+        $this->assertTrue($summary['configured']);
+        $this->assertSame('smtp', $summary['transport']['scheme']);
+        $this->assertSame('mail.example.com', $summary['transport']['host']);
+        $this->assertSame(587, $summary['transport']['port']);
+        $this->assertSame('dev@xarc.dev', $summary['transport']['username']);
+        $this->assertTrue($summary['transport']['has_password']);
+        $this->assertStringNotContainsString($password, json_encode($summary, JSON_THROW_ON_ERROR));
+    }
+
+    public function testMasksTheDsnUserWhenItCarriesTheCredential(): void
+    {
+        $apiKey = 'SG-abcdefghijklmnop';
+        $mail = $this->createMailConfig("sendgrid+api://{$apiKey}@default");
+
+        $method = new ReflectionMethod(SettingsRenderer::class, 'summarizeMailConfig');
+        $summary = $method->invoke($this->createRenderer('/tmp/mata-mail'), $mail);
+
+        $this->assertFalse($summary['transport']['has_password']);
+        $this->assertSame('mnop', substr($summary['transport']['username'], -4));
+        $this->assertStringNotContainsString($apiKey, json_encode($summary, JSON_THROW_ON_ERROR));
+    }
+
+    public function testReportsMissingMailTransport(): void
+    {
+        $method = new ReflectionMethod(SettingsRenderer::class, 'summarizeMailConfig');
+        $summary = $method->invoke($this->createRenderer('/tmp/mata-mail'), $this->createMailConfig(null));
+
+        $this->assertTrue($summary['configured']);
+        $this->assertFalse($summary['transport']['configured']);
+    }
+
+    public function testFlattensIntervalsIncludingDisabledCooldowns(): void
+    {
+        $method = new ReflectionMethod(SettingsRenderer::class, 'summarizeIntervalsConfig');
+        $summary = $method->invoke($this->createRenderer('/tmp/mata-intervals'), [
+            'events' => ['min_event_interval_minutes' => ['_default' => 60, 'app_unreachable' => 0]],
+            'alarms' => ['min_alarm_interval_minutes' => ['_default' => 1440]],
+            'bogus' => 'not-an-array',
+        ]);
+
+        $this->assertSame(['alarms', 'events'], array_column($summary, 'section'));
+
+        $events = $summary[1]['groups'][0];
+        $this->assertSame('min_event_interval_minutes', $events['group']);
+        $this->assertSame(['_default', 'app_unreachable'], array_column($events['entries'], 'key'));
+        $this->assertTrue($events['entries'][0]['is_default']);
+        $this->assertSame('no cooldown', $events['entries'][1]['formatted']);
+    }
+
+    public function testFormatsProbeValuesByUnitSuffix(): void
+    {
+        $method = new ReflectionMethod(SettingsRenderer::class, 'summarizeProbesConfig');
+        $summary = $method->invoke($this->createRenderer('/tmp/mata-probes'), [
+            'timeout_seconds' => 5,
+            'backoff_base_ms' => 500,
+            'max_retries' => 1,
+            'nested' => ['ignored' => true],
+        ]);
+
+        $formatted = array_column($summary, 'formatted', 'key');
+        $this->assertSame(['backoff_base_ms', 'max_retries', 'timeout_seconds'], array_keys($formatted));
+        $this->assertSame('500 ms', $formatted['backoff_base_ms']);
+        $this->assertSame('1', $formatted['max_retries']);
+        $this->assertSame('5 seconds', $formatted['timeout_seconds']);
+    }
+
+    public function testSummarizesAlarmLimitsWithChannelsAndOverrides(): void
+    {
+        $limits = new AlarmLimitsConfig(
+            new AlarmLimit(20, 120, 500),
+            ['webhook' => new AlarmLimit(60, 500, 5000), 'email' => new AlarmLimit(30, 200, 1000)],
+            ['alpha' => ['email' => new AlarmLimit(5, 10, 20)]],
+        );
+
+        $method = new ReflectionMethod(SettingsRenderer::class, 'summarizeAlarmLimits');
+        $summary = $method->invoke($this->createRenderer('/tmp/mata-limits'), $limits);
+
+        $this->assertSame(['per_minute' => 20, 'per_hour' => 120, 'per_day' => 500], $summary['default']);
+        $this->assertSame(['email', 'webhook'], array_column($summary['channels'], 'channel'));
+        $this->assertSame('alpha', $summary['overrides'][0]['server']);
+        $this->assertSame(5, $summary['overrides'][0]['channels'][0]['limits']['per_minute']);
+    }
+
+    public function testSummarizesAbsentAlarmLimits(): void
+    {
+        $method = new ReflectionMethod(SettingsRenderer::class, 'summarizeAlarmLimits');
+        $summary = $method->invoke($this->createRenderer('/tmp/mata-limits'), null);
+
+        $this->assertNull($summary['default']);
+        $this->assertSame([], $summary['channels']);
+        $this->assertSame([], $summary['overrides']);
+    }
+
+    private function createMailConfig(?string $dsn): MailConfig
+    {
+        return new MailConfig(
+            dsn: $dsn,
+            fromEmail: 'noreply@example.com',
+            fromName: 'MATA',
+            alarmRecipients: ['ops@example.com'],
+            testRecipients: [],
+            devRecipients: [],
+            mailerApp: 'sendgrid',
+            mailerDev: 'phpmailer',
+            charset: 'utf-8',
+            wordWrap: 75,
+            dashboardUrl: null,
+        );
+    }
+
     private function createRenderer(string $appPath): SettingsRenderer
     {
         $paths = $this->createStub(PathResolver::class);
@@ -109,7 +230,7 @@ final class SettingsRendererTest extends TestCase
         return new SettingsRenderer(
             $this->createStub(Environment::class),
             $this->createStub(Logger::class),
-            $this->createStub(Tools::class),
+            new Tools($appPath),
             $app,
             $this->createStub(Endpoints::class)
         );

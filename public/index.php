@@ -475,6 +475,7 @@ $dashboardController = new DashboardController(
     $menuBuilder,
     $dashboardMonitoringContext,
     $appInventorySync,
+    $limitsConfig,
 );
 
 $logDataTransformer = new LogDataTransformer($log);

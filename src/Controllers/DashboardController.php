@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Mata\Controllers;
 
 use InvalidArgumentException;
+use Mata\Config\Dto\AlarmLimitsConfig;
 use Mata\Config\Dto\ApplicationConfig;
 use Mata\Core\App;
 use Mata\Http\Responses\HtmlResponse;
@@ -78,6 +79,14 @@ class DashboardController extends BaseController
     /** @var array<string,mixed> */
     private array $thresholdsConfig = [];
 
+    /** @var array<string,mixed> */
+    private array $intervalsConfig = [];
+
+    /** @var array<string,mixed> */
+    private array $probesConfig = [];
+
+    private ?AlarmLimitsConfig $alarmLimits = null;
+
     private string $monitoringEnvironment;
 
     /** @var array<string,ServerMonitoringServices> */
@@ -106,6 +115,7 @@ class DashboardController extends BaseController
      * @param MenuBuilder                $menuBuilder         Navigation menu builder service
      * @param DashboardMonitoringContext $monitoringContext   Complete monitoring settings and prebuilt server services
      * @param null|AppInventorySync      $appInventorySync    Syncs apps during manual force-refresh recovery
+     * @param null|AlarmLimitsConfig     $alarmLimits         Alarm delivery rate limits shown in the settings overview
      */
     public function __construct(
         App $app,
@@ -121,6 +131,7 @@ class DashboardController extends BaseController
         MenuBuilder $menuBuilder,
         DashboardMonitoringContext $monitoringContext,
         ?AppInventorySync $appInventorySync = null,
+        ?AlarmLimitsConfig $alarmLimits = null,
     ) {
         $this->logger = $logger;
         $this->appConfig = $appConfig;
@@ -131,6 +142,9 @@ class DashboardController extends BaseController
         $this->serversConfig = $monitoringContext->serversConfig;
         $this->ttlConfig = $monitoringContext->ttlConfig;
         $this->thresholdsConfig = $monitoringContext->thresholdsConfig;
+        $this->intervalsConfig = $monitoringContext->intervalsConfig;
+        $this->probesConfig = $monitoringContext->probesConfig;
+        $this->alarmLimits = $alarmLimits;
         $this->monitoringEnvironment = $monitoringContext->monitoringEnvironment;
         $this->dashboardServicesByServer = $monitoringContext->servicesByServer;
 
@@ -349,7 +363,11 @@ class DashboardController extends BaseController
                     $appEnv,
                     $this->serversConfig,
                     $this->ttlConfig,
-                    $this->thresholdsConfig
+                    $this->thresholdsConfig,
+                    $this->intervalsConfig,
+                    $this->probesConfig,
+                    $this->alarmLimits,
+                    $this->appConfig->mail
                 );
 
                 return new HtmlResponse($html);
