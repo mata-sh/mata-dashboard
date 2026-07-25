@@ -362,19 +362,21 @@ class ModalRenderer extends BaseRenderer
                 continue;
             }
 
-            $size = is_numeric($metadata['size'] ?? null)
-                ? $this->tools->formatBytes((int) $metadata['size'])
-                : null;
+            $sizeBytes = is_numeric($metadata['size'] ?? null) ? (int) $metadata['size'] : null;
             $lineCount = $metadata['lines'] ?? null;
             $lastModified = $metadata['last_modified'] ?? null;
 
             $entries[] = [
                 'path' => is_string($path) ? $path : null,
-                'size' => $size,
+                'size' => null !== $sizeBytes ? $this->tools->formatBytes($sizeBytes) : null,
+                'size_bytes' => $sizeBytes,
                 'line_count' => is_numeric($lineCount) ? number_format((int) $lineCount) : null,
                 'last_modified' => is_scalar($lastModified) ? (string) $lastModified : null,
             ];
         }
+
+        // Largest log files first; entries without a known size sort last.
+        usort($entries, static fn (array $a, array $b): int => ($b['size_bytes'] ?? -1) <=> ($a['size_bytes'] ?? -1));
 
         return [
             'app' => [

@@ -54,9 +54,43 @@ final class ModalRendererTest extends TestCase
         $this->assertStringNotContainsString('<script>error.log</script>', $html);
         $this->assertStringContainsString('43008 bytes', $html);
         $this->assertStringContainsString('2048 bytes', $html);
+        $this->assertStringContainsString('data-sort-value="43008"', $html);
+        $this->assertStringContainsString('data-sort="number"', $html);
         $this->assertStringContainsString('1,200', $html);
         $this->assertStringContainsString('2026-07-18 12:00:00', $html);
         $this->assertStringContainsString('–', $html);
+    }
+
+    public function testSortsApplicationLogFilesBySizeDescending(): void
+    {
+        $tools = $this->createStub(Tools::class);
+        $tools->method('formatBytes')->willReturnCallback(static fn (int $bytes): string => "{$bytes} bytes");
+        $renderer = new ModalRenderer(
+            new Environment(new FilesystemLoader(dirname(__DIR__, 4) . '/templates')),
+            new Logger('test'),
+            $tools,
+            $this->createStub(App::class),
+            $this->createStub(Endpoints::class),
+        );
+
+        $data = $renderer->buildAppLogFilesModalData(
+            [
+                '/logs/small.log' => ['size' => 2048],
+                '/logs/unknown.log' => ['size' => null],
+                '/logs/large.log' => ['size' => 43008],
+                '/logs/medium.log' => ['size' => 10240],
+            ],
+            'server1',
+            'app1',
+            0,
+            0,
+            ['modal_app_log_files_refresh' => '/refresh']
+        );
+
+        $this->assertSame(
+            ['/logs/large.log', '/logs/medium.log', '/logs/small.log', '/logs/unknown.log'],
+            array_column($data['entries'], 'path')
+        );
     }
 
     public function testEscapesDatabaseProcessCells(): void

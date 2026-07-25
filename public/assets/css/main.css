@@ -2985,6 +2985,33 @@ label.audit-chip:has(input:checked)::after {
     white-space: nowrap;
 }
 
+.modal-table th[data-sort] {
+    cursor: pointer;
+    user-select: none;
+}
+
+.modal-table th[data-sort]:hover {
+    color: #c9cfda;
+}
+
+.modal-table th[data-sort]::after {
+    content: '\2195';
+    margin-left: .35rem;
+    opacity: .35;
+}
+
+.modal-table th[aria-sort='ascending']::after {
+    content: '\2191';
+    opacity: 1;
+    color: #2f9fb5;
+}
+
+.modal-table th[aria-sort='descending']::after {
+    content: '\2193';
+    opacity: 1;
+    color: #2f9fb5;
+}
+
 .modal-table td {
     padding: .45rem .75rem;
     font-size: .9rem;

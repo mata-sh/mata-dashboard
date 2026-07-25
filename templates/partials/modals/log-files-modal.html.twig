@@ -12,17 +12,17 @@
         <table class="modal-table">
           <thead>
             <tr>
-              <th>Path</th>
-              <th>Size</th>
-              <th>Lines</th>
-              <th>Last modified</th>
+              <th data-sort="text">Path</th>
+              <th data-sort="number" aria-sort="descending">Size</th>
+              <th data-sort="number">Lines</th>
+              <th data-sort="text">Last modified</th>
             </tr>
           </thead>
           <tbody>
             {% for entry in entries %}
               <tr class="modal-row">
                 <td class="cell-mono cell-bright cell-grow">{{ entry.path ?? '–' }}</td>
-                <td class="cell-nowrap">{{ entry.size ?? '–' }}</td>
+                <td class="cell-nowrap" data-sort-value="{{ entry.size_bytes ?? -1 }}">{{ entry.size ?? '–' }}</td>
                 <td class="cell-nowrap">{{ entry.line_count ?? '–' }}</td>
                 <td class="cell-mono cell-nowrap">{{ entry.last_modified|default('–') }}</td>
               </tr>
