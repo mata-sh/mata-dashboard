@@ -7,15 +7,15 @@ namespace Mata\Core;
 use ErrorException;
 use Exception;
 use Mata\Http\Responses\ResponseFactory;
-use Monolog\Logger;
+use Psr\Log\LoggerInterface;
 use Throwable;
 
 class ExceptionHandler
 {
-    private Logger $logger;
+    private LoggerInterface $logger;
     private bool $debugMode;
 
-    public function __construct(Logger $logger, bool $debugMode = false)
+    public function __construct(LoggerInterface $logger, bool $debugMode = false)
     {
         $this->logger = $logger;
         $this->debugMode = $debugMode;

@@ -108,7 +108,7 @@ $sessionPath = session_save_path($paths->appPath . '/temp/sessions');
 // Template Engine (Twig)
 // ************************************************************************************************
 $loader = new FilesystemLoader($paths->appPath . '/templates');
-$twig = new Environment($loader, []);
+$twig = new Environment($loader, ['autoescape' => 'html']);
 
 // Configuration failures occur before App initialization; derive the public asset path from the request.
 $scriptDirectory = dirname($_SERVER['SCRIPT_NAME'] ?? '/index.php');
