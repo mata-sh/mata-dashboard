@@ -1594,6 +1594,17 @@ svg {
     font-size: 0.9rem;
 }
 
+/* Section subtitles sit outside the collapsible body so they stay readable when collapsed. */
+.settings-title+.settings-subtitle {
+    margin-top: 8px;
+    margin-bottom: 0;
+}
+
+.settings-card.is-open>.settings-title+.settings-subtitle,
+.settings-subcard.is-open>.settings-title+.settings-subtitle {
+    margin-bottom: 14px;
+}
+
 .settings-paths {
     display: flex;
     flex-wrap: wrap;
@@ -1857,12 +1868,26 @@ svg {
     font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
 }
 
-.settings-thresholds {
+/* Stacked variant for long values (emails, hosts, URLs): label above value. */
+.settings-ttl-list.is-stacked li {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
+}
+
+.settings-ttl-list.is-stacked .settings-value {
+    white-space: normal;
+    overflow-wrap: anywhere;
+}
+
+.settings-thresholds,
+.settings-groups {
     display: grid;
     gap: 10px;
 }
 
-.settings-thresholds section {
+.settings-thresholds section,
+.settings-groups>section {
     background-color: #0b0d12;
     border: 1px solid #1f242e;
     border-left: 2px solid #2f6f7d;
@@ -1870,13 +1895,30 @@ svg {
     padding: 10px 14px;
 }
 
-.settings-thresholds section h4 {
+.settings-thresholds section h4,
+.settings-groups>section h4 {
     margin-bottom: 4px;
     font-size: 0.72rem;
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.07em;
     color: #8b93a5;
+}
+
+/* Sub-heading naming the config key a group of entries belongs to. */
+.settings-group-label {
+    margin: 10px 0 6px;
+    font-size: 0.82rem;
+    color: #8b93a5;
+}
+
+.settings-groups>section>h4+.settings-group-label {
+    margin-top: 0;
+}
+
+/* Interval cells are narrow, so pack more of them per row than the mail summary. */
+.settings-groups .settings-ttl-list {
+    grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
 }
 
 .settings-thresholds ul {

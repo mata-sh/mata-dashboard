@@ -5,10 +5,10 @@
         _="on click or keydown[key=='Enter'] toggle .is-open on #configuration-overview">
       Configuration Files <span class="settings-caret" aria-hidden="true">&#9656;</span>
     </h3>
-    <div class="settings-details" id="configuration-overview-details">
     <div class="settings-subtitle is-info">
       The dashboard runtime environment is <strong>{{ env_name }}</strong> (APP_ENV: {{ settings.app_environment|default(env_name) }}). Monitoring configuration is shared across all monitored targets. Update files in an editor; changes take effect on the next refresh.
     </div>
+    <div class="settings-details" id="configuration-overview-details">
     <div class="settings-paths">
       <div>
         <span class="settings-path-label">Config root</span>
@@ -35,10 +35,10 @@
         _="on click or keydown[key=='Enter'] toggle .is-open on #monitored-servers">
       Monitored Servers <span class="settings-caret" aria-hidden="true">&#9656;</span>
     </h3>
-    <div class="settings-details" id="monitored-servers-details">
     <p class="settings-subtitle">
       Entries come from <code>servers.json</code>. API keys are masked, but the full value lives in the config file.
     </p>
+    <div class="settings-details" id="monitored-servers-details">
     <div class="settings-server-list">
       {% for server in settings.servers %}
         <article class="settings-server"{% if server.colors.primary %} style="--server-accent: {{ server.colors.primary }}"{% endif %}>
@@ -113,10 +113,10 @@
           _="on click or keydown[key=='Enter'] toggle .is-open on #cache-windows">
         Cache Windows <span class="settings-caret" aria-hidden="true">&#9656;</span>
       </h3>
-      <div class="settings-details" id="cache-windows-details">
       <p class="settings-subtitle">
         Values from <code>ttl.json</code>. Negative numbers mean "keep forever".
       </p>
+      <div class="settings-details" id="cache-windows-details">
       <ul class="settings-ttl-list">
         {% for ttl in settings.ttl %}
           <li>
@@ -134,10 +134,10 @@
           _="on click or keydown[key=='Enter'] toggle .is-open on #alarm-thresholds">
         Alarm Thresholds <span class="settings-caret" aria-hidden="true">&#9656;</span>
       </h3>
-      <div class="settings-details" id="alarm-thresholds-details">
       <p class="settings-subtitle">
         Summaries from <code>thresholds.json</code>.
       </p>
+      <div class="settings-details" id="alarm-thresholds-details">
       <div class="settings-thresholds">
         {% for section in settings.thresholds %}
           <section>
@@ -164,25 +164,22 @@
       </div>
       </div>
     </div>
-  </section>
-
-  <section class="settings-card">
     <div class="settings-subcard" id="cooldown-intervals">
       <h3 class="settings-title" role="button" tabindex="0" aria-controls="cooldown-intervals-details"
           _="on click or keydown[key=='Enter'] toggle .is-open on #cooldown-intervals">
         Cooldown Intervals <span class="settings-caret" aria-hidden="true">&#9656;</span>
       </h3>
-      <div class="settings-details" id="cooldown-intervals-details">
       <p class="settings-subtitle">
         Values from <code>intervals.json</code>, in minutes. <code>_default</code> applies to any key not listed; <em>no cooldown</em> means every occurrence is recorded.
       </p>
-      <div class="settings-thresholds">
+      <div class="settings-details" id="cooldown-intervals-details">
+      <div class="settings-groups">
         {% for section in settings.intervals %}
           <section>
             <h4>{{ section.section }}</h4>
             {% for group in section.groups %}
-              <p class="settings-subtitle"><code>{{ group.group }}</code></p>
-              <ul>
+              <p class="settings-group-label"><code>{{ group.group }}</code></p>
+              <ul class="settings-ttl-list is-stacked">
                 {% for entry in group.entries %}
                   <li>
                     <span class="settings-key">{{ entry.key }}</span>
@@ -205,10 +202,10 @@
           _="on click or keydown[key=='Enter'] toggle .is-open on #probe-behaviour">
         Probe Behaviour <span class="settings-caret" aria-hidden="true">&#9656;</span>
       </h3>
-      <div class="settings-details" id="probe-behaviour-details">
       <p class="settings-subtitle">
         Values from <code>probes.json</code>. Controls how reachability checks time out and retry.
       </p>
+      <div class="settings-details" id="probe-behaviour-details">
       <ul class="settings-ttl-list">
         {% for probe in settings.probes %}
           <li>
@@ -221,18 +218,15 @@
       </ul>
       </div>
     </div>
-  </section>
-
-  <section class="settings-card">
     <div class="settings-subcard" id="alarm-rate-limits">
       <h3 class="settings-title" role="button" tabindex="0" aria-controls="alarm-rate-limits-details"
           _="on click or keydown[key=='Enter'] toggle .is-open on #alarm-rate-limits">
         Alarm Rate Limits <span class="settings-caret" aria-hidden="true">&#9656;</span>
       </h3>
-      <div class="settings-details" id="alarm-rate-limits-details">
       <p class="settings-subtitle">
         Values from <code>limits.json</code>. Delivery ceilings resolve as server override &rarr; channel &rarr; default.
       </p>
+      <div class="settings-details" id="alarm-rate-limits-details">
       <div class="settings-thresholds">
         {% if settings.limits.default %}
           <section>
@@ -294,12 +288,12 @@
           _="on click or keydown[key=='Enter'] toggle .is-open on #mail-transport">
         Mail Transport <span class="settings-caret" aria-hidden="true">&#9656;</span>
       </h3>
-      <div class="settings-details" id="mail-transport-details">
       <p class="settings-subtitle">
         Values from <code>mail.config.env</code>. The transport password is never displayed.
       </p>
+      <div class="settings-details" id="mail-transport-details">
       {% if settings.mail.configured %}
-        <ul class="settings-ttl-list">
+        <ul class="settings-ttl-list is-stacked">
           {% if settings.mail.transport.configured %}
             <li>
               <span class="settings-key">transport</span>

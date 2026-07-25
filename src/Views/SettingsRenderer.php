@@ -18,6 +18,8 @@ use UnexpectedValueException;
  * - Server configuration summaries with masked secrets
  * - TTL (cache timeout) configuration display
  * - Threshold configuration for monitoring alarms
+ * - Cooldown intervals, probe behaviour, and alarm rate limits
+ * - Mail transport summary with credentials hidden
  */
 class SettingsRenderer extends BaseRenderer
 {
@@ -427,7 +429,7 @@ class SettingsRenderer extends BaseRenderer
     /**
      * Render a probe value with the unit implied by its key suffix.
      *
-     * @param string               $key   Configuration key
+     * @param string                $key   Configuration key
      * @param bool|float|int|string $value Raw configuration value
      *
      * @return string Human readable value
