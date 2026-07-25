@@ -15,8 +15,7 @@
         "api_key": "your_secure_api_key_here_32_characters",
         "primary_color": "#28a745",
         "secondary_color": "#ffffff",
-        "info": "Production Web Server - Main Application (subdomain setup)",
-        "check_disk_space": "on"
+        "info": "Production Web Server - Main Application (subdomain setup)"
     },
     "staging-server": {
         "title": "Staging Server",
@@ -25,8 +24,7 @@
         "api_key": "another_secure_api_key_32_characters",
         "primary_color": "#ffc107",
         "secondary_color": "#212529",
-        "info": "Staging Environment - Testing & QA (subdomain setup)",
-        "check_disk_space": "on"
+        "info": "Staging Environment - Testing & QA (subdomain setup)"
     },
     "development-server": {
         "title": "Local Development Server (HTTP, dev only)",
@@ -37,8 +35,7 @@
         "suppress_http_warning": "on",
         "primary_color": "#17a2b8",
         "secondary_color": "#ffffff",
-        "info": "Local Development ONLY - Docker ports (dashboard: 3300, node: 3310); allow_http is for local dev only",
-        "check_disk_space": "off"
+        "info": "Local Development ONLY - Docker ports (dashboard: 3300, node: 3310); allow_http is for local dev only"
     },
     "docker-production": {
         "title": "Docker Production Server",
@@ -47,8 +44,7 @@
         "api_key": "docker_prod_api_key_32_characters",
         "primary_color": "#6f42c1",
         "secondary_color": "#ffffff",
-        "info": "Production Docker on single server - ports 3300 (dash), 3310 (node), 3320 (OPA)",
-        "check_disk_space": "on"
+        "info": "Production Docker on single server - ports 3300 (dash), 3310 (node), 3320 (OPA)"
     },
     "shared-hosting-example": {
         "title": "Shared Hosting Server",
@@ -57,8 +53,7 @@
         "api_key": "shared_hosting_api_key_32_chars",
         "primary_color": "#fd7e14",
         "secondary_color": "#495057",
-        "info": "Shared Hosting - Path-based deployment (no subdomain access)",
-        "check_disk_space": "on"
+        "info": "Shared Hosting - Path-based deployment (no subdomain access)"
     },
     "internal-server": {
         "title": "Internal File Server",
@@ -67,8 +62,7 @@
         "api_key": "internal_server_api_key_32_chars",
         "primary_color": "#e83e8c",
         "secondary_color": "#ffffff",
-        "info": "Internal Network - HTTPS required (use internal CA or valid certificates)",
-        "check_disk_space": "on"
+        "info": "Internal Network - HTTPS required (use internal CA or valid certificates)"
     },
     "_DEPLOYMENT_STRATEGIES": {
         "subdomain_recommended": {
@@ -141,10 +135,7 @@
         "suppress_http_warning": "Set to \"on\" to suppress HTTP warning logs (local development only - do not use in production)",
         "primary_color": "Hex color code for server identification in dashboard",
         "secondary_color": "Secondary color for UI theming",
-        "info": "Human-readable description of the server's purpose",
-        "check_disk_space": "Enable/disable disk space monitoring (on/off)",
-        "error_monitoring_enabled": "Enable fatal-error cursor monitoring (true/false; omitted defaults to true; independent from logsize_monitoring_enabled)",
-        "logsize_monitoring_enabled": "Enable largest-log size monitoring (true/false; omitted defaults to true; independent from error_monitoring_enabled)"
+        "info": "Human-readable description of the server's purpose"
     },
     "_COLOR_EXAMPLES": {
         "green_success": "#28a745",
