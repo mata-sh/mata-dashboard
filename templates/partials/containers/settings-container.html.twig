@@ -179,7 +179,7 @@
             <h4>{{ section.section }}</h4>
             {% for group in section.groups %}
               <p class="settings-group-label"><code>{{ group.group }}</code></p>
-              <ul class="settings-ttl-list is-stacked">
+              <ul class="settings-ttl-list">
                 {% for entry in group.entries %}
                   <li>
                     <span class="settings-key">{{ entry.key }}</span>
@@ -293,7 +293,7 @@
       </p>
       <div class="settings-details" id="mail-transport-details">
       {% if settings.mail.configured %}
-        <ul class="settings-ttl-list is-stacked">
+        <ul class="settings-ttl-list">
           {% if settings.mail.transport.configured %}
             <li>
               <span class="settings-key">transport</span>

@@ -1586,23 +1586,16 @@ svg {
 .settings-card.is-open > .settings-details,
 .settings-subcard.is-open > .settings-details {
     display: block;
+    margin-top: 14px;
 }
 
+/* Sits outside the collapsible body so it stays readable when collapsed; the
+   gap below belongs to the revealed content, not here. */
 .settings-subtitle {
     color: #8b93a5;
-    margin-bottom: 14px;
-    font-size: 0.9rem;
-}
-
-/* Section subtitles sit outside the collapsible body so they stay readable when collapsed. */
-.settings-title+.settings-subtitle {
     margin-top: 8px;
     margin-bottom: 0;
-}
-
-.settings-card.is-open>.settings-title+.settings-subtitle,
-.settings-subcard.is-open>.settings-title+.settings-subtitle {
-    margin-bottom: 14px;
+    font-size: 0.9rem;
 }
 
 .settings-paths {
@@ -1825,21 +1818,21 @@ svg {
     margin-top: 16px;
 }
 
+/* Label-above-value cells, packed several per row. */
 .settings-ttl-list {
     list-style: none;
     padding: 0;
     margin: 0;
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
     gap: 8px;
 }
 
 .settings-ttl-list li {
     display: flex;
-    flex-wrap: wrap;
-    justify-content: space-between;
-    align-items: baseline;
-    gap: 2px 10px;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
     background-color: #0b0d12;
     border: 1px solid #151a22;
     border-radius: 4px;
@@ -1857,7 +1850,11 @@ svg {
 
 .settings-value {
     color: #e8eaf0;
-    white-space: nowrap;
+}
+
+.settings-ttl-list .settings-value {
+    white-space: normal;
+    overflow-wrap: anywhere;
 }
 
 .settings-value em {
@@ -1866,18 +1863,6 @@ svg {
     margin-left: 6px;
     font-size: 0.8rem;
     font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
-}
-
-/* Stacked variant for long values (emails, hosts, URLs): label above value. */
-.settings-ttl-list.is-stacked li {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 2px;
-}
-
-.settings-ttl-list.is-stacked .settings-value {
-    white-space: normal;
-    overflow-wrap: anywhere;
 }
 
 .settings-thresholds,
@@ -1916,10 +1901,6 @@ svg {
     margin-top: 0;
 }
 
-/* Interval cells are narrow, so pack more of them per row than the mail summary. */
-.settings-groups .settings-ttl-list {
-    grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
-}
 
 .settings-thresholds ul {
     list-style: none;
