@@ -114,6 +114,10 @@ class LogRenderer extends BaseRenderer
      */
     public function formatLogAnalysisTooltip(array $logAnalysisData): string
     {
+        if (($logAnalysisData['logsize_monitoring_enabled'] ?? true) === false) {
+            return 'Log size monitoring disabled';
+        }
+
         if (isset($logAnalysisData['files']) && is_array($logAnalysisData['files'])) {
             return $this->formatLogSizeTooltip($logAnalysisData['files']);
         }
@@ -133,6 +137,7 @@ class LogRenderer extends BaseRenderer
      * @param int    $warningCount       Number of warnings
      * @param int    $totalCount         Total line count
      * @param bool   $errorAlarmsEnabled Effective fatal-error alarm state
+     * @param bool   $logAnalysisEnabled Per-app log analysis state
      *
      * @return string HTML formatted tooltip content
      */
@@ -141,12 +146,20 @@ class LogRenderer extends BaseRenderer
         int $fatalCount,
         int $warningCount,
         int $totalCount,
-        bool $errorAlarmsEnabled = true
+        bool $errorAlarmsEnabled = true,
+        bool $logAnalysisEnabled = true
     ): string {
         $fatalFormatted = $this->formatNumber($fatalCount);
         $warningFormatted = $this->formatNumber($warningCount);
         $totalFormatted = $this->formatNumber($totalCount);
         $alarmState = $this->formatErrorAlarmState($errorAlarmsEnabled);
+
+        if (!$logAnalysisEnabled) {
+            return <<< HTML
+                <span style='font-weight: bold; color:gray'>Log analysis disabled</span><br>
+                {$alarmState}
+            HTML;
+        }
 
         // Check if there are any errors or warnings
         if ($fatalCount === 0 && $warningCount === 0) {
@@ -176,12 +189,16 @@ class LogRenderer extends BaseRenderer
      */
     public function formatErrorAnalysisTooltip(array $errorAnalysisData): string
     {
+        $errorAlarmsEnabled = ($errorAnalysisData['error_monitoring_enabled'] ?? true) !== false
+            && ($errorAnalysisData['alarms_enabled'] ?? true) !== false;
+
         return $this->formatErrorStatusTooltip(
             firstLog: $errorAnalysisData['first_log'] ?? '',
             fatalCount: $errorAnalysisData['fatal_count_raw'] ?? 0,
             warningCount: $errorAnalysisData['warning_count_raw'] ?? 0,
             totalCount: $errorAnalysisData['total_count_raw'] ?? 0,
-            errorAlarmsEnabled: $errorAnalysisData['error_monitoring_enabled'] ?? true,
+            errorAlarmsEnabled: $errorAlarmsEnabled,
+            logAnalysisEnabled: ($errorAnalysisData['loganalysis_enabled'] ?? true) !== false,
         );
     }
 

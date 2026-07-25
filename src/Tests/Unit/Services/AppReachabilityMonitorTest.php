@@ -319,6 +319,124 @@ final class AppReachabilityMonitorTest extends TestCase
         $this->assertSame('shop', $recordedEvent->app);
     }
 
+    public function testEventsDisabledAppProducesNoUnreachableEvent(): void
+    {
+        $store = $this->createStub(CacheStoreInterface::class);
+        $store->method('get')->willReturn(null);
+        $events = $this->createMock(EventManager::class);
+        $events->expects($this->never())->method('handle');
+        $targets = EndpointTarget::fromRawAppData([
+            'shop' => ['url' => 'https://shop.example.test', 'monitoring' => ['events' => false]],
+        ], 'node-a');
+
+        $result = $this->monitor($store, $this->probe(new Response(503)), CacheTypes::PING, $events)
+            ->checkMultipleEndpoints($targets);
+
+        $this->assertFalse($result['shop']['reachable']);
+    }
+
+    public function testAlarmsDisabledStampsAlarmsSuppressedOnTheUnreachableEvent(): void
+    {
+        $store = $this->createStub(CacheStoreInterface::class);
+        $store->method('get')->willReturn(null);
+        $recorded = null;
+        $events = $this->createMock(EventManager::class);
+        $events->expects($this->once())->method('handle')
+            ->willReturnCallback(static function (EventCommand $event) use (&$recorded): array {
+                $recorded = $event;
+
+                return [];
+            });
+        $targets = EndpointTarget::fromRawAppData([
+            'shop' => ['url' => 'https://shop.example.test', 'monitoring' => ['alarms' => false]],
+        ], 'node-a');
+
+        $this->monitor($store, $this->probe(new Response(503)), CacheTypes::PING, $events)
+            ->checkMultipleEndpoints($targets);
+
+        $this->assertSame('app_unreachable', $recorded?->type);
+        $this->assertSame([
+            'identifier' => 'shop',
+            'url' => 'https://shop.example.test',
+            'alarms_suppressed' => true,
+        ], $recorded?->context);
+    }
+
+    public function testEventsDisabledAppIsExcludedFromTheAllAppsTransportQuorum(): void
+    {
+        $store = $this->createStub(CacheStoreInterface::class);
+        $store->method('get')->willReturn(null);
+        $recorded = [];
+        $events = $this->createMock(EventManager::class);
+        $events->expects($this->once())->method('handle')
+            ->willReturnCallback(static function (EventCommand $event) use (&$recorded): array {
+                $recorded[] = $event;
+
+                return [];
+            });
+        $failure = static fn (): ConnectException => new ConnectException(
+            'Operation timed out',
+            new Request('HEAD', 'https://app.example.test'),
+            null,
+            ['errno' => 28],
+        );
+        $targets = EndpointTarget::fromRawAppData([
+            'admin' => ['url' => 'https://admin.example.test', 'monitoring' => ['events' => false]],
+            'shop' => ['url' => 'https://shop.example.test'],
+        ], 'node-a');
+        $monitor = $this->monitor(
+            $store,
+            $this->probe($failure(), $failure(), $failure(), $failure()),
+            CacheTypes::PING,
+            $events,
+            retryDelay: static function (): void {},
+        );
+
+        $monitor->checkMultipleEndpoints($targets);
+
+        $this->assertCount(1, $recorded);
+        $this->assertSame('app_unreachable', $recorded[0]->type);
+        $this->assertSame('shop', $recorded[0]->app);
+    }
+
+    public function testReachabilityDisabledAppNeitherProbesNorBlocksTheTransportQuorum(): void
+    {
+        $store = $this->createStub(CacheStoreInterface::class);
+        $store->method('get')->willReturn(null);
+        $recorded = null;
+        $events = $this->createMock(EventManager::class);
+        $events->expects($this->once())->method('handle')
+            ->willReturnCallback(static function (EventCommand $event) use (&$recorded): array {
+                $recorded = $event;
+
+                return [];
+            });
+        $failure = static fn (): ConnectException => new ConnectException(
+            'Operation timed out',
+            new Request('HEAD', 'https://app.example.test'),
+            null,
+            ['errno' => 28],
+        );
+        $targets = EndpointTarget::fromRawAppData([
+            'admin' => ['url' => 'https://admin.example.test'],
+            'archived' => ['url' => 'https://archived.example.test', 'monitoring' => ['reachability' => false]],
+            'shop' => ['url' => 'https://shop.example.test'],
+        ], 'node-a');
+        $monitor = $this->monitor(
+            $store,
+            $this->probe($failure(), $failure(), $failure(), $failure()),
+            CacheTypes::PING,
+            $events,
+            retryDelay: static function (): void {},
+        );
+
+        $results = $monitor->checkMultipleEndpoints($targets);
+
+        $this->assertSame(['admin', 'shop'], array_keys($results));
+        $this->assertSame('server_apps_transport_unreachable', $recorded?->type);
+        $this->assertSame(['admin', 'shop'], $recorded?->metric?->additional['affected_apps']);
+    }
+
     public function testStatusEndpointMaintenanceDoesNotRecordUnreachableEvent(): void
     {
         $store = $this->createMock(CacheStoreInterface::class);

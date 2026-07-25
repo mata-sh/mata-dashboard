@@ -17,9 +17,36 @@ final class AppFatalErrorPolicyTest extends TestCase
 {
     public function testHonorsServerAndApplicationSettings(): void
     {
-        $policy = AppFatalErrorPolicy::fromServerConfig(['error_monitoring_enabled' => false]);
+        $enabledServer = AppFatalErrorPolicy::fromServerConfig([]);
+        $disabledServer = AppFatalErrorPolicy::fromServerConfig(['error_monitoring_enabled' => false]);
 
-        $this->assertFalse($policy->isEnabled(['error_monitoring_enabled' => true]));
+        $this->assertTrue($enabledServer->isEnabled(['monitoring' => ['loganalysis' => true]]));
+        $this->assertFalse($enabledServer->isEnabled(['monitoring' => ['loganalysis' => false]]));
+        $this->assertFalse($disabledServer->isEnabled(['monitoring' => ['loganalysis' => true]]));
+    }
+
+    public function testIgnoresUnrelatedApplicationMonitoringSettings(): void
+    {
+        $policy = AppFatalErrorPolicy::fromServerConfig([]);
+
+        $this->assertTrue($policy->isEnabled(['monitoring' => ['logsize' => false, 'sessions' => false]]));
+    }
+
+    public function testDefaultsToEnabledWhenTheApplicationFlagIsMissing(): void
+    {
+        $policy = AppFatalErrorPolicy::fromServerConfig([]);
+
+        $this->assertTrue($policy->isEnabled([]));
+        $this->assertTrue($policy->isEnabled(['monitoring' => []]));
+    }
+
+    public function testDefaultsToEnabledOnAMalformedApplicationFlag(): void
+    {
+        $policy = AppFatalErrorPolicy::fromServerConfig([]);
+
+        $this->assertTrue($policy->isEnabled(['monitoring' => 'off']));
+        $this->assertTrue($policy->isEnabled(['monitoring' => ['loganalysis' => 'false']]));
+        $this->assertTrue($policy->isEnabled(['monitoring' => ['loganalysis' => 0]]));
     }
 
     public function testRequiresBooleanServerSetting(): void

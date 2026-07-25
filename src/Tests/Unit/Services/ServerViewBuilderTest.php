@@ -15,6 +15,7 @@ use Mata\Services\Identity\ServerApplicationIdResolver;
 use Mata\Services\Monitor\AppErrorMonitorInterface;
 use Mata\Services\Monitor\AppReachabilityMonitorInterface;
 use Mata\Services\Monitor\Dto\AppFatalErrorPolicy;
+use Mata\Services\Monitor\Dto\AppMonitoringSettings;
 use Mata\Services\Monitor\Dto\ServerMonitoringServices;
 use Mata\Services\Monitor\LogSizeEvaluator;
 use Mata\Services\Monitor\NodeHealthMonitorInterface;
@@ -144,6 +145,122 @@ final class ServerViewBuilderTest extends TestCase
         $this->assertSame('errors', $result['error_analysis']['show_events_type']);
         $this->assertArrayNotHasKey('alarms_enabled_class', $result['error_analysis']);
         $this->assertTrue($result['error_analysis']['error_monitoring_enabled']);
+        $this->assertTrue($result['error_analysis']['loganalysis_enabled']);
+        $this->assertTrue($result['error_analysis']['alarms_enabled']);
+        $this->assertTrue($result['log_analysis']['logsize_monitoring_enabled']);
+    }
+
+    public function testReportsWorkingBadgeWithoutCountsWhenLogAnalysisIsDisabled(): void
+    {
+        $builder = $this->builder();
+
+        $result = (new ReflectionMethod($builder, 'buildAppLogViewData'))->invoke(
+            $builder,
+            ['logs' => ['/var/log/app/error.log' => 5000]],
+            true,
+            new AppMonitoringSettings(loganalysis: false),
+        );
+
+        $this->assertSame(0, $result['error_analysis']['show_events_count']);
+        $this->assertSame('working', $result['error_analysis']['show_events_type']);
+        $this->assertSame('–', $result['error_analysis']['fatal_count']);
+        $this->assertSame('–', $result['error_analysis']['warning_count']);
+        $this->assertSame('–', $result['error_analysis']['total_count']);
+        $this->assertSame(0, $result['error_analysis']['fatal_count_raw']);
+        $this->assertSame(0, $result['error_analysis']['warning_count_raw']);
+        $this->assertSame(0, $result['error_analysis']['total_count_raw']);
+        $this->assertFalse($result['error_analysis']['loganalysis_enabled']);
+        $this->assertTrue($result['log_analysis']['logsize_monitoring_enabled']);
+    }
+
+    public function testEmitsDisabledLogSizePlaceholderWithoutEvaluating(): void
+    {
+        $events = $this->createMock(EventManager::class);
+        $events->expects($this->never())->method('getServerDataThresholdLevel');
+        $builder = new ServerViewBuilder(
+            $this->createStub(ServerMonitor::class),
+            new LogSizeEvaluator(new Tools('/tmp'), $events),
+            $events,
+            new Logger('test'),
+            new CacheTypeResolver(),
+        );
+
+        $result = (new ReflectionMethod($builder, 'buildAppLogViewData'))->invoke(
+            $builder,
+            ['status' => ['fatal' => 0, 'warnings' => 0, 'total' => 12]],
+            true,
+            new AppMonitoringSettings(logsize: false),
+        );
+
+        $this->assertSame([
+            'max_size' => 0,
+            'max_size_formatted' => '–',
+            'max_path' => null,
+            'level' => '',
+            'first_log' => '',
+            'files' => [],
+            'logsize_monitoring_enabled' => false,
+        ], $result['log_analysis']);
+        $this->assertSame('working', $result['error_analysis']['show_events_type']);
+        $this->assertSame('12', $result['error_analysis']['total_count']);
+    }
+
+    public function testStatesDisabledAlarmsInErrorAnalysis(): void
+    {
+        $builder = $this->builder();
+
+        $result = (new ReflectionMethod($builder, 'buildAppLogViewData'))->invoke(
+            $builder,
+            ['logs' => [], 'status' => ['fatal' => 1, 'warnings' => 0, 'total' => 9]],
+            true,
+            new AppMonitoringSettings(alarms: false),
+        );
+
+        $this->assertFalse($result['error_analysis']['alarms_enabled']);
+        $this->assertTrue($result['error_analysis']['error_monitoring_enabled']);
+    }
+
+    public function testToleratesAbsentStatusAndLogsKeys(): void
+    {
+        $builder = $this->builder();
+
+        $result = (new ReflectionMethod($builder, 'buildAppLogViewData'))->invoke(
+            $builder,
+            ['title' => 'Shop'],
+            true,
+            new AppMonitoringSettings(loganalysis: false, logsize: false),
+        );
+
+        $this->assertSame('–', $result['log_analysis']['max_size_formatted']);
+        $this->assertSame('', $result['error_analysis']['first_log']);
+        $this->assertSame('working', $result['error_analysis']['show_events_type']);
+    }
+
+    public function testReportsDisabledSessionMonitoring(): void
+    {
+        $builder = $this->builder();
+
+        $result = (new ReflectionMethod($builder, 'formatSessionDataForView'))->invoke(
+            $builder,
+            ['title' => 'Shop'],
+            new AppMonitoringSettings(sessions: false),
+        );
+
+        $this->assertSame([
+            'level' => '',
+            'formatted_count' => '–',
+            'tooltip' => 'Session monitoring disabled',
+        ], $result);
+    }
+
+    public function testFallsBackToUnconfiguredSessionsWhenTheKeyIsAbsent(): void
+    {
+        $builder = $this->builder();
+
+        $result = (new ReflectionMethod($builder, 'formatSessionDataForView'))->invoke($builder, ['title' => 'Shop']);
+
+        $this->assertSame('–', $result['formatted_count']);
+        $this->assertSame('Sessions not configured', $result['tooltip']);
     }
 
     /**
@@ -168,7 +285,7 @@ final class ServerViewBuilderTest extends TestCase
         $policy = (new ReflectionMethod($builder, 'buildFatalErrorPolicy'))
             ->invoke($builder, 'web01', $serverConfig);
         $resolved = (new ReflectionMethod($builder, 'resolveErrorAlarmsEnabled'))
-            ->invoke($builder, $policy, ['error_monitoring_enabled' => $appSetting]);
+            ->invoke($builder, $policy, ['monitoring' => ['loganalysis' => $appSetting]]);
 
         $this->assertSame($expected, $resolved);
     }
@@ -202,36 +319,34 @@ final class ServerViewBuilderTest extends TestCase
         $method = new ReflectionMethod($builder, 'resolveErrorAlarmsEnabled');
         $this->assertTrue($method->invoke($builder, null, []));
         $this->assertTrue(
-            $method->invoke($builder, AppFatalErrorPolicy::fromServerConfig([]), ['error_monitoring_enabled' => 'no'])
+            $method->invoke($builder, AppFatalErrorPolicy::fromServerConfig([]), ['monitoring' => ['loganalysis' => 'no']])
         );
     }
 
-    public function testSkipsAppsWithPingDisabled(): void
+    /**
+     * The reachability decision lives in EndpointTarget::fromRawAppData(), so the
+     * view builder hands over the raw payload without pre-filtering it.
+     */
+    public function testDelegatesTargetSelectionToEndpointTarget(): void
     {
-        $builder = new ServerViewBuilder(
-            $this->createStub(ServerMonitor::class),
-            $this->logSizeEvaluator(),
-            $this->createStub(EventManager::class),
-            new Logger('test'),
-            new CacheTypeResolver(),
-        );
+        $builder = $this->builder();
         $reachabilityMonitor = $this->createMock(AppReachabilityMonitorInterface::class);
         $reachabilityMonitor->expects($this->once())
             ->method('checkMultipleEndpoints')
             ->willReturnCallback(function (array $targets): array {
-                $this->assertSame(['enabled'], array_keys($targets));
-                $this->assertSame('https://enabled.example.test', $targets['enabled']->url);
+                $this->assertSame(['shop', 'blog'], array_keys($targets));
+                $this->assertSame('https://shop.example.test', $targets['shop']->url);
 
-                return ['enabled' => ['reachable' => true]];
+                return ['shop' => ['reachable' => true]];
             });
 
         $method = new ReflectionMethod($builder, 'checkAppsAvailability');
         $result = $method->invoke($builder, [
-            'enabled' => ['url' => 'https://enabled.example.test'],
-            'disabled' => ['url' => 'https://disabled.example.test', 'ping' => 'off'],
+            'shop' => ['url' => 'https://shop.example.test'],
+            'blog' => ['url' => 'https://blog.example.test'],
         ], $reachabilityMonitor, 'server-a');
 
-        $this->assertSame(['enabled' => ['reachable' => true]], $result);
+        $this->assertSame(['shop' => ['reachable' => true]], $result);
     }
 
     public function testSyncsDiscoveredApplicationsOnForceRefresh(): void
@@ -324,6 +439,17 @@ final class ServerViewBuilderTest extends TestCase
         $this->assertSame(NodeHealthState::UNKNOWN, $result[0]['health']['state']);
     }
 
+    private function builder(): ServerViewBuilder
+    {
+        return new ServerViewBuilder(
+            $this->createStub(ServerMonitor::class),
+            $this->logSizeEvaluator(),
+            $this->createStub(EventManager::class),
+            new Logger('test'),
+            new CacheTypeResolver(),
+        );
+    }
+
     private function logSizeEvaluator(): LogSizeEvaluator
     {
         $events = $this->createStub(EventManager::class);
@@ -339,7 +465,7 @@ final class ServerViewBuilderTest extends TestCase
             'title' => 'Shop',
             'env' => 'prod',
             'url' => 'https://shop.example.test',
-            'ping' => 'off',
+            'monitoring' => ['reachability' => false],
             'logs' => [],
             'status' => ['fatal' => 0, 'warnings' => 0, 'total' => 0],
             'session' => [

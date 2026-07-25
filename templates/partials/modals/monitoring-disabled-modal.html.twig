@@ -1,0 +1,8 @@
+{% embed "partials/modals/modal-shell.html.twig" with {
+  modal_title: 'Monitoring disabled',
+  modal_context: app.name
+} %}
+  {% block modal_body %}
+    <p>{{ setting }} is disabled for this application.</p>
+  {% endblock %}
+{% endembed %}

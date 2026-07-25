@@ -46,6 +46,18 @@ final class AlarmDecisionProcessor
         $eventId = (int) $event['id'];
 
         $context = EventContext::fromArray(json_decode($event['context'] ?? '{}', true) ?: []);
+
+        // Keep the event but deny its alarm when the producer stamped suppression.
+        if ((bool) ($context->toArray()['alarms_suppressed'] ?? false)) {
+            $record
+                ->setOutcome('suppressed')
+                ->setPolicyGate('deny')
+                ->setPolicyReason('app_alarms_disabled')
+                ->setRequestedChannels([]);
+
+            return $this->complete($event, $record, 0, false, true);
+        }
+
         $evaluation = $this->alarmCooldownService->evaluateAlarmForEvent(
             type: (string) $event['type'],
             server: $event['server_id'] ?? null,

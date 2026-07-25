@@ -48,6 +48,54 @@ final class AlarmDecisionProcessorTest extends TestCase
         $this->assertSame(['strategy' => 'event_count_window'], $result->record->toArray()['trigger_evidence']);
     }
 
+    public function testSuppressedAppAlarmsShortCircuitBeforeTheThresholdEvaluation(): void
+    {
+        $evaluator = $this->createMock(AlarmThresholdCooldownService::class);
+        $evaluator->expects($this->never())->method('evaluateAlarmForEvent');
+        $decisionService = $this->createMock(AlarmDecisionServiceInterface::class);
+        $decisionService->expects($this->never())->method('decide');
+        $creator = $this->createMock(AlarmCreatorInterface::class);
+        $creator->expects($this->never())->method('create');
+        $event = array_replace($this->event(), ['context' => '{"alarms_suppressed":true}']);
+
+        $result = $this->processor(
+            $evaluator,
+            $decisionService,
+            $creator,
+            $this->createStub(EventRecorderService::class),
+            $this->expectRecordedOutcome('suppressed'),
+        )->process($event, ['email']);
+
+        $record = $result->record->toArray();
+        $this->assertTrue($result->skipped);
+        $this->assertSame(0, $result->enqueuedCount);
+        $this->assertSame('suppressed', $record['outcome']);
+        $this->assertSame('deny', $record['policy_gate']);
+        $this->assertSame('app_alarms_disabled', $record['policy_reason']);
+        $this->assertSame([], $record['requested_channels']);
+        $this->assertNull($record['trigger_evidence']);
+    }
+
+    public function testFalseAlarmsSuppressedFlagDoesNotGateTheDecision(): void
+    {
+        $evaluator = $this->readyEvaluator(['email']);
+        $decisionService = $this->decisionService(new AlarmDecision(true, ['email'], 50));
+        $creator = $this->createMock(AlarmCreatorInterface::class);
+        $creator->expects($this->once())->method('create')->willReturn(99);
+        $event = array_replace($this->event(), ['context' => '{"alarms_suppressed":false}']);
+
+        $result = $this->processor(
+            $evaluator,
+            $decisionService,
+            $creator,
+            $this->createStub(EventRecorderService::class),
+            $this->expectRecordedOutcome('enqueued'),
+        )->process($event, ['email']);
+
+        $this->assertFalse($result->skipped);
+        $this->assertSame(1, $result->enqueuedCount);
+    }
+
     public function testMissingChannelsAreRecordedWithoutPolicyEvaluation(): void
     {
         $evaluator = $this->readyEvaluator([]);

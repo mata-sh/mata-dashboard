@@ -54,6 +54,18 @@ final class EventContextTest extends TestCase
         ], $context->forCooldownIdentity()->toArray());
     }
 
+    public function testAlarmsSuppressedDoesNotChangeTheCooldownIdentity(): void
+    {
+        $identity = ['identifier' => 'shop', 'url' => 'https://shop.example.test'];
+        $suppressed = EventContext::fromArray($identity + ['alarms_suppressed' => true]);
+
+        $this->assertSame($identity, $suppressed->forCooldownIdentity()->toArray());
+        $this->assertSame(
+            EventContext::fromArray($identity)->forCooldownIdentity()->toJson(),
+            $suppressed->forCooldownIdentity()->toJson(),
+        );
+    }
+
     public function testForCooldownIdentityReturnsTheSameContextWhenNoIgnoredFieldsExist(): void
     {
         $context = EventContext::fromArray(['metric' => 'fatal_error_count']);

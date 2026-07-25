@@ -15,6 +15,7 @@ use Mata\Services\Collect\ServerDataCollectorInterface;
 use Mata\Services\Event\EventManager;
 use Mata\Services\Monitor\AppReachabilityMonitorInterface;
 use Mata\Services\Monitor\Dto\AppFatalErrorPolicy;
+use Mata\Services\Monitor\Dto\AppMonitoringSettings;
 use Mata\Services\Monitor\Dto\EndpointTarget;
 use Mata\Services\Monitor\Dto\ServerMonitoringServices;
 use Mata\Services\Monitor\LogSizeEvaluator;
@@ -228,11 +229,7 @@ class ServerViewBuilder
         }
 
         try {
-            $pingableApps = array_filter(
-                $rawAppsData,
-                static fn (array $app): bool => ($app['ping'] ?? 'on') !== 'off'
-            );
-            $targets = EndpointTarget::fromRawAppData($pingableApps, $serverName);
+            $targets = EndpointTarget::fromRawAppData($rawAppsData, $serverName);
 
             return $reachabilityMonitor->checkMultipleEndpoints($targets);
         } catch (Exception $e) {
@@ -282,12 +279,15 @@ class ServerViewBuilder
         $appsViewData = [];
 
         foreach ($rawAppsData as $appKey => $appData) {
+            $monitoring = AppMonitoringSettings::fromAppPayload($appData, $this->logger);
+
             $logAnalysis = $this->buildAppLogViewData(
                 $appData,
                 $this->resolveErrorAlarmsEnabled($fatalErrorPolicy, $appData),
+                $monitoring,
             );
 
-            $sessionData = $this->formatSessionDataForView($appData);
+            $sessionData = $this->formatSessionDataForView($appData, $monitoring);
 
             $appsViewData[] = [
                 'key' => $appKey,
@@ -322,46 +322,92 @@ class ServerViewBuilder
         }
     }
 
-    /** @param array<string,mixed> $appData @return array<string,mixed> */
-    private function buildAppLogViewData(array $appData, bool $errorAlarmsEnabled = true): array
-    {
-        $logs = $appData['logs'];
-        $status = $appData['status'];
-        $fatalCount = $this->numberFormatter->formatCompact($status['fatal']);
-        $warningCount = $this->numberFormatter->formatCompact($status['warnings']);
-        $totalLineCount = $this->numberFormatter->formatCompact($status['total']);
+    /**
+     * @param array<string,mixed> $appData
+     *
+     * @return array<string,mixed>
+     */
+    private function buildAppLogViewData(
+        array $appData,
+        bool $errorAlarmsEnabled = true,
+        ?AppMonitoringSettings $monitoring = null
+    ): array {
+        $monitoring ??= AppMonitoringSettings::allEnabled();
+        $logAnalysisEnabled = $monitoring->isEnabled('loganalysis');
+        $logSizeEnabled = $monitoring->isEnabled('logsize');
+
+        $logs = is_array($appData['logs'] ?? null) ? $appData['logs'] : [];
+        $status = is_array($appData['status'] ?? null) ? $appData['status'] : [];
+        $fatal = (int) ($status['fatal'] ?? 0);
+        $warnings = (int) ($status['warnings'] ?? 0);
+        $total = (int) ($status['total'] ?? 0);
+
         $showEventsCount = 0;
         $showEventsType = 'working';
 
-        if ($status['fatal'] > 0) {
-            $showEventsCount = $fatalCount;
-            $showEventsType = 'errors';
-        } elseif ($status['warnings'] > 0) {
-            $showEventsCount = $warningCount;
-            $showEventsType = 'warnings';
+        if ($logAnalysisEnabled) {
+            $fatalCount = $this->numberFormatter->formatCompact($fatal);
+            $warningCount = $this->numberFormatter->formatCompact($warnings);
+            $totalLineCount = $this->numberFormatter->formatCompact($total);
+
+            if ($fatal > 0) {
+                $showEventsCount = $fatalCount;
+                $showEventsType = 'errors';
+            } elseif ($warnings > 0) {
+                $showEventsCount = $warningCount;
+                $showEventsType = 'warnings';
+            }
+        } else {
+            // Unscanned counts are not zero.
+            $fatalCount = '–';
+            $warningCount = '–';
+            $totalLineCount = '–';
+            $fatal = 0;
+            $warnings = 0;
+            $total = 0;
         }
 
         $firstLog = '';
         foreach ($logs as $log => $size) {
-            $firstLog = $log;
+            $firstLog = (string) $log;
 
             break;
         }
 
+        $logSizeView = $logSizeEnabled
+            ? $this->logSizeEvaluator->evaluate($logs)->toArray()
+            : $this->disabledLogSizeViewData();
+        $logSizeView['logsize_monitoring_enabled'] = $logSizeEnabled;
+
         return [
-            'log_analysis' => $this->logSizeEvaluator->evaluate($logs)->toArray(),
+            'log_analysis' => $logSizeView,
             'error_analysis' => [
                 'fatal_count' => $fatalCount,
                 'warning_count' => $warningCount,
                 'total_count' => $totalLineCount,
                 'show_events_count' => $showEventsCount,
                 'show_events_type' => $showEventsType,
-                'fatal_count_raw' => (int) $status['fatal'],
-                'warning_count_raw' => (int) $status['warnings'],
-                'total_count_raw' => (int) $status['total'],
+                'fatal_count_raw' => $fatal,
+                'warning_count_raw' => $warnings,
+                'total_count_raw' => $total,
                 'first_log' => $firstLog,
                 'error_monitoring_enabled' => $errorAlarmsEnabled,
+                'loganalysis_enabled' => $logAnalysisEnabled,
+                'alarms_enabled' => $monitoring->isEnabled('alarms'),
             ],
+        ];
+    }
+
+    /** @return array<string,mixed> */
+    private function disabledLogSizeViewData(): array
+    {
+        return [
+            'max_size' => 0,
+            'max_size_formatted' => '–',
+            'max_path' => null,
+            'level' => '',
+            'first_log' => '',
+            'files' => [],
         ];
     }
 
@@ -487,25 +533,33 @@ class ServerViewBuilder
      *
      * @return array<string,mixed>
      */
-    private function formatSessionDataForView(array $appData): array
+    private function formatSessionDataForView(array $appData, ?AppMonitoringSettings $monitoring = null): array
     {
-        $session = $appData['session'];
-        $status = $session['status'];
+        if ($monitoring instanceof AppMonitoringSettings && !$monitoring->isEnabled('sessions')) {
+            return [
+                'level' => '',
+                'formatted_count' => '–',
+                'tooltip' => 'Session monitoring disabled',
+            ];
+        }
 
-        if ($status === 'ok' && $session['count_last_hour'] !== null) {
+        $session = is_array($appData['session'] ?? null) ? $appData['session'] : [];
+        $status = $session['status'] ?? 'unconfigured';
+
+        if ($status === 'ok' && ($session['count_last_hour'] ?? null) !== null) {
             $lastHour = $session['count_last_hour'];
             $tooltipParts = [];
 
-            $tooltipParts[] = sprintf('<strong>Type:</strong> %s', Html::escapeTooltipValue($session['type']));
+            $tooltipParts[] = sprintf('<strong>Type:</strong> %s', Html::escapeTooltipValue($session['type'] ?? ''));
 
-            if ($session['path'] !== null) {
+            if (($session['path'] ?? null) !== null) {
                 $tooltipParts[] = Html::escapeTooltipValue($session['path']);
             }
 
             foreach ([
                 '1 Hour' => $lastHour,
-                '24 Hours' => $session['count_last_day'],
-                'Total' => $session['count_total'],
+                '24 Hours' => $session['count_last_day'] ?? 0,
+                'Total' => $session['count_total'] ?? 0,
             ] as $label => $count) {
                 $tooltipParts[] = sprintf(
                     '<strong>%s:</strong> %s',
@@ -514,7 +568,7 @@ class ServerViewBuilder
                 );
             }
 
-            if ($session['size_kb'] !== null) {
+            if (($session['size_kb'] ?? null) !== null) {
                 $tooltipParts[] = sprintf('<strong>Size:</strong> %s KB', (string) $session['size_kb']);
             }
 
@@ -526,14 +580,14 @@ class ServerViewBuilder
         }
 
         if ($status === 'ok') {
-            $total = $session['count_total'];
+            $total = $session['count_total'] ?? 0;
 
             return [
                 'level' => '',
                 'formatted_count' => $this->numberFormatter->formatCompact($total),
                 'tooltip' => sprintf(
                     '<strong>Type:</strong> %s<br><strong>Total:</strong> %s<br>Hourly/daily counts not available',
-                    Html::escapeTooltipValue($session['type']),
+                    Html::escapeTooltipValue($session['type'] ?? ''),
                     $this->formatNumber($total)
                 ),
             ];
@@ -552,8 +606,8 @@ class ServerViewBuilder
             'formatted_count' => '!',
             'tooltip' => sprintf(
                 'Sessions (%s): %s',
-                Html::escapeTooltipValue($session['type']),
-                Html::escapeTooltipValue($session['error'])
+                Html::escapeTooltipValue($session['type'] ?? ''),
+                Html::escapeTooltipValue($session['error'] ?? '')
             ),
         ];
     }

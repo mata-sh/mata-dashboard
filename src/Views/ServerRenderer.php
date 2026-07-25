@@ -431,6 +431,8 @@ class ServerRenderer extends BaseRenderer
     ): array {
         $appDivId = bin2hex(random_bytes(3));
         $availabilityView = $this->buildAvailabilityData($availability);
+        $logAnalysisEnabled = ($logAnalysis['error_analysis']['loganalysis_enabled'] ?? true) !== false;
+        $logSizeEnabled = ($logAnalysis['log_analysis']['logsize_monitoring_enabled'] ?? true) !== false;
 
         return [
             'app' => [
@@ -448,6 +450,8 @@ class ServerRenderer extends BaseRenderer
                 'status_count' => $logAnalysis['error_analysis']['show_events_count'],
                 'status_type' => $logAnalysis['error_analysis']['show_events_type'],
                 'status_tooltip' => $this->logRenderer->formatErrorAnalysisTooltip($logAnalysis['error_analysis']),
+                'loganalysis_enabled' => $logAnalysisEnabled,
+                'status_clickable' => $logAnalysisEnabled,
                 'cache_age' => $this->tools->formatDuration($appsCacheAge),
                 'cache_ttl' => $this->tools->formatDuration($appsCacheTtl),
             ],
@@ -470,6 +474,8 @@ class ServerRenderer extends BaseRenderer
                 'file_size_level' => $logAnalysis['log_analysis']['level'],
                 'file_size_tooltip' => $this->logRenderer->formatLogAnalysisTooltip($logAnalysis['log_analysis']),
                 'max_file_size' => $logAnalysis['log_analysis']['max_size_formatted'],
+                'logsize_monitoring_enabled' => $logSizeEnabled,
+                'file_size_clickable' => $logSizeEnabled,
             ],
             'sessions' => [
                 'count_last' => $sessionData['formatted_count'],

@@ -30,7 +30,10 @@ final class ServerDataFetchRunnerTest extends TestCase
         $collector = $this->createMock(ServerDataCollectorInterface::class);
         $collector->expects($this->once())->method('getServerSystemData')->with(true);
         $collector->expects($this->once())->method('getApps')->with(true)->willReturn(['result' => [
-            'shop' => ['title' => 'Shop', 'env' => 'prod', 'url' => 'https://shop.example.test', 'ping' => 'off'],
+            'shop' => [
+                'title' => 'Shop', 'env' => 'prod', 'url' => 'https://shop.example.test',
+                'monitoring' => ['reachability' => false],
+            ],
         ]]);
         $collector->expects($this->never())->method('fetchAppLogs');
         $collector->expects($this->never())->method('fetchAppLogsStatus');
@@ -120,6 +123,36 @@ final class ServerDataFetchRunnerTest extends TestCase
         );
 
         $this->assertFalse($result->appsFetched);
+    }
+
+    public function testOnlyReachabilityEnabledAppsBecomeAvailabilityTargets(): void
+    {
+        $collector = $this->createStub(ServerDataCollectorInterface::class);
+        $collector->method('getApps')->willReturn(['result' => [
+            'shop' => ['title' => 'Shop', 'url' => 'https://shop.example.test'],
+            'admin' => [
+                'title' => 'Admin', 'url' => 'https://admin.example.test',
+                'monitoring' => ['reachability' => false],
+            ],
+        ]]);
+        $errorMonitor = $this->createStub(AppErrorMonitorInterface::class);
+        $errorMonitor->method('monitor')->willReturn(AppErrorMonitoringResult::empty(2));
+        $reachabilityMonitor = $this->createMock(AppReachabilityMonitorInterface::class);
+        $reachabilityMonitor->expects($this->once())
+            ->method('checkMultipleEndpoints')
+            ->with($this->callback(static fn (array $targets): bool => array_keys($targets) === ['shop']))
+            ->willReturn([]);
+
+        $result = (new ServerDataFetchRunner(new NullLogger()))->run(
+            'srv',
+            $collector,
+            $reachabilityMonitor,
+            $errorMonitor,
+            $this->createStub(NodeHealthMonitorInterface::class),
+            $this->inventorySync(),
+        );
+
+        $this->assertSame(1, $result->availabilityTargets);
     }
 
     private function inventorySync(): AppInventorySync

@@ -46,6 +46,27 @@ final class EndpointTargetTest extends TestCase
         self::assertSame('node-a', $targets['shop']->serverName);
     }
 
+    public function testFromRawAppDataDropsAppsWithReachabilityMonitoringDisabled(): void
+    {
+        $targets = EndpointTarget::fromRawAppData([
+            'shop' => ['url' => 'https://shop.example.test'],
+            'admin' => ['url' => 'https://admin.example.test', 'monitoring' => ['reachability' => false]],
+            'blog' => ['url' => 'https://blog.example.test', 'monitoring' => ['sessions' => false]],
+        ], 'node-a');
+
+        self::assertSame(['shop', 'blog'], array_keys($targets));
+    }
+
+    public function testFromRawAppDataKeepsAppsWithAMalformedMonitoringBlock(): void
+    {
+        $targets = EndpointTarget::fromRawAppData([
+            'shop' => ['url' => 'https://shop.example.test', 'monitoring' => ['reachability' => 'off']],
+            'admin' => ['url' => 'https://admin.example.test', 'monitoring' => 'nonsense'],
+        ]);
+
+        self::assertSame(['shop', 'admin'], array_keys($targets));
+    }
+
     public function testFromArrayRejectsNonPositiveIdsAndBlankOptionalStrings(): void
     {
         $target = EndpointTarget::fromArray([

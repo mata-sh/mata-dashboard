@@ -16,6 +16,8 @@ final class EventContext
     private const COOLDOWN_IGNORED_KEYS = [
         'actual_value' => true,
         'additional_data' => true,
+        // Alarm suppression does not identify a distinct incident.
+        'alarms_suppressed' => true,
     ];
 
     /** @var array<int|string,mixed> */

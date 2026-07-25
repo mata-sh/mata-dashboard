@@ -429,6 +429,24 @@ class ModalRenderer extends BaseRenderer
     }
 
     /**
+     * Render a modal when a stale UI trigger requests a disabled check.
+     */
+    public function renderMonitoringDisabledModal(string $server, string $app, string $setting): string
+    {
+        try {
+            return $this->twig->render('partials/modals/monitoring-disabled-modal.html.twig', [
+                'app' => ['server' => $server, 'name' => $app],
+                'setting' => $setting,
+                'icons' => $this->getModalIcons(),
+            ]);
+        } catch (Exception $e) {
+            $this->logError($e->getMessage(), 'MonitoringDisabledModal', ['server' => $server, 'app' => $app]);
+
+            return '<div class="notification is-warning">Monitoring disabled</div>';
+        }
+    }
+
+    /**
      * Build template data for server info modal.
      *
      * @param array<string,mixed> $serverInfo Server information data

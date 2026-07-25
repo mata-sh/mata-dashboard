@@ -98,8 +98,7 @@ final class AppErrorMonitorTest extends TestCase
                 && $event->level === 'critical' && $event->server === 'srv' && $event->app === 'shop'))
             ->willReturn(['eventRecorded' => true, 'eventId' => 1]);
         $app = $this->app(0, null);
-        $app['error_monitoring_enabled'] = false;
-        $app['logsize_monitoring_enabled'] = true;
+        $app['monitoring'] = ['loganalysis' => false];
         $app['logs'] = ['logs/error.log' => 60000];
 
         $result = $this->monitor()->monitor('srv', ['shop' => $app]);
@@ -138,7 +137,7 @@ final class AppErrorMonitorTest extends TestCase
         $this->events->expects($this->once())->method('getServerDataThresholdLevel')->willReturn('alarm');
         $this->events->expects($this->once())->method('handle')->willReturn(['eventRecorded' => true, 'eventId' => 1]);
         $fatalDisabled = $this->app(3, self::cursor('a'));
-        $fatalDisabled['logsize_monitoring_enabled'] = true;
+        $fatalDisabled['monitoring'] = ['logsize' => true];
         $fatalDisabled['logs'] = ['error.log' => 60000];
         $first = $this->monitor(['error_monitoring_enabled' => false])->monitor('srv', ['shop' => $fatalDisabled]);
         $this->assertSame(0, $first->fatalEventsRecorded);
@@ -168,14 +167,76 @@ final class AppErrorMonitorTest extends TestCase
         $this->states->upsert(1, 2, self::cursor('a'), 3);
         $this->events->expects($this->never())->method('handle');
         $app = $this->app(0, null);
-        $app['error_monitoring_enabled'] = false;
-        $app['logsize_monitoring_enabled'] = false;
+        $app['monitoring'] = ['loganalysis' => false, 'logsize' => false];
 
         $result = $this->monitor()->monitor('srv', ['shop' => $app]);
 
         $this->assertSame(1, $result->errorMonitoringDisabled);
         $this->assertSame(1, $result->logsizeMonitoringDisabled);
         $this->assertSame(self::cursor('a'), $this->states->get(1, 2)?->fatalCursor);
+    }
+
+    public function testEventsDisabledSkipsBothChecksAndPreservesFatalState(): void
+    {
+        $this->states->upsert(1, 2, self::cursor('a'), 3);
+        $this->events->expects($this->never())->method('handle');
+        $app = $this->app(3, self::cursor('b'));
+        $app['monitoring'] = ['events' => false];
+        $app['logs'] = ['logs/error.log' => 60000];
+
+        $result = $this->monitor()->monitor('srv', ['shop' => $app]);
+
+        $this->assertSame(1, $result->eventsDisabled);
+        $this->assertSame(0, $result->appsChecked);
+        $this->assertSame(0, $result->errorMonitoringDisabled);
+        $this->assertSame(0, $result->logsizeMonitoringDisabled);
+        $this->assertSame(0, $result->failures);
+        $this->assertSame(self::cursor('a'), $this->states->get(1, 2)?->fatalCursor);
+    }
+
+    public function testDisabledAlarmsStampAlarmsSuppressedOnBothEventTypes(): void
+    {
+        $contexts = [];
+        $this->events->method('getServerDataThresholdLevel')->willReturn('alarm');
+        $this->events->expects($this->exactly(2))->method('handle')
+            ->willReturnCallback(static function (EventCommand $event) use (&$contexts): array {
+                $contexts[$event->type] = $event->context;
+
+                return ['eventRecorded' => true, 'eventId' => 1];
+            });
+        $app = $this->app(3, self::cursor('a'));
+        $app['monitoring'] = ['alarms' => false];
+        $app['logs'] = ['logs/error.log' => 60000];
+
+        $result = $this->monitor()->monitor('srv', ['shop' => $app]);
+
+        $this->assertSame(1, $result->fatalEventsRecorded);
+        $this->assertSame(1, $result->logfileEventsRecorded);
+        $this->assertTrue($contexts['fatal_errors_occurring']['alarms_suppressed']);
+        $this->assertTrue($contexts['logfile_too_large']['alarms_suppressed']);
+    }
+
+    public function testEnabledAlarmsLeaveTheEventContextUnstamped(): void
+    {
+        $this->events->expects($this->once())->method('handle')
+            ->with($this->callback(static fn (EventCommand $event): bool => $event->context === []))
+            ->willReturn(['eventRecorded' => true, 'eventId' => 1]);
+
+        $result = $this->monitor()->monitor('srv', ['shop' => $this->app(3, self::cursor('a'))]);
+
+        $this->assertSame(1, $result->fatalEventsRecorded);
+    }
+
+    public function testAbsentStatusAndLogsAreCleanSkipsWhileMalformedOnesStillFail(): void
+    {
+        $this->events->expects($this->never())->method('handle');
+
+        $absent = $this->monitor()->monitor('srv', ['shop' => []]);
+        $malformed = $this->monitor()->monitor('srv', ['shop' => ['status' => 'broken', 'logs' => 'broken']]);
+
+        $this->assertSame(1, $absent->appsChecked);
+        $this->assertSame(0, $absent->failures);
+        $this->assertSame(2, $malformed->failures);
     }
 
     /** @param array<string,mixed> $serverConfig */
@@ -205,8 +266,7 @@ final class AppErrorMonitorTest extends TestCase
     private function app(int $fatal, ?string $cursor): array
     {
         return [
-            'error_monitoring_enabled' => true,
-            'logsize_monitoring_enabled' => false,
+            'monitoring' => ['logsize' => false],
             'status' => ['fatal' => $fatal, 'fatal_cursor' => $cursor],
             'logs' => [],
         ];

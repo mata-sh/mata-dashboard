@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Mata\Services\Collect;
 
 use Mata\Constants\Severities;
+use Mata\Services\Monitor\Dto\AppMonitoringSettings;
 use Mata\Utils\TypeConverter;
 use Psr\Log\LoggerInterface;
 use RuntimeException;
@@ -159,32 +160,26 @@ class NodeResponseNormalizer
                 $url = TypeConverter::toString($appData['url'] ?? null);
                 $env = TypeConverter::toString($appData['env'] ?? null);
                 $statusUrl = $this->normalizeOptionalStatusUrl($appData);
-                $status = $appData['status'] ?? null;
-                $logs = $appData['logs'] ?? null;
                 $composerEnabled = array_key_exists('composer', $appData)
                     ? TypeConverter::toBool($appData['composer'])
                     : false;
-                $errorMonitoringEnabled = $appData['error_monitoring_enabled'] ?? null;
-                $logsizeMonitoringEnabled = $appData['logsize_monitoring_enabled'] ?? null;
 
                 if ($title === null || $path === null || $url === null || !in_array($env, ['dev', 'test', 'stg', 'prod', 'live'], true)
-                    || $statusUrl === false || !is_array($status) || !is_array($logs) || $composerEnabled === null
-                    || !is_bool($errorMonitoringEnabled) || !is_bool($logsizeMonitoringEnabled)) {
+                    || $statusUrl === false || $composerEnabled === null) {
                     throw new InvalidNodePayloadException("Node returned an invalid application payload for {$appName}.", 'apps');
                 }
 
-                $fatal = TypeConverter::toInt($status['fatal'] ?? null);
-                $warnings = TypeConverter::toInt($status['warnings'] ?? null);
-                $total = TypeConverter::toInt($status['total'] ?? null);
-                $fatalCursor = $status['fatal_cursor'] ?? null;
-                $validFatalCursor = $fatal === 0
-                    ? $fatalCursor === null
-                    : is_string($fatalCursor) && preg_match('/^v1:[a-f0-9]{64}$/', $fatalCursor) === 1;
-                $normalizedLogs = $this->normalizeLogSizes($logs);
-                if ($fatal === null || $warnings === null || $total === null || $fatal < 0 || $warnings < 0 || $total < 0
-                    || !$validFatalCursor || $normalizedLogs === null) {
-                    throw new InvalidNodePayloadException("Node returned invalid monitoring data for {$appName}.", 'apps');
-                }
+                $monitoring = $this->normalizeAppMonitoring($appData, $appName);
+                $loganalysisEnabled = $monitoring->isEnabled('loganalysis');
+                $logsizeEnabled = $monitoring->isEnabled('logsize');
+                $sessionsEnabled = $monitoring->isEnabled('sessions');
+
+                $normalizedStatus = $loganalysisEnabled
+                    ? $this->normalizeAppStatus($appData['status'] ?? null, $appName)
+                    : null;
+                $normalizedLogs = $logsizeEnabled
+                    ? $this->normalizeAppLogSizes($appData['logs'] ?? null, $appName)
+                    : null;
 
                 $description = TypeConverter::toString($appData['description'] ?? null);
                 if (array_key_exists('description', $appData) && $appData['description'] !== null && $description === null
@@ -194,21 +189,39 @@ class NodeResponseNormalizer
 
                 $normalizedApp = $appData;
                 unset($normalizedApp['maintenance']);
-                $normalized[$appName] = array_merge($normalizedApp, [
+
+                // A disabled check is omitted by the node and must stay absent after normalization.
+                if (!$loganalysisEnabled) {
+                    unset($normalizedApp['status']);
+                }
+                if (!$logsizeEnabled) {
+                    unset($normalizedApp['logs']);
+                }
+                if (!$sessionsEnabled) {
+                    unset($normalizedApp['session']);
+                }
+
+                $normalizedFields = [
                     'title' => $title,
                     'path' => $path,
                     'url' => $url,
                     'env' => $env === 'live' ? 'prod' : $env,
                     'description' => $description,
                     'composer' => $composerEnabled,
-                    'error_monitoring_enabled' => $errorMonitoringEnabled,
-                    'logsize_monitoring_enabled' => $logsizeMonitoringEnabled,
-                    'status' => ['fatal' => $fatal, 'warnings' => $warnings, 'total' => $total, 'fatal_cursor' => $fatalCursor],
-                    'logs' => $normalizedLogs,
-                    'session' => $this->normalizeSessionData(
+                ];
+                if ($normalizedStatus !== null) {
+                    $normalizedFields['status'] = $normalizedStatus;
+                }
+                if ($normalizedLogs !== null) {
+                    $normalizedFields['logs'] = $normalizedLogs;
+                }
+                if ($sessionsEnabled) {
+                    $normalizedFields['session'] = $this->normalizeSessionData(
                         isset($appData['session']) && is_array($appData['session']) ? $appData['session'] : []
-                    ),
-                ]);
+                    );
+                }
+
+                $normalized[$appName] = array_merge($normalizedApp, $normalizedFields);
                 if ($statusUrl !== null) {
                     $normalized[$appName]['status_url'] = $statusUrl;
                 }
@@ -222,6 +235,81 @@ class NodeResponseNormalizer
         }
 
         throw new InvalidNodePayloadException('Node returned an applications list instead of an application map.', 'apps');
+    }
+
+    /**
+     * @param array<string,mixed> $appData
+     *
+     * @throws InvalidNodePayloadException When the monitoring block is malformed
+     */
+    private function normalizeAppMonitoring(array $appData, string $appName): AppMonitoringSettings
+    {
+        if (!array_key_exists('monitoring', $appData)) {
+            return AppMonitoringSettings::allEnabled();
+        }
+
+        $monitoring = $appData['monitoring'];
+        if (!is_array($monitoring)) {
+            throw new InvalidNodePayloadException("Node returned an invalid monitoring block for {$appName}.", 'apps');
+        }
+
+        foreach ($monitoring as $setting => $value) {
+            if (!is_string($setting) || !in_array($setting, AppMonitoringSettings::SETTINGS, true) || !is_bool($value)) {
+                throw new InvalidNodePayloadException("Node returned an invalid monitoring block for {$appName}.", 'apps');
+            }
+        }
+
+        return AppMonitoringSettings::fromAppPayload($appData, $this->logger);
+    }
+
+    /**
+     * @return array{fatal:int,warnings:int,total:int,fatal_cursor:null|string}
+     *
+     * @throws InvalidNodePayloadException When the log-analysis status is malformed
+     */
+    private function normalizeAppStatus(mixed $status, string $appName): array
+    {
+        if (!is_array($status)) {
+            throw new InvalidNodePayloadException("Node returned an invalid application payload for {$appName}.", 'apps');
+        }
+
+        $fatal = TypeConverter::toInt($status['fatal'] ?? null);
+        $warnings = TypeConverter::toInt($status['warnings'] ?? null);
+        $total = TypeConverter::toInt($status['total'] ?? null);
+        $fatalCursor = $status['fatal_cursor'] ?? null;
+        $validFatalCursor = $fatal === 0
+            ? $fatalCursor === null
+            : is_string($fatalCursor) && preg_match('/^v1:[a-f0-9]{64}$/', $fatalCursor) === 1;
+        if ($fatal === null || $warnings === null || $total === null || $fatal < 0 || $warnings < 0 || $total < 0
+            || !$validFatalCursor) {
+            throw new InvalidNodePayloadException("Node returned invalid monitoring data for {$appName}.", 'apps');
+        }
+
+        return [
+            'fatal' => $fatal,
+            'warnings' => $warnings,
+            'total' => $total,
+            'fatal_cursor' => is_string($fatalCursor) ? $fatalCursor : null,
+        ];
+    }
+
+    /**
+     * @return array<string,int>
+     *
+     * @throws InvalidNodePayloadException When the log-size map is malformed
+     */
+    private function normalizeAppLogSizes(mixed $logs, string $appName): array
+    {
+        if (!is_array($logs)) {
+            throw new InvalidNodePayloadException("Node returned an invalid application payload for {$appName}.", 'apps');
+        }
+
+        $normalized = $this->normalizeLogSizes($logs);
+        if ($normalized === null) {
+            throw new InvalidNodePayloadException("Node returned invalid monitoring data for {$appName}.", 'apps');
+        }
+
+        return $normalized;
     }
 
     /** @param array<string,mixed> $session */
@@ -746,7 +834,8 @@ class NodeResponseNormalizer
      */
     private function nodeErrorFromPayload(array $payload, string $endpoint, ?int $statusCode): ?array
     {
-        if (($payload['error'] ?? null) !== true || !is_string($payload['message'] ?? null)) {
+        $error = $payload['error'] ?? null;
+        if (($error !== true && $error !== 'Monitoring disabled') || !is_string($payload['message'] ?? null)) {
             return null;
         }
 

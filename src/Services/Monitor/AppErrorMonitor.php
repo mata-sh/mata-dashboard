@@ -13,6 +13,7 @@ use Mata\Services\Identity\ServerApplicationIdResolver;
 use Mata\Services\Monitor\Dto\AppErrorMonitoringResult;
 use Mata\Services\Monitor\Dto\AppFatalErrorPolicy;
 use Mata\Services\Monitor\Dto\AppLogSizePolicy;
+use Mata\Services\Monitor\Dto\AppMonitoringSettings;
 use Mata\Views\Support\NumberFormatter;
 use Psr\Log\LoggerInterface;
 use RuntimeException;
@@ -35,6 +36,7 @@ final class AppErrorMonitor implements AppErrorMonitorInterface
     {
         $stats = [
             'appsChecked' => 0, 'errorMonitoringDisabled' => 0, 'logsizeMonitoringDisabled' => 0,
+            'eventsDisabled' => 0,
             'unchangedFatalCursors' => 0, 'fatalEventsRecorded' => 0, 'oversizedLogsDetected' => 0,
             'logfileEventsRecorded' => 0, 'eventsNotRecorded' => 0, 'failures' => 0,
         ];
@@ -43,6 +45,13 @@ final class AppErrorMonitor implements AppErrorMonitorInterface
             try {
                 if (!is_array($appData)) {
                     throw new RuntimeException('Application payload must be an array');
+                }
+                $monitoring = AppMonitoringSettings::fromAppPayload($appData, $this->logger);
+                // Disabled events skip the app before policy accounting.
+                if (!$monitoring->isEnabled('events')) {
+                    ++$stats['eventsDisabled'];
+
+                    continue;
                 }
                 $errorEnabled = $this->fatalErrorPolicy->isEnabled($appData);
                 $logsizeEnabled = $this->logSizePolicy->isEnabled($appData);
@@ -58,7 +67,7 @@ final class AppErrorMonitor implements AppErrorMonitorInterface
 
                 if ($errorEnabled) {
                     try {
-                        $this->monitorFatal($server, (string) $app, $appData, $stats);
+                        $this->monitorFatal($server, (string) $app, $appData, $monitoring, $stats);
                     } catch (Throwable $exception) {
                         ++$stats['failures'];
                         $this->logFailure($server, (string) $app, 'fatal', $exception);
@@ -66,7 +75,7 @@ final class AppErrorMonitor implements AppErrorMonitorInterface
                 }
                 if ($logsizeEnabled) {
                     try {
-                        $this->monitorLogSize($server, (string) $app, $appData, $stats);
+                        $this->monitorLogSize($server, (string) $app, $appData, $monitoring, $stats);
                     } catch (Throwable $exception) {
                         ++$stats['failures'];
                         $this->logFailure($server, (string) $app, 'log size', $exception);
@@ -83,6 +92,7 @@ final class AppErrorMonitor implements AppErrorMonitorInterface
             appsChecked: $stats['appsChecked'],
             errorMonitoringDisabled: $stats['errorMonitoringDisabled'],
             logsizeMonitoringDisabled: $stats['logsizeMonitoringDisabled'],
+            eventsDisabled: $stats['eventsDisabled'],
             demoSkipped: 0,
             unchangedFatalCursors: $stats['unchangedFatalCursors'],
             fatalEventsRecorded: $stats['fatalEventsRecorded'],
@@ -94,9 +104,18 @@ final class AppErrorMonitor implements AppErrorMonitorInterface
     }
 
     /** @param array<string,mixed> $appData @param array<string,int> $stats */
-    private function monitorFatal(string $server, string $app, array $appData, array &$stats): void
-    {
-        $status = $appData['status'] ?? null;
+    private function monitorFatal(
+        string $server,
+        string $app,
+        array $appData,
+        AppMonitoringSettings $monitoring,
+        array &$stats
+    ): void {
+        // Disabled log analysis omits status.
+        if (!array_key_exists('status', $appData)) {
+            return;
+        }
+        $status = $appData['status'];
         if (!is_array($status) || !is_int($status['fatal'] ?? null) || $status['fatal'] < 0) {
             throw new RuntimeException('Invalid fatal status');
         }
@@ -134,6 +153,7 @@ final class AppErrorMonitor implements AppErrorMonitorInterface
             level: 'warning',
             server: $server,
             app: $app,
+            context: $this->suppressionContext($monitoring),
             metric: new EventMetric('fatal_error_count', $fatalCount, additional: [
                 'previous_fatal_count' => $state?->fatalCount,
                 'fatal_count_delta' => max(0, $fatalCount - ($state === null ? 0 : $state->fatalCount)),
@@ -153,9 +173,18 @@ final class AppErrorMonitor implements AppErrorMonitorInterface
     }
 
     /** @param array<string,mixed> $appData @param array<string,int> $stats */
-    private function monitorLogSize(string $server, string $app, array $appData, array &$stats): void
-    {
-        $logs = $appData['logs'] ?? null;
+    private function monitorLogSize(
+        string $server,
+        string $app,
+        array $appData,
+        AppMonitoringSettings $monitoring,
+        array &$stats
+    ): void {
+        // Disabled log-size monitoring omits logs.
+        if (!array_key_exists('logs', $appData)) {
+            return;
+        }
+        $logs = $appData['logs'];
         if (!is_array($logs)) {
             throw new RuntimeException('Invalid log summary');
         }
@@ -170,6 +199,7 @@ final class AppErrorMonitor implements AppErrorMonitorInterface
             level: 'critical',
             server: $server,
             app: $app,
+            context: $this->suppressionContext($monitoring),
         ));
         if (($result['eventRecorded'] ?? false) === true) {
             ++$stats['logfileEventsRecorded'];
@@ -177,6 +207,12 @@ final class AppErrorMonitor implements AppErrorMonitorInterface
             return;
         }
         ++$stats['eventsNotRecorded'];
+    }
+
+    /** @return array<string,mixed> Event context for alarm suppression. */
+    private function suppressionContext(AppMonitoringSettings $monitoring): array
+    {
+        return $monitoring->isEnabled('alarms') ? [] : ['alarms_suppressed' => true];
     }
 
     /** @return array{0:int,1:int} */

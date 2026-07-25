@@ -47,11 +47,8 @@ final class ServerDataFetchRunner
             $monitoring = AppErrorMonitoringResult::empty(count($apps), failures: 1);
         }
 
-        $pingableApps = array_filter(
-            $apps,
-            static fn ($app): bool => is_array($app) && ($app['ping'] ?? 'on') !== 'off',
-        );
-        $targets = EndpointTarget::fromRawAppData($pingableApps, $server);
+        // EndpointTarget owns reachability filtering.
+        $targets = EndpointTarget::fromRawAppData($apps, $server);
         if ($targets !== []) {
             $reachabilityMonitor->checkMultipleEndpoints($targets, forceRefresh: true);
         }

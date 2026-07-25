@@ -19,6 +19,7 @@ final class ServerDataFetchStats
     private int $unchangedFatalCursors = 0;
     private int $errorMonitoringDisabled = 0;
     private int $logsizeMonitoringDisabled = 0;
+    private int $eventsDisabled = 0;
     private int $demoSkipped = 0;
     private int $eventsNotRecorded = 0;
     private int $monitorFailures = 0;
@@ -40,6 +41,7 @@ final class ServerDataFetchStats
         $this->unchangedFatalCursors += $monitoring->unchangedFatalCursors;
         $this->errorMonitoringDisabled += $monitoring->errorMonitoringDisabled;
         $this->logsizeMonitoringDisabled += $monitoring->logsizeMonitoringDisabled;
+        $this->eventsDisabled += $monitoring->eventsDisabled;
         $this->demoSkipped += $monitoring->demoSkipped;
         $this->eventsNotRecorded += $monitoring->eventsNotRecorded;
         $this->monitorFailures += $monitoring->failures;
@@ -63,11 +65,12 @@ final class ServerDataFetchStats
                 $this->failed,
             ),
             sprintf(
-                'App monitoring: seen=%d checked=%d error-disabled=%d logsize-disabled=%d demo-skipped=%d',
+                'App monitoring: seen=%d checked=%d error-disabled=%d logsize-disabled=%d events-disabled=%d demo-skipped=%d',
                 $this->appsSeen,
                 $this->appsChecked,
                 $this->errorMonitoringDisabled,
                 $this->logsizeMonitoringDisabled,
+                $this->eventsDisabled,
                 $this->demoSkipped,
             ),
             sprintf(

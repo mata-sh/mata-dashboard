@@ -231,10 +231,11 @@ class ModalController extends BaseController
                 }
                 $serverData = $this->serverDataCollectors[$server];
 
-                $logsResponse = $this->requireValidResponse(
-                    $this->modalCacheService->fetchLogs($serverData, $app, $forceRefresh),
-                    "logs of {$app} on {$server}"
-                );
+                $logsResponse = $this->modalCacheService->fetchLogs($serverData, $app, $forceRefresh);
+                if ($this->monitoringDisabled($logsResponse)) {
+                    return new HtmlResponse($this->modalRenderer->renderMonitoringDisabledModal($server, $app, 'Log analysis'));
+                }
+                $logsResponse = $this->requireValidResponse($logsResponse, "logs of {$app} on {$server}");
 
                 $endpoints = [
                     'app_logs_json' => $this->endpoints->url('app_logs_json', [
@@ -285,14 +286,15 @@ class ModalController extends BaseController
                     return $this->handleNotFound("Server '{$server}'", 'Log files request');
                 }
 
-                $logsStatusResponse = $this->requireValidResponse(
-                    $this->modalCacheService->fetchLogsStatus(
-                        $this->serverDataCollectors[$server],
-                        $app,
-                        $forceRefresh
-                    ),
-                    "log files of {$app} on {$server}"
+                $logsStatusResponse = $this->modalCacheService->fetchLogsStatus(
+                    $this->serverDataCollectors[$server],
+                    $app,
+                    $forceRefresh
                 );
+                if ($this->monitoringDisabled($logsStatusResponse)) {
+                    return new HtmlResponse($this->modalRenderer->renderMonitoringDisabledModal($server, $app, 'Log-size monitoring'));
+                }
+                $logsStatusResponse = $this->requireValidResponse($logsStatusResponse, "log files of {$app} on {$server}");
                 $logFiles = is_array($logsStatusResponse['result'] ?? null)
                     ? $logsStatusResponse['result']
                     : [];
@@ -337,11 +339,11 @@ class ModalController extends BaseController
                 }
                 $serverData = $this->serverDataCollectors[$server];
 
-                // Fetch grouped logs from new API
-                $logsResponse = $this->requireValidResponse(
-                    $this->modalCacheService->fetchLogs($serverData, $app, $forceRefresh),
-                    "logs of {$app} on {$server}"
-                );
+                $logsResponse = $this->modalCacheService->fetchLogs($serverData, $app, $forceRefresh);
+                if ($this->monitoringDisabled($logsResponse)) {
+                    return $this->monitoringDisabledJson();
+                }
+                $logsResponse = $this->requireValidResponse($logsResponse, "logs of {$app} on {$server}");
 
                 $groupedLogs = $logsResponse['result']['entries'] ?? [];
 
@@ -373,10 +375,11 @@ class ModalController extends BaseController
                 }
                 $serverData = $this->serverDataCollectors[$server];
 
-                $logsStatusResponse = $this->requireValidResponse(
-                    $this->modalCacheService->fetchLogsStatus($serverData, $app, $forceRefresh),
-                    "logs status of {$app} on {$server}"
-                );
+                $logsStatusResponse = $this->modalCacheService->fetchLogsStatus($serverData, $app, $forceRefresh);
+                if ($this->monitoringDisabled($logsStatusResponse)) {
+                    return $this->monitoringDisabledJson();
+                }
+                $logsStatusResponse = $this->requireValidResponse($logsStatusResponse, "logs status of {$app} on {$server}");
 
                 $logsStatusData = $logsStatusResponse['result'] ?? [];
 
@@ -540,6 +543,21 @@ class ModalController extends BaseController
             'Failed to load server cronjobs',
             "Server cronjobs for {$server}"
         );
+    }
+
+    private function monitoringDisabled(array|string|null $response): bool
+    {
+        $error = is_array($response) && is_array($response['error'] ?? null)
+            ? $response['error']
+            : [];
+
+        return ($error['status_code'] ?? null) === 409
+            && ($error['message'] ?? null) === 'Monitoring disabled';
+    }
+
+    private function monitoringDisabledJson(): JsonResponse
+    {
+        return new JsonResponse(['error' => 'Monitoring disabled', 'message' => 'Monitoring disabled'], 409);
     }
 
     /**

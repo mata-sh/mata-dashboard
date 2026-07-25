@@ -208,8 +208,6 @@ final class DemoAppGenerator
                 'status_url' => rtrim($serverConfig['url'], '/') . '/' . $template['path'] . '/status.php',
                 'env' => $environment,
                 'composer' => true,
-                'error_monitoring_enabled' => true,
-                'logsize_monitoring_enabled' => true,
                 'status' => [
                     'fatal' => $fatalCount,
                     'warnings' => $warningCount,
@@ -311,6 +309,50 @@ final class DemoAppGenerator
                 : 'v1:' . hash('sha256', $appKey . ':' . $app['status']['fatal']);
         }
         unset($app);
+
+        return $this->applyMonitoringSettings($apps);
+    }
+
+    /**
+     * Add disabled demo states and omit their unavailable payload fields.
+     *
+     * @param array<string,mixed> $apps
+     *
+     * @return array<string,mixed>
+     */
+    private function applyMonitoringSettings(array $apps): array
+    {
+        $appKeys = array_keys($apps);
+        if ($appKeys === []) {
+            return $apps;
+        }
+
+        /** @var array<string,array<string,false>> $disabledByApp */
+        $disabledByApp = [];
+        foreach (['loganalysis', 'logsize', 'sessions', 'reachability'] as $index => $setting) {
+            $appKey = $appKeys[$index % count($appKeys)];
+            $disabledByApp[$appKey][$setting] = false;
+        }
+
+        foreach ($disabledByApp as $appKey => $disabled) {
+            if (!is_array($apps[$appKey])) {
+                continue;
+            }
+
+            $app = $apps[$appKey];
+            $app['monitoring'] = $disabled;
+            if (isset($disabled['loganalysis'])) {
+                unset($app['status']);
+            }
+            if (isset($disabled['logsize'])) {
+                unset($app['logs']);
+            }
+            if (isset($disabled['sessions'])) {
+                unset($app['session']);
+            }
+
+            $apps[$appKey] = $app;
+        }
 
         return $apps;
     }

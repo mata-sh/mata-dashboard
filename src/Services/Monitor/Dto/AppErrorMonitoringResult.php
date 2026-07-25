@@ -11,6 +11,8 @@ final readonly class AppErrorMonitoringResult
         public int $appsChecked,
         public int $errorMonitoringDisabled,
         public int $logsizeMonitoringDisabled,
+        /** Apps skipped wholesale because `monitoring.events` is disabled. */
+        public int $eventsDisabled,
         public int $demoSkipped,
         public int $unchangedFatalCursors,
         public int $fatalEventsRecorded,
@@ -27,6 +29,7 @@ final readonly class AppErrorMonitoringResult
     ): self {
         return new self(
             $appsSeen,
+            0,
             0,
             0,
             0,

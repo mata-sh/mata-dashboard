@@ -94,6 +94,8 @@ final class EndpointTarget
     /**
      * Hydrate multiple targets from a raw apps API payload.
      *
+     * Apps with disabled reachability are omitted.
+     *
      * @param array<int|string,mixed> $appsData
      * @param null|string             $serverName optional server context to attach
      *
@@ -105,6 +107,9 @@ final class EndpointTarget
 
         foreach ($appsData as $appKey => $appData) {
             if (!is_array($appData)) {
+                continue;
+            }
+            if (!AppMonitoringSettings::fromAppPayload($appData)->isEnabled('reachability')) {
                 continue;
             }
 

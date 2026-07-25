@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Mata\Tests\Unit\Services\Collect;
 
 use Mata\Services\Collect\NodeResponseNormalizer;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use Psr\Log\LoggerInterface;
 use Psr\Log\NullLogger;
@@ -23,6 +24,40 @@ final class NodeResponseNormalizerValidationTest extends TestCase
         $this->normalizer = new NodeResponseNormalizer(new NullLogger());
     }
 
+    /**
+     * A fully monitored application entry as the node sends it.
+     *
+     * @param array<string,mixed> $overrides
+     *
+     * @return array<string,mixed>
+     */
+    private static function app(array $overrides = []): array
+    {
+        return array_merge([
+            'title' => 'Shop', 'path' => '/var/www/shop', 'url' => 'https://shop.example.test', 'env' => 'prod',
+            'status' => ['fatal' => 0, 'warnings' => 0, 'total' => 0, 'fatal_cursor' => null],
+            'logs' => ['logs/error.log' => 42],
+            'session' => [
+                'type' => 'file', 'status' => 'ok', 'count_last_hour' => 1,
+                'count_last_day' => 2, 'count_total' => 3, 'path' => '/var/lib/php/sessions', 'size_kb' => 4,
+            ],
+        ], $overrides);
+    }
+
+    /**
+     * @param array<string,mixed> $app
+     *
+     * @return array<string,mixed>
+     */
+    private function normalizeApp(array $app): array
+    {
+        $response = $this->normalizer->normalizeApiResponse(['shop' => $app], path: 'apps');
+
+        $this->assertNull($response['error']);
+
+        return $response['result']['shop'];
+    }
+
     public function testAppsPayloadCoercesRecognizedScalars(): void
     {
         $response = $this->normalizer->normalizeApiResponse([
@@ -34,7 +69,6 @@ final class NodeResponseNormalizerValidationTest extends TestCase
                 'composer' => true,
                 'status_url' => 'https://shop.example.test/health/',
                 'status' => ['fatal' => '1', 'warnings' => 2, 'total' => '3', 'fatal_cursor' => 'v1:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'],
-                'error_monitoring_enabled' => true, 'logsize_monitoring_enabled' => true,
                 'logs' => ['logs/error.log' => '42'],
                 'session' => [
                     'type' => 'file',
@@ -69,7 +103,7 @@ final class NodeResponseNormalizerValidationTest extends TestCase
             'shop' => [
                 'title' => 'Shop', 'path' => '/var/www/shop', 'url' => 'https://shop.example.test', 'env' => 'live',
                 'status' => ['fatal' => 0, 'warnings' => 0, 'total' => 0, 'fatal_cursor' => null],
-                'error_monitoring_enabled' => true, 'logsize_monitoring_enabled' => true, 'logs' => [],
+                'logs' => [],
             ],
         ], path: 'apps');
 
@@ -86,7 +120,6 @@ final class NodeResponseNormalizerValidationTest extends TestCase
                 'url' => 'https://staging-shop.example.test',
                 'env' => 'stg',
                 'status' => ['fatal' => 0, 'warnings' => 0, 'total' => 0, 'fatal_cursor' => null],
-                'error_monitoring_enabled' => true, 'logsize_monitoring_enabled' => true,
                 'logs' => ['logs/error.log' => 0],
                 'session' => [
                     'type' => 'file',
@@ -111,7 +144,7 @@ final class NodeResponseNormalizerValidationTest extends TestCase
             'shop' => [
                 'title' => 'Shop', 'path' => '/var/www/shop', 'url' => 'https://shop.example.test', 'env' => 'prod',
                 'status_url' => null, 'status' => ['fatal' => 0, 'warnings' => 0, 'total' => 0, 'fatal_cursor' => null],
-                'error_monitoring_enabled' => true, 'logsize_monitoring_enabled' => true, 'logs' => [],
+                'logs' => [],
             ],
         ], path: 'apps');
 
@@ -125,7 +158,7 @@ final class NodeResponseNormalizerValidationTest extends TestCase
             'shop' => [
                 'title' => 'Shop', 'path' => '/var/www/shop', 'url' => 'https://shop.example.test', 'env' => 'prod',
                 'description' => '', 'status' => ['fatal' => 0, 'warnings' => 0, 'total' => 0, 'fatal_cursor' => null],
-                'error_monitoring_enabled' => true, 'logsize_monitoring_enabled' => true, 'logs' => [],
+                'logs' => [],
             ],
         ], path: 'apps');
 
@@ -133,25 +166,146 @@ final class NodeResponseNormalizerValidationTest extends TestCase
         $this->assertNull($response['result']['shop']['description']);
     }
 
-    public function testAppsRequireStrictMonitoringBooleansAndConsistentFatalCursor(): void
+    public function testAppsRequireAConsistentFatalCursor(): void
     {
-        $app = [
-            'title' => 'Shop', 'path' => '/var/www/shop', 'url' => 'https://shop.example.test', 'env' => 'prod',
-            'status' => ['fatal' => 0, 'warnings' => 0, 'total' => 0, 'fatal_cursor' => null],
-            'error_monitoring_enabled' => true, 'logsize_monitoring_enabled' => true, 'logs' => [],
-        ];
+        $app = self::app();
         $this->assertNull($this->normalizer->normalizeApiResponse(['shop' => $app], path: 'apps')['error']);
 
-        $app['error_monitoring_enabled'] = 'true';
-        $this->assertSame('invalid_payload', $this->normalizer->normalizeApiResponse(['shop' => $app], path: 'apps')['error']['kind']);
-        $app['error_monitoring_enabled'] = true;
-        unset($app['logsize_monitoring_enabled']);
-        $this->assertSame('invalid_payload', $this->normalizer->normalizeApiResponse(['shop' => $app], path: 'apps')['error']['kind']);
-        $app['logsize_monitoring_enabled'] = true;
         $app['status'] = ['fatal' => 1, 'warnings' => 0, 'total' => 1, 'fatal_cursor' => null];
         $this->assertSame('invalid_payload', $this->normalizer->normalizeApiResponse(['shop' => $app], path: 'apps')['error']['kind']);
         $app['status']['fatal_cursor'] = 'v2:' . str_repeat('a', 64);
         $this->assertSame('invalid_payload', $this->normalizer->normalizeApiResponse(['shop' => $app], path: 'apps')['error']['kind']);
+    }
+
+    public function testAbsentMonitoringBlockKeepsEveryCheckEnabled(): void
+    {
+        $result = $this->normalizeApp(self::app());
+
+        $this->assertArrayNotHasKey('monitoring', $result);
+        $this->assertArrayHasKey('status', $result);
+        $this->assertArrayHasKey('logs', $result);
+        $this->assertArrayHasKey('session', $result);
+    }
+
+    public function testSparseMonitoringBlockRoundTripsUntouched(): void
+    {
+        $result = $this->normalizeApp(self::app(['monitoring' => ['alarms' => false, 'events' => false]]));
+
+        $this->assertSame(['alarms' => false, 'events' => false], $result['monitoring']);
+        $this->assertArrayHasKey('status', $result);
+        $this->assertArrayHasKey('logs', $result);
+        $this->assertArrayHasKey('session', $result);
+    }
+
+    public function testDisabledLogAnalysisOmitsStatus(): void
+    {
+        $app = self::app(['monitoring' => ['loganalysis' => false]]);
+        unset($app['status']);
+
+        $result = $this->normalizeApp($app);
+
+        $this->assertArrayNotHasKey('status', $result);
+        $this->assertArrayHasKey('logs', $result);
+        $this->assertArrayHasKey('session', $result);
+    }
+
+    public function testDisabledLogSizeOmitsLogs(): void
+    {
+        $app = self::app(['monitoring' => ['logsize' => false]]);
+        unset($app['logs']);
+
+        $result = $this->normalizeApp($app);
+
+        $this->assertArrayNotHasKey('logs', $result);
+        $this->assertArrayHasKey('status', $result);
+        $this->assertArrayHasKey('session', $result);
+    }
+
+    public function testDisabledSessionsOmitsSession(): void
+    {
+        $app = self::app(['monitoring' => ['sessions' => false]]);
+        unset($app['session']);
+
+        $result = $this->normalizeApp($app);
+
+        $this->assertArrayNotHasKey('session', $result);
+        $this->assertArrayHasKey('status', $result);
+        $this->assertArrayHasKey('logs', $result);
+    }
+
+    public function testDisabledChecksDropKeysAnOlderNodeStillSent(): void
+    {
+        $result = $this->normalizeApp(self::app([
+            'monitoring' => ['loganalysis' => false, 'logsize' => false, 'sessions' => false],
+        ]));
+
+        $this->assertArrayNotHasKey('status', $result);
+        $this->assertArrayNotHasKey('logs', $result);
+        $this->assertArrayNotHasKey('session', $result);
+        $this->assertSame('Shop', $result['title']);
+    }
+
+    public function testDisabledChecksSkipTheirValidation(): void
+    {
+        $app = self::app([
+            'monitoring' => ['loganalysis' => false, 'logsize' => false, 'sessions' => false],
+            'status' => 'nonsense',
+            'logs' => ['logs/error.log' => -1],
+            'session' => 'nonsense',
+        ]);
+
+        $this->assertNull($this->normalizer->normalizeApiResponse(['shop' => $app], path: 'apps')['error']);
+    }
+
+    public function testLegacyFlatMonitoringFlagsAreToleratedAsUnknownKeys(): void
+    {
+        // Deploy order is dashboard first: an old node still sends the removed flat booleans.
+        $result = $this->normalizeApp(self::app([
+            'error_monitoring_enabled' => false,
+            'logsize_monitoring_enabled' => 'nonsense',
+            'ping' => 'off',
+        ]));
+
+        $this->assertArrayHasKey('status', $result);
+        $this->assertArrayHasKey('logs', $result);
+    }
+
+    #[DataProvider('invalidMonitoringBlocks')]
+    public function testInvalidMonitoringBlockIsAnExplicitError(mixed $monitoring): void
+    {
+        $response = $this->normalizer->normalizeApiResponse(
+            ['shop' => self::app(['monitoring' => $monitoring])],
+            path: 'apps'
+        );
+
+        $this->assertNull($response['result']);
+        $this->assertSame('invalid_payload', $response['error']['kind']);
+        $this->assertSame('apps', $response['error']['endpoint']);
+        $this->assertSame('Node returned an invalid monitoring block for shop.', $response['error']['message']);
+    }
+
+    /** @return iterable<string,array{mixed}> */
+    public static function invalidMonitoringBlocks(): iterable
+    {
+        yield 'null' => [null];
+
+        yield 'string' => ['off'];
+
+        yield 'bool' => [false];
+
+        yield 'int' => [0];
+
+        yield 'sequential list' => [['loganalysis']];
+
+        yield 'unknown key' => [['logsizes' => false]];
+
+        yield 'stringified bool' => [['loganalysis' => 'false']];
+
+        yield 'int value' => [['loganalysis' => 0]];
+
+        yield 'null value' => [['loganalysis' => null]];
+
+        yield 'array value' => [['loganalysis' => []]];
     }
 
     public function testInvalidStatusUrlIsAnExplicitError(): void
@@ -160,7 +314,7 @@ final class NodeResponseNormalizerValidationTest extends TestCase
             'shop' => [
                 'title' => 'Shop', 'path' => '/var/www/shop', 'url' => 'https://shop.example.test', 'env' => 'prod',
                 'status_url' => '/health/', 'status' => ['fatal' => 0, 'warnings' => 0, 'total' => 0, 'fatal_cursor' => null],
-                'error_monitoring_enabled' => true, 'logsize_monitoring_enabled' => true, 'logs' => [],
+                'logs' => [],
             ],
         ], path: 'apps');
 
@@ -266,6 +420,16 @@ final class NodeResponseNormalizerValidationTest extends TestCase
             '{"error":true,"message":"Unknown app."}',
             'apps/foo',
             404,
+        ));
+        $this->assertSame([
+            'kind' => 'node_response',
+            'message' => 'Monitoring disabled',
+            'endpoint' => 'apps/foo/logs',
+            'status_code' => 409,
+        ], $this->normalizer->normalizeNodeErrorResponse(
+            '{"error":"Monitoring disabled","message":"Monitoring disabled"}',
+            'apps/foo/logs',
+            409,
         ));
         $this->assertNull($this->normalizer->normalizeNodeErrorResponse('<h1>Not Found</h1>', 'apps/foo', 404));
     }

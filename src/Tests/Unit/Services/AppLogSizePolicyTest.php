@@ -19,8 +19,36 @@ final class AppLogSizePolicyTest extends TestCase
     {
         $policy = AppLogSizePolicy::fromServerConfig([]);
 
-        $this->assertTrue($policy->isEnabled(['logsize_monitoring_enabled' => true]));
-        $this->assertFalse($policy->isEnabled(['logsize_monitoring_enabled' => false]));
+        $this->assertTrue($policy->isEnabled(['monitoring' => ['logsize' => true]]));
+        $this->assertFalse($policy->isEnabled(['monitoring' => ['logsize' => false]]));
+        $this->assertFalse(
+            AppLogSizePolicy::fromServerConfig(['logsize_monitoring_enabled' => false])
+                ->isEnabled(['monitoring' => ['logsize' => true]])
+        );
+    }
+
+    public function testIgnoresUnrelatedApplicationMonitoringSettings(): void
+    {
+        $policy = AppLogSizePolicy::fromServerConfig([]);
+
+        $this->assertTrue($policy->isEnabled(['monitoring' => ['loganalysis' => false, 'events' => false]]));
+    }
+
+    public function testDefaultsToEnabledWhenTheApplicationFlagIsMissing(): void
+    {
+        $policy = AppLogSizePolicy::fromServerConfig([]);
+
+        $this->assertTrue($policy->isEnabled([]));
+        $this->assertTrue($policy->isEnabled(['monitoring' => []]));
+    }
+
+    public function testDefaultsToEnabledOnAMalformedApplicationFlag(): void
+    {
+        $policy = AppLogSizePolicy::fromServerConfig([]);
+
+        $this->assertTrue($policy->isEnabled(['monitoring' => 'off']));
+        $this->assertTrue($policy->isEnabled(['monitoring' => ['logsize' => 'false']]));
+        $this->assertTrue($policy->isEnabled(['monitoring' => ['logsizes' => false]]));
     }
 
     public function testRequiresBooleanServerSetting(): void

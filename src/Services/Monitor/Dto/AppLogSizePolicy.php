@@ -20,10 +20,14 @@ final readonly class AppLogSizePolicy
     /** @param array<string,mixed> $appData */
     public function isEnabled(array $appData): bool
     {
-        return $this->serverEnabled && self::appSetting($appData, 'logsize_monitoring_enabled');
+        return $this->serverEnabled && self::appSetting($appData, 'logsize');
     }
 
-    /** @param array<string,mixed> $config */
+    /**
+     * @param array<string,mixed> $config
+     *
+     * @throws InvalidArgumentException When the configured value is not a JSON boolean
+     */
     private static function serverSetting(array $config, string $setting): bool
     {
         if (!array_key_exists($setting, $config)) {
@@ -36,13 +40,11 @@ final readonly class AppLogSizePolicy
         return $config[$setting];
     }
 
-    /** @param array<string,mixed> $appData */
+    /**
+     * @param array<string,mixed> $appData
+     */
     private static function appSetting(array $appData, string $setting): bool
     {
-        if (!array_key_exists($setting, $appData) || !is_bool($appData[$setting])) {
-            throw new InvalidArgumentException("Node application {$setting} must be a JSON boolean");
-        }
-
-        return $appData[$setting];
+        return AppMonitoringSettings::fromAppPayload($appData)->isEnabled($setting);
     }
 }

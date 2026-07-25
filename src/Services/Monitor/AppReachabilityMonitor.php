@@ -14,6 +14,7 @@ use Mata\Services\Collect\NodeApiClient;
 use Mata\Services\Event\Dto\EventCommand;
 use Mata\Services\Event\Dto\EventMetric;
 use Mata\Services\Event\EventManager;
+use Mata\Services\Monitor\Dto\AppMonitoringSettings;
 use Mata\Services\Monitor\Dto\AppReachabilityPolicy;
 use Mata\Services\Monitor\Dto\EndpointTarget;
 use Mata\Services\Monitor\Dto\ProbePolicy;
@@ -117,9 +118,12 @@ class AppReachabilityMonitor implements AppReachabilityMonitorInterface
             $ordered[$identifier] = $result;
         }
 
-        $server = $this->transportFailureServer($targets, $freshResults);
+        // Event-disabled apps do not participate in the transport quorum.
+        $eventKeys = $this->eventEnabledKeys($targets);
+        $eventFreshResults = array_intersect_key($freshResults, $eventKeys);
+        $server = $this->transportFailureServer(array_intersect_key($targets, $eventKeys), $eventFreshResults);
         if ($server !== null) {
-            $this->recordServerAppsTransportFailure($server, $freshResults);
+            $this->recordServerAppsTransportFailure($server, $eventFreshResults);
         } else {
             foreach ($freshResults as $freshResult) {
                 $this->recordUnreachableTarget(
@@ -387,11 +391,38 @@ class AppReachabilityMonitor implements AppReachabilityMonitorInterface
         return $this->cacheKeyFactory->createDashboardKey("reachability-streak/{$opaqueTargetIdentity}");
     }
 
+    /** Resolve the target's fail-open monitoring settings. */
+    private function monitoringSettings(EndpointTarget $target): AppMonitoringSettings
+    {
+        return AppMonitoringSettings::fromAppPayload($target->metadata, $this->logger);
+    }
+
+    /**
+     * @param array<int|string,EndpointTarget> $targets
+     *
+     * @return array<int|string,true>
+     */
+    private function eventEnabledKeys(array $targets): array
+    {
+        $keys = [];
+        foreach ($targets as $identifier => $target) {
+            if ($this->monitoringSettings($target)->isEnabled('events')) {
+                $keys[$identifier] = true;
+            }
+        }
+
+        return $keys;
+    }
+
     /** @param array<string,mixed> $result
      * @param array{count:int,first_failure_at:?int} $streak */
     private function recordUnreachableTarget(EndpointTarget $target, array $result, array $streak): void
     {
         if ($this->isReachableOrInMaintenance($result)) {
+            return;
+        }
+        $monitoring = $this->monitoringSettings($target);
+        if (!$monitoring->isEnabled('events')) {
             return;
         }
         $server = $target->serverId ?? $target->serverName;
@@ -416,7 +447,10 @@ class AppReachabilityMonitor implements AppReachabilityMonitorInterface
             level: 'critical',
             server: $server,
             app: $app,
-            context: ['identifier' => $target->identifier, 'url' => $url],
+            context: $monitoring->isEnabled('alarms')
+                ? ['identifier' => $target->identifier, 'url' => $url]
+                // Keep the event; AlarmDecisionProcessor suppresses its alarm.
+                : ['identifier' => $target->identifier, 'url' => $url, 'alarms_suppressed' => true],
             metric: new EventMetric('endpoint_reachability', 0, additional: $diagnostics),
         ));
     }

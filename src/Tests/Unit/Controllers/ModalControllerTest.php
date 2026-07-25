@@ -500,6 +500,48 @@ class ModalControllerTest extends TestCase
         $this->assertSame($expectedHtml, $response->getContent());
     }
 
+    public function testItRendersDisabledMonitoringModals(): void
+    {
+        $server = 'server1';
+        $app = 'test-app';
+        $disabled = ['result' => null, 'error' => ['status_code' => 409, 'message' => 'Monitoring disabled']];
+        $collector = $this->createMockServerDataCollector($server);
+        $collector->expects($this->once())->method('fetchAppLogs')->willReturn($disabled);
+        $collector->expects($this->once())->method('fetchAppLogsStatus')->willReturn($disabled);
+        $this->injectMockCollector($server, $collector);
+
+        $this->mockTwig->expects($this->exactly(2))
+            ->method('render')
+            ->with('partials/modals/monitoring-disabled-modal.html.twig', $this->callback(
+                static fn (array $data): bool => in_array($data['setting'], ['Log analysis', 'Log-size monitoring'], true)
+            ))
+            ->willReturn('<div>Monitoring disabled</div>');
+
+        $this->assertSame('<div>Monitoring disabled</div>', $this->controller->renderAppLogs($server, $app)->getContent());
+        $this->assertSame('<div>Monitoring disabled</div>', $this->controller->renderAppLogFiles($server, $app)->getContent());
+    }
+
+    public function testItReturnsMonitoringDisabledForLogJsonEndpoints(): void
+    {
+        $server = 'server1';
+        $app = 'test-app';
+        $disabled = ['result' => null, 'error' => ['status_code' => 409, 'message' => 'Monitoring disabled']];
+        $collector = $this->createMockServerDataCollector($server);
+        $collector->expects($this->once())->method('fetchAppLogs')->willReturn($disabled);
+        $collector->expects($this->once())->method('fetchAppLogsStatus')->willReturn($disabled);
+        $this->injectMockCollector($server, $collector);
+        $this->mockLogTransformer->expects($this->never())->method('flattenGroupedLogs');
+
+        foreach ([
+            $this->controller->getAppLogsJson($server, $app),
+            $this->controller->getAppLogsStatusJson($server, $app),
+        ] as $response) {
+            $this->assertInstanceOf(JsonResponse::class, $response);
+            $this->assertSame(409, $response->getStatusCode());
+            $this->assertSame(['error' => 'Monitoring disabled', 'message' => 'Monitoring disabled'], $response->getData());
+        }
+    }
+
     /**
      * @test
      *

@@ -70,6 +70,76 @@ final class LogRendererErrorTooltipTest extends TestCase
         self::assertStringContainsString("Error Alarms: <span style='color:green'>On</span>", $tooltip);
     }
 
+    public function testAnalysisTooltipStatesAlarmsOffWhenAppAlarmsAreDisabled(): void
+    {
+        $tooltip = $this->renderer()->formatErrorAnalysisTooltip([
+            'first_log' => 'logs/error.log',
+            'fatal_count_raw' => 2,
+            'warning_count_raw' => 0,
+            'total_count_raw' => 12,
+            'error_monitoring_enabled' => true,
+            'alarms_enabled' => false,
+        ]);
+
+        self::assertStringContainsString("Error Alarms: <span style='color:gray'>Off</span>", $tooltip);
+        self::assertStringContainsString('2 Errors', $tooltip);
+    }
+
+    public function testDoesNotClaimHealthyLogsWhenLogAnalysisIsDisabled(): void
+    {
+        $tooltip = $this->renderer()->formatErrorStatusTooltip('logs/error.log', 0, 0, 0, true, false);
+
+        self::assertStringContainsString('Log analysis disabled', $tooltip);
+        self::assertStringNotContainsString('✓ Works fine!', $tooltip);
+        self::assertStringNotContainsString('Total Lines', $tooltip);
+        self::assertStringContainsString("Error Alarms: <span style='color:green'>On</span>", $tooltip);
+    }
+
+    public function testAnalysisTooltipReadsTheLogAnalysisFlag(): void
+    {
+        $tooltip = $this->renderer()->formatErrorAnalysisTooltip([
+            'first_log' => 'logs/error.log',
+            'fatal_count_raw' => 0,
+            'warning_count_raw' => 0,
+            'total_count_raw' => 0,
+            'loganalysis_enabled' => false,
+        ]);
+
+        self::assertStringContainsString('Log analysis disabled', $tooltip);
+        self::assertStringNotContainsString('✓ Works fine!', $tooltip);
+    }
+
+    public function testLogAnalysisTooltipStatesDisabledLogSizeMonitoring(): void
+    {
+        $tooltip = $this->renderer()->formatLogAnalysisTooltip([
+            'files' => [],
+            'logsize_monitoring_enabled' => false,
+        ]);
+
+        self::assertSame('Log size monitoring disabled', $tooltip);
+    }
+
+    public function testLogAnalysisTooltipKeepsSizeBreakdownWhenEnabled(): void
+    {
+        $tools = $this->createStub(Tools::class);
+        $tools->method('formatKilobytes')->willReturn('1 KB');
+
+        $renderer = new LogRenderer(
+            $this->createStub(Environment::class),
+            new Logger('test'),
+            $tools,
+            $this->createStub(App::class),
+            $this->createStub(Endpoints::class),
+        );
+
+        $tooltip = $renderer->formatLogAnalysisTooltip([
+            'files' => ['logs/error.log' => 1024],
+            'logsize_monitoring_enabled' => true,
+        ]);
+
+        self::assertStringContainsString('logs/error.log <strong>1 KB</strong>', $tooltip);
+    }
+
     private function renderer(): LogRenderer
     {
         return new LogRenderer(
