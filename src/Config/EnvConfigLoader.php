@@ -234,7 +234,18 @@ final class EnvConfigLoader
      */
     private function getEnv(string $key, ?string $default = null): ?string
     {
-        return $_ENV[$key] ?? getenv($key) ?: $default;
+        return $this->readEnv($key) ?? $default;
+    }
+
+    private function readEnv(string $key): ?string
+    {
+        if (array_key_exists($key, $_ENV)) {
+            return is_string($_ENV[$key]) ? $_ENV[$key] : null;
+        }
+
+        $value = getenv($key);
+
+        return is_string($value) ? $value : null;
     }
 
     private function normalizeOptionalEnvValue(?string $value): ?string
@@ -251,8 +262,8 @@ final class EnvConfigLoader
      */
     private function requireEnv(string $key): string
     {
-        $value = $_ENV[$key] ?? getenv($key);
-        if ($value === false || $value === '') {
+        $value = $this->readEnv($key);
+        if ($value === null || $value === '') {
             throw new InvalidArgumentException("Required environment variable {$key} is missing");
         }
 
