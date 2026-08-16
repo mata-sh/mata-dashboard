@@ -26,6 +26,7 @@ final class SharedHostingCrontabTemplateTest extends TestCase
         'alarms_evaluate_non_critical.php' => '*/5 * * * *',
         'alarms_dispatch.php' => '* * * * *',
         'retention_cleanup.php' => '25 2 * * *',
+        'rate_limit_cleanup.php' => '17 * * * *',
     ];
 
     public function testTemplateRunsEveryCronScriptWithoutADockerEnvironmentFile(): void

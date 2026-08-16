@@ -47,6 +47,10 @@ final class DockerCrontabTest extends TestCase
             'schedule' => '25 2 * * *',
             'log' => 'app-retention-cleanup.log',
         ],
+        'rate_limit_cleanup.php' => [
+            'schedule' => '17 * * * *',
+            'log' => 'app-rate-limit-cleanup.log',
+        ],
     ];
 
     public function testRunnableJobsMatchTheCronManifest(): void

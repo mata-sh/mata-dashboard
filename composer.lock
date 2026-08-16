@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "4351582c8197bc574e630ff8698416a3",
+    "content-hash": "90b98b064da915f7694845fef73c57ef",
     "packages": [
         {
             "name": "bramus/router",
@@ -1326,17 +1326,11 @@
         },
         {
             "name": "mata-sh/rate-limiter",
-            "version": "v0.1.0",
+            "version": "2.0.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/mata-sh/rate-limiter.git",
-                "reference": "8115f605cb13cb7417cc6d82c28ee4c551994b88"
-            },
-            "dist": {
-                "type": "zip",
-                "url": "https://api.github.com/repos/mata-sh/rate-limiter/zipball/8115f605cb13cb7417cc6d82c28ee4c551994b88",
-                "reference": "8115f605cb13cb7417cc6d82c28ee4c551994b88",
-                "shasum": ""
+                "reference": "a9a071ffc49db28d054af7d1a923c3c6b265dca4"
             },
             "require": {
                 "php": "^8.0",
@@ -1344,7 +1338,8 @@
             },
             "require-dev": {
                 "friendsofphp/php-cs-fixer": "^3.92",
-                "phpstan/phpstan": "^2.1"
+                "phpstan/phpstan": "^2.1",
+                "phpunit/phpunit": "^9.6"
             },
             "type": "library",
             "autoload": {
@@ -1352,7 +1347,28 @@
                     "MataSh\\RateLimiter\\": "src/"
                 }
             },
-            "notification-url": "https://packagist.org/downloads/",
+            "scripts": {
+                "post-install-cmd": [
+                    "git config core.hooksPath .githooks || true"
+                ],
+                "lint": [
+                    "vendor/bin/php-cs-fixer fix --config=.php-cs-fixer.php --dry-run --diff"
+                ],
+                "fix": [
+                    "vendor/bin/php-cs-fixer fix --config=.php-cs-fixer.php"
+                ],
+                "stan": [
+                    "./vendor/bin/phpstan analyse --memory-limit=512M --level=5"
+                ],
+                "test": [
+                    "vendor/bin/phpunit"
+                ],
+                "check": [
+                    "@lint",
+                    "@stan",
+                    "@test"
+                ]
+            },
             "license": [
                 "MIT"
             ],
@@ -1362,7 +1378,7 @@
                     "email": "libs@mata.sh"
                 }
             ],
-            "description": "Robust rate limiting library for PHP with automatic fallback storage (Redis → APCu → filesystem).",
+            "description": "Robust rate limiting library for PHP with support for (Redis | APCu | filesystem).",
             "keywords": [
                 "apcu",
                 "file",
@@ -1377,7 +1393,7 @@
                 "issues": "https://github.com/mata-sh/rate-limiter/issues",
                 "source": "https://github.com/mata-sh/rate-limiter"
             },
-            "time": "2026-01-05T22:21:45+00:00"
+            "time": "2026-08-16T11:24:02+00:00"
         },
         {
             "name": "monolog/monolog",

@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Mata\Core;
 
 use Mata\Config\Dto\ApplicationConfig;
-use Mata\Http\Security\RouteGroupRateLimiter;
+use Mata\Http\Security\RateLimiting\RequestRateLimiter;
 use Mata\Utils\PathResolver;
 
 /**
@@ -16,7 +16,7 @@ class App
     public Auth $auth;
     public ApplicationConfig $config;
     public PathResolver $paths;
-    public ?RouteGroupRateLimiter $rateLimiter = null;
+    public ?RequestRateLimiter $rateLimiter = null;
     public string $baseUrl = '';
     private string $basePath = '';
 
@@ -27,7 +27,7 @@ class App
         Auth $auth,
         ApplicationConfig $config,
         PathResolver $paths,
-        ?RouteGroupRateLimiter $rateLimiter = null
+        ?RequestRateLimiter $rateLimiter = null
     ) {
         $this->auth = $auth;
         $this->config = $config;

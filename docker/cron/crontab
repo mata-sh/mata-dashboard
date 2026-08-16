@@ -33,6 +33,9 @@ CRON_ENV_FILE=/etc/mata/cron.env
 # Database retention
 25 2 * * * . "$CRON_ENV_FILE" && cd "$APP_ROOT" && "$PHP_BIN" cron/retention_cleanup.php >> "$CRON_LOG_DIR/app-retention-cleanup.log" 2>&1
 
+# Filesystem rate-limit storage expires records but requires active deletion.
+17 * * * * . "$CRON_ENV_FILE" && cd "$APP_ROOT" && "$PHP_BIN" cron/rate_limit_cleanup.php >> "$CRON_LOG_DIR/app-rate-limit-cleanup.log" 2>&1
+
 # Maintenance
 # Log maintenance covers the whole logs/ tree. logs/health/ is excluded: the
 # ingestion health report rotates itself (size-based, config/data_retention.json).

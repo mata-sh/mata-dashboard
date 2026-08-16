@@ -28,7 +28,7 @@ use Mata\Core\ExceptionHandler;
 use Mata\Http\Routing\Endpoints;
 use Mata\Http\Routing\RouterSetup;
 use Mata\Http\Security\CsrfGuard;
-use Mata\Http\Security\RouteGroupRateLimiterFactory;
+use Mata\Http\Security\RateLimiting\RequestRateLimiterFactory;
 use Mata\Http\Security\SecurityHeaders;
 use Mata\Models\AlarmDeliveryRepository;
 use Mata\Models\AlarmRepository;
@@ -245,8 +245,8 @@ try {
 // ************************************************************************************************
 // Rate Limiter Setup
 // ************************************************************************************************
-$routeGroupRateLimiter = RouteGroupRateLimiterFactory::create($appConfig->rateLimiting, $log);
-$app = new App($auth, $appConfig, $paths, $routeGroupRateLimiter);
+$requestRateLimiter = RequestRateLimiterFactory::create($appConfig->rateLimiting, $log);
+$app = new App($auth, $appConfig, $paths, $requestRateLimiter);
 $app->setBaseUrl($appConfig->environment->domain);
 $csrf = new CsrfGuard();
 $twig->addGlobal('csrf', $csrf);

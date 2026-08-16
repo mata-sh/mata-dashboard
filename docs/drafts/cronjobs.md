@@ -18,6 +18,7 @@ as `www-data`.
 | `*/5 * * * *` | `alarms_evaluate_non_critical.php` | `logs/cron/app-alarms-evaluate-non-critical.log` | `logs/cron/heartbeat-alarms-evaluate-non-critical.jsonl` |
 | `* * * * *` | `alarms_dispatch.php` | `logs/cron/app-alarms-dispatch.log` | `logs/cron/heartbeat-alarms-dispatch.jsonl` |
 | `25 2 * * *` | `retention_cleanup.php` | `logs/cron/app-retention-cleanup.log` | `logs/cron/heartbeat-retention-cleanup.jsonl` |
+| `17 * * * *` | `rate_limit_cleanup.php` | `logs/cron/app-rate-limit-cleanup.log` | `logs/cron/heartbeat-rate-limit-cleanup.jsonl` |
 
 `servers_data_fetch.php` and `servers_metrics_collect.php` share one chained
 crontab entry (`fetch ; collect`): fetch warms the shared `temp/api-cache`, then

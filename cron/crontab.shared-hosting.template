@@ -28,6 +28,9 @@ PHP_BIN=/usr/local/bin/php
 # Database retention
 25 2 * * * "$PHP_BIN" "$APP_ROOT/cron/retention_cleanup.php" >> "$APP_ROOT/logs/cron/app-retention-cleanup.log" 2>&1
 
+# Filesystem rate-limit storage expires records but requires active deletion.
+17 * * * * "$PHP_BIN" "$APP_ROOT/cron/rate_limit_cleanup.php" >> "$APP_ROOT/logs/cron/app-rate-limit-cleanup.log" 2>&1
+
 # Maintenance
 # Requires find, gzip, and date on the host (standard on shared hosting).
 # Log maintenance covers the whole logs/ tree. logs/health/ is excluded: the

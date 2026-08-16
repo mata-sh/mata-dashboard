@@ -17,6 +17,7 @@ use Mata\Http\Responses\ResponseFactory;
 use Mata\Http\Security\CsrfGuard;
 use Mata\Http\Security\RouteParameter;
 use Psr\Log\LoggerInterface;
+use RuntimeException;
 use Twig\Environment;
 
 /**
@@ -115,14 +116,19 @@ class RouterSetup
      */
     private function setupRateLimiting(): void
     {
-        // Skip if rate limiter service not available
         if ($this->app->rateLimiter === null) {
+            if ($this->app->config->rateLimiting->enabled) {
+                $this->logger->critical('Rate limiting is enabled but unavailable');
+
+                throw new RuntimeException('Enabled rate limiting is unavailable');
+            }
+
             return;
         }
 
         // Login routes - strictest limits (brute force protection)
         $this->router->before(self::ALL_REQUEST_METHODS, '/login', function () {
-            if ($this->app->rateLimiter->isRateLimited('login')) {
+            if ($this->isRateLimited('login')) {
                 http_response_code(429);
 
                 exit('Too many login attempts. Please try again later.');
@@ -130,7 +136,7 @@ class RouterSetup
         });
 
         $this->router->before(self::ALL_REQUEST_METHODS, '/logout', function () {
-            if ($this->app->rateLimiter->isRateLimited('login')) {
+            if ($this->isRateLimited('login')) {
                 http_response_code(429);
 
                 exit('Too many requests.');
@@ -139,7 +145,7 @@ class RouterSetup
 
         // Dashboard and watch routes - moderate limits
         $this->router->before(self::ALL_REQUEST_METHODS, '/watch(?:/.*)?', function () {
-            if ($this->app->rateLimiter->isRateLimited('dashboard')) {
+            if ($this->isRateLimited('dashboard')) {
                 http_response_code(429);
 
                 exit('Too many requests. Please slow down.');
@@ -148,7 +154,7 @@ class RouterSetup
 
         // API routes - /api/* (events, alarms, libraries, logs) and /api/metrics/*
         $this->router->before(self::ALL_REQUEST_METHODS, '/api/.*', function () {
-            if ($this->app->rateLimiter->isRateLimited('api')) {
+            if ($this->isRateLimited('api')) {
                 http_response_code(429);
                 header('Content-Type: application/json');
                 echo json_encode([
@@ -159,6 +165,26 @@ class RouterSetup
                 exit;
             }
         });
+    }
+
+    private function isRateLimited(string $group): bool
+    {
+        $rateLimiter = $this->app->rateLimiter;
+        if ($rateLimiter === null) {
+            return false;
+        }
+
+        $result = $rateLimiter->consume($group);
+        if ($result->isAllowed()) {
+            return false;
+        }
+
+        $retryAt = $result->getRetryAt();
+        if ($retryAt !== null) {
+            header('Retry-After: ' . max(1, $retryAt - time()));
+        }
+
+        return true;
     }
 
     /**

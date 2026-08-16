@@ -229,8 +229,9 @@ src/Http/
 ├── Security/
 │   ├── SecurityHeaders.php            # HTTP security headers
 │   ├── CsrfGuard.php                  # CSRF protection
-│   ├── RouteGroupRateLimiter.php      # Per-route-group rate limiting
-│   ├── RouteGroupRateLimiterFactory.php
+│   ├── RateLimiting/
+│   │   ├── RequestRateLimiter.php      # Per-request rate limiting
+│   │   └── RequestRateLimiterFactory.php
 │   └── RouteParameter.php
 └── Responses/
     ├── Response.php          # Response contract

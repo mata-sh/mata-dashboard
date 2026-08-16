@@ -307,6 +307,7 @@ docker compose --env-file config/db.config.env --env-file .env exec mata-web cro
 | `*/5 * * * *` | `alarms_evaluate_non_critical.php` |
 | `* * * * *` | `alarms_dispatch.php` |
 | `25 2 * * *` | `retention_cleanup.php` |
+| `17 * * * *` | `rate_limit_cleanup.php` |
 
 Cron execution logs, including launcher failures before bootstrap, are in
 `/var/www/html/logs/cron/app-<job-name>.log`. PHP runtime errors are in

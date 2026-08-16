@@ -188,7 +188,7 @@ final class EnvConfigLoader
         $storageType = strtolower($this->getEnv('RATE_LIMIT_STORAGE', 'file'));
 
         // Validate storage type
-        if (!in_array($storageType, ['file', 'redis', 'apcu', 'session'], true)) {
+        if (!in_array($storageType, ['file', 'redis', 'apcu'], true)) {
             $storageType = 'file';
         }
 
