@@ -65,10 +65,7 @@ class AuthenticationFlowTest extends TestCase
 
         $this->auth = new Auth(new NullLogger(), $usersFile);
 
-        // Start session for testing
-        if (session_status() === PHP_SESSION_NONE) {
-            session_start();
-        }
+        $this->startTestRequest();
         $_SESSION = [
             'user' => [
                 'username' => 'admin',
@@ -138,6 +135,7 @@ class AuthenticationFlowTest extends TestCase
         $this->assertNull($this->auth->getUser(), 'User data should be null after logout');
 
         // Step 8: Verify failed login with wrong password
+        $this->startTestRequest();
         $wrongPasswordResult = $this->auth->login($username, 'wrong_password');
         $this->assertFalse($wrongPasswordResult, 'Login with wrong password should fail');
         $this->assertFalse($this->auth->check(), 'User should not be authenticated after failed login');
@@ -192,6 +190,7 @@ class AuthenticationFlowTest extends TestCase
             $this->assertEquals('example.com', $loadedConfig->environment->domain);
 
             $this->auth->logout();
+            $this->startTestRequest();
         }
 
         // Test password change functionality
@@ -329,6 +328,14 @@ class AuthenticationFlowTest extends TestCase
         } catch (InvalidArgumentException $e) {
             $this->assertStringContainsString('Required environment variable', $e->getMessage());
         }
+    }
+
+    private function startTestRequest(): void
+    {
+        if (session_status() !== PHP_SESSION_ACTIVE) {
+            session_start();
+        }
+        $_SESSION = [];
     }
 
     private function writeEnvFile(array $lines, string $filename = '.env'): void

@@ -42,11 +42,7 @@ class AuthTest extends TestCase
         file_put_contents($this->testUsersFile, json_encode([$adminUser], JSON_PRETTY_PRINT));
         chmod($this->testUsersFile, 0600);
 
-        // Mock session for testing
-        if (session_status() === PHP_SESSION_NONE) {
-            session_start();
-        }
-        $_SESSION = [];
+        $this->startTestRequest();
 
         $this->auth = new Auth(new NullLogger(), $this->testUsersFile);
     }
@@ -285,12 +281,14 @@ class AuthTest extends TestCase
         $this->auth->login('admin', 'admin123');
         $this->auth->createUser('changepass', 'old_password');
         $this->auth->logout();
+        $this->startTestRequest();
 
         // Login as admin again to change password
         $this->auth->login('admin', 'admin123');
         $result = $this->auth->changePassword('changepass', 'new_password');
         $this->assertTrue($result);
         $this->auth->logout();
+        $this->startTestRequest();
 
         // Test old password no longer works
         $this->assertFalse($this->auth->login('changepass', 'old_password'));
@@ -440,6 +438,7 @@ class AuthTest extends TestCase
         $this->auth->login('admin', 'admin123');
         $this->auth->createUser('bruteforce', 'correct_password');
         $this->auth->logout();
+        $this->startTestRequest();
 
         // Try 5 failed login attempts (MAX_ATTEMPTS)
         for ($i = 0; $i < 5; ++$i) {
@@ -493,6 +492,7 @@ class AuthTest extends TestCase
         $this->auth->login('admin', 'admin123');
         $this->auth->createUser('resettest', 'password123');
         $this->auth->logout();
+        $this->startTestRequest();
 
         // Try 3 failed attempts
         for ($i = 0; $i < 3; ++$i) {
@@ -505,6 +505,7 @@ class AuthTest extends TestCase
 
         // Failed attempts should be reset - we should be able to fail again without hitting lockout
         $this->auth->logout();
+        $this->startTestRequest();
         for ($i = 0; $i < 3; ++$i) {
             $this->auth->login('resettest', 'wrong_password');
         }
@@ -528,6 +529,7 @@ class AuthTest extends TestCase
         $this->auth->login('admin', 'admin123');
         $this->auth->createUser('realuser', 'correct_pass');
         $this->auth->logout();
+        $this->startTestRequest();
 
         // Measure multiple attempts to reduce noise from system variability
         $nonexistentTimes = [];
@@ -683,6 +685,7 @@ class AuthTest extends TestCase
         // Re-initialize Auth to load the modified file
         $this->auth = new Auth(new NullLogger(), $this->testUsersFile);
         $this->auth->logout();
+        $this->startTestRequest();
 
         // Login should succeed and trigger rehashing
         $result = $this->auth->login('rehashtest', 'password123');
@@ -711,6 +714,7 @@ class AuthTest extends TestCase
         $this->auth->login('admin', 'admin123');
         $this->auth->createUser('locktest', 'oldpass');
         $this->auth->logout();
+        $this->startTestRequest();
 
         // Lock the account with failed attempts
         for ($i = 0; $i < 5; ++$i) {
@@ -721,6 +725,7 @@ class AuthTest extends TestCase
         $this->auth->login('admin', 'admin123');
         $this->auth->changePassword('locktest', 'newpass');
         $this->auth->logout();
+        $this->startTestRequest();
 
         // Should be able to login with new password (lockout cleared)
         $result = $this->auth->login('locktest', 'newpass');
@@ -820,6 +825,7 @@ class AuthTest extends TestCase
         $this->auth->login('admin', 'admin123');
         $this->auth->createUser('viewer', 'password', 'viewer');
         $this->auth->logout();
+        $this->startTestRequest();
 
         // Login as viewer (non-admin)
         $this->auth->login('viewer', 'password');
@@ -841,6 +847,7 @@ class AuthTest extends TestCase
         $this->auth->login('admin', 'admin123');
         $this->auth->createUser('viewer', 'password', 'viewer');
         $this->auth->logout();
+        $this->startTestRequest();
 
         $this->auth->login('viewer', 'password');
 
@@ -860,6 +867,7 @@ class AuthTest extends TestCase
         $this->auth->login('admin', 'admin123');
         $this->auth->createUser('viewer', 'password', 'viewer');
         $this->auth->logout();
+        $this->startTestRequest();
 
         $this->auth->login('viewer', 'password');
 
@@ -879,6 +887,7 @@ class AuthTest extends TestCase
         $this->auth->login('admin', 'admin123');
         $this->auth->createUser('viewer', 'password', 'viewer');
         $this->auth->logout();
+        $this->startTestRequest();
 
         $this->auth->login('viewer', 'password');
 
@@ -898,6 +907,7 @@ class AuthTest extends TestCase
         $this->auth->login('admin', 'admin123');
         $this->auth->createUser('viewer', 'password', 'viewer');
         $this->auth->logout();
+        $this->startTestRequest();
 
         $this->auth->login('viewer', 'password');
 
@@ -917,6 +927,7 @@ class AuthTest extends TestCase
         $this->auth->login('admin', 'admin123');
         $this->auth->createUser('viewer', 'password', 'viewer');
         $this->auth->logout();
+        $this->startTestRequest();
 
         $this->auth->login('viewer', 'password');
 
@@ -924,5 +935,13 @@ class AuthTest extends TestCase
         $this->expectExceptionMessage('Unauthorized: Admin access required');
 
         $this->auth->unlockUser('admin');
+    }
+
+    private function startTestRequest(): void
+    {
+        if (session_status() !== PHP_SESSION_ACTIVE) {
+            session_start();
+        }
+        $_SESSION = [];
     }
 }
