@@ -7,7 +7,7 @@ namespace Mata\Models\ServerMetrics;
 use DateTimeImmutable;
 use DateTimeZone;
 use JsonException;
-use Mata\Core\DatabaseInterface;
+use Mata\Database\DatabaseInterface;
 use Mata\Models\ConfigSyncRepository;
 use Mata\Models\ServerMetrics\Dto\ServerMetricDailyAggregate;
 use Mata\Models\ServerMetrics\Dto\ServerMetricHourlyAggregate;

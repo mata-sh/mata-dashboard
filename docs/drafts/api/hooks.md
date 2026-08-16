@@ -145,7 +145,7 @@ class EnhancedAppReachabilityMonitor implements AppReachabilityMonitorInterface
 
 Replace database implementation for alternative storage backends.
 
-**Location:** `src/Core/DatabaseInterface.php`
+**Location:** `src/Database/DatabaseInterface.php`
 
 **Use Cases:**
 - PostgreSQL instead of MySQL

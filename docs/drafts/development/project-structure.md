@@ -477,7 +477,7 @@ use Mata\Models\EventRepository;
 
 ```php
 use Mata\Services\Collect\ServerDataCollector;
-use Mata\Core\Database;
+use Mata\Database\PdoDatabase;
 ```
 
 ### Relative Imports (Avoid)

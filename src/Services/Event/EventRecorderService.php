@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Mata\Services\Event;
 
-use Mata\Core\DatabaseInterface;
+use Mata\Database\DatabaseInterface;
 use Mata\Models\Dto\EventRecordResult;
 use Mata\Models\EventRepository;
 use Mata\Services\Identity\ServerApplicationIdResolver;

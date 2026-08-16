@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Mata\Config;
 
-use Mata\Core\DatabaseInterface;
+use Mata\Database\DatabaseInterface;
 use RuntimeException;
 use Throwable;
 

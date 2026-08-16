@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace Mata\Tests\Unit\Services;
 
 use Exception;
-use Mata\Core\DatabaseInterface;
-use Mata\Core\NullDatabase;
+use Mata\Database\DatabaseInterface;
+use Mata\Database\NullDatabase;
 use Mata\Services\Notification\NotificationManager;
 use Mata\Tests\TestCase;
 use Mata\Utils\PathResolver;

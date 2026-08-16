@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Mata\Services\Alarm;
 
-use Mata\Core\DatabaseInterface;
+use Mata\Database\DatabaseInterface;
 use Mata\Models\AlarmDeliveryRepository;
 use Mata\Models\AlarmRepository;
 use Throwable;

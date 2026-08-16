@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Mata\Core;
+namespace Mata\Database;
 
 /**
  * Common contract for database implementations used by the application.

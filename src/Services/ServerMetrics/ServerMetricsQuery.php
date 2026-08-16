@@ -6,7 +6,7 @@ namespace Mata\Services\ServerMetrics;
 
 use DateTimeImmutable;
 use DateTimeZone;
-use Mata\Core\DatabaseInterface;
+use Mata\Database\DatabaseInterface;
 use Mata\Models\ServerMetrics\Dto\ServerMetricDailyAggregate;
 use Mata\Models\ServerMetrics\Dto\ServerMetricHourlyAggregate;
 use Mata\Models\ServerMetrics\Dto\ServerMetricRawSnapshot;

@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Mata\Tests\Unit\Services;
 
-use Mata\Core\DatabaseInterface;
+use Mata\Database\DatabaseInterface;
 use Mata\Models\EventRepository;
 use Mata\Tests\TestCase;
 

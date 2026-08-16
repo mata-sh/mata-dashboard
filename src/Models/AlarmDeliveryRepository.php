@@ -6,7 +6,7 @@ namespace Mata\Models;
 
 use DateInterval;
 use DateTimeImmutable;
-use Mata\Core\DatabaseInterface;
+use Mata\Database\DatabaseInterface;
 use Mata\Services\Alarm\Dto\QueuedAlarmDelivery;
 use PDOException;
 

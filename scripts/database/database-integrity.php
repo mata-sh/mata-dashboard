@@ -7,7 +7,7 @@ use Mata\Config\DatabaseIntegrityChecker;
 
 $bootstrap = require __DIR__ . '/../bootstrap.php';
 
-/** @var \Mata\Core\DatabaseInterface $db */
+/** @var \Mata\Database\DatabaseInterface $db */
 $db = $bootstrap['db'];
 
 $checker = new DatabaseIntegrityChecker($db);

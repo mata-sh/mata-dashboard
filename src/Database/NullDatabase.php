@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Mata\Core;
+namespace Mata\Database;
 
 use Psr\Log\LoggerInterface;
 
@@ -29,9 +29,7 @@ final class NullDatabase implements DatabaseInterface
             'params' => $this->sanitizeParams($params),
         ]);
 
-        $sqlType = strtoupper((string) strtok(trim($sql), ' '));
-
-        return match ($sqlType) {
+        return match (SqlQueryClassifier::leadingKeyword($sql)) {
             'INSERT', 'UPDATE', 'DELETE' => 0,
             default => [],
         };
@@ -79,18 +77,10 @@ final class NullDatabase implements DatabaseInterface
     /**
      * @param array<int|string,mixed> $params
      *
-     * @return array<int|string,mixed>
+     * @return array<int|string,string>
      */
     private function sanitizeParams(array $params): array
     {
-        foreach ($params as $key => $value) {
-            if (is_scalar($value) || $value === null) {
-                continue;
-            }
-
-            $params[$key] = gettype($value);
-        }
-
-        return $params;
+        return array_map(static fn (mixed $value): string => get_debug_type($value), $params);
     }
 }

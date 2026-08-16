@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Mata\Tests\Helpers;
 
-use Mata\Core\NullDatabase;
+use Mata\Database\NullDatabase;
 use Mata\Services\Notification\NotificationManager;
 use Monolog\Logger;
 

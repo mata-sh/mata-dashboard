@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace Mata\Services\Notification;
 
 use Exception;
-use Mata\Core\DatabaseInterface;
-use Mata\Core\NullDatabase;
+use Mata\Database\DatabaseInterface;
+use Mata\Database\NullDatabase;
 use Mata\Utils\FileStateStore;
 use Mata\Utils\PathResolver;
 use Psr\Log\LoggerInterface;

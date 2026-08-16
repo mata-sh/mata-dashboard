@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace Mata\Config\Monitoring;
 
 use Exception;
-use Mata\Core\DatabaseInterface;
-use Mata\Core\NullDatabase;
+use Mata\Database\DatabaseInterface;
+use Mata\Database\NullDatabase;
 use Mata\Services\Alarm\AlarmDirectProcessor;
 use Mata\Services\Alarm\Dto\Alarm;
 use Mata\Services\Alarm\Dto\AlarmLevel;

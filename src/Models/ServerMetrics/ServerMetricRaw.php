@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Mata\Models\ServerMetrics;
 
 use DateTimeImmutable;
-use Mata\Core\DatabaseInterface;
+use Mata\Database\DatabaseInterface;
 use Mata\Models\ServerMetrics\Dto\ServerMetricRawSnapshot;
 use Throwable;
 

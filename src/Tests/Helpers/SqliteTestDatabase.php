@@ -4,7 +4,8 @@ declare(strict_types=1);
 
 namespace Mata\Tests\Helpers;
 
-use Mata\Core\DatabaseInterface;
+use Mata\Database\DatabaseInterface;
+use Mata\Database\SqlQueryClassifier;
 use PDO;
 use RuntimeException;
 
@@ -84,10 +85,8 @@ final class SqliteTestDatabase implements DatabaseInterface
 
         $statement = $this->pdo->prepare($sql);
         $statement->execute($params);
-        $firstWord = strtok(trim($sql), ' ');
-        $sqlType = strtoupper($firstWord === false ? '' : $firstWord);
 
-        return match ($sqlType) {
+        return match (SqlQueryClassifier::leadingKeyword($sql)) {
             'INSERT' => (int) $this->pdo->lastInsertId(),
             'UPDATE', 'DELETE' => $statement->rowCount(),
             default => $statement->fetchAll(PDO::FETCH_ASSOC),

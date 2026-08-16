@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Mata\Tests\Unit\Services;
 
 use DateTimeImmutable;
-use Mata\Core\DatabaseInterface;
+use Mata\Database\DatabaseInterface;
 use Mata\Models\ConfigSyncRepository;
 use Mata\Models\ServerMetrics\ServerMetricsRepository;
 use Mata\Services\Event\Dto\EventCommand;

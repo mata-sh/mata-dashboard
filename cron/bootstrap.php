@@ -5,8 +5,8 @@ declare(strict_types=1);
 use Mata\Config\DatabaseIntegrityChecker;
 use Mata\Config\EnvConfigLoader;
 use Mata\Config\LogConfigurator;
-use Mata\Core\Database;
-use Mata\Core\NullDatabase;
+use Mata\Database\PdoDatabase;
+use Mata\Database\NullDatabase;
 use Mata\Services\Cron\CronJob;
 use Mata\Utils\PathResolver;
 use Mata\Utils\Tools;
@@ -74,7 +74,7 @@ try {
 // Database Setup
 // ************************************************************************************************
 try {
-    $db = new Database($appConfig->database);
+    $db = new PdoDatabase($appConfig->database);
 
     $databaseProbe = new DatabaseIntegrityChecker($db);
 

@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Mata\Services\ServerMetrics;
 
-use Mata\Core\DatabaseInterface;
+use Mata\Database\DatabaseInterface;
 use Mata\Services\Identity\ServerApplicationIdResolver;
 
 /**

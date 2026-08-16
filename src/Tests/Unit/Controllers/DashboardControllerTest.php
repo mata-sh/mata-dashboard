@@ -8,7 +8,7 @@ use Exception;
 use Mata\Config\Dto\ApplicationConfig;
 use Mata\Controllers\DashboardController;
 use Mata\Core\App;
-use Mata\Core\DatabaseInterface;
+use Mata\Database\DatabaseInterface;
 use Mata\Http\Responses\HtmlResponse;
 use Mata\Http\Responses\JsonResponse;
 use Mata\Http\Routing\Endpoints;

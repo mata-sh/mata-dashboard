@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Mata\Services\Sync;
 
 use Exception;
-use Mata\Core\DatabaseInterface;
+use Mata\Database\DatabaseInterface;
 use Mata\Models\ConfigSyncRepository;
 use Monolog\Logger;
 

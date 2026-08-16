@@ -6,7 +6,7 @@ namespace Mata\Services\Retention;
 
 use DateInterval;
 use DateTimeImmutable;
-use Mata\Core\DatabaseInterface;
+use Mata\Database\DatabaseInterface;
 use Psr\Log\LoggerInterface;
 use Throwable;
 

@@ -3,7 +3,7 @@
 declare(strict_types=1);
 
 use Mata\Config\EnvConfigLoader;
-use Mata\Core\Database;
+use Mata\Database\PdoDatabase;
 use Mata\Utils\PathResolver;
 
 require_once __DIR__ . '/../vendor/autoload.php';
@@ -37,7 +37,7 @@ if (!$validationResult['is_valid']) {
 $db = null;
 
 try {
-    $db = new Database($appConfig->database);
+    $db = new PdoDatabase($appConfig->database);
 } catch (Exception $e) {
     // Database not available - this is OK for CLI scripts that don't need it
     fwrite(STDERR, "[WARNING] No Database Connection available: {$e->getMessage()}\n");

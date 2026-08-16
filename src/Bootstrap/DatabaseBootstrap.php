@@ -8,9 +8,9 @@ use Closure;
 use Exception;
 use Mata\Config\DatabaseIntegrityChecker;
 use Mata\Config\Dto\DatabaseConfig;
-use Mata\Core\Database;
-use Mata\Core\DatabaseInterface;
-use Mata\Core\NullDatabase;
+use Mata\Database\DatabaseInterface;
+use Mata\Database\NullDatabase;
+use Mata\Database\PdoDatabase;
 use Psr\Log\LoggerInterface;
 use Throwable;
 
@@ -29,7 +29,7 @@ final class DatabaseBootstrap
         ?callable $integrityCheckerFactory = null,
     ) {
         $this->databaseFactory = $databaseFactory === null
-            ? static fn (DatabaseConfig $config): DatabaseInterface => new Database($config)
+            ? static fn (DatabaseConfig $config): DatabaseInterface => new PdoDatabase($config)
             : Closure::fromCallable($databaseFactory);
         $this->integrityCheckerFactory = $integrityCheckerFactory === null
             ? static fn (DatabaseInterface $database): DatabaseIntegrityChecker => new DatabaseIntegrityChecker($database)
