@@ -75,10 +75,14 @@ class ResponseFactory
         ], 422);
     }
 
-    /**
-     * Create "not found" response (404).
-     */
-    public static function notFound(string $resource = 'Resource'): JsonResponse
+    public static function htmlNotFound(string $resource = 'Resource'): HtmlResponse
+    {
+        $message = htmlspecialchars("{$resource} not found", ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+
+        return new HtmlResponse('<div class="notification is-warning" role="alert">' . $message . '</div>', 404);
+    }
+
+    public static function jsonNotFound(string $resource = 'Resource'): JsonResponse
     {
         return new JsonResponse([
             'error' => true,

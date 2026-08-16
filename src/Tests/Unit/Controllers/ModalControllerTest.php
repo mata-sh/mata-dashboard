@@ -368,8 +368,7 @@ class ModalControllerTest extends TestCase
         // Should return a 404 response
         $this->assertEquals(404, $response->getStatusCode());
 
-        // Should be a JSON response (from ResponseFactory::notFound)
-        $this->assertInstanceOf(JsonResponse::class, $response);
+        $this->assertInstanceOf(HtmlResponse::class, $response);
     }
 
     /**
@@ -651,6 +650,14 @@ class ModalControllerTest extends TestCase
         $response = $this->controller->renderAppLogs('nonexistent-server', 'test-app');
 
         $this->assertEquals(404, $response->getStatusCode());
+        $this->assertInstanceOf(HtmlResponse::class, $response);
+    }
+
+    public function testItReturnsJsonNotFoundForInvalidServerOnLogsApi(): void
+    {
+        $response = $this->controller->getAppLogsJson('nonexistent-server', 'test-app');
+
+        $this->assertSame(404, $response->getStatusCode());
         $this->assertInstanceOf(JsonResponse::class, $response);
     }
 
@@ -792,7 +799,7 @@ class ModalControllerTest extends TestCase
         $response = $this->controller->renderServerInfo('nonexistent-server');
 
         $this->assertEquals(404, $response->getStatusCode());
-        $this->assertInstanceOf(JsonResponse::class, $response);
+        $this->assertInstanceOf(HtmlResponse::class, $response);
     }
 
     /**
@@ -1260,7 +1267,7 @@ MARKDOWN;
 
         $response = $this->controller->renderDatabaseProcesses('server1', 'missing');
 
-        $this->assertInstanceOf(JsonResponse::class, $response);
+        $this->assertInstanceOf(HtmlResponse::class, $response);
         $this->assertSame(404, $response->getStatusCode());
     }
 

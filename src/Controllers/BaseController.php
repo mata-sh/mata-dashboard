@@ -86,28 +86,32 @@ abstract class BaseController
         return ResponseFactory::validationError($errors);
     }
 
-    /**
-     * Handle resource not found errors.
-     *
-     * @param string $resource Resource name or identifier
-     * @param string $context  Additional context for logging
-     *
-     * @return Response 404 response
-     */
-    protected function handleNotFound(string $resource, string $context = ''): Response
+    protected function handleHtmlNotFound(string $resource, string $context = ''): Response
+    {
+        $this->logNotFound($resource, $context);
+
+        return ResponseFactory::htmlNotFound($resource);
+    }
+
+    protected function handleJsonNotFound(string $resource, string $context = ''): Response
+    {
+        $this->logNotFound($resource, $context);
+
+        return ResponseFactory::jsonNotFound($resource);
+    }
+
+    private function logNotFound(string $resource, string $context): void
     {
         $logContext = [
             'resource' => $resource,
             'request_uri' => $_SERVER['REQUEST_URI'] ?? '',
         ];
 
-        if (!empty($context)) {
+        if ($context !== '') {
             $logContext['context'] = $context;
         }
 
         $this->logger->warning('Resource not found', $logContext);
-
-        return ResponseFactory::notFound($resource);
     }
 
     /**

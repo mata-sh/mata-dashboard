@@ -68,6 +68,7 @@ use Mata\Utils\PathResolver;
 use Mata\Utils\Tools;
 use Mata\Utils\UsersFilePathResolver;
 use Mata\Views\MetricsRenderer;
+use Monolog\ErrorHandler as MonologErrorHandler;
 use Symfony\Component\Mailer\Mailer;
 use Symfony\Component\Mailer\Transport;
 use Twig\Environment;
@@ -172,6 +173,15 @@ ini_set('error_log', $paths->logsPath . '/php-error.log');
 ini_set('display_errors', 0);
 
 // ************************************************************************************************
+// Global Error Handling
+// ************************************************************************************************
+$exceptionHandler = new ExceptionHandler($log, $appConfig->template->debugEnabled);
+$exceptionHandler->register();
+(new MonologErrorHandler($log))
+    ->registerErrorHandler(callPrevious: true)
+    ->registerFatalHandler();
+
+// ************************************************************************************************
 // Instance Branding (app name + assets)
 // ************************************************************************************************
 // Seed public/branding/ with default assets on first run; instance assets placed there
@@ -189,12 +199,6 @@ $twig->addGlobal('branding', [
     'favicon' => $brandingAssets['favicon'],
     'favicon_type' => $brandingAssets['favicon_type'],
 ]);
-
-// ************************************************************************************************
-// Global Exception Handler
-// ************************************************************************************************
-$exceptionHandler = new ExceptionHandler($log, $appConfig->template->debugEnabled);
-// $exceptionHandler->register();
 
 // ************************************************************************************************
 // Template Engine (Twig)

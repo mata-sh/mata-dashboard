@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Mata\Core;
 
 use ErrorException;
-use Exception;
 use Mata\Http\Responses\ResponseFactory;
 use Psr\Log\LoggerInterface;
 use Throwable;
@@ -22,7 +21,7 @@ class ExceptionHandler
 
         // Apply PHP internal settings accordingly
         ini_set('display_errors', $debugMode ? '1' : '0');
-        error_reporting($debugMode ? E_ALL : E_ALL & ~E_DEPRECATED & ~E_NOTICE);
+        error_reporting(E_ALL);
     }
 
     public function register(): void
@@ -37,7 +36,7 @@ class ExceptionHandler
         $this->clearOutputBuffer();
         $this->sendErrorResponse($exception);
 
-        exit;
+        exit(1);
     }
 
     public function handleError(int $severity, string $message, string $file, int $line): bool
@@ -46,20 +45,11 @@ class ExceptionHandler
             return false;
         }
 
-        $this->logger->error('PHP Error', [
-            'severity' => $severity,
-            'message' => $message,
-            'file' => $file,
-            'line' => $line,
-            'request_uri' => $_SERVER['REQUEST_URI'] ?? '',
-        ]);
-
-        // Convert errors to exceptions in debug mode for full trace context
         if ($this->debugMode) {
             throw new ErrorException($message, 0, $severity, $file, $line);
         }
 
-        return false;
+        return true;
     }
 
     private function logException(Throwable $exception): void
@@ -76,7 +66,6 @@ class ExceptionHandler
 
         if ($this->debugMode) {
             $context['trace'] = $exception->getTraceAsString();
-            $context['server'] = $_SERVER;
         }
 
         $this->logger->critical('Uncaught exception', $context);
@@ -111,12 +100,7 @@ class ExceptionHandler
         } else {
             // Use context-aware error response (JSON for API/HTMX, HTML otherwise)
             $userMessage = 'A server error occurred. Please try again later.';
-            $response = ResponseFactory::error(
-                $userMessage,
-                500,
-                $errorCode,
-                $exception instanceof Exception ? $exception : new Exception($exception->getMessage())
-            );
+            $response = ResponseFactory::error($userMessage, 500, $errorCode);
         }
 
         $response->send();

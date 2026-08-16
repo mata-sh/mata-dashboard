@@ -10,6 +10,7 @@ use Mata\Database\NullDatabase;
 use Mata\Services\Cron\CronJob;
 use Mata\Utils\PathResolver;
 use Mata\Utils\Tools;
+use Monolog\ErrorHandler;
 use Symfony\Component\Mailer\Mailer;
 use Symfony\Component\Mailer\Transport;
 
@@ -55,6 +56,10 @@ try {
         'mail.config.env',
     ], $paths->appPath . '/config');
     $log = $logConfigurator->createCronLogger($appConfig->logging, $paths, $jobName);
+    (new ErrorHandler($log))
+        ->registerExceptionHandler(callPrevious: false)
+        ->registerErrorHandler(callPrevious: false)
+        ->registerFatalHandler();
 
     $validationResult = $configLoader->validateConfig($appConfig);
     if (!$validationResult['is_valid']) {
@@ -62,12 +67,15 @@ try {
             $log->critical("[{$error['identifier']}] {$error['message']}");
         }
 
-        exit('Critical configuration errors!');
-    }
-} catch (Exception $e) {
-    $log->critical('Application Initialization failed! ' . $e->getMessage());
+        fwrite(STDERR, "Critical configuration errors!\n");
 
-    exit;
+        exit(1);
+    }
+} catch (Throwable $e) {
+    $log->critical('Application Initialization failed! ' . $e->getMessage(), ['exception' => $e]);
+    fwrite(STDERR, "Application initialization failed!\n");
+
+    exit(1);
 }
 
 // ************************************************************************************************

@@ -10,6 +10,7 @@ use Monolog\Formatter\LineFormatter;
 use Monolog\Handler\StreamHandler;
 use Monolog\Level;
 use Monolog\Logger;
+use Monolog\Processor\WebProcessor;
 use Throwable;
 
 final class LogConfigurator
@@ -66,6 +67,7 @@ final class LogConfigurator
         $path = $paths->appLogPath;
         $level = $this->resolveLogLevel($config->level, $logger);
         $this->applyHandler($logger, $path, $level);
+        $logger->pushProcessor(new WebProcessor(null, ['url', 'http_method']));
     }
 
     private function applyHandler(Logger $logger, string $path, Level $level): void

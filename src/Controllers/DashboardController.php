@@ -426,13 +426,12 @@ class DashboardController extends BaseController
      */
     public function refreshServer(string $server, bool $forceRefresh = false): Response
     {
+        if (!isset($this->serversConfig[$server])) {
+            return $this->handleHtmlNotFound("Server '{$server}'", 'Server card rendering');
+        }
+
         return $this->executeWithErrorHandling(
             function () use ($server, $forceRefresh) {
-
-                if (!isset($this->serversConfig[$server])) {
-                    throw new InvalidArgumentException("Unknown server: {$server}");
-                }
-
                 $dashboardServices = $this->requireDashboardServices($server);
                 $serversViewData = $this->serverViewBuilder->buildServerViewData(
                     $server,
@@ -462,13 +461,12 @@ class DashboardController extends BaseController
      */
     public function refreshServerStats(string $server, bool $forceRefresh = false): Response
     {
+        if (!isset($this->serversConfig[$server])) {
+            return $this->handleHtmlNotFound("Server '{$server}'", 'Server stats fetching');
+        }
+
         return $this->executeWithErrorHandling(
             function () use ($server, $forceRefresh) {
-
-                if (!isset($this->serversConfig[$server])) {
-                    throw new InvalidArgumentException("Unknown server: {$server}");
-                }
-
                 $dashboardServices = $this->requireDashboardServices($server);
                 $serverStatsData = $this->serverViewBuilder->buildServerStatsData(
                     $server,

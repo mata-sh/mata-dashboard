@@ -16,6 +16,38 @@ use Mata\Utils\PathResolver;
  */
 final class LogConfiguratorTest extends TestCase
 {
+    public function testWebLoggerAddsUrlAndHttpMethodWithoutIp(): void
+    {
+        $root = $this->createTempDirectory();
+        $entryPoint = $root . '/app/public/index.php';
+        mkdir(dirname($entryPoint), 0777, true);
+        mkdir($root . '/app/logs', 0777, true);
+        touch($entryPoint);
+        $server = $_SERVER;
+        $_SERVER['REQUEST_METHOD'] = 'POST';
+        $_SERVER['REQUEST_URI'] = '/api/events?token=secret';
+        $_SERVER['REMOTE_ADDR'] = '192.0.2.10';
+
+        try {
+            $paths = new PathResolver($entryPoint);
+            $logger = (new LogConfigurator())->createConfiguredLogger(
+                new LoggingConfig('logs/app.log', 'info'),
+                $paths,
+            );
+            $logger->info('request');
+            $logger->close();
+            $contents = file_get_contents($root . '/app/logs/app.log');
+
+            self::assertIsString($contents);
+            self::assertStringContainsString('POST', $contents);
+            self::assertStringContainsString('/api/events?token=secret', $contents);
+            self::assertStringNotContainsString('192.0.2.10', $contents);
+        } finally {
+            $_SERVER = $server;
+            $this->cleanupTempFiles([$root]);
+        }
+    }
+
     public function testCronLoggerUsesConfiguredWarningLevel(): void
     {
         $root = $this->createTempDirectory();

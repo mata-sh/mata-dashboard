@@ -174,7 +174,7 @@ class ModalController extends BaseController
         return $this->executeWithErrorHandling(
             function () use ($server, $app, $forceRefresh) {
                 if (!isset($this->serverDataCollectors[$server])) {
-                    return $this->handleNotFound("Server '{$server}'", 'README request');
+                    return $this->handleHtmlNotFound("Server '{$server}'", 'README request');
                 }
                 $serverData = $this->serverDataCollectors[$server];
 
@@ -227,7 +227,7 @@ class ModalController extends BaseController
         return $this->executeWithErrorHandling(
             function () use ($server, $app, $forceRefresh) {
                 if (!isset($this->serverDataCollectors[$server])) {
-                    return $this->handleNotFound("Server '{$server}'", 'Logs request');
+                    return $this->handleHtmlNotFound("Server '{$server}'", 'Logs request');
                 }
                 $serverData = $this->serverDataCollectors[$server];
 
@@ -283,7 +283,7 @@ class ModalController extends BaseController
         return $this->executeWithErrorHandling(
             function () use ($server, $app, $forceRefresh) {
                 if (!isset($this->serverDataCollectors[$server])) {
-                    return $this->handleNotFound("Server '{$server}'", 'Log files request');
+                    return $this->handleHtmlNotFound("Server '{$server}'", 'Log files request');
                 }
 
                 $logsStatusResponse = $this->modalCacheService->fetchLogsStatus(
@@ -335,7 +335,7 @@ class ModalController extends BaseController
         return $this->executeWithErrorHandling(
             function () use ($server, $app, $forceRefresh) {
                 if (!isset($this->serverDataCollectors[$server])) {
-                    return $this->handleNotFound("Server '{$server}'", 'Logs JSON request');
+                    return $this->handleJsonNotFound("Server '{$server}'", 'Logs JSON request');
                 }
                 $serverData = $this->serverDataCollectors[$server];
 
@@ -371,7 +371,7 @@ class ModalController extends BaseController
         return $this->executeWithErrorHandling(
             function () use ($server, $app, $forceRefresh) {
                 if (!isset($this->serverDataCollectors[$server])) {
-                    return $this->handleNotFound("Server '{$server}'", 'Logs status JSON request');
+                    return $this->handleJsonNotFound("Server '{$server}'", 'Logs status JSON request');
                 }
                 $serverData = $this->serverDataCollectors[$server];
 
@@ -405,7 +405,7 @@ class ModalController extends BaseController
         return $this->executeWithErrorHandling(
             function () use ($server, $forceRefresh) {
                 if (!isset($this->serverDataCollectors[$server])) {
-                    return $this->handleNotFound("Server '{$server}'", 'Server info request');
+                    return $this->handleHtmlNotFound("Server '{$server}'", 'Server info request');
                 }
                 $serverData = $this->serverDataCollectors[$server];
 
@@ -453,7 +453,7 @@ class ModalController extends BaseController
         return $this->executeWithErrorHandling(
             function () use ($server, $database, $forceRefresh) {
                 if (!isset($this->serverDataCollectors[$server])) {
-                    return $this->handleNotFound("Server '{$server}'", 'Database process request');
+                    return $this->handleHtmlNotFound("Server '{$server}'", 'Database process request');
                 }
 
                 $databaseResponse = $this->requireValidResponse(
@@ -466,7 +466,7 @@ class ModalController extends BaseController
                 $databases = $databaseResponse['result']['databases'] ?? null;
 
                 if (!is_array($databases) || !isset($databases[$database]) || !is_array($databases[$database])) {
-                    return $this->handleNotFound("Database '{$database}'", "process request on {$server}");
+                    return $this->handleHtmlNotFound("Database '{$database}'", "process request on {$server}");
                 }
 
                 $processList = $databases[$database]['process_list'] ?? [];
@@ -510,7 +510,7 @@ class ModalController extends BaseController
         return $this->executeWithErrorHandling(
             function () use ($server, $forceRefresh) {
                 if (!isset($this->serverDataCollectors[$server])) {
-                    return $this->handleNotFound("Server '{$server}'", 'Server cronjobs request');
+                    return $this->handleHtmlNotFound("Server '{$server}'", 'Server cronjobs request');
                 }
                 $serverData = $this->serverDataCollectors[$server];
 

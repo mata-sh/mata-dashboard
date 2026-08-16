@@ -992,6 +992,32 @@ class DashboardControllerTest extends TestCase
         $this->assertNotEmpty($response->getContent());
     }
 
+    public function testUnknownServerRefreshesReturnHtmlNotFoundFragments(): void
+    {
+        $this->controller = new DashboardController(
+            $this->app,
+            $this->tools,
+            $this->twig,
+            $this->logger,
+            $this->appConfig,
+            $this->notificationManager,
+            $this->eventManager,
+            $this->cacheStore,
+            $this->cacheKeyFactory,
+            $this->endpoints,
+            $this->menuBuilder,
+            $this->monitoringContext()
+        );
+
+        foreach ([
+            $this->controller->refreshServer('missing'),
+            $this->controller->refreshServerStats('missing'),
+        ] as $response) {
+            $this->assertInstanceOf(HtmlResponse::class, $response);
+            $this->assertSame(404, $response->getStatusCode());
+        }
+    }
+
     /**
      * Test: Refresh server stats with force refresh outputs HTML.
      *
