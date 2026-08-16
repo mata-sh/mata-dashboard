@@ -51,11 +51,6 @@ class Auth
         $this->logger = $logger;
         $this->cliMode = $cliMode;
 
-        // Start session if needed (skip in CLI mode)
-        if (!$cliMode) {
-            Session::start();
-        }
-
         $this->loadUsers();
 
         if (!$cliMode) {
@@ -177,9 +172,7 @@ class Auth
             'id' => $user['id'] ?? uniqid('usr_'),
         ];
         $_SESSION['logged_in'] = true;
-        if (session_status() === PHP_SESSION_ACTIVE) {
-            session_regenerate_id(true);
-        }
+        Session::regenerate();
 
         // Clear failed attempts
         if (isset($this->users[$username]['failed_attempts'])) {
@@ -254,7 +247,7 @@ class Auth
                 'id' => $user['id'] ?? uniqid('usr_'),
             ];
             $_SESSION['logged_in'] = true;
-            session_regenerate_id(true);
+            Session::regenerate();
 
             // Regenerate token for security
             $this->setRememberMe($username);
@@ -423,10 +416,7 @@ class Auth
             $this->saveUsers();
         }
 
-        $_SESSION = [];
-        if (session_status() === PHP_SESSION_ACTIVE) {
-            session_destroy();
-        }
+        Session::destroy();
         setcookie('remember_token', '', [
             'expires' => time() - 3600,
             'path' => '/',
@@ -434,7 +424,6 @@ class Auth
             'httponly' => true,
             'samesite' => 'Lax',
         ]);
-        Session::destroyCookie();
 
         $this->logger->info('User logged out: ' . ($username ?? 'unknown'));
     }

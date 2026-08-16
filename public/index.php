@@ -1,5 +1,6 @@
-
 <?php
+
+declare(strict_types=1);
 
 use Bramus\Router\Router;
 use Mata\Bootstrap\BrandingResolver;
@@ -25,6 +26,7 @@ use Mata\Controllers\ModalController;
 use Mata\Core\App;
 use Mata\Core\Auth;
 use Mata\Core\ExceptionHandler;
+use Mata\Core\Session;
 use Mata\Http\Routing\Endpoints;
 use Mata\Http\Routing\RouterSetup;
 use Mata\Http\Security\CsrfGuard;
@@ -100,11 +102,6 @@ $logConfigurator = new LogConfigurator();
 $log = $logConfigurator->createBootLogger($paths);
 
 // ************************************************************************************************
-// Session Path
-// ************************************************************************************************
-$sessionPath = session_save_path($paths->appPath . '/temp/sessions');
-
-// ************************************************************************************************
 // Template Engine (Twig)
 // ************************************************************************************************
 $loader = new FilesystemLoader($paths->appPath . '/templates');
@@ -173,13 +170,14 @@ ini_set('error_log', $paths->logsPath . '/php-error.log');
 ini_set('display_errors', 0);
 
 // ************************************************************************************************
-// Global Error Handling
+// Global Error and Session Handling
 // ************************************************************************************************
 $exceptionHandler = new ExceptionHandler($log, $appConfig->template->debugEnabled);
 $exceptionHandler->register();
 (new MonologErrorHandler($log))
     ->registerErrorHandler(callPrevious: true)
     ->registerFatalHandler();
+Session::start($paths->tempPath . '/sessions');
 
 // ************************************************************************************************
 // Instance Branding (app name + assets)
@@ -414,7 +412,7 @@ $dashboardMonitoringContext = DashboardMonitoringContext::fromSettingsAndService
 // ************************************************************************************************
 // Controllers
 // ************************************************************************************************
-$loginController = new LoginController($app, $tools, $twig);
+$loginController = new LoginController($app, $tools, $twig, $csrf);
 $dashboardController = new DashboardController(
     $app,
     $tools,

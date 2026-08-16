@@ -33,7 +33,6 @@ class App
         $this->config = $config;
         $this->paths = $paths;
         $this->rateLimiter = $rateLimiter;
-        Session::start();
         $this->detectBasePath();
     }
 

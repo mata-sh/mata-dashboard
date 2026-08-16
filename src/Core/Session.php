@@ -4,67 +4,124 @@ declare(strict_types=1);
 
 namespace Mata\Core;
 
-/**
- * Manage secure PHP sessions.
- */
+use RuntimeException;
+
+/** Manage the application-owned PHP session lifecycle. */
 final class Session
 {
-    /**
-     * Start session with secure cookie defaults.
-     */
-    public static function start(): void
+    public static function start(string $savePath): void
     {
-        if (session_status() !== PHP_SESSION_NONE) {
+        $status = session_status();
+        if ($status === PHP_SESSION_ACTIVE) {
             return;
         }
+        if ($status === PHP_SESSION_DISABLED) {
+            throw new RuntimeException('PHP sessions are disabled');
+        }
+
+        if (headers_sent($file, $line)) {
+            throw new RuntimeException("Cannot start session after headers were sent at {$file}:{$line}");
+        }
+
+        self::configureSavePath($savePath);
+
+        self::setIni('session.use_strict_mode', '1');
+        self::setIni('session.use_only_cookies', '1');
+        self::setIni('session.use_cookies', '1');
 
         $params = session_get_cookie_params();
-        $sameSite = self::sameSite($params);
-
-        session_set_cookie_params([
+        if (!session_set_cookie_params([
             'lifetime' => $params['lifetime'],
             'path' => $params['path'],
             'domain' => $params['domain'],
             'secure' => $params['secure'] || self::isSecureRequest(),
             'httponly' => true,
-            'samesite' => $sameSite,
-        ]);
+            'samesite' => self::sameSite($params),
+        ])) {
+            throw new RuntimeException('Failed to configure session cookie policy');
+        }
 
-        session_start();
+        if (!session_start() || session_status() !== PHP_SESSION_ACTIVE) {
+            throw new RuntimeException('Failed to start PHP session');
+        }
     }
 
-    /**
-     * Detect whether the current request uses HTTPS.
-     */
+    public static function assertActive(): void
+    {
+        if (session_status() !== PHP_SESSION_ACTIVE) {
+            throw new RuntimeException('Application session has not been started');
+        }
+    }
+
+    public static function regenerate(): void
+    {
+        self::assertActive();
+
+        if (!session_regenerate_id(true)) {
+            throw new RuntimeException('Failed to regenerate session ID');
+        }
+    }
+
+    public static function destroy(): void
+    {
+        $sessionName = session_name();
+        $params = session_get_cookie_params();
+        $_SESSION = [];
+
+        if (session_status() === PHP_SESSION_ACTIVE && !session_destroy()) {
+            throw new RuntimeException('Failed to destroy PHP session');
+        }
+
+        self::destroyCookie($sessionName, $params);
+    }
+
     public static function isSecureRequest(): bool
     {
         if (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') {
             return true;
         }
-
         if (isset($_SERVER['SERVER_PORT']) && (int) $_SERVER['SERVER_PORT'] === 443) {
             return true;
         }
 
-        return isset($_SERVER['HTTP_X_FORWARDED_PROTO']) && $_SERVER['HTTP_X_FORWARDED_PROTO'] === 'https';
+        return isset($_SERVER['HTTP_X_FORWARDED_PROTO'])
+            && strtolower((string) $_SERVER['HTTP_X_FORWARDED_PROTO']) === 'https';
     }
 
-    /**
-     * Destroy the PHP session cookie.
-     */
-    public static function destroyCookie(): void
+    private static function configureSavePath(string $savePath): void
     {
-        $sessionName = session_name();
-        if (!is_string($sessionName)) {
+        if ($savePath === '' || is_link($savePath)) {
+            throw new RuntimeException("Invalid session save path: {$savePath}");
+        }
+        if (!is_dir($savePath)) {
+            if (!@mkdir($savePath, 0700, true) && !is_dir($savePath)) {
+                throw new RuntimeException("Failed to create session save path: {$savePath}");
+            }
+            if (!chmod($savePath, 0700)) {
+                throw new RuntimeException("Failed to secure session save path: {$savePath}");
+            }
+        }
+        if (!is_writable($savePath)) {
+            throw new RuntimeException("Session save path is not writable: {$savePath}");
+        }
+        if (session_save_path($savePath) === false) {
+            throw new RuntimeException("Failed to configure session save path: {$savePath}");
+        }
+    }
+
+    private static function setIni(string $option, string $value): void
+    {
+        if (ini_set($option, $value) === false || ini_get($option) !== $value) {
+            throw new RuntimeException("Failed to configure {$option}");
+        }
+    }
+
+    /** @param array<string,mixed> $params */
+    private static function destroyCookie(string $sessionName, array $params): void
+    {
+        if ($sessionName === '' || headers_sent()) {
             return;
         }
-
-        if (session_status() !== PHP_SESSION_ACTIVE && !isset($_COOKIE[$sessionName])) {
-            return;
-        }
-
-        $params = session_get_cookie_params();
-        $sameSite = self::sameSite($params);
 
         setcookie($sessionName, '', [
             'expires' => time() - 3600,
@@ -72,15 +129,12 @@ final class Session
             'domain' => $params['domain'],
             'secure' => $params['secure'] || self::isSecureRequest(),
             'httponly' => true,
-            'samesite' => $sameSite,
+            'samesite' => self::sameSite($params),
         ]);
+        unset($_COOKIE[$sessionName]);
     }
 
-    /**
-     * Get configured SameSite value.
-     *
-     * @param array<string,mixed> $params Session cookie parameters
-     */
+    /** @param array<string,mixed> $params */
     private static function sameSite(array $params): string
     {
         return isset($params['samesite']) && is_string($params['samesite']) && $params['samesite'] !== ''

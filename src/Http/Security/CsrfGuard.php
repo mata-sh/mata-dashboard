@@ -4,8 +4,6 @@ declare(strict_types=1);
 
 namespace Mata\Http\Security;
 
-use Mata\Core\Session;
-
 /**
  * Provides CSRF token generation and request validation.
  */
@@ -20,8 +18,6 @@ final class CsrfGuard
      */
     public function getToken(): string
     {
-        Session::start();
-
         $token = $_SESSION[self::SESSION_KEY] ?? null;
         if (!is_string($token) || $token === '') {
             $token = bin2hex(random_bytes(32));

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Mata\Controllers;
 
 use Mata\Core\App;
+use Mata\Http\Security\CsrfGuard;
 use Mata\Utils\Tools;
 use Twig\Environment;
 
@@ -22,16 +23,18 @@ class LoginController
 {
     private App $app;
     private Tools $tools;
+    private CsrfGuard $csrf;
     private Environment $twig;
 
     /**
      * Initialize login controller with dependencies.
      */
-    public function __construct(App $app, Tools $tools, Environment $twig)
+    public function __construct(App $app, Tools $tools, Environment $twig, CsrfGuard $csrf)
     {
         $this->app = $app;
         $this->tools = $tools;
         $this->twig = $twig;
+        $this->csrf = $csrf;
     }
 
     /**
@@ -60,11 +63,16 @@ class LoginController
      */
     public function submit(): void
     {
-        $username = filter_var($_POST['username'] ?? '', FILTER_SANITIZE_SPECIAL_CHARS);
-        $password = $_POST['password'] ?? '';
-        $rememberme = filter_var($_POST['remember_me'] ?? false, FILTER_VALIDATE_BOOLEAN);
+        $rawUsername = $_POST['username'] ?? '';
+        $rawPassword = $_POST['password'] ?? '';
+        $rawRememberMe = $_POST['remember_me'] ?? false;
+
+        $username = is_string($rawUsername) ? trim($rawUsername) : '';
+        $password = is_string($rawPassword) ? $rawPassword : '';
+        $rememberme = in_array($rawRememberMe, [true, 1, '1', 'true', 'on'], true);
 
         if ($this->app->auth->login($username, $password, $rememberme)) {
+            $this->csrf->regenerate();
             $this->app->redirect('watch');
 
             return;
@@ -82,21 +90,11 @@ class LoginController
     }
 
     /**
-     * Log out current user and display login page.
-     *
-     * Clears session data and remember-me cookies, then shows login form.
+     * Clear authentication state and redirect to a fresh login session.
      */
     public function logout(): void
     {
         $this->app->auth->logout();
-        echo $this->twig->render('pages/login.html.twig', [
-            'config' => [
-                'base_url' => $this->app->getBaseUrl(),
-                'full_base_url' => $this->app->getFullBaseUrl(),
-            ],
-            'ui' => [
-                'main_logo' => $this->tools->icon('sea-turtle-bl', 150),
-            ],
-        ]);
+        $this->app->redirect('login');
     }
 }
