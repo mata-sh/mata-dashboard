@@ -3,55 +3,51 @@
 <div align="center">
     <img src="images/logo.png" alt="MATA Logo" width="200">
 </div>
-<div align="center">
 
+<div align="center">
 <strong>Monitoring Anomalies & Tracking Alarms</strong>
 </div>
-<div align="center">
-    <img src="images/screenshot.jpg" alt="MATA Screenshot" width="600">
-</div>
 
-
-## What is MATA?
-
-MATA Dashboard is a PHP-based monitoring platform for centralized visibility across multiple servers and hosted applications. It provides real-time checks, intelligent alarm handling, and structured event logging.
-
-- Minimal dependencies
-- Resilient under failure
-- Built for PHP applications
-
-
-### Architecture
+MATA Dashboard is a PHP monitoring dashboard for servers and hosted
+applications. It polls read-only MATA Nodes, records events, evaluates alarms,
+and delivers notifications.
 
 <div align="center">
-    <img src="images/diagram.png" alt="MATA Diagram" width="600">
+    <img src="images/screenshot.jpg" alt="MATA Dashboard screenshot" width="600">
 </div>
 
-## Key Features
+## Start here
 
-<!-- - Server monitoring: CPU, RAM, disk, and processes -->
-- Application health: HTTP checks, logs, session tracking
-- Intelligent alarm handling: threshold rules with notifications
-- Security: HMAC-signed API, rate limits, read-only nodes
-- Event logging: configurable retention and severity
+- [Quick start](guides/quickstart.md)
+- [Docker quickstart](guides/quickstart-docker.md)
+- [Add your first server](guides/first-server.md)
 
-
-## Start Here
-
-- [Quick Start](guides/quickstart.md)
-- [Docker Deployment](guides/quickstart-docker.md)
-- [First Server](guides/first-server.md)
-
-## Docs
+## Guides
 
 - [Configuration](guides/configuration.md)
-- [Server Metrics Pipeline](architecture/server-metrics-pipeline.md)
-- [Alarm Decision and Delivery Flow](drafts/reference/alarms.md)
-- [Security](guides/secure-application.md)
-- [Setup Dev](development/setup-development.md)
-- [UI Styleguide](development/ui-styleguide.md)
+- [Monitoring](guides/monitoring.md)
+- [Application error monitoring](guides/application-error-monitoring.md)
+- [User management](guides/user-management.md)
+- [Secure an installation](guides/secure-application.md)
+- [Web server configuration examples](examples/webserver-configs/README.md)
+
+## Reference
+
+- [Alarm decision and delivery flow](reference/alarms.md)
+- [Server metrics pipeline](architecture/server-metrics-pipeline.md)
+
+## Architecture
+
+- [Architecture overview](architecture/overview.md)
+- [Security architecture](architecture/security.md)
+- [Technology choices](architecture/technology-choices.md)
+
+## Development
+
+- [Development setup](development/development-setup.md)
+- [UI style guide](development/ui-styleguide.md)
 
 ## Contact
 
-- **xarc** - [@xarcdev](https://x.com/xarcdev) - mata@xarc.dev
-- Project: [mata.sh/mata-dashboard](https://github.com/mata-sh/mata-dashboard)
+- **xarc**: [@xarcdev](https://x.com/xarcdev), mata@xarc.dev
+- Project: [github.com/mata-sh/mata-dashboard](https://github.com/mata-sh/mata-dashboard)

@@ -1,9 +1,14 @@
-# Entrypoint scripts (public/, cron/) are procedural bootstrap code and are not
-# part of the level 7 `src` analysis. Level 0 still resolves every class, so a
-# stale `use` left behind by a namespace move fails here instead of at runtime.
+# Procedural entrypoints are analysed separately from level 7 `src`. Level 6
+# catches type errors and stale imports; level 7 blockers are tracked in TODO.md.
+# Keep cron bootstrapping behind typed factories: PHPStan cannot infer variables
+# or return types introduced through `require`.
 parameters:
-    level: 0
+    level: 6
     paths:
         - public
         - cron
+        - scripts
+    excludePaths:
+        # Its required bootstrap leaks variables through scope; tracked in TODO.md.
+        - scripts/user-management
     treatPhpDocTypesAsCertain: false

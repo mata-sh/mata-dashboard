@@ -1,196 +1,195 @@
-<a id="readme-top"></a>
-
-<!-- PROJECT LOGO -->
 <div align="center">
-  <a href="https://github.com/mata-sh/mata-dashboard">
-    <img src="docs/images/logo.png" alt="Logo" width="200">
-  </a>
+  <img src="docs/images/logo.png" alt="MATA" width="140">
 
-<h3 align="center">MATA Dashboard</h3>
-
-  <p align="center">
-Modern, lightweight node and application monitoring with the needs of PHP developers kept in mind.
-
-<br>
-<a href="https://github.com/mata-sh/mata-dashboard/issues/new?labels=bug&template=bug-report---.md">Report Bug</a>
-&middot;
-<a href="https://github.com/mata-sh/mata-dashboard/issues/new?labels=enhancement&template=feature-request---.md">Request Feature</a>
-  </p>
+# MATA Dashboard
 
 [![CI][CI-shield]][ci-url]
 [![License][license-shield]][license-url]
-[![PHP][PHP-shield]][PHP.net]
 [![HTMX][HTMX-shield]][empty-url]
+![PHP 8.3+][PHP-shield]
 
+Monitoring for environments where a full observability stack is impractical:
+shared hosting, small VPS boxes, legacy servers. Anywhere you can run PHP 8.3.
 
-</div>
+One dashboard polls one or more read-only nodes over HTTPS, stores events and
+metrics in MySQL/MariaDB, evaluates alarms, and sends email. Minimal dependencies, no Node runtime, no JavaScript framework. 
 
+[![Screenshot][product-screenshot]][demo-url]
 
-<!-- ABOUT THE PROJECT -->
-<p>
-<strong>MATA</strong> is a PHP-native monitoring solution for environments where full observability stacks are impractical.
-Deploy read-only nodes on each monitored environment, manage alarms and logs from one lightweight dashboard. Works on shared hosting, constrained VPS, anywhere PHP 8.3+ runs.</p>
-
-## Mental Model
-
-- **Dashboard pulls data from nodes.**
-- **Nodes never initiate connections.**
-- **Nodes are stateless and read-only.**
-
-MATA consists of one dashboard and one or more nodes. The dashboard polls each node for snapshots and evaluates alarms centrally. Nodes expose read-only endpoints and do not send data anywhere on their own.
-
-### Events, alarms, and deliveries
-
-- **Event:** A recorded fact.
-- **Logical alarm:** A policy-approved event, visible in the dashboard.
-- **Delivery:** One channel attempt for a logical alarm.
-- **Notification rule:** Selects or suppresses deliveries only; it never suppresses a logical alarm.
-
-<div align="center">
-
-[![Product Name Screen Shot][product-screenshot]][demo-url]
-
-[Check out the demo][demo-url]
+[Try the live demo][demo-url]
 
 User: **demo** | Password: **demo**
+
 </div>
 
-## Core Features
+## How it works
 
-- **Application Health:** HTTP ping monitoring, error log parsing, and session tracking
-- **Alarm handling:** Threshold-based alarm system with email notifications
-- **Node Monitoring:** Real-time tracking of CPU/RAM/disk and system processes
-- **PHP Dev Toolset:** Supports reading PHP logs and installed Composer packages.
+- The central dashboard collects data and evaluates/delivers alarms. 
+- Nodes are stateless and offer read-only endpoints.
 
-## Why MATA?
+```mermaid
+flowchart LR
+    Browser[Dashboard user] --> Dashboard[Dashboard]
+    Dashboard -->|pull current data| Node[Read-only nodes]
+    Dashboard <--> DB[(MySQL / MariaDB)]
 
-- **Multi-Node Visibility:** One dashboard for many nodes and apps
-- **Works where you can only run PHP:** Shared hosting / constrained VPS (no root, no daemons, no system packages)
-- **Alarm handling:** Threshold-based alarms with email notifications
-- **Least privilege by design:** Lightweight, read-only nodes with proper deployment and network isolation
-- **PHP-first insights:** Error logs, Composer inventory, session monitoring
-- **Resilient:** Dashboard can run in degraded mode without a DB
-- **Developer Friendly:** Simple deploy, built with modern PHP and optional Docker support
+    Jobs[Scheduled jobs] -->|collect snapshots| Node
+    Jobs -->|events and raw metrics| DB
+    Jobs --> Aggregate[Metric aggregation]
+    DB -->|raw metrics| Aggregate
+    Aggregate -->|hourly and daily metrics| DB
+
+    Jobs --> Evaluate[Alarm evaluation]
+    DB -->|events| Evaluate
+    Evaluate -->|alarms and deliveries| DB
+
+    Jobs --> Dispatch[Alarm dispatch]
+    DB -->|due deliveries| Dispatch
+    Dispatch --> Email[Email]
+    Dispatch -->|status and retries| DB
+```
+
+The dashboard serves the UI and pulls node data on demand. Cron does the
+scheduled work: collect snapshots, persist events and metrics, evaluate alarms,
+dispatch due deliveries, clean up retained data. The dashboard still renders
+monitors functionality of applications when the database is down; everything else needs it.
+
+[MATA Node](https://github.com/mata-sh/mata-node) is a separate application,
+installed on each monitored host.
+
+## Alarm model
+
+| Term | Meaning |
+| --- | --- |
+| Event | A recorded fact. |
+| Logical alarm | A stored alarm associated with an event. |
+| Delivery | One channel attempt for a logical alarm. Email is the only implemented channel. |
+
+Notification rules select channels for policy-evaluated alarms. Direct
+emergency alarms (configuration failures) bypass both the rules and the
+decision driver.
+
+Decisions come from OPA (`policy/*.rego`) where it can run, or from a
+deliberately limited built-in driver where it cannot.
+[`ALARM_DECISION_DRIVER`](docs/reference/alarms.md).
+
+## What is collected
+
+Collected from nodes:
+
+- CPU, RAM, disk
+- Top process snapshot
+- HTTP status, and latency
+- Recent log lines
+- Session counts
+- Composer package inventory (names and versions)
+- Application metadata
+
+Not collected: secrets, environment variables, database contents, source code.
+What a node exposes is what the node is configured to expose — a
+misconfigured node can leak more than intended.
 
 ## Security model
 
-- **Read-only nodes:** stateless endpoints; no alarm handling, no emails, no remote actions.
-- **Pull-only traffic:** communication is **dashboard → node** only.
-- **Auth (HMAC + short TTL):** per-node shared secret; each pull request includes a timestamped HMAC token with a short TTL. See [security architecture](docs/architecture/security.md#how-authentication-works) for the full handshake.
-- **TLS required:** nodes accept **HTTPS only**.
-- **Network controls:** optional IP allowlists for dashboard and node endpoints.
-- **Abuse resistance:** rate limiting on dashboard and node APIs.
-- **Account security:** CLI-driven user management with CLI-only audit logs.
-- **Retention & thresholds:** configurable retention for events/logs and configurable alarm thresholds.
+- **Pull-only.** Traffic is dashboard → node, never the reverse.
+- **HMAC + short TTL.** Per-node shared secret; every request carries a
+  timestamped token. Full handshake in
+  [security architecture](docs/architecture/security.md#node-authentication).
+- **TLS in production.** Plain HTTP nodes require an explicit
+  local-development override.
+- **Optional IP allowlists** on dashboard and node endpoints.
+- **Rate limiting** on dashboard and node APIs.
+- **File-based users, CLI-only management,** with a CLI-only audit log. so the
+  dashboard still works when the database does not.
+- **Configurable retention** for events and logs.
 
-<p align="right">(<a href="#readme-top">back to top</a>)</p>
+[`SECURITY.md`](SECURITY.md) covers vulnerability reporting and supported
+versions. See [Secure an installation](docs/guides/secure-application.md) for
+the production baseline.
 
-## Architecture Overview
+## Requirements
 
-### **Dashboard**
-The monitoring hub with web interface and alarm handling system. It pulls snapshots from nodes and can run without a database by utilizing filesystem fallback mode.
+- PHP 8.3+, Composer, `make`
+- MySQL or MariaDB for events, alarms, deliveries, historical metrics, migrations
+- A web server pointed at `public/`
+- Cron, or any equivalent scheduler
+- Optional: OPA for alarm decisions, Docker for the containerised setup
 
-### **Nodes**
-Lightweight, stateless applications offering **read-only** API endpoints. They never initiate connections and are easily deployed with minimal dependencies.
+## Setup
 
+```bash
+git clone https://github.com/mata-sh/mata-dashboard.git
+cd mata-dashboard
+make setup          # asks for local|docker and dev|demo|prod, writes .mata.mk
+make db-migrate
+make doctor
+```
 
-## What is collected?
+`MODE=... ENV=...` skips the prompts. See the
+[quick start](docs/guides/quickstart.md) or
+[Docker quick start](docs/guides/quickstart-docker.md), then
+[add your first server](docs/guides/first-server.md).
 
-**Collected**
-- CPU / RAM / disk metrics
-- Process snapshot (top processes)
-- HTTP status (and optional latency, if enabled)
-- Recent log lines
-- Session counts
-- Composer package inventory (names/versions)
-- Explicitly **whitelisted** application metadata from config
+## Scheduled jobs
 
-**Not collected**
-- Secrets (API keys, passwords), environment variables
-- Database contents
-- Application source code
-- Data exposure depends on node configuration; misconfiguration can expose unintended data.
+`cron/crontab.shared-hosting.template` is the reference schedule; Docker
+installs the same manifest as the `www-data` crontab.
 
+| Job | Does |
+| --- | --- |
+| `servers_data_fetch.php` | Pulls application data, records events, warms the API cache |
+| `servers_metrics_collect.php` | Writes raw server snapshots (chained after the fetch, reusing the warm cache) |
+| `servers_metrics_aggregate.php` | Rolls raw rows up to hourly and daily |
+| `alarms_evaluate_{critical,non_critical}.php` | Turns events into logical alarms |
+| `alarms_dispatch.php` | Sends due deliveries |
+| `retention_cleanup.php` / `rate_limit_cleanup.php` | Expire database rows and file-based rate-limit state |
 
-## Getting Started
+## Scope
 
-### Requirements
+MATA began as an internal tool for monitoring PHP deployments with limited hosting access.
 
-- **PHP 8.3+**
-- **MySQL/MariaDB** for event logging and configuration (optional but recommended for the dashboard)
+**Ideal for**
 
-### Quick Start
+- Agencies managing dozens of customer servers
+- A handful to roughly 100 nodes and teams of 1 to 20 people
+- PHP applications across legacy and modern stacks
+- Shared hosting, small VPSs, and other restricted environments
+- Monitoring failures across many small servers without SSH hopping
 
-`make setup` interactively selects native (`local`) or Docker mode and the `dev`, `demo`, or `prod` environment. It stores the selection in ignored `.mata.mk`. Use `MODE=... ENV=...` for one-command overrides.
+**Not for**
 
-- [Quick Start Tutorial](docs/guides/quickstart.md)
-- [Quick Start - Docker](docs/guides/quickstart-docker.md)
+- Public or multi-tenant dashboards
+- Large user populations
+- Kubernetes or large-scale observability
 
+## Documentation
 
-<p align="right">(<a href="#readme-top">back to top</a>)</p>
+Full docs in [`docs/`](docs/index.md):
+[architecture](docs/architecture/overview.md) ·
+[technology choices](docs/architecture/technology-choices.md) ·
+[configuration](docs/guides/configuration.md) ·
+[server metrics pipeline](docs/architecture/server-metrics-pipeline.md) ·
+[development setup](docs/development/development-setup.md)
 
-
-## Technology Choices
-
-### Frontend: HTMX + Bulma CSS
-- **HTMX:** Dynamic updates via HTML attributes, no JavaScript framework needed
-- **Bulma:** Modern CSS framework (pre-compiled, committed to repo)
-- **Benefits:** No runtime dependencies, no state management complexity
-
-### Templates: Twig
-- **Why:** Familiar to developers & fast and easy to learn
-- **Security:** Automatic XSS protection
-
-### Authentication & user management: file-based + CLI-only
-- **Why:** dashboard stays up even if the database fails (degraded mode)
-- **Audit:** CLI-only audit log for administrative actions
-
-
-## Use Case Fit
-
-✅ **Ideal for:**
-- Agencies managing dozens of small customer nodes
-- 1–20 nodes / 1–20 team members
-- PHP apps with file-based sessions and messy logs
-- Unreliable or legacy environments
-- Hosts where you cannot install agents/exporters
-- See failures across many small nodes without SSH hopping
-
-❌ **Not for:**
-- Public dashboards
-- 100+ concurrent users
-- Complex Kubernetes monitoring in full-control environments (use dedicated observability stacks)
-
+Contributions: [`CONTRIBUTING.md`](CONTRIBUTING.md).
+Bugs and feature requests go to [issues](https://github.com/mata-sh/mata-dashboard/issues).
 
 ## License
 
-Licensed under the Apache License, Version 2.0.
-See `LICENSE.txt` for details.
+Apache License 2.0 [`LICENSE`](LICENSE).
 
 ## Contact
 
-xarc - [@xarcdev](https://x.com/xarcdev) - mata@xarc.dev
-
-Project Link: [https://github.com/mata-sh/mata-dashboard](https://github.com/mata-sh/mata-dashboard)
-
-<p align="right">(<a href="#readme-top">back to top</a>)</p>
+xarc | mata@xarc.dev
 
 <!-- MARKDOWN LINKS & IMAGES -->
-[contributors-shield]: https://img.shields.io/github/contributors/mata-sh/mata-dashboard.svg?style=for-the-badge
-[contributors-url]: https://github.com/mata-sh/mata-dashboard/graphs/contributors
-[forks-shield]: https://img.shields.io/github/forks/mata-sh/mata-dashboard.svg?style=for-the-badge
-[forks-url]: https://github.com/mata-sh/mata-dashboard/network/members
-[stars-shield]: https://img.shields.io/github/stars/mata-sh/mata-dashboard.svg?style=for-the-badge
-[stars-url]: https://github.com/mata-sh/mata-dashboard/stargazers
-[issues-shield]: https://img.shields.io/github/issues/mata-sh/mata-dashboard.svg?style=for-the-badge
-[issues-url]: https://github.com/mata-sh/mata-dashboard/issues
 [license-shield]: https://img.shields.io/github/license/mata-sh/mata-dashboard.svg?style=for-the-badge
-[license-url]: https://github.com/mata-sh/mata-dashboard/blob/master/LICENSE.txt
-[empty-url]: #
-[product-screenshot]: docs/images/screenshot.jpg
-[PHP.net]: https://php.net/
-[PHP-shield]: https://img.shields.io/badge/PHP-777BB4?style=for-the-badge&logo=php&logoColor=white
+[PHP-shield]: https://img.shields.io/badge/PHP-8.3%2B-777BB4?style=for-the-badge&logo=php&logoColor=white
 [HTMX-shield]: https://img.shields.io/badge/HTMX-36C?style=for-the-badge&logo=htmx&logoColor=fff
 [CI-shield]: https://img.shields.io/github/actions/workflow/status/mata-sh/mata-dashboard/ci.yml?branch=main&style=for-the-badge
+
+[product-screenshot]: docs/images/screenshot.jpg
+[license-url]: https://github.com/mata-sh/mata-dashboard/blob/main/LICENSE
 [ci-url]: https://github.com/mata-sh/mata-dashboard/actions/workflows/ci.yml
 [demo-url]: https://demo.mata.sh
+[empty-url]: #

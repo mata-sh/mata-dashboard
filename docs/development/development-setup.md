@@ -1,74 +1,120 @@
+# Development setup
 
-### Prerequisites
+MATA supports native development and Docker development. The guided setup saves
+the selected mode and environment in the ignored `.mata.mk` file.
 
-!!! info "Requirements:" 
-    Besides **PHP 8.3+**, **composer** and **git**, you need **Docker** + **Docker Compose** and **make**.
+## Requirements
 
-### 1. Start the Node Containers (Docker, Dev)
+!!! info ""
+    For native development:
+
+    - PHP 8.3 or newer
+    - Composer
+    - Git
+    - `make`
+    - MySQL or MariaDB for database-backed tests and cron work
+    - OPA, installed with the project target or provided by a local service
+    - Node.js and npm when rebuilding frontend assets
+
+    Docker development needs Docker, Docker Compose, Git, and `make`. The
+    Docker stack supplies PHP, MySQL, and OPA.
+
+Documentation work also needs Python and pipx:
 
 ```bash
-git clone https://github.com/mata-sh/mata-node.git && cd mata-node
+pipx install mkdocs
+pipx inject mkdocs mkdocs-shadcn
+```
 
-# Create config files and install composer deps
+## Dashboard setup
+
+```bash
+git clone https://github.com/mata-sh/mata-dashboard.git
+cd mata-dashboard
 make setup
-
-# Start the full Docker dev stack (runs setup if needed)
-make dev-start
 ```
 
-Edit `config/servers.json` to add your server:
-
-```json
-{
-  "production-web-server": {
-    "title": "Server Title",
-    "url": "https://your-server.com/",
-    "api_url": "https://your-server.com/mata-node/api",
-    "api_key": "your_secure_api_key_here_32_characters",
-    "primary_color": "#28a745",
-    "secondary_color": "#ffffff",
-    "info": "Web Server - Main Application",
-    "check_disk_space": "on"
-  }
-}
-```
-
-The entry key (`production-web-server` above) must exactly match `DASHBOARD_SERVER_ID` in the
-node's `config/config.env`, and `api_key` must match its `DASHBOARD_API_KEY`.
-
-**Generating Api-Keys**
+Choose `local` or `docker`, then `dev`, `demo`, or `prod`. Development setup
+creates missing files from `config/example/`. It does not install static default
+credentials. Create the first user when setup offers it, or run:
 
 ```bash
-openssl rand -hex 32
+make users-create
 ```
 
-
-### 2. Start the Dashboard Containers (Docker, Dev)
+Use `MODE=... ENV=...` to override the saved selection for one command:
 
 ```bash
-git clone https://github.com/mata-sh/mata-dashboard.git && cd mata-dashboard
-
-# Select Docker mode and dev or demo when prompted. Setup saves MODE and ENV
-# in ignored .mata.mk, runs dev-setup validation, and can create the initial user.
-make setup
-
-# Run this only if startup was skipped in the wizard. Compose waits for healthy
-# MySQL before starting mata-web; migrations then run through mata-web.
-# OPA is part of the Docker stack.
-make dev-start
+MODE=local ENV=dev make test
+MODE=docker ENV=dev make dev-start
 ```
 
-**Access the dashboard at `http://localhost:3300/` (or the `WEB_PORT` in `.env`).**
+For Docker, the dashboard is published on `WEB_PORT` and defaults to
+`http://localhost:3300`.
 
-!!! tip "Port Convention:"
-    MATA uses decade-spaced ports - Dashboard: 3300, Node: 3310, OPA: 127.0.0.1:3320, MkDocs: 3330, MySQL: 127.0.0.1:3306 in dev.
+!!! info "Port convention"
+    MATA uses decade-spaced ports from 3300.
 
+    | Service | Development port | Set by |
+    | --- | --- | --- |
+    | Dashboard | `3300` | `WEB_PORT` |
+    | MATA Node | `3310` | node project |
+    | OPA | `127.0.0.1:3320` | `OPA_PORT` |
+    | MkDocs (`make docs-serve`) | `3330` | `Makefile` |
+    | MySQL | `127.0.0.1:3306` | `MYSQL_PORT` |
 
-### 3. Log In to the Dashboard
+    OPA and MySQL bind to loopback and are published by the development
+    override only. Production publishes the dashboard port by default.
 
-1. Navigate to `http://localhost:3300/`.
-2. Log in with the user created by `make setup`.
-3. View your server dashboard.
+## Node setup
 
-!!! info "User Management:"
-   No static default credentials are installed. Create additional users with `make users-create`.
+The dashboard needs a running MATA Node to collect real data. Clone the node
+separately and follow its
+[development instructions](https://github.com/mata-sh/mata-node). Configure the
+same `DASHBOARD_SERVER_ID` and shared API key on both projects.
+
+The `demo` environment uses the dashboard's fixed demo event fixture. It does
+not require a node for those events.
+
+## Common commands
+
+```bash
+make help
+make status
+make logs
+make test
+make opa-test
+make opa-validate
+make docs-serve
+```
+
+Native development with Composer dev dependencies can run all PHP checks with
+`composer check`. In Docker, enter the development container with `make shell`
+and run `composer check` there. `make test`, database commands, and user commands
+use the saved mode and environment. Production writes and restores require
+confirmation.
+
+Rebuild Bulma after Sass changes with `npm install` and `npm run build-bulma`.
+
+## Documentation
+
+Edit Markdown under `docs/`. Preview it with:
+
+```bash
+make docs-serve
+```
+
+The site is built with MkDocs. `site/` is generated and ignored. GitHub Pages
+builds it from `docs/` when documentation or `mkdocs.yml` changes.
+
+## Code layout
+
+- `src/Controllers/`: HTTP coordination
+- `src/Services/`: application and monitoring behavior
+- `src/Database/`: repositories and database access
+- `src/Config/`: environment and JSON configuration
+- `src/Views/`: view builders and renderers
+- `cron/`: scheduled jobs
+- `policy/`: OPA policies and tests
+- `migrations/`: Phinx migrations
+- `src/Tests/`: PHPUnit tests

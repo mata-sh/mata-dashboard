@@ -1,7 +1,13 @@
 site_name: MATA Dashboard
-site_description: Enterprise-grade server monitoring solution
+site_description: Lightweight PHP monitoring dashboard for servers and applications
 repo_url: https://github.com/mata-sh/mata-dashboard
 edit_uri: edit/main/docs/
+
+# Implementation plans and unfinished drafts stay in the repository but are not
+# published. Without this, MkDocs builds them into the site regardless of nav.
+exclude_docs: |
+  plans/**
+  drafts/**
 
 theme:
   name: shadcn
@@ -18,45 +24,31 @@ theme:
 nav:
   - MATA: index.md
 
-  - Getting Started:
-      - Quick Start: guides/quickstart.md
-      - First Server: tutorials/first-server.md
-      - Configuration: guides/configuration.md
+  - Getting started:
+      - Quick start: guides/quickstart.md
+      - Docker quickstart: guides/quickstart-docker.md
+      - Add your first server: guides/first-server.md
 
   - Guides:
-      - Docker Deployment: guides/quickstart-docker.md
-      - User Management CLI: guides/user-management.md
-      # - First Server: guides/first-server.md
-      - Securing Application: guides/secure-application.md
-      - Monitoring:
-          - Overview: guides/monitoring.md
-          - Application Error Monitoring: guides/application-error-monitoring.md
-#     - Deployment: guides/deployment.md
+      - Configuration: guides/configuration.md
+      - Monitoring: guides/monitoring.md
+      - Application error monitoring: guides/application-error-monitoring.md
+      - User management CLI: guides/user-management.md
+      - Secure an installation: guides/secure-application.md
+      - Web server examples: examples/webserver-configs/README.md
 
   - Reference:
-      - Alarm Decision and Delivery Flow: drafts/reference/alarms.md
+      - Alarm decision and delivery flow: reference/alarms.md
 
   - Architecture:
-    - Security: architecture/security.md
-    - Overview: architecture/overview.md
-    - Server Metrics Pipeline: architecture/server-metrics-pipeline.md
-  #   - Components: architecture/components.md
-  #   - Technology Choices: architecture/technology-choices.md
-  #   - Security Model: architecture/security-model.md
+      - Overview: architecture/overview.md
+      - Security: architecture/security.md
+      - Server metrics pipeline: architecture/server-metrics-pipeline.md
+      - Technology choices: architecture/technology-choices.md
 
   - Development:
-      - Setup Development: development/development-setup.md
-#     - Contributing: development/contributing.md
-#     - Project Structure: development/project-structure.md
-#     - Code Quality: development/code-quality.md
-#     - Cron Jobs: development/cron-jobs.md
-#     - Testing: development/testing.md
-#     - Docker Fixes: development/buildx-setup.md
-
-# - Tutorials:
-#     - Custom Thresholds: tutorials/custom-thresholds.md
-# - Troubleshooting: tutorials/troubleshooting.md
-
+      - Development setup: development/development-setup.md
+      - UI style guide: development/ui-styleguide.md
 
 extra_css:
   - styles/pygments-dark.css

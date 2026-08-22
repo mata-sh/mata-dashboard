@@ -1,297 +1,93 @@
-# Architecture Overview
+# Architecture overview
 
-## Alarm decision model
+MATA has one dashboard and one or more MATA Nodes. The dashboard pulls
+snapshots from nodes. Nodes are stateless, read-only, and never initiate
+connections.
 
-- **Event:** A recorded fact.
-- **Logical alarm:** A policy-approved event, visible in the dashboard.
-- **Delivery:** One channel attempt for a logical alarm.
-- **Notification rule:** Selects or suppresses deliveries only; it never suppresses a logical alarm.
+## Main components
 
-See [Alarm Decision and Delivery Flow](../drafts/reference/alarms.md) for the pipeline.
+### Dashboard
 
-## Component Layers
+The PHP dashboard provides the authenticated web interface, configuration
+loading, event storage, alarm evaluation, notification delivery, and historical
+metrics.
 
-### 1. Presentation Layer
+- `public/index.php` bootstraps the web request.
+- `src/Http/Routing/RouterSetup.php` registers routes and middleware.
+- Controllers coordinate HTTP work.
+- Services contain collection, monitoring, alarm, cache, and notification logic.
+- `src/Views/` and Twig templates render HTML and HTMX fragments.
+- MySQL or MariaDB stores events, alarms, deliveries, and historical metrics.
+- Files store configuration, sessions, caches, and logs.
 
-**Web Interface**
+### MATA Node
 
-- **Bulma CSS**: Modern, responsive CSS framework (pre-compiled)
-- **HTMX**: Dynamic interactions without JavaScript frameworks
-- **Twig Templates**: Server-side rendering with caching
+A node runs on each monitored environment. It exposes read-only JSON endpoints
+for server and application snapshots. It does not store monitoring history,
+send email, execute remote commands, or call the dashboard.
 
-**Responsibilities:**
+See the [MATA Node README](https://github.com/mata-sh/mata-node) for its API and
+configuration contract.
 
-- Display server status and metrics
-- Interactive dashboard updates
-- User authentication interface
-- Alarm configuration UI
+## Request flow
 
-### 2. Application Layer
+A normal dashboard refresh follows this path:
 
-**Controllers** (`src/Controllers/`)
-
-Handle HTTP requests and coordinate responses:
-
-- `DashboardController`: Main dashboard, data refresh
-- `LoginController`: Authentication handling
-- `ModalController`: Dynamic modal content
-
-**Services** (`src/Services/`)
-
-Business logic and core functionality:
-
-- `ServerDataCollector`: API communication with nodes
-- `EventManager`: Alarm generation and processing
-- `NotificationManager`: Email notification handling
-- `CacheManager`: Cache management with TTL
-- `ServerMonitor`: Metric evaluation and thresholds
-
-**View Renderers** (`src/View/`)
-
-Specialized HTML rendering:
-
-- `ServerRenderer`: Server card rendering
-- `DatabaseRenderer`: Database card rendering
-- `LibrariesRenderer`: Library rendering
-- `CronjobRenderer`: Cron job status rendering
-
-### 3. Core Layer
-
-**Core Services** (`src/Core/`)
-
-- `App`: Application container, dependency injection
-- `Auth`: Session-based authentication
-- `Database`: MySQL connection wrapper
-
-**Configuration** (`src/Config/`)
-
-- `EnvConfigLoader`: Environment configuration (DTOs from .env)
-- `MonitoringConfigManager`: Orchestrates section loaders for monitoring JSON settings (servers, TTL, retention, intervals, probes, notification rules, thresholds)
-- `AlarmLimitsConfigLoader`: Loads typed alarm-delivery limits from `limits.json`
-- `DatabaseSetup`: Database initialization
-
-**HTTP** (`src/Http/`)
-
-- `Endpoints`: API endpoint definitions
-- `RouterSetup`: Bramus Router configuration
-- `SecurityHeaders`: HTTP security headers
-
-### 4. Data Layer
-
-**Models** (`src/Models/`)
-
-- `EventRecorder`: Event logging to database
-- `Settings`: Application settings management
-- `Users`: User data management
-
-**Database**
-
-- MySQL/MariaDB for persistent storage
-- Custom Database wrapper (not ORM)
-- Prepared statements for security
-
-### 5. Integration Layer
-
-**Nodes (External)**
-
-- Lightweight API endpoints on monitored servers
-- Read-only operations
-- Encrypted communication with dashboard
-
-## Data Flow
-
-### Typical Request Flow
-
-1. **User Request** → Web browser sends HTTP request
-2. **Router** → Bramus Router matches route to controller
-3. **Controller** → Handles request, coordinates services
-4. **Service Layer** → Business logic execution
-5. **Cache Check** → Check if data is cached
-6. **API Call** (if needed) → Fetch from remote node
-7. **Data Processing** → Evaluate thresholds, analyze logs
-8. **Database** (if needed) → Store events, retrieve history
-9. **View Rendering** → Twig template with data
-10. **HTTP Response** → HTML sent to browser
-
-### Monitoring Data Collection
-
-```
-Cron Job (every 5 min)
-    ↓
-servers_metrics_collect.php
-    ↓
-ServerDataCollector Service
-    ↓
-API Requests to Nodes
-    ↓
-Store Raw Metrics → MySQL
-    ↓
-Evaluate Thresholds
-    ↓
-Generate Events (if needed)
-    ↓
-Trigger Alarms (if threshold exceeded)
-    ↓
-Send Email Notifications
+```text
+browser
+  -> router and middleware
+  -> controller
+  -> cache or MATA Node request
+  -> response validation and view builder
+  -> Twig or JSON response
 ```
 
-### Data Aggregation Flow
+The router applies login protection to `/watch/*` and `/api/*`, CSRF checks to
+unsafe methods, optional IP allowlisting, and separate rate limits for login,
+dashboard, and API routes. `/health` is public.
 
-```
-Cron Job (hourly)
-    ↓
-servers_metrics_aggregate.php
-    ↓
-Query Raw Metrics (5-min data)
-    ↓
-Calculate Hourly Averages
-    ↓
-Store Aggregated Data → MySQL
-    ↓
-Cleanup Old Raw Data (> 7 days)
-```
+## Scheduled work
 
-## Communication Patterns
+Docker installs the cron manifest as the `www-data` crontab. Shared-hosting
+installations can use the template in `cron/crontab.shared-hosting.template`.
 
-### Dashboard ↔ Node Communication
+The important jobs are:
 
-**Request:**
+- `servers_data_fetch.php` fetches node application data and records events.
+- `servers_metrics_collect.php` writes raw historical server snapshots.
+- `servers_metrics_aggregate.php` writes hourly and daily metric rows.
+- `alarms_evaluate_critical.php` and `alarms_evaluate_non_critical.php` create logical alarms.
+- `alarms_dispatch.php` sends due delivery records.
+- `retention_cleanup.php` removes expired database rows.
+- `rate_limit_cleanup.php` removes expired file-based rate-limit state.
 
-```http
-GET /mata-node/api/server-data HTTP/1.1
-Host: monitored-server.com
-X-Mata-Auth: server-id|1700000000|nonce|hmac_sha256_hex
-Accept: application/json
-```
+See [Server metrics pipeline](server-metrics-pipeline.md) and the
+[alarm decision flow](../reference/alarms.md) for the detailed paths.
 
-**Response:**
+## Storage boundaries
 
-```json
-{
-  "cpu_usage": 45.2,
-  "memory_used": 2147483648,
-  "memory_total": 8589934592,
-  "disk_usage": 128849018880,
-  "disk_total": 536870912000,
-  "process_count": 156,
-  "file_count": 485291
-}
-```
+| Data | Storage |
+| --- | --- |
+| Users | `MATA_USERS_FILE`, falling back to `config/users.json` when unset |
+| Node/API and template cache | `temp/` |
+| Application and cron logs | `logs/` |
+| Events, alarms, deliveries | MySQL/MariaDB |
+| Raw, hourly, and daily server metrics | MySQL/MariaDB |
+| Alarm decisions | `policy/*.rego` through OPA, or the limited built-in driver |
 
-### API Endpoints
+The dashboard can serve basic pages in degraded mode without a database. Event
+history, alarm processing, scheduled collection, and historical metrics need a
+working database.
 
-**Dashboard provides:**
+## Alarm model
 
-- `/` - Main dashboard
-- `/login` - Authentication
-- `/logout` - Session termination
-- `/api/refresh` - Force data refresh
-- `/api/server/{id}` - Server details
-- `/api/events` - Event log
+MATA keeps three concepts separate:
 
-**Nodes provide:**
+- An **event** is a recorded fact.
+- A **logical alarm** is a stored alarm associated with an event.
+- A **delivery** is a queued email attempt.
 
-- `/api/ping` - Health check
-- `/api/server-data` - Server metrics
-- `/api/apps` - Application list
-- `/api/app-data/{id}` - Application metrics
-- `/api/processes` - Process information
-
-
-## Caching Strategy
-
-### Multi-Level Cache
-
-1. **File-based Cache** (`temp/api-cache/`)
-   - Structured directory hierarchy
-   - JSON files with metadata
-   - TTL-based expiration
-
-2. **Template Cache** (`temp/templates-cache/`)
-   - Twig compiled templates
-   - Automatic invalidation on changes
-
-### Cache TTL Configuration
-
-Different data types have different cache lifetimes:
-
-- **Server Data**: 10 seconds (near real-time)
-- **Application List**: 60 seconds (relatively static)
-- **Error Logs**: 60 seconds (important changes)
-- **Process Info**: 30 seconds (moderate changes)
-
-### Cache Invalidation
-
-- **Time-based**: TTL expiration
-- **Manual**: Force refresh button
-- **Graceful degradation**: Use stale cache on API failure
-
-## Database Schema
-
-### Events Table
-
-Stores all monitoring events:
-
-```sql
-CREATE TABLE events (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    server_id VARCHAR(50),
-    event_type VARCHAR(50),
-    severity VARCHAR(20),
-    message TEXT,
-    timestamp DATETIME,
-    INDEX idx_server_timestamp (server_id, timestamp)
-);
-```
-
-### Alarms Table
-
-Tracks sent notifications:
-
-```sql
-CREATE TABLE alarms (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    event_id INT,
-    sent_at DATETIME,
-    recipient VARCHAR(255),
-    status VARCHAR(20),
-    INDEX idx_sent_at (sent_at)
-);
-```
-
-### Server Metrics Tables
-
-```sql
--- Raw metrics (5-minute intervals)
-CREATE TABLE server_metrics_raw (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    server_id VARCHAR(50),
-    timestamp DATETIME,
-    cpu_usage DECIMAL(5,2),
-    memory_used BIGINT,
-    disk_usage BIGINT,
-    -- ... other metrics
-    INDEX idx_server_timestamp (server_id, timestamp)
-);
-
--- Hourly aggregates
-CREATE TABLE server_metrics_hourly (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    server_id VARCHAR(50),
-    hour_timestamp DATETIME,
-    avg_cpu_usage DECIMAL(5,2),
-    -- ... other aggregated metrics
-    INDEX idx_server_hour (server_id, hour_timestamp)
-);
-
--- Daily aggregates
-CREATE TABLE server_metrics_daily (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    server_id VARCHAR(50),
-    date DATE,
-    avg_cpu_usage DECIMAL(5,2),
-    -- ... other aggregated metrics
-    INDEX idx_server_date (server_id, date)
-);
-```
-
+The normal path applies thresholds, notification rules, and OPA or the built-in
+decision driver. Direct configuration-failure alarms bypass notification rules
+and the decision driver. Read the
+[alarm decision and delivery flow](../reference/alarms.md) for details.

@@ -2,7 +2,7 @@ package alarms
 
 import rego.v1
 
-# The full pipeline is (see docs/drafts/reference/alarms.md):
+# The full pipeline is (see docs/reference/alarms.md):
 #
 #   thresholds.json -> notification_rules.json -> OPA (this file) -> intervals.json -> queue -> limits.json -> email
 #

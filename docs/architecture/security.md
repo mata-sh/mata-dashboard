@@ -1,125 +1,79 @@
-# Security Features
+# Security architecture
 
+MATA is designed for small, private monitoring installations. The dashboard
+pulls data from read-only nodes. Nodes do not push data, send mail, execute
+commands, or change monitored systems.
 
-## API Key Authentication
+## Node authentication
 
-MATA uses a **dashboard → node** pull model. The dashboard polls each node over HTTPS and authenticates using HMAC-signed tokens with timestamp validation. The node verifies the HMAC and **rejects expired tokens** (short TTL) to limit replay.
+Each node has one shared secret. The dashboard stores it as `api_key` in
+`config/servers.json`; the node stores it as `DASHBOARD_API_KEY`.
 
-Nodes do not call back into the dashboard. All alarm handling logic (email, escalation, notification routing) lives exclusively in the dashboard.
-
-## Read-Only Operations
-
-Node endpoints expose only read-only operations:
-
-- Cannot modify server configuration
-- Cannot execute commands
-- Cannot write files
-- Only exposes whitelisted config parameters (config/transmit.json) if a config path is given
-
-
-## Rate Limiting
-
-Protects against brute force and DoS attacks:
-
-- Adjust limits per IP address
-- Configure different limits per endpoint
-- Uses Redis if available
-
-
-## Read-Only Operations
-
-Node endpoints expose only read-only operations:
-
-- Cannot modify server configuration
-- Cannot execute commands
-- Cannot write files
-- Only exposes whitelisted config parameters (config/transmit.json) if a config path is given
-
-
-## Failure Resilient
-
-- Database is not necessary for basic operations and monitoring 
-- Ratelimiting is able to fallback to filebased if Redis is down
-- Multiple dashbooards can be deployed and fetch nodes data which do cache their endpoints as well
-
-### Transport security (TLS required)
-
-Plain HTTP is deactivated by default via servers.json configuration. Nodes therefore **only accept HTTPS URLs**.
-
-
-### How authentication works
-
-Every request the dashboard sends to a node carries a single `X-Mata-Auth` header:
+Every authenticated request carries one `X-Mata-Auth` header:
 
 ```text
 X-Mata-Auth: <server_id>|<unix_timestamp>|<nonce>|<hex_hmac_sha256>
 ```
 
-- `server_id` is the node's entry key in the dashboard's `config/servers.json` (the JSON
-  property name, e.g. `"prod-web-01"` — there is no separate `server_id` field). It must
-  exactly match `DASHBOARD_SERVER_ID` in the node's `config/config.env`.
-- The signature is `HMAC-SHA256(server_id|timestamp|nonce, api_key)`, where `api_key` is the
-  per-node shared secret (`api_key` in `servers.json`, `DASHBOARD_API_KEY` on the node). The
-  secret itself is never transmitted — only proof of possession.
-- The node verifies, in order: the timestamp is within the configured clock-skew window, the
-  server ID matches its own configured identity, the nonce is well-formed and unused
-  (replay protection), and the recomputed HMAC matches in constant time.
+The signature is:
 
-Two values are required because they play different roles: the API key proves possession of
-the shared secret, while the signed server ID binds the token to one specific node identity.
-Even if the same `api_key` were accidentally reused across nodes, a token minted for one node
-is rejected by any other. Since the ID is inside the HMAC payload, it cannot be swapped on a
-captured token without invalidating the signature.
+```text
+HMAC-SHA256(server_id|timestamp|nonce, api_key)
+```
 
-Operational consequence: renaming a node's entry key in `servers.json` is a breaking change
-for that node — its `DASHBOARD_SERVER_ID` must be updated to match.
+The node checks the server ID, timestamp window, nonce, and signature. The
+secret itself never crosses the network. The server entry key must match
+`DASHBOARD_SERVER_ID`, so renaming that key is a breaking configuration change.
 
-### Key scoping and rotation
+Use a different secret for every node. To rotate one, replace the value on the
+node and dashboard during a short monitoring interruption.
 
-Authentication is based on a **single per-node shared secret**, stored as `api_key` in the
-dashboard's `servers.json` and as `DASHBOARD_API_KEY` in `config.env` on the node.
-- **Scope:** secrets should be unique per node (do not reuse across nodes).
-- **Rotation:** rotation is supported operationally by replacing the secret on the node and dashboard (brief monitoring interruption while configs are updated).
-Planned improvements include **mTLS (client certificates)** and/or asymmetric signing for stronger operational security and easier rotation.
+## Transport
 
+Use HTTPS for node URLs and dashboard access. The dashboard rejects plain HTTP
+node URLs unless the server entry explicitly enables `allow_http`; reserve that
+switch for local development.
 
-### Threat model (high level)
+The node API supports an optional IP allowlist. The dashboard also supports an
+IP allowlist for its own routes. Set `TRUSTED_PROXIES` to exact proxy IPs or CIDR
+ranges before relying on `X-Forwarded-Proto`; the application ignores that
+header from other clients. `HSTS_ENABLED` is opt-in and should be enabled only
+when HTTPS is permanent for the domain and all subdomains.
 
-Assumptions:
-- An attacker might gain network access, attempt replay, or obtain a node’s shared secret.
-- A node host might be partially compromised.
+## Dashboard protections
 
-Impact and containment:
-- Node APIs are **read-only** and **stateless**. They cannot send emails, mutate dashboard configuration, or execute remote actions.
-- The dashboard treats node responses as **untrusted input** and validates/sanitizes data before display.
-- If a node is compromised, the attacker’s capabilities are limited to **exposing/forging monitoring data** for that node (e.g. misleading metrics/log excerpts). They do not gain the ability to trigger email alarms or pivot into the dashboard through “push” traffic.
+- `/watch/*` and `/api/*` require an authenticated dashboard session.
+- `POST`, `PUT`, `PATCH`, and `DELETE` requests require a CSRF token.
+- Login, dashboard, and API routes have separate rate limits.
+- `/health` is public for service checks.
+- Security headers can be enabled with `SECURITY_HEADERS_ENABLED=ON`.
+- Node responses are treated as untrusted input before rendering.
 
-Recommended response:
-- Rotate the affected node secret.
-- Re-issue TLS certificates (if applicable).
-- Review dashboard logs for failed auth attempts and unusual polling patterns.
+Rate limiting uses file storage by default and can use APCu or Redis. If enabled
+configuration cannot create a rate limiter, the application fails closed during
+startup rather than silently running without the configured protection.
 
+## User accounts
 
-### Authentication storage (users.json)
+Dashboard users are stored as password hashes in `MATA_USERS_FILE`, falling
+back to `config/users.json` when the variable is unset. The only supported
+management interface is
+`scripts/user-management/manage-users.php`, or the equivalent `make users-*`
+targets. User-management actions are written to the CLI-only audit log.
 
-MATA stores dashboard user accounts in a local `users.json` file to keep the dashboard **operational without a database** (e.g., in constrained/shared-hosting environments).
+For production, put the users file outside the deployment and web root. Use a
+private directory owned by the PHP-FPM user with mode `0700`; the application
+creates the file and lock file with mode `0600`. Docker stores its users file on
+the `mata_users` named volume.
 
-**What is stored**
-- Only **password hashes** (no plaintext passwords). No API keys or server credentials are stored in `users.json`.
+See the [user management guide](../guides/user-management.md) for setup
+commands and the [secure application guide](../guides/secure-application.md)
+for deployment checks.
 
-**How it’s managed**
-- User management is performed **only via a PHP CLI tool** (no web UI for user admin).
-- The CLI tool writes an **append-only audit log** of all user-management actions. This audit log is **CLI-only** (not exposed via the web UI).
-- The application checks that `users.json` has **restrictive file permissions** and refuses unsafe configurations.
+## What a compromised node can do
 
-**Operational controls**
-- You can restrict who is allowed to run the CLI tool by configuring an allowlist of **Linux users** in `config.env` (useful when multiple shell users exist on the same host).
-- Production deployment: set `MATA_USERS_FILE` to an absolute path in a persistent directory **outside the deployed application and web root**. The PHP-FPM user exclusively owns that directory (`0700`) and `users.json` (`0600`). Only expose `public/`.
-
-**Limitations (current)**
-- There is currently **no built-in backup workflow** and **no automatic credential rotation** for user records.
-- No password recovery or reset functionality is provided.
-
-**Blast radius**
-- The dashboard is **read-only** with respect to monitored systems: it does not deploy changes, execute actions on servers, or expose sensitive secrets by design.
-- A compromised dashboard account primarily risks **visibility of monitoring data**, not control over the monitored infrastructure.
+A stolen node secret lets an attacker impersonate that node's monitoring data
+until the secret is rotated. It does not grant dashboard access or a way to
+send mail directly. A compromised dashboard remains more serious because it
+can read monitoring data and create deliveries, so protect dashboard accounts,
+configuration files, and the database.

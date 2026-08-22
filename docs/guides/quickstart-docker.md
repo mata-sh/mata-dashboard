@@ -1,86 +1,91 @@
-# Quickstart Docker
+# Docker quickstart
 
-!!! info "Requirements:" 
-    Besides **PHP 8.3+**, **composer** and **git**, you need **make** and **Docker** + **Docker Compose**.
+The Compose stack runs the dashboard, MySQL, and OPA. MATA Node is a separate
+project installed on each monitored host.
 
-### 1. Start the Node Containers (Docker, Production)
+## Requirements
+
+Install Docker, the Docker Compose plugin, Git, and `make`.
+
+## Development or demo
 
 ```bash
-git clone https://github.com/mata-sh/mata-node.git && cd mata-node
-
-# Create config files and install composer deps
+git clone https://github.com/mata-sh/mata-dashboard.git
+cd mata-dashboard
 make setup
-
-# Configure the node, then start it using the Docker instructions in the
-# mata-node repository. Its Make targets are separate from this dashboard.
 ```
 
-Edit `config/servers.json` to add your server:
-
-```json
-{
-  "production-web-server": {
-    "title": "Server Title",
-    "url": "https://your-server.com/",
-    "api_url": "https://your-server.com/mata-node/api",
-    "api_key": "your_secure_api_key_here_32_characters",
-    "primary_color": "#28a745",
-    "secondary_color": "#ffffff",
-    "info": "Web Server - Main Application",
-    "check_disk_space": "on"
-  }
-}
-```
-
-The entry key (`production-web-server` above) must exactly match `DASHBOARD_SERVER_ID` in the
-node's `config/config.env`, and `api_key` must match its `DASHBOARD_API_KEY`.
-
-**Generating Api-Keys**
+Choose Docker mode and `dev` or `demo`. Setup creates the configuration and, by
+default, builds and starts the stack, runs migrations, and offers to create a
+user. If you decline startup, run:
 
 ```bash
-openssl rand -hex 32
+make dev-start
 ```
 
-### 2. Start the Dashboard Containers (Docker, Production)
+The dashboard defaults to `http://localhost:3300`. `.env` controls `WEB_PORT`.
+Development binds OPA and MySQL to `127.0.0.1` and uses temporary MySQL storage.
+
+## Production
+
+Generate the files without starting services:
 
 ```bash
-git clone https://github.com/mata-sh/mata-dashboard.git && cd mata-dashboard
-
-# Select Docker mode and production when prompted. Setup saves MODE and ENV
-# in ignored .mata.mk and offers startup and initial-user creation.
-# prod-start performs production validation. OPA is part of the Docker stack.
-make setup
-
-# On a first deployment, prepare bind-mount permissions. Run this again only
-# after a host-side permission problem.
-make prod-fix-perms
-
-# If setup did not start services, Compose waits for healthy MySQL before
-# starting mata-web; prod-start then runs migrations.
-# It rejects APP_ENV mismatches and placeholder database passwords.
-make prod-start
+make setup MODE=docker ENV=prod START_SERVICES=no CREATE_USER=no
 ```
 
-Access the dashboard at `http://<your-server-host>:3300/` (or the `WEB_PORT` in `.env`).
+Replace `MYSQL_ROOT_PASSWORD` in `.env` and `DB_PASSWORD` in
+`config/db.config.env`, then start:
 
-!!! tip "Port Convention:"
-    In production, only the dashboard port is published by default: 3300 (`WEB_PORT`). OPA (3320) and MySQL (3306) host ports are dev-only localhost bindings.
+```bash
+make prod-fix-perms MODE=docker ENV=prod
+make prod-start MODE=docker ENV=prod
+```
 
+`prod-start` rejects placeholder database passwords, waits for MySQL, and runs
+migrations unless `RUN_MIGRATIONS=no` is set. Put the published dashboard port
+behind an HTTPS reverse proxy. OPA and MySQL remain internal.
 
-### 3. Log In to the Dashboard
+## Users
 
-1. Navigate to `http://<your-server-host>:3300/`
+```bash
+make users-list MODE=docker ENV=prod
+make users-create MODE=docker ENV=prod
+make users-passwd MODE=docker ENV=prod
+```
 
-!!! warning "User Management:"
-    No default credentials are installed. Use the administrator created by `make setup`, or run `make users-create`. Production user commands run in a one-off admin container because `mata-web` mounts `config/` read-only.
+User data lives in the persistent `mata_users` volume. Production user commands
+use a short-lived admin container because the web container mounts `config/`
+read-only.
 
-2. Log in with the administrator credentials you created.
-3. View your server dashboard
+## Operations
 
-## Next Steps
+Set the target explicitly; the environment selects the Compose stack:
 
-- [Deployment Guide](deployment.md) for production setup.
-- [Configuration Guide](configuration.md) - Customize your monitoring setup
-<!-- - [Monitoring Guide](monitoring.md) - Learn about monitoring features -->
+```bash
+ENV_NAME=dev # dev, demo, or prod
+make logs MODE=docker ENV="$ENV_NAME"
+make ps MODE=docker ENV="$ENV_NAME"
+make db-status MODE=docker ENV="$ENV_NAME"
+make db-backup MODE=docker ENV="$ENV_NAME"
+```
 
-For troubleshooting help, see the [Troubleshooting Guide](../tutorials/troubleshooting.md).
+Cron logs are under `logs/cron/`. Metrics ingestion health is in
+`logs/health/collect_server_metrics_health.log`.
+
+## Add a node
+
+Install MATA Node on the monitored host and follow
+[Add your first server](first-server.md).
+
+## Stop or reset
+
+```bash
+ENV_NAME=dev # dev, demo, or prod
+make down MODE=docker ENV="$ENV_NAME"
+make clean MODE=docker ENV="$ENV_NAME"
+```
+
+`make clean` removes Compose-managed volumes after confirmation. In production,
+MySQL uses the bind-mounted `DATA_PATH/mysql` directory; `make clean` does not
+delete that directory.

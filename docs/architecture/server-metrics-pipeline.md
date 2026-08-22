@@ -25,8 +25,10 @@ The current server card and the historical modal are different views:
 
 ## Schedules and programs
 
-The installed manifest is [`docker/cron/crontab`](../../docker/cron/crontab).
-Cron runs as `www-data`.
+The installed manifest is
+[`docker/cron/crontab`](https://github.com/mata-sh/mata-dashboard/blob/main/docker/cron/crontab).
+Cron runs as `www-data` in Docker. Shared-hosting installations can use the
+[`shared-hosting crontab template`](https://github.com/mata-sh/mata-dashboard/blob/main/cron/crontab.shared-hosting.template).
 
 | When | Program | Purpose | Writes |
 | --- | --- | --- | --- |
@@ -67,7 +69,7 @@ the configured node API.
 | `total_file_count` | `total_system_filecount` or file-system alternatives | Count |
 | `process_count`, `php_process_count` | `processes.*` or alternatives | Count |
 | `php_version`, `os_version`, `server_uptime` | corresponding node data | Metadata |
-| `collected_at` | node timestamp where supplied; otherwise collection time | UTC |
+| `collected_at` | node timestamp; otherwise cache timestamp adjusted by cache age, then collection time | UTC |
 | `ingested_at` | dashboard insertion time | UTC |
 
 The collector identity is read from `data.collector` when present; otherwise it
@@ -137,21 +139,21 @@ plus `sample_count`, `first_sample`, and `last_sample`.
 ### Daily planning
 
 Daily planning does not depend on an hourly row being inserted in the same run.
-With default `lag_minutes: 30` and `catch_up_days: 7`, it upserts recent
-completed UTC days after the 30-minute post-midnight delay.
+With `lag_minutes: 30` and the code fallback `catch_up_days: 7`, it upserts
+recent completed UTC days after the 30-minute post-midnight delay.
 
 A daily aggregate normally reads raw rows for:
 
 ```text
-collected_at >= 2026-07-11 00:00:00 UTC
-collected_at <  2026-07-12 00:00:00 UTC
+collected_at >= <day-start> 00:00:00 UTC
+collected_at <  <next-day> 00:00:00 UTC
 ```
 
 If raw retention has already removed the entire day, it falls back to hourly
 rows. Average values use `SUM(hourly_average * sample_count) / SUM(sample_count)`;
-it never averages averages without weights. Daily alarm and warning counts are
-loaded separately from `events`. If that query fails, metric values are still
-saved and the failure is logged.
+it never averages averages without weights. Daily critical-event and warning-event counts are loaded separately from
+`events`; they are not counts of logical alarms. If that query fails, metric
+values are still saved and the failure is logged.
 
 ### Aggregate tables
 
@@ -170,7 +172,7 @@ Aggregation logs to `logs/cron/app-servers-metrics-aggregate.log` and writes
 
 Aggregation does not delete data. `cron/retention_cleanup.php` owns deletion.
 Settings are in the active `data_retention.json`; the example is
-[`config/example/data_retention.json.example`](../../config/example/data_retention.json.example).
+[`config/example/data_retention.json.example`](https://github.com/mata-sh/mata-dashboard/blob/main/config/example/data_retention.json.example).
 
 Default retention:
 

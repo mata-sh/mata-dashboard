@@ -87,20 +87,11 @@ All configurations must:
 After configuration, verify URL rewriting works:
 
 ```bash
-# Should show the login page (not a 404 error)
-curl http://your-domain/watch
+# GET should return or redirect to login, not return 404
+curl -sS -o /dev/null -w '%{http_code} %{redirect_url}\n' http://your-domain/watch
 
-# Should serve the actual file
-curl http://your-domain/assets/css/style.css
+# Static asset should return 200
+curl -sS -o /dev/null -w '%{http_code}\n' http://your-domain/assets/css/main.css
 ```
 
-## Performance Notes
-
-**Performance Ranking (fastest to slowest):**
-
-1. **Nginx** - Fastest for static files and high concurrency
-2. **Apache with vhost config** - Good performance, widely supported
-3. **Caddy** - Good performance, easier configuration
-4. **Apache with .htaccess** - Slowest due to file system checks on every request
-
-For production deployments, prefer server-level configuration over `.htaccess` files.
+Prefer server-level configuration over `.htaccess` when the host allows it.

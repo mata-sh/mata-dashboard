@@ -1,88 +1,59 @@
+# Contributing
 
-# Contributing Guide
-
-Thank you for considering contributing to this project!  
-This document explains how to set up your environment, run tests, and follow our workflow.
-
----
-
-## 🚀 Getting Started
-
-1. **Clone the repository**
-   ```bash
-   git clone https://github.com/mata-sh/mata-dashboard.git
-   cd mata-dashboard
-    ```
-
-2. **Set up the development environment**
-
-   ```bash
-    make dev-start
-   ```
-
-   > **Note:** `make dev-start` automatically creates a default user:
-   > - Username: `mata` | Password: `mata` (admin role)
-   >
-   > You can create additional users with `make users-create` if needed.
-
----
-
-## ✅ Git Hooks
-
-We provide a **pre-commit hook** in `.githooks/pre-commit`.
-It runs code quality checks (PHPStan, PHP Cs-Fixer, etc.) before commits.
-If the hook blocks your commit, fix the reported issues and try again.
-You can skip with `git commit --no-verify`.
-
----
-
-## 🔧 Code Style & Quality
-
-* Follow **PSR-12** coding standards.
-* Run static analysis and linting locally before pushing:
-
-  ```bash
-  composer check
-  ```
-
----
-
-## 📦 Branching & Commits
-
-* Use **feature branches** (`feature/...`), **bugfix branches** (`fix/...`), or **hotfix branches** (`hotfix/...`).
-
-* Write clear, descriptive commit messages:
-
-  ```
-  type(scope): short description
-
-  [optional longer description]
-  ```
-
-  Example:
-
-  ```
-  fix(router): prevent double slashes in generated URLs
-  ```
-
-* Types: `feat`, `fix`, `docs`, `refactor`, `test`, `chore`.
-
----
-
-## 🛠 Release & Changelog
-
-Maintainers can generate a changelog (needs `Claude Code`) when creating a new release tag using:
+## Start
 
 ```bash
-./scripts/release/generate-changelog.sh
+git clone https://github.com/mata-sh/mata-dashboard.git
+cd mata-dashboard
+make setup
 ```
 
-This script builds a commit-based changelog to include in release notes.
+Choose native or Docker mode and a `dev`, `demo`, or `prod` environment. Setup
+creates the core configuration; create a development user with
+`make users-create` if setup did not create one.
 
----
+## Checks
 
-## 🧪 Tests
+For a native development checkout with dev dependencies:
 
-  ```bash
-  composer test
-  ```
+```bash
+composer check
+make opa-validate
+make opa-test
+mkdocs build --strict
+```
+
+`composer check` runs PHP-CS-Fixer, PHPStan, entrypoint analysis, and PHPUnit.
+CI also validates and audits Composer metadata. Docker contributors can run
+`composer check` inside the development container; `MODE=docker ENV=dev make
+test` runs PHPUnit only.
+
+`make install-hooks` installs a pre-commit hook that invokes host
+`composer check`. Install it only when Composer and dev dependencies are
+available on the host.
+
+Documentation preview requires MkDocs and the shadcn theme. See
+[development setup](docs/development/development-setup.md).
+
+## Changes
+
+Use a feature, bugfix, or hotfix branch. Commit messages use a short type and
+scope, for example:
+
+```text
+fix(router): reject malformed route parameters
+```
+
+Common types are `feat`, `fix`, `docs`, `refactor`, `test`, and `chore`.
+Update documentation when a command, route, configuration key, or runtime
+behavior changes.
+
+## Release helper
+
+`scripts/build/generate-changelog.sh` requires Claude Code. It edits
+`CHANGELOG.md`, opens an editor, and, after confirmation, creates a commit and
+annotated tag. Run it only from a clean release branch and inspect the proposed
+version and content.
+
+Do not commit secrets, generated `site/` output, local `.env` files, or
+populated configuration files.

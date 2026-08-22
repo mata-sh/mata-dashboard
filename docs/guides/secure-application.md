@@ -1,127 +1,96 @@
-# Secure Application
+# Secure an installation
 
-## Database Configuration
+Use HTTPS for the dashboard and every production node. Point each web server at
+the application's `public/` directory. Do not expose the repository root.
 
-Database credentials are defined in `config/db.config.env`
+## Configuration
 
+Keep credentials in the ignored configuration files and set restrictive file
+permissions. The production Docker setup mounts `config/` read-only.
 
-## Application Configuration
+Recommended production values in `config/config.env`:
 
-`config/config.env`
-
-1. **Disable debug mode in production:**
-
-```bash
-DEBUG_MODE=false
-```
-
-2. **Enable all security features:**
-
-```bash
-# redis rate limiting with filesystem fallback
-RATE_LIMIT_ENABLED=true
-
-# restrict access to the application to certain IPs (/health remains public)
-IP_WHITELIST_ENABLED=ON
-ALLOWED_IPS=127.0.0.1,::1
-
-# check if accessing user is allowed
-CLI_STRICT_USER_CHECK=ON
-
-# whitelist of allowed users comma separated: user1,user2..
-CLI_ALLOWED_USERS=www-data
-
-# browser security headers (CSP and clickjacking protection)
+```dotenv
+APP_ENV=prod
+DISPLAY_ERRORS=0
 SECURITY_HEADERS_ENABLED=ON
-
-# immediate reverse-proxy IP addresses or CIDR ranges
-TRUSTED_PROXIES=127.0.0.1,::1
-
-# opt in only when HTTPS is permanent for the domain and all subdomains
+TRUSTED_PROXIES=203.0.113.10
 HSTS_ENABLED=OFF
+RATE_LIMIT_ENABLED=ON
+RATE_LIMIT_STORAGE=file
+CLI_STRICT_USER_CHECK=ON
 ```
 
-`ON`/`OFF` values are valid for this application's `.env` parser. Set `SECURITY_HEADERS_ENABLED=OFF` only for local browser-integration debugging.
+Set `CLI_ALLOWED_USERS` to the operating-system users allowed to manage
+accounts. Use the exact route-group settings for login, dashboard, and API rate
+limits rather than the old single `RATE_LIMIT_MAX_REQUESTS` setting.
 
-`X-Forwarded-Proto` is ignored unless `REMOTE_ADDR` matches `TRUSTED_PROXIES`. Configure the reverse proxy to overwrite that header rather than append to a client-supplied value. Entries support exact IPv4 and IPv6 addresses or CIDR ranges.
+Put database credentials in `config/db.config.env` and mail credentials in
+`config/mail.config.env`. Use unique values for every installation and node.
+Never put real secrets in `config/example/`, documentation, or a Docker image
+layer.
 
-HSTS uses `max-age=31536000; includeSubDomains`. Enabling it can break HTTP-only subdomains and cannot be undone until browsers expire the policy.
+## Node credentials
 
-
-## API Key Authentication
-
-Nodes->Dashboard communication uses HMAC-signed tokens with timestamp validation.
-
-**Generate secure API keys:**
+Generate a unique secret for each node:
 
 ```bash
 openssl rand -hex 32
 ```
 
-**Configure in `config/servers.json`:**
+Set it as `DASHBOARD_API_KEY` on the node and as `api_key` for the matching
+property in the dashboard's `config/servers.json`. The property name must also
+match `DASHBOARD_SERVER_ID` on the node.
 
-```json
-{
-  "server-id": {
-    "api_key": "64_character_hexadecimal_api_key_here"
-  }
-}
+The dashboard signs requests with `X-Mata-Auth`. It does not send the shared
+secret directly. Rotate a node secret on both sides if it is exposed.
+
+## Network controls
+
+- Use HTTPS node URLs. `allow_http` is for local development only.
+- Restrict node access to the dashboard host or trusted network where possible.
+- Enable the dashboard IP allowlist with `IP_WHITELIST_ENABLED=ON` when its
+  allowed addresses are stable.
+- Set `TRUSTED_PROXIES` to the exact proxy IPs or CIDR ranges before relying
+  on `X-Forwarded-Proto`.
+- Enable `HSTS_ENABLED=ON` only when HTTPS is permanent for the domain and all
+  subdomains.
+- Keep OPA and MySQL on the internal Docker network. The development Compose
+  file binds their host ports to loopback only; production does not publish them.
+
+## Authentication data
+
+Set `MATA_USERS_FILE` to an absolute path outside the deployment and web root:
+
+```dotenv
+MATA_USERS_FILE=/var/lib/mata-dashboard/users.json
 ```
 
-## Rate Limiting
+Give its directory mode `0700` and PHP-FPM ownership. The application creates
+the users file and lock file with mode `0600`. Manage accounts with the
+[user management CLI](user-management.md), not by editing JSON by hand.
 
-Protect against brute force and DoS attacks:
+Docker stores users on the `mata_users` named volume. Back up that volume as
+part of the deployment's credential recovery plan.
 
-**Configure in `config.env`:**
+## Web server boundary
+
+Only `public/` should be web-accessible. Deny access to `config/`, `src/`,
+`vendor/`, `temp/`, and `logs/`. Use the examples in
+[`docs/examples/webserver-configs`](../examples/webserver-configs/README.md) as
+starting points and review them before production use.
+
+The dashboard's `/health` endpoint is public for service checks. All
+`/watch/*` and `/api/*` routes require a session. Unsafe requests require CSRF
+validation.
+
+## Validate the deployment
 
 ```bash
-RATE_LIMIT_ENABLED=true
-RATE_LIMIT_MAX_REQUESTS=60
-RATE_LIMIT_WINDOW=60  # seconds
+make doctor MODE=docker ENV=prod
+make db-status MODE=docker ENV=prod
+make users-list MODE=docker ENV=prod
 ```
 
-**Customization options:**
-
-- Adjust limits per IP address
-- Configure different limits per endpoint
-- Recommended: Use Redis if available
-
-
-## Monitoring & Logging
-
-**Enable logging:**
-
-```bash
-# Application logs
-LOG_LEVEL=warning
-LOG_FILE=/path/to/mata-dashboard/temp/logs/application.log
-```
-
-## Server Config
-
-Apply web-access restrictions, HTTPS/TLS, and request filtering at your web server or ingress layer according to your platform standards.
-
-- Only the `public/` directory should be web-accessible.
-- Point your (sub)domain’s document root to `…/public/` for both dashboard and nodes.
-- Deny direct access to configuration and internal paths (`config/`, `storage/`, `vendor/`, logs, etc.).
-- Keep `config.env` and secrets **outside the web root** and readable only by the web user.
-- Use strong, unique secrets per node and keep file permissions tight.
-
-No system-level agents, daemons, or elevated privileges are required.
-
-
-### File Permissions
-
-Use least-privilege filesystem access:
-
-- Application code and configuration must not be writable by the web server user.
-- Only runtime directories (cache, logs, temp, and the dedicated `MATA_USERS_FILE` directory) should be writable by the application process.
-- Provision the authentication-data directory as described in the [User Management guide](user-management.md#persistent-authentication-data); do not use the in-project `config/users.json` fallback for production authentication data.
-- Validate ownership and permissions as part of the deployment process.
-
-<!-- ## Next Steps -->
-
-<!-- - [Deployment Guide](deployment.md) - Secure production deployment -->
-<!-- - [Configuration Guide](configuration.md) - Security configuration options -->
-<!-- - [Troubleshooting](../tutorials/troubleshooting.md) - Security-related issues -->
-
+For native installs, run the same checks with `MODE=local`. Review application,
+cron, PHP, and web-server logs after the first collection and alarm cycles.

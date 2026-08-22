@@ -131,7 +131,7 @@ src/Models/
         └── ServerMetricDailyAggregate.php
 ```
 
-Query building for server metrics lives in `src/Services/ServerMetrics/ServerMetricsQuery.php` (behavior), not here — see [Server Metrics Pipeline](../architecture/server-metrics-pipeline.md).
+Query building for server metrics lives in `src/Services/ServerMetrics/ServerMetricsQuery.php` (behavior), not here — see [Server Metrics Pipeline](../../architecture/server-metrics-pipeline.md).
 
 **Responsibilities:**
 
@@ -277,7 +277,10 @@ Classes with a clear owning domain live with that domain instead of here:
 ### Other `src/` Directories
 
 ```
-src/Constants/    # Shared enums/constants (AppAvailabilityStatus, CacheTypes, NodeHealthState, Severities)
+src/Services/Cache/CacheType.php
+src/Services/Monitor/NodeHealthState.php
+src/Services/Audit/Severity.php
+src/Views/AppAvailabilityStatus.php
 src/Tests/        # PHPUnit tests (Unit/, Integration/, Fixtures/, Helpers/) — see composer autoload-dev
 ```
 
@@ -611,6 +614,6 @@ package-lock.json
 
 ## Next Steps
 
-- [Architecture Overview](../architecture/overview.md) - Detailed component documentation
+- [Architecture Overview](../../architecture/overview.md) - Detailed component documentation
 - [Code Quality](code-quality.md) - Code standards and tools
 - [Contributing](contributing.md) - Contribution guidelines

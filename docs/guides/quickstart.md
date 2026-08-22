@@ -1,110 +1,116 @@
-# Quick Start
+# Quick start
 
-Get MATA Dashboard up and running in minutes with this quick start guide.
+This guide starts a native or shared-hosting dashboard. For Docker, use the
+[Docker quickstart](quickstart-docker.md).
 
-!!! info "Requirements:" 
-    You only need **PHP 8.3+**, **composer** and **git**. A SQL-Database is recommended for the Dashboard application though.
+## Requirements
 
-<!-- - [Docker Deployment Guide](quickstart-docker.md) for using docker. -->
+!!! info ""
+    - PHP 8.3 or newer, Composer, Git, and `make`
+    - MySQL or MariaDB for migrations, event history, alarms, and historical metrics
+    - A web server serving `public/`
+    - Cron or an equivalent scheduler
 
-## 1. Client Node
+    The dashboard renders basic pages without a database, but full monitoring
+    requires one.
 
-The client is the application living on the server where the applications are you wantto monitor. 
-
-```bash
-# ssh into your server and clone the repo for the mata client
-git clone https://github.com/mata-sh/mata-node.git && cd mata-node
-
-# Runs composer install and creates config files
-make setup
-
-# generate api key
-openssl rand -hex 32
-
-# set DASHBOARD_API_KEY
-vi config/config.env 
-
-# Edit node configuration (apps to monitor, log paths, session paths, etc.)
-vi config/apps.json
-```
-
-!!! warning "Application identifiers"
-    Each top-level key in every monitored node's `apps.json` is a dashboard application identifier. It must be globally unique. Reusing a key means the same application on multiple servers and requires identical `title` and `env`; the dashboard stores one application record and keeps events separate by server. Use a server-specific suffix when deployments must be separate applications.
-
-Configure optional per-app monitoring in node `apps.json`; omitted settings default to `true`:
-
-```json
-{"shop":{"monitoring":{"loganalysis":false,"sessions":false}}}
-```
-
-The node omits uncollected `status`, `logs`, and `session` fields from `/apps` and emits only disabled monitoring settings. See [Application Error Monitoring](application-error-monitoring.md) for all six settings.
-
-## 2. Server Dashboard 
-
-This is the Innterface that fetches data from the client nodes on the same or other servers.
+## 1. Run setup
 
 ```bash
-# ssh into your server and clone the repo for the dashboard
-git clone https://github.com/mata-sh/mata-dashboard.git && cd mata-dashboard
-
-# Select native/local mode and the dev, demo, or prod environment when prompted.
-# Setup saves the selection in ignored .mata.mk, installs dependencies,
-# offers native OPA setup, and can create the first user. Native OPA uses
-# make setup-opa plus the systemd service installed by make opa-install-service.
+git clone https://github.com/mata-sh/mata-dashboard.git
+cd mata-dashboard
 make setup
+```
 
-# Create another dashboard user later when needed.
-# Use MODE=... ENV=... to override the saved selection for one command.
+Choose `local` and the required environment. Setup creates the core
+configuration files, installs Composer dependencies, and can create the first
+user.
+
+## 2. Configure services
+
+Set database credentials in `config/db.config.env`, then run migrations:
+
+```bash
+make db-migrate
+```
+
+For alarm decisions, choose one path in `config/config.env`:
+
+```dotenv
+# Native OPA service
+ALARM_DECISION_DRIVER=opa
+OPA_ALARM_BASE_URI=http://127.0.0.1:3320
+```
+
+`make setup` offers to install OPA. Run these to install it later, or after
+declining those prompts:
+
+```bash
+make setup-opa            # downloads and checksum-verifies bin/opa
+make opa-install-service  # installs the systemd unit and starts it (needs sudo)
+make opa-status
+```
+
+The unit serves the repository `policy/` directory on `127.0.0.1:3320`, which
+is the address `OPA_ALARM_BASE_URI` expects above.
+
+Hosts that cannot run OPA use the built-in driver instead:
+
+```dotenv
+# Shared hosting or another host that cannot run OPA
+ALARM_DECISION_DRIVER=builtin
+```
+
+!!! warning "The built-in driver is intentionally limited"
+    It allows critical events and `fatal_errors_occurring`, using email only,
+    and denies every other candidate. Use the OPA driver wherever it can run.
+
+Configure `config/mail.config.env` before enabling alarm email.
+
+## 3. Serve and schedule the dashboard
+
+Point the web server at `public/`. For shared hosting, install the
+[`cron/crontab.shared-hosting.template`](https://github.com/mata-sh/mata-dashboard/blob/main/cron/crontab.shared-hosting.template)
+after replacing `APP_ROOT` and `PHP_BIN`.
+
+The scheduled jobs collect node data, persist metrics, evaluate alarms, dispatch
+email, and clean retained data. Native installations need an equivalent cron
+configuration; the same template is a usable starting point. The job list is in
+[Add your first server](first-server.md).
+
+The jobs write to `logs/` and `logs/cron/`. Rotate them with
+[`cron/logrotate.shared-hosting.conf.template`](https://github.com/mata-sh/mata-dashboard/blob/main/cron/logrotate.shared-hosting.conf.template)
+after replacing the placeholder application path; logrotate does not expand
+`APP_ROOT`. Install it beside the crontab for a user-owned setup, or as
+`/etc/logrotate.d/mata-dashboard` when you have root.
+
+## 4. Connect a node
+
+Install MATA Node separately on the monitored host, then follow
+[Add your first server](first-server.md). The dashboard pulls from the node; the
+node never calls back.
+
+## 5. Verify
+
+If you declined the user prompt during setup, create one now:
+
+```bash
 make users-create
-
-# smtp server (optional)
-vi config/mail.config.env 
-
- # database connection (optional)
-vi config/db.config.env
 ```
 
-**Configure the applications to be monitored**
+Open the dashboard, sign in, and run:
 
 ```bash
- # client node URLs & shared secrets
- vi config/servers.json
+make doctor
+make db-status
 ```
 
-```json
-// Set Api key you generated for your client node (DASHBOARD_API_KEY)
-{
-  "prod-web-01": {
-    "api_key": "32_character_hexadecimal_api_key_here",
-    "error_monitoring_enabled": true,
-    "logsize_monitoring_enabled": true
-  }
-}
-```
+A node may appear before historical chart rows exist. Wait for a successful
+metrics collection cycle.
 
-The entry key (`prod-web-01` above) is the server's identifier and must exactly match
-`DASHBOARD_SERVER_ID` in that node's `config/config.env`; likewise `api_key` must match the
-node's `DASHBOARD_API_KEY`. Renaming the entry key later breaks authentication for that node
-until you update its `DASHBOARD_SERVER_ID` to match. These server-scoped flags default to `true`; node application settings use the separate `monitoring` block.
+## Next steps
 
-## 3. Subdomains
-
-**Create 2 subdomains for the dashboard and the client nodes.**
-
-```
-mata.example.com -> public_html/mata-dashboard/public
-mata.api.example.com -> public_html/mata-node/public
-```
-
--> Access the dashboard at `https://mata.example.com`
-
-
-## Next Steps
-
-- [Adding Your First Server Tutorial](../tutorials/first-server.md) - Detailed walkthrough
-- [Deployment Guide](deployment.md) for production setup.
-- [Configuration Guide](configuration.md) - Customize your monitoring setup
-<!-- - [Monitoring Guide](monitoring.md) - Learn about monitoring features -->
-
-For troubleshooting help, see the [Troubleshooting Guide](../tutorials/troubleshooting.md).
-
+- [Configuration](configuration.md)
+- [Monitoring](monitoring.md)
+- [User management CLI](user-management.md)
+- [Secure an installation](secure-application.md)

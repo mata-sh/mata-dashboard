@@ -41,12 +41,17 @@ services:
     env_file:
       - ./config/db.config.env
     environment:
-      # MySQL container initialization (uses DB_* variables from db.config.env).
+      # MySQL container initialization. These DB_* values come from config/db.config.env,
+      # which reaches interpolation only because every invocation passes it explicitly:
+      # --env-file config/db.config.env --env-file .env (Makefile:22). The env_file above
+      # cannot supply them - it injects into the container at runtime, while ${VAR} is
+      # resolved at parse time. A bare `docker compose up` therefore fails on the
+      # required values below rather than silently initializing a weak default.
       # Development alone mounts docker/mysql/init.sql via docker-compose.dev.yml; production does not.
-      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-change_me}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?missing - run via make, or pass --env-file config/db.config.env --env-file .env}
       MYSQL_DATABASE: ${DB_DATABASE:-mata_dashboard}
       MYSQL_USER: ${DB_USERNAME:-mata_user}
-      MYSQL_PASSWORD: ${DB_PASSWORD:-change_me}
+      MYSQL_PASSWORD: ${DB_PASSWORD:?missing - run via make, or pass --env-file config/db.config.env --env-file .env}
       MYSQL_CHARACTER_SET_SERVER: utf8mb4
       MYSQL_COLLATION_SERVER: utf8mb4_unicode_ci
     healthcheck:

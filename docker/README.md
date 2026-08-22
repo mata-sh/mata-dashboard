@@ -1,307 +1,127 @@
-# MATA Dashboard - Docker Architecture Documentation
+# Docker deployment
 
-This document provides a comprehensive overview of the Docker architecture for the MATA Dashboard application.
+The Compose stack runs the dashboard with Apache/PHP, MySQL, and OPA:
 
-## Table of Contents
+- `mata-web` serves the dashboard and runs the scheduled jobs.
+- `mata-db` stores events, alarms, deliveries, and metrics.
+- `mata-opa` evaluates alarm decisions from the read-only `policy/` mount.
 
-- [Overview](#overview)
-- [Directory Structure](#directory-structure)
-- [Environment Separation](#environment-separation)
-- [Quick Start](#quick-start)
-  - [Development](#development)
-  - [Production](#production)
-- [Configuration Files](#configuration-files)
-- [Architecture Details](#architecture-details)
-- [Common Operations](#common-operations)
-- [Troubleshooting](#troubleshooting)
-- [Best Practices](#best-practices)
+MATA Node is a separate project. Run it on each monitored host and register it
+in the dashboard's `config/servers.json`.
 
-## Overview
+## Files
 
-The MATA Dashboard uses a multi-environment Docker setup with:
-
-- **Multi-stage builds** for optimized production images
-- **Environment separation** (dev, demo, prod)
-- **Docker Compose** for orchestration
-- **Apache + PHP 8.3** runtime
-- **MySQL 8.0** database
-- **OPA** as part of the Docker stack
-- **Automated cron jobs** for data collection and cleanup
-
-## Directory Structure
-
-```
-project/
-├── .env                              # Docker orchestration config (gitignored)
-├── .env.example                      # Template for .env
-├── .dockerignore                     # Build context exclusions
-├── Dockerfile                        # Multi-stage production build
-├── Dockerfile.dev                    # Development build
-├── docker-compose.yml                # Base configuration
-├── docker-compose.dev.yml            # Development overrides
-├── docker-compose.prod.yml           # Production configuration
-│
-├── config/                           # Application configuration
-│   ├── config.env                    # App settings
-│   ├── db.config.env                 # Database connection
-│   ├── mail.config.env               # Email configuration
-│   ├── dev/                          # Development JSON configs
-│   ├── prod/                         # Production JSON configs
-│   └── demo/                         # Demo JSON configs
-│
-├── mata_users volume                 # Persistent Docker user data (users.json)
-│
-├── docker/                           # Docker configuration files
-│   ├── apache/
-│   │   └── 000-default.conf          # Apache vhost config
-│   ├── php/
-│   │   ├── php.ini                   # Default PHP config
-│   │   ├── php-dev.ini               # Development PHP config
-│   │   └── php-prod.ini              # Production PHP config
-│   ├── cron/
-│   │   └── crontab                   # Scheduled tasks
-│   ├── mysql/
-│   │   ├── my.cnf                    # MySQL tuning
-│   │   └── init.sql                  # Database initialization
-│   └── README.md                     # This file
-│
-└── scripts/                          # Helper scripts
-    ├── docker-dev.sh                 # Start dev environment
-    ├── docker-prod.sh                # Deploy production
-    └── setup-dev-env.sh              # First-time setup
+```text
+.env.example                 Docker and Compose settings
+config/*.env                 Application and database settings
+Dockerfile                   Production image
+Dockerfile.dev               Development image
+docker-compose.yml           Shared services
+docker-compose.dev.yml       Development override
+docker-compose.prod.yml      Production override
+docker/cron/crontab          Container crontab
+docker/apache/               Apache configuration
+docker/php/                  PHP configuration
+docker/mysql/                MySQL development initialization
 ```
 
-## Default Ports (Decade-Spaced Convention)
+## Ports
 
-The MATA Dashboard stack uses **decade-spaced ports** for clean separation. In production, only the dashboard port is published by default; OPA and MySQL host ports are dev-only localhost bindings.
+| Service | Host binding | Variable | Notes |
+| --- | --- | --- | --- |
+| Dashboard | `0.0.0.0:3300` | `WEB_PORT` | Published by the base Compose file |
+| OPA | `127.0.0.1:3320` | `OPA_PORT` | Development only |
+| MySQL | `127.0.0.1:3306` | `MYSQL_PORT` | Development only |
 
-| Service | Port | Variable | Description |
-|---------|------|----------|-------------|
-| **Dashboard** | 3300 | `WEB_PORT` | Main web interface |
-| **Node API** | 3310 | `NODE_PORT` | Remote monitoring node (for local testing) |
-| **OPA Service** | 3320 | `OPA_PORT` | Open Policy Agent (dev-only localhost host binding) |
-| **MkDocs** | 3330 | `MKDOCS_PORT` | Documentation server (dev only) |
-| **MySQL** | 3306 | `MYSQL_PORT` | Database (dev-only localhost host binding) |
+The dashboard is the only service published by default in production. Put it
+behind an HTTPS reverse proxy. The node has its own deployment and port.
 
-### Port Convention Benefits
+## Configuration layers
 
-- **Decade spacing** (3300, 3310, 3320...) provides clear separation
-- Room for expansion (3301-3309 reserved for future dashboard features)
-- Multiple stacks can coexist: use 3400, 3410, 3420 for a second environment
-- Easy to remember and type
+Docker reads `.env` for Compose settings such as `APP_ENV`, `WEB_PORT`,
+`MYSQL_ROOT_PASSWORD`, and `DATA_PATH`.
 
-Customize ports in your `.env` file:
+PHP reads `config/config.env`, `config/db.config.env`, and
+`config/mail.config.env`. The dashboard container also receives the database
+and mail settings through those files. `APP_ENV` in `.env` and
+`config/config.env` must match.
+
+Monitoring JSON files in `config/` are shared by the selected environment.
+They are not selected by `APP_ENV`. The `demo` environment uses the fixed demo
+event fixture in `config/demo/events.json`.
+
+## Development
+
+The guided setup is the recommended path:
+
 ```bash
-WEB_PORT=3300          # Dashboard
-NODE_PORT=3310         # Node API
-OPA_PORT=3320          # Policy engine (dev-only localhost host binding)
-MKDOCS_PORT=3330       # Documentation
-MYSQL_PORT=3306        # Database (dev-only localhost host binding)
-```
-
-## Environment Separation
-
-### Configuration Layers
-
-The application uses **two separate configuration layers**:
-
-#### 1. Docker Orchestration (`.env`)
-- Used by `docker compose` with the selected Compose files
-- Contains: ports, `APP_ENV`, root database password, and production data path
-- Controls which containers start and how they connect
-- **Not loaded directly by the PHP application**
-
-Example:
-```bash
-COMPOSE_PROJECT_NAME=mata-dashboard
-WEB_PORT=3300
-APP_ENV=dev
-MYSQL_ROOT_PASSWORD=<root-database-password>
-DATA_PATH=./data
-```
-
-#### 2. Application Configuration (`config/*.env`)
-- Loaded by PHP through `EnvConfigLoader`
-- `config/db.config.env` is also supplied to Compose for MySQL interpolation
-- Contains: database credentials, domain, template settings, logging, and mail config
-- Controls application behavior
-- Independent of Docker (can run without containers)
-
-Files:
-- `config/config.env` - General app settings
-- `config/db.config.env` - Database connection details
-- `config/mail.config.env` - Email configuration
-
-#### 3. Monitoring Configuration (`config/*.json`)
-- Shared by every monitored target; `APP_ENV` does not select these files
-- Contains: users, servers, thresholds, cache TTLs, cooldowns, and retention settings
-- Demo-only mock events live in `config/demo/events.json`
-
-### Environment Comparison
-
-| Feature | Development | Production |
-|---------|------------|------------|
-| **Dockerfile** | `Dockerfile.dev` | `Dockerfile` (multi-stage) |
-| **Compose File** | `docker-compose.dev.yml` | `docker-compose.prod.yml` |
-| **Source Code** | Volume mounted (hot reload) | Baked into image |
-| **Composer** | Installed in container | Not in final image |
-| **Dependencies** | Includes dev deps | Production only |
-| **OPcache** | Disabled | Enabled with JIT |
-| **Error Display** | On (1) | Off (0) |
-| **Logging** | Debug level | Errors only |
-| **MySQL** | In-memory (tmpfs), initialized with `docker/mysql/init.sql` | Persistent volume; no `init.sql` mount |
-| **PHP Memory** | 512M | 256M |
-| **Xdebug** | Available (commented) | Not installed |
-
-## Quick Start
-
-> **💡 Recommended**: Use Makefile targets for the best developer experience. Run `make help` for all commands.
->
-> Run `make setup` first to select Docker mode and an environment. It saves `MODE` and `ENV` in ignored `.mata.mk`; use `MODE=... ENV=...` for a one-command override. Stable commands such as `users-*`, `opa-*`, `test`, `db-*`, `status`, and `logs*` dispatch by that selection. Docker-only commands include lifecycle targets, `dev-logs`, `logs-web`, `logs-db`, `ps`, `shell`, `shell-www`, and cleanup.
-
-### Development
-
-#### Using Makefile (Recommended)
-```bash
-# 1. First-time setup: select Docker mode and dev or demo.
-# This saves MODE and ENV in ignored .mata.mk. docker-init is shared;
-# dev-setup validates dev/demo prerequisites.
 make setup
-
-# 2. Start the selected development environment if setup did not start it.
-# Compose waits for healthy MySQL before starting mata-web and migrations.
-make dev-start
-
-# 3. Follow logs (optional)
-make dev-logs
-
-# Access services at:
-# - Dashboard: http://localhost:3300
-# - OPA Service: http://127.0.0.1:3320 (dev only)
-# - MkDocs: http://localhost:3330 (if running)
-# No default login: make setup offers to create the initial user.
 ```
 
-#### Direct Docker Compose (Alternative)
-```bash
-# 1. Create application configuration files and the external network
-for file in config.env db.config.env mail.config.env; do cp "config/example/$file.example" "config/$file"; done
-chmod 600 config/*.env
-docker network create mata-network 2>/dev/null || true
+Choose Docker mode and `dev` or `demo`. Setup starts the stack by default. If
+you decline startup, run `make dev-start`. The target builds the development
+image, starts MySQL and OPA, waits for a healthy database, and runs migrations.
+The development override mounts the source tree and uses temporary MySQL
+storage.
 
-# 2. Create Docker configuration
-cp .env.example .env
-
-# 3. Docker and application APP_ENV values must match
-sed -i 's/APP_ENV=.*/APP_ENV=dev/' .env config/config.env
-
-# 4. Start containers
-docker compose --env-file config/db.config.env --env-file .env -f docker-compose.yml -f docker-compose.dev.yml up -d --build
-
-# 5. Access services
-# - Dashboard: http://localhost:3300
-# - OPA Service: http://127.0.0.1:3320 (dev only)
-# - Node API: http://localhost:3310 (if testing node locally)
-# Create an initial user with make users-create after selecting Docker mode.
-```
-
-### Production
-
-#### Using Makefile (Recommended)
-```bash
-# 1. Create and configure .env, then select Docker production mode.
-# make setup stores the selection in ignored .mata.mk and offers initial user creation.
-# docker-init is shared; prod-setup validates production prerequisites.
-make setup
-
-# 2. Deploy if setup did not start services. prod-start validates APP_ENV and
-# placeholder passwords, starts mata-web after healthy MySQL, then runs migrations.
-make prod-start
-```
-
-#### Direct Docker Compose (Alternative)
-```bash
-# 1. Create application configuration files and the external network
-for file in config.env db.config.env mail.config.env; do cp "config/example/$file.example" "config/$file"; done
-chmod 600 config/*.env
-docker network create mata-network 2>/dev/null || true
-
-# 2. Create production Docker configuration
-cp .env.example .env
-
-# 3. Set APP_ENV=prod and a strong MYSQL_ROOT_PASSWORD in .env.
-# Confirm APP_ENV=prod in config/config.env and set a strong DB_PASSWORD
-# in config/db.config.env.
-
-# 4. Deploy
-docker compose --env-file config/db.config.env --env-file .env -f docker-compose.yml -f docker-compose.prod.yml up -d --build
-```
-
-## Configuration Files
-
-### Apache Configuration (`docker/apache/000-default.conf`)
-
-**Document Root**: `/var/www/html/public`
-
-**Security Features**:
-- Blocks access to: `config/`, `src/`, `vendor/`, `logs/`, `temp/`
-- Denies: `.env`, `.json`, `.yml`, `.xml`, `.ini` files
-- Security headers: X-Frame-Options, CSP, X-Content-Type-Options
-- SSL ready (commented out, enable for HTTPS)
-
-**Performance**:
-- Compression enabled (`mod_deflate`)
-- Browser caching configured (`mod_expires`)
-- PHP settings: 64M uploads, 300s timeout, 256M memory
-
-### PHP Configuration
-
-#### Default (`docker/php/php.ini`)
-- Balanced settings for general use
-- OPcache enabled, moderate settings
-- Error logging to `/var/www/html/logs/php-error.log`
-- Session storage in `/var/www/html/temp/sessions`
-
-#### Development (`docker/php/php-dev.ini`)
-- OPcache **disabled** (immediate code changes)
-- Error display **enabled**
-- 512M memory limit
-- Xdebug configuration (commented out)
-- Verbose error reporting (E_ALL)
-
-#### Production (`docker/php/php-prod.ini`)
-- OPcache **enabled with JIT**
-- Output compression (gzip level 6)
-- Error display **disabled**
-- Strict session security (secure flag, strict SameS ite)
-- `open_basedir` restriction for security
-- Optimized realpath cache (600s TTL)
-
-### MySQL Configuration (`docker/mysql/my.cnf`)
-
-**Performance Tuning**:
-- InnoDB buffer pool: 256M
-- Max connections: 200
-- Query cache: 32M
-- Slow query log: 2s threshold
-
-**Security**:
-- Skip name resolution
-- STRICT transaction modes
-- Binary logging disabled (can enable for replication)
-
-### Cron Jobs (`docker/cron/crontab`)
-
-The image installs this manifest as the `www-data` user crontab. Inspect it with:
+The dashboard is at `http://localhost:3300`, unless `WEB_PORT` was changed.
+Create a user with:
 
 ```bash
-docker compose --env-file config/db.config.env --env-file .env exec mata-web crontab -l
+make users-create MODE=docker ENV=dev
 ```
 
-| Schedule | Script |
-|----------|--------|
-| `*/5 * * * *` | `servers_data_fetch.php` (chained with collect in one entry) |
-| `*/5 * * * *` | `servers_metrics_collect.php` |
+Direct Compose use requires the external network and configuration files:
+
+```bash
+make setup MODE=docker ENV=dev START_SERVICES=no CREATE_USER=no
+
+docker compose \
+  --env-file config/db.config.env \
+  --env-file .env \
+  -f docker-compose.yml -f docker-compose.dev.yml up -d --build
+```
+
+Use the Makefile for migrations, users, and logs so the selected environment is
+checked consistently.
+
+## Production
+
+```bash
+make setup MODE=docker ENV=prod START_SERVICES=no CREATE_USER=no
+# Replace placeholder passwords in .env and config/db.config.env.
+make prod-fix-perms MODE=docker ENV=prod
+make prod-start MODE=docker ENV=prod
+```
+
+`prod-start` validates the environment
+values, starts the production image, waits for healthy MySQL, and runs
+migrations unless `RUN_MIGRATIONS=no` is set.
+
+Production mounts:
+
+- `config/` read-only;
+- `logs/` writable for application and cron logs;
+- `temp/` writable for cache and runtime state;
+- a persistent MySQL data directory from `DATA_PATH`.
+
+Docker stores users in the persistent `mata_users` named volume. The regular web
+container does not edit that volume directly. User commands use a short-lived
+admin container:
+
+```bash
+make users-list MODE=docker ENV=prod
+make users-create MODE=docker ENV=prod
+make users-passwd MODE=docker ENV=prod
+```
+
+## Cron jobs
+
+The image installs `docker/cron/crontab` for `www-data`. The schedule is:
+
+| Schedule | Job |
+| --- | --- |
+| `*/5 * * * *` | `servers_data_fetch.php`, then `servers_metrics_collect.php` |
 | `4-59/15 * * * *` | `servers_metrics_aggregate.php` |
 | `* * * * *` | `alarms_evaluate_critical.php` |
 | `*/5 * * * *` | `alarms_evaluate_non_critical.php` |
@@ -309,299 +129,139 @@ docker compose --env-file config/db.config.env --env-file .env exec mata-web cro
 | `25 2 * * *` | `retention_cleanup.php` |
 | `17 * * * *` | `rate_limit_cleanup.php` |
 
-Cron execution logs, including launcher failures before bootstrap, are in
-`/var/www/html/logs/cron/app-<job-name>.log`. PHP runtime errors are in
-`/var/www/html/logs/cron/php-error.log`; heartbeat history is in
-`/var/www/html/logs/cron/heartbeat-<job-name>.jsonl`. The separate ingestion
-health report is `/var/www/html/logs/health/collect_server_metrics_health.log`.
+Inspect the installed crontab with:
 
 ```bash
-tail -f logs/cron/app-servers-metrics-collect.log
-tail -f logs/health/collect_server_metrics_health.log
+docker compose \
+  --env-file config/db.config.env --env-file .env \
+  exec -u www-data mata-web crontab -l
 ```
 
-Log maintenance covers the whole `logs/` tree: active logs are compressed weekly
-and, together with their compressed archives, deleted after 30 days. Two
-exceptions: `logs/health/` is application-managed (size-based rotation via
-`config/data_retention.json`) and excluded from shell maintenance, and the
-compressed archives of `user-management-audit.log` are never deleted (audit
-trail).
+Application cron logs are under `logs/cron/`. The metrics ingestion report is
+`logs/health/collect_server_metrics_health.log`. Log rotation and retention
+are configured in the cron manifest and `config/data_retention.json`.
 
-For shared hosting, use [`../cron/crontab.shared-hosting.template`](../cron/crontab.shared-hosting.template). Set `APP_ROOT` and `PHP_BIN`; configuration loads from `config/*.config.env`, so no `cron.env` is required. The template includes the same maintenance jobs.
+## Common operations
 
-## Architecture Details
-
-### Multi-Stage Production Build
-
-**Stage 1: Builder**
-- Installs Composer
-- Installs production dependencies (`--no-dev`)
-- Optimizes autoloader
-
-**Stage 2: Production Runtime**
-- No Composer in final image
-- No dev dependencies
-- Only runtime packages
-- Smaller image size (~200MB reduction)
-
-**Benefits**:
-- Faster deployment (smaller images)
-- Better security (fewer tools in production)
-- Optimized layer caching
-
-### Volume Mounting Strategy
-
-#### Development
-```yaml
-volumes:
-  - .:/var/www/html:cached          # Full source code
-  - /var/www/html/vendor            # Anonymous volume for vendor/
-```
-- Source code mounted for hot reload
-- Vendor directory in anonymous volume (avoids permission issues)
-
-#### Production
-```yaml
-volumes:
-  - ./config:/var/www/html/config:ro   # Read-only config
-  - ./logs:/var/www/html/logs          # Writable logs
-  - ./temp:/var/www/html/temp          # Writable temp files
-```
-- Source code baked into image (not mounted)
-- Only persistent directories mounted
-
-### Health Checks
-
-**Development**: 30s interval, 10s timeout, 3 retries, 10s start period
-**Production**: 30s interval, 10s timeout, 5 retries, 30s start period
-
-Checks HTTP GET to `http://localhost/` for 200 OK response.
-
-## Common Operations
-
-### View Logs
 ```bash
-# Using Makefile (Recommended)
-make logs           # Follow selected-mode logs
-make logs-web       # mata-web container only (Docker-only)
-make logs-db        # mata-db container only (Docker-only)
-
-# Direct Docker Compose
-docker compose --env-file config/db.config.env --env-file .env logs -f
-docker compose --env-file config/db.config.env --env-file .env logs -f mata-web
-docker compose --env-file config/db.config.env --env-file .env logs -f mata-db
+ENV_NAME=dev # dev, demo, or prod
+make logs MODE=docker ENV="$ENV_NAME"
+make logs-web MODE=docker ENV="$ENV_NAME"
+make logs-db MODE=docker ENV="$ENV_NAME"
+make ps MODE=docker ENV="$ENV_NAME"
+make shell MODE=docker ENV="$ENV_NAME"
+make db-status MODE=docker ENV="$ENV_NAME"
+make db-backup MODE=docker ENV="$ENV_NAME"
 ```
 
-### Rebuild Containers
+Use `make db-restore FILE=...` only after checking the target environment. The
+Makefile requires confirmation for restores and production database writes.
+
+Stop the selected stack with:
+
 ```bash
-# Using Makefile
-make dev-rebuild        # Development
-make prod-rebuild       # Production
-
-# Direct Docker Compose
-docker compose --env-file config/db.config.env --env-file .env -f docker-compose.yml -f docker-compose.dev.yml up -d --build
-docker compose --env-file config/db.config.env --env-file .env -f docker-compose.yml -f docker-compose.prod.yml build --no-cache
+make down MODE=docker ENV=dev # replace dev with demo or prod
 ```
 
-### Execute Commands in Container
-```bash
-# Using Makefile
-make shell              # Enter mata-web container as root
-make shell-www          # Enter as www-data user
-make db-shell           # MySQL shell
-
-# Direct Docker Compose
-docker compose --env-file config/db.config.env --env-file .env exec mata-web bash
-docker compose --env-file config/db.config.env --env-file .env exec -u www-data mata-web bash
-docker compose --env-file config/db.config.env --env-file .env exec mata-db mysql -u root -p
-```
-
-### Database Operations
-```bash
-# Using Makefile
-make db-backup                              # Timestamped backup in backups/; FILE=... is optional
-make db-restore FILE=backups/backup.sql     # FILE is required; restore requires confirmation
-make db-migrate                             # Run migrations; production writes require confirmation
-make db-status                              # Migration status
-
-# Direct Docker Compose
-docker compose --env-file config/db.config.env --env-file .env exec mata-db mysqldump -u root -p mata_dashboard > backup.sql
-docker compose --env-file config/db.config.env --env-file .env exec -T mata-db mysql -u root -p mata_dashboard < backup.sql
-```
-
-### Clean Up
-```bash
-# Using Makefile
-make down               # Stop the selected Docker stack
-make clean              # Remove the selected stack and volumes (with confirmation)
-make docker-clean       # Project Docker cleanup
-
-# Direct Docker Compose
-docker compose --env-file config/db.config.env --env-file .env down
-docker compose --env-file config/db.config.env --env-file .env down -v  # WARNING: deletes data!
-docker system prune -a
-```
+`make clean` removes the selected Compose-managed volumes. Production MySQL
+uses `DATA_PATH/mysql`, which is a host bind mount and is not deleted by
+`make clean`.
 
 ## Troubleshooting
 
-### Permission Issues
+### The web container does not start
 
-**Problem**: Files created in container have wrong ownership
-
-**Solution**:
 ```bash
-# Fix ownership (run on host)
-sudo chown -R $USER:$USER .
-
-# Or run in container as www-data
-docker compose --env-file config/db.config.env --env-file .env exec -u www-data mata-web bash
+ENV_NAME=dev # dev, demo, or prod
+make status MODE=docker ENV="$ENV_NAME"
+docker compose --env-file config/db.config.env --env-file .env logs mata-web
 ```
 
-### Port Already in Use
+Check that `.env` and `config/config.env` contain the same `APP_ENV`, that the
+configuration files exist, and that the Docker daemon is running.
 
-**Problem**: `Bind for 0.0.0.0:3300 failed: port is already allocated`
+### MySQL is unavailable
 
-**Solution**:
 ```bash
-# Change ports in .env (uses decade-spaced convention)
-echo "WEB_PORT=3400" >> .env     # Alternative dashboard port
-echo "OPA_PORT=3420" >> .env     # Alternative OPA dev port
-
-# Or stop conflicting service
-lsof -ti:3300 | xargs kill -9
-
-# Default port scheme (decade-spaced):
-# - Dashboard: 3300
-# - Node API: 3310
-# - OPA Service: 3320 (dev-only localhost host binding)
-# - MkDocs: 3330
-# - MySQL: 3306 (dev-only localhost host binding)
-#
-# For 2nd stack, use: 3400, 3410, 3420, 3430...
+ENV_NAME=dev # dev, demo, or prod
+make wait-db MODE=docker ENV="$ENV_NAME"
+docker compose --env-file config/db.config.env --env-file .env logs mata-db
 ```
 
-### Database Connection Fails
+Check `DB_HOST`, `DB_DATABASE`, `DB_USERNAME`, and `DB_PASSWORD` in
+`config/db.config.env`. In Compose, the application host is `mata-db`, not
+`localhost`.
 
-**Problem**: `SQLSTATE[HY000] [2002] Connection refused`
+### Metrics are missing
 
-**Checklist**:
-1. Is the `mata-db` container running? `docker compose ps`
-2. Check DB logs: `docker compose logs mata-db`
-3. Verify credentials in `.env` match `config/db.config.env`
-4. Wait for MySQL to fully start (can take 30s)
+Inspect the collector and health logs:
 
-**Solution**:
 ```bash
-# Restart database
-docker compose --env-file config/db.config.env --env-file .env restart mata-db
-
-# Check MySQL is ready
-docker compose --env-file config/db.config.env --env-file .env exec mata-db mysqladmin ping -h localhost -u root -p
+ENV_NAME=dev # dev, demo, or prod
+make logs-web MODE=docker ENV="$ENV_NAME"
+tail -f logs/health/collect_server_metrics_health.log
 ```
 
-### OPcache Not Clearing (Dev)
+Then verify the node URL, shared credentials, database migrations, and the
+server's active flag. Use
+`php /var/www/html/scripts/server_metrics_diagnostic.php` inside `mata-web` for row counts.
 
-**Problem**: Code changes not reflecting
+### Code changes are not visible
 
-**Verify**:
+The development image disables OPcache (`docker/php/php-dev.ini`). The production
+image enables it with `opcache.validate_timestamps = 0`, so edited files are never
+re-read while the container runs. Stale code in development usually means the
+development override was not applied:
+
 ```bash
-# Check if using Dockerfile.dev
-docker compose --env-file config/db.config.env --env-file .env -f docker-compose.yml -f docker-compose.dev.yml ps
-
-# Verify OPcache is disabled
-docker compose --env-file config/db.config.env --env-file .env exec mata-web php -i | grep opcache.enable
+make ps MODE=docker ENV=dev
+docker compose --env-file config/db.config.env --env-file .env \
+  exec mata-web php -i | grep opcache.enable
 ```
 
-**Solution**:
-```bash
-# Rebuild with dev Dockerfile
-docker compose --env-file config/db.config.env --env-file .env -f docker-compose.yml -f docker-compose.dev.yml up -d --build
+Rebuild with the development image, or reset the cache in place:
 
-# Or manually clear OPcache
-docker compose --env-file config/db.config.env --env-file .env exec mata-web php -r "opcache_reset();"
+```bash
+make dev-start
+docker compose --env-file config/db.config.env --env-file .env \
+  exec mata-web php -r "opcache_reset();"
 ```
 
-### Container Keeps Restarting
+### The web container restarts or reports unhealthy
 
-**Problem**: Container in restart loop
+Both overrides define a health check that requests `http://localhost/` inside the
+container. Read its recorded output before the logs:
 
-**Debug**:
 ```bash
-# Check container logs
-docker compose --env-file config/db.config.env --env-file .env logs --tail=100 mata-web
-
-# Check health status
 docker inspect --format='{{json .State.Health}}' mata-dashboard-web
+docker compose --env-file config/db.config.env --env-file .env logs --tail=100 mata-web
+```
 
-# Run container without daemon to see errors
+Replace `mata-dashboard-web` if `COMPOSE_PROJECT_NAME` was changed. A restart loop
+hides startup errors; start the service in the foreground to see them:
+
+```bash
 docker compose --env-file config/db.config.env --env-file .env up mata-web
 ```
 
-## Best Practices
+### Bind-mount permissions fail
 
-### Development
+Run the production permission repair target once after provisioning or when a
+host-side ownership problem is confirmed:
 
-1. **Always use dev compose override**
-   ```bash
-   docker compose -f docker-compose.yml -f docker-compose.dev.yml up
-   ```
+```bash
+make prod-fix-perms MODE=docker ENV=prod
+```
 
-2. **Don't commit `.env`**
-   - Use `.env.example` as template
-   - Keep sensitive data out of git
+Do not make the whole repository writable by the web user. Only `logs/`,
+`temp/`, and the configured authentication directory need application write
+access.
 
-3. **Use volume mounts for hot reload**
-   - Code changes reflect immediately
-   - No rebuild needed for PHP changes
+## Security checklist
 
-4. **Check logs regularly**
-   - Application logs: `logs/app.log`
-   - PHP errors: `logs/php-error.log`
-   - Docker logs: `docker compose logs`
-
-### Production
-
-1. **Use strong passwords**
-   - Generate with: `openssl rand -base64 32`
-   - Never use defaults
-
-2. **Enable HTTPS**
-   - Use reverse proxy (nginx/Caddy)
-   - Configure SSL in Apache config
-   - Uncomment SSL section in `000-default.conf`
-
-3. **Resource limits**
-   - Set in `docker-compose.prod.yml`
-   - Monitor with `docker stats`
-
-4. **Backup strategy**
-   - Daily database backups
-   - Backup `config/`, `logs/` directories
-   - Test restore procedure
-
-5. **Security hardening**
-   - Use Docker secrets for sensitive data
-   - Enable firewall (ufw/iptables)
-   - Regular security updates
-   - Monitor logs for suspicious activity
-
-6. **Monitoring**
-   - Set up health check endpoints
-   - Use monitoring tools (Prometheus, Grafana)
-   - Alarm on container failures
-   - Track resource usage
-
----
-
-## Additional Resources
-
-- [Docker Compose Documentation](https://docs.docker.com/compose/)
-- [PHP Docker Official Image](https://hub.docker.com/_/php)
-- [MySQL Docker Official Image](https://hub.docker.com/_/mysql)
-- [Apache HTTP Server Documentation](https://httpd.apache.org/docs/)
-
----
-
-**Version**: 1.0
-**Last Updated**: 2025-01-01
-**Maintained By**: MATA Dashboard Team
+- Replace all database password placeholders before production startup.
+- Publish only the dashboard or an HTTPS reverse proxy.
+- Keep OPA and MySQL on the internal Docker network.
+- Keep `config/` out of the web root and read-only in production.
+- Back up the MySQL data and the `mata_users` volume.
+- Use unique node API keys and rotate them if exposed.
