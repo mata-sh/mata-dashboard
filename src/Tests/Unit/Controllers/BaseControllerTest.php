@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Mata\Tests\Unit\Controllers;
 
 use Mata\Controllers\BaseController;
+use Mata\Http\Request;
 use Mata\Http\Responses\Response;
 use Monolog\Handler\TestHandler;
 use Monolog\Logger;
@@ -40,6 +41,7 @@ final class BaseControllerProbe extends BaseController
 {
     public function __construct(Logger $logger)
     {
+        parent::__construct(new Request());
         $this->logger = $logger;
     }
 

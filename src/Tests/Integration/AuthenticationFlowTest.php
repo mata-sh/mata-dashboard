@@ -7,6 +7,7 @@ namespace Mata\Tests\Integration;
 use InvalidArgumentException;
 use Mata\Config\EnvConfigLoader;
 use Mata\Core\Auth;
+use Mata\Http\Request;
 use Mata\Tests\TestCase;
 use Mata\Utils\PathResolver;
 use Psr\Log\NullLogger;
@@ -27,6 +28,7 @@ class AuthenticationFlowTest extends TestCase
     private PathResolver $pathResolver;
     private EnvConfigLoader $configLoader;
     private Auth $auth;
+    private Request $request;
     private string $tempAppPath;
     private array $tempFiles = [];
 
@@ -63,9 +65,9 @@ class AuthenticationFlowTest extends TestCase
         file_put_contents($usersFile, json_encode([$adminUser], JSON_PRETTY_PRINT));
         chmod($usersFile, 0600);
 
-        $this->auth = new Auth(new NullLogger(), $usersFile);
-
         $this->startTestRequest();
+        $this->request = new Request();
+        $this->auth = new Auth(new NullLogger(), $usersFile, $this->request);
         $_SESSION = [
             'user' => [
                 'username' => 'admin',
@@ -301,7 +303,7 @@ class AuthenticationFlowTest extends TestCase
         chmod($usersFile, 0600);
 
         try {
-            new Auth(new NullLogger(), $usersFile);
+            new Auth(new NullLogger(), $usersFile, $this->request);
             $this->fail('Should throw exception for corrupted users file');
         } catch (RuntimeException $e) {
             $this->assertStringContainsString('Invalid JSON in users file', $e->getMessage());
@@ -328,14 +330,6 @@ class AuthenticationFlowTest extends TestCase
         } catch (InvalidArgumentException $e) {
             $this->assertStringContainsString('Required environment variable', $e->getMessage());
         }
-    }
-
-    private function startTestRequest(): void
-    {
-        if (session_status() !== PHP_SESSION_ACTIVE) {
-            session_start();
-        }
-        $_SESSION = [];
     }
 
     private function writeEnvFile(array $lines, string $filename = '.env'): void

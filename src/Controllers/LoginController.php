@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Mata\Controllers;
 
 use Mata\Core\App;
+use Mata\Http\Request;
 use Mata\Http\Security\CsrfGuard;
 use Mata\Utils\Tools;
 use Twig\Environment;
@@ -25,16 +26,18 @@ class LoginController
     private Tools $tools;
     private CsrfGuard $csrf;
     private Environment $twig;
+    private Request $request;
 
     /**
      * Initialize login controller with dependencies.
      */
-    public function __construct(App $app, Tools $tools, Environment $twig, CsrfGuard $csrf)
+    public function __construct(App $app, Tools $tools, Environment $twig, CsrfGuard $csrf, Request $request)
     {
         $this->app = $app;
         $this->tools = $tools;
         $this->twig = $twig;
         $this->csrf = $csrf;
+        $this->request = $request;
     }
 
     /**
@@ -44,7 +47,7 @@ class LoginController
     {
         $data = [
             'config' => [
-                'base_url' => $this->app->getBaseUrl(),
+                'base_host' => $this->app->getBaseHost(),
                 'full_base_url' => $this->app->getFullBaseUrl(),
             ],
             'ui' => [
@@ -63,13 +66,9 @@ class LoginController
      */
     public function submit(): void
     {
-        $rawUsername = $_POST['username'] ?? '';
-        $rawPassword = $_POST['password'] ?? '';
-        $rawRememberMe = $_POST['remember_me'] ?? false;
-
-        $username = is_string($rawUsername) ? trim($rawUsername) : '';
-        $password = is_string($rawPassword) ? $rawPassword : '';
-        $rememberme = in_array($rawRememberMe, [true, 1, '1', 'true', 'on'], true);
+        $username = trim($this->request->postString('username') ?? '');
+        $password = $this->request->postString('password') ?? '';
+        $rememberme = $this->request->postBool('remember_me');
 
         if ($this->app->auth->login($username, $password, $rememberme)) {
             $this->csrf->regenerate();
@@ -79,7 +78,7 @@ class LoginController
         }
         echo $this->twig->render('pages/login.html.twig', [
             'config' => [
-                'base_url' => $this->app->getBaseUrl(),
+                'base_host' => $this->app->getBaseHost(),
                 'full_base_url' => $this->app->getFullBaseUrl(),
             ],
             'ui' => [

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Mata\Core;
 
 use ErrorException;
+use Mata\Http\Request;
 use Mata\Http\Responses\ResponseFactory;
 use Psr\Log\LoggerInterface;
 use Throwable;
@@ -13,10 +14,12 @@ class ExceptionHandler
 {
     private LoggerInterface $logger;
     private bool $debugMode;
+    private Request $request;
 
-    public function __construct(LoggerInterface $logger, bool $debugMode = false)
+    public function __construct(LoggerInterface $logger, Request $request, bool $debugMode = false)
     {
         $this->logger = $logger;
+        $this->request = $request;
         $this->debugMode = $debugMode;
 
         // Apply PHP internal settings accordingly
@@ -59,9 +62,9 @@ class ExceptionHandler
             'message' => $exception->getMessage(),
             'file' => $exception->getFile(),
             'line' => $exception->getLine(),
-            'request_uri' => $_SERVER['REQUEST_URI'] ?? '',
-            'request_method' => $_SERVER['REQUEST_METHOD'] ?? '',
-            'user_agent' => $_SERVER['HTTP_USER_AGENT'] ?? '',
+            'request_uri' => $this->request->uri(),
+            'request_method' => $this->request->method(),
+            'user_agent' => $this->request->header('User-Agent') ?? '',
         ];
 
         if ($this->debugMode) {
@@ -100,7 +103,7 @@ class ExceptionHandler
         } else {
             // Use context-aware error response (JSON for API/HTMX, HTML otherwise)
             $userMessage = 'A server error occurred. Please try again later.';
-            $response = ResponseFactory::error($userMessage, 500, $errorCode);
+            $response = ResponseFactory::error($this->request, $userMessage, 500, $errorCode);
         }
 
         $response->send();

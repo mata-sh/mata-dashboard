@@ -6,10 +6,10 @@ namespace Mata\Core;
 
 use RuntimeException;
 
-/** Manage the application-owned PHP session lifecycle. */
+/** Manage the application-owned PHP session lifecycle and storage. */
 final class Session
 {
-    public static function start(string $savePath): void
+    public static function start(?string $savePath = null, bool $secureRequest = false): void
     {
         $status = session_status();
         if ($status === PHP_SESSION_ACTIVE) {
@@ -23,7 +23,9 @@ final class Session
             throw new RuntimeException("Cannot start session after headers were sent at {$file}:{$line}");
         }
 
-        self::configureSavePath($savePath);
+        if ($savePath !== null && session_module_name() === 'files') {
+            self::configureSavePath($savePath);
+        }
 
         self::setIni('session.use_strict_mode', '1');
         self::setIni('session.use_only_cookies', '1');
@@ -34,7 +36,7 @@ final class Session
             'lifetime' => $params['lifetime'],
             'path' => $params['path'],
             'domain' => $params['domain'],
-            'secure' => $params['secure'] || self::isSecureRequest(),
+            'secure' => $params['secure'] || $secureRequest,
             'httponly' => true,
             'samesite' => self::sameSite($params),
         ])) {
@@ -46,11 +48,27 @@ final class Session
         }
     }
 
-    public static function assertActive(): void
+    public static function get(string $key): mixed
     {
-        if (session_status() !== PHP_SESSION_ACTIVE) {
-            throw new RuntimeException('Application session has not been started');
-        }
+        return $_SESSION[$key] ?? null;
+    }
+
+    public static function set(string $key, mixed $value): void
+    {
+        self::assertActive();
+        $_SESSION[$key] = $value;
+    }
+
+    public static function remove(string $key): void
+    {
+        self::assertActive();
+        unset($_SESSION[$key]);
+    }
+
+    public static function clear(): void
+    {
+        self::assertActive();
+        $_SESSION = [];
     }
 
     public static function regenerate(): void
@@ -62,7 +80,14 @@ final class Session
         }
     }
 
-    public static function destroy(): void
+    public static function close(): void
+    {
+        if (session_status() === PHP_SESSION_ACTIVE && !session_write_close()) {
+            throw new RuntimeException('Failed to close PHP session');
+        }
+    }
+
+    public static function destroy(bool $secureRequest = false): void
     {
         $sessionName = session_name();
         $params = session_get_cookie_params();
@@ -72,20 +97,14 @@ final class Session
             throw new RuntimeException('Failed to destroy PHP session');
         }
 
-        self::destroyCookie($sessionName, $params);
+        self::destroyCookie($sessionName, $params, $secureRequest);
     }
 
-    public static function isSecureRequest(): bool
+    private static function assertActive(): void
     {
-        if (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') {
-            return true;
+        if (session_status() !== PHP_SESSION_ACTIVE) {
+            throw new RuntimeException('Application session has not been started');
         }
-        if (isset($_SERVER['SERVER_PORT']) && (int) $_SERVER['SERVER_PORT'] === 443) {
-            return true;
-        }
-
-        return isset($_SERVER['HTTP_X_FORWARDED_PROTO'])
-            && strtolower((string) $_SERVER['HTTP_X_FORWARDED_PROTO']) === 'https';
     }
 
     private static function configureSavePath(string $savePath): void
@@ -117,7 +136,7 @@ final class Session
     }
 
     /** @param array<string,mixed> $params */
-    private static function destroyCookie(string $sessionName, array $params): void
+    private static function destroyCookie(string $sessionName, array $params, bool $secureRequest): void
     {
         if ($sessionName === '' || headers_sent()) {
             return;
@@ -127,7 +146,7 @@ final class Session
             'expires' => time() - 3600,
             'path' => $params['path'],
             'domain' => $params['domain'],
-            'secure' => $params['secure'] || self::isSecureRequest(),
+            'secure' => $params['secure'] || $secureRequest,
             'httponly' => true,
             'samesite' => self::sameSite($params),
         ]);

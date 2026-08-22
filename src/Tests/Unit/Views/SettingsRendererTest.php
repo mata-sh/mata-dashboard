@@ -8,8 +8,10 @@ use FilesystemIterator;
 use Mata\Config\Dto\AlarmLimitsConfig;
 use Mata\Config\Dto\MailConfig;
 use Mata\Core\App;
+use Mata\Core\Auth;
 use Mata\Http\Routing\Endpoints;
 use Mata\Services\Alarm\Dto\AlarmLimit;
+use Mata\Tests\Helpers\ApplicationConfigFactory;
 use Mata\Utils\PathResolver;
 use Mata\Utils\Tools;
 use Mata\Views\SettingsRenderer;
@@ -224,8 +226,7 @@ final class SettingsRendererTest extends TestCase
             static fn (string $path): string => str_replace($appPath . '/', '', $path)
         );
 
-        $app = $this->createStub(App::class);
-        $app->paths = $paths;
+        $app = new App($this->createStub(Auth::class), ApplicationConfigFactory::create(), $paths);
 
         return new SettingsRenderer(
             $this->createStub(Environment::class),

@@ -8,6 +8,7 @@ use Exception;
 use InvalidArgumentException;
 use Mata\Config\Dto\ApplicationConfig;
 use Mata\Core\App;
+use Mata\Http\Request;
 use Mata\Http\Responses\HtmlResponse;
 use Mata\Http\Responses\JsonResponse;
 use Mata\Http\Responses\Response;
@@ -80,8 +81,10 @@ class ModalController extends BaseController
         CacheTtlResolver $ttlResolver,
         LogDataTransformer $logTransformer,
         Endpoints $endpoints,
-        array $serversConfig
+        array $serversConfig,
+        ?Request $request = null,
     ) {
+        parent::__construct($request ?? new Request());
         $this->logger = $logger;
         $this->appConfig = $appConfig;
         $this->cacheStore = $cacheStore;

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Mata\Controllers;
 
 use InvalidArgumentException;
+use Mata\Http\Request;
 use Mata\Http\Responses\HtmlResponse;
 use Mata\Http\Responses\JsonResponse;
 use Mata\Http\Responses\Response;
@@ -62,8 +63,10 @@ final class MetricsController extends BaseController
         array $serversConfig = [],
         ?int $cacheTtlSeconds = null,
         array $dashboardChartConfig = [],
-        ?int $dashboardCacheTtl = null
+        ?int $dashboardCacheTtl = null,
+        ?Request $request = null,
     ) {
+        parent::__construct($request ?? new Request());
         $this->logger = $logger;
         $this->metricsViewBuilder = $metricsViewBuilder;
         $this->metricsRenderer = $metricsRenderer;
@@ -525,17 +528,12 @@ final class MetricsController extends BaseController
 
     private function getQueryParam(string $key, string $default = ''): string
     {
-        $value = filter_input(INPUT_GET, $key, FILTER_UNSAFE_RAW);
-
-        if ($value === null && isset($_GET[$key])) {
-            $value = $_GET[$key];
-        }
-
-        if ($value === null || $value === false) {
+        $value = $this->request->queryString($key);
+        if ($value === null) {
             return $default;
         }
 
-        $value = trim((string) $value);
+        $value = trim($value);
 
         return $value === '' ? $default : $value;
     }

@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace Mata\Tests\Unit\Utils;
 
 use Mata\Core\Auth;
+use Mata\Core\Session;
+use Mata\Http\Request;
 use Mata\Tests\TestCase;
 use Psr\Log\NullLogger;
 use RuntimeException;
@@ -19,6 +21,7 @@ use RuntimeException;
 class AuthTest extends TestCase
 {
     private Auth $auth;
+    private Request $request;
     private string $testUsersFile;
     private array $tempFiles = [];
 
@@ -43,8 +46,9 @@ class AuthTest extends TestCase
         chmod($this->testUsersFile, 0600);
 
         $this->startTestRequest();
+        $this->request = new Request(server: ['HTTPS' => 'on']);
 
-        $this->auth = new Auth(new NullLogger(), $this->testUsersFile);
+        $this->auth = new Auth(new NullLogger(), $this->testUsersFile, $this->request);
     }
 
     protected function tearDown(): void
@@ -72,7 +76,7 @@ class AuthTest extends TestCase
         $this->expectException(RuntimeException::class);
         $this->expectExceptionMessage('Users file not found');
 
-        new Auth(new NullLogger(), '/nonexistent/users.json');
+        new Auth(new NullLogger(), '/nonexistent/users.json', $this->request);
     }
 
     /**
@@ -472,7 +476,7 @@ class AuthTest extends TestCase
         ];
         file_put_contents($this->testUsersFile, json_encode([$lockedOutUser], JSON_PRETTY_PRINT));
         chmod($this->testUsersFile, 0600);
-        $auth = new Auth(new NullLogger(), $this->testUsersFile);
+        $auth = new Auth(new NullLogger(), $this->testUsersFile, $this->request);
 
         // One typo after the lockout expired must not instantly re-lock the
         // account for another full window.
@@ -579,7 +583,7 @@ class AuthTest extends TestCase
         $this->expectException(RuntimeException::class);
         $this->expectExceptionMessage('insecure permissions');
 
-        new Auth(new NullLogger(), $insecureFile);
+        new Auth(new NullLogger(), $insecureFile, $this->request);
     }
 
     /**
@@ -589,9 +593,10 @@ class AuthTest extends TestCase
     public function testItAllowsMissingFileInCliMode(): void
     {
         $nonexistentFile = sys_get_temp_dir() . '/nonexistent_users_' . uniqid() . '.json';
+        Session::close();
 
         // In CLI mode, missing file should not throw
-        $auth = new Auth(new NullLogger(), $nonexistentFile, true);
+        $auth = new Auth(new NullLogger(), $nonexistentFile, $this->request, true);
 
         $this->assertInstanceOf(Auth::class, $auth);
     }
@@ -603,7 +608,7 @@ class AuthTest extends TestCase
     public function testItReportsMissingUsersDirectoryWhenCliSaves(): void
     {
         $usersFile = sys_get_temp_dir() . '/missing_users_directory_' . uniqid() . '/users.json';
-        $auth = new Auth(new NullLogger(), $usersFile, true);
+        $auth = new Auth(new NullLogger(), $usersFile, $this->request, true);
 
         $this->expectException(RuntimeException::class);
         $this->expectExceptionMessage('Users directory is not writable');
@@ -633,7 +638,7 @@ class AuthTest extends TestCase
         chmod($cliFile, 0644); // Would normally fail
 
         // Should not throw in CLI mode
-        $auth = new Auth(new NullLogger(), $cliFile, true);
+        $auth = new Auth(new NullLogger(), $cliFile, $this->request, true);
         $this->assertInstanceOf(Auth::class, $auth);
     }
 
@@ -650,7 +655,7 @@ class AuthTest extends TestCase
         chmod($cliFile, 0600);
 
         // Create Auth in CLI mode (no login required)
-        $auth = new Auth(new NullLogger(), $cliFile, true);
+        $auth = new Auth(new NullLogger(), $cliFile, $this->request, true);
 
         // Should be able to create user without being logged in as admin
         $result = $auth->createUser('cliuser', 'password123', 'admin');
@@ -683,7 +688,7 @@ class AuthTest extends TestCase
         file_put_contents($this->testUsersFile, json_encode($users, JSON_PRETTY_PRINT));
 
         // Re-initialize Auth to load the modified file
-        $this->auth = new Auth(new NullLogger(), $this->testUsersFile);
+        $this->auth = new Auth(new NullLogger(), $this->testUsersFile, $this->request);
         $this->auth->logout();
         $this->startTestRequest();
 
@@ -745,7 +750,7 @@ class AuthTest extends TestCase
         $this->expectException(RuntimeException::class);
         $this->expectExceptionMessage('Invalid JSON in users file');
 
-        new Auth(new NullLogger(), $corruptedFile);
+        new Auth(new NullLogger(), $corruptedFile, $this->request);
     }
 
     /**
@@ -935,13 +940,5 @@ class AuthTest extends TestCase
         $this->expectExceptionMessage('Unauthorized: Admin access required');
 
         $this->auth->unlockUser('admin');
-    }
-
-    private function startTestRequest(): void
-    {
-        if (session_status() !== PHP_SESSION_ACTIVE) {
-            session_start();
-        }
-        $_SESSION = [];
     }
 }

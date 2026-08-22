@@ -78,6 +78,14 @@ abstract class TestCase extends BaseTestCase
         $property->setValue($obj, $value);
     }
 
+    protected function startTestRequest(): void
+    {
+        if (session_status() !== PHP_SESSION_ACTIVE) {
+            session_start();
+        }
+        $_SESSION = [];
+    }
+
     /**
      * Create temporary file for testing.
      *

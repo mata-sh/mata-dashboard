@@ -24,7 +24,6 @@ final class SessionTest extends TestCase
     private array $originalSessionIni;
 
     private string $sessionDirectory;
-    private array $server;
     private array $cookies;
 
     protected function setUp(): void
@@ -39,9 +38,7 @@ final class SessionTest extends TestCase
             $this->originalSessionIni[$option] = (string) ini_get($option);
         }
         $this->sessionDirectory = sys_get_temp_dir() . '/mata_session_test_' . bin2hex(random_bytes(5));
-        $this->server = $_SERVER;
         $this->cookies = $_COOKIE;
-        $_SERVER['HTTPS'] = 'on';
     }
 
     protected function tearDown(): void
@@ -55,7 +52,6 @@ final class SessionTest extends TestCase
         foreach ($this->originalSessionIni as $option => $value) {
             ini_set($option, $value);
         }
-        $_SERVER = $this->server;
         $_COOKIE = $this->cookies;
         $this->removeDirectory($this->sessionDirectory);
         parent::tearDown();
@@ -63,7 +59,7 @@ final class SessionTest extends TestCase
 
     public function testStartIsIdempotentAndAppliesSecurePolicy(): void
     {
-        Session::start($this->sessionDirectory);
+        Session::start($this->sessionDirectory, true);
         $id = session_id();
         Session::start('/path/ignored/after/start');
 
@@ -74,6 +70,13 @@ final class SessionTest extends TestCase
         self::assertTrue(session_get_cookie_params()['httponly']);
         self::assertSame('Lax', session_get_cookie_params()['samesite']);
         self::assertSame('0700', substr(sprintf('%o', fileperms($this->sessionDirectory)), -4));
+    }
+
+    public function testStartWithNullPathRetainsConfiguredSavePath(): void
+    {
+        Session::start();
+
+        self::assertSame($this->originalSavePath, session_save_path());
     }
 
     public function testRegenerateFailsWithoutAnActiveSession(): void
@@ -88,7 +91,7 @@ final class SessionTest extends TestCase
     {
         Session::start($this->sessionDirectory);
         $oldId = session_id();
-        $_SESSION['value'] = 'secret';
+        Session::set('value', 'secret');
 
         Session::regenerate();
         self::assertNotSame($oldId, session_id());
@@ -96,6 +99,22 @@ final class SessionTest extends TestCase
         Session::destroy();
         self::assertSame(PHP_SESSION_NONE, session_status());
         self::assertSame([], $_SESSION);
+    }
+
+    public function testStaticStorageMethods(): void
+    {
+        Session::start($this->sessionDirectory);
+        Session::set('value', ['key' => 'secret']);
+
+        self::assertSame(['key' => 'secret'], Session::get('value'));
+        Session::remove('value');
+        self::assertNull(Session::get('value'));
+
+        Session::set('value', 'secret');
+        Session::clear();
+        self::assertNull(Session::get('value'));
+        Session::close();
+        self::assertSame(PHP_SESSION_NONE, session_status());
     }
 
     public function testInvalidSavePathFailsStartup(): void

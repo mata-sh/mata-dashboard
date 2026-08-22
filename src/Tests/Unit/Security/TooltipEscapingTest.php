@@ -11,14 +11,13 @@ use Mata\Services\Event\EventManager;
 use Mata\Services\Monitor\LogSizeEvaluator;
 use Mata\Services\Monitor\ServerMonitor;
 use Mata\Services\View\ServerViewBuilder;
+use Mata\Tests\TestCase;
 use Mata\Utils\Tools;
 use Mata\Views\LogRenderer;
 use Mata\Views\ServerRenderer;
 use Monolog\Logger;
-use PHPUnit\Framework\TestCase;
 use RecursiveDirectoryIterator;
 use RecursiveIteratorIterator;
-use ReflectionMethod;
 use Twig\Environment;
 
 /**
@@ -41,7 +40,7 @@ class TooltipEscapingTest extends TestCase
             new CacheTypeResolver()
         );
 
-        $result = $this->invokePrivate($builder, 'formatSessionDataForView', [[
+        $result = $this->invokeMethod($builder, 'formatSessionDataForView', [[
             'session' => [
                 'type' => 'file',
                 'status' => 'ok',
@@ -71,7 +70,7 @@ class TooltipEscapingTest extends TestCase
             new CacheTypeResolver()
         );
 
-        $result = $this->invokePrivate($builder, 'formatSessionDataForView', [[
+        $result = $this->invokeMethod($builder, 'formatSessionDataForView', [[
             'session' => [
                 'type' => '<b>evil</b>',
                 'status' => 'error',
@@ -96,7 +95,7 @@ class TooltipEscapingTest extends TestCase
     {
         $renderer = $this->createServerRenderer();
 
-        $result = $this->invokePrivate($renderer, 'buildOfflineAvailabilityData', [[
+        $result = $this->invokeMethod($renderer, 'buildOfflineAvailabilityData', [[
             'reachable' => false,
             'error' => '<script>alert(1)</script>',
             'httpCode' => 503,
@@ -151,7 +150,7 @@ class TooltipEscapingTest extends TestCase
             $logRenderer
         );
 
-        $result = $this->invokePrivate($renderer, 'buildAppCardData', [
+        $result = $this->invokeMethod($renderer, 'buildAppCardData', [
             'app-key',
             [
                 'title' => 'App',
@@ -204,16 +203,6 @@ class TooltipEscapingTest extends TestCase
         }
 
         $this->assertSame([], $violations);
-    }
-
-    /**
-     * @param array<int,mixed> $args
-     */
-    private function invokePrivate(object $object, string $method, array $args): mixed
-    {
-        $reflection = new ReflectionMethod($object, $method);
-
-        return $reflection->invokeArgs($object, $args);
     }
 
     private function createServerRenderer(): ServerRenderer

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Mata\Controllers;
 
 use Exception;
+use Mata\Http\Request;
 use Mata\Http\Responses\Response;
 use Mata\Http\Responses\ResponseFactory;
 use Monolog\Logger;
@@ -18,6 +19,8 @@ use Monolog\Logger;
 abstract class BaseController
 {
     protected Logger $logger;
+
+    public function __construct(protected Request $request) {}
 
     /**
      * Handle exceptions with consistent logging and user-friendly responses.
@@ -50,12 +53,12 @@ abstract class BaseController
         }
 
         // Add request context if available
-        if (!empty($_SERVER['REQUEST_URI'])) {
-            $logContext['request_uri'] = $_SERVER['REQUEST_URI'];
+        if ($this->request->uri() !== '') {
+            $logContext['request_uri'] = $this->request->uri();
         }
 
-        if (!empty($_SERVER['REQUEST_METHOD'])) {
-            $logContext['request_method'] = $_SERVER['REQUEST_METHOD'];
+        if ($this->request->method() !== '') {
+            $logContext['request_method'] = $this->request->method();
         }
 
         // Log the error
@@ -63,7 +66,7 @@ abstract class BaseController
         $this->logger->error($logMessage, $logContext);
 
         // Return appropriate response
-        return ResponseFactory::error($userMessage, $statusCode, $errorCode, $exception);
+        return ResponseFactory::error($this->request, $userMessage, $statusCode, $errorCode, $exception);
     }
 
     /**
@@ -80,7 +83,7 @@ abstract class BaseController
     ): Response {
         $this->logger->warning($message, [
             'errors' => $errors,
-            'request_uri' => $_SERVER['REQUEST_URI'] ?? '',
+            'request_uri' => $this->request->uri(),
         ]);
 
         return ResponseFactory::validationError($errors);
@@ -104,7 +107,7 @@ abstract class BaseController
     {
         $logContext = [
             'resource' => $resource,
-            'request_uri' => $_SERVER['REQUEST_URI'] ?? '',
+            'request_uri' => $this->request->uri(),
         ];
 
         if ($context !== '') {
@@ -133,39 +136,5 @@ abstract class BaseController
         } catch (Exception $e) {
             return $this->handleError($e, $userMessage, $context);
         }
-    }
-
-    /**
-     * Check if request is authorized.
-     *
-     * @return bool True if authorized
-     */
-    protected function isAuthorized(): bool
-    {
-        // This can be overridden by child controllers for specific auth logic
-        return true;
-    }
-
-    /**
-     * Handle unauthorized access.
-     *
-     * @param string $context Additional context for logging
-     *
-     * @return Response Unauthorized response
-     */
-    protected function handleUnauthorized(string $context = ''): Response
-    {
-        $logContext = [
-            'request_uri' => $_SERVER['REQUEST_URI'] ?? '',
-            'user_agent' => $_SERVER['HTTP_USER_AGENT'] ?? '',
-        ];
-
-        if (!empty($context)) {
-            $logContext['context'] = $context;
-        }
-
-        $this->logger->warning('Unauthorized access attempt', $logContext);
-
-        return ResponseFactory::unauthorized();
     }
 }

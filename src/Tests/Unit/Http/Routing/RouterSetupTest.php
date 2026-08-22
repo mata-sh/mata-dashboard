@@ -13,12 +13,16 @@ use Mata\Controllers\MetricsController;
 use Mata\Controllers\ModalController;
 use Mata\Core\App;
 use Mata\Core\Auth;
+use Mata\Core\Session;
+use Mata\Http\Request;
 use Mata\Http\Responses\HtmlResponse;
 use Mata\Http\Routing\Endpoints;
 use Mata\Http\Routing\RouterSetup;
 use Mata\Http\Security\CsrfGuard;
 use Mata\Http\Security\RouteParameter;
+use Mata\Tests\Helpers\ApplicationConfigFactory;
 use Mata\Tests\TestCase;
+use Mata\Utils\PathResolver;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Psr\Log\LoggerInterface;
 use ReflectionClass;
@@ -32,6 +36,15 @@ use Twig\Environment;
  */
 class RouterSetupTest extends TestCase
 {
+    protected function setUp(): void
+    {
+        parent::setUp();
+        if (session_status() !== PHP_SESSION_ACTIVE) {
+            session_start();
+        }
+        $_SESSION = [];
+    }
+
     public function testItProtectsWatchAndApiRoutesForEveryRequestMethod(): void
     {
         $beforeCalls = $this->collectProtectedRouteMiddlewareCalls();
@@ -67,6 +80,7 @@ class RouterSetupTest extends TestCase
         $server = $_SERVER;
         unset($_SERVER['HTTP_ACCEPT'], $_SERVER['HTTP_HX_REQUEST']);
         $_SERVER['REQUEST_URI'] = '/watch';
+        $_SERVER['SCRIPT_NAME'] = '/index.php';
 
         try {
             $twig = $this->createMock(Environment::class);
@@ -112,8 +126,7 @@ class RouterSetupTest extends TestCase
         $auth = $this->createMock(Auth::class);
         $auth->expects($this->once())->method('check')->willReturn(true);
 
-        $app = $this->createStub(App::class);
-        $app->auth = $auth;
+        $app = new App($auth, ApplicationConfigFactory::create(), $this->createStub(PathResolver::class));
         $router = new Router();
         $router->get('/watch', static function (): void {});
 
@@ -178,8 +191,7 @@ class RouterSetupTest extends TestCase
             ->willReturn(true)
         ;
 
-        $app = $this->createStub(App::class);
-        $app->auth = $auth;
+        $app = new App($auth, ApplicationConfigFactory::create(), $this->createStub(PathResolver::class));
 
         $setup = $this->createRouterSetup(router: $router, app: $app);
         $this->invokeMethod($setup, 'setupProtectedRouteAuth');
@@ -202,8 +214,9 @@ class RouterSetupTest extends TestCase
         $this->resetCsrfGlobals();
         $csrfMiddleware = $this->collectCsrfMiddlewareCall()['handler'];
 
-        $_SESSION[CsrfGuard::SESSION_KEY] = 'session-token';
-        $_POST[CsrfGuard::FIELD_NAME] = 'session-token';
+        Session::set(CsrfGuard::SESSION_KEY, 'session-token');
+        $request = new Request(post: [CsrfGuard::FIELD_NAME => 'session-token']);
+        $csrfMiddleware = $this->collectCsrfMiddlewareCall($request)['handler'];
 
         $this->assertNull($csrfMiddleware());
     }
@@ -335,7 +348,7 @@ class RouterSetupTest extends TestCase
     /**
      * @return array{methods:string,pattern:string,handler:callable}
      */
-    private function collectCsrfMiddlewareCall(): array
+    private function collectCsrfMiddlewareCall(?Request $request = null): array
     {
         $csrfMiddleware = null;
         $router = $this->createStub(Router::class);
@@ -351,7 +364,7 @@ class RouterSetupTest extends TestCase
             })
         ;
 
-        $setup = $this->createRouterSetup($router);
+        $setup = $this->createRouterSetup(router: $router, request: $request);
         $this->invokeMethod($setup, 'setupCsrfProtection');
 
         $this->assertIsArray($csrfMiddleware);
@@ -391,7 +404,8 @@ class RouterSetupTest extends TestCase
         ?App $app = null,
         ?Endpoints $endpoints = null,
         ?Environment $twig = null,
-        ?LoggerInterface $logger = null
+        ?LoggerInterface $logger = null,
+        ?Request $request = null,
     ): RouterSetup {
         return new RouterSetup(
             $router ?? $this->createStub(Router::class),
@@ -402,9 +416,10 @@ class RouterSetupTest extends TestCase
             $this->createStub(ModalController::class),
             $this->createMetricsController(),
             $endpoints ?? new Endpoints(),
-            new CsrfGuard(),
+            new CsrfGuard($request ?? new Request()),
             $twig ?? $this->createStub(Environment::class),
-            $logger ?? $this->createStub(LoggerInterface::class)
+            $logger ?? $this->createStub(LoggerInterface::class),
+            $request ?? new Request(),
         );
     }
 
@@ -421,9 +436,6 @@ class RouterSetupTest extends TestCase
         $auth = $this->createStub(Auth::class);
         $auth->method('check')->willReturn(true);
 
-        $app = $this->createStub(App::class);
-        $app->auth = $auth;
-
-        return $app;
+        return new App($auth, ApplicationConfigFactory::create(), $this->createStub(PathResolver::class));
     }
 }

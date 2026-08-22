@@ -27,6 +27,7 @@ use Mata\Core\App;
 use Mata\Core\Auth;
 use Mata\Core\ExceptionHandler;
 use Mata\Core\Session;
+use Mata\Http\Request;
 use Mata\Http\Routing\Endpoints;
 use Mata\Http\Routing\RouterSetup;
 use Mata\Http\Security\CsrfGuard;
@@ -81,6 +82,8 @@ use Twig\Loader\FilesystemLoader;
 // ************************************************************************************************
 require_once '../vendor/autoload.php';
 
+$request = Request::fromGlobals();
+
 // ************************************************************************************************
 // Path & Tools Initialization
 // ************************************************************************************************
@@ -108,8 +111,7 @@ $loader = new FilesystemLoader($paths->appPath . '/templates');
 $twig = new Environment($loader, ['autoescape' => 'html']);
 
 // Configuration failures occur before App initialization; derive the public asset path from the request.
-$scriptDirectory = dirname($_SERVER['SCRIPT_NAME'] ?? '/index.php');
-$errorAssetBaseUrl = ($scriptDirectory === '/' ? '' : rtrim($scriptDirectory, '/')) . '/assets';
+$errorAssetBaseUrl = rtrim($request->scriptDirectory(), '/') . '/assets';
 
 // ************************************************************************************************
 // Config Initialization
@@ -154,7 +156,7 @@ try {
 // ************************************************************************************************
 // HTTP Security Headers
 // ************************************************************************************************
-SecurityHeaders::apply($appConfig->general->securityHeadersEnabled);
+SecurityHeaders::apply($request, $appConfig->general->securityHeadersEnabled);
 
 // ************************************************************************************************
 // Setting Environment & configurable Paths
@@ -172,12 +174,12 @@ ini_set('display_errors', 0);
 // ************************************************************************************************
 // Global Error and Session Handling
 // ************************************************************************************************
-$exceptionHandler = new ExceptionHandler($log, $appConfig->template->debugEnabled);
+$exceptionHandler = new ExceptionHandler($log, $request, $appConfig->template->debugEnabled);
 $exceptionHandler->register();
 (new MonologErrorHandler($log))
     ->registerErrorHandler(callPrevious: true)
     ->registerFatalHandler();
-Session::start($paths->tempPath . '/sessions');
+Session::start($paths->tempPath . '/sessions', $request->isSecure());
 
 // ************************************************************************************************
 // Instance Branding (app name + assets)
@@ -215,7 +217,7 @@ $usersFilePath = null;
 
 try {
     $usersFilePath = UsersFilePathResolver::resolve($paths->appPath);
-    $auth = new Auth($log, $usersFilePath);
+    $auth = new Auth($log, $usersFilePath, $request);
 } catch (Throwable $e) {
     $log->critical('Authentication initialization failed: ' . $e->getMessage());
 
@@ -248,9 +250,8 @@ try {
 // Rate Limiter Setup
 // ************************************************************************************************
 $requestRateLimiter = RequestRateLimiterFactory::create($appConfig->rateLimiting, $log);
-$app = new App($auth, $appConfig, $paths, $requestRateLimiter);
-$app->setBaseUrl($appConfig->environment->domain);
-$csrf = new CsrfGuard();
+$app = new App($auth, $appConfig, $paths, $requestRateLimiter, $request);
+$csrf = new CsrfGuard($request);
 $twig->addGlobal('csrf', $csrf);
 
 // ************************************************************************************************
@@ -412,7 +413,7 @@ $dashboardMonitoringContext = DashboardMonitoringContext::fromSettingsAndService
 // ************************************************************************************************
 // Controllers
 // ************************************************************************************************
-$loginController = new LoginController($app, $tools, $twig, $csrf);
+$loginController = new LoginController($app, $tools, $twig, $csrf, $request);
 $dashboardController = new DashboardController(
     $app,
     $tools,
@@ -428,6 +429,7 @@ $dashboardController = new DashboardController(
     $dashboardMonitoringContext,
     $appInventorySync,
     $limitsConfig,
+    $request,
 );
 
 $logDataTransformer = new LogDataTransformer($log);
@@ -443,6 +445,7 @@ $auditController = new AuditController(
     $ttlResolver,
     $endpoints,
     $serverSettings,
+    $request,
 );
 
 $modalController = new ModalController(
@@ -457,6 +460,7 @@ $modalController = new ModalController(
     $logDataTransformer,
     $endpoints,
     $serverSettings,
+    $request,
 );
 
 $metricsQueryFactory = new ServerMetricsQueryFactory($environment, $db, $idResolver);
@@ -500,7 +504,8 @@ $metricsController = new MetricsController(
     $serverSettings,
     isset($monitoringSettings['ttl']['metrics']) ? (int) $monitoringSettings['ttl']['metrics'] : null,
     $metricsDashboardConfig,
-    $metricsDashboardTtl
+    $metricsDashboardTtl,
+    $request,
 );
 
 // ************************************************************************************************
@@ -519,7 +524,8 @@ $routerSetup = new RouterSetup(
     $endpoints,
     $csrf,
     $twig,
-    $log
+    $log,
+    $request,
 );
 
 $routerSetup->setup();

@@ -6,6 +6,7 @@ namespace Mata\Tests\Unit\Core;
 
 use ErrorException;
 use Mata\Core\ExceptionHandler;
+use Mata\Http\Request;
 use Monolog\Logger;
 use PHPUnit\Framework\TestCase;
 use Psr\Log\NullLogger;
@@ -38,14 +39,14 @@ final class ExceptionHandlerTest extends TestCase
 
     public function testProductionErrorsRemainHandledWithoutConversion(): void
     {
-        $handler = new ExceptionHandler(new NullLogger(), false);
+        $handler = new ExceptionHandler(new NullLogger(), new Request(), false);
 
         self::assertTrue($handler->handleError(E_WARNING, 'warning', __FILE__, __LINE__));
     }
 
     public function testDebugErrorsBecomeErrorExceptions(): void
     {
-        $handler = new ExceptionHandler(new NullLogger(), true);
+        $handler = new ExceptionHandler(new NullLogger(), new Request(), true);
         $this->expectException(ErrorException::class);
 
         $handler->handleError(E_WARNING, 'warning', __FILE__, __LINE__);
@@ -58,7 +59,7 @@ final class ExceptionHandlerTest extends TestCase
         $method = new ReflectionMethod(ExceptionHandler::class, 'sendErrorResponse');
 
         ob_start();
-        $method->invoke(new ExceptionHandler(new NullLogger(), false), new RuntimeException('database password secret'));
+        $method->invoke(new ExceptionHandler(new NullLogger(), new Request(), false), new RuntimeException('database password secret'));
         $output = ob_get_clean();
 
         self::assertIsString($output);
@@ -68,7 +69,7 @@ final class ExceptionHandlerTest extends TestCase
 
     public function testRegisterInstallsApplicationHandlers(): void
     {
-        $handler = new ExceptionHandler(new Logger('test'), false);
+        $handler = new ExceptionHandler(new Logger('test'), new Request(), false);
         $handler->register();
 
         $previousError = set_error_handler(static fn (): bool => true);

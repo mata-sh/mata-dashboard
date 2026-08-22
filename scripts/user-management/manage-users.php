@@ -6,6 +6,7 @@ declare(strict_types=1);
 require_once __DIR__ . '/../../vendor/autoload.php';
 
 use Mata\Core\Auth;
+use Mata\Http\Request;
 use Mata\Utils\UsersFilePathResolver;
 use Monolog\Formatter\LineFormatter;
 use Monolog\Handler\StreamHandler;
@@ -213,7 +214,14 @@ $logger->info('User management script started', [
     'pid' => getmypid(),
 ]);
 
-$auth = new Auth($logger, $usersFile, true); // Enable CLI mode
+$request = new Request();
+$auth = new Auth(
+    logger: $logger,
+    usersFile: $usersFile,
+    request: $request,
+    cliMode: true,
+    cliScriptPath: $argv[0] ?? null
+);
 
 echo "🔧 Environment: {$env}\n";
 echo "📁 Users file: {$usersFile}\n\n";

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Mata\Core;
 
 use Mata\Config\Dto\ApplicationConfig;
+use Mata\Http\Request;
 use Mata\Http\Security\RateLimiting\RequestRateLimiter;
 use Mata\Utils\PathResolver;
 
@@ -13,11 +14,11 @@ use Mata\Utils\PathResolver;
  */
 class App
 {
-    public Auth $auth;
-    public ApplicationConfig $config;
-    public PathResolver $paths;
-    public ?RequestRateLimiter $rateLimiter = null;
-    public string $baseUrl = '';
+    public readonly Auth $auth;
+    public readonly ApplicationConfig $config;
+    public readonly PathResolver $paths;
+    public readonly ?RequestRateLimiter $rateLimiter;
+    public readonly Request $request;
     private string $basePath = '';
 
     /**
@@ -27,64 +28,15 @@ class App
         Auth $auth,
         ApplicationConfig $config,
         PathResolver $paths,
-        ?RequestRateLimiter $rateLimiter = null
+        ?RequestRateLimiter $rateLimiter = null,
+        ?Request $request = null,
     ) {
         $this->auth = $auth;
         $this->config = $config;
         $this->paths = $paths;
         $this->rateLimiter = $rateLimiter;
+        $this->request = $request ?? new Request();
         $this->detectBasePath();
-    }
-
-    /**
-     * Auto-detect base URL path from HTTP request.
-     *
-     * Handles different deployment scenarios:
-     * - Production: mata.mydomain.com/ → SCRIPT_NAME: /index.php → basePath: ''
-     * - Development: localhost:8001/public/ → SCRIPT_NAME: /public/index.php → basePath: '/public'
-     */
-    private function detectBasePath(): void
-    {
-        $scriptName = $_SERVER['SCRIPT_NAME'] ?? '/index.php';
-        $scriptDir = dirname($scriptName);
-        // If we're in root directory, no base path needed
-        $this->basePath = ($scriptDir === '/') ? '' : $scriptDir;
-    }
-
-    /**
-     * Auto-detect protocol from current request.
-     *
-     * @return string 'http' or 'https'
-     */
-    private function detectProtocol(): string
-    {
-        // Check if HTTPS is enabled
-        if (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') {
-            return 'https';
-        }
-
-        // Check REQUEST_SCHEME (more reliable than HTTPS header)
-        if (isset($_SERVER['REQUEST_SCHEME'])) {
-            return $_SERVER['REQUEST_SCHEME'];
-        }
-
-        // Check if forwarded from proxy (common in Docker/cloud setups)
-        if (isset($_SERVER['HTTP_X_FORWARDED_PROTO'])) {
-            return $_SERVER['HTTP_X_FORWARDED_PROTO'];
-        }
-
-        // Default to HTTP
-        return 'http';
-    }
-
-    /**
-     * Require user authentication, redirect to login if not authenticated.
-     */
-    public function requireAuth(): void
-    {
-        if (!$this->auth->check()) {
-            $this->redirect($this->paths->appPath . 'login');
-        }
     }
 
     /**
@@ -131,24 +83,10 @@ class App
         return $this->auth->getUser();
     }
 
-    /**
-     * Set base URL for the application.
-     *
-     * @param string $url Base URL including protocol and domain
-     */
-    public function setBaseUrl(string $url): void
+    /** Get the configured application host. */
+    public function getBaseHost(): string
     {
-        $this->baseUrl = $url;
-    }
-
-    /**
-     * Get configured base URL for the application.
-     *
-     * @return string Base URL or empty string if not set
-     */
-    public function getBaseUrl(): string
-    {
-        return $this->baseUrl;
+        return $this->config->environment->domain;
     }
 
     /**
@@ -168,9 +106,14 @@ class App
      */
     public function getFullBaseUrl(): string
     {
-        $protocol = $this->detectProtocol();
-        $host = $_SERVER['HTTP_HOST'] ?? $this->baseUrl;
+        $protocol = $this->request->protocol();
+        $host = $this->request->host() ?? $this->getBaseHost();
 
         return $protocol . '://' . $host . $this->basePath;
+    }
+
+    private function detectBasePath(): void
+    {
+        $this->basePath = $this->request->scriptDirectory();
     }
 }

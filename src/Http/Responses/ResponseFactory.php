@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Mata\Http\Responses;
 
 use Exception;
+use Mata\Http\Request;
 
 /**
  * Response factory for creating standardized HTTP responses.
@@ -102,33 +103,32 @@ class ResponseFactory
     /**
      * Detect if the current request is an HTMX request.
      */
-    public static function isHtmxRequest(): bool
+    public static function isHtmxRequest(Request $request): bool
     {
-        return isset($_SERVER['HTTP_HX_REQUEST']) && $_SERVER['HTTP_HX_REQUEST'] === 'true';
+        return $request->header('HX-Request') === 'true';
     }
 
     /**
      * Detect if the current request expects JSON response.
      */
-    public static function expectsJson(): bool
+    public static function expectsJson(Request $request): bool
     {
-        $acceptHeader = $_SERVER['HTTP_ACCEPT'] ?? '';
-
-        return self::isHtmxRequest()
-               || str_contains($acceptHeader, 'application/json')
-               || str_contains($_SERVER['REQUEST_URI'] ?? '', '/api/');
+        return self::isHtmxRequest($request)
+               || str_contains($request->header('Accept') ?? '', 'application/json')
+               || str_contains($request->uri(), '/api/');
     }
 
     /**
      * Create context-aware error response based on request type.
      */
     public static function error(
+        Request $request,
         string $userMessage,
         int $statusCode = 500,
         ?string $errorCode = null,
         ?Exception $exception = null
     ): Response {
-        if (self::expectsJson()) {
+        if (self::expectsJson($request)) {
             $data = [
                 'error' => true,
                 'message' => $userMessage,
@@ -191,37 +191,41 @@ class ResponseFactory
      * Create server error response (500).
      */
     public static function serverError(
+        Request $request,
         string $message = 'Internal server error',
         ?string $errorCode = null
     ): Response {
-        return self::error($message, 500, $errorCode);
+        return self::error($request, $message, 500, $errorCode);
     }
 
     /**
      * Create bad request response (400).
      */
     public static function badRequest(
+        Request $request,
         string $message = 'Bad request',
         ?string $errorCode = null
     ): Response {
-        return self::error($message, 400, $errorCode);
+        return self::error($request, $message, 400, $errorCode);
     }
 
     /**
      * Create unauthorized response (401).
      */
     public static function unauthorized(
+        Request $request,
         string $message = 'Unauthorized'
     ): Response {
-        return self::error($message, 401, 'UNAUTHORIZED');
+        return self::error($request, $message, 401, 'UNAUTHORIZED');
     }
 
     /**
      * Create forbidden response (403).
      */
     public static function forbidden(
+        Request $request,
         string $message = 'Forbidden'
     ): Response {
-        return self::error($message, 403, 'FORBIDDEN');
+        return self::error($request, $message, 403, 'FORBIDDEN');
     }
 }

@@ -8,7 +8,9 @@ use Exception;
 use Mata\Config\Dto\ApplicationConfig;
 use Mata\Controllers\DashboardController;
 use Mata\Core\App;
+use Mata\Core\Auth;
 use Mata\Database\DatabaseInterface;
+use Mata\Http\Request;
 use Mata\Http\Responses\HtmlResponse;
 use Mata\Http\Responses\JsonResponse;
 use Mata\Http\Routing\Endpoints;
@@ -88,14 +90,23 @@ class DashboardControllerTest extends TestCase
         // Create mocks for dependencies
         $this->logger = $this->createMock(Logger::class);
         $this->twig = $this->createMock(Environment::class);
-        $this->app = $this->createMock(App::class);
         $this->tools = $this->createMock(Tools::class);
+
+        // Create application config with nested DTOs (using real instances since they're final)
+        $this->appConfig = ApplicationConfigFactory::create(
+            environment: ApplicationConfigFactory::createEnvironmentConfig(env: 'demo'),
+            dashboard: ApplicationConfigFactory::createDashboardConfig(serverColumns: 3, containerWidth: 1344),
+        );
 
         // Mock PathResolver for App
         $mockPaths = $this->createMock(PathResolver::class);
         $mockPaths->method('toRelativePath')->willReturnCallback(fn ($path) => ltrim(str_replace('/tmp/', '', $path), '/'));
         $mockPaths->appPath = '/tmp/test-app';
-        $this->app->paths = $mockPaths;
+        $this->app = $this->getMockBuilder(App::class)
+            ->setConstructorArgs([$this->createStub(Auth::class), $this->appConfig, $mockPaths])
+            ->onlyMethods(['getBaseHost', 'getFullBaseUrl'])
+            ->getMock()
+        ;
         // NotificationManager is final, so we create a real instance with NullDatabase
         $this->notificationManager = NotificationManagerFactory::create($this->logger);
         $this->eventManager = $this->createMock(EventManager::class);
@@ -106,14 +117,8 @@ class DashboardControllerTest extends TestCase
         $this->menuBuilder = $this->createMock(MenuBuilder::class);
         $this->twig->method('render')->willReturn('<html></html>');
         $this->menuBuilder->method('buildDashboardMenu')->willReturn([]);
-        $this->app->method('getBaseUrl')->willReturn('/');
+        $this->app->method('getBaseHost')->willReturn('/');
         $this->app->method('getFullBaseUrl')->willReturn('http://localhost');
-
-        // Create application config with nested DTOs (using real instances since they're final)
-        $this->appConfig = ApplicationConfigFactory::create(
-            environment: ApplicationConfigFactory::createEnvironmentConfig(env: 'demo'),
-            dashboard: ApplicationConfigFactory::createDashboardConfig(serverColumns: 3, containerWidth: 1344),
-        );
 
         // Default monitoring settings - production environment with real collectors
         $this->monitoringSettings = [
@@ -720,7 +725,11 @@ class DashboardControllerTest extends TestCase
             $this->cacheKeyFactory,
             $this->endpoints,
             $this->menuBuilder,
-            $this->monitoringContext()
+            $this->monitoringContext(),
+            request: new Request(server: [
+                'REQUEST_URI' => '/api/events',
+                'HTTP_ACCEPT' => 'application/json',
+            ]),
         );
 
         // Mock the aggregator service to throw exception
@@ -898,10 +907,9 @@ class DashboardControllerTest extends TestCase
             $this->cacheKeyFactory,
             $this->endpoints,
             $this->menuBuilder,
-            $this->monitoringContext()
+            $this->monitoringContext(),
+            request: new Request(post: ['action' => 'dismiss']),
         );
-
-        $_POST['action'] = 'dismiss';
 
         // Act
         $response = $this->controller->acknowledgeDatabaseNotice('snooze');
@@ -913,8 +921,6 @@ class DashboardControllerTest extends TestCase
         $this->assertIsArray($responseData);
         $this->assertArrayHasKey('success', $responseData);
 
-        // Cleanup
-        unset($_POST['action']);
     }
 
     /**
@@ -939,11 +945,9 @@ class DashboardControllerTest extends TestCase
             $this->cacheKeyFactory,
             $this->endpoints,
             $this->menuBuilder,
-            $this->monitoringContext()
+            $this->monitoringContext(),
+            request: new Request(),
         );
-
-        // No POST data
-        unset($_POST['action']);
 
         // Act
         $response = $this->controller->acknowledgeDatabaseNotice('reset');

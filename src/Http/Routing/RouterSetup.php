@@ -11,6 +11,7 @@ use Mata\Controllers\LoginController;
 use Mata\Controllers\MetricsController;
 use Mata\Controllers\ModalController;
 use Mata\Core\App;
+use Mata\Http\Request;
 use Mata\Http\Responses\HtmlResponse;
 use Mata\Http\Responses\Response;
 use Mata\Http\Responses\ResponseFactory;
@@ -41,6 +42,7 @@ class RouterSetup
     private CsrfGuard $csrf;
     private Environment $twig;
     private LoggerInterface $logger;
+    private Request $request;
     private string $baseRoute;
 
     /**
@@ -59,7 +61,8 @@ class RouterSetup
         Endpoints $endpoints,
         CsrfGuard $csrf,
         Environment $twig,
-        LoggerInterface $logger
+        LoggerInterface $logger,
+        Request $request,
     ) {
         $this->router = $router;
         $this->app = $app;
@@ -72,6 +75,7 @@ class RouterSetup
         $this->csrf = $csrf;
         $this->twig = $twig;
         $this->logger = $logger;
+        $this->request = $request;
     }
 
     /**
@@ -174,7 +178,7 @@ class RouterSetup
             return false;
         }
 
-        $result = $rateLimiter->consume($group);
+        $result = $rateLimiter->consume($group, $this->request->clientIp());
         if ($result->isAllowed()) {
             return false;
         }
@@ -199,7 +203,7 @@ class RouterSetup
                 return; // Feature disabled
             }
 
-            $clientIp = $_SERVER['REMOTE_ADDR'];
+            $clientIp = $this->request->clientIp() ?? '';
 
             if (!in_array($clientIp, $config->allowedIps, true)) {
                 $this->ipAccessDeniedResponse($clientIp)->send();
@@ -213,8 +217,8 @@ class RouterSetup
     {
         $this->logger->warning('Blocked IP access', ['ip' => $clientIp]);
 
-        if (ResponseFactory::expectsJson()) {
-            return ResponseFactory::forbidden('Access forbidden');
+        if (ResponseFactory::expectsJson($this->request)) {
+            return ResponseFactory::forbidden($this->request, 'Access forbidden');
         }
 
         return new HtmlResponse(
@@ -240,17 +244,17 @@ class RouterSetup
             if ($this->csrf->validateRequest()) {
                 return;
             }
-            if (ResponseFactory::isHtmxRequest()) {
-                ResponseFactory::forbidden('Invalid or missing CSRF token')
+            if (ResponseFactory::isHtmxRequest($this->request)) {
+                ResponseFactory::forbidden($this->request, 'Invalid or missing CSRF token')
                     ->addHeader('HX-Refresh', 'true')
                     ->send();
 
                 exit;
             }
-            if (!ResponseFactory::expectsJson()) {
+            if (!ResponseFactory::expectsJson($this->request)) {
                 $this->app->redirect('login');
             }
-            ResponseFactory::forbidden('Invalid or missing CSRF token')->send();
+            ResponseFactory::forbidden($this->request, 'Invalid or missing CSRF token')->send();
 
             exit;
         });
@@ -266,7 +270,7 @@ class RouterSetup
                 return;
             }
 
-            if (ResponseFactory::isHtmxRequest()) {
+            if (ResponseFactory::isHtmxRequest($this->request)) {
                 $loginPath = rtrim($this->app->getBasePath(), '/') . '/login';
                 ResponseFactory::htmxRedirect($loginPath)->send();
 
@@ -281,7 +285,7 @@ class RouterSetup
                 return;
             }
 
-            ResponseFactory::unauthorized('Authentication required')->send();
+            ResponseFactory::unauthorized($this->request, 'Authentication required')->send();
 
             exit;
         });

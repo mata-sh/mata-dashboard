@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace Mata\Http\Security;
 
+use Mata\Core\Session;
+use Mata\Http\Request;
+
 /**
  * Provides CSRF token generation and request validation.
  */
@@ -13,15 +16,17 @@ final class CsrfGuard
     public const FIELD_NAME = '_csrf';
     public const HEADER_NAME = 'X-CSRF-Token';
 
+    public function __construct(private readonly Request $request) {}
+
     /**
      * Get the current CSRF token, creating it lazily when missing.
      */
     public function getToken(): string
     {
-        $token = $_SESSION[self::SESSION_KEY] ?? null;
+        $token = Session::get(self::SESSION_KEY);
         if (!is_string($token) || $token === '') {
             $token = bin2hex(random_bytes(32));
-            $_SESSION[self::SESSION_KEY] = $token;
+            Session::set(self::SESSION_KEY, $token);
         }
 
         return $token;
@@ -32,8 +37,8 @@ final class CsrfGuard
      */
     public function validateRequest(): bool
     {
-        $sessionToken = $_SESSION[self::SESSION_KEY] ?? null;
-        $submitted = $_POST[self::FIELD_NAME] ?? $_SERVER['HTTP_X_CSRF_TOKEN'] ?? null;
+        $sessionToken = Session::get(self::SESSION_KEY);
+        $submitted = $this->request->postString(self::FIELD_NAME) ?? $this->request->header(self::HEADER_NAME);
 
         if (!is_string($sessionToken) || $sessionToken === '' || !is_string($submitted)) {
             return false;
@@ -48,7 +53,7 @@ final class CsrfGuard
     public function regenerate(): string
     {
         $token = bin2hex(random_bytes(32));
-        $_SESSION[self::SESSION_KEY] = $token;
+        Session::set(self::SESSION_KEY, $token);
 
         return $token;
     }

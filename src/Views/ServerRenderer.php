@@ -852,7 +852,7 @@ class ServerRenderer extends BaseRenderer
                 'notification_close_endpoint' => $notificationCloseEndpoint,
             ],
             'config' => [
-                'base_url' => $this->app->getBaseUrl(),
+                'base_host' => $this->app->getBaseHost(),
                 'full_base_url' => $this->app->getFullBaseUrl(),
             ],
             'endpoints' => $endpoints,

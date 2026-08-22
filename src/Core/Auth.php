@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Mata\Core;
 
+use Mata\Http\Request;
 use Psr\Log\LoggerInterface;
 use RuntimeException;
 
@@ -35,6 +36,8 @@ class Auth
     /** @var bool CLI mode bypasses role checks for user management */
     private bool $cliMode;
     private LoggerInterface $logger;
+    private Request $request;
+    private ?string $cliScriptPath;
 
     /**
      * Initialize authentication system.
@@ -45,11 +48,18 @@ class Auth
      *
      * @throws RuntimeException If users file is missing or has insecure permissions
      */
-    public function __construct(LoggerInterface $logger, string $usersFile, bool $cliMode = false)
-    {
+    public function __construct(
+        LoggerInterface $logger,
+        string $usersFile,
+        Request $request,
+        bool $cliMode = false,
+        ?string $cliScriptPath = null
+    ) {
         $this->usersFile = $usersFile;
         $this->logger = $logger;
+        $this->request = $request;
         $this->cliMode = $cliMode;
+        $this->cliScriptPath = $cliScriptPath;
 
         $this->loadUsers();
 
@@ -87,7 +97,8 @@ class Auth
                 if ($this->cliMode) {
                     throw new RuntimeException(
                         "Users file not readable: {$this->usersFile}\n"
-                        . 'Try running with: sudo -u ' . posix_getpwuid(fileowner($this->usersFile))['name'] . ' php ' . $_SERVER['argv'][0]
+                        . 'Try running with: sudo -u ' . posix_getpwuid(fileowner($this->usersFile))['name']
+                        . ' php ' . ($this->cliScriptPath ?? '<script-path>')
                     );
                 }
 
@@ -166,12 +177,12 @@ class Auth
         }
 
         // Successful login
-        $_SESSION['user'] = [
+        Session::set('user', [
             'username' => $username,
             'role' => $user['role'] ?? 'viewer',
             'id' => $user['id'] ?? uniqid('usr_'),
-        ];
-        $_SESSION['logged_in'] = true;
+        ]);
+        Session::set('logged_in', true);
         Session::regenerate();
 
         // Clear failed attempts
@@ -213,7 +224,7 @@ class Auth
             [
                 'expires' => time() + (30 * 24 * 60 * 60),
                 'path' => '/',
-                'secure' => Session::isSecureRequest(),
+                'secure' => $this->request->isSecure(),
                 'httponly' => true,
                 'samesite' => 'Lax',
             ]
@@ -225,11 +236,12 @@ class Auth
      */
     private function checkRememberMe(): void
     {
-        if ($this->check() || !isset($_COOKIE['remember_token'])) {
+        $rememberToken = $this->request->cookie('remember_token');
+        if ($this->check() || $rememberToken === null) {
             return;
         }
 
-        [$username, $token] = explode('|', $_COOKIE['remember_token'] . '|');
+        [$username, $token] = explode('|', $rememberToken . '|');
         $user = $this->users[$username] ?? null;
 
         if (!$user || !isset($user['remember_token'])) {
@@ -241,12 +253,12 @@ class Auth
             hash_equals($user['remember_token'], hash('sha256', $token))
             && time() < $user['remember_expires']
         ) {
-            $_SESSION['user'] = [
+            Session::set('user', [
                 'username' => $username,
                 'role' => $user['role'] ?? 'viewer',
                 'id' => $user['id'] ?? uniqid('usr_'),
-            ];
-            $_SESSION['logged_in'] = true;
+            ]);
+            Session::set('logged_in', true);
             Session::regenerate();
 
             // Regenerate token for security
@@ -416,11 +428,11 @@ class Auth
             $this->saveUsers();
         }
 
-        Session::destroy();
+        Session::destroy($this->request->isSecure());
         setcookie('remember_token', '', [
             'expires' => time() - 3600,
             'path' => '/',
-            'secure' => Session::isSecureRequest(),
+            'secure' => $this->request->isSecure(),
             'httponly' => true,
             'samesite' => 'Lax',
         ]);
@@ -435,7 +447,7 @@ class Auth
      */
     public function check(): bool
     {
-        return isset($_SESSION['logged_in']) && $_SESSION['logged_in'] === true;
+        return Session::get('logged_in') === true;
     }
 
     /**
@@ -445,7 +457,9 @@ class Auth
      */
     public function getUser(): ?array
     {
-        return $_SESSION['user'] ?? null;
+        $user = Session::get('user');
+
+        return is_array($user) ? $user : null;
     }
 
     /**
@@ -455,7 +469,9 @@ class Auth
      */
     public function getUsername(): ?string
     {
-        return $_SESSION['user']['username'] ?? null;
+        $user = $this->getUser();
+
+        return isset($user['username']) && is_string($user['username']) ? $user['username'] : null;
     }
 
     /**
@@ -467,7 +483,9 @@ class Auth
      */
     public function hasRole(string $role): bool
     {
-        return ($_SESSION['user']['role'] ?? '') === $role;
+        $user = $this->getUser();
+
+        return ($user['role'] ?? '') === $role;
     }
 
     /**

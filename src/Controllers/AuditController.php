@@ -9,6 +9,8 @@ use InvalidArgumentException;
 use Mata\Config\Dto\ApplicationConfig;
 use Mata\Constants\CacheTypes;
 use Mata\Core\App;
+use Mata\Core\Session;
+use Mata\Http\Request;
 use Mata\Http\Responses\HtmlResponse;
 use Mata\Http\Responses\Response;
 use Mata\Http\Routing\Endpoints;
@@ -59,8 +61,11 @@ class AuditController extends BaseController
         ApiCacheKeyFactory $cacheKeyFactory,
         CacheTtlResolver $ttlResolver,
         Endpoints $endpoints,
-        array $serversConfig
+        array $serversConfig,
+        ?Request $request = null,
     ) {
+        $request ??= new Request();
+        parent::__construct($request);
         $this->logger = $logger;
         $this->appConfig = $appConfig;
         $this->cacheStore = $cacheStore;
@@ -90,7 +95,7 @@ class AuditController extends BaseController
     public function renderAuditSection(): Response
     {
         $summary = $this->buildSummary();
-        if (($_GET['part'] ?? null) === 'summary') {
+        if ($this->request->queryString('part') === 'summary') {
             return new HtmlResponse($this->auditRenderer->renderSummaryAndTargets($summary, $this->selectedTargets()));
         }
 
@@ -103,12 +108,7 @@ class AuditController extends BaseController
     public function runAudit(): Response
     {
         $targets = [];
-        $requestedTargets = $_POST['targets'] ?? [];
-        if (!is_array($requestedTargets)) {
-            $requestedTargets = [];
-        }
-
-        foreach ($requestedTargets as $target) {
+        foreach ($this->request->postList('targets') as $target) {
             if (!is_string($target)) {
                 continue;
             }
@@ -137,7 +137,7 @@ class AuditController extends BaseController
         }
 
         // Release PHP's session lock so htmx fan-out requests can run concurrently.
-        session_write_close();
+        Session::close();
         $response = $this->serverDataCollectors[$server]->fetchAppComposerAudit($app, CacheTypes::NONE);
 
         return (new HtmlResponse($this->auditRenderer->renderChipResult($server, $app, $response)))
@@ -161,16 +161,11 @@ class AuditController extends BaseController
     /** @return null|array<int,string> Null when no selection was included in the request. */
     private function selectedTargets(): ?array
     {
-        if (!array_key_exists('targets_present', $_GET)) {
+        if (!$this->request->hasQuery('targets_present')) {
             return null;
         }
 
-        $requestedTargets = $_GET['targets'] ?? [];
-        if (!is_array($requestedTargets)) {
-            return [];
-        }
-
-        return array_values(array_filter($requestedTargets, 'is_string'));
+        return $this->request->queryList('targets');
     }
 
     private function isValidTarget(string $server, string $app): bool

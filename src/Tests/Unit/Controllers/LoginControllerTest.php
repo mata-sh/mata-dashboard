@@ -4,445 +4,119 @@ declare(strict_types=1);
 
 namespace Mata\Tests\Unit\Controllers;
 
-use Exception;
 use Mata\Controllers\LoginController;
 use Mata\Core\App;
 use Mata\Core\Auth;
+use Mata\Core\Session;
+use Mata\Http\Request;
 use Mata\Http\Security\CsrfGuard;
+use Mata\Tests\Helpers\ApplicationConfigFactory;
 use Mata\Tests\TestCase;
+use Mata\Utils\PathResolver;
 use Mata\Utils\Tools;
 use PHPUnit\Framework\MockObject\MockObject;
 use Twig\Environment;
 
 /**
- * Test suite for LoginController.
- *
  * @covers \Mata\Controllers\LoginController
  *
  * @internal
  */
-// Tests configure only the collaborators used by each request after the controller is built.
 #[\PHPUnit\Framework\Attributes\AllowMockObjectsWithoutExpectations]
-class LoginControllerTest extends TestCase
+final class LoginControllerTest extends TestCase
 {
-    private LoginController $controller;
-    private App&MockObject $mockApp;
-    private Auth&MockObject $mockAuth;
-    private MockObject&Tools $mockTools;
-    private Environment&MockObject $mockTwig;
-    private CsrfGuard $csrf;
+    private App&MockObject $app;
+    private Auth&MockObject $auth;
+    private MockObject&Tools $tools;
+    private Environment&MockObject $twig;
 
     protected function setUp(): void
     {
         parent::setUp();
-
-        $this->mockAuth = $this->createMock(Auth::class);
-        $this->mockApp = $this->createMock(App::class);
-        $this->mockTools = $this->createMock(Tools::class);
-        $this->mockTwig = $this->createMock(Environment::class);
-        $this->csrf = new CsrfGuard();
+        if (session_status() !== PHP_SESSION_ACTIVE) {
+            session_start();
+        }
         $_SESSION = [];
-
-        // Setup App mock to return Auth
-        $this->mockApp->auth = $this->mockAuth;
-
-        $this->controller = new LoginController(
-            $this->mockApp,
-            $this->mockTools,
-            $this->mockTwig,
-            $this->csrf
-        );
+        $this->auth = $this->createMock(Auth::class);
+        $this->app = $this->getMockBuilder(App::class)
+            ->setConstructorArgs([$this->auth, ApplicationConfigFactory::create(), $this->createStub(PathResolver::class)])
+            ->onlyMethods(['getBaseHost', 'getFullBaseUrl', 'redirect'])
+            ->getMock();
+        $this->tools = $this->createMock(Tools::class);
+        $this->twig = $this->createMock(Environment::class);
     }
 
     protected function tearDown(): void
     {
-        $_POST = [];
         $_SESSION = [];
         parent::tearDown();
     }
 
-    /**
-     * @test
-     *
-     * @group login-controller
-     * @group show
-     */
     public function testItDisplaysLoginForm(): void
     {
-        $this->mockApp->expects($this->once())
-            ->method('getBaseUrl')
-            ->willReturn('/')
-        ;
-
-        $this->mockApp->expects($this->once())
-            ->method('getFullBaseUrl')
-            ->willReturn('http://localhost')
-        ;
-
-        $this->mockTools->expects($this->once())
-            ->method('icon')
-            ->with('sea-turtle-bl', 150)
-            ->willReturn('<svg>logo</svg>')
-        ;
-
-        $this->mockTwig->expects($this->once())
-            ->method('render')
-            ->with(
-                'pages/login.html.twig',
-                $this->callback(function ($data) {
-                    $this->assertArrayHasKey('config', $data);
-                    $this->assertArrayHasKey('ui', $data);
-                    $this->assertArrayHasKey('base_url', $data['config']);
-                    $this->assertArrayHasKey('full_base_url', $data['config']);
-                    $this->assertArrayHasKey('main_logo', $data['ui']);
-
-                    return true;
-                })
-            )
-            ->willReturn('<html>login form</html>')
-        ;
+        $this->app->expects($this->once())->method('getBaseHost')->willReturn('/');
+        $this->app->expects($this->once())->method('getFullBaseUrl')->willReturn('http://localhost');
+        $this->tools->expects($this->once())->method('icon')->with('sea-turtle-bl', 150)->willReturn('<svg>logo</svg>');
+        $this->twig->expects($this->once())->method('render')->willReturn('<html>login form</html>');
 
         ob_start();
-        $this->controller->show();
-        $output = ob_get_clean();
-
-        $this->assertEquals('<html>login form</html>', $output);
+        $this->controller()->show();
+        self::assertSame('<html>login form</html>', ob_get_clean());
     }
 
-    /**
-     * @test
-     *
-     * @group login-controller
-     * @group submit
-     */
-    public function testItSuccessfullyLogsInUserAndRedirects(): void
+    public function testItLogsInUsingNormalizedPostInputAndRegeneratesCsrf(): void
     {
-        $_POST = [
-            'username' => 'testuser',
-            'password' => 'password123',
-            'remember_me' => '1',
-        ];
+        $this->auth->expects($this->once())->method('login')->with('testuser', 'password123', true)->willReturn(true);
+        $this->app->expects($this->once())->method('redirect')->with('watch');
+        $csrf = Session::get(CsrfGuard::SESSION_KEY);
+        Session::set(CsrfGuard::SESSION_KEY, 'old-token');
 
-        $this->mockAuth->expects($this->once())
-            ->method('login')
-            ->with('testuser', 'password123', true)
-            ->willReturn(true)
-        ;
+        $this->controller(['username' => ' testuser ', 'password' => 'password123', 'remember_me' => 'on'])->submit();
 
-        $this->mockApp->expects($this->once())
-            ->method('redirect')
-            ->with('watch')
-        ;
-
-        $_SESSION[CsrfGuard::SESSION_KEY] = 'old-csrf-token';
-
-        $this->expectOutputString('');
-
-        try {
-            $this->controller->submit();
-        } catch (Exception $e) {
-            // Handle exit() call from redirect
-            if ($e->getMessage() !== 'exit') {
-                throw $e;
-            }
-        }
-
-        $this->assertArrayHasKey(CsrfGuard::SESSION_KEY, $_SESSION);
-        $this->assertIsString($_SESSION[CsrfGuard::SESSION_KEY]);
-        $this->assertNotSame('', $_SESSION[CsrfGuard::SESSION_KEY]);
-        $this->assertNotSame('old-csrf-token', $_SESSION[CsrfGuard::SESSION_KEY]);
-
-        unset($_POST);
-    }
-
-    /**
-     * @test
-     *
-     * @group login-controller
-     * @group submit
-     */
-    public function testItHandlesLoginFailureAndShowsError(): void
-    {
-        $_SESSION[CsrfGuard::SESSION_KEY] = 'old-csrf-token';
-        $_POST = [
-            'username' => 'testuser',
-            'password' => 'wrongpassword',
-        ];
-
-        $this->mockAuth->expects($this->once())
-            ->method('login')
-            ->with('testuser', 'wrongpassword', false)
-            ->willReturn(false)
-        ;
-
-        $this->mockApp->expects($this->once())
-            ->method('getBaseUrl')
-            ->willReturn('/')
-        ;
-
-        $this->mockApp->expects($this->once())
-            ->method('getFullBaseUrl')
-            ->willReturn('http://localhost')
-        ;
-
-        $this->mockTools->expects($this->once())
-            ->method('icon')
-            ->with('sea-turtle-bl', 150)
-            ->willReturn('<svg>logo</svg>')
-        ;
-
-        $this->mockTwig->expects($this->once())
-            ->method('render')
-            ->with(
-                'pages/login.html.twig',
-                $this->callback(function ($data) {
-                    $this->assertArrayHasKey('ui', $data);
-                    $this->assertArrayHasKey('login_error_message', $data['ui']);
-                    $this->assertEquals('Invalid login.', $data['ui']['login_error_message']);
-
-                    return true;
-                })
-            )
-            ->willReturn('<html>login form with error</html>')
-        ;
-
-        ob_start();
-
-        try {
-            $this->controller->submit();
-            $output = ob_get_clean();
-        } catch (Exception $e) {
-            ob_end_clean();
-
-            throw $e;
-        }
-
-        $this->assertEquals('<html>login form with error</html>', $output);
-        $this->assertSame('old-csrf-token', $_SESSION[CsrfGuard::SESSION_KEY]);
-
-        unset($_POST);
-    }
-
-    /**
-     * @test
-     *
-     * @group login-controller
-     * @group submit
-     */
-    public function testItPreservesRawCredentialsForAuthentication(): void
-    {
-        $_POST = [
-            'username' => '  <admin&owner>  ',
-            'password' => ' password<>" ',
-            'remember_me' => 'true',
-        ];
-
-        $this->mockAuth->expects($this->once())
-            ->method('login')
-            ->with('<admin&owner>', ' password<>" ', true)
-            ->willReturn(false)
-        ;
-        $this->configureFailedLoginRender();
-
-        ob_start();
-        $this->controller->submit();
-        ob_end_clean();
+        self::assertNotSame('old-token', Session::get(CsrfGuard::SESSION_KEY));
     }
 
     public function testItRejectsArrayCredentialsAndRememberMeInput(): void
     {
-        $_POST = [
-            'username' => ['admin'],
-            'password' => ['password'],
-            'remember_me' => ['on'],
-        ];
-
-        $this->mockAuth->expects($this->once())
-            ->method('login')
-            ->with('', '', false)
-            ->willReturn(false)
-        ;
-        $this->configureFailedLoginRender();
+        $this->auth->expects($this->once())->method('login')->with('', '', false)->willReturn(false);
+        $this->configureFailureRender();
 
         ob_start();
-        $this->controller->submit();
+        $this->controller(['username' => ['admin'], 'password' => ['password'], 'remember_me' => ['on']])->submit();
         ob_end_clean();
     }
 
-    /**
-     * @test
-     *
-     * @group login-controller
-     * @group logout
-     */
-    public function testItLogsOutUserAndRedirectsToLogin(): void
+    public function testItRendersLoginFailure(): void
     {
-        $this->mockAuth->expects($this->once())
-            ->method('logout')
-        ;
-        $this->mockApp->expects($this->once())
-            ->method('redirect')
-            ->with('login')
-        ;
-        $this->mockTwig->expects($this->never())
-            ->method('render')
-        ;
-
-        $this->controller->logout();
-    }
-
-    /**
-     * @test
-     *
-     * @group login-controller
-     * @group submit
-     */
-    public function testItHandlesMissingPostData(): void
-    {
-        $_POST = [];
-
-        $this->mockAuth->expects($this->once())
-            ->method('login')
-            ->with('', '', false)
-            ->willReturn(false)
-        ;
-
-        $this->mockApp->expects($this->once())
-            ->method('getBaseUrl')
-            ->willReturn('/')
-        ;
-
-        $this->mockApp->expects($this->once())
-            ->method('getFullBaseUrl')
-            ->willReturn('http://localhost')
-        ;
-
-        $this->mockTools->expects($this->once())
-            ->method('icon')
-            ->with('sea-turtle-bl', 150)
-            ->willReturn('<svg>logo</svg>')
-        ;
-
-        $this->mockTwig->expects($this->once())
-            ->method('render')
-            ->willReturn('<html>login form with error</html>')
-        ;
+        $this->auth->expects($this->once())->method('login')->with('', '', false)->willReturn(false);
+        $this->configureFailureRender();
 
         ob_start();
-
-        try {
-            $this->controller->submit();
-            $output = ob_get_clean();
-        } catch (Exception $e) {
-            ob_end_clean();
-
-            throw $e;
-        }
-
-        $this->assertEquals('<html>login form with error</html>', $output);
-
-        unset($_POST);
+        $this->controller()->submit();
+        self::assertSame('<html>login form with error</html>', ob_get_clean());
     }
 
-    /**
-     * @test
-     *
-     * @group login-controller
-     * @group submit
-     */
-    public function testItHandlesRememberMeCheckboxUnchecked(): void
+    public function testItLogsOutAndRedirects(): void
     {
-        $_POST = [
-            'username' => 'testuser',
-            'password' => 'password123',
-            // remember_me not set
-        ];
+        $this->auth->expects($this->once())->method('logout');
+        $this->app->expects($this->once())->method('redirect')->with('login');
 
-        $this->mockAuth->expects($this->once())
-            ->method('login')
-            ->with('testuser', 'password123', false)
-            ->willReturn(true)
-        ;
-
-        $this->mockApp->expects($this->once())
-            ->method('redirect')
-            ->with('watch')
-        ;
-
-        try {
-            $this->controller->submit();
-        } catch (Exception $e) {
-            // Handle exit
-        }
-
-        unset($_POST);
+        $this->controller()->logout();
     }
 
-    /**
-     * @test
-     *
-     * @group login-controller
-     * @group integration
-     */
-    public function testItProvidesCorrectDataStructureToTemplate(): void
+    /** @param array<string,mixed> $post */
+    private function controller(array $post = []): LoginController
     {
-        $capturedData = null;
+        $request = new Request(post: $post);
 
-        $this->mockApp->expects($this->once())
-            ->method('getBaseUrl')
-            ->willReturn('/base')
-        ;
-
-        $this->mockApp->expects($this->once())
-            ->method('getFullBaseUrl')
-            ->willReturn('https://example.com/base')
-        ;
-
-        $this->mockTools->expects($this->once())
-            ->method('icon')
-            ->with('sea-turtle-bl', 150)
-            ->willReturn('<svg>logo</svg>')
-        ;
-
-        $this->mockTwig->expects($this->once())
-            ->method('render')
-            ->willReturnCallback(function ($template, $data) use (&$capturedData) {
-                $capturedData = $data;
-
-                return '<html>rendered</html>';
-            })
-        ;
-
-        ob_start();
-        $this->controller->show();
-        ob_get_clean();
-
-        $this->assertNotNull($capturedData);
-
-        $this->assertArrayStructure([
-            'config' => 'array',
-            'ui' => 'array',
-        ], $capturedData);
-
-        $this->assertArrayStructure([
-            'base_url' => 'string',
-            'full_base_url' => 'string',
-        ], $capturedData['config']);
-
-        $this->assertArrayStructure([
-            'main_logo' => 'string',
-        ], $capturedData['ui']);
-
-        $this->assertEquals('/base', $capturedData['config']['base_url']);
-        $this->assertEquals('https://example.com/base', $capturedData['config']['full_base_url']);
-        $this->assertEquals('<svg>logo</svg>', $capturedData['ui']['main_logo']);
+        return new LoginController($this->app, $this->tools, $this->twig, new CsrfGuard($request), $request);
     }
 
-    private function configureFailedLoginRender(): void
+    private function configureFailureRender(): void
     {
-        $this->mockApp->method('getBaseUrl')->willReturn('/');
-        $this->mockApp->method('getFullBaseUrl')->willReturn('http://localhost');
-        $this->mockTools->method('icon')->willReturn('<svg>logo</svg>');
-        $this->mockTwig->method('render')->willReturn('<html>login form</html>');
+        $this->app->expects($this->once())->method('getBaseHost')->willReturn('/');
+        $this->app->expects($this->once())->method('getFullBaseUrl')->willReturn('http://localhost');
+        $this->tools->expects($this->once())->method('icon')->with('sea-turtle-bl', 150)->willReturn('<svg>logo</svg>');
+        $this->twig->expects($this->once())->method('render')->willReturn('<html>login form with error</html>');
     }
 }

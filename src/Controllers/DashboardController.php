@@ -8,6 +8,7 @@ use InvalidArgumentException;
 use Mata\Config\Dto\AlarmLimitsConfig;
 use Mata\Config\Dto\ApplicationConfig;
 use Mata\Core\App;
+use Mata\Http\Request;
 use Mata\Http\Responses\HtmlResponse;
 use Mata\Http\Responses\JsonResponse;
 use Mata\Http\Responses\Response;
@@ -132,7 +133,9 @@ class DashboardController extends BaseController
         DashboardMonitoringContext $monitoringContext,
         ?AppInventorySync $appInventorySync = null,
         ?AlarmLimitsConfig $alarmLimits = null,
+        ?Request $request = null,
     ) {
+        parent::__construct($request ?? new Request());
         $this->logger = $logger;
         $this->appConfig = $appConfig;
         $this->notificationManager = $notificationManager;
@@ -210,7 +213,7 @@ class DashboardController extends BaseController
     {
         return $this->executeWithErrorHandling(
             function () {
-                $action = $_POST['action'] ?? '';
+                $action = $this->request->postString('action') ?? '';
 
                 if (!$this->notificationManager->acknowledgeOfflineNotice($action)) {
                     return new JsonResponse([
@@ -518,7 +521,7 @@ class DashboardController extends BaseController
     {
         return $this->executeWithErrorHandling(
             function () {
-                $unacknowledgedOnly = ($_GET['unacknowledged'] ?? '') === '1';
+                $unacknowledgedOnly = $this->request->queryString('unacknowledged') === '1';
                 $alarms = $this->eventManager->aggregator->getLatestAlarms(
                     unacknowledgedOnly: $unacknowledgedOnly
                 );

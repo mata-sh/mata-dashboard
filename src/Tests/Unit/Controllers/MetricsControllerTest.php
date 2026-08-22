@@ -7,6 +7,7 @@ namespace Mata\Tests\Unit\Controllers;
 use Exception;
 use InvalidArgumentException;
 use Mata\Controllers\MetricsController;
+use Mata\Http\Request;
 use Mata\Http\Responses\HtmlResponse;
 use Mata\Http\Responses\JsonResponse;
 use Mata\Http\Responses\Response;
@@ -176,6 +177,7 @@ class MetricsControllerTest extends TestCase
     {
         // Clean up $_GET superglobal after each test
         $_GET = [];
+        $this->setProperty($this->controller, 'request', new Request(query: $_GET));
         parent::tearDown();
     }
 
@@ -201,6 +203,7 @@ class MetricsControllerTest extends TestCase
             'timespans' => ['24h', '7d'],
             'servers' => ['prod-server', 'staging-server'],
         ];
+        $this->setProperty($this->controller, 'request', new Request(query: $_GET));
 
         $this->mockChartViewBuilder
             ->expects($this->once())
@@ -254,6 +257,7 @@ class MetricsControllerTest extends TestCase
             'timespan' => '24h',
             'servers' => 'prod-server,staging-server',
         ];
+        $this->setProperty($this->controller, 'request', new Request(query: $_GET));
 
         $this->mockValidator
             ->method('normalizeMetric')
@@ -320,6 +324,7 @@ class MetricsControllerTest extends TestCase
     {
         // Arrange: Request invalid metric
         $_GET = ['metric' => 'invalid_metric', 'timespan' => '24h'];
+        $this->setProperty($this->controller, 'request', new Request(query: $_GET));
 
         $this->mockValidator
             ->method('normalizeMetric')
@@ -351,6 +356,7 @@ class MetricsControllerTest extends TestCase
     {
         // Arrange: Request valid metric but invalid timespan
         $_GET = ['metric' => 'cpu', 'timespan' => 'invalid_timespan'];
+        $this->setProperty($this->controller, 'request', new Request(query: $_GET));
 
         $this->mockValidator
             ->method('normalizeMetric')
@@ -381,6 +387,7 @@ class MetricsControllerTest extends TestCase
     {
         // Arrange: Request with empty server resolution
         $_GET = ['metric' => 'cpu', 'timespan' => '24h', 'servers' => ''];
+        $this->setProperty($this->controller, 'request', new Request(query: $_GET));
 
         $this->mockValidator->method('normalizeMetric')->willReturn('cpu');
         $this->mockChartViewBuilder
@@ -418,6 +425,7 @@ class MetricsControllerTest extends TestCase
             'servers' => 'prod-server',
             'force' => '1', // Force refresh
         ];
+        $this->setProperty($this->controller, 'request', new Request(query: $_GET));
 
         $this->mockValidator->method('normalizeMetric')->willReturn('cpu');
         $this->mockChartViewBuilder
@@ -526,6 +534,7 @@ class MetricsControllerTest extends TestCase
     {
         // Arrange: Valid server and range
         $_GET = ['range' => '60d'];
+        $this->setProperty($this->controller, 'request', new Request(query: $_GET));
 
         $validationResult = new MetricsValidationResult([], 'process_count');
 
@@ -551,6 +560,7 @@ class MetricsControllerTest extends TestCase
             ],
             'cache' => ['from_cache' => false, 'age' => 0],
         ];
+        $this->setProperty($this->controller, 'request', new Request(query: $_GET));
 
         // Mock cache miss and payload build
         $this->mockCacheService->method('readSeriesCache')->willReturn(null);
@@ -596,6 +606,7 @@ class MetricsControllerTest extends TestCase
     {
         // Arrange
         $_GET = ['range' => '30d'];
+        $this->setProperty($this->controller, 'request', new Request(query: $_GET));
         $validationResult = new MetricsValidationResult([], 'process_count');
         $this->mockValidator->method('validate')->willReturn($validationResult);
 
@@ -606,6 +617,7 @@ class MetricsControllerTest extends TestCase
             ],
             'cache' => ['from_cache' => false],
         ];
+        $this->setProperty($this->controller, 'request', new Request(query: $_GET));
 
         $this->mockCacheService->method('readSeriesCache')->willReturn(null);
         $this->mockViewBuilder->method('buildServerMetricTimeSeries')->willReturn($seriesPayload['series']);
@@ -640,6 +652,7 @@ class MetricsControllerTest extends TestCase
     public function testServerMetricsModalUsesAutomaticGranularityAndExposesRangeMetadata(): void
     {
         $_GET = ['metric' => 'cpu', 'range' => '30d'];
+        $this->setProperty($this->controller, 'request', new Request(query: $_GET));
 
         $this->mockValidator->method('normalizeMetric')->willReturn('cpu');
         $this->mockValidator->method('validate')->willReturn(new MetricsValidationResult([], 'cpu'));
@@ -698,6 +711,7 @@ class MetricsControllerTest extends TestCase
     {
         // Arrange: Request 6 hours with auto granularity (should use raw)
         $_GET = ['range' => '6h', 'granularity' => 'auto'];
+        $this->setProperty($this->controller, 'request', new Request(query: $_GET));
 
         $validationResult = new MetricsValidationResult([], 'cpu');
         $this->mockValidator->method('validate')->willReturn($validationResult);
@@ -713,6 +727,7 @@ class MetricsControllerTest extends TestCase
             'series' => ['data' => [45.2, 52.1, 48.9], 'granularity' => 'raw'],
             'cache' => ['from_cache' => false],
         ];
+        $this->setProperty($this->controller, 'request', new Request(query: $_GET));
 
         $this->mockCacheService->method('readSeriesCache')->willReturn(null);
         $this->mockViewBuilder
@@ -748,6 +763,7 @@ class MetricsControllerTest extends TestCase
     {
         // Arrange: Request 30 days but explicitly request hourly (not auto)
         $_GET = ['range' => '30d', 'granularity' => 'hourly'];
+        $this->setProperty($this->controller, 'request', new Request(query: $_GET));
 
         $validationResult = new MetricsValidationResult([], 'ram_percent');
         $this->mockValidator->method('validate')->willReturn($validationResult);
@@ -765,6 +781,7 @@ class MetricsControllerTest extends TestCase
             'series' => ['granularity' => 'hourly'],
             'cache' => ['from_cache' => false],
         ];
+        $this->setProperty($this->controller, 'request', new Request(query: $_GET));
 
         $this->mockCacheService->method('readSeriesCache')->willReturn(null);
         $this->mockViewBuilder
@@ -798,6 +815,7 @@ class MetricsControllerTest extends TestCase
     {
         // Arrange: URL uses hyphenated metric name
         $_GET = ['range' => '24h', 'granularity' => 'hourly'];
+        $this->setProperty($this->controller, 'request', new Request(query: $_GET));
 
         $validationResult = new MetricsValidationResult([], 'disk_percent');
         $this->mockValidator
@@ -820,6 +838,7 @@ class MetricsControllerTest extends TestCase
             'series' => ['metric' => 'disk_percent'], // Normalized
             'cache' => ['from_cache' => false],
         ];
+        $this->setProperty($this->controller, 'request', new Request(query: $_GET));
 
         $this->mockCacheService->method('readSeriesCache')->willReturn(null);
         $this->mockViewBuilder->method('buildServerMetricTimeSeries')->willReturn($seriesPayload['series']);
@@ -849,6 +868,7 @@ class MetricsControllerTest extends TestCase
     {
         // Arrange: Request with invalid granularity
         $_GET = ['range' => '24h', 'granularity' => 'invalid'];
+        $this->setProperty($this->controller, 'request', new Request(query: $_GET));
 
         $validationResult = new MetricsValidationResult([], 'cpu');
         $this->mockValidator->method('validate')->willReturn($validationResult);
@@ -883,6 +903,7 @@ class MetricsControllerTest extends TestCase
     {
         // Arrange: Invalid range format
         $_GET = ['range' => 'invalid-range', 'granularity' => 'hourly'];
+        $this->setProperty($this->controller, 'request', new Request(query: $_GET));
 
         $validationResult = new MetricsValidationResult([], 'cpu');
         $this->mockValidator->method('validate')->willReturn($validationResult);
@@ -920,6 +941,7 @@ class MetricsControllerTest extends TestCase
     {
         // Arrange
         $_GET = ['range' => '24h', 'granularity' => 'hourly'];
+        $this->setProperty($this->controller, 'request', new Request(query: $_GET));
 
         $validationResult = new MetricsValidationResult([], 'cpu');
         $this->mockValidator->method('validate')->willReturn($validationResult);
@@ -930,6 +952,7 @@ class MetricsControllerTest extends TestCase
             'series' => ['data' => [45.2, 52.1]],
             'cache' => ['from_cache' => false],
         ];
+        $this->setProperty($this->controller, 'request', new Request(query: $_GET));
 
         // First call: cache miss
         $this->mockCacheService
@@ -990,6 +1013,7 @@ class MetricsControllerTest extends TestCase
     {
         // Arrange: Empty metrics parameter
         $_GET = ['metrics' => ',', 'range' => '24h'];
+        $this->setProperty($this->controller, 'request', new Request(query: $_GET));
 
         // Act: Attempt to fetch multi-metric with empty metrics
         $response = $this->controller->getServerMultiMetricSeries('prod-server');
@@ -1016,6 +1040,7 @@ class MetricsControllerTest extends TestCase
     {
         // Arrange: Mix of valid and invalid metrics
         $_GET = ['metrics' => 'cpu,invalid_metric,ram_percent', 'range' => '24h'];
+        $this->setProperty($this->controller, 'request', new Request(query: $_GET));
 
         $this->mockValidator
             ->method('normalizeMetric')
@@ -1050,6 +1075,7 @@ class MetricsControllerTest extends TestCase
     {
         // Arrange: Request CPU and RAM comparison
         $_GET = ['metrics' => 'cpu,ram-percent', 'range' => '24h', 'granularity' => 'hourly'];
+        $this->setProperty($this->controller, 'request', new Request(query: $_GET));
 
         $this->mockValidator
             ->method('normalizeMetric')
@@ -1076,6 +1102,7 @@ class MetricsControllerTest extends TestCase
             ],
             'cache' => ['from_cache' => false],
         ];
+        $this->setProperty($this->controller, 'request', new Request(query: $_GET));
 
         $this->mockCacheService->method('readSeriesCache')->willReturn(null);
         $this->mockViewBuilder
@@ -1131,6 +1158,7 @@ class MetricsControllerTest extends TestCase
     {
         // Arrange
         $_GET = ['metrics' => 'cpu,ram_percent,disk_percent', 'range' => '7d', 'granularity' => 'daily'];
+        $this->setProperty($this->controller, 'request', new Request(query: $_GET));
 
         $this->mockValidator->method('normalizeMetric')
             ->willReturnCallback(fn ($m) => str_replace('-', '_', strtolower(trim($m))))
@@ -1143,6 +1171,7 @@ class MetricsControllerTest extends TestCase
             'series' => ['datasets' => []],
             'cache' => ['from_cache' => false],
         ];
+        $this->setProperty($this->controller, 'request', new Request(query: $_GET));
 
         // Verify cache is keyed by combined metric string
         $this->mockCacheService
@@ -1198,6 +1227,7 @@ class MetricsControllerTest extends TestCase
     {
         // Arrange: Request for unknown server
         $_GET = ['metrics' => 'cpu', 'range' => '24h'];
+        $this->setProperty($this->controller, 'request', new Request(query: $_GET));
 
         $this->mockValidator->method('normalizeMetric')->willReturn('cpu');
 
@@ -1266,6 +1296,7 @@ class MetricsControllerTest extends TestCase
     {
         // Arrange: No query parameters provided
         $_GET = [];
+        $this->setProperty($this->controller, 'request', new Request(query: $_GET));
 
         $validationResult = new MetricsValidationResult([], 'cpu');
         $this->mockValidator->method('validate')->willReturn($validationResult);
@@ -1276,6 +1307,7 @@ class MetricsControllerTest extends TestCase
             'series' => [],
             'cache' => ['from_cache' => false],
         ];
+        $this->setProperty($this->controller, 'request', new Request(query: $_GET));
 
         $this->mockCacheService->method('readSeriesCache')->willReturn(null);
 
@@ -1317,6 +1349,7 @@ class MetricsControllerTest extends TestCase
     {
         // Arrange
         $_GET = ['range' => '24h', 'granularity' => 'hourly'];
+        $this->setProperty($this->controller, 'request', new Request(query: $_GET));
 
         $validationResult = new MetricsValidationResult([], 'cpu');
         $this->mockValidator->method('validate')->willReturn($validationResult);
@@ -1327,6 +1360,7 @@ class MetricsControllerTest extends TestCase
             'series' => ['data' => array_fill(0, 24, 50.0)], // 24 data points
             'cache' => ['from_cache' => false],
         ];
+        $this->setProperty($this->controller, 'request', new Request(query: $_GET));
 
         $this->mockCacheService->method('readSeriesCache')->willReturn(null);
         $this->mockViewBuilder->method('buildServerMetricTimeSeries')->willReturn($seriesPayload['series']);
