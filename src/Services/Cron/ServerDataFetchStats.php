@@ -11,6 +11,7 @@ final class ServerDataFetchStats
     private int $configured = 0;
     private int $completed = 0;
     private int $failed = 0;
+    private int $unreachable = 0;
     private int $appsSeen = 0;
     private int $appsChecked = 0;
     private int $oversizedLogsDetected = 0;
@@ -31,6 +32,12 @@ final class ServerDataFetchStats
 
     public function recordResult(ServerDataFetchResult $result): void
     {
+        if ($result->nodeUnreachable) {
+            ++$this->unreachable;
+
+            return;
+        }
+
         ++$this->completed;
         $monitoring = $result->errorMonitoring;
         $this->appsSeen += $monitoring->appsSeen;
@@ -57,11 +64,12 @@ final class ServerDataFetchStats
     {
         return [
             sprintf(
-                'Finished in %.3fs (memory: %s) | servers: configured=%d completed=%d failed=%d',
+                'Finished in %.3fs (memory: %s) | servers: configured=%d completed=%d unreachable=%d failed=%d',
                 $durationSeconds,
                 $memoryUsage,
                 $this->configured,
                 $this->completed,
+                $this->unreachable,
                 $this->failed,
             ),
             sprintf(

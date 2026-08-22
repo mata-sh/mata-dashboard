@@ -5,6 +5,7 @@ declare(strict_types=1);
 
 use Mata\Bootstrap\CronMonitoringRuntime;
 use Mata\Bootstrap\CronRuntime;
+use Mata\Config\Env;
 use Mata\Services\Cache\ApiCacheKeyFactory;
 use Mata\Services\Cache\CacheTtlResolver;
 use Mata\Services\Cache\FileCacheStore;
@@ -62,6 +63,10 @@ try {
     $dataFetchRunner = new ServerDataFetchRunner($log);
     $stats = new ServerDataFetchStats();
 
+    // Collection is sequential, so NODE_API_TIMEOUT_SECONDS (config.env) bounds
+    // what one stalled node costs the whole cycle.
+    $apiTimeoutSeconds = max(1, (int) Env::get('NODE_API_TIMEOUT_SECONDS', '10'));
+
     foreach ($monitoringSettings['servers'] as $server => $data) {
         $stats->recordConfigured();
         $cron->touchHeartbeat();
@@ -69,7 +74,7 @@ try {
         try {
             $services = $appConfig->environment->env === 'demo'
                 ? $serverMonitoringFactory->createDemo($server, $data)
-                : $serverMonitoringFactory->createLive($server, $data, apiTimeoutSeconds: 30);
+                : $serverMonitoringFactory->createLive($server, $data, apiTimeoutSeconds: $apiTimeoutSeconds);
 
             $result = $dataFetchRunner->run(
                 $server,

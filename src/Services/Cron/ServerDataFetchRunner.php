@@ -10,6 +10,7 @@ use Mata\Services\Monitor\AppErrorMonitorInterface;
 use Mata\Services\Monitor\AppReachabilityMonitorInterface;
 use Mata\Services\Monitor\Dto\AppErrorMonitoringResult;
 use Mata\Services\Monitor\Dto\EndpointTarget;
+use Mata\Services\Monitor\Dto\NodeHealthState;
 use Mata\Services\Monitor\NodeHealthMonitorInterface;
 use Mata\Services\Sync\AppInventorySync;
 use Psr\Log\LoggerInterface;
@@ -28,7 +29,17 @@ final class ServerDataFetchRunner
         NodeHealthMonitorInterface $healthMonitor,
         AppInventorySync $appInventorySync,
     ): ServerDataFetchResult {
-        $healthMonitor->checkSynchronously($server, forceRefresh: true);
+        // The health probe runs first, so an unreachable node is already known here.
+        $health = $healthMonitor->checkSynchronously($server, forceRefresh: true);
+        if ($health->status === NodeHealthState::Unreachable) {
+            $this->logger->warning("{$server}: node unreachable, skipping remaining data fetch for this cycle", [
+                'failure_kind' => $health->failureKind,
+                'attempts' => $health->attempts,
+            ]);
+
+            return ServerDataFetchResult::nodeUnreachable();
+        }
+
         $collector->getServerSystemData(forceRefresh: true);
         $appsResponse = $collector->getApps(forceRefresh: true);
         if ($appsResponse === null || !is_array($appsResponse['result'] ?? null)) {

@@ -158,6 +158,59 @@ final class ServerDataFetchRunnerTest extends TestCase
         $this->assertSame(1, $result->availabilityTargets);
     }
 
+    public function testUnreachableNodeSkipsEveryRemainingRequestForThisCycle(): void
+    {
+        $collector = $this->createMock(ServerDataCollectorInterface::class);
+        $collector->expects($this->never())->method('getServerSystemData');
+        $collector->expects($this->never())->method('getApps');
+        $errorMonitor = $this->createMock(AppErrorMonitorInterface::class);
+        $errorMonitor->expects($this->never())->method('monitor');
+        $reachabilityMonitor = $this->createMock(AppReachabilityMonitorInterface::class);
+        $reachabilityMonitor->expects($this->never())->method('checkMultipleEndpoints');
+
+        $health = $this->createStub(NodeHealthMonitorInterface::class);
+        $health->method('checkSynchronously')->willReturn(NodeHealthResult::fromArray(['status' => 'unreachable']));
+
+        $result = (new ServerDataFetchRunner(new NullLogger()))->run(
+            'srv',
+            $collector,
+            $reachabilityMonitor,
+            $errorMonitor,
+            $health,
+            $this->inventorySync(),
+        );
+
+        $this->assertTrue($result->nodeUnreachable);
+        $this->assertFalse($result->appsFetched);
+    }
+
+    public function testUnhealthyNodeStillGetsFetchedBecauseItAnswered(): void
+    {
+        $collector = $this->createMock(ServerDataCollectorInterface::class);
+        $collector->expects($this->once())->method('getApps')->willReturn(['result' => [
+            'shop' => ['title' => 'Shop', 'url' => 'https://shop.example.test'],
+        ]]);
+        $errorMonitor = $this->createStub(AppErrorMonitorInterface::class);
+        $errorMonitor->method('monitor')->willReturn(AppErrorMonitoringResult::empty(1));
+        $reachabilityMonitor = $this->createStub(AppReachabilityMonitorInterface::class);
+        $reachabilityMonitor->method('checkMultipleEndpoints')->willReturn([]);
+
+        $health = $this->createStub(NodeHealthMonitorInterface::class);
+        $health->method('checkSynchronously')->willReturn(NodeHealthResult::fromArray(['status' => 'unhealthy']));
+
+        $result = (new ServerDataFetchRunner(new NullLogger()))->run(
+            'srv',
+            $collector,
+            $reachabilityMonitor,
+            $errorMonitor,
+            $health,
+            $this->inventorySync(),
+        );
+
+        $this->assertFalse($result->nodeUnreachable);
+        $this->assertTrue($result->appsFetched);
+    }
+
     private function healthMonitor(): NodeHealthMonitorInterface
     {
         $monitor = $this->createStub(NodeHealthMonitorInterface::class);
