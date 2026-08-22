@@ -165,10 +165,7 @@ final class EnvConfigLoader
             alarmRecipients: $this->parseCommaSeparated($this->getEnv('MAIL_ALARM_RECIPIENTS', '')),
             testRecipients: $this->parseCommaSeparated($this->getEnv('MAIL_TEST_RECIPIENTS', '')),
             devRecipients: $this->parseCommaSeparated($this->getEnv('MAIL_DEV_RECIPIENTS', '')),
-            mailerApp: $this->getEnv('MAILER_APP', 'sendgrid'),
-            mailerDev: $this->getEnv('MAILER_DEV', 'phpmailer'),
             charset: $this->getEnv('MAIL_CHARSET', 'utf-8'),
-            wordWrap: (int) $this->getEnv('MAIL_WORD_WRAP', '50'),
             dashboardUrl: $this->normalizeOptionalEnvValue($this->getEnv('MAIL_DASHBOARD_URL')),
         );
     }

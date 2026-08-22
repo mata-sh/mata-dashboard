@@ -116,7 +116,7 @@ final class AlarmThresholdCooldownServiceTest extends TestCase
             php: new PhpConfig(0, 'error'),
             logging: new LoggingConfig('/tmp/app.log', 'debug'),
             database: new DatabaseConfig('localhost', 'user', 'pass', 'db', '3306'),
-            mail: new MailConfig(null, null, null, [], [], [], 'mailer', 'mailer', 'UTF-8', 78, null),
+            mail: new MailConfig(null, null, null, [], [], [], 'UTF-8', null),
             cliSecurity: new CliSecurityConfig(false, ['root']),
             rateLimiting: new RateLimitingConfig(false, 'file', '/tmp/rate_limit_test.json', null, 6379, null, 0, 5, 300, 60, 60, 100, 60),
         );

@@ -326,12 +326,8 @@
             </span>
           </li>
           <li>
-            <span class="settings-key">mailer (app / dev)</span>
-            <span class="settings-value">{{ settings.mail.mailer_app }} / {{ settings.mail.mailer_dev }}</span>
-          </li>
-          <li>
             <span class="settings-key">charset</span>
-            <span class="settings-value">{{ settings.mail.charset }} <em>(wrap {{ settings.mail.word_wrap }})</em></span>
+            <span class="settings-value">{{ settings.mail.charset }}</span>
           </li>
           {% if settings.mail.dashboard_url %}
             <li>

@@ -41,7 +41,7 @@ final class AlarmEmailSenderTest extends TestCase
         $mailer = new CapturingAlarmMailer();
         $factory = new AlarmEmailFactory(
             new Environment(new ArrayLoader()),
-            new MailConfig(null, null, null, [], [], [], 'mailer', 'mailer', 'UTF-8', 78, null),
+            new MailConfig(null, null, null, [], [], [], 'UTF-8', null),
             'MATA',
         );
         $sender = new AlarmEmailSender($mailer, $factory);
@@ -62,7 +62,7 @@ final class AlarmEmailSenderTest extends TestCase
                 'emails/alarm.html.twig' => '<p>{{ alarm.message }}</p>',
                 'emails/alarm.txt.twig' => '{{ alarm.message }}',
             ]), ['autoescape' => 'name']),
-            new MailConfig(null, 'alerts@example.com', 'Alerts', ['ops@example.com'], [], [], 'mailer', 'mailer', 'UTF-8', 78, null),
+            new MailConfig(null, 'alerts@example.com', 'Alerts', ['ops@example.com'], [], [], 'UTF-8', null),
             'MATA',
         );
     }

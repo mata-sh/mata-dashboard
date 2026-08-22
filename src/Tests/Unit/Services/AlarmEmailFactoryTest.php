@@ -237,7 +237,7 @@ final class AlarmEmailFactoryTest extends TestCase
     ): AlarmEmailFactory {
         return new AlarmEmailFactory(
             new Environment(new FilesystemLoader(dirname(__DIR__, 4) . '/templates'), ['autoescape' => 'name']),
-            new MailConfig(null, $fromEmail, $fromName, $alarmRecipients, [], [], 'mailer', 'mailer', 'UTF-8', 78, $dashboardUrl),
+            new MailConfig(null, $fromEmail, $fromName, $alarmRecipients, [], [], 'UTF-8', $dashboardUrl),
             $applicationName,
             $presenter ?? new AlarmPresenter(),
         );

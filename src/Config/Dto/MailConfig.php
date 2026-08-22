@@ -24,10 +24,7 @@ final class MailConfig
         public readonly array $alarmRecipients,
         public readonly array $testRecipients,
         public readonly array $devRecipients,
-        public readonly string $mailerApp,
-        public readonly string $mailerDev,
         public readonly string $charset,
-        public readonly int $wordWrap,
         public readonly ?string $dashboardUrl,
     ) {}
 }

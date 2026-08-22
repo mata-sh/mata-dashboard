@@ -374,10 +374,7 @@ final class EventManagerTest extends TestCase
                 alarmRecipients: ['ops@example.com'],
                 testRecipients: [],
                 devRecipients: [],
-                mailerApp: 'symfony/mailer',
-                mailerDev: 'symfony/mailer-dev',
                 charset: 'UTF-8',
-                wordWrap: 78,
                 dashboardUrl: null
             ),
             cliSecurity: new CliSecurityConfig(false, ['root', 'http']),

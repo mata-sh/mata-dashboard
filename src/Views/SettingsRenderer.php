@@ -522,10 +522,7 @@ class SettingsRenderer extends BaseRenderer
             'transport' => $this->summarizeMailerDsn($mail->dsn),
             'from_email' => (string) $mail->fromEmail,
             'from_name' => (string) $mail->fromName,
-            'mailer_app' => $mail->mailerApp,
-            'mailer_dev' => $mail->mailerDev,
             'charset' => $mail->charset,
-            'word_wrap' => $mail->wordWrap,
             'dashboard_url' => (string) $mail->dashboardUrl,
             'recipients' => [
                 ['label' => 'Alarm', 'addresses' => $mail->alarmRecipients],

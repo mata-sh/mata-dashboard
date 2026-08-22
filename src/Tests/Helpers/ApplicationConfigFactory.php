@@ -134,10 +134,7 @@ class ApplicationConfigFactory
         array $alarmRecipients = [],
         array $testRecipients = [],
         array $devRecipients = [],
-        string $mailerApp = 'sendgrid',
-        string $mailerDev = 'phpmailer',
         string $charset = 'utf-8',
-        int $wordWrap = 50,
         ?string $dashboardUrl = null,
     ): MailConfig {
         return new MailConfig(
@@ -147,10 +144,7 @@ class ApplicationConfigFactory
             $alarmRecipients,
             $testRecipients,
             $devRecipients,
-            $mailerApp,
-            $mailerDev,
             $charset,
-            $wordWrap,
             $dashboardUrl,
         );
     }

@@ -238,7 +238,6 @@ class AuthenticationFlowTest extends TestCase
             'ORGANIZATION_TITLE="MATA Dashboard"',
             'DASHBOARD_SERVER_COLUMNS=3',
             'DASHBOARD_CONTAINER_WIDTH=1200',
-            'MAILER_APP=sendgrid',
             'SYM_MAILER_DSN=smtp://localhost',
         ]);
 
@@ -261,7 +260,6 @@ class AuthenticationFlowTest extends TestCase
 
         $this->assertEquals(3, $config->dashboard->serverColumns);
         $this->assertEquals(1200, $config->dashboard->containerWidth);
-        $this->assertEquals('sendgrid', $config->mail->mailerApp);
 
         // Verify path resolution works with config
         $logFile = $this->pathResolver->logsPath . '/auth.log';

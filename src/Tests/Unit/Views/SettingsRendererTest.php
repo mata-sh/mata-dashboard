@@ -211,10 +211,7 @@ final class SettingsRendererTest extends TestCase
             alarmRecipients: ['ops@example.com'],
             testRecipients: [],
             devRecipients: [],
-            mailerApp: 'sendgrid',
-            mailerDev: 'phpmailer',
             charset: 'utf-8',
-            wordWrap: 75,
             dashboardUrl: null,
         );
     }
