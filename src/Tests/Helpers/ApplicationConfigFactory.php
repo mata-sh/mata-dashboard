@@ -71,14 +71,22 @@ class ApplicationConfigFactory
         array $allowedIps = [],
         bool $alarmsEnabled = true,
         bool $eventsEnabled = true,
+        string $appName = 'MATA',
+        bool $securityHeadersEnabled = true,
+        array $trustedProxies = [],
+        bool $hstsEnabled = false,
     ): GeneralConfig {
         return new GeneralConfig(
-            $organizationName,
-            $maintenanceModeEnabled,
-            $ipWhitelistEnabled,
-            $allowedIps,
-            $alarmsEnabled,
-            $eventsEnabled,
+            organizationName: $organizationName,
+            maintenanceModeEnabled: $maintenanceModeEnabled,
+            ipWhitelistEnabled: $ipWhitelistEnabled,
+            allowedIps: $allowedIps,
+            alarmsEnabled: $alarmsEnabled,
+            eventsEnabled: $eventsEnabled,
+            appName: $appName,
+            securityHeadersEnabled: $securityHeadersEnabled,
+            trustedProxies: $trustedProxies,
+            hstsEnabled: $hstsEnabled,
         );
     }
 

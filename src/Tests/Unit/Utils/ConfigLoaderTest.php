@@ -55,6 +55,63 @@ class EnvConfigLoaderTest extends TestCase
         }
     }
 
+    public function testItLoadsTrustedProxyAndHstsSettings(): void
+    {
+        $previousTrustedProxies = $_ENV['TRUSTED_PROXIES'] ?? null;
+        $previousHsts = $_ENV['HSTS_ENABLED'] ?? null;
+        $_ENV['TRUSTED_PROXIES'] = '127.0.0.1, 172.20.0.0/16, 2001:db8::/32';
+        $_ENV['HSTS_ENABLED'] = 'ON';
+
+        try {
+            $config = $this->configLoader->load(
+                ['config.env'],
+                __DIR__ . '/../../Fixtures/config-minimal',
+            );
+
+            $this->assertSame(
+                ['127.0.0.1', '172.20.0.0/16', '2001:db8::/32'],
+                $config->general->trustedProxies,
+            );
+            $this->assertTrue($config->general->hstsEnabled);
+        } finally {
+            if ($previousTrustedProxies === null) {
+                unset($_ENV['TRUSTED_PROXIES']);
+            } else {
+                $_ENV['TRUSTED_PROXIES'] = $previousTrustedProxies;
+            }
+
+            if ($previousHsts === null) {
+                unset($_ENV['HSTS_ENABLED']);
+            } else {
+                $_ENV['HSTS_ENABLED'] = $previousHsts;
+            }
+        }
+    }
+
+    public function testTrustedProxiesAndHstsAreDisabledByDefault(): void
+    {
+        $config = $this->configLoader->load(['config.env'], __DIR__ . '/../../Fixtures/config-minimal');
+
+        $this->assertSame([], $config->general->trustedProxies);
+        $this->assertFalse($config->general->hstsEnabled);
+    }
+
+    public function testItRejectsInvalidTrustedProxyRanges(): void
+    {
+        $config = ApplicationConfigFactory::create(
+            general: ApplicationConfigFactory::createGeneralConfig(trustedProxies: ['192.0.2.1/99']),
+            mail: ApplicationConfigFactory::createMailConfig(dsn: 'null://null'),
+        );
+
+        $result = $this->configLoader->validateConfig($config);
+
+        $this->assertFalse($result['is_valid']);
+        $this->assertContains([
+            'identifier' => 'config.trusted_proxy.invalid',
+            'message' => 'TRUSTED_PROXIES contains an invalid IP address or CIDR range: 192.0.2.1/99',
+        ], $result['critical_errors']);
+    }
+
     public function testItLoadsAnUnsetDashboardUrlAsNull(): void
     {
         $previous = $_ENV['MAIL_DASHBOARD_URL'] ?? null;

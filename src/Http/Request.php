@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Mata\Http;
 
+use Mata\Http\Security\IpRangeMatcher;
+
 /** Immutable snapshot of HTTP input. */
 final class Request
 {
@@ -12,17 +14,25 @@ final class Request
      * @param array<string,mixed> $query
      * @param array<string,mixed> $post
      * @param array<string,mixed> $cookies
+     * @param list<string>        $trustedProxies Exact IP addresses or CIDR ranges
      */
     public function __construct(
         private readonly array $server = [],
         private readonly array $query = [],
         private readonly array $post = [],
         private readonly array $cookies = [],
+        private readonly array $trustedProxies = [],
     ) {}
 
     public static function fromGlobals(): self
     {
         return new self($_SERVER, $_GET, $_POST, $_COOKIE);
+    }
+
+    /** @param list<string> $trustedProxies */
+    public function withTrustedProxies(array $trustedProxies): self
+    {
+        return new self($this->server, $this->query, $this->post, $this->cookies, $trustedProxies);
     }
 
     public function method(): string
@@ -70,23 +80,27 @@ final class Request
             return 'https';
         }
 
-        // REQUEST_SCHEME comes from the server, so it outranks the client-supplied forwarding header.
-        $scheme = $this->serverString('REQUEST_SCHEME') ?? $this->header('X-Forwarded-Proto');
+        // REQUEST_SCHEME comes from the server, so it outranks the forwarding header.
+        $scheme = $this->serverString('REQUEST_SCHEME') ?? $this->forwardedProtocol();
 
         return $scheme !== null && strtolower($scheme) === 'https' ? 'https' : 'http';
     }
 
-    /**
-     * Whether the request reached the user agent over TLS.
-     *
-     * X-Forwarded-Proto is honoured because TLS-terminating proxies are the common deployment and
-     * often expose nothing else, but it is client-supplied and not yet checked against a
-     * trusted-proxy allowlist (see TODO.md, SECURITY).
-     */
+    /** Whether the request reached the user agent over TLS. */
     public function isSecure(): bool
     {
-        return $this->hasServerTlsSignal()
-            || strtolower($this->header('X-Forwarded-Proto') ?? '') === 'https';
+        return $this->hasServerTlsSignal() || $this->forwardedProtocol() === 'https';
+    }
+
+    private function forwardedProtocol(): ?string
+    {
+        if (!IpRangeMatcher::matchesAny($this->clientIp(), $this->trustedProxies)) {
+            return null;
+        }
+
+        $protocol = strtolower(trim($this->header('X-Forwarded-Proto') ?? ''));
+
+        return in_array($protocol, ['http', 'https'], true) ? $protocol : null;
     }
 
     /** TLS signals the server controls directly, i.e. everything a client cannot forge. */

@@ -17,6 +17,7 @@ use Mata\Config\Dto\MailConfig;
 use Mata\Config\Dto\PhpConfig;
 use Mata\Config\Dto\RateLimitingConfig;
 use Mata\Config\Dto\TemplateConfig;
+use Mata\Http\Security\IpRangeMatcher;
 
 /**
  * Configuration file loader supporting multiple .env formats.
@@ -95,6 +96,8 @@ final class EnvConfigLoader
             eventsEnabled: $this->getEnvBool('EVENTS_ENABLED', true),
             appName: $this->getEnv('APP_NAME', 'MATA'),
             securityHeadersEnabled: $this->getEnvBool('SECURITY_HEADERS_ENABLED', true),
+            trustedProxies: $this->parseCommaSeparated($this->getEnv('TRUSTED_PROXIES', '')),
+            hstsEnabled: $this->getEnvBool('HSTS_ENABLED', false),
         );
     }
 
@@ -222,11 +225,11 @@ final class EnvConfigLoader
     /**
      * Parse comma-separated values into array.
      *
-     * @return array<int,string>
+     * @return list<string>
      */
     private function parseCommaSeparated(string $value): array
     {
-        return array_filter(array_map('trim', explode(',', $value)));
+        return array_values(array_filter(array_map('trim', explode(',', $value))));
     }
 
     /**
@@ -288,6 +291,15 @@ final class EnvConfigLoader
                 'identifier' => 'config.domain.missing',
                 'message' => 'DOMAIN is required but missing from configuration',
             ];
+        }
+
+        foreach ($config->general->trustedProxies as $trustedProxy) {
+            if (!IpRangeMatcher::isValidRange($trustedProxy)) {
+                $criticalErrors[] = [
+                    'identifier' => 'config.trusted_proxy.invalid',
+                    'message' => "TRUSTED_PROXIES contains an invalid IP address or CIDR range: {$trustedProxy}",
+                ];
+            }
         }
 
         // Warning validations - detect missing but non-critical configurations

@@ -31,11 +31,21 @@ CLI_STRICT_USER_CHECK=ON
 # whitelist of allowed users comma separated: user1,user2..
 CLI_ALLOWED_USERS=www-data
 
-# browser security headers (CSP, HSTS, clickjacking protection)
+# browser security headers (CSP and clickjacking protection)
 SECURITY_HEADERS_ENABLED=ON
+
+# immediate reverse-proxy IP addresses or CIDR ranges
+TRUSTED_PROXIES=127.0.0.1,::1
+
+# opt in only when HTTPS is permanent for the domain and all subdomains
+HSTS_ENABLED=OFF
 ```
 
 `ON`/`OFF` values are valid for this application's `.env` parser. Set `SECURITY_HEADERS_ENABLED=OFF` only for local browser-integration debugging.
+
+`X-Forwarded-Proto` is ignored unless `REMOTE_ADDR` matches `TRUSTED_PROXIES`. Configure the reverse proxy to overwrite that header rather than append to a client-supplied value. Entries support exact IPv4 and IPv6 addresses or CIDR ranges.
+
+HSTS uses `max-age=31536000; includeSubDomains`. Enabling it can break HTTP-only subdomains and cannot be undone until browsers expire the policy.
 
 
 ## API Key Authentication

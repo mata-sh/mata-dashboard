@@ -9,7 +9,7 @@ class SecurityHeaders
     /**
      * @return array<string,string>
      */
-    public static function headers(bool $secure, bool $enabled = true): array
+    public static function headers(bool $secure, bool $enabled = true, bool $hstsEnabled = false): array
     {
         if (!$enabled) {
             return [];
@@ -35,16 +35,16 @@ class SecurityHeaders
             'Content-Security-Policy' => implode('; ', $contentSecurityPolicy),
         ];
 
-        if ($secure) {
+        if ($secure && $hstsEnabled) {
             $headers['Strict-Transport-Security'] = 'max-age=31536000; includeSubDomains';
         }
 
         return $headers;
     }
 
-    public static function apply(bool $secure, bool $enabled = true): void
+    public static function apply(bool $secure, bool $enabled = true, bool $hstsEnabled = false): void
     {
-        foreach (self::headers($secure, $enabled) as $name => $value) {
+        foreach (self::headers($secure, $enabled, $hstsEnabled) as $name => $value) {
             header($name . ': ' . $value);
         }
     }

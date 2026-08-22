@@ -13,7 +13,8 @@ namespace Mata\Config\Dto;
 final class GeneralConfig
 {
     /**
-     * @param array<int,string> $allowedIps List of IP addresses allowed to access application endpoints
+     * @param array<int,string> $allowedIps     List of IP addresses allowed to access application endpoints
+     * @param list<string>      $trustedProxies Exact IP addresses or CIDR ranges allowed to set forwarding headers
      */
     public function __construct(
         public readonly string $organizationName,
@@ -24,5 +25,7 @@ final class GeneralConfig
         public readonly bool $eventsEnabled,
         public readonly string $appName = 'MATA',
         public readonly bool $securityHeadersEnabled = true,
+        public readonly array $trustedProxies = [],
+        public readonly bool $hstsEnabled = false,
     ) {}
 }

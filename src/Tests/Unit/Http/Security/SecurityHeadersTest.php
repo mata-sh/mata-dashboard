@@ -43,15 +43,23 @@ final class SecurityHeadersTest extends TestCase
         self::assertSame($expected, SecurityHeaders::headers(false)['Content-Security-Policy']);
     }
 
-    public function testHeadersIncludeHstsForSecureRequests(): void
+    public function testHeadersIncludeHstsWhenEnabledForSecureRequests(): void
     {
-        $headers = SecurityHeaders::headers(true);
+        $headers = SecurityHeaders::headers(true, hstsEnabled: true);
 
         self::assertSame('max-age=31536000; includeSubDomains', $headers['Strict-Transport-Security']);
     }
 
+    public function testHeadersOmitHstsByDefault(): void
+    {
+        self::assertArrayNotHasKey('Strict-Transport-Security', SecurityHeaders::headers(true));
+    }
+
     public function testHeadersOmitHstsForInsecureRequests(): void
     {
-        self::assertArrayNotHasKey('Strict-Transport-Security', SecurityHeaders::headers(false));
+        self::assertArrayNotHasKey(
+            'Strict-Transport-Security',
+            SecurityHeaders::headers(false, hstsEnabled: true),
+        );
     }
 }

@@ -153,10 +153,16 @@ try {
     exit('Application initialization failed!');
 }
 
+$request = $request->withTrustedProxies($appConfig->general->trustedProxies);
+
 // ************************************************************************************************
 // HTTP Security Headers
 // ************************************************************************************************
-SecurityHeaders::apply($request->isSecure(), $appConfig->general->securityHeadersEnabled);
+SecurityHeaders::apply(
+    secure: $request->isSecure(),
+    enabled: $appConfig->general->securityHeadersEnabled,
+    hstsEnabled: $appConfig->general->hstsEnabled,
+);
 
 // ************************************************************************************************
 // Setting Environment & configurable Paths
