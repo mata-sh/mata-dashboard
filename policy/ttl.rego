@@ -2,7 +2,7 @@ package config.ttl
 
 import rego.v1
 
-# Mirrors Mata\Constants\CacheType::ttlConfigKeys(). The enum is the source of truth;
+# Mirrors Mata\Services\Cache\CacheType::ttlConfigKeys(). The enum is the source of truth;
 # TtlConfigKeysAreAlignedTest fails if this list drifts from it.
 allowed_keys := {
     "serverData",

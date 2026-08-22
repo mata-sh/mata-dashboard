@@ -7,6 +7,7 @@ namespace Mata\Services\Monitor;
 use GuzzleHttp\Promise\PromiseInterface;
 use Mata\Services\Cache\CacheType;
 use Mata\Services\Monitor\Dto\NodeHealthResult;
+use Mata\Services\Monitor\Dto\NodeHealthState;
 
 /**
  * Demo node health monitor with stable, varied health states.

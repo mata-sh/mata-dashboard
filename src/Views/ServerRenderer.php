@@ -7,7 +7,7 @@ namespace Mata\Views;
 use Exception;
 use Mata\Core\App;
 use Mata\Http\Routing\Endpoints;
-use Mata\Services\Monitor\NodeHealthState;
+use Mata\Services\Monitor\Dto\NodeHealthState;
 use Mata\Utils\Tools;
 use Mata\Views\Support\Html;
 use Monolog\Logger;

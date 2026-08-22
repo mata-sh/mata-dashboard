@@ -15,6 +15,7 @@ use Mata\Services\Event\Dto\EventCommand;
 use Mata\Services\Event\Dto\EventMetric;
 use Mata\Services\Event\EventManager;
 use Mata\Services\Monitor\Dto\NodeHealthResult;
+use Mata\Services\Monitor\Dto\NodeHealthState;
 use Mata\Services\Monitor\Dto\ProbePolicy;
 use Psr\Log\LoggerInterface;
 use UnexpectedValueException;

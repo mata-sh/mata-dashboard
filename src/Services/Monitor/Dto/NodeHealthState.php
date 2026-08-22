@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Mata\Services\Monitor;
+namespace Mata\Services\Monitor\Dto;
 
 /**
  * Node health states used by health monitors and renderers.

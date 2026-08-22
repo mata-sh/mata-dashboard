@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Mata\Tests\Unit\Services;
 
-use Mata\Services\Monitor\NodeHealthState;
+use Mata\Services\Monitor\Dto\NodeHealthState;
 use Mata\Tests\TestCase;
 use PHPUnit\Framework\Attributes\DataProvider;
 
