@@ -7,15 +7,10 @@ namespace Mata\Constants;
 /**
  * Application availability states used by app cards.
  */
-final class AppAvailabilityStatus
+enum AppAvailabilityStatus: string
 {
-    public const ONLINE = 'online';
-    public const OFFLINE = 'offline';
-    public const MAINTENANCE = 'maintenance';
-    public const PROTECTED = 'protected';
-
-    /**
-     * Prevent instantiation - this is a constants-only class.
-     */
-    private function __construct() {}
+    case Online = 'online';
+    case Offline = 'offline';
+    case Maintenance = 'maintenance';
+    case Protected = 'protected';
 }

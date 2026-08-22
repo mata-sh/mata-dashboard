@@ -697,7 +697,7 @@ class ServerRenderer extends BaseRenderer
     private function buildMaintenanceAvailabilityData(): array
     {
         return [
-            'status' => AppAvailabilityStatus::MAINTENANCE,
+            'status' => AppAvailabilityStatus::Maintenance->value,
             'tooltip' => 'Maintenance mode',
         ];
     }
@@ -710,7 +710,7 @@ class ServerRenderer extends BaseRenderer
     private function buildProtectedAvailabilityData(): array
     {
         return [
-            'status' => AppAvailabilityStatus::PROTECTED,
+            'status' => AppAvailabilityStatus::Protected->value,
             'tooltip' => 'No availability data',
         ];
     }
@@ -740,7 +740,7 @@ class ServerRenderer extends BaseRenderer
             : 'Online: ' . implode(' • ', $segments);
 
         return [
-            'status' => AppAvailabilityStatus::ONLINE,
+            'status' => AppAvailabilityStatus::Online->value,
             'tooltip' => $tooltip,
         ];
     }
@@ -770,7 +770,7 @@ class ServerRenderer extends BaseRenderer
             : implode(' • ', $segments);
 
         return [
-            'status' => AppAvailabilityStatus::OFFLINE,
+            'status' => AppAvailabilityStatus::Offline->value,
             'tooltip' => $tooltip,
         ];
     }
