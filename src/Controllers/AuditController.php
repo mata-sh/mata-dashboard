@@ -7,7 +7,7 @@ namespace Mata\Controllers;
 use Exception;
 use InvalidArgumentException;
 use Mata\Config\Dto\ApplicationConfig;
-use Mata\Constants\CacheTypes;
+use Mata\Constants\CacheType;
 use Mata\Core\App;
 use Mata\Core\Session;
 use Mata\Http\Request;
@@ -138,7 +138,7 @@ class AuditController extends BaseController
 
         // Release PHP's session lock so htmx fan-out requests can run concurrently.
         Session::close();
-        $response = $this->serverDataCollectors[$server]->fetchAppComposerAudit($app, CacheTypes::NONE);
+        $response = $this->serverDataCollectors[$server]->fetchAppComposerAudit($app, CacheType::None);
 
         return (new HtmlResponse($this->auditRenderer->renderChipResult($server, $app, $response)))
             ->addHeader('HX-Trigger', 'auditChipDone');

@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Mata\Services\Monitor;
 
-use Mata\Constants\CacheTypes;
+use Mata\Constants\CacheType;
 use Mata\Services\Monitor\Dto\EndpointTarget;
 
 /**
@@ -20,7 +20,7 @@ interface AppReachabilityMonitorInterface
      *
      * @param EndpointTarget $target       target metadata for the endpoint to probe
      * @param null|int       $timeout      timeout in seconds; null uses the configured probe policy timeout
-     * @param string         $cacheType    cache key for TTL lookup (default: CacheTypes::PING)
+     * @param CacheType      $cacheType    cache key for TTL lookup (default: CacheType::Ping)
      * @param bool           $forceRefresh bypass a cached result while preserving its cache key
      *
      * @return array<string,mixed> result data (reachable,httpCode,latency_ms,error)
@@ -28,7 +28,7 @@ interface AppReachabilityMonitorInterface
     public function checkEndpoint(
         EndpointTarget $target,
         ?int $timeout = null,
-        string $cacheType = CacheTypes::PING,
+        CacheType $cacheType = CacheType::Ping,
         bool $forceRefresh = false,
     ): array;
 
@@ -37,7 +37,7 @@ interface AppReachabilityMonitorInterface
      *
      * @param array<int|string, EndpointTarget> $targets      endpoint targets keyed by identifier
      * @param null|int                          $timeout      timeout in seconds; null uses the configured probe policy timeout
-     * @param string                            $cacheType    cache key for TTL lookup (default: CacheTypes::PING)
+     * @param CacheType                         $cacheType    cache key for TTL lookup (default: CacheType::Ping)
      * @param bool                              $forceRefresh bypass cached results while preserving their cache keys
      *
      * @return array<int|string,array<string,mixed>> results keyed by identifier
@@ -45,7 +45,7 @@ interface AppReachabilityMonitorInterface
     public function checkMultipleEndpoints(
         array $targets,
         ?int $timeout = null,
-        string $cacheType = CacheTypes::PING,
+        CacheType $cacheType = CacheType::Ping,
         bool $forceRefresh = false,
     ): array;
 }

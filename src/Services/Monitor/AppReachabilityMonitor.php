@@ -6,7 +6,7 @@ namespace Mata\Services\Monitor;
 
 use Closure;
 use GuzzleHttp\Promise\PromiseInterface;
-use Mata\Constants\CacheTypes;
+use Mata\Constants\CacheType;
 use Mata\Services\Cache\ApiCacheKeyFactory;
 use Mata\Services\Cache\CacheStoreInterface;
 use Mata\Services\Cache\CacheTtlResolver;
@@ -51,7 +51,7 @@ class AppReachabilityMonitor implements AppReachabilityMonitorInterface
     public function checkEndpoint(
         EndpointTarget $target,
         ?int $timeout = null,
-        string $cacheType = CacheTypes::PING,
+        CacheType $cacheType = CacheType::Ping,
         bool $forceRefresh = false
     ): array {
         $timeout ??= $this->probePolicy->timeoutSeconds;
@@ -74,7 +74,7 @@ class AppReachabilityMonitor implements AppReachabilityMonitorInterface
     public function checkMultipleEndpoints(
         array $targets,
         ?int $timeout = null,
-        string $cacheType = CacheTypes::PING,
+        CacheType $cacheType = CacheType::Ping,
         bool $forceRefresh = false
     ): array {
         if ($targets === []) {
@@ -250,7 +250,7 @@ class AppReachabilityMonitor implements AppReachabilityMonitorInterface
         return $reachable || $maintenanceMode;
     }
 
-    private function availabilityCacheKey(string $url, string $cacheType, int $timeout): string
+    private function availabilityCacheKey(string $url, CacheType $cacheType, int $timeout): string
     {
         return $this->cacheKeyFactory->createAvailabilityKey($this->apiClient->getApiBase(), $cacheType, $url, $timeout);
     }

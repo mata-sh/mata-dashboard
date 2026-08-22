@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Mata\Tests\Unit\Services;
 
+use Mata\Constants\CacheType;
 use Mata\Models\ConfigSyncRepository;
 use Mata\Services\Collect\ServerDataCollectorInterface;
 use Mata\Services\Cron\ServerDataFetchRunner;
@@ -28,8 +29,8 @@ final class ServerDataFetchRunnerTest extends TestCase
     public function testUsesOneForcedAppsResponseAndNeverFetchesDetailedLogs(): void
     {
         $collector = $this->createMock(ServerDataCollectorInterface::class);
-        $collector->expects($this->once())->method('getServerSystemData')->with(true);
-        $collector->expects($this->once())->method('getApps')->with(true)->willReturn(['result' => [
+        $collector->expects($this->once())->method('getServerSystemData')->with(CacheType::ServerData, true);
+        $collector->expects($this->once())->method('getApps')->with(CacheType::Apps, true)->willReturn(['result' => [
             'shop' => [
                 'title' => 'Shop', 'env' => 'prod', 'url' => 'https://shop.example.test',
                 'monitoring' => ['reachability' => false],
@@ -39,7 +40,7 @@ final class ServerDataFetchRunnerTest extends TestCase
         $collector->expects($this->never())->method('fetchAppLogsStatus');
 
         $health = $this->createMock(NodeHealthMonitorInterface::class);
-        $health->expects($this->once())->method('checkSynchronously')->with('srv', true);
+        $health->expects($this->once())->method('checkSynchronously')->with('srv', CacheType::Health, true);
         $reachabilityMonitor = $this->createMock(AppReachabilityMonitorInterface::class);
         $reachabilityMonitor->expects($this->never())->method('checkMultipleEndpoints');
         $errorMonitor = $this->createMock(AppErrorMonitorInterface::class);

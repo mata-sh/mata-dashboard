@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Mata\Services\Monitor;
 
 use Exception;
+use Mata\Constants\CacheType;
 use Mata\Services\Collect\ServerDataCollectorInterface;
 use Mata\Services\Event\Dto\EventCommand;
 use Mata\Services\Event\Dto\EventMetric;
@@ -38,7 +39,7 @@ class ServerMonitor
      *
      * @param ServerDataCollectorInterface $serverDataCollector Server API client
      * @param string                       $server              Server name for logging
-     * @param string                       $cacheType           Cache type key for TTL lookup
+     * @param CacheType                    $cacheType           Cache type key for TTL lookup
      *
      * @return array<string,mixed> Server metrics with threshold levels and cache metadata
      *
@@ -47,7 +48,7 @@ class ServerMonitor
     public function collectServerHealthData(
         ServerDataCollectorInterface $serverDataCollector,
         string $server,
-        string $cacheType = 'serverData'
+        CacheType $cacheType = CacheType::ServerData
     ): array {
         $response = $serverDataCollector->getServerSystemData($cacheType);
         $error = is_array($response) ? ($response['error'] ?? null) : null;

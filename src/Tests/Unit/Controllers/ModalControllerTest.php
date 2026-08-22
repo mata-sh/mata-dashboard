@@ -7,6 +7,7 @@ namespace Mata\Tests\Unit\Controllers;
 use Exception;
 use Mata\Config\Dto\ApplicationConfig;
 use Mata\Config\Dto\EnvironmentConfig;
+use Mata\Constants\CacheType;
 use Mata\Controllers\ModalController;
 use Mata\Core\App;
 use Mata\Http\Responses\HtmlResponse;
@@ -1184,7 +1185,7 @@ MARKDOWN;
         $collector = $this->createMockServerDataCollector('server1');
         $collector->expects($this->once())
             ->method('getServerDatabases')
-            ->with('databases')
+            ->with(CacheType::Databases)
             ->willReturn([
                 'result' => [
                     'databases' => [
@@ -1237,7 +1238,7 @@ MARKDOWN;
         $collector = $this->createMockServerDataCollector('server1');
         $collector->expects($this->once())
             ->method('getServerDatabases')
-            ->with('none')
+            ->with(CacheType::None)
             ->willReturn([
                 'result' => ['databases' => ['main' => ['process_list' => []]]],
             ])

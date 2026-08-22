@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Mata\Tests\Unit\Services;
 
 use Exception;
+use Mata\Constants\CacheType;
 use Mata\Services\Collect\ServerDataCollectorInterface;
 use Mata\Services\Event\Dto\EventCommand;
 use Mata\Services\Event\EventManager;
@@ -50,7 +51,7 @@ final class ServerMonitorTest extends TestCase
 
         $collector->expects($this->once())
             ->method('getServerSystemData')
-            ->with('serverData')
+            ->with(CacheType::ServerData)
             ->willReturn([
                 'result' => [
                     'disk_space_used' => 50,
@@ -77,7 +78,7 @@ final class ServerMonitorTest extends TestCase
             ->method('handle')
         ;
 
-        $payload = $this->monitor->collectServerHealthData($collector, 'srv-1', 'serverData');
+        $payload = $this->monitor->collectServerHealthData($collector, 'srv-1', CacheType::ServerData);
 
         $this->assertArrayHasKey('data', $payload);
         $this->assertArrayHasKey('cache', $payload);

@@ -6,7 +6,7 @@ namespace Mata\Services\Monitor;
 
 use Closure;
 use GuzzleHttp\Promise\PromiseInterface;
-use Mata\Constants\CacheTypes;
+use Mata\Constants\CacheType;
 use Mata\Constants\NodeHealthState;
 use Mata\Services\Cache\ApiCacheKeyFactory;
 use Mata\Services\Cache\CacheStoreInterface;
@@ -59,7 +59,7 @@ class NodeHealthMonitor implements NodeHealthMonitorInterface
     /** @return HealthProbeResult */
     public function checkSynchronously(
         string $serverName,
-        string $cacheTtlType = CacheTypes::HEALTH,
+        CacheType $cacheTtlType = CacheType::Health,
         bool $forceRefresh = false,
     ): array {
         $result = $this->checkAsync($serverName, $cacheTtlType, $forceRefresh);
@@ -70,7 +70,7 @@ class NodeHealthMonitor implements NodeHealthMonitorInterface
     /** @return HealthProbeResult|PromiseInterface */
     public function checkAsync(
         string $serverName,
-        string $cacheTtlType = CacheTypes::HEALTH,
+        CacheType $cacheTtlType = CacheType::Health,
         bool $forceRefresh = false,
     ): array|PromiseInterface {
         $cacheKey = $this->healthCacheKey();

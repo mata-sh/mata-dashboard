@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Mata\Tests\Unit\Services;
 
 use GuzzleHttp\Promise\Create;
-use Mata\Constants\CacheTypes;
+use Mata\Constants\CacheType;
 use Mata\Constants\NodeHealthState;
 use Mata\Models\ConfigSyncRepository;
 use Mata\Services\Cache\CacheTypeResolver;
@@ -40,7 +40,7 @@ final class ServerViewBuilderTest extends TestCase
         $collector = $this->createMock(ServerDataCollectorInterface::class);
         $collector->expects($this->once())
             ->method('getApps')
-            ->with(CacheTypes::APPS)
+            ->with(CacheType::Apps)
             ->willReturn([
                 'result' => [],
                 'cache_age' => 0,
@@ -50,7 +50,7 @@ final class ServerViewBuilderTest extends TestCase
         $serverMonitor = $this->createMock(ServerMonitor::class);
         $serverMonitor->expects($this->once())
             ->method('collectServerHealthData')
-            ->with($collector, 'server-a', CacheTypes::SERVER_DATA)
+            ->with($collector, 'server-a', CacheType::ServerData)
             ->willReturn(['cpu' => []]);
 
         $reachabilityMonitor = $this->createMock(AppReachabilityMonitorInterface::class);

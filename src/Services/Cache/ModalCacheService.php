@@ -4,13 +4,13 @@ declare(strict_types=1);
 
 namespace Mata\Services\Cache;
 
-use Mata\Constants\CacheTypes;
+use Mata\Constants\CacheType;
 use Mata\Services\Collect\ServerDataCollectorInterface;
 
 /**
  * Coordinates cache-related behaviour for modal endpoints.
  *
- * Wraps the force-refresh handling and CacheTypes switching, ensuring caching
+ * Wraps the force-refresh handling and CacheType switching, ensuring caching
  * decisions stay consistent across README, error log, and server info modals.
  */
 final class ModalCacheService
@@ -30,7 +30,7 @@ final class ModalCacheService
         string $app,
         bool $forceRefresh
     ): ?array {
-        $cacheType = $this->cacheTypeResolver->resolve($forceRefresh, CacheTypes::README);
+        $cacheType = $this->cacheTypeResolver->resolve($forceRefresh, CacheType::Readme);
 
         return $collector->fetchAppReadme($app, $cacheType);
     }
@@ -43,7 +43,7 @@ final class ModalCacheService
         string $app,
         bool $forceRefresh
     ): ?array {
-        $cacheType = $this->cacheTypeResolver->resolve($forceRefresh, CacheTypes::APP_LOGS);
+        $cacheType = $this->cacheTypeResolver->resolve($forceRefresh, CacheType::AppLogs);
 
         return $collector->fetchAppLogs($app, $cacheType);
     }
@@ -56,7 +56,7 @@ final class ModalCacheService
         string $app,
         bool $forceRefresh
     ): ?array {
-        $cacheType = $this->cacheTypeResolver->resolve($forceRefresh, CacheTypes::APP_LOGS);
+        $cacheType = $this->cacheTypeResolver->resolve($forceRefresh, CacheType::AppLogs);
 
         return $collector->fetchAppLogsStatus($app, $cacheType);
     }
@@ -70,7 +70,7 @@ final class ModalCacheService
         ServerDataCollectorInterface $collector,
         bool $forceRefresh
     ): array|string|null {
-        $cacheType = $this->cacheTypeResolver->resolve($forceRefresh, CacheTypes::DATABASES);
+        $cacheType = $this->cacheTypeResolver->resolve($forceRefresh, CacheType::Databases);
 
         return $collector->getServerDatabases($cacheType);
     }
@@ -82,7 +82,7 @@ final class ModalCacheService
         ServerDataCollectorInterface $collector,
         bool $forceRefresh
     ): ?array {
-        $cacheType = $this->cacheTypeResolver->resolve($forceRefresh, CacheTypes::SERVER_INFO);
+        $cacheType = $this->cacheTypeResolver->resolve($forceRefresh, CacheType::ServerInfo);
 
         return $collector->getServerInfo($cacheType);
     }
@@ -94,7 +94,7 @@ final class ModalCacheService
         ServerDataCollectorInterface $collector,
         bool $forceRefresh
     ): ?array {
-        $cacheType = $this->cacheTypeResolver->resolve($forceRefresh, CacheTypes::CRONJOBS);
+        $cacheType = $this->cacheTypeResolver->resolve($forceRefresh, CacheType::Cronjobs);
 
         return $collector->fetchServerCronjobs($cacheType);
     }

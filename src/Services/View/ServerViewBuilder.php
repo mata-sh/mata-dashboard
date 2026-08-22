@@ -8,7 +8,7 @@ use Exception;
 use GuzzleHttp\Promise\PromiseInterface;
 use GuzzleHttp\Promise\Utils;
 use InvalidArgumentException;
-use Mata\Constants\CacheTypes;
+use Mata\Constants\CacheType;
 use Mata\Constants\NodeHealthState;
 use Mata\Services\Cache\CacheTypeResolver;
 use Mata\Services\Collect\ServerDataCollectorInterface;
@@ -135,7 +135,7 @@ class ServerViewBuilder
         bool $forceRefresh
     ): array {
         // Fetch server metrics only
-        $metricsCacheType = $this->cacheTypeResolver->resolve($forceRefresh, CacheTypes::SERVER_DATA);
+        $metricsCacheType = $this->cacheTypeResolver->resolve($forceRefresh, CacheType::ServerData);
         $serverMetrics = $this->serverMonitor->collectServerHealthData(
             $collector,
             $serverName,
@@ -173,7 +173,7 @@ class ServerViewBuilder
         $serverData = $this->buildServerStatsData($serverName, $serverConfig, $collector, $forceRefresh);
 
         // Fetch apps list
-        $appsCacheType = $this->cacheTypeResolver->resolve($forceRefresh, CacheTypes::APPS);
+        $appsCacheType = $this->cacheTypeResolver->resolve($forceRefresh, CacheType::Apps);
         $appsApiResponse = $collector->getApps($appsCacheType);
         $appsError = is_array($appsApiResponse) ? ($appsApiResponse['error'] ?? null) : null;
         if (is_array($appsError) && is_string($appsError['message'] ?? null)) {

@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Mata\Services\Monitor;
 
 use GuzzleHttp\Promise\PromiseInterface;
-use Mata\Constants\CacheTypes;
+use Mata\Constants\CacheType;
 
 /**
  * Contract for node health endpoint monitoring.
@@ -19,7 +19,7 @@ interface NodeHealthMonitorInterface
      */
     public function checkSynchronously(
         string $serverName,
-        string $cacheTtlType = CacheTypes::HEALTH,
+        CacheType $cacheTtlType = CacheType::Health,
         bool $forceRefresh = false,
     ): array;
 
@@ -30,7 +30,7 @@ interface NodeHealthMonitorInterface
      */
     public function checkAsync(
         string $serverName,
-        string $cacheTtlType = CacheTypes::HEALTH,
+        CacheType $cacheTtlType = CacheType::Health,
         bool $forceRefresh = false,
     ): array|PromiseInterface;
 }

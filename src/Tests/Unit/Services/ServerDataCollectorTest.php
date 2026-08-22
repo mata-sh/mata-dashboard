@@ -8,6 +8,7 @@ use GuzzleHttp\Exception\ConnectException;
 use GuzzleHttp\Exception\RequestException;
 use GuzzleHttp\Psr7\Request;
 use GuzzleHttp\Psr7\Response;
+use Mata\Constants\CacheType;
 use Mata\Services\Cache\ApiCacheKeyFactory;
 use Mata\Services\Cache\CacheEntry;
 use Mata\Services\Cache\CacheStoreInterface;
@@ -200,12 +201,12 @@ final class ServerDataCollectorTest extends TestCase
             new NullLogger(),
             $cache,
             $keys,
-            new CacheTtlResolver(['none' => 0]),
+            new CacheTtlResolver([]),
             $apiClient,
             new NodeResponseNormalizer(new NullLogger()),
         );
 
-        $response = $collector->getApps('none');
+        $response = $collector->getApps(CacheType::None);
         $entry = $cache->getStale($key, 60);
 
         $this->assertFalse($response['from_cache']);
@@ -227,12 +228,12 @@ final class ServerDataCollectorTest extends TestCase
             new NullLogger(),
             $cache,
             new ApiCacheKeyFactory(),
-            new CacheTtlResolver(['none' => 0]),
+            new CacheTtlResolver([]),
             $apiClient,
             new NodeResponseNormalizer(new NullLogger()),
         );
 
-        $this->assertNull($collector->getApps('none'));
+        $this->assertNull($collector->getApps(CacheType::None));
         $this->assertSame(['apps' => ['old']], $cache->getStale($key, 60)?->value);
     }
 

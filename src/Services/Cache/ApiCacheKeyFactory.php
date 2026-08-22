@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Mata\Services\Cache;
 
 use JsonException;
+use Mata\Constants\CacheType;
 
 /**
  * Creates logical API cache keys without storage side effects.
@@ -74,14 +75,16 @@ final class ApiCacheKeyFactory
     /**
      * Create an availability key with an opaque URL-and-timeout leaf.
      */
-    public function createAvailabilityKey(string $apiBase, string $cacheType, string $url, int $timeout): string
+    public function createAvailabilityKey(string $apiBase, CacheType $cacheType, string $url, int $timeout): string
     {
         return $this->createApiRequestKey(
             $apiBase,
             'HEAD',
             sprintf(
+                // ->value keeps the key byte-identical: unlike createApiRequestKey(), this
+                // key embeds the cache type, so a changed representation orphans entries.
                 'ping/%s/timeout_%d/%s',
-                $cacheType,
+                $cacheType->value,
                 $timeout,
                 $this->createOpaqueLeaf("{$url}|timeout_{$timeout}")
             )

@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Mata\Services\Monitor;
 
-use Mata\Constants\CacheTypes;
+use Mata\Constants\CacheType;
 use Mata\Services\Monitor\Dto\EndpointTarget;
 
 /**
@@ -15,7 +15,7 @@ class MockAppReachabilityMonitor implements AppReachabilityMonitorInterface
     public function checkEndpoint(
         EndpointTarget $target,
         ?int $timeout = null,
-        string $cacheType = CacheTypes::PING,
+        CacheType $cacheType = CacheType::Ping,
         bool $forceRefresh = false,
     ): array {
         return $this->generateMockResult($target->url);
@@ -27,7 +27,7 @@ class MockAppReachabilityMonitor implements AppReachabilityMonitorInterface
     public function checkMultipleEndpoints(
         array $targets,
         ?int $timeout = null,
-        string $cacheType = CacheTypes::PING,
+        CacheType $cacheType = CacheType::Ping,
         bool $forceRefresh = false,
     ): array {
         if ($targets === []) {

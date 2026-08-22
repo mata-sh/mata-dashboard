@@ -6,7 +6,7 @@ namespace Mata\Services\Collect;
 
 use GuzzleHttp\Exception\RequestException;
 use GuzzleHttp\Exception\TransferException;
-use Mata\Constants\CacheTypes;
+use Mata\Constants\CacheType;
 use Mata\Services\Cache\ApiCacheKeyFactory;
 use Mata\Services\Cache\CacheStoreInterface;
 use Mata\Services\Cache\CacheTtlResolver;
@@ -67,11 +67,11 @@ class ServerDataCollector implements ServerDataCollectorInterface
      * - Total system file count
      * - Process counts
      *
-     * @param string $cacheType Cache type key for TTL lookup (default: 'serverData')
+     * @param CacheType $cacheType Cache type key for TTL lookup (default: CacheType::ServerData)
      *
      * @return null|array<string,mixed> Server data or null on failure
      */
-    public function getServerSystemData(string $cacheType = 'serverData', bool $forceRefresh = false): ?array
+    public function getServerSystemData(CacheType $cacheType = CacheType::ServerData, bool $forceRefresh = false): ?array
     {
         return $this->request('GET', 'server/data', $cacheType, forceRefresh: $forceRefresh);
     }
@@ -84,11 +84,11 @@ class ServerDataCollector implements ServerDataCollectorInterface
      * - Total installed packages count
      * - List of activated PHP extensions
      *
-     * @param string $cacheType Cache type key for TTL lookup (default: 'serverInfo')
+     * @param CacheType $cacheType Cache type key for TTL lookup (default: CacheType::ServerInfo)
      *
      * @return null|array<string,mixed> Server info or null on failure
      */
-    public function getServerInfo(string $cacheType = 'serverInfo'): ?array
+    public function getServerInfo(CacheType $cacheType = CacheType::ServerInfo): ?array
     {
         return $this->request('GET', 'server/info', $cacheType);
     }
@@ -96,11 +96,11 @@ class ServerDataCollector implements ServerDataCollectorInterface
     /**
      * Fetch raw PHP process information from server.
      *
-     * @param string $cacheType Cache type key for TTL lookup (default: 'serverProcesses')
+     * @param CacheType $cacheType Cache type key for TTL lookup (default: CacheType::ServerProcesses)
      *
      * @return null|array<string,mixed> Raw PHP process data array or null on failure
      */
-    public function getServerPhpProcesses(string $cacheType = 'serverProcesses'): ?array
+    public function getServerPhpProcesses(CacheType $cacheType = CacheType::ServerProcesses): ?array
     {
         return $this->request('GET', 'server/php', $cacheType);
     }
@@ -108,11 +108,11 @@ class ServerDataCollector implements ServerDataCollectorInterface
     /**
      * Fetch database server information and statistics.
      *
-     * @param string $cacheType Cache type key for TTL lookup (default: 'databases')
+     * @param CacheType $cacheType Cache type key for TTL lookup (default: CacheType::Databases)
      *
      * @return null|array<string,mixed>|string Database information or raw string data
      */
-    public function getServerDatabases(string $cacheType = 'databases'): array|string|null
+    public function getServerDatabases(CacheType $cacheType = CacheType::Databases): array|string|null
     {
         return $this->request('GET', 'server/databases', $cacheType);
     }
@@ -127,11 +127,11 @@ class ServerDataCollector implements ServerDataCollectorInterface
      * - Error/warning counts and log file sizes
      * - Session statistics
      *
-     * @param string $cacheType Cache type key for TTL lookup (default: 'apps')
+     * @param CacheType $cacheType Cache type key for TTL lookup (default: CacheType::Apps)
      *
      * @return null|array<string,mixed> Apps data indexed by app name or null on failure
      */
-    public function getApps(string $cacheType = 'apps', bool $forceRefresh = false): ?array
+    public function getApps(CacheType $cacheType = CacheType::Apps, bool $forceRefresh = false): ?array
     {
         return $this->request('GET', 'apps', $cacheType, forceRefresh: $forceRefresh);
     }
@@ -141,11 +141,11 @@ class ServerDataCollector implements ServerDataCollectorInterface
      *
      * Retrieves installed packages and their versions across all apps.
      *
-     * @param string $cacheType Cache type key for TTL lookup (default: 'libraries')
+     * @param CacheType $cacheType Cache type key for TTL lookup (default: CacheType::Libraries)
      *
      * @return null|array<string,mixed> Libraries data for all apps or null on failure
      */
-    public function getAppsLibraries(string $cacheType = 'libraries'): ?array
+    public function getAppsLibraries(CacheType $cacheType = CacheType::Libraries): ?array
     {
         return $this->request('GET', 'apps/libraries', $cacheType);
     }
@@ -155,12 +155,12 @@ class ServerDataCollector implements ServerDataCollectorInterface
      *
      * Retrieves installed packages and their versions for a single app.
      *
-     * @param string $app       App identifier
-     * @param string $cacheType Cache type key for TTL lookup (default: 'libraries')
+     * @param string    $app       App identifier
+     * @param CacheType $cacheType Cache type key for TTL lookup (default: CacheType::Libraries)
      *
      * @return null|array<string,mixed> Libraries data for the specified app or null on failure
      */
-    public function getAppLibraries(string $app, string $cacheType = 'libraries'): ?array
+    public function getAppLibraries(string $app, CacheType $cacheType = CacheType::Libraries): ?array
     {
         return $this->request('GET', "{$app}/libraries", $cacheType);
     }
@@ -168,12 +168,12 @@ class ServerDataCollector implements ServerDataCollectorInterface
     /**
      * Fetch README content from a specific app.
      *
-     * @param string $app       App identifier
-     * @param string $cacheType Cache type key for TTL lookup (default: 'readme')
+     * @param string    $app       App identifier
+     * @param CacheType $cacheType Cache type key for TTL lookup (default: CacheType::Readme)
      *
      * @return null|array<string,mixed> README content or null on failure
      */
-    public function fetchAppReadme(string $app, string $cacheType = 'readme'): ?array
+    public function fetchAppReadme(string $app, CacheType $cacheType = CacheType::Readme): ?array
     {
         return $this->request('GET', "{$app}/readme", $cacheType);
     }
@@ -182,12 +182,12 @@ class ServerDataCollector implements ServerDataCollectorInterface
      * Fetch parsed log entries from multiple log files.
      * Returns grouped structure: ['file_path' => [entries...]].
      *
-     * @param string $app       App identifier
-     * @param string $cacheType Cache type key for TTL lookup (default: 'appLogs')
+     * @param string    $app       App identifier
+     * @param CacheType $cacheType Cache type key for TTL lookup (default: CacheType::AppLogs)
      *
      * @return null|array<string,mixed> Grouped log entries or null on failure
      */
-    public function fetchAppLogs(string $app, string $cacheType = 'appLogs'): ?array
+    public function fetchAppLogs(string $app, CacheType $cacheType = CacheType::AppLogs): ?array
     {
         return $this->request('GET', "{$app}/logs", $cacheType);
     }
@@ -195,12 +195,12 @@ class ServerDataCollector implements ServerDataCollectorInterface
     /**
      * Fetch log file metadata (sizes, line counts, last modified).
      *
-     * @param string $app       App identifier
-     * @param string $cacheType Cache type key for TTL lookup (default: 'appLogs')
+     * @param string    $app       App identifier
+     * @param CacheType $cacheType Cache type key for TTL lookup (default: CacheType::AppLogs)
      *
      * @return null|array<string,mixed> Log file metadata or null on failure
      */
-    public function fetchAppLogsStatus(string $app, string $cacheType = 'appLogs'): ?array
+    public function fetchAppLogsStatus(string $app, CacheType $cacheType = CacheType::AppLogs): ?array
     {
         return $this->request('GET', "{$app}/logs-status", $cacheType);
     }
@@ -212,12 +212,12 @@ class ServerDataCollector implements ServerDataCollectorInterface
      * `count_last_day`, `count_total`, `path`, `size_kb`, and `error` when
      * status is error/unsupported.
      *
-     * @param string $app       App identifier
-     * @param string $cacheType Cache type key for TTL lookup (default: 'sessions')
+     * @param string    $app       App identifier
+     * @param CacheType $cacheType Cache type key for TTL lookup (default: CacheType::Sessions)
      *
      * @return null|array<string,mixed> Session data or null on failure
      */
-    public function fetchAppSessions(string $app, string $cacheType = 'sessions'): ?array
+    public function fetchAppSessions(string $app, CacheType $cacheType = CacheType::Sessions): ?array
     {
         return $this->request('GET', "{$app}/sessions", $cacheType);
     }
@@ -229,7 +229,7 @@ class ServerDataCollector implements ServerDataCollectorInterface
      *
      * @return null|array<string,mixed> Normalized Composer audit response or null on failure
      */
-    public function fetchAppComposerAudit(string $app, string $cacheType = CacheTypes::AUDIT): ?array
+    public function fetchAppComposerAudit(string $app, CacheType $cacheType = CacheType::Audit): ?array
     {
         return $this->request('GET', "{$app}/composer-audit", $cacheType, ['timeout' => 90]);
     }
@@ -241,7 +241,7 @@ class ServerDataCollector implements ServerDataCollectorInterface
      */
     public function getCachedAppComposerAudit(string $app): ?array
     {
-        $ttlSeconds = $this->ttlResolver->get(CacheTypes::AUDIT);
+        $ttlSeconds = $this->ttlResolver->get(CacheType::Audit);
         $path = "{$app}/composer-audit";
         $cacheKey = $this->cacheKeyFactory->createApiRequestKey($this->apiClient->getApiBase(), 'GET', $path);
 
@@ -272,11 +272,11 @@ class ServerDataCollector implements ServerDataCollectorInterface
      * Ordered list of entries with `index`, `path`, `exists`, `mtime`,
      * `age_seconds`, `size`, `stale`, `content_tail`.
      *
-     * @param string $cacheType Cache type key for TTL lookup (default: 'cronjobs')
+     * @param CacheType $cacheType Cache type key for TTL lookup (default: CacheType::Cronjobs)
      *
      * @return null|array<string,mixed> Normalized response with cronjob entries or null on failure
      */
-    public function fetchServerCronjobs(string $cacheType = 'cronjobs'): ?array
+    public function fetchServerCronjobs(CacheType $cacheType = CacheType::Cronjobs): ?array
     {
         return $this->request('GET', 'server/cronjobs', $cacheType);
     }
@@ -292,7 +292,7 @@ class ServerDataCollector implements ServerDataCollectorInterface
      *
      * @param string              $method         HTTP method (GET, POST, etc.)
      * @param string              $path           API endpoint path
-     * @param string              $cacheType      Cache Type in seconds (0 = no cache, -1 = permanent cache)
+     * @param CacheType           $cacheType      selects the TTL; CacheType::None bypasses the cache
      * @param array<string,mixed> $requestOptions Guzzle request options
      *
      * @return null|array<string,mixed> Response data or null on failure
@@ -300,7 +300,7 @@ class ServerDataCollector implements ServerDataCollectorInterface
     private function request(
         string $method,
         string $path,
-        string $cacheType = '',
+        CacheType $cacheType,
         array $requestOptions = [],
         bool $forceRefresh = false,
     ): ?array {

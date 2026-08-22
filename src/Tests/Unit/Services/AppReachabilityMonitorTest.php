@@ -13,7 +13,7 @@ use GuzzleHttp\Promise\Create;
 use GuzzleHttp\Promise\PromiseInterface;
 use GuzzleHttp\Psr7\Request;
 use GuzzleHttp\Psr7\Response;
-use Mata\Constants\CacheTypes;
+use Mata\Constants\CacheType;
 use Mata\Services\Cache\ApiCacheKeyFactory;
 use Mata\Services\Cache\CacheEntry;
 use Mata\Services\Cache\CacheStoreInterface;
@@ -54,10 +54,10 @@ final class AppReachabilityMonitorTest extends TestCase
         $store->expects($this->exactly(2))->method('put')->with($this->isString(), $this->isArray())->willReturn(true);
         $probe = $this->probe(new Response(503));
 
-        $result = $this->monitor($store, $probe, CacheTypes::NONE)->checkEndpoint(
+        $result = $this->monitor($store, $probe, CacheType::None)->checkEndpoint(
             new EndpointTarget('app', 'https://app.example.test'),
             2,
-            CacheTypes::NONE
+            CacheType::None
         );
 
         $this->assertFalse($result['reachable']);
@@ -75,7 +75,7 @@ final class AppReachabilityMonitorTest extends TestCase
             new Response(200),
         );
 
-        $result = $this->monitor($store, $probe, CacheTypes::PING, $events)->checkMultipleEndpoints([
+        $result = $this->monitor($store, $probe, CacheType::Ping, $events)->checkMultipleEndpoints([
             'app' => new EndpointTarget('app', 'https://app.example.test'),
         ]);
 
@@ -127,7 +127,7 @@ final class AppReachabilityMonitorTest extends TestCase
             return [];
         });
         $target = new EndpointTarget('shop', 'https://shop.example.test', serverName: 'node-a', applicationCode: 'shop');
-        $monitor = $this->monitor($store, $this->probe(new Response(503), new Response(503), new Response(200), new Response(503)), CacheTypes::NONE, $manager);
+        $monitor = $this->monitor($store, $this->probe(new Response(503), new Response(503), new Response(200), new Response(503)), CacheType::None, $manager);
 
         $monitor->checkMultipleEndpoints(['shop' => $target], forceRefresh: true);
         $monitor->checkMultipleEndpoints(['shop' => $target], forceRefresh: true);
@@ -158,7 +158,7 @@ final class AppReachabilityMonitorTest extends TestCase
         $monitor = $this->monitor(
             $store,
             $this->probe($failure(), $failure(), $failure(), $failure()),
-            CacheTypes::PING,
+            CacheType::Ping,
             $events,
             retryDelay: static function (): void {},
         );
@@ -188,7 +188,7 @@ final class AppReachabilityMonitorTest extends TestCase
             return [];
         });
         $failure = new ConnectException('Operation timed out with 0 bytes received', new Request('HEAD', 'https://app.example.test'), null, ['errno' => 28]);
-        $monitor = $this->monitor($store, $this->probe($failure, $failure), CacheTypes::PING, $events, retryDelay: static function (): void {});
+        $monitor = $this->monitor($store, $this->probe($failure, $failure), CacheType::Ping, $events, retryDelay: static function (): void {});
 
         $monitor->checkMultipleEndpoints(['app' => new EndpointTarget('app', 'https://app.example.test')]);
 
@@ -202,7 +202,7 @@ final class AppReachabilityMonitorTest extends TestCase
         $store = $this->createStub(CacheStoreInterface::class);
         $store->method('get')->willReturn(null);
         $events = $this->createStub(EventManager::class);
-        $result = $this->monitor($store, $this->probe(new Response(503), new Response(200)), CacheTypes::PING, $events, retryDelay: static function (): void {})
+        $result = $this->monitor($store, $this->probe(new Response(503), new Response(200)), CacheType::Ping, $events, retryDelay: static function (): void {})
             ->checkMultipleEndpoints(['app' => new EndpointTarget('app', 'https://app.example.test')]);
 
         $this->assertSame(1, $result['app']['attempts']);
@@ -224,7 +224,7 @@ final class AppReachabilityMonitorTest extends TestCase
         $monitor = $this->monitor(
             $store,
             $this->probe($failure(), $failure(), $failure()),
-            CacheTypes::PING,
+            CacheType::Ping,
             $events,
             retryDelay: function () use (&$delays): void {
                 ++$delays;
@@ -254,7 +254,7 @@ final class AppReachabilityMonitorTest extends TestCase
         $monitor = $this->monitor(
             $store,
             $this->probe($failure, new Response(200)),
-            CacheTypes::PING,
+            CacheType::Ping,
             $events,
             retryDelay: function () use (&$delays): void {
                 ++$delays;
@@ -274,7 +274,7 @@ final class AppReachabilityMonitorTest extends TestCase
         $target = new EndpointTarget('app', 'https://app.example.test');
         $cacheKey = (new ApiCacheKeyFactory())->createAvailabilityKey(
             'https://node.example.test/api',
-            CacheTypes::PING,
+            CacheType::Ping,
             $target->resolveProbeUrl(),
             5,
         );
@@ -311,7 +311,7 @@ final class AppReachabilityMonitorTest extends TestCase
             'shop' => ['url' => 'https://shop.example.test'],
         ], 'node-a');
 
-        $this->monitor($store, $this->probe(new Response(503)), CacheTypes::PING, $events)
+        $this->monitor($store, $this->probe(new Response(503)), CacheType::Ping, $events)
             ->checkMultipleEndpoints($targets);
 
         $this->assertInstanceOf(EventCommand::class, $recordedEvent);
@@ -329,7 +329,7 @@ final class AppReachabilityMonitorTest extends TestCase
             'shop' => ['url' => 'https://shop.example.test', 'monitoring' => ['events' => false]],
         ], 'node-a');
 
-        $result = $this->monitor($store, $this->probe(new Response(503)), CacheTypes::PING, $events)
+        $result = $this->monitor($store, $this->probe(new Response(503)), CacheType::Ping, $events)
             ->checkMultipleEndpoints($targets);
 
         $this->assertFalse($result['shop']['reachable']);
@@ -351,7 +351,7 @@ final class AppReachabilityMonitorTest extends TestCase
             'shop' => ['url' => 'https://shop.example.test', 'monitoring' => ['alarms' => false]],
         ], 'node-a');
 
-        $this->monitor($store, $this->probe(new Response(503)), CacheTypes::PING, $events)
+        $this->monitor($store, $this->probe(new Response(503)), CacheType::Ping, $events)
             ->checkMultipleEndpoints($targets);
 
         $this->assertSame('app_unreachable', $recorded?->type);
@@ -387,7 +387,7 @@ final class AppReachabilityMonitorTest extends TestCase
         $monitor = $this->monitor(
             $store,
             $this->probe($failure(), $failure(), $failure(), $failure()),
-            CacheTypes::PING,
+            CacheType::Ping,
             $events,
             retryDelay: static function (): void {},
         );
@@ -425,7 +425,7 @@ final class AppReachabilityMonitorTest extends TestCase
         $monitor = $this->monitor(
             $store,
             $this->probe($failure(), $failure(), $failure(), $failure()),
-            CacheTypes::PING,
+            CacheType::Ping,
             $events,
             retryDelay: static function (): void {},
         );
@@ -444,7 +444,7 @@ final class AppReachabilityMonitorTest extends TestCase
         $store->expects($this->once())->method('put');
         $events = $this->createMock(EventManager::class);
         $events->expects($this->never())->method('handle');
-        $monitor = $this->monitor($store, $this->probe(new Response(503, [], '{"maintenance_mode":true}')), CacheTypes::PING, $events);
+        $monitor = $this->monitor($store, $this->probe(new Response(503, [], '{"maintenance_mode":true}')), CacheType::Ping, $events);
 
         $result = $monitor->checkMultipleEndpoints([
             'app' => new EndpointTarget(
@@ -469,7 +469,7 @@ final class AppReachabilityMonitorTest extends TestCase
         ], time()));
         $events = $this->createMock(EventManager::class);
         $events->expects($this->never())->method('handle');
-        $monitor = $this->monitor($store, new HttpProbeClient(), CacheTypes::PING, $events);
+        $monitor = $this->monitor($store, new HttpProbeClient(), CacheType::Ping, $events);
 
         $result = $monitor->checkMultipleEndpoints([
             'app' => new EndpointTarget('app', 'https://app.example.test'),
@@ -490,7 +490,7 @@ final class AppReachabilityMonitorTest extends TestCase
         $store->expects($this->exactly(3))->method('put');
         $events = $this->createMock(EventManager::class);
         $events->expects($this->once())->method('handle')->willReturn([]);
-        $monitor = $this->monitor($store, $this->probe(new Response(200), new Response(503)), CacheTypes::PING, $events);
+        $monitor = $this->monitor($store, $this->probe(new Response(200), new Response(503)), CacheType::Ping, $events);
 
         $results = $monitor->checkMultipleEndpoints([
             'cached' => new EndpointTarget('cached', 'https://cached.example.test'),
@@ -516,7 +516,7 @@ final class AppReachabilityMonitorTest extends TestCase
 
         $events = $this->createMock(EventManager::class);
         $events->expects($this->once())->method('handle')->willReturn([]);
-        $monitor = $this->monitor($store, $probe, CacheTypes::PING, $events);
+        $monitor = $this->monitor($store, $probe, CacheType::Ping, $events);
 
         $results = $monitor->checkMultipleEndpoints([
             'app' => new EndpointTarget('app', 'https://app.example.test'),
@@ -550,7 +550,7 @@ final class AppReachabilityMonitorTest extends TestCase
 
         $events = $this->createMock(EventManager::class);
         $events->expects($this->never())->method('handle');
-        $monitor = $this->monitor($store, $probe, CacheTypes::PING, $events);
+        $monitor = $this->monitor($store, $probe, CacheType::Ping, $events);
         $targets = [];
         for ($index = 1; $index <= 10; ++$index) {
             $targets["app-{$index}"] = new EndpointTarget("app-{$index}", "https://app-{$index}.example.test");
@@ -565,7 +565,7 @@ final class AppReachabilityMonitorTest extends TestCase
     private function monitor(
         CacheStoreInterface $store,
         HttpProbeClient $probe,
-        string $cacheType = CacheTypes::PING,
+        CacheType $cacheType = CacheType::Ping,
         ?EventManager $events = null,
         ?Closure $clock = null,
         ?Closure $retryDelay = null,
@@ -577,7 +577,7 @@ final class AppReachabilityMonitorTest extends TestCase
         return new AppReachabilityMonitor(
             $store,
             new ApiCacheKeyFactory(),
-            new CacheTtlResolver([$cacheType => $cacheType === CacheTypes::NONE ? 0 : 60]),
+            new CacheTtlResolver([$cacheType->value => $cacheType === CacheType::None ? 0 : 60]),
             $apiClient,
             $probe,
             $events ?? $this->createStub(EventManager::class),

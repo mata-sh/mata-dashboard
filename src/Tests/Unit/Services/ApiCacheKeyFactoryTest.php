@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Mata\Tests\Unit\Services;
 
+use Mata\Constants\CacheType;
 use Mata\Services\Cache\ApiCacheKeyFactory;
 use Mata\Services\Cache\CacheTtlResolver;
 use Mata\Services\Cache\FileCacheStore;
@@ -41,7 +42,7 @@ final class ApiCacheKeyFactoryTest extends TestCase
         $this->assertStringNotContainsString('private', $leaf);
         $this->assertStringContainsString(
             $factory->createOpaqueLeaf("{$logical}|timeout_2"),
-            $factory->createAvailabilityKey('https://api.example.test', 'ping', $logical, 2)
+            $factory->createAvailabilityKey('https://api.example.test', CacheType::Ping, $logical, 2)
         );
     }
 
@@ -75,12 +76,27 @@ final class ApiCacheKeyFactoryTest extends TestCase
 
     public function testTtlResolverOnlyReturnsConfiguredIntegers(): void
     {
-        $resolver = new CacheTtlResolver(['fresh' => 60, 'permanent' => -1, 'string' => '60']);
+        $resolver = new CacheTtlResolver([
+            'apps' => 60,
+            'readme' => -1,
+            'ping' => '60',
+        ]);
 
-        $this->assertSame(60, $resolver->get('fresh'));
-        $this->assertSame(-1, $resolver->get('permanent'));
-        $this->assertSame(0, $resolver->get('string'));
-        $this->assertSame(0, $resolver->get('missing'));
+        $this->assertSame(60, $resolver->get(CacheType::Apps));
+        $this->assertSame(-1, $resolver->get(CacheType::Readme));
+        $this->assertSame(0, $resolver->get(CacheType::Ping), 'a non-integer config value means no caching');
+        $this->assertSame(0, $resolver->get(CacheType::Audit), 'an unconfigured cache type means no caching');
+    }
+
+    /**
+     * None means "bypass the cache". The resolver must not consult configuration for it,
+     * so that a stray "none" key in ttl.json cannot start caching uncacheable requests.
+     */
+    public function testTtlResolverIgnoresConfigurationForTheNoneSentinel(): void
+    {
+        $resolver = new CacheTtlResolver(['none' => 3600]);
+
+        $this->assertSame(0, $resolver->get(CacheType::None));
     }
 
     private function removeDirectory(string $directory): void

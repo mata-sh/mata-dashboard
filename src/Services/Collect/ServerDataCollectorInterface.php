@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Mata\Services\Collect;
 
-use Mata\Constants\CacheTypes;
+use Mata\Constants\CacheType;
 
 /**
  * Server data collection interface.
@@ -17,30 +17,30 @@ interface ServerDataCollectorInterface
     /**
      * Fetch comprehensive server data including system metrics.
      *
-     * @param string $cacheType    cache key for TTL lookup (default: 'serverData')
-     * @param bool   $forceRefresh bypass a cached result while preserving its cache key
+     * @param CacheType $cacheType    cache key for TTL lookup (default: CacheType::ServerData)
+     * @param bool      $forceRefresh bypass a cached result while preserving its cache key
      *
      * @return null|array<string,mixed> Server data or null on failure
      */
-    public function getServerSystemData(string $cacheType = 'serverData', bool $forceRefresh = false): ?array;
+    public function getServerSystemData(CacheType $cacheType = CacheType::ServerData, bool $forceRefresh = false): ?array;
 
     /**
      * Fetch raw PHP process information from server.
      *
-     * @param string $cacheType Cache type key for TTL lookup (default: 'serverProcesses')
+     * @param CacheType $cacheType Cache type key for TTL lookup (default: CacheType::ServerProcesses)
      *
      * @return null|array<string,mixed> Raw PHP process data array or null on failure
      */
-    public function getServerPhpProcesses(string $cacheType = 'serverProcesses'): ?array;
+    public function getServerPhpProcesses(CacheType $cacheType = CacheType::ServerProcesses): ?array;
 
     /**
      * Fetch database server information and statistics.
      *
-     * @param string $cacheType Cache type key for TTL lookup (default: 'databases')
+     * @param CacheType $cacheType Cache type key for TTL lookup (default: CacheType::Databases)
      *
      * @return null|array<string,mixed>|string Database information or raw string data
      */
-    public function getServerDatabases(string $cacheType = 'databases'): array|string|null;
+    public function getServerDatabases(CacheType $cacheType = CacheType::Databases): array|string|null;
 
     /**
      * Fetch server information including OS version, packages, and PHP extensions.
@@ -50,71 +50,71 @@ interface ServerDataCollectorInterface
      * - Total installed packages count
      * - List of activated PHP extensions
      *
-     * @param string $cacheType Cache type key for TTL lookup (default: 'serverInfo')
+     * @param CacheType $cacheType Cache type key for TTL lookup (default: CacheType::ServerInfo)
      *
      * @return null|array<string,mixed> Server info or null on failure
      */
-    public function getServerInfo(string $cacheType = 'serverInfo'): ?array;
+    public function getServerInfo(CacheType $cacheType = CacheType::ServerInfo): ?array;
 
     /**
      * Fetch all apps/applications from the server.
      *
-     * @param string $cacheType    cache key for TTL lookup (default: 'apps')
-     * @param bool   $forceRefresh bypass a cached result while preserving its cache key
+     * @param CacheType $cacheType    cache key for TTL lookup (default: CacheType::Apps)
+     * @param bool      $forceRefresh bypass a cached result while preserving its cache key
      *
      * @return null|array<string,mixed> Apps data indexed by app name or null on failure
      */
-    public function getApps(string $cacheType = 'apps', bool $forceRefresh = false): ?array;
+    public function getApps(CacheType $cacheType = CacheType::Apps, bool $forceRefresh = false): ?array;
 
     /**
      * Fetch library information for all apps.
      *
-     * @param string $cacheType Cache type key for TTL lookup (default: 'libraries')
+     * @param CacheType $cacheType Cache type key for TTL lookup (default: CacheType::Libraries)
      *
      * @return null|array<string,mixed> Libraries data for all apps or null on failure
      */
-    public function getAppsLibraries(string $cacheType = 'libraries'): ?array;
+    public function getAppsLibraries(CacheType $cacheType = CacheType::Libraries): ?array;
 
     /**
      * Fetch library information for a specific app.
      *
-     * @param string $app       App identifier
-     * @param string $cacheType Cache type key for TTL lookup (default: 'libraries')
+     * @param string    $app       App identifier
+     * @param CacheType $cacheType Cache type key for TTL lookup (default: CacheType::Libraries)
      *
      * @return null|array<string,mixed> Libraries data for the specified app or null on failure
      */
-    public function getAppLibraries(string $app, string $cacheType = 'libraries'): ?array;
+    public function getAppLibraries(string $app, CacheType $cacheType = CacheType::Libraries): ?array;
 
     /**
      * Fetch README content from a specific app.
      *
-     * @param string $app       App identifier
-     * @param string $cacheType Cache type key for TTL lookup (default: 'readme')
+     * @param string    $app       App identifier
+     * @param CacheType $cacheType Cache type key for TTL lookup (default: CacheType::Readme)
      *
      * @return null|array<string,mixed> README content or null on failure
      */
-    public function fetchAppReadme(string $app, string $cacheType = 'readme'): ?array;
+    public function fetchAppReadme(string $app, CacheType $cacheType = CacheType::Readme): ?array;
 
     /**
      * Fetch parsed log entries from multiple log files.
      * Returns grouped structure: ['file_path' => [entries...]].
      *
-     * @param string $app       App identifier
-     * @param string $cacheType Cache type key for TTL lookup (default: 'appLogs')
+     * @param string    $app       App identifier
+     * @param CacheType $cacheType Cache type key for TTL lookup (default: CacheType::AppLogs)
      *
      * @return null|array<string,mixed> Grouped log entries or null on failure
      */
-    public function fetchAppLogs(string $app, string $cacheType = 'appLogs'): ?array;
+    public function fetchAppLogs(string $app, CacheType $cacheType = CacheType::AppLogs): ?array;
 
     /**
      * Fetch log file metadata (sizes, line counts, last modified).
      *
-     * @param string $app       App identifier
-     * @param string $cacheType Cache type key for TTL lookup (default: 'appLogs')
+     * @param string    $app       App identifier
+     * @param CacheType $cacheType Cache type key for TTL lookup (default: CacheType::AppLogs)
      *
      * @return null|array<string,mixed> Log file metadata or null on failure
      */
-    public function fetchAppLogsStatus(string $app, string $cacheType = 'appLogs'): ?array;
+    public function fetchAppLogsStatus(string $app, CacheType $cacheType = CacheType::AppLogs): ?array;
 
     /**
      * Fetch session status for a specific app.
@@ -123,19 +123,19 @@ interface ServerDataCollectorInterface
      * `count_last_day`, `count_total`, `path`, `size_kb`, and `error` when
      * status is error/unsupported.
      *
-     * @param string $app       App identifier
-     * @param string $cacheType Cache type key for TTL lookup (default: 'sessions')
+     * @param string    $app       App identifier
+     * @param CacheType $cacheType Cache type key for TTL lookup (default: CacheType::Sessions)
      *
      * @return null|array<string,mixed> Session data or null on failure
      */
-    public function fetchAppSessions(string $app, string $cacheType = 'sessions'): ?array;
+    public function fetchAppSessions(string $app, CacheType $cacheType = CacheType::Sessions): ?array;
 
     /**
      * Fetch Composer audit results for a specific app.
      *
      * @return null|array<string,mixed> Normalized Composer audit response or null on failure
      */
-    public function fetchAppComposerAudit(string $app, string $cacheType = CacheTypes::AUDIT): ?array;
+    public function fetchAppComposerAudit(string $app, CacheType $cacheType = CacheType::Audit): ?array;
 
     /**
      * Return cached Composer audit results for a specific app without requesting the node.
@@ -150,11 +150,11 @@ interface ServerDataCollectorInterface
      * Ordered list of entries with `index`, `path`, `exists`, `mtime`,
      * `age_seconds`, `size`, `stale`, `content_tail`.
      *
-     * @param string $cacheType Cache type key for TTL lookup (default: 'cronjobs')
+     * @param CacheType $cacheType Cache type key for TTL lookup (default: CacheType::Cronjobs)
      *
      * @return null|array<string,mixed> Normalized response with cronjob entries or null on failure
      */
-    public function fetchServerCronjobs(string $cacheType = 'cronjobs'): ?array;
+    public function fetchServerCronjobs(CacheType $cacheType = CacheType::Cronjobs): ?array;
 
     /**
      * Validate if a string contains valid JSON array data.
