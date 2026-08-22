@@ -32,8 +32,8 @@ deny contains msg if {
     is_object(min_event_intervals)
     key := object.keys(min_event_intervals)[_]
     value := min_event_intervals[key]
-    not is_positive_int(value)
-    msg := sprintf("intervals.json.example: events.min_event_interval_minutes.%s must be a positive integer", [key])
+    not is_non_negative_int(value)
+    msg := sprintf("intervals.json.example: events.min_event_interval_minutes.%s must be a non-negative integer", [key])
 }
 
 deny contains msg if {
@@ -41,8 +41,8 @@ deny contains msg if {
     is_object(min_alarm_intervals)
     key := object.keys(min_alarm_intervals)[_]
     value := min_alarm_intervals[key]
-    not is_positive_int(value)
-    msg := sprintf("intervals.json.example: alarms.min_alarm_interval_minutes.%s must be a positive integer", [key])
+    not is_non_negative_int(value)
+    msg := sprintf("intervals.json.example: alarms.min_alarm_interval_minutes.%s must be a non-negative integer", [key])
 }
 
 deny contains msg if {
@@ -53,14 +53,14 @@ deny contains msg if {
     key != "_default"
     min_event_intervals[key]
     min_alarm_intervals[key]
-    is_positive_int(min_event_intervals[key])
-    is_positive_int(min_alarm_intervals[key])
+    is_non_negative_int(min_event_intervals[key])
+    is_non_negative_int(min_alarm_intervals[key])
     min_alarm_intervals[key] < min_event_intervals[key]
     msg := sprintf("intervals.json.example: alarms.min_alarm_interval_minutes.%s must be >= events.min_event_interval_minutes.%s", [key, key])
 }
 
-is_positive_int(value) if {
+is_non_negative_int(value) if {
     is_number(value)
-    value > 0
+    value >= 0
     value == floor(value)
 }

@@ -3,7 +3,7 @@ package config.thresholds
 import rego.v1
 
 threshold_keys := ["good", "warn", "critical", "alarm"]
-alarm_keys := ["alarm_threshold_event_count", "alarm_threshold_window_minutes"]
+alarm_keys := ["enabled", "strategy", "required_count", "window_minutes", "alarm_threshold_event_count", "alarm_threshold_window_minutes"]
 
 is_thresholds_config if {
     input.server_data
@@ -74,6 +74,38 @@ deny contains msg if {
     key := object.keys(entry)[_]
     not is_alarm_key(key)
     msg := sprintf("thresholds.json.example: %s contains unknown key %s", [alarm_path, key])
+}
+
+deny contains msg if {
+    alarm_entries[alarm_path] = entry
+    is_object(entry)
+    has_key(entry, "enabled")
+    not is_boolean(entry.enabled)
+    msg := sprintf("thresholds.json.example: %s enabled must be boolean", [alarm_path])
+}
+
+deny contains msg if {
+    alarm_entries[alarm_path] = entry
+    is_object(entry)
+    has_key(entry, "strategy")
+    not valid_alarm_strategy(entry.strategy)
+    msg := sprintf("thresholds.json.example: %s strategy must be event_count_window, consecutive_failures, or immediate", [alarm_path])
+}
+
+deny contains msg if {
+    alarm_entries[alarm_path] = entry
+    is_object(entry)
+    entry.strategy == "consecutive_failures"
+    not is_positive_int(entry.required_count)
+    msg := sprintf("thresholds.json.example: %s required_count must be a positive integer for consecutive_failures", [alarm_path])
+}
+
+deny contains msg if {
+    alarm_entries[alarm_path] = entry
+    is_object(entry)
+    entry.strategy == "consecutive_failures"
+    not is_positive_int(entry.window_minutes)
+    msg := sprintf("thresholds.json.example: %s window_minutes must be a positive integer for consecutive_failures", [alarm_path])
 }
 
 deny contains msg if {
@@ -150,6 +182,24 @@ is_threshold_key(key) if {
 
 is_alarm_key(key) if {
     alarm_keys[_] == key
+}
+
+valid_alarm_strategy(strategy) if {
+    strategy == "event_count_window"
+}
+
+valid_alarm_strategy(strategy) if {
+    strategy == "consecutive_failures"
+}
+
+valid_alarm_strategy(strategy) if {
+    strategy == "immediate"
+}
+
+is_positive_int(value) if {
+    is_number(value)
+    value > 0
+    value == floor(value)
 }
 
 has_key(entry, key) if {
