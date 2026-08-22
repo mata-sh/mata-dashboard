@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Mata\Services\Collect;
 
-use Mata\Constants\Severities;
+use Mata\Constants\Severity;
 use Mata\Services\Monitor\Dto\AppMonitoringSettings;
 use Mata\Utils\TypeConverter;
 use Psr\Log\LoggerInterface;
@@ -660,7 +660,7 @@ class NodeResponseNormalizer
     /** @return array<string,mixed> */
     private function normalizeComposerAuditPayload(mixed $payload): array
     {
-        $counts = array_fill_keys(Severities::ORDER, 0) + ['total' => 0];
+        $counts = array_fill_keys(Severity::values(), 0) + ['total' => 0];
         if (!is_array($payload) || ($payload['status'] ?? null) !== 'ok') {
             return [
                 'status' => 'error',
@@ -707,7 +707,7 @@ class NodeResponseNormalizer
     {
         $severity = strtolower(TypeConverter::toString($value) ?? 'unknown');
 
-        return in_array($severity, Severities::ORDER, true) ? $severity : 'unknown';
+        return (Severity::tryFrom($severity) ?? Severity::Unknown)->value;
     }
 
     /** @param array<string,mixed> $advisory */

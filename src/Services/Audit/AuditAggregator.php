@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Mata\Services\Audit;
 
-use Mata\Constants\Severities;
+use Mata\Constants\Severity;
 
 /**
  * Aggregates normalized Composer audit responses.
@@ -118,9 +118,9 @@ final class AuditAggregator
             return null;
         }
 
-        foreach (Severities::ORDER as $severity) {
-            if (($counts[$severity] ?? 0) > 0) {
-                return $severity;
+        foreach (Severity::cases() as $severity) {
+            if (($counts[$severity->value] ?? 0) > 0) {
+                return $severity->value;
             }
         }
 
@@ -142,7 +142,7 @@ final class AuditAggregator
 
             $package = $advisory['package'];
             $severity = $advisory['severity'] ?? 'unknown';
-            if (!is_string($severity) || !in_array($severity, Severities::ORDER, true)) {
+            if (!is_string($severity) || Severity::tryFrom($severity) === null) {
                 $severity = 'unknown';
             }
 
@@ -173,7 +173,7 @@ final class AuditAggregator
     /** @return array{critical:int,high:int,medium:int,low:int,unknown:int,total:int} */
     private function emptyCounts(): array
     {
-        return array_fill_keys(Severities::ORDER, 0) + ['total' => 0];
+        return array_fill_keys(Severity::values(), 0) + ['total' => 0];
     }
 
     /** @return array<string,true> */
