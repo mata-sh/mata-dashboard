@@ -57,9 +57,14 @@ enum CacheType: string
      */
     public static function ttlConfigKeys(): array
     {
-        return array_values(array_map(
-            static fn (self $type): string => $type->value,
-            array_filter(self::cases(), static fn (self $type): bool => $type !== self::None),
-        ));
+        $keys = [];
+
+        foreach (self::cases() as $type) {
+            if ($type !== self::None) {
+                $keys[] = $type->value;
+            }
+        }
+
+        return $keys;
     }
 }
