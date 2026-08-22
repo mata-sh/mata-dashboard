@@ -43,13 +43,17 @@ if [ "$(DOCKER_DAEMON_CHECKED)" != "1" ]; then \
 fi
 endef
 
-define REQUIRE_DOCKER_MODE
+define REQUIRE_DOCKER_AVAILABLE
 $(REQUIRE_SELECTION); \
 if [ "$(MODE)" != "docker" ]; then echo "$(COLOR_RED)❌ This command is Docker-only (current mode: $(MODE)).$(COLOR_RESET)"; exit 1; fi; \
-[ -f config/db.config.env ] && [ -f .env ] || { echo "$(COLOR_RED)❌ Docker environment files are missing. Run: make setup$(COLOR_RESET)"; exit 1; }; \
 command -v docker >/dev/null 2>&1 || { echo "$(COLOR_RED)❌ Docker is not installed.$(COLOR_RESET)"; exit 1; }; \
 docker compose version >/dev/null 2>&1 || { echo "$(COLOR_RED)❌ Docker Compose plugin is unavailable.$(COLOR_RESET)"; exit 1; }; \
 $(REQUIRE_DOCKER_DAEMON)
+endef
+
+define REQUIRE_DOCKER_MODE
+$(REQUIRE_DOCKER_AVAILABLE); \
+[ -f config/db.config.env ] && [ -f .env ] || { echo "$(COLOR_RED)❌ Docker environment files are missing. Run: make setup$(COLOR_RESET)"; exit 1; }
 endef
 
 define REQUIRE_DEV_ENV
@@ -188,7 +192,7 @@ setup-local:
 	@echo "  $(COLOR_GREEN)3)$(COLOR_RESET) Nginx - nginx-site.conf"
 	@echo "  $(COLOR_GREEN)4)$(COLOR_RESET) Caddy - Caddyfile"
 	@echo "  $(COLOR_GREEN)5)$(COLOR_RESET) Skip (I'll configure manually)"
-	@read -p "$(COLOR_CYAN)Select option [1-5]: $(COLOR_RESET)" webserver; \
+	@printf "$(COLOR_CYAN)Select option [1-5]: $(COLOR_RESET)"; read -r webserver; \
 	case $$webserver in \
 		1) \
 			if [ ! -f "public/.htaccess" ]; then \
@@ -622,7 +626,7 @@ docs-ai-update:
 
 # Shared Docker initialization. Does not create .env, users, or services.
 docker-init:
-	@set -e; $(REQUIRE_DOCKER_MODE); \
+	@set -e; $(REQUIRE_DOCKER_AVAILABLE); \
 	echo "$(COLOR_BLUE)🐳 Initializing Docker prerequisites...$(COLOR_RESET)"; \
 	docker network inspect mata-network >/dev/null 2>&1 || docker network create mata-network >/dev/null; \
 	if ! mkdir -p config/demo temp/api-cache temp/sessions temp/templates-cache logs 2>/dev/null; then \
@@ -633,7 +637,7 @@ docker-init:
 	for file in config.env db.config.env mail.config.env servers.json ttl.json thresholds.json intervals.json data_retention.json; do \
 		if [ ! -f "config/$$file" ]; then \
 			if cp "config/example/$${file}.example" "config/$$file" 2>/dev/null; then case "$$file" in *.env|servers.json) chmod 600 "config/$$file" ;; *) chmod 644 "config/$$file" ;; esac; \
-			else docker run --rm -v "$(CURDIR)/config:/mata/config" php:8.3-apache sh -c "cp /mata/config/example/$${file}.example /mata/config/$$file && case '$$file' in *.env|servers.json) chmod 600 /mata/config/$$file ;; *) chmod 644 /mata/config/$$file ;; esac"; fi; \
+			else docker run --rm -v "$(CURDIR)/config:/mata/config" php:8.3-apache sh -c "cp /mata/config/example/$${file}.example /mata/config/$$file && chown $$(id -u):$$(id -g) /mata/config/$$file && case '$$file' in *.env|servers.json) chmod 600 /mata/config/$$file ;; *) chmod 644 /mata/config/$$file ;; esac"; fi; \
 			echo "$(COLOR_GREEN)✅ Created config/$$file$(COLOR_RESET)"; \
 		fi; \
 	done; \
@@ -671,7 +675,9 @@ prod-fix-perms: prod-setup
 		-v "$(CURDIR)/logs:/mata/logs" \
 		-v "$(CURDIR)/temp:/mata/temp" \
 		"php:$${php_version}-apache" sh -c \
-		'chmod 0755 /mata/config \
+		'chgrp -R www-data /mata/config \
+		&& find /mata/config -type d -exec chmod 0750 {} + \
+		&& find /mata/config -type f -exec chmod 0640 {} + \
 		&& chown -R www-data:www-data /mata/logs /mata/temp \
 		&& find /mata/logs -type d -exec chmod 0775 {} + \
 		&& find /mata/logs -type f -exec chmod 0660 {} + \
@@ -769,7 +775,7 @@ status:
 	if [ "$(MODE)" = "local" ]; then \
 		command -v php >/dev/null 2>&1 && php -v | head -1 || true; \
 		if systemctl is-active --quiet opa.service 2>/dev/null; then echo "OPA: running"; else echo "OPA: stopped or unmanaged"; fi; \
-		app_log=$$(awk -F= '/^LOG_PATH=/{sub(/^[^=]*=/, ""); gsub(/^"|"$$/, ""); print; exit}' config/config.env); app_log=$${app_log:-logs/app.log}; \
+		app_log=$$(awk -F= '/^APP_LOG_PATH=/{sub(/^[^=]*=/, ""); gsub(/^"|"$$/, ""); print; exit}' config/config.env); app_log=$${app_log:-logs/app.log}; \
 		for path in "$$app_log" logs/php-error.log; do [ -e "$$path" ] && echo "Log: $$path" || true; done; \
 	else \
 		$(REQUIRE_DOCKER_MODE); $(SELECTED_COMPOSE) ps; \
@@ -779,7 +785,7 @@ logs:
 	@$(REQUIRE_SELECTION); \
 	if [ "$(MODE)" = "local" ]; then \
 		owner=$$(stat -c '%U' logs 2>/dev/null || stat -f '%Su' logs 2>/dev/null || id -un); \
-		app_file=$$(awk -F= '/^LOG_PATH=/{sub(/^[^=]*=/, ""); gsub(/^"|"$$/, ""); print; exit}' config/config.env); app_file=$${app_file:-logs/app.log}; \
+		app_file=$$(awk -F= '/^APP_LOG_PATH=/{sub(/^[^=]*=/, ""); gsub(/^"|"$$/, ""); print; exit}' config/config.env); app_file=$${app_file:-logs/app.log}; \
 		if [ -r logs ]; then \
 			files=""; for file in "$$app_file" logs/php-error.log; do [ -f "$$file" ] && files="$$files $$file"; done; \
 			[ -n "$$files" ] || { echo "$(COLOR_RED)❌ No application logs found.$(COLOR_RESET)"; exit 1; }; tail -n 500 -F $$files; \
@@ -805,9 +811,9 @@ logs-php:
 
 logs-app:
 	@$(REQUIRE_SELECTION); \
-	if [ "$(MODE)" = local ]; then file=$$(awk -F= '/^LOG_PATH=/{sub(/^[^=]*=/, ""); gsub(/^"|"$$/, ""); print; exit}' config/config.env); file=$${file:-logs/app.log}; owner=$$(stat -c '%U' logs 2>/dev/null || stat -f '%Su' logs 2>/dev/null || id -un); \
+	if [ "$(MODE)" = local ]; then file=$$(awk -F= '/^APP_LOG_PATH=/{sub(/^[^=]*=/, ""); gsub(/^"|"$$/, ""); print; exit}' config/config.env); file=$${file:-logs/app.log}; owner=$$(stat -c '%U' logs 2>/dev/null || stat -f '%Su' logs 2>/dev/null || id -un); \
 		if [ -r "$$file" ]; then tail -n 500 -F "$$file"; else sudo -u "$$owner" test -f "$$file" || { echo "$(COLOR_RED)❌ $$file not found.$(COLOR_RESET)"; exit 1; }; sudo -u "$$owner" tail -n 500 -F "$$file"; fi; \
-	else $(REQUIRE_DOCKER_MODE); $(REQUIRE_WEB_RUNNING); $(SELECTED_COMPOSE) exec -u www-data mata-web sh -c 'exec tail -n 500 -F "$${LOG_PATH:-logs/app.log}"'; fi
+	else $(REQUIRE_DOCKER_MODE); $(REQUIRE_WEB_RUNNING); $(SELECTED_COMPOSE) exec -u www-data mata-web sh -c 'file=$$(awk -F= '\''/^APP_LOG_PATH=/{sub(/^[^=]*=/, ""); gsub(/^"|"$$/, ""); print; exit}'\'' config/config.env); exec tail -n 500 -F "$${file:-logs/app.log}"'; fi
 
 ps:
 	@$(REQUIRE_DOCKER_MODE); $(SELECTED_COMPOSE) ps
