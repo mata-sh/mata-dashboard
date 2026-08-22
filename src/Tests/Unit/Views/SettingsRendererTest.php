@@ -9,6 +9,7 @@ use Mata\Config\Dto\AlarmLimitsConfig;
 use Mata\Config\Dto\MailConfig;
 use Mata\Core\App;
 use Mata\Core\Auth;
+use Mata\Http\Request;
 use Mata\Http\Routing\Endpoints;
 use Mata\Services\Alarm\Dto\AlarmLimit;
 use Mata\Tests\Helpers\ApplicationConfigFactory;
@@ -226,7 +227,7 @@ final class SettingsRendererTest extends TestCase
             static fn (string $path): string => str_replace($appPath . '/', '', $path)
         );
 
-        $app = new App($this->createStub(Auth::class), ApplicationConfigFactory::create(), $paths);
+        $app = new App($this->createStub(Auth::class), ApplicationConfigFactory::create(), $paths, new Request());
 
         return new SettingsRenderer(
             $this->createStub(Environment::class),

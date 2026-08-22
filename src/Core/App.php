@@ -18,7 +18,7 @@ class App
     public readonly ApplicationConfig $config;
     public readonly PathResolver $paths;
     public readonly ?RequestRateLimiter $rateLimiter;
-    public readonly Request $request;
+    private readonly Request $request;
     private string $basePath = '';
 
     /**
@@ -28,14 +28,14 @@ class App
         Auth $auth,
         ApplicationConfig $config,
         PathResolver $paths,
+        Request $request,
         ?RequestRateLimiter $rateLimiter = null,
-        ?Request $request = null,
     ) {
         $this->auth = $auth;
         $this->config = $config;
         $this->paths = $paths;
         $this->rateLimiter = $rateLimiter;
-        $this->request = $request ?? new Request();
+        $this->request = $request;
         $this->detectBasePath();
     }
 

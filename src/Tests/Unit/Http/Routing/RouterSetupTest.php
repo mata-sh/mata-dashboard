@@ -126,7 +126,7 @@ class RouterSetupTest extends TestCase
         $auth = $this->createMock(Auth::class);
         $auth->expects($this->once())->method('check')->willReturn(true);
 
-        $app = new App($auth, ApplicationConfigFactory::create(), $this->createStub(PathResolver::class));
+        $app = new App($auth, ApplicationConfigFactory::create(), $this->createStub(PathResolver::class), new Request());
         $router = new Router();
         $router->get('/watch', static function (): void {});
 
@@ -191,7 +191,7 @@ class RouterSetupTest extends TestCase
             ->willReturn(true)
         ;
 
-        $app = new App($auth, ApplicationConfigFactory::create(), $this->createStub(PathResolver::class));
+        $app = new App($auth, ApplicationConfigFactory::create(), $this->createStub(PathResolver::class), new Request());
 
         $setup = $this->createRouterSetup(router: $router, app: $app);
         $this->invokeMethod($setup, 'setupProtectedRouteAuth');
@@ -436,6 +436,6 @@ class RouterSetupTest extends TestCase
         $auth = $this->createStub(Auth::class);
         $auth->method('check')->willReturn(true);
 
-        return new App($auth, ApplicationConfigFactory::create(), $this->createStub(PathResolver::class));
+        return new App($auth, ApplicationConfigFactory::create(), $this->createStub(PathResolver::class), new Request());
     }
 }

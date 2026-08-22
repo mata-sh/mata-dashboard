@@ -156,7 +156,7 @@ try {
 // ************************************************************************************************
 // HTTP Security Headers
 // ************************************************************************************************
-SecurityHeaders::apply($request, $appConfig->general->securityHeadersEnabled);
+SecurityHeaders::apply($request->isSecure(), $appConfig->general->securityHeadersEnabled);
 
 // ************************************************************************************************
 // Setting Environment & configurable Paths
@@ -217,7 +217,12 @@ $usersFilePath = null;
 
 try {
     $usersFilePath = UsersFilePathResolver::resolve($paths->appPath);
-    $auth = new Auth($log, $usersFilePath, $request);
+    $auth = new Auth(
+        $log,
+        $usersFilePath,
+        $request->isSecure(),
+        $request->cookie('remember_token'),
+    );
 } catch (Throwable $e) {
     $log->critical('Authentication initialization failed: ' . $e->getMessage());
 
@@ -250,7 +255,7 @@ try {
 // Rate Limiter Setup
 // ************************************************************************************************
 $requestRateLimiter = RequestRateLimiterFactory::create($appConfig->rateLimiting, $log);
-$app = new App($auth, $appConfig, $paths, $requestRateLimiter, $request);
+$app = new App($auth, $appConfig, $paths, $request, $requestRateLimiter);
 $csrf = new CsrfGuard($request);
 $twig->addGlobal('csrf', $csrf);
 
@@ -427,9 +432,9 @@ $dashboardController = new DashboardController(
     $endpoints,
     $menuBuilder,
     $dashboardMonitoringContext,
+    $request,
     $appInventorySync,
     $limitsConfig,
-    $request,
 );
 
 $logDataTransformer = new LogDataTransformer($log);
@@ -502,10 +507,10 @@ $metricsController = new MetricsController(
     $chartViewBuilder,
     $metricCatalog,
     $serverSettings,
+    $request,
     isset($monitoringSettings['ttl']['metrics']) ? (int) $monitoringSettings['ttl']['metrics'] : null,
     $metricsDashboardConfig,
     $metricsDashboardTtl,
-    $request,
 );
 
 // ************************************************************************************************

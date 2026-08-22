@@ -188,28 +188,6 @@ class ResponseFactory
     }
 
     /**
-     * Create server error response (500).
-     */
-    public static function serverError(
-        Request $request,
-        string $message = 'Internal server error',
-        ?string $errorCode = null
-    ): Response {
-        return self::error($request, $message, 500, $errorCode);
-    }
-
-    /**
-     * Create bad request response (400).
-     */
-    public static function badRequest(
-        Request $request,
-        string $message = 'Bad request',
-        ?string $errorCode = null
-    ): Response {
-        return self::error($request, $message, 400, $errorCode);
-    }
-
-    /**
      * Create unauthorized response (401).
      */
     public static function unauthorized(

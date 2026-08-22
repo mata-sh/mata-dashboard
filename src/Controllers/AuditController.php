@@ -62,9 +62,8 @@ class AuditController extends BaseController
         CacheTtlResolver $ttlResolver,
         Endpoints $endpoints,
         array $serversConfig,
-        ?Request $request = null,
+        Request $request,
     ) {
-        $request ??= new Request();
         parent::__construct($request);
         $this->logger = $logger;
         $this->appConfig = $appConfig;

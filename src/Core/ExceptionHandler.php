@@ -14,7 +14,7 @@ class ExceptionHandler
 {
     private LoggerInterface $logger;
     private bool $debugMode;
-    private Request $request;
+    private readonly Request $request;
 
     public function __construct(LoggerInterface $logger, Request $request, bool $debugMode = false)
     {

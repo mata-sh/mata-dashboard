@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Mata\Core;
 
-use Mata\Http\Request;
 use Psr\Log\LoggerInterface;
 use RuntimeException;
 
@@ -36,28 +35,33 @@ class Auth
     /** @var bool CLI mode bypasses role checks for user management */
     private bool $cliMode;
     private LoggerInterface $logger;
-    private Request $request;
+    private readonly bool $secureRequest;
+    private readonly ?string $rememberToken;
     private ?string $cliScriptPath;
 
     /**
      * Initialize authentication system.
      *
-     * @param LoggerInterface $logger    Logger instance for audit logging
-     * @param string          $usersFile Absolute path to users.json file
-     * @param bool            $cliMode   Enable CLI mode (bypasses role checks, default: false)
+     * @param LoggerInterface $logger        Logger instance for audit logging
+     * @param string          $usersFile     Absolute path to users.json file
+     * @param bool            $secureRequest Whether the request is secure
+     * @param null|string     $rememberToken Remember-me cookie value
+     * @param bool            $cliMode       Enable CLI mode (bypasses role checks, default: false)
      *
      * @throws RuntimeException If users file is missing or has insecure permissions
      */
     public function __construct(
         LoggerInterface $logger,
         string $usersFile,
-        Request $request,
+        bool $secureRequest,
+        ?string $rememberToken,
         bool $cliMode = false,
         ?string $cliScriptPath = null
     ) {
         $this->usersFile = $usersFile;
         $this->logger = $logger;
-        $this->request = $request;
+        $this->secureRequest = $secureRequest;
+        $this->rememberToken = $rememberToken;
         $this->cliMode = $cliMode;
         $this->cliScriptPath = $cliScriptPath;
 
@@ -224,7 +228,7 @@ class Auth
             [
                 'expires' => time() + (30 * 24 * 60 * 60),
                 'path' => '/',
-                'secure' => $this->request->isSecure(),
+                'secure' => $this->secureRequest,
                 'httponly' => true,
                 'samesite' => 'Lax',
             ]
@@ -236,12 +240,11 @@ class Auth
      */
     private function checkRememberMe(): void
     {
-        $rememberToken = $this->request->cookie('remember_token');
-        if ($this->check() || $rememberToken === null) {
+        if ($this->check() || $this->rememberToken === null) {
             return;
         }
 
-        [$username, $token] = explode('|', $rememberToken . '|');
+        [$username, $token] = explode('|', $this->rememberToken . '|');
         $user = $this->users[$username] ?? null;
 
         if (!$user || !isset($user['remember_token'])) {
@@ -428,11 +431,11 @@ class Auth
             $this->saveUsers();
         }
 
-        Session::destroy($this->request->isSecure());
+        Session::destroy($this->secureRequest);
         setcookie('remember_token', '', [
             'expires' => time() - 3600,
             'path' => '/',
-            'secure' => $this->request->isSecure(),
+            'secure' => $this->secureRequest,
             'httponly' => true,
             'samesite' => 'Lax',
         ]);

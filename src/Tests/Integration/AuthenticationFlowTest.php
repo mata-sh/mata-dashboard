@@ -67,7 +67,7 @@ class AuthenticationFlowTest extends TestCase
 
         $this->startTestRequest();
         $this->request = new Request();
-        $this->auth = new Auth(new NullLogger(), $usersFile, $this->request);
+        $this->auth = new Auth(new NullLogger(), $usersFile, $this->request->isSecure(), $this->request->cookie('remember_token'));
         $_SESSION = [
             'user' => [
                 'username' => 'admin',
@@ -303,7 +303,7 @@ class AuthenticationFlowTest extends TestCase
         chmod($usersFile, 0600);
 
         try {
-            new Auth(new NullLogger(), $usersFile, $this->request);
+            new Auth(new NullLogger(), $usersFile, $this->request->isSecure(), $this->request->cookie('remember_token'));
             $this->fail('Should throw exception for corrupted users file');
         } catch (RuntimeException $e) {
             $this->assertStringContainsString('Invalid JSON in users file', $e->getMessage());

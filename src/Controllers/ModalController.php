@@ -82,9 +82,9 @@ class ModalController extends BaseController
         LogDataTransformer $logTransformer,
         Endpoints $endpoints,
         array $serversConfig,
-        ?Request $request = null,
+        Request $request,
     ) {
-        parent::__construct($request ?? new Request());
+        parent::__construct($request);
         $this->logger = $logger;
         $this->appConfig = $appConfig;
         $this->cacheStore = $cacheStore;

@@ -10,6 +10,7 @@ use Mata\Config\Dto\EnvironmentConfig;
 use Mata\Constants\CacheType;
 use Mata\Controllers\ModalController;
 use Mata\Core\App;
+use Mata\Http\Request;
 use Mata\Http\Responses\HtmlResponse;
 use Mata\Http\Responses\JsonResponse;
 use Mata\Http\Routing\Endpoints;
@@ -117,7 +118,8 @@ class ModalControllerTest extends TestCase
             $this->ttlResolver,
             $this->mockLogTransformer,
             $this->mockEndpoints,
-            $this->serversConfig
+            $this->serversConfig,
+            request: new Request(),
         );
     }
 
@@ -159,7 +161,8 @@ class ModalControllerTest extends TestCase
             $this->ttlResolver,
             $this->mockLogTransformer,
             $this->mockEndpoints,
-            $this->serversConfig
+            $this->serversConfig,
+            request: new Request(),
         );
 
         // Test that we can still call methods (implicitly testing mock collectors exist)
@@ -1074,7 +1077,8 @@ MARKDOWN;
             $this->ttlResolver,
             $this->mockLogTransformer,
             $this->mockEndpoints,
-            $invalidServersConfig
+            $invalidServersConfig,
+            request: new Request(),
         );
 
         $this->assertInstanceOf(ModalController::class, $controller);
@@ -1154,7 +1158,8 @@ MARKDOWN;
             $this->ttlResolver,
             $this->mockLogTransformer,
             $this->mockEndpoints,
-            $specialConfig
+            $specialConfig,
+            request: new Request(),
         );
 
         $mockCollector = $this->createMockServerDataCollector($specialServer);

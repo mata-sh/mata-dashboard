@@ -131,11 +131,11 @@ class DashboardController extends BaseController
         Endpoints $endpoints,
         MenuBuilder $menuBuilder,
         DashboardMonitoringContext $monitoringContext,
+        Request $request,
         ?AppInventorySync $appInventorySync = null,
         ?AlarmLimitsConfig $alarmLimits = null,
-        ?Request $request = null,
     ) {
-        parent::__construct($request ?? new Request());
+        parent::__construct($request);
         $this->logger = $logger;
         $this->appConfig = $appConfig;
         $this->notificationManager = $notificationManager;

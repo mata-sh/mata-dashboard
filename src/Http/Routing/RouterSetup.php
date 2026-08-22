@@ -42,7 +42,7 @@ class RouterSetup
     private CsrfGuard $csrf;
     private Environment $twig;
     private LoggerInterface $logger;
-    private Request $request;
+    private readonly Request $request;
     private string $baseRoute;
 
     /**

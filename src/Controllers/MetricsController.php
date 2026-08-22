@@ -60,13 +60,13 @@ final class MetricsController extends BaseController
         MetricsRequestValidator $validator,
         ChartViewBuilder $chartViewBuilder,
         MetricCatalog $metricCatalog,
-        array $serversConfig = [],
+        array $serversConfig,
+        Request $request,
         ?int $cacheTtlSeconds = null,
         array $dashboardChartConfig = [],
         ?int $dashboardCacheTtl = null,
-        ?Request $request = null,
     ) {
-        parent::__construct($request ?? new Request());
+        parent::__construct($request);
         $this->logger = $logger;
         $this->metricsViewBuilder = $metricsViewBuilder;
         $this->metricsRenderer = $metricsRenderer;

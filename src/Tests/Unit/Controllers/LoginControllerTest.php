@@ -39,7 +39,7 @@ final class LoginControllerTest extends TestCase
         $_SESSION = [];
         $this->auth = $this->createMock(Auth::class);
         $this->app = $this->getMockBuilder(App::class)
-            ->setConstructorArgs([$this->auth, ApplicationConfigFactory::create(), $this->createStub(PathResolver::class)])
+            ->setConstructorArgs([$this->auth, ApplicationConfigFactory::create(), $this->createStub(PathResolver::class), new Request()])
             ->onlyMethods(['getBaseHost', 'getFullBaseUrl', 'redirect'])
             ->getMock();
         $this->tools = $this->createMock(Tools::class);

@@ -103,7 +103,7 @@ class DashboardControllerTest extends TestCase
         $mockPaths->method('toRelativePath')->willReturnCallback(fn ($path) => ltrim(str_replace('/tmp/', '', $path), '/'));
         $mockPaths->appPath = '/tmp/test-app';
         $this->app = $this->getMockBuilder(App::class)
-            ->setConstructorArgs([$this->createStub(Auth::class), $this->appConfig, $mockPaths])
+            ->setConstructorArgs([$this->createStub(Auth::class), $this->appConfig, $mockPaths, new Request()])
             ->onlyMethods(['getBaseHost', 'getFullBaseUrl'])
             ->getMock()
         ;
@@ -205,7 +205,8 @@ class DashboardControllerTest extends TestCase
             $this->cacheKeyFactory,
             $this->endpoints,
             $this->menuBuilder,
-            $this->monitoringContext()
+            $this->monitoringContext(),
+            request: new Request(),
         );
 
         // Act
@@ -248,7 +249,8 @@ class DashboardControllerTest extends TestCase
             $this->cacheKeyFactory,
             $this->endpoints,
             $this->menuBuilder,
-            $this->monitoringContext()
+            $this->monitoringContext(),
+            request: new Request(),
         );
 
         // Act
@@ -302,7 +304,8 @@ class DashboardControllerTest extends TestCase
             $this->cacheKeyFactory,
             $this->endpoints,
             $this->menuBuilder,
-            $this->monitoringContext()
+            $this->monitoringContext(),
+            request: new Request(),
         );
 
         // Act
@@ -339,7 +342,8 @@ class DashboardControllerTest extends TestCase
             $this->cacheKeyFactory,
             $this->endpoints,
             $this->menuBuilder,
-            $this->monitoringContext()
+            $this->monitoringContext(),
+            request: new Request(),
         );
 
         // Act
@@ -380,7 +384,8 @@ class DashboardControllerTest extends TestCase
             $this->cacheKeyFactory,
             $this->endpoints,
             $this->menuBuilder,
-            $this->monitoringContext()
+            $this->monitoringContext(),
+            request: new Request(),
         );
 
         // Act: Request with force refresh
@@ -422,7 +427,8 @@ class DashboardControllerTest extends TestCase
             $this->cacheKeyFactory,
             $this->endpoints,
             $this->menuBuilder,
-            $this->monitoringContext()
+            $this->monitoringContext(),
+            request: new Request(),
         );
 
         // Act: Even with potential errors, should return response
@@ -458,7 +464,8 @@ class DashboardControllerTest extends TestCase
             $this->cacheKeyFactory,
             $this->endpoints,
             $this->menuBuilder,
-            $this->monitoringContext()
+            $this->monitoringContext(),
+            request: new Request(),
         );
 
         // Act
@@ -494,7 +501,8 @@ class DashboardControllerTest extends TestCase
             $this->cacheKeyFactory,
             $this->endpoints,
             $this->menuBuilder,
-            $this->monitoringContext()
+            $this->monitoringContext(),
+            request: new Request(),
         );
 
         // Act
@@ -531,7 +539,8 @@ class DashboardControllerTest extends TestCase
             $this->cacheKeyFactory,
             $this->endpoints,
             $this->menuBuilder,
-            $this->monitoringContext()
+            $this->monitoringContext(),
+            request: new Request(),
         );
 
         // Act
@@ -564,7 +573,8 @@ class DashboardControllerTest extends TestCase
             $this->cacheKeyFactory,
             $this->endpoints,
             $this->menuBuilder,
-            $this->monitoringContext()
+            $this->monitoringContext(),
+            request: new Request(),
         );
 
         $this->twig
@@ -605,7 +615,8 @@ class DashboardControllerTest extends TestCase
             $this->cacheKeyFactory,
             $this->endpoints,
             $this->menuBuilder,
-            $this->monitoringContext()
+            $this->monitoringContext(),
+            request: new Request(),
         );
 
         $this->endpoints
@@ -658,7 +669,8 @@ class DashboardControllerTest extends TestCase
             $this->cacheKeyFactory,
             $this->endpoints,
             $this->menuBuilder,
-            $this->monitoringContext()
+            $this->monitoringContext(),
+            request: new Request(),
         );
 
         // Setup mock events data
@@ -780,7 +792,8 @@ class DashboardControllerTest extends TestCase
             $this->cacheKeyFactory,
             $this->endpoints,
             $this->menuBuilder,
-            $this->monitoringContext()
+            $this->monitoringContext(),
+            request: new Request(),
         );
 
         $expectedAlarms = [
@@ -867,7 +880,8 @@ class DashboardControllerTest extends TestCase
             $this->cacheKeyFactory,
             $this->endpoints,
             $this->menuBuilder,
-            $this->monitoringContext()
+            $this->monitoringContext(),
+            request: new Request(),
         );
 
         // Act
@@ -987,7 +1001,8 @@ class DashboardControllerTest extends TestCase
             $this->cacheKeyFactory,
             $this->endpoints,
             $this->menuBuilder,
-            $this->monitoringContext()
+            $this->monitoringContext(),
+            request: new Request(),
         );
 
         $response = $this->controller->refreshServer('web-server-01');
@@ -1010,7 +1025,8 @@ class DashboardControllerTest extends TestCase
             $this->cacheKeyFactory,
             $this->endpoints,
             $this->menuBuilder,
-            $this->monitoringContext()
+            $this->monitoringContext(),
+            request: new Request(),
         );
 
         foreach ([
@@ -1047,7 +1063,8 @@ class DashboardControllerTest extends TestCase
             $this->cacheKeyFactory,
             $this->endpoints,
             $this->menuBuilder,
-            $this->monitoringContext()
+            $this->monitoringContext(),
+            request: new Request(),
         );
 
         $response = $this->controller->refreshServerStats('web-server-01');
@@ -1079,7 +1096,8 @@ class DashboardControllerTest extends TestCase
             $this->cacheKeyFactory,
             $this->endpoints,
             $this->menuBuilder,
-            DashboardMonitoringContext::fromSettingsAndServices([], [])
+            DashboardMonitoringContext::fromSettingsAndServices([], []),
+            request: new Request(),
         );
 
         // Assert: Controller is created successfully
@@ -1122,7 +1140,8 @@ class DashboardControllerTest extends TestCase
             $this->cacheKeyFactory,
             $this->endpoints,
             $this->menuBuilder,
-            DashboardMonitoringContext::fromSettingsAndServices($invalidSettings, [])
+            DashboardMonitoringContext::fromSettingsAndServices($invalidSettings, []),
+            request: new Request(),
         );
 
         // Assert: Controller is created (doesn't crash)
@@ -1168,7 +1187,8 @@ class DashboardControllerTest extends TestCase
                 $this->cacheKeyFactory,
                 $this->endpoints,
                 $this->menuBuilder,
-                $this->monitoringContext()
+                $this->monitoringContext(),
+                request: new Request(),
             );
         }
 

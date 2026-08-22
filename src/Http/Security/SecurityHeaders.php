@@ -4,14 +4,12 @@ declare(strict_types=1);
 
 namespace Mata\Http\Security;
 
-use Mata\Http\Request;
-
 class SecurityHeaders
 {
     /**
      * @return array<string,string>
      */
-    public static function headers(Request $request, bool $enabled = true): array
+    public static function headers(bool $secure, bool $enabled = true): array
     {
         if (!$enabled) {
             return [];
@@ -37,16 +35,16 @@ class SecurityHeaders
             'Content-Security-Policy' => implode('; ', $contentSecurityPolicy),
         ];
 
-        if ($request->isSecure()) {
+        if ($secure) {
             $headers['Strict-Transport-Security'] = 'max-age=31536000; includeSubDomains';
         }
 
         return $headers;
     }
 
-    public static function apply(Request $request, bool $enabled = true): void
+    public static function apply(bool $secure, bool $enabled = true): void
     {
-        foreach (self::headers($request, $enabled) as $name => $value) {
+        foreach (self::headers($secure, $enabled) as $name => $value) {
             header($name . ': ' . $value);
         }
     }

@@ -20,7 +20,7 @@ abstract class BaseController
 {
     protected Logger $logger;
 
-    public function __construct(protected Request $request) {}
+    public function __construct(protected readonly Request $request) {}
 
     /**
      * Handle exceptions with consistent logging and user-friendly responses.

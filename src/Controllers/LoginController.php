@@ -26,7 +26,7 @@ class LoginController
     private Tools $tools;
     private CsrfGuard $csrf;
     private Environment $twig;
-    private Request $request;
+    private readonly Request $request;
 
     /**
      * Initialize login controller with dependencies.
