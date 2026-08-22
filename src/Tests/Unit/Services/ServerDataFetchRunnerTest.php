@@ -12,6 +12,7 @@ use Mata\Services\Identity\ServerApplicationIdResolver;
 use Mata\Services\Monitor\AppErrorMonitorInterface;
 use Mata\Services\Monitor\AppReachabilityMonitorInterface;
 use Mata\Services\Monitor\Dto\AppErrorMonitoringResult;
+use Mata\Services\Monitor\Dto\NodeHealthResult;
 use Mata\Services\Monitor\NodeHealthMonitorInterface;
 use Mata\Services\Sync\AppInventorySync;
 use Mata\Tests\Helpers\SqliteTestDatabase;
@@ -40,7 +41,8 @@ final class ServerDataFetchRunnerTest extends TestCase
         $collector->expects($this->never())->method('fetchAppLogsStatus');
 
         $health = $this->createMock(NodeHealthMonitorInterface::class);
-        $health->expects($this->once())->method('checkSynchronously')->with('srv', CacheType::Health, true);
+        $health->expects($this->once())->method('checkSynchronously')->with('srv', CacheType::Health, true)
+            ->willReturn($this->healthyNodeResult());
         $reachabilityMonitor = $this->createMock(AppReachabilityMonitorInterface::class);
         $reachabilityMonitor->expects($this->never())->method('checkMultipleEndpoints');
         $errorMonitor = $this->createMock(AppErrorMonitorInterface::class);
@@ -76,7 +78,7 @@ final class ServerDataFetchRunnerTest extends TestCase
             $collector,
             $reachabilityMonitor,
             $errorMonitor,
-            $this->createStub(NodeHealthMonitorInterface::class),
+            $this->healthMonitor(),
             $this->inventorySync(),
         );
 
@@ -98,7 +100,7 @@ final class ServerDataFetchRunnerTest extends TestCase
             $collector,
             $reachabilityMonitor,
             $errorMonitor,
-            $this->createStub(NodeHealthMonitorInterface::class),
+            $this->healthMonitor(),
             $this->inventorySync(),
         );
 
@@ -119,7 +121,7 @@ final class ServerDataFetchRunnerTest extends TestCase
             $collector,
             $reachabilityMonitor,
             $errorMonitor,
-            $this->createStub(NodeHealthMonitorInterface::class),
+            $this->healthMonitor(),
             $this->inventorySync(),
         );
 
@@ -149,11 +151,24 @@ final class ServerDataFetchRunnerTest extends TestCase
             $collector,
             $reachabilityMonitor,
             $errorMonitor,
-            $this->createStub(NodeHealthMonitorInterface::class),
+            $this->healthMonitor(),
             $this->inventorySync(),
         );
 
         $this->assertSame(1, $result->availabilityTargets);
+    }
+
+    private function healthMonitor(): NodeHealthMonitorInterface
+    {
+        $monitor = $this->createStub(NodeHealthMonitorInterface::class);
+        $monitor->method('checkSynchronously')->willReturn($this->healthyNodeResult());
+
+        return $monitor;
+    }
+
+    private function healthyNodeResult(): NodeHealthResult
+    {
+        return NodeHealthResult::fromArray(['status' => 'healthy']);
     }
 
     private function inventorySync(): AppInventorySync

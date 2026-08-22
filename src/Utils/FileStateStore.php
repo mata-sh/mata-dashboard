@@ -32,10 +32,10 @@ final class FileStateStore
     /**
      * Load state from disk with default fallback and optional mapper.
      *
-     * @param callable():array      $defaultFactory Returns default state when file missing or invalid
-     * @param callable(array):array $mapper         Allows caller to normalise decoded structure
+     * @param callable():array<string,mixed>                         $defaultFactory Returns default state when file missing or invalid
+     * @param null|callable(array<string,mixed>):array<string,mixed> $mapper         Allows caller to normalise decoded structure
      *
-     * @return array Loaded state
+     * @return array<string,mixed> Loaded state
      */
     public function load(callable $defaultFactory, ?callable $mapper = null): array
     {
@@ -54,7 +54,14 @@ final class FileStateStore
                 return $defaultFactory();
             }
 
-            return $mapper !== null ? $mapper($decoded) : $decoded;
+            $normalized = [];
+            foreach ($decoded as $key => $value) {
+                if (is_string($key)) {
+                    $normalized[$key] = $value;
+                }
+            }
+
+            return $mapper !== null ? $mapper($normalized) : $normalized;
         } catch (Throwable $e) {
             $this->logger->warning('Failed to load state file; falling back to defaults.', [
                 'file' => $this->filePath,
@@ -67,6 +74,8 @@ final class FileStateStore
 
     /**
      * Persist state to disk (best effort).
+     *
+     * @param array<string,mixed> $state
      */
     public function save(array $state): void
     {

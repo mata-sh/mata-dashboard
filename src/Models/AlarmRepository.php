@@ -15,6 +15,8 @@ final class AlarmRepository
     public function __construct(private DatabaseInterface $db) {}
 
     /**
+     * @param array<string,mixed> $triggerEvidence
+     *
      * @throws PDOException
      */
     public function createForEvent(int $eventId, array $triggerEvidence = []): int

@@ -12,7 +12,7 @@ use Mata\Constants\Severity;
 final class AuditAggregator
 {
     /**
-     * @param array<string, array<string, null|array>> $serverAppAudits [server => [app => normalizedApiResponse|null]]
+     * @param array<string,array<string,null|array<string,mixed>>> $serverAppAudits [server => [app => normalizedApiResponse|null]]
      *
      * @return array<string,mixed>
      */
@@ -128,9 +128,9 @@ final class AuditAggregator
     }
 
     /**
-     * @param array $normalizedAudit the canonical per-app audit shape
+     * @param array<string,mixed> $normalizedAudit the canonical per-app audit shape
      *
-     * @return array<string,array{worst_severity:string,count:int,advisories:array}>
+     * @return array<string,array{worst_severity:string,count:int,advisories:list<array<string,mixed>>}>
      */
     public function advisoriesByPackage(array $normalizedAudit): array
     {
@@ -173,7 +173,14 @@ final class AuditAggregator
     /** @return array{critical:int,high:int,medium:int,low:int,unknown:int,total:int} */
     private function emptyCounts(): array
     {
-        return array_fill_keys(Severity::values(), 0) + ['total' => 0];
+        return [
+            'critical' => 0,
+            'high' => 0,
+            'medium' => 0,
+            'low' => 0,
+            'unknown' => 0,
+            'total' => 0,
+        ];
     }
 
     /** @return array<string,true> */
@@ -193,6 +200,7 @@ final class AuditAggregator
         return $normalized;
     }
 
+    /** @return array{critical:int,high:int,medium:int,low:int,unknown:int,total:int} */
     private function normalizeCounts(mixed $counts): array
     {
         $normalized = $this->emptyCounts();

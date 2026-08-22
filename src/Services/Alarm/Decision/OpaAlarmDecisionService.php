@@ -125,7 +125,7 @@ final class OpaAlarmDecisionService implements AlarmDecisionServiceInterface
     /**
      * @param array<int,string> $channels
      *
-     * @return array<int,string>
+     * @return list<string>
      */
     private function normalizeChannels(array $channels): array
     {

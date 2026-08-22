@@ -86,7 +86,11 @@ class NotificationCenter
         return $acknowledged;
     }
 
-    /** @param array<string,mixed> $raw */
+    /**
+     * @param array<int|string,mixed> $raw
+     *
+     * @return array<string,int>
+     */
     private function normalizeCounts(array $raw): array
     {
         $counts = ['info' => 0, 'warning' => 0, 'error' => 0, 'critical' => 0];

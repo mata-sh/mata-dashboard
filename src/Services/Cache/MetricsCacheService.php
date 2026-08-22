@@ -54,7 +54,7 @@ class MetricsCacheService
         $age = max(0, time() - $entry->storedAt);
         $this->logger->debug('metrics.dashboard.cache.hit', ['key' => $cacheKey, 'age' => $age]);
 
-        $payload = $entry->value;
+        $payload = $this->normalizeStringKeyedArray($entry->value);
         $payload['cache'] = $this->buildCacheMetadata(true, $age, $effectiveTtl);
 
         return $payload;
@@ -78,7 +78,7 @@ class MetricsCacheService
     }
 
     /**
-     * @return null|array<string,mixed>
+     * @return null|array{filters:array<string,string>,series:array<string,mixed>,cache:array<string,mixed>}
      */
     public function readSeriesCache(
         string $server,
@@ -97,10 +97,20 @@ class MetricsCacheService
             return null;
         }
 
-        $series = is_array($entry->value['series'] ?? null) ? $entry->value['series'] : null;
-        $filters = is_array($entry->value['filters'] ?? null) ? $entry->value['filters'] : null;
-        if ($series === null || $filters === null) {
+        $rawSeries = $entry->value['series'] ?? null;
+        $rawFilters = $entry->value['filters'] ?? null;
+        if (!is_array($rawSeries) || !is_array($rawFilters)) {
             return null;
+        }
+
+        $series = $this->normalizeStringKeyedArray($rawSeries);
+        $normalizedFilters = $this->normalizeStringKeyedArray($rawFilters);
+        $filters = [];
+        foreach ($normalizedFilters as $key => $value) {
+            if (!is_string($value)) {
+                return null;
+            }
+            $filters[$key] = $value;
         }
 
         $age = max(0, time() - $entry->storedAt);
@@ -156,6 +166,25 @@ class MetricsCacheService
             'range' => $range,
             'granularity' => $granularity,
         ]);
+    }
+
+    /**
+     * Removes entries with integer keys.
+     *
+     * @param array<int|string,mixed> $value
+     *
+     * @return array<string,mixed>
+     */
+    private function normalizeStringKeyedArray(array $value): array
+    {
+        $normalized = [];
+        foreach ($value as $key => $item) {
+            if (is_string($key)) {
+                $normalized[$key] = $item;
+            }
+        }
+
+        return $normalized;
     }
 
     private function getSeriesCacheKey(string $server, string $metric, string $range, string $granularity): ?string

@@ -97,7 +97,9 @@ final class Session
             throw new RuntimeException('Failed to destroy PHP session');
         }
 
-        self::destroyCookie($sessionName, $params, $secureRequest);
+        if ($sessionName !== false) {
+            self::destroyCookie($sessionName, $params, $secureRequest);
+        }
     }
 
     private static function assertActive(): void
@@ -135,7 +137,9 @@ final class Session
         }
     }
 
-    /** @param array<string,mixed> $params */
+    /**
+     * @param array<string,mixed> $params
+     */
     private static function destroyCookie(string $sessionName, array $params, bool $secureRequest): void
     {
         if ($sessionName === '' || headers_sent()) {
@@ -144,20 +148,27 @@ final class Session
 
         setcookie($sessionName, '', [
             'expires' => time() - 3600,
-            'path' => $params['path'],
-            'domain' => $params['domain'],
-            'secure' => $params['secure'] || $secureRequest,
+            'path' => is_string($params['path'] ?? null) ? $params['path'] : '/',
+            'domain' => is_string($params['domain'] ?? null) ? $params['domain'] : '',
+            'secure' => ($params['secure'] ?? false) === true || $secureRequest,
             'httponly' => true,
             'samesite' => self::sameSite($params),
         ]);
         unset($_COOKIE[$sessionName]);
     }
 
-    /** @param array<string,mixed> $params */
+    /**
+     * @param array<string,mixed> $params
+     *
+     * @return 'Lax'|'lax'|'None'|'none'|'Strict'|'strict'
+     */
     private static function sameSite(array $params): string
     {
-        return isset($params['samesite']) && is_string($params['samesite']) && $params['samesite'] !== ''
-            ? $params['samesite']
-            : 'Lax';
+        $sameSite = $params['samesite'] ?? null;
+        if (in_array($sameSite, ['Lax', 'lax', 'None', 'none', 'Strict', 'strict'], true)) {
+            return $sameSite;
+        }
+
+        return 'Lax';
     }
 }

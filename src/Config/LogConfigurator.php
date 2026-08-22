@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Mata\Config;
 
+use InvalidArgumentException;
 use Mata\Config\Dto\LoggingConfig;
 use Mata\Utils\PathResolver;
 use Monolog\Formatter\LineFormatter;
@@ -93,7 +94,19 @@ final class LogConfigurator
     private function resolveLogLevel(string $level, Logger $logger): Level
     {
         try {
-            return Level::fromName($level);
+            $normalizedLevel = match (strtolower(trim($level))) {
+                'alert' => 'alert',
+                'critical' => 'critical',
+                'debug' => 'debug',
+                'emergency' => 'emergency',
+                'error' => 'error',
+                'info' => 'info',
+                'notice' => 'notice',
+                'warning' => 'warning',
+                default => throw new InvalidArgumentException('Unsupported log level'),
+            };
+
+            return Level::fromName($normalizedLevel);
         } catch (Throwable $e) {
             $logger->warning('Invalid monolog level configured, falling back to debug', [
                 'level' => $level,

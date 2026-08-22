@@ -15,28 +15,12 @@ use Mata\Services\Collect\NodeApiClient;
 use Mata\Services\Event\Dto\EventCommand;
 use Mata\Services\Event\Dto\EventMetric;
 use Mata\Services\Event\EventManager;
+use Mata\Services\Monitor\Dto\NodeHealthResult;
 use Mata\Services\Monitor\Dto\ProbePolicy;
 use Psr\Log\LoggerInterface;
+use UnexpectedValueException;
 
-/**
- * Monitors the mata-node health endpoint with transient transport retry support.
- *
- * @phpstan-type HealthProbeResult array{
- *     status: 'healthy'|'unhealthy'|'unreachable',
- *     httpCode: ?int,
- *     maintenance_mode: ?bool,
- *     checks: ?array<string,mixed>,
- *     node_timestamp: mixed,
- *     latency_ms: ?int,
- *     error: ?string,
- *     failure_kind: ?string,
- *     curl_errno: ?int,
- *     timeout_ms: int,
- *     attempts: int,
- *     checked_at: int,
- *     state?: string
- * }
- */
+/** Monitors the mata-node health endpoint with transient transport retry support. */
 class NodeHealthMonitor implements NodeHealthMonitorInterface
 {
     private readonly ProbePolicy $probePolicy;
@@ -56,33 +40,43 @@ class NodeHealthMonitor implements NodeHealthMonitorInterface
         $this->probePolicy = $probePolicy ?? ProbePolicy::default();
     }
 
-    /** @return HealthProbeResult */
     public function checkSynchronously(
         string $serverName,
         CacheType $cacheTtlType = CacheType::Health,
         bool $forceRefresh = false,
-    ): array {
+    ): NodeHealthResult {
         $result = $this->checkAsync($serverName, $cacheTtlType, $forceRefresh);
+        if ($result instanceof NodeHealthResult) {
+            return $result;
+        }
 
-        return is_array($result) ? $result : $result->wait();
+        $resolved = $result->wait();
+        if (!$resolved instanceof NodeHealthResult) {
+            throw new UnexpectedValueException('Node health probe returned an invalid result.');
+        }
+
+        return $resolved;
     }
 
-    /** @return HealthProbeResult|PromiseInterface */
     public function checkAsync(
         string $serverName,
         CacheType $cacheTtlType = CacheType::Health,
         bool $forceRefresh = false,
-    ): array|PromiseInterface {
+    ): NodeHealthResult|PromiseInterface {
         $cacheKey = $this->healthCacheKey();
         $cacheEntry = $forceRefresh
             ? null
             : $this->cacheStore->get($cacheKey, $this->ttlResolver->get($cacheTtlType));
         if ($cacheEntry !== null) {
-            return $cacheEntry->value;
+            return NodeHealthResult::fromArray($cacheEntry->value);
         }
 
         return $this->probeHealthWithRetries($this->healthEndpointUrl(), 1)
-            ->then(fn (array $health): array => $this->cacheAndRecordHealthResult($serverName, $cacheKey, $health));
+            ->then(fn (NodeHealthResult $health): NodeHealthResult => $this->cacheAndRecordHealthResult(
+                $serverName,
+                $cacheKey,
+                $health,
+            ));
     }
 
     /**
@@ -93,10 +87,11 @@ class NodeHealthMonitor implements NodeHealthMonitorInterface
     private function probeHealthWithRetries(string $healthEndpointUrl, int $attempt): PromiseInterface
     {
         return $this->probeClient->probeNodeHealthAsync($healthEndpointUrl, $this->probePolicy->timeoutSeconds)->then(
-            function (array $health) use ($healthEndpointUrl, $attempt): array|PromiseInterface {
-                $health['attempts'] = $attempt;
-                if ($attempt > $this->probePolicy->maxRetries || !$this->shouldRetry($health)) {
-                    return $health;
+            function (array $health) use ($healthEndpointUrl, $attempt): NodeHealthResult|PromiseInterface {
+                $result = NodeHealthResult::fromArray($health);
+                $result = $result->withAttempts($attempt);
+                if ($attempt > $this->probePolicy->maxRetries || !$this->shouldRetry($result)) {
+                    return $result;
                 }
 
                 $this->waitForRetry($this->probePolicy->backoffMicros($attempt));
@@ -118,41 +113,33 @@ class NodeHealthMonitor implements NodeHealthMonitorInterface
         }
     }
 
-    /** @param HealthProbeResult $result */
-    private function shouldRetry(array $result): bool
+    private function shouldRetry(NodeHealthResult $result): bool
     {
-        if (($result['status'] ?? null) !== NodeHealthState::Unreachable->value) {
+        if ($result->status !== NodeHealthState::Unreachable) {
             return false;
         }
 
-        return $this->probePolicy->isRetryable($result['failure_kind'] ?? null);
+        return $this->probePolicy->isRetryable($result->failureKind);
     }
 
-    /**
-     * @param HealthProbeResult $result
-     *
-     * @return HealthProbeResult
-     */
-    private function cacheAndRecordHealthResult(string $serverName, string $cacheKey, array $result): array
-    {
-        // Stored as a string: this array is JSON-cached by FileCacheStore and handed
-        // to Twig, neither of which round-trips an enum instance.
-        $result['state'] = NodeHealthStateResolver::resolve($result)->value;
-        $this->cacheStore->put($cacheKey, $result);
+    private function cacheAndRecordHealthResult(
+        string $serverName,
+        string $cacheKey,
+        NodeHealthResult $result,
+    ): NodeHealthResult {
+        $this->cacheStore->put($cacheKey, $result->toArray());
         $this->recordHealthEvent($serverName, $result);
 
         return $result;
     }
 
-    /** @param HealthProbeResult $result */
-    private function recordHealthEvent(string $serverName, array $result): void
+    private function recordHealthEvent(string $serverName, NodeHealthResult $result): void
     {
-        $status = $result['status'] ?? NodeHealthState::Unreachable->value;
-        if ($status === NodeHealthState::Healthy->value) {
+        if ($result->status === NodeHealthState::Healthy) {
             return;
         }
 
-        $isUnreachable = $status === NodeHealthState::Unreachable->value;
+        $isUnreachable = $result->status === NodeHealthState::Unreachable;
         $eventType = $isUnreachable ? 'node_unreachable' : 'node_unhealthy';
         $message = $isUnreachable
             ? "No health response from {$serverName}"
@@ -169,23 +156,17 @@ class NodeHealthMonitor implements NodeHealthMonitorInterface
         ));
     }
 
-    /**
-     * @param HealthProbeResult $result
-     *
-     * @return array<string,mixed>
-     */
-    private function healthEventDiagnostics(array $result, bool $isUnreachable): array
+    /** @return array<string,mixed> */
+    private function healthEventDiagnostics(NodeHealthResult $result, bool $isUnreachable): array
     {
         return [
-            'failure_kind' => $result['failure_kind'] ?? ($isUnreachable ? 'unknown' : 'invalid_response'),
-            'http_code' => $result['httpCode'] ?? null,
-            'curl_errno' => $result['curl_errno'] ?? null,
-            'timeout_ms' => $result['timeout_ms'] ?? $this->probePolicy->timeoutSeconds * 1000,
-            'attempts' => $result['attempts'] ?? 1,
-            'error' => $result['error'] ?? null,
-            'checked_at' => isset($result['checked_at'])
-                ? gmdate(DATE_ATOM, (int) $result['checked_at'])
-                : gmdate(DATE_ATOM),
+            'failure_kind' => $result->failureKind ?? ($isUnreachable ? 'unknown' : 'invalid_response'),
+            'http_code' => $result->httpCode,
+            'curl_errno' => $result->curlErrno,
+            'timeout_ms' => $result->timeoutMs,
+            'attempts' => $result->attempts,
+            'error' => $result->error,
+            'checked_at' => gmdate(DATE_ATOM, $result->checkedAt),
         ];
     }
 

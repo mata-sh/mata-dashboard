@@ -52,7 +52,7 @@
         ],
         "lint": "vendor/bin/php-cs-fixer fix --config=.php-cs-fixer.php --dry-run --diff",
         "fix": "vendor/bin/php-cs-fixer fix --config=.php-cs-fixer.php",
-        "stan": "./vendor/bin/phpstan analyse --memory-limit=512M --level=5",
+        "stan": "./vendor/bin/phpstan analyse --memory-limit=512M",
         "stan-entrypoints": "./vendor/bin/phpstan analyse --memory-limit=512M -c phpstan-entrypoints.neon",
         "test": "./vendor/bin/phpunit --colors=always",
         "check": [

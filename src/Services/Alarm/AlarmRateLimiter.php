@@ -63,9 +63,11 @@ final class AlarmRateLimiter
 
         $this->ensureCounter($serverKey, $channel);
 
-        ++$this->counters[$serverKey][$channel]['minute'];
-        ++$this->counters[$serverKey][$channel]['hour'];
-        ++$this->counters[$serverKey][$channel]['day'];
+        $counters = $this->counters[$serverKey][$channel];
+        ++$counters['minute'];
+        ++$counters['hour'];
+        ++$counters['day'];
+        $this->counters[$serverKey][$channel] = $counters;
     }
 
     /**

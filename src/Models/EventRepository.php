@@ -250,6 +250,7 @@ class EventRepository
         return is_array($result) ? $result : [];
     }
 
+    /** @param null|array<string,mixed> $alarmDecision */
     public function markEventEvaluated(int $eventId, ?array $alarmDecision = null): void
     {
         if ($alarmDecision === null) {

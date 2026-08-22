@@ -17,6 +17,7 @@ use Mata\Services\Monitor\AppReachabilityMonitorInterface;
 use Mata\Services\Monitor\Dto\AppFatalErrorPolicy;
 use Mata\Services\Monitor\Dto\AppMonitoringSettings;
 use Mata\Services\Monitor\Dto\EndpointTarget;
+use Mata\Services\Monitor\Dto\NodeHealthResult;
 use Mata\Services\Monitor\Dto\ServerMonitoringServices;
 use Mata\Services\Monitor\LogSizeEvaluator;
 use Mata\Services\Monitor\NodeHealthMonitorInterface;
@@ -156,7 +157,8 @@ class ServerViewBuilder
      * Uses buildServerStatsData() as base and extends with expensive
      * app monitoring, log analysis, and availability checks.
      *
-     * @param array<string,mixed> $serverConfig
+     * @param array<string,mixed>      $serverConfig
+     * @param null|array<string,mixed> $resolvedHealth
      *
      * @return array<string,mixed>
      */
@@ -216,7 +218,7 @@ class ServerViewBuilder
      *
      * @param array<string,array<string,mixed>> $rawAppsData
      *
-     * @return array<string,mixed>
+     * @return array<int|string,array<string,mixed>>
      */
     private function checkAppsAvailability(
         array $rawAppsData,
@@ -264,8 +266,8 @@ class ServerViewBuilder
     /**
      * Prepare app view data with enrichments (logs, sessions, availability).
      *
-     * @param array<string,mixed> $rawAppsData
-     * @param array<string,mixed> $availabilityResults
+     * @param array<string,mixed>                   $rawAppsData
+     * @param array<int|string,array<string,mixed>> $availabilityResults
      *
      * @return array<int,array<string,mixed>>
      */
@@ -415,6 +417,7 @@ class ServerViewBuilder
      * Build error view data when server monitoring fails.
      *
      * @param array<string,mixed> $serverConfig
+     * @param array<string,mixed> $nodeHealth
      *
      * @return array<string,mixed>
      */
@@ -456,11 +459,11 @@ class ServerViewBuilder
             }
 
             try {
-                $result = $services->healthMonitor->checkAsync($server);
-                if ($result instanceof PromiseInterface) {
-                    $pending[$server] = $result;
+                $healthResult = $services->healthMonitor->checkAsync($server);
+                if ($healthResult instanceof PromiseInterface) {
+                    $pending[$server] = $healthResult;
                 } else {
-                    $healthByServer[$server] = $result;
+                    $healthByServer[$server] = $healthResult->toArray();
                 }
             } catch (Throwable $e) {
                 $this->logger->warning("Health check failed for {$server}", ['error' => $e->getMessage()]);
@@ -473,8 +476,9 @@ class ServerViewBuilder
         }
 
         foreach (Utils::settle($pending)->wait() as $server => $outcome) {
-            if ($outcome['state'] === 'fulfilled' && is_array($outcome['value'])) {
-                $healthByServer[$server] = $outcome['value'];
+            $healthResult = $outcome['value'] ?? null;
+            if ($outcome['state'] === 'fulfilled' && $healthResult instanceof NodeHealthResult) {
+                $healthByServer[$server] = $healthResult->toArray();
 
                 continue;
             }
@@ -500,7 +504,9 @@ class ServerViewBuilder
         }
 
         try {
-            return $healthMonitor->checkSynchronously($serverName);
+            $healthResult = $healthMonitor->checkSynchronously($serverName);
+
+            return $healthResult->toArray();
         } catch (Throwable $e) {
             $this->logger->warning("Health check failed for {$serverName}", ['error' => $e->getMessage()]);
 

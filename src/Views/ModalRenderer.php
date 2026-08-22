@@ -241,9 +241,9 @@ class ModalRenderer extends BaseRenderer
     /**
      * Render logs table HTML.
      *
-     * @param string $server    Server name
-     * @param string $app       Application name
-     * @param array  $endpoints Endpoint URLs for the table
+     * @param string              $server    Server name
+     * @param string              $app       Application name
+     * @param array<string,mixed> $endpoints Endpoint URLs for the table
      *
      * @return string HTML table content
      */

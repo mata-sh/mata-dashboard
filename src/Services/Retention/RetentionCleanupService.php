@@ -243,6 +243,7 @@ final class RetentionCleanupService
         ];
     }
 
+    /** @param array<mixed>|int $result */
     private function deleted(array|int $result): int
     {
         return is_int($result) ? $result : 0;

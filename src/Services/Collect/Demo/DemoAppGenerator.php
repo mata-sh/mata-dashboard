@@ -275,38 +275,45 @@ final class DemoAppGenerator
                     'both' => $distribution['both'] ?? 0.2,
                 ]);
 
+                $status = is_array($apps[$appKey]['status'] ?? null) ? $apps[$appKey]['status'] : [];
+                $fatal = is_int($status['fatal'] ?? null) ? $status['fatal'] : 0;
+                $warnings = is_int($status['warnings'] ?? null) ? $status['warnings'] : 0;
+                $total = is_int($status['total'] ?? null) ? $status['total'] : 0;
+
                 if ($outlierType === 'fatal' || $outlierType === 'both') {
-                    $apps[$appKey]['status']['fatal'] = max(
-                        $apps[$appKey]['status']['fatal'],
-                        $this->random->randomFromRange($fatalRange, 1.0)
-                    );
+                    $fatal = max($fatal, $this->random->randomFromRange($fatalRange, 1.0));
                 }
 
                 if ($outlierType === 'warnings' || $outlierType === 'both') {
-                    $apps[$appKey]['status']['warnings'] = max(
-                        $apps[$appKey]['status']['warnings'],
-                        $this->random->randomFromRange($warningRange, 1.0)
-                    );
+                    $warnings = max($warnings, $this->random->randomFromRange($warningRange, 1.0));
                 }
 
                 $statusWeights = $preset['status_total_weight'] ?? ['fatal' => 18, 'warnings' => 5];
-                $apps[$appKey]['status']['total'] = max(
-                    $apps[$appKey]['status']['total'],
-                    (int) round($apps[$appKey]['status']['fatal'] * ($statusWeights['fatal'] ?? 18)
-                        + $apps[$appKey]['status']['warnings'] * ($statusWeights['warnings'] ?? 5))
+                $status['fatal'] = $fatal;
+                $status['warnings'] = $warnings;
+                $status['total'] = max(
+                    $total,
+                    (int) round($fatal * ($statusWeights['fatal'] ?? 18) + $warnings * ($statusWeights['warnings'] ?? 5))
                 );
+                $apps[$appKey]['status'] = $status;
 
             }
         }
 
         foreach ($apps as $appKey => &$app) {
-            $app['status']['total'] = max(
-                $app['status']['total'],
-                $app['status']['fatal'] + $app['status']['warnings']
+            $status = is_array($app['status'] ?? null) ? $app['status'] : [];
+            $fatal = is_int($status['fatal'] ?? null) ? $status['fatal'] : 0;
+            $warnings = is_int($status['warnings'] ?? null) ? $status['warnings'] : 0;
+            $status['fatal'] = $fatal;
+            $status['warnings'] = $warnings;
+            $status['total'] = max(
+                is_int($status['total'] ?? null) ? $status['total'] : 0,
+                $fatal + $warnings
             );
-            $app['status']['fatal_cursor'] = $app['status']['fatal'] === 0
+            $status['fatal_cursor'] = $fatal === 0
                 ? null
-                : 'v1:' . hash('sha256', $appKey . ':' . $app['status']['fatal']);
+                : 'v1:' . hash('sha256', $appKey . ':' . $fatal);
+            $app['status'] = $status;
         }
         unset($app);
 

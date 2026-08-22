@@ -99,9 +99,13 @@ class Auth
 
             if (!is_readable($this->usersFile)) {
                 if ($this->cliMode) {
+                    $owner = fileowner($this->usersFile);
+                    $ownerInfo = is_int($owner) ? posix_getpwuid($owner) : false;
+                    $ownerName = is_array($ownerInfo) ? $ownerInfo['name'] : '<file-owner>';
+
                     throw new RuntimeException(
                         "Users file not readable: {$this->usersFile}\n"
-                        . 'Try running with: sudo -u ' . posix_getpwuid(fileowner($this->usersFile))['name']
+                        . 'Try running with: sudo -u ' . $ownerName
                         . ' php ' . ($this->cliScriptPath ?? '<script-path>')
                     );
                 }
@@ -391,7 +395,7 @@ class Auth
     /**
      * Execute a callback with file locking, ensuring proper cleanup.
      *
-     * @param int      $lockType Lock type (LOCK_SH for read, LOCK_EX for write)
+     * @param 1|2      $lockType Lock type (LOCK_SH for read, LOCK_EX for write)
      * @param callable $callback Callback to execute while holding the lock
      *
      * @return mixed Return value from the callback

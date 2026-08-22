@@ -116,7 +116,7 @@ class ConfigSyncRepository
             [$code]
         );
 
-        if (!empty($existing)) {
+        if (is_array($existing) && $existing !== []) {
             $current = $existing[0];
             if (($current['display_name'] ?? null) === $displayName
                 && ($current['app_env'] ?? null) === $appEnv

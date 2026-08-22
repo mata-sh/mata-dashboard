@@ -36,6 +36,11 @@ final class BuiltinAlarmDecisionService implements AlarmDecisionServiceInterface
         return $this->batchLimit;
     }
 
+    /**
+     * @param array<int,string> $channels
+     *
+     * @return list<string>
+     */
     private function normalizeChannels(array $channels): array
     {
         $normalized = [];

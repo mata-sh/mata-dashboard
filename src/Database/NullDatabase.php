@@ -50,6 +50,7 @@ final class NullDatabase implements DatabaseInterface
         $this->logUnavailable('rollback');
     }
 
+    /** @param array<string,mixed> $context */
     private function logUnavailable(string $operation, array $context = []): void
     {
         if (!$this->unavailableLogged) {

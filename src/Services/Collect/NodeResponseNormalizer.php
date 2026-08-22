@@ -144,6 +144,8 @@ class NodeResponseNormalizer
     /**
      * @param array<string,mixed> $data
      *
+     * @return array<string,array<string,mixed>>
+     *
      * @throws InvalidNodePayloadException When the node payload is invalid
      */
     public function normalizeAppsData(array $data): array
@@ -312,7 +314,11 @@ class NodeResponseNormalizer
         return $normalized;
     }
 
-    /** @param array<string,mixed> $session */
+    /**
+     * @param array<string,mixed> $session
+     *
+     * @return array<string,mixed>
+     */
     public function normalizeSessionData(array $session): array
     {
         $type = TypeConverter::toString($session['type'] ?? null);
@@ -348,7 +354,11 @@ class NodeResponseNormalizer
         ];
     }
 
-    /** @param array<string,mixed> $data */
+    /**
+     * @param array<string,mixed> $data
+     *
+     * @return array<string,mixed>
+     */
     public function normalizeAppSessions(array $data): array
     {
         return $this->normalizeSessionData($data);
@@ -356,6 +366,8 @@ class NodeResponseNormalizer
 
     /**
      * @param array<mixed> $data
+     *
+     * @return list<array<string,mixed>>
      *
      * @throws InvalidNodePayloadException When the node payload is invalid
      */
@@ -400,6 +412,8 @@ class NodeResponseNormalizer
      * Normalize the `server/data` endpoint. RAM and disk values are reported and retained in KB.
      *
      * @param array<string,mixed> $data
+     *
+     * @return array<string,mixed>
      *
      * @throws InvalidNodePayloadException When the node payload is invalid
      */
@@ -463,6 +477,8 @@ class NodeResponseNormalizer
 
     /**
      * @param array<string,mixed> $data
+     *
+     * @return array<string,mixed>
      *
      * @throws InvalidNodePayloadException When the node payload is invalid
      */
@@ -563,6 +579,8 @@ class NodeResponseNormalizer
     /**
      * @param array<string,mixed> $data
      *
+     * @return array<string,mixed>
+     *
      * @throws InvalidNodePayloadException When the node payload is invalid
      */
     public function normalizeAppLogs(array $data): array
@@ -604,6 +622,8 @@ class NodeResponseNormalizer
     /**
      * @param array<string,mixed> $data
      *
+     * @return array<string,list<array<string,string>>>
+     *
      * @throws InvalidNodePayloadException When the node payload is invalid
      */
     public function normalizeLibrariesData(array $data): array
@@ -638,6 +658,8 @@ class NodeResponseNormalizer
 
     /**
      * Normalize Composer audit data for one app or an app map.
+     *
+     * @return array<string,mixed>
      */
     public function normalizeComposerAuditData(mixed $data): array
     {
@@ -710,7 +732,11 @@ class NodeResponseNormalizer
         return (Severity::tryFrom($severity) ?? Severity::Unknown)->value;
     }
 
-    /** @param array<string,mixed> $advisory */
+    /**
+     * @param array<string,mixed> $advisory
+     *
+     * @return array<string,null|string>
+     */
     private function normalizeAdvisory(string $package, array $advisory): array
     {
         return [
@@ -725,7 +751,11 @@ class NodeResponseNormalizer
         ];
     }
 
-    /** @param array<string,mixed> $data */
+    /**
+     * @param array<string,mixed> $data
+     *
+     * @return array<string,mixed>
+     */
     public function normalizePhpProcesses(array $data): array
     {
         if ($this->isSequentialArray($data)) {
@@ -739,7 +769,11 @@ class NodeResponseNormalizer
         return $data;
     }
 
-    /** @param array<string,mixed> $logs */
+    /**
+     * @param array<string,mixed> $logs
+     *
+     * @return null|array<string,int>
+     */
     private function normalizeLogSizes(array $logs): ?array
     {
         $normalized = [];
@@ -753,7 +787,11 @@ class NodeResponseNormalizer
         return $normalized;
     }
 
-    /** @param array<string,mixed> $cronjobs */
+    /**
+     * @param array<string,mixed> $cronjobs
+     *
+     * @return null|array<string,int>
+     */
     private function normalizeCronjobSummary(array $cronjobs): ?array
     {
         $normalized = [];

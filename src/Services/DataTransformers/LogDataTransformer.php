@@ -21,9 +21,9 @@ class LogDataTransformer
     /**
      * Transform grouped logs structure to flat array with source field.
      *
-     * @param array $groupedLogs Logs grouped by file path: ['file_path' => [entries...]]
+     * @param array<string,mixed> $groupedLogs Logs grouped by file path: ['file_path' => [entries...]]
      *
-     * @return array Flat array with source field added: [['timestamp' => ..., 'type' => ..., 'message' => ..., 'source' => ...]]
+     * @return list<array<string,mixed>> Flat array with source field added: [['timestamp' => ..., 'type' => ..., 'message' => ..., 'source' => ...]]
      */
     public function flattenGroupedLogs(array $groupedLogs): array
     {
@@ -73,6 +73,8 @@ class LogDataTransformer
 
     /**
      * Check if grouped logs structure is empty.
+     *
+     * @param array<string,mixed> $groupedLogs
      */
     public function isEmpty(array $groupedLogs): bool
     {

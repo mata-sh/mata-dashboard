@@ -15,6 +15,7 @@ use Mata\Models\ServerMetrics\Dto\ServerMetricRawSnapshot;
 use Mata\Services\Identity\ServerApplicationIdResolver;
 use RuntimeException;
 use Throwable;
+use UnexpectedValueException;
 
 /**
  * Persistence layer for server metric tables.
@@ -101,13 +102,17 @@ final class ServerMetricsRepository
     public function getRawSampleCountsByServer(): array
     {
         $rows = $this->db->runQuery(
-            <<<'SQL'
-SELECT s.name AS server_name, COUNT(*) AS sample_count
-FROM server_metrics_raw AS r
-INNER JOIN servers AS s ON s.id = r.server_id
-GROUP BY s.name
-SQL
+            <<<SQL
+                SELECT s.name AS server_name, COUNT(*) AS sample_count
+                FROM server_metrics_raw AS r
+                INNER JOIN servers AS s ON s.id = r.server_id
+                GROUP BY s.name
+            SQL
         );
+
+        if (!is_array($rows)) {
+            throw new UnexpectedValueException('Expected rows from raw sample count query.');
+        }
 
         $counts = [];
         foreach ($rows as $row) {
@@ -130,13 +135,17 @@ SQL
     public function getLatestRawSampleCollectedAt(): array
     {
         $rows = $this->db->runQuery(
-            <<<'SQL'
-SELECT s.name AS server_name, MAX(r.collected_at) AS last_collected
-FROM server_metrics_raw AS r
-INNER JOIN servers AS s ON s.id = r.server_id
-GROUP BY s.name
-SQL
+            <<<SQL
+                SELECT s.name AS server_name, MAX(r.collected_at) AS last_collected
+                FROM server_metrics_raw AS r
+                INNER JOIN servers AS s ON s.id = r.server_id
+                GROUP BY s.name
+            SQL
         );
+
+        if (!is_array($rows)) {
+            throw new UnexpectedValueException('Expected rows from latest raw sample query.');
+        }
 
         $timestamps = [];
         foreach ($rows as $row) {

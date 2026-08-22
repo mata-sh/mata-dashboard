@@ -81,7 +81,11 @@ final class ThresholdsConfigLoader extends AbstractJsonConfigLoader implements M
         return $this->fallbackOnFailure;
     }
 
-    /** @param array<string,mixed> $thresholds @return array<string,mixed> */
+    /**
+     * @param array<string,mixed> $thresholds
+     *
+     * @return array<string,mixed>
+     */
     private function normalizeAlarmRules(array $thresholds): array
     {
         $rules = $thresholds['alarms'] ?? [];

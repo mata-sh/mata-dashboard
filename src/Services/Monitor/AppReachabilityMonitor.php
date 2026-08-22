@@ -58,7 +58,7 @@ class AppReachabilityMonitor implements AppReachabilityMonitorInterface
         $cacheKey = $this->availabilityCacheKey($target->resolveProbeUrl(), $cacheType, $timeout);
         $cached = $forceRefresh ? null : $this->cacheStore->get($cacheKey, $this->ttlResolver->get($cacheType));
         if ($cached !== null) {
-            return $cached->value;
+            return $this->normalizeCachedResult($cached->value);
         }
 
         $result = $this->probeTargetsWithRetries([$target->identifier => $target], $timeout)[$target->identifier];
@@ -90,7 +90,7 @@ class AppReachabilityMonitor implements AppReachabilityMonitorInterface
             $cacheKey = $this->availabilityCacheKey($target->resolveProbeUrl(), $cacheType, $timeout);
             $cached = $forceRefresh ? null : $this->cacheStore->get($cacheKey, $ttlSeconds);
             if ($cached !== null) {
-                $results[$identifier] = $cached->value;
+                $results[$identifier] = $this->normalizeCachedResult($cached->value);
 
                 continue;
             }
@@ -229,6 +229,23 @@ class AppReachabilityMonitor implements AppReachabilityMonitorInterface
             'maintenance_mode' => false,
             'checked_at' => time(),
         ];
+    }
+
+    /**
+     * @param array<int|string,mixed> $result
+     *
+     * @return array<string,mixed>
+     */
+    private function normalizeCachedResult(array $result): array
+    {
+        $normalized = [];
+        foreach ($result as $key => $value) {
+            if (is_string($key)) {
+                $normalized[$key] = $value;
+            }
+        }
+
+        return $normalized;
     }
 
     /** @param array<string,mixed> $result */

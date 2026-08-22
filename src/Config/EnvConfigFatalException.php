@@ -17,19 +17,21 @@ final class EnvConfigFatalException extends RuntimeException
     private string $title;
     private string $heading;
     private string $type;
+
+    /** @var array<string,mixed> */
     private array $context;
     private ?string $documentationUrl;
 
     /**
-     * @param string         $message          Technical message for logging
-     * @param string         $userMessage      User-friendly message for display
-     * @param string         $title            Page title for display
-     * @param string         $heading          Heading for display
-     * @param string         $type             Display type ('warning', 'error', 'info')
-     * @param array          $context          Additional context for logging
-     * @param null|string    $documentationUrl URL to relevant documentation
-     * @param int            $code             Exception code
-     * @param null|Throwable $previous         Previous exception
+     * @param string              $message          Technical message for logging
+     * @param string              $userMessage      User-friendly message for display
+     * @param string              $title            Page title for display
+     * @param string              $heading          Heading for display
+     * @param string              $type             Display type ('warning', 'error', 'info')
+     * @param array<string,mixed> $context          Additional context for logging
+     * @param null|string         $documentationUrl URL to relevant documentation
+     * @param int                 $code             Exception code
+     * @param null|Throwable      $previous         Previous exception
      */
     public function __construct(
         string $message,
@@ -76,6 +78,8 @@ final class EnvConfigFatalException extends RuntimeException
 
     /**
      * Get additional context for logging.
+     *
+     * @return array<string,mixed>
      */
     public function getContext(): array
     {

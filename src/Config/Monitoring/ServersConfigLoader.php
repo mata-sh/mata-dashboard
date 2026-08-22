@@ -142,7 +142,11 @@ final class ServersConfigLoader extends AbstractJsonConfigLoader implements Moni
         );
     }
 
-    /** @param array<string,mixed> $config @return array<int,string> */
+    /**
+     * @param array<string,mixed> $config
+     *
+     * @return array<int,string>
+     */
     private function validateRequiredFields(string $serverName, array $config): array
     {
         $errors = [];
@@ -155,7 +159,11 @@ final class ServersConfigLoader extends AbstractJsonConfigLoader implements Moni
         return $errors;
     }
 
-    /** @param array<string,mixed> $config @return array<int,string> */
+    /**
+     * @param array<string,mixed> $config
+     *
+     * @return array<int,string>
+     */
     private function validateApiUrl(string $serverName, array $config): array
     {
         if (empty($config['api_url'])) {
@@ -175,7 +183,11 @@ final class ServersConfigLoader extends AbstractJsonConfigLoader implements Moni
         return $this->validateHttpAllowed($serverName, $config);
     }
 
-    /** @param array<string,mixed> $config @return array<int,string> */
+    /**
+     * @param array<string,mixed> $config
+     *
+     * @return array<int,string>
+     */
     private function validateHttpAllowed(string $serverName, array $config): array
     {
         if (!(TypeConverter::toBool($config['allow_http'] ?? null) ?? false)) {
@@ -192,7 +204,11 @@ final class ServersConfigLoader extends AbstractJsonConfigLoader implements Moni
         return [];
     }
 
-    /** @param array<string,mixed> $config @return array<int,string> */
+    /**
+     * @param array<string,mixed> $config
+     *
+     * @return array<int,string>
+     */
     private function validateColor(string $serverName, array $config): array
     {
         if (!isset($config['primary_color'])) {
@@ -205,7 +221,11 @@ final class ServersConfigLoader extends AbstractJsonConfigLoader implements Moni
         return [];
     }
 
-    /** @param array<string,mixed> $config @return array<int,string> */
+    /**
+     * @param array<string,mixed> $config
+     *
+     * @return array<int,string>
+     */
     private function validateEnvironment(string $serverName, array $config): array
     {
         if (!isset($config['env'])) {

@@ -24,6 +24,8 @@ final class ModalCacheService
 
     /**
      * Fetch README data with cache handling applied.
+     *
+     * @return null|array<string,mixed>
      */
     public function fetchReadme(
         ServerDataCollectorInterface $collector,
@@ -37,6 +39,8 @@ final class ModalCacheService
 
     /**
      * Fetch logs data with cache handling applied.
+     *
+     * @return null|array<string,mixed>
      */
     public function fetchLogs(
         ServerDataCollectorInterface $collector,
@@ -50,6 +54,8 @@ final class ModalCacheService
 
     /**
      * Fetch logs status data with cache handling applied.
+     *
+     * @return null|array<string,mixed>
      */
     public function fetchLogsStatus(
         ServerDataCollectorInterface $collector,
@@ -77,6 +83,8 @@ final class ModalCacheService
 
     /**
      * Fetch server info data with cache handling applied.
+     *
+     * @return null|array<string,mixed>
      */
     public function fetchServerInfo(
         ServerDataCollectorInterface $collector,
@@ -89,6 +97,8 @@ final class ModalCacheService
 
     /**
      * Fetch server cronjobs data with cache handling applied.
+     *
+     * @return null|array<string,mixed>
      */
     public function fetchServerCronjobs(
         ServerDataCollectorInterface $collector,

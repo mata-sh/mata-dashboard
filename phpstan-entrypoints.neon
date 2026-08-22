@@ -1,5 +1,5 @@
 # Entrypoint scripts (public/, cron/) are procedural bootstrap code and are not
-# part of the level 5 `src` analysis. Level 0 still resolves every class, so a
+# part of the level 7 `src` analysis. Level 0 still resolves every class, so a
 # stale `use` left behind by a namespace move fails here instead of at runtime.
 parameters:
     level: 0

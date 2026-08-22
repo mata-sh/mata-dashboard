@@ -16,6 +16,7 @@ use Mata\Services\Monitor\AppErrorMonitorInterface;
 use Mata\Services\Monitor\AppReachabilityMonitorInterface;
 use Mata\Services\Monitor\Dto\AppFatalErrorPolicy;
 use Mata\Services\Monitor\Dto\AppMonitoringSettings;
+use Mata\Services\Monitor\Dto\NodeHealthResult;
 use Mata\Services\Monitor\Dto\ServerMonitoringServices;
 use Mata\Services\Monitor\LogSizeEvaluator;
 use Mata\Services\Monitor\NodeHealthMonitorInterface;
@@ -56,14 +57,12 @@ final class ServerViewBuilderTest extends TestCase
         $reachabilityMonitor = $this->createMock(AppReachabilityMonitorInterface::class);
         $reachabilityMonitor->expects($this->never())->method('checkMultipleEndpoints');
 
+        $healthResult = NodeHealthResult::fromArray(['status' => 'healthy']);
         $healthMonitor = $this->createMock(NodeHealthMonitorInterface::class);
         $healthMonitor->expects($this->once())
             ->method('checkAsync')
             ->with('server-a')
-            ->willReturn(Create::promiseFor([
-                'status' => 'healthy',
-                'state' => NodeHealthState::Healthy->value,
-            ]));
+            ->willReturn(Create::promiseFor($healthResult));
 
         $builder = new ServerViewBuilder(
             $serverMonitor,

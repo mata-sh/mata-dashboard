@@ -103,7 +103,10 @@ final class AppErrorMonitor implements AppErrorMonitorInterface
         );
     }
 
-    /** @param array<string,mixed> $appData @param array<string,int> $stats */
+    /**
+     * @param array<string,mixed> $appData
+     * @param array<string,int>   $stats
+     */
     private function monitorFatal(
         string $server,
         string $app,
@@ -172,7 +175,10 @@ final class AppErrorMonitor implements AppErrorMonitorInterface
         $this->stateRepository->upsert($serverId, $applicationId, $cursor, $fatalCount);
     }
 
-    /** @param array<string,mixed> $appData @param array<string,int> $stats */
+    /**
+     * @param array<string,mixed> $appData
+     * @param array<string,int>   $stats
+     */
     private function monitorLogSize(
         string $server,
         string $app,

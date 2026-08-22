@@ -187,9 +187,7 @@ class ModalController extends BaseController
                 );
 
                 $markdownContent = $readmeResponse['result'] ?? '';
-                $notice = is_array($readmeResponse['notice'] ?? null)
-                    ? $readmeResponse['notice']
-                    : null;
+                $notice = $this->extractNotice($readmeResponse);
 
                 $endpoints = [
                     'modal_app_readme_refresh' => $this->endpoints->url(
@@ -548,6 +546,32 @@ class ModalController extends BaseController
         );
     }
 
+    /**
+     * Extract contextual, non-error information accompanying a successful node response.
+     *
+     * @param array<string,mixed> $response
+     *
+     * @return null|array{code:string,message:string}
+     */
+    private function extractNotice(array $response): ?array
+    {
+        $notice = $response['notice'] ?? null;
+
+        if (
+            !is_array($notice)
+            || !is_string($notice['code'] ?? null)
+            || !is_string($notice['message'] ?? null)
+        ) {
+            return null;
+        }
+
+        return [
+            'code' => $notice['code'],
+            'message' => $notice['message'],
+        ];
+    }
+
+    /** @param null|array<string,mixed>|string $response */
     private function monitoringDisabled(array|string|null $response): bool
     {
         $error = is_array($response) && is_array($response['error'] ?? null)

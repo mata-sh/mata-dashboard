@@ -13,7 +13,7 @@ final class AuditRowEnricher
     /**
      * Look up the cached audit for one app.
      *
-     * @return array{audited:bool,packages:array<string,array{worst_severity:string,count:int,advisories:array}>,abandoned:array<string,null|string>}
+     * @return array{audited:bool,packages:array<string,array{worst_severity:string,count:int,advisories:list<array<string,mixed>>}>,abandoned:array<string,null|string>}
      */
     public function appAudit(ServerDataCollectorInterface $collector, string $app): array
     {
@@ -36,8 +36,8 @@ final class AuditRowEnricher
     /**
      * Stamp audit fields onto one library row.
      *
-     * @param array<string,mixed>                                                                                                                    $row
-     * @param array{audited:bool,packages:array<string,array{worst_severity:string,count:int,advisories:array}>,abandoned:array<string,null|string>} $appAudit
+     * @param array<string,mixed>                                                                                                                                        $row
+     * @param array{audited:bool,packages:array<string,array{worst_severity:string,count:int,advisories:list<array<string,mixed>>}>,abandoned:array<string,null|string>} $appAudit
      *
      * @return array<string,mixed>
      */

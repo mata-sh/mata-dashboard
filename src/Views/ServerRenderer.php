@@ -187,6 +187,8 @@ class ServerRenderer extends BaseRenderer
     /**
      * Render server stats.
      *
+     * @param array<string,mixed> $serverRenderData Server render data
+     *
      * @return string Generated HTML for specifif servers stats
      */
     public function renderServerStats(array $serverRenderData): string
@@ -260,6 +262,7 @@ class ServerRenderer extends BaseRenderer
      * @param array<string,mixed> $serverConfig  Server configuration
      * @param string              $serverId      HTML ID for server
      * @param string              $appsHtml      Rendered apps HTML
+     * @param array<string,mixed> $nodeHealth    Node health payload
      *
      * @return array<string,mixed> Template data array
      */
@@ -293,6 +296,7 @@ class ServerRenderer extends BaseRenderer
      * @param array<string,mixed> $serverMetrics Server metrics with thresholds
      * @param array<string,mixed> $serverConfig  Server configuration
      * @param string              $serverId      HTML ID for server
+     * @param array<string,mixed> $nodeHealth    Node health payload
      *
      * @return array<string,mixed> Template data array
      */
@@ -382,6 +386,7 @@ class ServerRenderer extends BaseRenderer
      * @param string                   $serverId     HTML ID for server
      * @param string                   $errorMsg     Error message
      * @param null|array<string,mixed> $serverData   Partial server data if available
+     * @param array<string,mixed>      $nodeHealth   Node health payload
      *
      * @return array<string,mixed> Template data array
      */
@@ -491,6 +496,7 @@ class ServerRenderer extends BaseRenderer
      * @param array<string,mixed>      $serverConfig Server configuration
      * @param string                   $serverId     HTML ID for server
      * @param null|array<string,mixed> $serverData   Optional server data
+     * @param array<string,mixed>      $nodeHealth   Node health payload
      *
      * @return array<string,mixed> Basic server data structure
      */

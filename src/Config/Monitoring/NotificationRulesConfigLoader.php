@@ -170,7 +170,10 @@ final class NotificationRulesConfigLoader extends AbstractJsonConfigLoader imple
         return array_values(array_unique($validated));
     }
 
-    /** @param array<string,mixed> $data @param list<string> $allowed */
+    /**
+     * @param array<string,mixed> $data
+     * @param list<string>        $allowed
+     */
     private function rejectUnknownKeys(array $data, array $allowed, string $path): void
     {
         $unknown = array_values(array_diff(array_keys($data), $allowed));

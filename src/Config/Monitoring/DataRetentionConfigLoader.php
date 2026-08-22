@@ -72,7 +72,11 @@ final class DataRetentionConfigLoader extends AbstractJsonConfigLoader implement
         ];
     }
 
-    /** @param array<string,mixed> $config @return array<string,mixed> */
+    /**
+     * @param array<string,mixed> $config
+     *
+     * @return array<string,mixed>
+     */
     private function normalizeConfig(array $config): array
     {
         $defaults = $this->getDefaultConfig();

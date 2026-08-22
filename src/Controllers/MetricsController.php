@@ -51,6 +51,7 @@ final class MetricsController extends BaseController
 
     /**
      * @param array<string,mixed> $serversConfig
+     * @param array<string,mixed> $dashboardChartConfig
      */
     public function __construct(
         Logger $logger,

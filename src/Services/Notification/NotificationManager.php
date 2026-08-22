@@ -537,15 +537,12 @@ final class NotificationManager
      */
     private function loadOfflineNoticeState(): array
     {
-        return $this->offlineNoticeStore->load(
-            fn () => $this->defaultOfflineNoticeState(),
-            function (array $data): array {
-                return [
-                    'dismissed_permanently' => (bool) ($data['dismissed_permanently'] ?? false),
-                    'snoozed_until' => isset($data['snoozed_until']) ? (int) $data['snoozed_until'] : null,
-                ];
-            }
-        );
+        $data = $this->offlineNoticeStore->load(fn (): array => $this->defaultOfflineNoticeState());
+
+        return [
+            'dismissed_permanently' => (bool) ($data['dismissed_permanently'] ?? false),
+            'snoozed_until' => isset($data['snoozed_until']) ? (int) $data['snoozed_until'] : null,
+        ];
     }
 
     /**

@@ -7,6 +7,7 @@ namespace Mata\Services\Monitor;
 use GuzzleHttp\Promise\PromiseInterface;
 use Mata\Constants\CacheType;
 use Mata\Constants\NodeHealthState;
+use Mata\Services\Monitor\Dto\NodeHealthResult;
 
 /**
  * Demo node health monitor with stable, varied health states.
@@ -22,14 +23,14 @@ class MockNodeHealthMonitor implements NodeHealthMonitorInterface
         string $serverName,
         CacheType $cacheTtlType = CacheType::Health,
         bool $forceRefresh = false,
-    ): array {
+    ): NodeHealthResult {
         if (isset($this->variants[$serverName])) {
-            return $this->withState($this->variants[$serverName]);
+            return NodeHealthResult::fromArray($this->variants[$serverName]);
         }
 
         $variant = crc32($serverName) % 3;
         if ($variant === 1) {
-            return $this->withState([
+            return NodeHealthResult::fromArray([
                 'status' => NodeHealthState::Healthy->value,
                 'httpCode' => 200,
                 'maintenance_mode' => true,
@@ -42,7 +43,7 @@ class MockNodeHealthMonitor implements NodeHealthMonitorInterface
         }
 
         if ($variant === 2) {
-            return $this->withState([
+            return NodeHealthResult::fromArray([
                 'status' => NodeHealthState::Unreachable->value,
                 'httpCode' => null,
                 'maintenance_mode' => null,
@@ -54,7 +55,7 @@ class MockNodeHealthMonitor implements NodeHealthMonitorInterface
             ]);
         }
 
-        return $this->withState([
+        return NodeHealthResult::fromArray([
             'status' => NodeHealthState::Healthy->value,
             'httpCode' => 200,
             'maintenance_mode' => false,
@@ -70,19 +71,7 @@ class MockNodeHealthMonitor implements NodeHealthMonitorInterface
         string $serverName,
         CacheType $cacheTtlType = CacheType::Health,
         bool $forceRefresh = false,
-    ): array|PromiseInterface {
+    ): NodeHealthResult|PromiseInterface {
         return $this->checkSynchronously($serverName, $cacheTtlType, $forceRefresh);
-    }
-
-    /**
-     * @param array<string,mixed> $result
-     *
-     * @return array<string,mixed>
-     */
-    private function withState(array $result): array
-    {
-        $result['state'] = NodeHealthStateResolver::resolve($result)->value;
-
-        return $result;
     }
 }
