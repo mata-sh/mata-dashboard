@@ -187,26 +187,17 @@ echo "  2 - Choose files interactively"
 echo "  3 - Cancel"
 read -p "Choice [1/2/3]: " update_choice
 
+FILES_TO_UPDATE=()
 case "$update_choice" in
     1)
         if [ "$SUGGESTED_FILES" == "[]" ]; then
             warning "No files were suggested. Switching to interactive mode."
             update_choice="2"
         else
-            FILES_TO_UPDATE=()
-            echo "$SUGGESTED_FILES" | jq -r '.[]' | while read -r file; do
-                FILES_TO_UPDATE+=("$file")
-            done
+            mapfile -t FILES_TO_UPDATE < <(echo "$SUGGESTED_FILES" | jq -r '.[]')
         fi
         ;;
     2)
-        FILES_TO_UPDATE=()
-        for doc_file in "${DOC_FILES[@]}"; do
-            read -p "Update $doc_file? [y/N]: " update_file
-            if [[ "$update_file" =~ ^[Yy]$ ]]; then
-                FILES_TO_UPDATE+=("$doc_file")
-            fi
-        done
         ;;
     3)
         warning "Cancelled by user"
@@ -218,9 +209,7 @@ case "$update_choice" in
         ;;
 esac
 
-# If in interactive mode and FILES_TO_UPDATE not set, populate it
 if [ "$update_choice" == "2" ]; then
-    FILES_TO_UPDATE=()
     for doc_file in "${DOC_FILES[@]}"; do
         read -p "Update $doc_file? [y/N]: " update_file
         if [[ "$update_file" =~ ^[Yy]$ ]]; then
