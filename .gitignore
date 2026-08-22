@@ -39,7 +39,6 @@ public/branding/*
 
 # npm
 node_modules/
-package-lock.json
 
 TODO.md
 
