@@ -190,7 +190,7 @@ class MockServerDataCollector implements ServerDataCollectorInterface
     /**
      * Generate demo libraries for all apps.
      */
-    public function getAppsLibraries(string $cacheType = 'apps'): ?array
+    public function getAppsLibraries(string $cacheType = 'libraries'): ?array
     {
         $ttlSeconds = $this->ttlResolver->get($cacheType);
 
@@ -207,7 +207,7 @@ class MockServerDataCollector implements ServerDataCollectorInterface
     /**
      * Generate demo libraries for specific app.
      */
-    public function getAppLibraries(string $app, string $cacheType = 'apps'): ?array
+    public function getAppLibraries(string $app, string $cacheType = 'libraries'): ?array
     {
         $ttlSeconds = $this->ttlResolver->get($cacheType);
         $data = $this->generateLibrariesForApp($app);

@@ -141,11 +141,11 @@ class ServerDataCollector implements ServerDataCollectorInterface
      *
      * Retrieves installed packages and their versions across all apps.
      *
-     * @param string $cacheType Cache type key for TTL lookup (default: 'apps')
+     * @param string $cacheType Cache type key for TTL lookup (default: 'libraries')
      *
      * @return null|array<string,mixed> Libraries data for all apps or null on failure
      */
-    public function getAppsLibraries(string $cacheType = 'apps'): ?array
+    public function getAppsLibraries(string $cacheType = 'libraries'): ?array
     {
         return $this->request('GET', 'apps/libraries', $cacheType);
     }
@@ -156,11 +156,11 @@ class ServerDataCollector implements ServerDataCollectorInterface
      * Retrieves installed packages and their versions for a single app.
      *
      * @param string $app       App identifier
-     * @param string $cacheType Cache type key for TTL lookup (default: 'apps')
+     * @param string $cacheType Cache type key for TTL lookup (default: 'libraries')
      *
      * @return null|array<string,mixed> Libraries data for the specified app or null on failure
      */
-    public function getAppLibraries(string $app, string $cacheType = 'apps'): ?array
+    public function getAppLibraries(string $app, string $cacheType = 'libraries'): ?array
     {
         return $this->request('GET', "{$app}/libraries", $cacheType);
     }

@@ -69,21 +69,21 @@ interface ServerDataCollectorInterface
     /**
      * Fetch library information for all apps.
      *
-     * @param string $cacheType Cache type key for TTL lookup (default: 'apps')
+     * @param string $cacheType Cache type key for TTL lookup (default: 'libraries')
      *
      * @return null|array<string,mixed> Libraries data for all apps or null on failure
      */
-    public function getAppsLibraries(string $cacheType = 'apps'): ?array;
+    public function getAppsLibraries(string $cacheType = 'libraries'): ?array;
 
     /**
      * Fetch library information for a specific app.
      *
      * @param string $app       App identifier
-     * @param string $cacheType Cache type key for TTL lookup (default: 'apps')
+     * @param string $cacheType Cache type key for TTL lookup (default: 'libraries')
      *
      * @return null|array<string,mixed> Libraries data for the specified app or null on failure
      */
-    public function getAppLibraries(string $app, string $cacheType = 'apps'): ?array;
+    public function getAppLibraries(string $app, string $cacheType = 'libraries'): ?array;
 
     /**
      * Fetch README content from a specific app.

@@ -18,6 +18,8 @@ use Mata\Services\Collect\NodeResponseNormalizer;
 use Mata\Services\Collect\ServerDataCollector;
 use PHPUnit\Framework\TestCase;
 use Psr\Log\NullLogger;
+use ReflectionMethod;
+use ReflectionParameter;
 
 /**
  * @covers \Mata\Services\Collect\ServerDataCollector
@@ -80,6 +82,46 @@ final class ServerDataCollectorTest extends TestCase
         $this->assertTrue($response['from_cache']);
         $this->assertGreaterThanOrEqual(5, $response['cache_age']);
         $this->assertSame(60, $response['cache_ttl']);
+    }
+
+    public function testLibrariesUseTheirOwnTtlRatherThanTheAppsTtl(): void
+    {
+        $cache = $this->createMock(CacheStoreInterface::class);
+        $cache->expects($this->exactly(2))->method('get')->willReturn(new CacheEntry([], time()));
+        $apiClient = $this->createMock(NodeApiClient::class);
+        $apiClient->method('getApiBase')->willReturn('https://node.example.test/api');
+        $apiClient->expects($this->never())->method('request');
+
+        $collector = new ServerDataCollector(
+            new NullLogger(),
+            $cache,
+            new ApiCacheKeyFactory(),
+            new CacheTtlResolver(['apps' => 240, 'libraries' => 600]),
+            $apiClient,
+            new NodeResponseNormalizer(new NullLogger()),
+        );
+
+        $all = $collector->getAppsLibraries();
+        $single = $collector->getAppLibraries('demo');
+
+        $this->assertSame(600, $all['cache_ttl']);
+        $this->assertSame(600, $single['cache_ttl']);
+    }
+
+    /**
+     * API cache keys are built from api base, method and path only. Because the cache type
+     * is not part of the key, changing a method's cache type alters its lifetime without
+     * orphaning entries already on disk, which is why moving libraries off the apps TTL
+     * needed no cache flush. Adding a cache-type component here would invalidate that.
+     */
+    public function testApiCacheKeyDoesNotDependOnCacheType(): void
+    {
+        $parameters = array_map(
+            static fn (ReflectionParameter $parameter): string => $parameter->getName(),
+            (new ReflectionMethod(ApiCacheKeyFactory::class, 'createApiRequestKey'))->getParameters(),
+        );
+
+        $this->assertSame(['apiBase', 'method', 'path'], $parameters);
     }
 
     public function testForcedRefreshBypassesCacheAndWritesTheNormalEntry(): void
