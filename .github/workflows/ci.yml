@@ -84,8 +84,8 @@ jobs:
       - name: Code style (PHP-CS-Fixer)
         run: vendor/bin/php-cs-fixer fix --dry-run --diff
 
-      - name: Static analysis (PHPStan, level 5)
-        run: vendor/bin/phpstan analyse --level=5
+      - name: Static analysis (PHPStan, level 7)
+        run: vendor/bin/phpstan analyse --level=7
 
       - name: Unit tests (PHPUnit)
         run: vendor/bin/phpunit
