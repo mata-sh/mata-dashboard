@@ -16,6 +16,7 @@ use Mata\Services\Event\EventManager;
 use Mata\Services\Monitor\AppReachabilityMonitorInterface;
 use Mata\Services\Monitor\Dto\AppFatalErrorPolicy;
 use Mata\Services\Monitor\Dto\AppMonitoringSettings;
+use Mata\Services\Monitor\Dto\EndpointProbeResult;
 use Mata\Services\Monitor\Dto\EndpointTarget;
 use Mata\Services\Monitor\Dto\NodeHealthResult;
 use Mata\Services\Monitor\Dto\ServerMonitoringServices;
@@ -232,8 +233,12 @@ class ServerViewBuilder
 
         try {
             $targets = EndpointTarget::fromRawAppData($rawAppsData, $serverName);
+            $results = $reachabilityMonitor->checkMultipleEndpoints($targets);
 
-            return $reachabilityMonitor->checkMultipleEndpoints($targets);
+            return array_map(
+                static fn (EndpointProbeResult $result): array => $result->toArray(),
+                $results,
+            );
         } catch (Exception $e) {
             $this->logger->warning(
                 "Availability checks failed for {$serverName}",

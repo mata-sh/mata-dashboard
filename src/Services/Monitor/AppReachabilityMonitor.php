@@ -16,6 +16,7 @@ use Mata\Services\Event\Dto\EventMetric;
 use Mata\Services\Event\EventManager;
 use Mata\Services\Monitor\Dto\AppMonitoringSettings;
 use Mata\Services\Monitor\Dto\AppReachabilityPolicy;
+use Mata\Services\Monitor\Dto\EndpointProbeResult;
 use Mata\Services\Monitor\Dto\EndpointTarget;
 use Mata\Services\Monitor\Dto\ProbePolicy;
 use Psr\Log\LoggerInterface;
@@ -53,24 +54,27 @@ class AppReachabilityMonitor implements AppReachabilityMonitorInterface
         ?int $timeout = null,
         CacheType $cacheType = CacheType::Ping,
         bool $forceRefresh = false
-    ): array {
+    ): EndpointProbeResult {
         $timeout ??= $this->probePolicy->timeoutSeconds;
         $cacheKey = $this->availabilityCacheKey($target->resolveProbeUrl(), $cacheType, $timeout);
         $cached = $forceRefresh ? null : $this->cacheStore->get($cacheKey, $this->ttlResolver->get($cacheType));
         if ($cached !== null) {
-            return $this->normalizeCachedResult($cached->value);
+            return EndpointProbeResult::fromArray($cached->value);
         }
 
         $result = $this->probeTargetsWithRetries([$target->identifier => $target], $timeout)[$target->identifier];
-        $this->cacheStore->put($cacheKey, $result);
+        $this->cacheStore->put($cacheKey, $result->toArray());
         $streak = $this->updateReachabilityStreak($target, $result);
         $this->recordUnreachableTarget($target, $result, $streak);
 
         return $result;
     }
 
-    /** @param array<int|string,EndpointTarget> $targets
-     * @return array<int|string,array<string,mixed>> */
+    /**
+     * @param array<int|string,EndpointTarget> $targets
+     *
+     * @return array<int|string,EndpointProbeResult>
+     */
     public function checkMultipleEndpoints(
         array $targets,
         ?int $timeout = null,
@@ -90,7 +94,7 @@ class AppReachabilityMonitor implements AppReachabilityMonitorInterface
             $cacheKey = $this->availabilityCacheKey($target->resolveProbeUrl(), $cacheType, $timeout);
             $cached = $forceRefresh ? null : $this->cacheStore->get($cacheKey, $ttlSeconds);
             if ($cached !== null) {
-                $results[$identifier] = $this->normalizeCachedResult($cached->value);
+                $results[$identifier] = EndpointProbeResult::fromArray($cached->value);
 
                 continue;
             }
@@ -108,7 +112,7 @@ class AppReachabilityMonitor implements AppReachabilityMonitorInterface
             $fresh = array_key_exists($identifier, $cacheKeys);
             $result = $results[$identifier] ?? $this->unavailableResult($target, 'Availability probe did not return a result', $timeout);
             if ($fresh) {
-                $this->cacheStore->put($cacheKeys[$identifier], $result);
+                $this->cacheStore->put($cacheKeys[$identifier], $result->toArray());
                 $freshResults[$identifier] = [
                     'target' => $target,
                     'result' => $result,
@@ -137,8 +141,11 @@ class AppReachabilityMonitor implements AppReachabilityMonitorInterface
         return $ordered;
     }
 
-    /** @param array<int|string,EndpointTarget> $targets
-     * @return array<int|string,array<string,mixed>> */
+    /**
+     * @param array<int|string,EndpointTarget> $targets
+     *
+     * @return array<int|string,EndpointProbeResult>
+     */
     private function probeTargetsWithRetries(array $targets, int $timeout): array
     {
         $results = $this->probeBatch($targets, $timeout, 1);
@@ -162,7 +169,7 @@ class AppReachabilityMonitor implements AppReachabilityMonitorInterface
      *
      * @param array<int|string,EndpointTarget> $targets
      *
-     * @return array<int|string,array<string,mixed>>
+     * @return array<int|string,EndpointProbeResult>
      */
     private function probeBatch(array $targets, int $timeout, int $attemptNumber): array
     {
@@ -176,11 +183,10 @@ class AppReachabilityMonitor implements AppReachabilityMonitorInterface
             }
         }
         foreach ($this->probeClient->settle($pending) as $identifier => $result) {
-            $result['attempts'] = $attemptNumber;
-            $results[$identifier] = $result;
+            $results[$identifier] = EndpointProbeResult::fromArray($result)->withAttempts($attemptNumber);
         }
         foreach ($targets as $identifier => $target) {
-            if (!isset($results[$identifier]) || !is_array($results[$identifier])) {
+            if (!isset($results[$identifier])) {
                 $results[$identifier] = $this->unavailableResult($target, 'Availability probe did not return a result', $timeout, $attemptNumber);
             }
         }
@@ -190,7 +196,7 @@ class AppReachabilityMonitor implements AppReachabilityMonitorInterface
 
     /**
      * @param array<int|string,EndpointTarget>      $targets
-     * @param array<int|string,array<string,mixed>> $results
+     * @param array<int|string,EndpointProbeResult> $results
      *
      * @return array<int|string,EndpointTarget>
      */
@@ -198,7 +204,8 @@ class AppReachabilityMonitor implements AppReachabilityMonitorInterface
     {
         $retry = [];
         foreach ($targets as $identifier => $target) {
-            if ($this->shouldRetry($results[$identifier] ?? [])) {
+            $result = $results[$identifier] ?? null;
+            if ($result instanceof EndpointProbeResult && $this->shouldRetry($result)) {
                 $retry[$identifier] = $target;
             }
         }
@@ -213,10 +220,9 @@ class AppReachabilityMonitor implements AppReachabilityMonitorInterface
             : $this->probeClient->probeStatusEndpointAsync($target->statusUrl, $timeout);
     }
 
-    /** @return array<string,mixed> */
-    private function unavailableResult(EndpointTarget $target, string $error, int $timeout, int $attempts = 1): array
+    private function unavailableResult(EndpointTarget $target, string $error, int $timeout, int $attempts = 1): EndpointProbeResult
     {
-        return [
+        return EndpointProbeResult::fromArray([
             'reachable' => false,
             'httpCode' => null,
             'latency_ms' => null,
@@ -228,43 +234,21 @@ class AppReachabilityMonitor implements AppReachabilityMonitorInterface
             'url' => $target->resolveProbeUrl(),
             'maintenance_mode' => false,
             'checked_at' => time(),
-        ];
+        ]);
     }
 
-    /**
-     * @param array<int|string,mixed> $result
-     *
-     * @return array<string,mixed>
-     */
-    private function normalizeCachedResult(array $result): array
-    {
-        $normalized = [];
-        foreach ($result as $key => $value) {
-            if (is_string($key)) {
-                $normalized[$key] = $value;
-            }
-        }
-
-        return $normalized;
-    }
-
-    /** @param array<string,mixed> $result */
-    private function shouldRetry(array $result): bool
+    private function shouldRetry(EndpointProbeResult $result): bool
     {
         if ($this->isReachableOrInMaintenance($result)) {
             return false;
         }
 
-        return $this->probePolicy->isRetryable($result['failure_kind'] ?? null);
+        return $this->probePolicy->isRetryable($result->failureKind);
     }
 
-    /** @param array<string,mixed> $result */
-    private function isReachableOrInMaintenance(array $result): bool
+    private function isReachableOrInMaintenance(EndpointProbeResult $result): bool
     {
-        $reachable = ($result['reachable'] ?? false) === true;
-        $maintenanceMode = ($result['maintenance_mode'] ?? false) === true;
-
-        return $reachable || $maintenanceMode;
+        return $result->reachable || $result->maintenanceMode;
     }
 
     private function availabilityCacheKey(string $url, CacheType $cacheType, int $timeout): string
@@ -278,7 +262,7 @@ class AppReachabilityMonitor implements AppReachabilityMonitorInterface
      * and must remain separate.
      *
      * @param array<int|string,EndpointTarget>                                                                                        $targets
-     * @param array<int|string,array{target:EndpointTarget,result:array<string,mixed>,streak:array{count:int,first_failure_at:?int}}> $freshResults
+     * @param array<int|string,array{target:EndpointTarget,result:EndpointProbeResult,streak:array{count:int,first_failure_at:?int}}> $freshResults
      */
     private function transportFailureServer(array $targets, array $freshResults): int|string|null
     {
@@ -294,7 +278,7 @@ class AppReachabilityMonitor implements AppReachabilityMonitorInterface
             if ($targetServer === null || $targetServer === ''
                 || ($server !== null && (string) $server !== (string) $targetServer)
                 || $this->isReachableOrInMaintenance($result)
-                || !$this->probePolicy->isRetryable($result['failure_kind'] ?? null)) {
+                || !$this->probePolicy->isRetryable($result->failureKind)) {
                 return null;
             }
             $server = $targetServer;
@@ -307,7 +291,7 @@ class AppReachabilityMonitor implements AppReachabilityMonitorInterface
      * Record one server incident for a shared transport failure instead of an
      * identical alarm for each application.
      *
-     * @param array<int|string,array{target:EndpointTarget,result:array<string,mixed>,streak:array{count:int,first_failure_at:?int}}> $freshResults
+     * @param array<int|string,array{target:EndpointTarget,result:EndpointProbeResult,streak:array{count:int,first_failure_at:?int}}> $freshResults
      */
     private function recordServerAppsTransportFailure(int|string $server, array $freshResults): void
     {
@@ -316,8 +300,8 @@ class AppReachabilityMonitor implements AppReachabilityMonitorInterface
         $attempts = 1;
         foreach ($freshResults as $freshResult) {
             $apps[] = $freshResult['target']->identifier;
-            $failureKinds[] = $freshResult['result']['failure_kind'] ?? 'unknown';
-            $attempts = max($attempts, (int) ($freshResult['result']['attempts'] ?? 1));
+            $failureKinds[] = $freshResult['result']->failureKind ?? 'unknown';
+            $attempts = max($attempts, $freshResult['result']->attempts);
         }
         sort($apps);
         $failureKinds = array_values(array_unique($failureKinds));
@@ -348,11 +332,9 @@ class AppReachabilityMonitor implements AppReachabilityMonitorInterface
      * A reachable endpoint or an endpoint in maintenance clears its streak.
      * A failure outside the configured window starts a new streak.
      *
-     * @param array<string,mixed> $result
-     *
      * @return array{count:int,first_failure_at:?int}
      */
-    private function updateReachabilityStreak(EndpointTarget $target, array $result): array
+    private function updateReachabilityStreak(EndpointTarget $target, EndpointProbeResult $result): array
     {
         $cacheKey = $this->reachabilityStreakCacheKey($target);
         if ($this->isReachableOrInMaintenance($result)) {
@@ -431,9 +413,8 @@ class AppReachabilityMonitor implements AppReachabilityMonitorInterface
         return $keys;
     }
 
-    /** @param array<string,mixed> $result
-     * @param array{count:int,first_failure_at:?int} $streak */
-    private function recordUnreachableTarget(EndpointTarget $target, array $result, array $streak): void
+    /** @param array{count:int,first_failure_at:?int} $streak */
+    private function recordUnreachableTarget(EndpointTarget $target, EndpointProbeResult $result, array $streak): void
     {
         if ($this->isReachableOrInMaintenance($result)) {
             return;
@@ -447,15 +428,15 @@ class AppReachabilityMonitor implements AppReachabilityMonitorInterface
         $url = $target->resolveProbeUrl();
         $message = "No response from {$target->identifier} ({$url})";
         $diagnostics = [
-            'failure_kind' => $result['failure_kind'] ?? 'unknown',
-            'http_code' => $result['httpCode'] ?? null,
-            'curl_errno' => $result['curl_errno'] ?? null,
-            'timeout_ms' => $result['timeout_ms'] ?? $this->probePolicy->timeoutSeconds * 1000,
-            'attempts' => $result['attempts'] ?? 1,
-            'error' => $result['error'] ?? null,
+            'failure_kind' => $result->failureKind ?? 'unknown',
+            'http_code' => $result->httpCode,
+            'curl_errno' => $result->curlErrno,
+            'timeout_ms' => $result->timeoutMs,
+            'attempts' => $result->attempts,
+            'error' => $result->error,
             'consecutive_failures' => $streak['count'],
             'first_failure_at' => $streak['first_failure_at'] === null ? null : gmdate(DATE_ATOM, $streak['first_failure_at']),
-            'checked_at' => isset($result['checked_at']) ? gmdate(DATE_ATOM, (int) $result['checked_at']) : gmdate(DATE_ATOM, $this->now()),
+            'checked_at' => gmdate(DATE_ATOM, $result->checkedAt),
         ];
         $this->logger->warning("Ping -> {$message}", $diagnostics);
         $this->eventManager->handle(new EventCommand(

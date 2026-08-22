@@ -102,7 +102,7 @@ final class ServerMetricsRepository
     public function getRawSampleCountsByServer(): array
     {
         $rows = $this->db->runQuery(
-            <<<SQL
+            <<<'SQL'
                 SELECT s.name AS server_name, COUNT(*) AS sample_count
                 FROM server_metrics_raw AS r
                 INNER JOIN servers AS s ON s.id = r.server_id
@@ -135,7 +135,7 @@ final class ServerMetricsRepository
     public function getLatestRawSampleCollectedAt(): array
     {
         $rows = $this->db->runQuery(
-            <<<SQL
+            <<<'SQL'
                 SELECT s.name AS server_name, MAX(r.collected_at) AS last_collected
                 FROM server_metrics_raw AS r
                 INNER JOIN servers AS s ON s.id = r.server_id

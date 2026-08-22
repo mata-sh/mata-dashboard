@@ -16,6 +16,7 @@ use Mata\Services\Monitor\AppErrorMonitorInterface;
 use Mata\Services\Monitor\AppReachabilityMonitorInterface;
 use Mata\Services\Monitor\Dto\AppFatalErrorPolicy;
 use Mata\Services\Monitor\Dto\AppMonitoringSettings;
+use Mata\Services\Monitor\Dto\EndpointProbeResult;
 use Mata\Services\Monitor\Dto\NodeHealthResult;
 use Mata\Services\Monitor\Dto\ServerMonitoringServices;
 use Mata\Services\Monitor\LogSizeEvaluator;
@@ -336,7 +337,7 @@ final class ServerViewBuilderTest extends TestCase
                 $this->assertSame(['shop', 'blog'], array_keys($targets));
                 $this->assertSame('https://shop.example.test', $targets['shop']->url);
 
-                return ['shop' => ['reachable' => true]];
+                return ['shop' => EndpointProbeResult::fromArray(['reachable' => true])];
             });
 
         $method = new ReflectionMethod($builder, 'checkAppsAvailability');
@@ -345,7 +346,9 @@ final class ServerViewBuilderTest extends TestCase
             'blog' => ['url' => 'https://blog.example.test'],
         ], $reachabilityMonitor, 'server-a');
 
-        $this->assertSame(['shop' => ['reachable' => true]], $result);
+        $this->assertSame([
+            'shop' => EndpointProbeResult::fromArray(['reachable' => true])->toArray(),
+        ], $result);
     }
 
     public function testSyncsDiscoveredApplicationsOnForceRefresh(): void

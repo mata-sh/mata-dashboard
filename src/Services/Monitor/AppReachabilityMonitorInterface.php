@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Mata\Services\Monitor;
 
 use Mata\Constants\CacheType;
+use Mata\Services\Monitor\Dto\EndpointProbeResult;
 use Mata\Services\Monitor\Dto\EndpointTarget;
 
 /**
@@ -22,15 +23,13 @@ interface AppReachabilityMonitorInterface
      * @param null|int       $timeout      timeout in seconds; null uses the configured probe policy timeout
      * @param CacheType      $cacheType    cache key for TTL lookup (default: CacheType::Ping)
      * @param bool           $forceRefresh bypass a cached result while preserving its cache key
-     *
-     * @return array<string,mixed> result data (reachable,httpCode,latency_ms,error)
      */
     public function checkEndpoint(
         EndpointTarget $target,
         ?int $timeout = null,
         CacheType $cacheType = CacheType::Ping,
         bool $forceRefresh = false,
-    ): array;
+    ): EndpointProbeResult;
 
     /**
      * Check reachability for multiple application endpoints.
@@ -40,7 +39,7 @@ interface AppReachabilityMonitorInterface
      * @param CacheType                         $cacheType    cache key for TTL lookup (default: CacheType::Ping)
      * @param bool                              $forceRefresh bypass cached results while preserving their cache keys
      *
-     * @return array<int|string,array<string,mixed>> results keyed by identifier
+     * @return array<int|string,EndpointProbeResult> results keyed by identifier
      */
     public function checkMultipleEndpoints(
         array $targets,

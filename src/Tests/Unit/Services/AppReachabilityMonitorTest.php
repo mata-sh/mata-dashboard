@@ -23,6 +23,7 @@ use Mata\Services\Event\Dto\EventCommand;
 use Mata\Services\Event\EventManager;
 use Mata\Services\Monitor\AppReachabilityMonitor;
 use Mata\Services\Monitor\Dto\AppReachabilityPolicy;
+use Mata\Services\Monitor\Dto\EndpointProbeResult;
 use Mata\Services\Monitor\Dto\EndpointTarget;
 use Mata\Services\Monitor\Dto\ProbePolicy;
 use Mata\Services\Monitor\HttpProbeClient;
@@ -42,9 +43,12 @@ final class AppReachabilityMonitorTest extends TestCase
         $store->expects($this->once())->method('get')->willReturn(new CacheEntry(['reachable' => true], time() - 1));
         $store->expects($this->never())->method('put');
 
-        $this->assertSame(['reachable' => true], $this->monitor($store, new HttpProbeClient())->checkEndpoint(
+        $result = $this->monitor($store, new HttpProbeClient())->checkEndpoint(
             new EndpointTarget('app', 'https://app.example.test')
-        ));
+        );
+
+        $this->assertInstanceOf(EndpointProbeResult::class, $result);
+        $this->assertTrue($result->reachable);
     }
 
     public function testTtlZeroStillProbesAndWritesThroughToStore(): void
@@ -60,8 +64,8 @@ final class AppReachabilityMonitorTest extends TestCase
             CacheType::None
         );
 
-        $this->assertFalse($result['reachable']);
-        $this->assertSame(503, $result['httpCode']);
+        $this->assertFalse($result->reachable);
+        $this->assertSame(503, $result->httpCode);
     }
 
     public function testTransientFailureThatSucceedsOnRetryDoesNotEmitAnEvent(): void
@@ -79,8 +83,8 @@ final class AppReachabilityMonitorTest extends TestCase
             'app' => new EndpointTarget('app', 'https://app.example.test'),
         ]);
 
-        $this->assertTrue($result['app']['reachable']);
-        $this->assertSame(2, $result['app']['attempts']);
+        $this->assertTrue($result['app']->reachable);
+        $this->assertSame(2, $result['app']->attempts);
     }
 
     public function testFreshCyclesMaintainAndResetPerApplicationStreaks(): void
@@ -205,8 +209,8 @@ final class AppReachabilityMonitorTest extends TestCase
         $result = $this->monitor($store, $this->probe(new Response(503), new Response(200)), CacheType::Ping, $events, retryDelay: static function (): void {})
             ->checkMultipleEndpoints(['app' => new EndpointTarget('app', 'https://app.example.test')]);
 
-        $this->assertSame(1, $result['app']['attempts']);
-        $this->assertSame(503, $result['app']['httpCode']);
+        $this->assertSame(1, $result['app']->attempts);
+        $this->assertSame(503, $result['app']->httpCode);
     }
 
     public function testHonorsConfiguredRetryBudgetAndDelaysOncePerRetry(): void
@@ -234,8 +238,8 @@ final class AppReachabilityMonitorTest extends TestCase
 
         $result = $monitor->checkMultipleEndpoints(['app' => new EndpointTarget('app', 'https://app.example.test')]);
 
-        $this->assertFalse($result['app']['reachable']);
-        $this->assertSame(3, $result['app']['attempts']);
+        $this->assertFalse($result['app']->reachable);
+        $this->assertSame(3, $result['app']->attempts);
         $this->assertSame(2, $delays);
     }
 
@@ -264,8 +268,8 @@ final class AppReachabilityMonitorTest extends TestCase
 
         $result = $monitor->checkMultipleEndpoints(['app' => new EndpointTarget('app', 'https://app.example.test')]);
 
-        $this->assertFalse($result['app']['reachable']);
-        $this->assertSame(1, $result['app']['attempts']);
+        $this->assertFalse($result['app']->reachable);
+        $this->assertSame(1, $result['app']->attempts);
         $this->assertSame(0, $delays);
     }
 
@@ -290,7 +294,7 @@ final class AppReachabilityMonitorTest extends TestCase
             forceRefresh: true,
         );
 
-        $this->assertTrue($results['app']['reachable']);
+        $this->assertTrue($results['app']->reachable);
     }
 
     public function testUnreachableAppEventUsesTheApplicationCodeFromTheAppsPayload(): void
@@ -332,7 +336,7 @@ final class AppReachabilityMonitorTest extends TestCase
         $result = $this->monitor($store, $this->probe(new Response(503)), CacheType::Ping, $events)
             ->checkMultipleEndpoints($targets);
 
-        $this->assertFalse($result['shop']['reachable']);
+        $this->assertFalse($result['shop']->reachable);
     }
 
     public function testAlarmsDisabledStampsAlarmsSuppressedOnTheUnreachableEvent(): void
@@ -454,9 +458,9 @@ final class AppReachabilityMonitorTest extends TestCase
             ),
         ]);
 
-        $this->assertFalse($result['app']['reachable']);
-        $this->assertTrue($result['app']['maintenance_mode']);
-        $this->assertSame('https://app.example.test/status.php', $result['app']['url']);
+        $this->assertFalse($result['app']->reachable);
+        $this->assertTrue($result['app']->maintenanceMode);
+        $this->assertSame('https://app.example.test/status.php', $result['app']->url);
     }
 
     public function testCachedMaintenanceDoesNotRecordUnreachableEvent(): void
@@ -475,7 +479,7 @@ final class AppReachabilityMonitorTest extends TestCase
             'app' => new EndpointTarget('app', 'https://app.example.test'),
         ]);
 
-        $this->assertTrue($result['app']['maintenance_mode']);
+        $this->assertTrue($result['app']->maintenanceMode);
     }
 
     public function testMixedCacheBatchPreservesOrderAndRecordsCachedFailures(): void
@@ -499,9 +503,9 @@ final class AppReachabilityMonitorTest extends TestCase
         ]);
 
         $this->assertSame(['cached', 'healthy', 'down'], array_keys($results));
-        $this->assertFalse($results['cached']['reachable']);
-        $this->assertTrue($results['healthy']['reachable']);
-        $this->assertFalse($results['down']['reachable']);
+        $this->assertFalse($results['cached']->reachable);
+        $this->assertTrue($results['healthy']->reachable);
+        $this->assertFalse($results['down']->reachable);
     }
 
     public function testMissingProbeResultIsReportedForItsApplication(): void
@@ -522,8 +526,8 @@ final class AppReachabilityMonitorTest extends TestCase
             'app' => new EndpointTarget('app', 'https://app.example.test'),
         ]);
 
-        $this->assertFalse($results['app']['reachable']);
-        $this->assertSame('Availability probe did not return a result', $results['app']['error']);
+        $this->assertFalse($results['app']->reachable);
+        $this->assertSame('Availability probe did not return a result', $results['app']->error);
     }
 
     public function testLimitsUncachedProbesToFourPerBatch(): void
