@@ -59,7 +59,7 @@ services:
       - mata-network
 
   mata-opa:
-    image: openpolicyagent/opa:latest
+    image: openpolicyagent/opa:1.19.1
     container_name: ${COMPOSE_PROJECT_NAME:-mata}-opa
     restart: unless-stopped
     command: ["run", "--server", "--addr", "0.0.0.0:3320", "--watch", "/policies"]
