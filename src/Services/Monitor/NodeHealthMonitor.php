@@ -22,7 +22,7 @@ use Psr\Log\LoggerInterface;
  * Monitors the mata-node health endpoint with transient transport retry support.
  *
  * @phpstan-type HealthProbeResult array{
- *     status: NodeHealthState::HEALTHY|NodeHealthState::UNHEALTHY|NodeHealthState::UNREACHABLE,
+ *     status: 'healthy'|'unhealthy'|'unreachable',
  *     httpCode: ?int,
  *     maintenance_mode: ?bool,
  *     checks: ?array<string,mixed>,
@@ -121,7 +121,7 @@ class NodeHealthMonitor implements NodeHealthMonitorInterface
     /** @param HealthProbeResult $result */
     private function shouldRetry(array $result): bool
     {
-        if (($result['status'] ?? null) !== NodeHealthState::UNREACHABLE) {
+        if (($result['status'] ?? null) !== NodeHealthState::Unreachable->value) {
             return false;
         }
 
@@ -135,7 +135,9 @@ class NodeHealthMonitor implements NodeHealthMonitorInterface
      */
     private function cacheAndRecordHealthResult(string $serverName, string $cacheKey, array $result): array
     {
-        $result['state'] = NodeHealthStateResolver::resolve($result);
+        // Stored as a string: this array is JSON-cached by FileCacheStore and handed
+        // to Twig, neither of which round-trips an enum instance.
+        $result['state'] = NodeHealthStateResolver::resolve($result)->value;
         $this->cacheStore->put($cacheKey, $result);
         $this->recordHealthEvent($serverName, $result);
 
@@ -145,12 +147,12 @@ class NodeHealthMonitor implements NodeHealthMonitorInterface
     /** @param HealthProbeResult $result */
     private function recordHealthEvent(string $serverName, array $result): void
     {
-        $status = $result['status'] ?? NodeHealthState::UNREACHABLE;
-        if ($status === NodeHealthState::HEALTHY) {
+        $status = $result['status'] ?? NodeHealthState::Unreachable->value;
+        if ($status === NodeHealthState::Healthy->value) {
             return;
         }
 
-        $isUnreachable = $status === NodeHealthState::UNREACHABLE;
+        $isUnreachable = $status === NodeHealthState::Unreachable->value;
         $eventType = $isUnreachable ? 'node_unreachable' : 'node_unhealthy';
         $message = $isUnreachable
             ? "No health response from {$serverName}"

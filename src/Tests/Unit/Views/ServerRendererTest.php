@@ -44,22 +44,22 @@ final class ServerRendererTest extends TestCase
     public static function nodeHealthStates(): iterable
     {
         yield 'healthy' => [[
-            'state' => NodeHealthState::HEALTHY,
-        ], NodeHealthState::HEALTHY, 'Healthy'];
+            'state' => NodeHealthState::Healthy->value,
+        ], NodeHealthState::Healthy->value, 'Healthy'];
 
         yield 'maintenance' => [[
-            'state' => NodeHealthState::MAINTENANCE,
-        ], NodeHealthState::MAINTENANCE, 'Maintenance'];
+            'state' => NodeHealthState::Maintenance->value,
+        ], NodeHealthState::Maintenance->value, 'Maintenance'];
 
         yield 'unhealthy' => [[
-            'state' => NodeHealthState::UNHEALTHY,
-        ], NodeHealthState::UNHEALTHY, 'Unhealthy'];
+            'state' => NodeHealthState::Unhealthy->value,
+        ], NodeHealthState::Unhealthy->value, 'Unhealthy'];
 
         yield 'unreachable' => [[
-            'state' => NodeHealthState::UNREACHABLE,
-        ], NodeHealthState::UNREACHABLE, 'Unreachable'];
+            'state' => NodeHealthState::Unreachable->value,
+        ], NodeHealthState::Unreachable->value, 'Unreachable'];
 
-        yield 'unknown' => [[], NodeHealthState::UNKNOWN, 'Health check failed'];
+        yield 'unknown' => [[], NodeHealthState::Unknown->value, 'Health check failed'];
     }
 
     public function testBuildsProbeDerivedMaintenanceData(): void

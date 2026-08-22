@@ -30,7 +30,7 @@ class MockNodeHealthMonitor implements NodeHealthMonitorInterface
         $variant = crc32($serverName) % 3;
         if ($variant === 1) {
             return $this->withState([
-                'status' => NodeHealthState::HEALTHY,
+                'status' => NodeHealthState::Healthy->value,
                 'httpCode' => 200,
                 'maintenance_mode' => true,
                 'checks' => ['logs_writable' => true, 'cache_writable' => true, 'config_exists' => true],
@@ -43,7 +43,7 @@ class MockNodeHealthMonitor implements NodeHealthMonitorInterface
 
         if ($variant === 2) {
             return $this->withState([
-                'status' => NodeHealthState::UNREACHABLE,
+                'status' => NodeHealthState::Unreachable->value,
                 'httpCode' => null,
                 'maintenance_mode' => null,
                 'checks' => null,
@@ -55,7 +55,7 @@ class MockNodeHealthMonitor implements NodeHealthMonitorInterface
         }
 
         return $this->withState([
-            'status' => NodeHealthState::HEALTHY,
+            'status' => NodeHealthState::Healthy->value,
             'httpCode' => 200,
             'maintenance_mode' => false,
             'checks' => ['logs_writable' => true, 'cache_writable' => true, 'config_exists' => true],
@@ -81,7 +81,7 @@ class MockNodeHealthMonitor implements NodeHealthMonitorInterface
      */
     private function withState(array $result): array
     {
-        $result['state'] = NodeHealthStateResolver::resolve($result);
+        $result['state'] = NodeHealthStateResolver::resolve($result)->value;
 
         return $result;
     }

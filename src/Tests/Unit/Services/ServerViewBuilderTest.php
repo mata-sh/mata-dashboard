@@ -62,7 +62,7 @@ final class ServerViewBuilderTest extends TestCase
             ->with('server-a')
             ->willReturn(Create::promiseFor([
                 'status' => 'healthy',
-                'state' => NodeHealthState::HEALTHY,
+                'state' => NodeHealthState::Healthy->value,
             ]));
 
         $builder = new ServerViewBuilder(
@@ -81,7 +81,7 @@ final class ServerViewBuilderTest extends TestCase
 
         $this->assertSame('server-a', $result[0]['server']);
         $this->assertSame([], $result[0]['apps']);
-        $this->assertSame(NodeHealthState::HEALTHY, $result[0]['health']['state']);
+        $this->assertSame(NodeHealthState::Healthy->value, $result[0]['health']['state']);
     }
 
     public function testCompactsSessionCountOnAppCards(): void
@@ -436,7 +436,7 @@ final class ServerViewBuilderTest extends TestCase
         $result = $builder->buildServersViewData([], ['server-a' => []], false);
 
         $this->assertSame('Monitoring services unavailable for server server-a', $result[0]['error']);
-        $this->assertSame(NodeHealthState::UNKNOWN, $result[0]['health']['state']);
+        $this->assertSame(NodeHealthState::Unknown->value, $result[0]['health']['state']);
     }
 
     private function builder(): ServerViewBuilder

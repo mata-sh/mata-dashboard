@@ -50,22 +50,22 @@ final class NodeHealthMonitorTest extends TestCase
     /** @return iterable<string,array{array<string,mixed>,string}> */
     public static function healthResults(): iterable
     {
-        yield 'healthy response' => [['status' => 'healthy', 'maintenance_mode' => false], NodeHealthState::HEALTHY];
+        yield 'healthy response' => [['status' => 'healthy', 'maintenance_mode' => false], NodeHealthState::Healthy->value];
 
-        yield 'maintenance response' => [['status' => 'healthy', 'maintenance_mode' => true], NodeHealthState::MAINTENANCE];
+        yield 'maintenance response' => [['status' => 'healthy', 'maintenance_mode' => true], NodeHealthState::Maintenance->value];
 
-        yield 'unhealthy 503 response' => [['status' => 'unhealthy', 'httpCode' => 503, 'maintenance_mode' => false], NodeHealthState::UNHEALTHY];
+        yield 'unhealthy 503 response' => [['status' => 'unhealthy', 'httpCode' => 503, 'maintenance_mode' => false], NodeHealthState::Unhealthy->value];
     }
 
     public function testUsesCachedHealthResult(): void
     {
         $store = $this->createMock(CacheStoreInterface::class);
         $store->expects($this->once())->method('get')->willReturn(new CacheEntry([
-            'status' => 'healthy', 'maintenance_mode' => false, 'state' => NodeHealthState::HEALTHY,
+            'status' => 'healthy', 'maintenance_mode' => false, 'state' => NodeHealthState::Healthy->value,
         ], time()));
         $store->expects($this->never())->method('put');
 
-        $this->assertSame(NodeHealthState::HEALTHY, $this->monitor($store, new HttpProbeClient())->checkSynchronously('node-a')['state']);
+        $this->assertSame(NodeHealthState::Healthy->value, $this->monitor($store, new HttpProbeClient())->checkSynchronously('node-a')['state']);
     }
 
     public function testForcedRefreshBypassesCachedHealth(): void
@@ -77,7 +77,7 @@ final class NodeHealthMonitorTest extends TestCase
 
         $health = $monitor->checkSynchronously('node-a', forceRefresh: true);
 
-        $this->assertSame(NodeHealthState::HEALTHY, $health['state']);
+        $this->assertSame(NodeHealthState::Healthy->value, $health['state']);
     }
 
     public function testAsyncCompletionCachesAndEmitsUnhealthyEvent(): void
@@ -103,7 +103,7 @@ final class NodeHealthMonitorTest extends TestCase
 
         $pending = $monitor->checkAsync('node-a');
         $this->assertInstanceOf(PromiseInterface::class, $pending);
-        $this->assertSame(NodeHealthState::UNHEALTHY, $pending->wait()['state']);
+        $this->assertSame(NodeHealthState::Unhealthy->value, $pending->wait()['state']);
     }
 
     public function testTransientFailureRetriesAndSuccessfulRetryDoesNotEmitAnEvent(): void

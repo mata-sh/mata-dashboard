@@ -518,35 +518,17 @@ class ServerRenderer extends BaseRenderer
      */
     private function buildNodeHealthData(array $nodeHealth): array
     {
-        $health = match ($nodeHealth['state'] ?? null) {
-            NodeHealthState::HEALTHY => [
-                'state' => NodeHealthState::HEALTHY,
-                'label' => 'Healthy',
-            ],
-            NodeHealthState::UNHEALTHY => [
-                'state' => NodeHealthState::UNHEALTHY,
-                'label' => 'Unhealthy',
-            ],
-            NodeHealthState::UNREACHABLE => [
-                'state' => NodeHealthState::UNREACHABLE,
-                'label' => 'Unreachable',
-            ],
-            NodeHealthState::MAINTENANCE => [
-                'state' => NodeHealthState::MAINTENANCE,
-                'label' => 'Maintenance',
-            ],
-            default => [
-                'state' => NodeHealthState::UNKNOWN,
-                'label' => 'Health check failed',
-            ],
-        };
-        $health['tooltip'] = implode('<br>', $this->buildHealthTooltipLines(
-            $health['state'],
-            $health['label'],
-            $nodeHealth
-        ));
+        $rawState = $nodeHealth['state'] ?? null;
+        $state = NodeHealthState::fromNodePayload(is_string($rawState) ? $rawState : null);
+        $label = $state->label();
 
-        return $health;
+        // state and label stay strings: Twig renders node-health-{{ state }} into a
+        // CSS class and cannot stringify a backed enum.
+        return [
+            'state' => $state->value,
+            'label' => $label,
+            'tooltip' => implode('<br>', $this->buildHealthTooltipLines($state, $label, $nodeHealth)),
+        ];
     }
 
     /**
@@ -554,7 +536,7 @@ class ServerRenderer extends BaseRenderer
      *
      * @return array<int,string>
      */
-    private function buildHealthTooltipLines(string $state, string $label, array $nodeHealth): array
+    private function buildHealthTooltipLines(NodeHealthState $state, string $label, array $nodeHealth): array
     {
         if ($nodeHealth === []) {
             return [$label];
@@ -585,9 +567,9 @@ class ServerRenderer extends BaseRenderer
         }
 
         if (in_array($state, [
-            NodeHealthState::UNHEALTHY,
-            NodeHealthState::UNREACHABLE,
-            NodeHealthState::UNKNOWN,
+            NodeHealthState::Unhealthy,
+            NodeHealthState::Unreachable,
+            NodeHealthState::Unknown,
         ], true)) {
             if (!empty($nodeHealth['httpCode'])) {
                 $tooltipParts[] = 'HTTP ' . (int) $nodeHealth['httpCode'];

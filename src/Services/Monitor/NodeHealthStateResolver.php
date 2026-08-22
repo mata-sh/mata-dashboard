@@ -14,16 +14,20 @@ final class NodeHealthStateResolver
     /**
      * @param array<string,mixed> $result
      */
-    public static function resolve(array $result): string
+    public static function resolve(array $result): NodeHealthState
     {
         if (($result['maintenance_mode'] ?? false) === true) {
-            return NodeHealthState::MAINTENANCE;
+            return NodeHealthState::Maintenance;
         }
 
-        return match ($result['status'] ?? null) {
-            NodeHealthState::HEALTHY => NodeHealthState::HEALTHY,
-            NodeHealthState::UNHEALTHY => NodeHealthState::UNHEALTHY,
-            default => NodeHealthState::UNREACHABLE,
+        $rawStatus = $result['status'] ?? null;
+        $status = NodeHealthState::fromNodePayload(is_string($rawStatus) ? $rawStatus : null);
+
+        // Only healthy and unhealthy are trusted as node-reported states. Anything
+        // else means we could not establish one, which is reported as unreachable.
+        return match ($status) {
+            NodeHealthState::Healthy, NodeHealthState::Unhealthy => $status,
+            default => NodeHealthState::Unreachable,
         };
     }
 

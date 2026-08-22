@@ -515,7 +515,7 @@ class ServerViewBuilder
     {
         return [
             'status' => 'unreachable',
-            'state' => NodeHealthState::UNKNOWN,
+            'state' => NodeHealthState::Unknown->value,
             'httpCode' => null,
             'maintenance_mode' => null,
             'checks' => null,
