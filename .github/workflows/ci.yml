@@ -9,6 +9,27 @@ permissions:
   contents: read
 
 jobs:
+  docs-ci:
+    name: Docs CI
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+
+      - name: Install MkDocs
+        run: |
+          pipx install mkdocs
+          pipx inject mkdocs mkdocs-shadcn
+
+      - name: Build docs
+        run: mkdocs build --strict
+
   php-ci:
     name: PHP CI
     runs-on: ubuntu-latest
