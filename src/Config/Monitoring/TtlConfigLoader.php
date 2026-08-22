@@ -48,23 +48,31 @@ final class TtlConfigLoader extends AbstractJsonConfigLoader implements Monitori
         return $this->fallbackOnFailure;
     }
 
-    /** @return array<string,int> */
+    /**
+     * Fallback TTLs, also merged under ttl.json so a partial config still resolves.
+     *
+     * Must cover every CacheType::ttlConfigKeys() entry: a missing key resolves to 0,
+     * which disables caching for that type instead of falling back to a sane value.
+     * TtlConfigKeysAreAlignedTest enforces that.
+     *
+     * @return array<string,int>
+     */
     public function getDefaultConfig(): array
     {
         return [
-            'ping' => 360,
-            'servers' => 720,
-            'apps' => 60,
-            'app' => 30,
             'serverData' => 10,
             'serverInfo' => 86400,
-            'databases' => 10,
+            'serverProcesses' => 30,
+            'serverMetricsChart' => 60,
+            'apps' => 60,
             'libraries' => 600,
             'appLogs' => 30,
-            'serverProcesses' => 30,
+            'sessions' => 900,
+            'ping' => 360,
+            'health' => 240,
             'readme' => 300,
-            'errorlog' => 60,
-            'serverMetricsChart' => 60,
+            'databases' => 10,
+            'cronjobs' => 300,
             'audit' => 86400,
         ];
     }

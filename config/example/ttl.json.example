@@ -1,13 +1,16 @@
 {
-    "ping": 360,
-    "servers": 720,
-    "apps": 300,
-    "app": 300,
     "serverData": 180,
-    "databases": 10,
-    "readme": -1,
-    "errorlog": 30,
+    "serverInfo": 86400,
+    "serverProcesses": 120,
+    "serverMetricsChart": 300,
+    "apps": 300,
+    "libraries": 600,
+    "appLogs": 30,
     "sessions": 300,
+    "ping": 360,
+    "health": 240,
+    "readme": -1,
+    "databases": 10,
     "cronjobs": 300,
     "audit": 86400
 }
