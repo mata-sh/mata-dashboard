@@ -81,8 +81,6 @@ final class ApiCacheKeyFactory
             $apiBase,
             'HEAD',
             sprintf(
-                // ->value keeps the key byte-identical: unlike createApiRequestKey(), this
-                // key embeds the cache type, so a changed representation orphans entries.
                 'ping/%s/timeout_%d/%s',
                 $cacheType->value,
                 $timeout,
