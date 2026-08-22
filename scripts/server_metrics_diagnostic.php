@@ -3,8 +3,13 @@
 
 declare(strict_types=1);
 
-$requiresDatabase = true;
-extract(require_once __DIR__ . '/../cron/bootstrap.php');
+use Mata\Bootstrap\CronRuntime;
+
+require_once __DIR__ . '/../vendor/autoload.php';
+
+$runtime = CronRuntime::boot(__FILE__);
+$runtime->requireDatabase();
+$db = $runtime->db;
 
 $rows = $db->runQuery(<<<'SQL'
 SELECT 'raw' AS tier, COUNT(*) AS row_count, MAX(collected_at) AS latest FROM server_metrics_raw

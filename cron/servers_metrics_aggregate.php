@@ -3,14 +3,24 @@
 
 declare(strict_types=1);
 
+use Mata\Bootstrap\CronMonitoringRuntime;
+use Mata\Bootstrap\CronRuntime;
 use Mata\Services\ServerMetrics\AggregationWindowPlanner;
 use Mata\Services\ServerMetrics\ServerMetricsAggregator;
 use Mata\Models\ServerMetrics\ServerMetricsRepository;
 
-$requiresDatabase = true;
+require_once __DIR__ . '/../vendor/autoload.php';
 
-extract(require_once __DIR__ . '/bootstrap.php');
-extract(require_once __DIR__ . '/bootstrap_events.php');
+$runtime = CronRuntime::boot(__FILE__);
+$runtime->requireDatabase();
+$monitoringRuntime = CronMonitoringRuntime::fromRuntime($runtime);
+
+$log = $runtime->log;
+$cron = $runtime->cron;
+$db = $runtime->db;
+$configSyncRepository = $monitoringRuntime->configSyncRepository;
+$idResolver = $monitoringRuntime->idResolver;
+$monitoringSettings = $monitoringRuntime->monitoringSettings;
 
 if (!$cron->acquireLock()) {
     exit("Already running.\n");

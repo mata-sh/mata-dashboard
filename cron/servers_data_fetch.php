@@ -3,6 +3,8 @@
 
 declare(strict_types=1);
 
+use Mata\Bootstrap\CronMonitoringRuntime;
+use Mata\Bootstrap\CronRuntime;
 use Mata\Services\Cache\ApiCacheKeyFactory;
 use Mata\Services\Cache\CacheTtlResolver;
 use Mata\Services\Cache\FileCacheStore;
@@ -15,10 +17,22 @@ use Mata\Services\Monitor\Dto\AppReachabilityPolicy;
 use Mata\Services\Monitor\ServerMonitoringFactory;
 use Mata\Services\Sync\AppInventorySync;
 
-$requiresDatabase = true;
+require_once __DIR__ . '/../vendor/autoload.php';
 
-extract(require_once __DIR__ . '/bootstrap.php');
-extract(require_once __DIR__ . '/bootstrap_events.php');
+$runtime = CronRuntime::boot(__FILE__);
+$runtime->requireDatabase();
+$monitoringRuntime = CronMonitoringRuntime::fromRuntime($runtime);
+
+$paths = $runtime->paths;
+$log = $runtime->log;
+$cron = $runtime->cron;
+$appConfig = $runtime->appConfig;
+$tools = $runtime->tools;
+$configSyncRepository = $monitoringRuntime->configSyncRepository;
+$fatalStateRepository = $monitoringRuntime->fatalStateRepository;
+$idResolver = $monitoringRuntime->idResolver;
+$eventManager = $monitoringRuntime->eventManager;
+$monitoringSettings = $monitoringRuntime->monitoringSettings;
 
 if (!$cron->acquireLock()) {
     exit("Already running.\n");

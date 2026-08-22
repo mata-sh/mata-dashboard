@@ -3,10 +3,16 @@
 
 declare(strict_types=1);
 
+use Mata\Bootstrap\CronRuntime;
 use MataSh\RateLimiter\RateLimiter;
 use MataSh\RateLimiter\Storage\FileStorage;
 
-extract(require_once __DIR__ . '/bootstrap.php');
+require_once __DIR__ . '/../vendor/autoload.php';
+
+$runtime = CronRuntime::boot(__FILE__);
+$log = $runtime->log;
+$cron = $runtime->cron;
+$appConfig = $runtime->appConfig;
 
 if (!$cron->acquireLock()) {
     exit("Already running.\n");

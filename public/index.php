@@ -42,7 +42,6 @@ use Mata\Services\Alarm\AlarmCreator;
 use Mata\Services\Alarm\AlarmDirectProcessor;
 use Mata\Services\Alarm\AlarmQueueFailureThrottle;
 use Mata\Services\Cache\ApiCacheKeyFactory;
-use Mata\Services\Cache\CacheStoreInterface;
 use Mata\Services\Cache\CacheTtlResolver;
 use Mata\Services\Cache\FileCacheStore;
 use Mata\Services\Cache\MetricsCacheService;
@@ -379,7 +378,6 @@ $serverSettings = $monitoringSettings['servers'] ?? [];
 // ************************************************************************************************
 // Cache & Endpoints
 // ************************************************************************************************
-/** @var CacheStoreInterface $cacheStore */
 $cacheStore = new FileCacheStore($log, $paths->tempPath . '/api-cache');
 $cacheKeyFactory = new ApiCacheKeyFactory();
 $ttlResolver = new CacheTtlResolver($monitoringSettings['ttl']);

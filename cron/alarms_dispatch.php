@@ -3,6 +3,7 @@
 
 declare(strict_types=1);
 
+use Mata\Bootstrap\CronRuntime;
 use Mata\Config\Monitoring\AlarmLimitsConfigLoader;
 use Mata\Models\AlarmDeliveryRepository;
 use Mata\Services\Alarm\AlarmDispatcher;
@@ -12,9 +13,17 @@ use Mata\Services\Alarm\AlarmPresenter;
 use Twig\Environment;
 use Twig\Loader\FilesystemLoader;
 
-$requiresDatabase = true;
+require_once __DIR__ . '/../vendor/autoload.php';
 
-extract(require_once __DIR__ . '/bootstrap.php');
+$runtime = CronRuntime::boot(__FILE__);
+$runtime->requireDatabase();
+
+$paths = $runtime->paths;
+$log = $runtime->log;
+$cron = $runtime->cron;
+$appConfig = $runtime->appConfig;
+$db = $runtime->db;
+$mailer = $runtime->mailer;
 
 if (!$cron->acquireLock()) {
     exit("Already running.\n");

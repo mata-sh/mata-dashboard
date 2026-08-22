@@ -3,6 +3,8 @@
 
 declare(strict_types=1);
 
+use Mata\Bootstrap\CronMonitoringRuntime;
+use Mata\Bootstrap\CronRuntime;
 use Mata\Models\ServerMetrics\Dto\ServerMetricRawSnapshot;
 use Mata\Models\ServerMetrics\ServerMetricsRepository;
 use Mata\Services\Cache\ApiCacheKeyFactory;
@@ -15,10 +17,20 @@ use Mata\Services\Monitor\ServerMetricsHealthMonitor;
 use Mata\Services\Monitor\ServerMonitor;
 use Mata\Utils\TypeConverter;
 
-$requiresDatabase = true;
+require_once __DIR__ . '/../vendor/autoload.php';
 
-extract(require_once __DIR__ . '/bootstrap.php');
-extract(require_once __DIR__ . '/bootstrap_events.php');
+$runtime = CronRuntime::boot(__FILE__);
+$runtime->requireDatabase();
+$monitoringRuntime = CronMonitoringRuntime::fromRuntime($runtime);
+
+$paths = $runtime->paths;
+$log = $runtime->log;
+$cron = $runtime->cron;
+$db = $runtime->db;
+$configSyncRepository = $monitoringRuntime->configSyncRepository;
+$idResolver = $monitoringRuntime->idResolver;
+$eventManager = $monitoringRuntime->eventManager;
+$monitoringSettings = $monitoringRuntime->monitoringSettings;
 
 if (!$cron->acquireLock()) {
     exit("Already running.\n");
@@ -28,7 +40,7 @@ $cron->startTimer();
 $cron->log('Started');
 
 try {
-    // All event/alarm infrastructure now loaded via bootstrap_events.php
+    // Monitoring services come from CronMonitoringRuntime::fromRuntime()
     $dataRetentionConfig = $monitoringSettings['data_retention'] ?? [];
 
     // Share the dashboard/servers_data_fetch cache so a server/data payload warmed

@@ -3,15 +3,25 @@
 
 declare(strict_types=1);
 
+use Mata\Bootstrap\CronMonitoringRuntime;
+use Mata\Bootstrap\CronRuntime;
 use Mata\Services\Alarm\Decision\AlarmDecisionProcessingException;
 use Mata\Services\Alarm\Decision\AlarmDecisionProcessor;
 use Mata\Services\Alarm\Decision\AlarmDecisionServiceFactory;
 use Mata\Services\Alarm\NotificationRuleResolver;
 
-$requiresDatabase = true;
+require_once __DIR__ . '/../vendor/autoload.php';
 
-extract(require_once __DIR__ . '/bootstrap.php');
-extract(require_once __DIR__ . '/bootstrap_events.php');
+$runtime = CronRuntime::boot(__FILE__);
+$runtime->requireDatabase();
+$monitoringRuntime = CronMonitoringRuntime::fromRuntime($runtime);
+
+$log = $runtime->log;
+$cron = $runtime->cron;
+$alarmCreator = $monitoringRuntime->alarmCreator;
+$alarmEvaluator = $monitoringRuntime->alarmEvaluator;
+$eventRecorder = $monitoringRuntime->eventRecorder;
+$eventAggregator = $monitoringRuntime->eventAggregator;
 
 if (!$cron->acquireLock()) {
     exit("Already running.\n");
@@ -24,7 +34,7 @@ $exitCode = 0;
 
 try {
     $alarmDecisionService = AlarmDecisionServiceFactory::fromEnv();
-    $notificationRuleResolver = new NotificationRuleResolver($monitoringSettings['notification_rules']);
+    $notificationRuleResolver = new NotificationRuleResolver($monitoringRuntime->settingsSection('notification_rules'));
     $events = $eventAggregator->getAlarmDecisionCandidates(
         $alarmDecisionService->getBatchLimit(),
         ['warning', 'info']
