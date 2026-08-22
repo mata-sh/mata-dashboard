@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Mata\Tests\Unit\Services;
 
-use Mata\Constants\NodeHealthState;
 use Mata\Services\Monitor\Dto\NodeHealthResult;
+use Mata\Services\Monitor\NodeHealthState;
 use PHPUnit\Framework\TestCase;
 
 /**

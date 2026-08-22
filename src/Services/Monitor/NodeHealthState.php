@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Mata\Constants;
+namespace Mata\Services\Monitor;
 
 /**
  * Node health states used by health monitors and renderers.

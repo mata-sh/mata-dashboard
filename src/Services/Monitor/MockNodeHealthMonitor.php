@@ -5,8 +5,7 @@ declare(strict_types=1);
 namespace Mata\Services\Monitor;
 
 use GuzzleHttp\Promise\PromiseInterface;
-use Mata\Constants\CacheType;
-use Mata\Constants\NodeHealthState;
+use Mata\Services\Cache\CacheType;
 use Mata\Services\Monitor\Dto\NodeHealthResult;
 
 /**

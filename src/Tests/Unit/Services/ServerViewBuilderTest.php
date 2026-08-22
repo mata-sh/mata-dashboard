@@ -5,9 +5,8 @@ declare(strict_types=1);
 namespace Mata\Tests\Unit\Services;
 
 use GuzzleHttp\Promise\Create;
-use Mata\Constants\CacheType;
-use Mata\Constants\NodeHealthState;
 use Mata\Models\ConfigSyncRepository;
+use Mata\Services\Cache\CacheType;
 use Mata\Services\Cache\CacheTypeResolver;
 use Mata\Services\Collect\ServerDataCollectorInterface;
 use Mata\Services\Event\EventManager;
@@ -21,6 +20,7 @@ use Mata\Services\Monitor\Dto\NodeHealthResult;
 use Mata\Services\Monitor\Dto\ServerMonitoringServices;
 use Mata\Services\Monitor\LogSizeEvaluator;
 use Mata\Services\Monitor\NodeHealthMonitorInterface;
+use Mata\Services\Monitor\NodeHealthState;
 use Mata\Services\Monitor\ServerMonitor;
 use Mata\Services\Sync\AppInventorySync;
 use Mata\Services\View\ServerViewBuilder;

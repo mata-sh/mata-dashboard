@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Mata\Constants;
+namespace Mata\Services\Cache;
 
 /**
  * Cache type identifiers used across the application.

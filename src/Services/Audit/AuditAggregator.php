@@ -4,8 +4,6 @@ declare(strict_types=1);
 
 namespace Mata\Services\Audit;
 
-use Mata\Constants\Severity;
-
 /**
  * Aggregates normalized Composer audit responses.
  */

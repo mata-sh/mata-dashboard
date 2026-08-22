@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Mata\Constants;
+namespace Mata\Services\Audit;
 
 /**
  * Severity levels used across audit normalization and aggregation.

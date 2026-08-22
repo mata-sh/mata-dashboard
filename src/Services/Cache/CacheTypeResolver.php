@@ -4,8 +4,6 @@ declare(strict_types=1);
 
 namespace Mata\Services\Cache;
 
-use Mata\Constants\CacheType;
-
 /**
  * Resolves cache type usage based on force refresh flags.
  *

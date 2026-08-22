@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Mata\Services\Monitor\Dto;
 
-use Mata\Constants\NodeHealthState;
+use Mata\Services\Monitor\NodeHealthState;
 
 /** Canonical result of a node health probe. */
 final readonly class NodeHealthResult

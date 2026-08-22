@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace Mata\Tests\Unit\Constants;
+namespace Mata\Tests\Unit\Services;
 
-use Mata\Constants\CacheType;
+use Mata\Services\Cache\CacheType;
 use Mata\Tests\TestCase;
 
 /**

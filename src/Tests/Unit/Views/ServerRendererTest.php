@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Mata\Tests\Unit\Views;
 
-use Mata\Constants\NodeHealthState;
 use Mata\Core\App;
 use Mata\Http\Routing\Endpoints;
+use Mata\Services\Monitor\NodeHealthState;
 use Mata\Utils\Tools;
 use Mata\Views\LogRenderer;
 use Mata\Views\ServerRenderer;

@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Mata\Tests\Unit\Services;
 
-use Mata\Constants\CacheType;
 use Mata\Services\Cache\ApiCacheKeyFactory;
 use Mata\Services\Cache\CacheTtlResolver;
+use Mata\Services\Cache\CacheType;
 use Mata\Services\Cache\FileCacheStore;
 use PHPUnit\Framework\TestCase;
 use Psr\Log\NullLogger;

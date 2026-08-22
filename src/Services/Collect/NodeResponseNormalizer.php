@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Mata\Services\Collect;
 
-use Mata\Constants\Severity;
+use Mata\Services\Audit\Severity;
 use Mata\Services\Monitor\Dto\AppMonitoringSettings;
 use Mata\Utils\TypeConverter;
 use Psr\Log\LoggerInterface;

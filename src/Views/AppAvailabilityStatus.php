@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Mata\Constants;
+namespace Mata\Views;
 
 /**
  * Application availability states used by app cards.

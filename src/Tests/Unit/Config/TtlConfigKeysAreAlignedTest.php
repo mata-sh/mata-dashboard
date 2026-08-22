@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Mata\Tests\Unit\Config;
 
 use Mata\Config\Monitoring\TtlConfigLoader;
-use Mata\Constants\CacheType;
+use Mata\Services\Cache\CacheType;
 use Mata\Services\Event\EventRecorderService;
 use Mata\Tests\TestCase;
 

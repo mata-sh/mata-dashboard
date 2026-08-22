@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Mata\Services\Monitor;
 
-use Mata\Constants\CacheType;
+use Mata\Services\Cache\CacheType;
 use Mata\Services\Monitor\Dto\EndpointProbeResult;
 use Mata\Services\Monitor\Dto\EndpointTarget;
 

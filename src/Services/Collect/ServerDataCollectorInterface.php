@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Mata\Services\Collect;
 
-use Mata\Constants\CacheType;
+use Mata\Services\Cache\CacheType;
 
 /**
  * Server data collection interface.

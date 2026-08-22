@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace Mata\Tests\Unit\Constants;
+namespace Mata\Tests\Unit\Services;
 
-use Mata\Constants\NodeHealthState;
+use Mata\Services\Monitor\NodeHealthState;
 use Mata\Tests\TestCase;
 use PHPUnit\Framework\Attributes\DataProvider;
 

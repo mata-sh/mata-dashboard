@@ -4,8 +4,6 @@ declare(strict_types=1);
 
 namespace Mata\Services\Cache;
 
-use Mata\Constants\CacheType;
-
 /**
  * Read-only cache TTL configuration lookup.
  *

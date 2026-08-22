@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Mata\Services\Cache;
 
 use JsonException;
-use Mata\Constants\CacheType;
 
 /**
  * Creates logical API cache keys without storage side effects.

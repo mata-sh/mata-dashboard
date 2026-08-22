@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace Mata\Tests\Unit\Constants;
+namespace Mata\Tests\Unit\Services;
 
-use Mata\Constants\Severity;
+use Mata\Services\Audit\Severity;
 use Mata\Tests\TestCase;
 
 /**

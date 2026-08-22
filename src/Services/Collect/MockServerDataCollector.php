@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Mata\Services\Collect;
 
-use Mata\Constants\CacheType;
 use Mata\Services\Cache\CacheTtlResolver;
+use Mata\Services\Cache\CacheType;
 use Mata\Services\Collect\Demo\DemoAppCatalog;
 use Mata\Services\Collect\Demo\DemoAppGenerator;
 use Mata\Services\Collect\Demo\DemoServerCatalog;

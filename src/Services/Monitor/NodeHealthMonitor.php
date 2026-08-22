@@ -6,11 +6,10 @@ namespace Mata\Services\Monitor;
 
 use Closure;
 use GuzzleHttp\Promise\PromiseInterface;
-use Mata\Constants\CacheType;
-use Mata\Constants\NodeHealthState;
 use Mata\Services\Cache\ApiCacheKeyFactory;
 use Mata\Services\Cache\CacheStoreInterface;
 use Mata\Services\Cache\CacheTtlResolver;
+use Mata\Services\Cache\CacheType;
 use Mata\Services\Collect\NodeApiClient;
 use Mata\Services\Event\Dto\EventCommand;
 use Mata\Services\Event\Dto\EventMetric;

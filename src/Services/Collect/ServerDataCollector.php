@@ -6,10 +6,10 @@ namespace Mata\Services\Collect;
 
 use GuzzleHttp\Exception\RequestException;
 use GuzzleHttp\Exception\TransferException;
-use Mata\Constants\CacheType;
 use Mata\Services\Cache\ApiCacheKeyFactory;
 use Mata\Services\Cache\CacheStoreInterface;
 use Mata\Services\Cache\CacheTtlResolver;
+use Mata\Services\Cache\CacheType;
 use Psr\Log\LoggerInterface;
 use RuntimeException;
 
