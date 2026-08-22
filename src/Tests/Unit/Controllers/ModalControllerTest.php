@@ -90,11 +90,6 @@ class ModalControllerTest extends TestCase
             ],
         ];
 
-        // Mock Tools::encrypt to avoid encryption dependencies
-        $this->mockTools->method('encrypt')
-            ->willReturnCallback(fn ($value, $secret) => base64_encode($value))
-        ;
-
         // Mock icon method for ModalRenderer
         $this->mockTools->method('icon')
             ->willReturn('<svg></svg>')

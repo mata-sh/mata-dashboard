@@ -6,7 +6,6 @@ namespace Mata\Tests\Unit\Utils;
 
 use Mata\Tests\TestCase;
 use Mata\Utils\Tools;
-use RuntimeException;
 
 /**
  * Test suite for Tools utility class.
@@ -121,42 +120,6 @@ class ToolsTest extends TestCase
 
     /**
      * @group tools
-     * @group encryption
-     */
-    public function testItEncryptsAndDecryptsData(): void
-    {
-        $plaintext = 'Sensitive monitoring data';
-        $key = 'test-encryption-key-32-characters!';
-
-        $encrypted = $this->tools->encrypt($plaintext, $key);
-        $decrypted = $this->tools->decrypt($encrypted, $key);
-
-        $this->assertNotEquals($plaintext, $encrypted);
-        $this->assertEquals($plaintext, $decrypted);
-    }
-
-    /**
-     * @group tools
-     * @group encryption
-     */
-    public function testItProducesDifferentEncryptedOutputEachTime(): void
-    {
-        $plaintext = 'Test data';
-        $key = 'test-key-32-characters-long-here!';
-
-        $encrypted1 = $this->tools->encrypt($plaintext, $key);
-        $encrypted2 = $this->tools->encrypt($plaintext, $key);
-
-        // Different IVs mean different encrypted output
-        $this->assertNotEquals($encrypted1, $encrypted2);
-
-        // But both should decrypt to the same plaintext
-        $this->assertEquals($plaintext, $this->tools->decrypt($encrypted1, $key));
-        $this->assertEquals($plaintext, $this->tools->decrypt($encrypted2, $key));
-    }
-
-    /**
-     * @group tools
      * @group auth
      */
     public function testItBuildsHmacAuthToken(): void
@@ -236,18 +199,5 @@ class ToolsTest extends TestCase
         $result = $this->tools->icon('square', 24, 'my-custom-class');
 
         $this->assertStringContainsString('class="icon my-custom-class"', $result);
-    }
-
-    /**
-     * @group tools
-     * @group encryption
-     */
-    public function testDecryptThrowsExceptionForInvalidData(): void
-    {
-        $this->expectException(RuntimeException::class);
-        $this->expectExceptionMessage('Decryption failed');
-
-        $key = 'test-key-32-characters-long-here!';
-        $this->tools->decrypt('invalid-encrypted-data', $key);
     }
 }
