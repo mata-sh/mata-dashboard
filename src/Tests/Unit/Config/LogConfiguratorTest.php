@@ -29,7 +29,7 @@ final class LogConfiguratorTest extends TestCase
         $_SERVER['REMOTE_ADDR'] = '192.0.2.10';
 
         try {
-            $paths = new PathResolver($entryPoint);
+            $paths = PathResolver::fromEntryPoint($entryPoint);
             $logger = (new LogConfigurator())->createConfiguredLogger(
                 new LoggingConfig('logs/app.log', 'info'),
                 $paths,
@@ -57,7 +57,7 @@ final class LogConfiguratorTest extends TestCase
         touch($entryPoint);
 
         try {
-            $paths = new PathResolver($entryPoint);
+            $paths = PathResolver::fromEntryPoint($entryPoint);
             $config = new LoggingConfig('logs/app.log', 'warning');
             $logger = (new LogConfigurator())->createCronLogger($config, $paths, 'test-job');
 

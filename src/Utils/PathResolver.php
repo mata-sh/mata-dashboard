@@ -30,16 +30,35 @@ class PathResolver
     public string $appLogPath;
     public string $bootLogPath;
 
-    /**
-     * Initialize paths from an application directory or an entry point one level below it.
-     */
-    public function __construct(string $sourcePath)
+    public static function fromEntryPoint(string $file): self
     {
-        $realPath = realpath($sourcePath);
+        $realPath = realpath($file);
         if ($realPath === false) {
-            throw new InvalidArgumentException('Entry point or application path not found: ' . $sourcePath);
+            throw new InvalidArgumentException('Entry point not found: ' . $file);
         }
-        $this->appPath = is_dir($realPath) ? $realPath : dirname($realPath, 2);
+        if (!is_file($realPath)) {
+            throw new InvalidArgumentException('Entry point is not a file: ' . $file);
+        }
+
+        return new self(dirname($realPath, 2));
+    }
+
+    public static function fromAppPath(string $dir): self
+    {
+        $realPath = realpath($dir);
+        if ($realPath === false) {
+            throw new InvalidArgumentException('Application directory not found: ' . $dir);
+        }
+        if (!is_dir($realPath)) {
+            throw new InvalidArgumentException('Application path is not a directory: ' . $dir);
+        }
+
+        return new self($realPath);
+    }
+
+    private function __construct(string $appPath)
+    {
+        $this->appPath = $appPath;
         $rootPath = dirname($this->appPath);
         if ($rootPath === '.' || $rootPath === '') {
             throw new RuntimeException('Cannot resolve root path from: ' . $this->appPath);

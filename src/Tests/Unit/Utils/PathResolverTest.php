@@ -48,7 +48,7 @@ class PathResolverTest extends TestCase
      */
     public function testItInitializesWithValidEntryPointFile(): void
     {
-        $pathResolver = new PathResolver($this->testEntryFile);
+        $pathResolver = PathResolver::fromEntryPoint($this->testEntryFile);
 
         $this->assertInstanceOf(PathResolver::class, $pathResolver);
         $this->assertIsString($pathResolver->appPath);
@@ -63,7 +63,7 @@ class PathResolverTest extends TestCase
      */
     public function testItSetsCorrectPathProperties(): void
     {
-        $pathResolver = new PathResolver($this->testEntryFile);
+        $pathResolver = PathResolver::fromEntryPoint($this->testEntryFile);
 
         // appPath should be 2 directories up from entry point
         $expectedAppPath = dirname($this->testEntryFile, 2);
@@ -89,7 +89,7 @@ class PathResolverTest extends TestCase
     public function testItInitializesFromApplicationDirectory(): void
     {
         $appPath = dirname($this->testEntryFile, 2);
-        $pathResolver = new PathResolver($appPath);
+        $pathResolver = PathResolver::fromAppPath($appPath);
 
         self::assertSame($appPath, $pathResolver->appPath);
     }
@@ -101,9 +101,33 @@ class PathResolverTest extends TestCase
     public function testItThrowsExceptionForNonexistentEntryPointFile(): void
     {
         $this->expectException(InvalidArgumentException::class);
-        $this->expectExceptionMessage('Entry point or application path not found:');
+        $this->expectExceptionMessage('Entry point not found:');
 
-        new PathResolver('/nonexistent/file.php');
+        PathResolver::fromEntryPoint('/nonexistent/file.php');
+    }
+
+    /**
+     * @group pathresolver
+     * @group initialization
+     */
+    public function testEntryPointFactoryRejectsDirectory(): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('Entry point is not a file:');
+
+        PathResolver::fromEntryPoint(dirname($this->testEntryFile));
+    }
+
+    /**
+     * @group pathresolver
+     * @group initialization
+     */
+    public function testAppPathFactoryRejectsFile(): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('Application path is not a directory:');
+
+        PathResolver::fromAppPath($this->testEntryFile);
     }
 
     /**
@@ -112,7 +136,7 @@ class PathResolverTest extends TestCase
      */
     public function testItConvertsAbsolutePathToRelativePath(): void
     {
-        $pathResolver = new PathResolver($this->testEntryFile);
+        $pathResolver = PathResolver::fromEntryPoint($this->testEntryFile);
 
         $absolutePath = $pathResolver->appPath . '/config/servers.json';
         $relativePath = $pathResolver->toRelativePath($absolutePath);
@@ -126,7 +150,7 @@ class PathResolverTest extends TestCase
      */
     public function testItHandlesPathsOutsideAppDirectory(): void
     {
-        $pathResolver = new PathResolver($this->testEntryFile);
+        $pathResolver = PathResolver::fromEntryPoint($this->testEntryFile);
 
         $outsidePath = '/tmp/external/file.txt';
         $relativePath = $pathResolver->toRelativePath($outsidePath);
@@ -141,7 +165,7 @@ class PathResolverTest extends TestCase
      */
     public function testItNormalizesPathSeparators(): void
     {
-        $pathResolver = new PathResolver($this->testEntryFile);
+        $pathResolver = PathResolver::fromEntryPoint($this->testEntryFile);
 
         // Test with Windows-style backslashes
         $windowsPath = $pathResolver->appPath . '\config\database\mysql.env';
@@ -157,7 +181,7 @@ class PathResolverTest extends TestCase
      */
     public function testItHandlesTrailingSlashesInAppPath(): void
     {
-        $pathResolver = new PathResolver($this->testEntryFile);
+        $pathResolver = PathResolver::fromEntryPoint($this->testEntryFile);
 
         // Test absolute path with trailing slash
         $pathWithTrailingSlash = rtrim($pathResolver->appPath, '/') . '/';
@@ -173,7 +197,7 @@ class PathResolverTest extends TestCase
      */
     public function testItHandlesNestedDirectoryPaths(): void
     {
-        $pathResolver = new PathResolver($this->testEntryFile);
+        $pathResolver = PathResolver::fromEntryPoint($this->testEntryFile);
 
         $nestedPath = $pathResolver->appPath . '/temp/api-cache/server_data/response.json';
         $relativePath = $pathResolver->toRelativePath($nestedPath);
@@ -187,7 +211,7 @@ class PathResolverTest extends TestCase
      */
     public function testItHandlesPathsWithSpecialCharacters(): void
     {
-        $pathResolver = new PathResolver($this->testEntryFile);
+        $pathResolver = PathResolver::fromEntryPoint($this->testEntryFile);
 
         $specialPath = $pathResolver->appPath . '/logs/app log (2024).txt';
         $relativePath = $pathResolver->toRelativePath($specialPath);
@@ -201,7 +225,7 @@ class PathResolverTest extends TestCase
      */
     public function testItHandlesEmptyString(): void
     {
-        $pathResolver = new PathResolver($this->testEntryFile);
+        $pathResolver = PathResolver::fromEntryPoint($this->testEntryFile);
 
         $relativePath = $pathResolver->toRelativePath('');
 
@@ -214,7 +238,7 @@ class PathResolverTest extends TestCase
      */
     public function testItRemovesLeadingSlashFromPathsOutsideApp(): void
     {
-        $pathResolver = new PathResolver($this->testEntryFile);
+        $pathResolver = PathResolver::fromEntryPoint($this->testEntryFile);
 
         $externalPath = '/var/www/html/other-project/file.php';
         $relativePath = $pathResolver->toRelativePath($externalPath);
@@ -230,7 +254,7 @@ class PathResolverTest extends TestCase
      */
     public function testItUsesCorrectDirectorySeparator(): void
     {
-        $pathResolver = new PathResolver($this->testEntryFile);
+        $pathResolver = PathResolver::fromEntryPoint($this->testEntryFile);
 
         // Paths should use the system's directory separator
         $this->assertStringContainsString(DIRECTORY_SEPARATOR, $pathResolver->logsPath);

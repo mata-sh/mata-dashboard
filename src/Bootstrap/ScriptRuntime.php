@@ -25,7 +25,7 @@ final readonly class ScriptRuntime
      */
     public static function boot(array $arguments): self
     {
-        $paths = new PathResolver(dirname(__DIR__, 2));
+        $paths = PathResolver::fromAppPath(dirname(__DIR__, 2));
 
         ini_set('display_errors', 1);
         ini_set('display_startup_errors', 1);

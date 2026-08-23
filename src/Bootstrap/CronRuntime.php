@@ -50,7 +50,7 @@ final readonly class CronRuntime
      */
     public static function boot(string $entryPointFile): self
     {
-        $paths = new PathResolver($entryPointFile);
+        $paths = PathResolver::fromEntryPoint($entryPointFile);
 
         ini_set('display_errors', 0);
         ini_set('display_startup_errors', 0);

@@ -49,7 +49,7 @@ class AuthenticationFlowTest extends TestCase
         // Initialize components with a temp entry point file
         $entryPoint = $this->tempAppPath . '/public/index.php';
         file_put_contents($entryPoint, '<?php');
-        $this->pathResolver = new PathResolver($entryPoint);
+        $this->pathResolver = PathResolver::fromEntryPoint($entryPoint);
         $this->configLoader = new EnvConfigLoader();
 
         // Create users file
