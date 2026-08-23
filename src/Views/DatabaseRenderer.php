@@ -137,7 +137,7 @@ class DatabaseRenderer extends BaseRenderer
         return [
             'server' => [
                 'title' => $serverConfig['title'],
-                'primary_color' => $serverConfig['primary_color'],
+                'primary_color' => $serverConfig['primary_color'] ?? '#fefefe',
                 'id' => $serverId,
             ],
             'icons' => $this->getCommonIcons(),

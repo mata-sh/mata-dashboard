@@ -56,6 +56,16 @@ final class DatabaseRendererTest extends TestCase
         ]], $entries);
     }
 
+    public function testUsesDefaultPrimaryColorWhenServerConfigOmitsIt(): void
+    {
+        $serverConfig = $this->serverConfig();
+        unset($serverConfig['primary_color']);
+
+        $data = $this->createRenderer()->buildDatabaseCardData([], $serverConfig, 'server-id');
+
+        $this->assertSame('#fefefe', $data['server']['primary_color']);
+    }
+
     public function testAddsProcessListModalUrl(): void
     {
         $endpoints = new Endpoints();
