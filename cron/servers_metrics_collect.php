@@ -5,14 +5,15 @@ declare(strict_types=1);
 
 use Mata\Bootstrap\CronMonitoringRuntime;
 use Mata\Bootstrap\CronRuntime;
+use Mata\Config\Monitoring\ServerConfigState;
 use Mata\Models\ServerMetrics\Dto\ServerMetricRawSnapshot;
 use Mata\Models\ServerMetrics\ServerMetricsRepository;
 use Mata\Services\Cache\ApiCacheKeyFactory;
 use Mata\Services\Cache\CacheTtlResolver;
 use Mata\Services\Cache\FileCacheStore;
-use Mata\Services\Collect\ServerDataCollector;
-use Mata\Services\Collect\NodeResponseNormalizer;
 use Mata\Services\Collect\NodeApiClient;
+use Mata\Services\Collect\NodeResponseNormalizer;
+use Mata\Services\Collect\ServerDataCollector;
 use Mata\Services\Monitor\ServerMetricsHealthMonitor;
 use Mata\Services\Monitor\ServerMonitor;
 use Mata\Utils\TypeConverter;
@@ -90,8 +91,8 @@ try {
             continue;
         }
 
-        if (!isServerActive($serverConfig)) {
-            $log->info('collect_server_metrics.skip_inactive', [
+        if (ServerConfigState::isDisabled($serverConfig)) {
+            $log->info('collect_server_metrics.skip_disabled', [
                 'server' => $serverName,
             ]);
             ++$stats['skipped'];
@@ -426,23 +427,4 @@ function computePercent(?int $used, ?int $total): ?float
     }
 
     return round(($used / $total) * 100, 2);
-}
-
-/**
- * @param array<string,mixed> $config
- */
-function isServerActive(array $config): bool
-{
-    if ((TypeConverter::toBool($config['disabled'] ?? null) ?? false) === true) {
-        return false;
-    }
-
-    foreach (['enabled', 'active', 'monitoring_enabled'] as $flag) {
-        $normalized = TypeConverter::toBool($config[$flag] ?? null);
-        if ($normalized === false) {
-            return false;
-        }
-    }
-
-    return true;
 }

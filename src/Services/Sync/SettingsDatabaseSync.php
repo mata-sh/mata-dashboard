@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Mata\Services\Sync;
 
 use Exception;
+use Mata\Config\Monitoring\ServerConfigState;
 use Mata\Database\DatabaseInterface;
 use Mata\Models\ConfigSyncRepository;
 use Monolog\Logger;
@@ -19,7 +20,7 @@ use Monolog\Logger;
  * Key Features:
  * - File modification timestamp tracking for efficient sync detection
  * - Upsert logic to create/update server records based on settings
- * - Automatic filtering of inactive servers (active=false)
+ * - Automatic filtering of disabled servers
  * - Sync history and status tracking
  * - Graceful degradation when database is unavailable
  *
@@ -125,7 +126,7 @@ final class SettingsDatabaseSync
     /**
      * Perform actual sync of servers to database.
      *
-     * Filters active servers and upserts them into the servers table.
+     * Filters disabled servers and upserts the rest into the servers table.
      * Uses server name as the unique identifier to match config with database.
      *
      * @param string              $configFilePath Path to config file
@@ -144,10 +145,9 @@ final class SettingsDatabaseSync
                 continue;
             }
 
-            // Skip inactive servers (active=false explicitly set)
-            if (isset($serverConfig['active']) && $serverConfig['active'] === false) {
+            if (ServerConfigState::isDisabled($serverConfig)) {
                 ++$skippedCount;
-                $this->log->debug("Skipping inactive server: {$serverName}");
+                $this->log->debug("Skipping disabled server: {$serverName}");
 
                 continue;
             }
@@ -157,7 +157,7 @@ final class SettingsDatabaseSync
             ++$syncedCount;
         }
 
-        $this->log->info("Sync completed: {$syncedCount} servers synced, {$skippedCount} inactive servers skipped");
+        $this->log->info("Sync completed: {$syncedCount} servers synced, {$skippedCount} disabled servers skipped");
     }
 
     /**

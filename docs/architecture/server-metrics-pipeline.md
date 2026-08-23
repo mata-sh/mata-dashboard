@@ -33,14 +33,13 @@ Cron runs as `www-data` in Docker. Shared-hosting installations can use the
 | When | Program | Purpose | Writes |
 | --- | --- | --- | --- |
 | Every 5 min | `cron/servers_data_fetch.php` | Dashboard/node collector setup | not the historical tables |
-| Every 5 min | `cron/servers_metrics_collect.php` | Fetch one snapshot per active configured server | `server_metrics_raw` |
+| Every 5 min | `cron/servers_metrics_collect.php` | Fetch one snapshot per server not marked `disabled` | `server_metrics_raw` |
 | Every 15 min | `cron/servers_metrics_aggregate.php` | Repair bounded completed hourly and daily windows | `server_metrics_hourly`, `server_metrics_daily` |
 | Daily, 02:25 | `cron/retention_cleanup.php` | Delete old rows according to retention settings | deletes from all metric tiers |
 
-`servers_metrics_collect.php` skips configuration keys beginning with `_`, and
-servers explicitly disabled through `disabled`, `enabled`, `active`, or
-`monitoring_enabled`. Each remaining server needs `api_url` and `api_key` in
-its server configuration.
+`servers_metrics_collect.php` skips configuration keys beginning with `_` and
+servers with `disabled` set to `true`. Each remaining server needs `api_url`
+and `api_key` in its server configuration.
 
 Cron has a restricted environment. Container startup writes only the required
 `DB_*` values to `/etc/mata/cron.env`; each cron command sources it before PHP
@@ -280,6 +279,6 @@ GROUP BY s.id, s.name
 ORDER BY s.name;
 ```
 
-If raw rows stay at zero, inspect collection logs first. Common causes are an
-inactive server configuration, missing `api_url`/`api_key`, node DNS/network
+If raw rows stay at zero, inspect collection logs first. Common causes are a
+disabled server configuration, missing `api_url`/`api_key`, node DNS/network
 failure, node authentication failure, or cron database bootstrap failure.

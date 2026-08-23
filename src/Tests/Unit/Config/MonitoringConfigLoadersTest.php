@@ -333,6 +333,45 @@ final class MonitoringConfigLoadersTest extends TestCase
         $this->assertSame("Server 'server' disabled must be a boolean", $result['errors'][0]);
     }
 
+    public function testLoadServersConfigExcludesOnlyServerWithNonBooleanDisabledFlag(): void
+    {
+        $this->useEventRecorderMock();
+        $this->eventRecorder
+            ->expects($this->once())
+            ->method('recordEvent')
+            ->with(
+                'servers_config_validation_error',
+                "Server 'invalid-server' disabled must be a boolean",
+                '',
+                'warning',
+            )
+            ->willReturn(new EventRecordResult(1, null, null, null, null, null));
+
+        $path = tempnam(sys_get_temp_dir(), 'mata-servers-');
+        self::assertNotFalse($path);
+        file_put_contents($path, json_encode([
+            'invalid-server' => [
+                'title' => 'Invalid Server',
+                'api_url' => 'https://invalid.example.test',
+                'api_key' => 'key123',
+                'disabled' => 'true',
+            ],
+            'valid-server' => [
+                'title' => 'Valid Server',
+                'api_url' => 'https://valid.example.test',
+                'api_key' => 'key456',
+            ],
+        ], JSON_THROW_ON_ERROR));
+
+        try {
+            $result = $this->loader->loadServersConfig($path);
+        } finally {
+            unlink($path);
+        }
+
+        $this->assertSame(['valid-server'], array_keys($result));
+    }
+
     #[DataProvider('nonBooleanApplicationMonitoringFlagProvider')]
     public function testValidateServersConfigRejectsNonBooleanApplicationMonitoringFlags(string $setting): void
     {
@@ -401,6 +440,24 @@ final class MonitoringConfigLoadersTest extends TestCase
 
         $this->assertTrue($result['is_valid']);
         $this->assertSame([], $result['errors']);
+    }
+
+    public function testValidateServersConfigEnvironmentErrorListsLive(): void
+    {
+        $result = $this->loader->validateServersConfig([
+            'production-server' => [
+                'title' => 'Production Server',
+                'api_url' => 'https://api.example.test',
+                'api_key' => 'key123',
+                'env' => 'production',
+            ],
+        ]);
+
+        $this->assertFalse($result['is_valid']);
+        $this->assertSame(
+            "Server 'production-server' env must be one of: prod, live, test, dev, staging",
+            $result['errors'][0],
+        );
     }
 
     public function testValidateServersConfigHttpWithoutAllowHttpFlagFails(): void

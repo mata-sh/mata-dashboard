@@ -5,9 +5,10 @@ declare(strict_types=1);
 
 use Mata\Bootstrap\CronMonitoringRuntime;
 use Mata\Bootstrap\CronRuntime;
+use Mata\Config\Monitoring\ServerConfigState;
+use Mata\Models\ServerMetrics\ServerMetricsRepository;
 use Mata\Services\ServerMetrics\AggregationWindowPlanner;
 use Mata\Services\ServerMetrics\ServerMetricsAggregator;
-use Mata\Models\ServerMetrics\ServerMetricsRepository;
 
 require_once __DIR__ . '/../vendor/autoload.php';
 
@@ -58,7 +59,7 @@ try {
     ];
 
     foreach ($monitoringSettings['servers'] ?? [] as $serverName => $serverConfig) {
-        if (!is_array($serverConfig) || str_starts_with((string) $serverName, '_') || !isServerActive($serverConfig)) {
+        if (!is_array($serverConfig) || str_starts_with((string) $serverName, '_') || ServerConfigState::isDisabled($serverConfig)) {
             ++$stats['servers_skipped'];
 
             continue;
@@ -138,38 +139,3 @@ try {
 }
 
 exit($exitCode);
-
-/** @param array<string,mixed> $config */
-function isServerActive(array $config): bool
-{
-    if ((normalizeFlag($config['disabled'] ?? null) ?? false) === true) {
-        return false;
-    }
-
-    foreach (['enabled', 'active', 'monitoring_enabled'] as $flag) {
-        if (normalizeFlag($config[$flag] ?? null) === false) {
-            return false;
-        }
-    }
-
-    return true;
-}
-
-function normalizeFlag(mixed $value): ?bool
-{
-    if (is_bool($value)) {
-        return $value;
-    }
-    if (is_numeric($value)) {
-        return (int) $value !== 0;
-    }
-    if (!is_string($value) || trim($value) === '') {
-        return null;
-    }
-
-    return match (strtolower(trim($value))) {
-        '1', 'true', 'yes', 'on', 'enabled' => true,
-        '0', 'false', 'no', 'off', 'disabled' => false,
-        default => null,
-    };
-}

@@ -61,15 +61,13 @@ final class ServersConfigLoader extends AbstractJsonConfigLoader implements Moni
         }
 
         $servers = array_filter($servers, static fn ($key): bool => !str_starts_with((string) $key, '_'), ARRAY_FILTER_USE_KEY);
-        $configuredServerCount = count($servers);
-        $servers = array_filter($servers, static fn (mixed $config): bool => !is_array($config) || ($config['disabled'] ?? false) !== true);
-        $allServersDisabled = $configuredServerCount > 0 && $servers === [];
-        $validation = $allServersDisabled ? ['is_valid' => true, 'errors' => []] : $this->validateServersConfig($servers);
+        $validation = $this->validateServersConfig($servers);
         if (!$validation['is_valid']) {
             foreach ($validation['errors'] as $error) {
                 $this->recordConfigurationEvent('servers_config_validation_error', $error, 'warning');
             }
         }
+        $servers = array_filter($servers, $this->shouldLoadServer(...));
 
         if ($this->db && $this->settingsSync && !($this->db instanceof NullDatabase)) {
             try {
@@ -116,6 +114,18 @@ final class ServersConfigLoader extends AbstractJsonConfigLoader implements Moni
         return ['is_valid' => $errors === [], 'errors' => $errors];
     }
 
+    private function shouldLoadServer(mixed $config): bool
+    {
+        if (!is_array($config)) {
+            return true;
+        }
+        if (array_key_exists('disabled', $config) && !is_bool($config['disabled'])) {
+            return false;
+        }
+
+        return !ServerConfigState::isDisabled($config);
+    }
+
     /** @return array<int,string> */
     private function validateServerConfig(string $serverName, mixed $serverConfig): array
     {
@@ -130,7 +140,7 @@ final class ServersConfigLoader extends AbstractJsonConfigLoader implements Moni
                 return ["Server '{$serverName}' {$setting} must be a boolean"];
             }
         }
-        if (($serverConfig['disabled'] ?? false) === true) {
+        if (ServerConfigState::isDisabled($serverConfig)) {
             return [];
         }
 
@@ -236,7 +246,7 @@ final class ServersConfigLoader extends AbstractJsonConfigLoader implements Moni
             return [];
         }
 
-        return ["Server '{$serverName}' env must be one of: prod, test, dev, staging"];
+        return ["Server '{$serverName}' env must be one of: prod, live, test, dev, staging"];
     }
 
     private function reportLoadFailure(string $filePath): void

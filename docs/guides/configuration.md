@@ -112,6 +112,14 @@ Set it to `true` to exclude the node from polling and alarms. The dashboard
 expects HTTPS node URLs. `allow_http` is available for local development only
 and should not be used for production monitoring.
 
+!!! warning "Server state"
+
+    `disabled` must be a JSON boolean. An invalid value excludes that server
+    while valid servers continue running. `active`, `enabled`, and
+    `monitoring_enabled` are unsupported and ignored. Replace them with
+    `disabled` and invert the value. For example, `"active": false` becomes
+    `"disabled": true`.
+
 The two server-scoped application flags default to `true`:
 
 - `error_monitoring_enabled` controls fatal-error event production.

@@ -15,7 +15,6 @@ neutral box. Indent nested content 4 spaces or the block ends silently.
 Non-obvious facts that have already misled an agent. Verify before asserting otherwise.
 
 - **Compose env:** `Makefile:22` passes `--env-file config/db.config.env --env-file .env`, so `db.config.env` *does* feed `${VAR}` interpolation; last file wins. Bare `docker compose` resolves differently than `make`.
-- **Server on/off:** only `disabled` gates `ServersConfigLoader`. `active` affects just DB sync and the metrics crons — `active: false` still polls and alarms.
 - **Docker auth:** `users.json` lives in the `mata_users` volume, not the repo. Empty volume = CRITICAL + 500 on every route.
 - **Container logs:** `/var/log/apache2/error.log` is a symlink to `/dev/stderr` — tailing it hangs. Truth is `logs/app.log`, `http`-owned, read via the container.
 - **PHP ini:** images use `php-dev.ini` / `php-prod.ini`. `docker/php/php.ini` and `docker/mysql/my.cnf` are unreferenced orphans.
