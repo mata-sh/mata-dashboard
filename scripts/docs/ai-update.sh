@@ -83,7 +83,7 @@ EOF
 # Use Claude Code to analyze the changes
 # Note: This assumes 'claude' CLI is available in the system
 if command -v claude &> /dev/null; then
-    claude chat --message "$(cat "$TMP_DIR/analysis_prompt.txt")" > "$CHANGED_DOCS_FILE" 2>&1 || {
+    claude -p "$(cat "$TMP_DIR/analysis_prompt.txt")" > "$CHANGED_DOCS_FILE" 2>&1 || {
         error "Failed to analyze changes with Claude Code"
     }
 else
@@ -164,7 +164,7 @@ If no files need updating, respond with an empty array: []
 EOF
 
 if command -v claude &> /dev/null; then
-    SUGGESTED_FILES_JSON=$(claude chat --message "$(cat "$TMP_DIR/suggest_files_prompt.txt")" 2>&1)
+    SUGGESTED_FILES_JSON=$(claude -p "$(cat "$TMP_DIR/suggest_files_prompt.txt")" 2>&1)
 
     # Extract JSON array (look for ["..."] pattern)
     SUGGESTED_FILES=$(echo "$SUGGESTED_FILES_JSON" | grep -o '\[.*\]' | head -1 || echo "[]")
@@ -255,7 +255,7 @@ Please provide the complete updated documentation file.
 EOF
 
     if command -v claude &> /dev/null; then
-        UPDATED_CONTENT=$(claude chat --message "$(cat "$TMP_DIR/update_prompt.txt")" 2>&1)
+        UPDATED_CONTENT=$(claude -p "$(cat "$TMP_DIR/update_prompt.txt")")
 
         # Save to temporary file first
         mkdir -p "$(dirname "$doc_file")"

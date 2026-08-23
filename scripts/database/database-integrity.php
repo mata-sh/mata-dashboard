@@ -3,12 +3,21 @@
 
 declare(strict_types=1);
 
+use Mata\Bootstrap\ScriptRuntime;
 use Mata\Config\DatabaseIntegrityChecker;
+use Mata\Database\PdoDatabase;
 
-$bootstrap = require __DIR__ . '/../bootstrap.php';
+require __DIR__ . '/../../vendor/autoload.php';
 
-/** @var \Mata\Database\DatabaseInterface $db */
-$db = $bootstrap['db'];
+$runtime = ScriptRuntime::boot($_SERVER['argv'] ?? []);
+
+try {
+    $db = new PdoDatabase($runtime->appConfig->database);
+} catch (Throwable $e) {
+    fwrite(STDERR, "❌ Database connection failed: {$e->getMessage()}\n");
+
+    exit(1);
+}
 
 $checker = new DatabaseIntegrityChecker($db);
 $result = $checker->run();

@@ -86,10 +86,22 @@ class PathResolverTest extends TestCase
      * @group pathresolver
      * @group initialization
      */
+    public function testItInitializesFromApplicationDirectory(): void
+    {
+        $appPath = dirname($this->testEntryFile, 2);
+        $pathResolver = new PathResolver($appPath);
+
+        self::assertSame($appPath, $pathResolver->appPath);
+    }
+
+    /**
+     * @group pathresolver
+     * @group initialization
+     */
     public function testItThrowsExceptionForNonexistentEntryPointFile(): void
     {
         $this->expectException(InvalidArgumentException::class);
-        $this->expectExceptionMessage('Entry point file not found:');
+        $this->expectExceptionMessage('Entry point or application path not found:');
 
         new PathResolver('/nonexistent/file.php');
     }

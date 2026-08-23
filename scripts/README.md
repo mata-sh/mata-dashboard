@@ -12,7 +12,6 @@ scripts/
 ├── build/              # release helpers
 ├── docs/               # documentation tooling
 ├── systemd/            # native service units
-├── bootstrap.php       # shared application bootstrap
 ├── cron_database_probe.php
 ├── server_metrics_diagnostic.php
 └── setup.sh            # guided setup

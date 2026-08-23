@@ -2,11 +2,13 @@
 
 declare(strict_types=1);
 
+use Mata\Bootstrap\ScriptRuntime;
+
 require __DIR__ . '/../vendor/autoload.php';
 
-// Reuse your app bootstrap
-$bootstrap = require __DIR__ . '/../scripts/bootstrap.php';
-['appConfig' => $appConfig, 'paths' => $paths] = $bootstrap;
+$runtime = ScriptRuntime::boot($_SERVER['argv'] ?? []);
+$appConfig = $runtime->appConfig;
+$paths = $runtime->paths;
 
 return [
     'paths' => [
@@ -22,7 +24,7 @@ return [
             'name' => $appConfig->database->database,
             'user' => $appConfig->database->username,
             'pass' => $appConfig->database->password,
-            'port' => $appConfig->database->port, // Port not in DatabaseConfig DTO, using default
+            'port' => $appConfig->database->port,
             'charset' => 'utf8mb4',
         ],
     ],

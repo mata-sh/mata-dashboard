@@ -1,14 +1,11 @@
 # Procedural entrypoints are analysed separately from level 7 `src`. Level 6
 # catches type errors and stale imports; level 7 blockers are tracked in TODO.md.
-# Keep cron bootstrapping behind typed factories: PHPStan cannot infer variables
-# or return types introduced through `require`.
+# Keep entrypoint bootstrapping behind typed factories so PHPStan can follow
+# dependencies across file boundaries.
 parameters:
     level: 6
     paths:
         - public
         - cron
         - scripts
-    excludePaths:
-        # Its required bootstrap leaks variables through scope; tracked in TODO.md.
-        - scripts/user-management
     treatPhpDocTypesAsCertain: false

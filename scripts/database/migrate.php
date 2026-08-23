@@ -12,12 +12,14 @@ declare(strict_types=1);
  *   APP_ENV=prod php scripts/database/migrate.php status --env=prod
  */
 
+use Mata\Bootstrap\ScriptRuntime;
+
 require __DIR__ . '/../../vendor/autoload.php';
 
-$bootstrap = require __DIR__ . '/../bootstrap.php';
-['appConfig' => $appConfig, 'paths' => $paths] = $bootstrap;
-
-$arguments = $_SERVER['argv'] ?? [];
+$runtime = ScriptRuntime::boot($_SERVER['argv'] ?? []);
+$appConfig = $runtime->appConfig;
+$paths = $runtime->paths;
+$arguments = $runtime->arguments;
 array_shift($arguments);
 $env = $appConfig->environment->env;
 $phinxArgs = [];

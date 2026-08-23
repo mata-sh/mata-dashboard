@@ -5,51 +5,44 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/../../vendor/autoload.php';
 
+use Mata\Bootstrap\ScriptRuntime;
 use Mata\Core\Auth;
 use Mata\Utils\UsersFilePathResolver;
 use Monolog\Formatter\LineFormatter;
 use Monolog\Handler\StreamHandler;
 use Monolog\Logger;
 
-// ============================================================================
-// SECURITY CHECKS
-// ============================================================================
-require_once __DIR__ . '/../bootstrap.php';
-
-// Verify CLI execution only (not via web server)
 if (php_sapi_name() !== 'cli') {
     exit("ERROR: This script can only be executed from the command line.\n");
 }
 
-// Get current user info early for logging
+$runtime = ScriptRuntime::boot($_SERVER['argv'] ?? []);
+$paths = $runtime->paths;
+$appConfig = $runtime->appConfig;
+$arguments = $runtime->arguments;
+
 $currentUser = posix_getpwuid(posix_geteuid());
+if ($currentUser === false) {
+    exit("ERROR: Cannot determine the current operating-system user.\n");
+}
 
-// Load APP_ENV and security settings from config/config.env
 $env = $appConfig->environment->env;
-$strictUserCheck = false; // Default: OFF for shared hosting compatibility
-$allowedUsers = ['root', 'http']; // Default allowed users
+$strictUserCheck = $appConfig->cliSecurity->strictUserCheck;
+$allowedUsers = $appConfig->cliSecurity->allowedUsers;
 
-if (!empty($appConfig->cliSecurity)) {
-    // Load CLI security settings from config object
-    $strictUserCheck = $appConfig->cliSecurity->strictUserCheck;
-    $allowedUsers = $appConfig->cliSecurity->allowedUsers;
-} else {
-    // Fallback to environment variable or default
-    $env = getenv('APP_ENV') ?: 'dev';
-    $strictUserCheck = getenv('CLI_STRICT_USER_CHECK') === 'ON';
-    if ($users = getenv('CLI_ALLOWED_USERS')) {
-        $allowedUsers = array_map('trim', explode(',', $users));
+foreach ($arguments as $argument) {
+    if (str_starts_with($argument, '--env=')) {
+        $env = substr($argument, 6);
     }
 }
 
-// Allow override via --env flag
-foreach ($argv as $arg) {
-    if (str_starts_with($arg, '--env=')) {
-        $env = substr($arg, 6);
-    }
-}
+$arguments = array_values(array_filter(
+    $arguments,
+    static fn (string $argument): bool => !str_starts_with($argument, '--env=')
+));
+$action = $arguments[1] ?? 'help';
+$scriptPath = $arguments[0] ?? __FILE__;
 
-// Verify script is executed by authorized users (if strict checking is enabled)
 if ($strictUserCheck && !in_array($currentUser['name'], $allowedUsers, true)) {
     echo "❌ SECURITY ERROR: Unauthorized user\n\n";
     echo 'This script can only be executed by: ' . implode(', ', $allowedUsers) . "\n";
@@ -58,12 +51,11 @@ if ($strictUserCheck && !in_array($currentUser['name'], $allowedUsers, true)) {
     echo '  CLI_ALLOWED_USERS=' . implode(',', array_merge($allowedUsers, [$currentUser['name']])) . "\n\n";
     echo "Or disable strict checking (not recommended for production):\n";
     echo "  CLI_STRICT_USER_CHECK=OFF\n\n";
-    echo "Alternatively, run with: sudo php {$argv[0]}\n";
+    echo "Alternatively, run with: sudo php {$scriptPath}\n";
 
     exit(1);
 }
 
-// Validate environment (prevent path traversal)
 $validEnvironments = ['dev', 'demo', 'prod'];
 if (!in_array($env, $validEnvironments, true)) {
     echo "❌ SECURITY ERROR: Invalid environment\n\n";
@@ -73,15 +65,14 @@ if (!in_array($env, $validEnvironments, true)) {
     exit(1);
 }
 
-// Require confirmation for production operations
-if ($env === 'prod' && ($argv[1] ?? '') !== 'list') {
+if ($env === 'prod' && $action !== 'list') {
     echo "⚠️  WARNING: You are about to modify PRODUCTION users!\n";
     echo "Environment: {$env}\n";
-    echo "Action: {$argv[1]}\n";
+    echo "Action: {$action}\n";
     echo "Operator: {$currentUser['name']}\n\n";
     echo "Type 'CONFIRM PRODUCTION' to continue: ";
-    $confirm = trim(fgets(STDIN));
-    if ($confirm !== 'CONFIRM PRODUCTION') {
+    $confirmation = fgets(STDIN);
+    if ($confirmation === false || trim($confirmation) !== 'CONFIRM PRODUCTION') {
         echo "❌ Cancelled\n";
 
         exit(1);
@@ -94,11 +85,6 @@ try {
 } catch (InvalidArgumentException $e) {
     exit("❌ Invalid MATA_USERS_FILE: {$e->getMessage()}\n");
 }
-$action = $argv[1] ?? 'help';
-
-// Remove --env flag from argv if present
-$argv = array_filter($argv, fn ($arg) => !str_starts_with($arg, '--env='));
-$argv = array_values($argv);
 
 // Setup audit logger
 $logDir = __DIR__ . '/../../logs';
@@ -182,7 +168,7 @@ if (!file_exists($usersFile)) {
     echo "   Current user: {$currentUser['name']}\n\n";
     echo "Fix this by running ONE of the following:\n\n";
     echo "  Option 1 - Run as file owner:\n";
-    echo "    sudo -u {$owner['name']} php {$argv[0]}" . (isset($env) && $env !== 'dev' ? " --env={$env}" : '') . "\n\n";
+    echo "    sudo -u {$owner['name']} php {$scriptPath}" . ($env !== 'dev' ? " --env={$env}" : '') . "\n\n";
     echo "  Option 2 - Change file ownership (development only):\n";
     echo "    sudo chown {$currentUser['name']}:{$currentUser['name']} {$usersFile}\n\n";
 
@@ -219,7 +205,7 @@ $auth = new Auth(
     secureRequest: false,
     rememberToken: null,
     cliMode: true,
-    cliScriptPath: $argv[0] ?? null
+    cliScriptPath: $scriptPath
 );
 
 echo "🔧 Environment: {$env}\n";
@@ -227,13 +213,13 @@ echo "📁 Users file: {$usersFile}\n\n";
 
 switch ($action) {
     case 'create':
-        $username = $argv[2] ?? readline('Username: ');
+        $username = $arguments[2] ?? readline('Username: ');
         echo 'Password: ';
         system('stty -echo');
         $password = trim(fgets(STDIN));
         system('stty echo');
         echo "\n";
-        $role = $argv[3] ?? readline('Role [viewer/admin]: ');
+        $role = $arguments[3] ?? readline('Role [viewer/admin]: ');
 
         try {
             $auth->createUser($username, $password, $role);
@@ -279,7 +265,7 @@ switch ($action) {
         break;
 
     case 'unlock':
-        $username = $argv[2] ?? readline('Username to unlock: ');
+        $username = $arguments[2] ?? readline('Username to unlock: ');
 
         try {
             $auth->unlockUser($username);
@@ -304,8 +290,8 @@ switch ($action) {
         break;
 
     case 'delete':
-        $username = $argv[2] ?? readline('Username to delete: ');
-        $confirm = $argv[3] ?? readline('Are you sure? (yes/no): ');
+        $username = $arguments[2] ?? readline('Username to delete: ');
+        $confirm = $arguments[3] ?? readline('Are you sure? (yes/no): ');
         if ($confirm === 'yes') {
             try {
                 $auth->deleteUser($username);
@@ -338,7 +324,7 @@ switch ($action) {
         break;
 
     case 'passwd':
-        $username = $argv[2] ?? readline('Username: ');
+        $username = $arguments[2] ?? readline('Username: ');
         echo 'New password: ';
         system('stty -echo');
         $password = trim(fgets(STDIN));

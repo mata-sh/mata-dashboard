@@ -31,17 +31,15 @@ class PathResolver
     public string $bootLogPath;
 
     /**
-     * Initialize path resolver based on entry point file location.
-     *
-     * @param string $entryPointFile Absolute path to the entry point file (__FILE__)
+     * Initialize paths from an application directory or an entry point one level below it.
      */
-    public function __construct(string $entryPointFile)
+    public function __construct(string $sourcePath)
     {
-        $realPath = realpath($entryPointFile);
+        $realPath = realpath($sourcePath);
         if ($realPath === false) {
-            throw new InvalidArgumentException('Entry point file not found: ' . $entryPointFile);
+            throw new InvalidArgumentException('Entry point or application path not found: ' . $sourcePath);
         }
-        $this->appPath = dirname($realPath, 2);
+        $this->appPath = is_dir($realPath) ? $realPath : dirname($realPath, 2);
         $rootPath = dirname($this->appPath);
         if ($rootPath === '.' || $rootPath === '') {
             throw new RuntimeException('Cannot resolve root path from: ' . $this->appPath);
