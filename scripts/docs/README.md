@@ -6,7 +6,6 @@ MATA uses MkDocs with the shadcn theme.
 - Configuration: `mkdocs.yml`
 - Generated output: `site/`, ignored by Git
 - Deployment: GitHub Pages through `.github/workflows/gh-pages.yml`
-- AI helper: `scripts/docs/ai-update.sh`
 
 ## Local preview
 
@@ -45,13 +44,6 @@ docs/
 `docs/plans/` contains implementation notes and is excluded from the published
 site. Keep published guidance in the canonical pages above; do not add duplicate
 draft manuals.
-
-## AI update helper
-
-`ai-update.sh` reads the staged or unstaged Git diff, asks Claude Code to
-identify affected docs, then lets you accept all suggestions or select files.
-It needs Claude Code, `jq`, and Git. Review every generated change against the
-code and configuration examples before committing it.
 
 ## Deployment
 

@@ -46,7 +46,6 @@ php scripts/database/hash-password.php "mypassword"
 php scripts/user-management/manage-users.php list --env=dev
 php scripts/server_metrics_diagnostic.php
 ./scripts/build/generate-changelog.sh
-./scripts/docs/ai-update.sh
 ```
 
 User-management commands must run as the PHP-FPM user when that user owns the

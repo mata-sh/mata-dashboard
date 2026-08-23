@@ -394,7 +394,6 @@ scripts/
 │   └── generate-changelog.sh    # Changelog generation
 ├── systemd/                     # Unit/timer files (critical-alarm eval, OPA)
 └── docs/
-    └── ai-update.sh              # AI-assisted doc updates
 ```
 
 ## Documentation Directory (`docs/`)
