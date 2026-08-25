@@ -58,7 +58,7 @@ The important jobs are:
 - `servers_metrics_aggregate.php` writes hourly and daily metric rows.
 - `alarms_evaluate_critical.php` and `alarms_evaluate_non_critical.php` create logical alarms.
 - `alarms_dispatch.php` sends due delivery records.
-- `retention_cleanup.php` removes expired database rows.
+- `retention_cleanup.php` removes expired database rows and reconciles config-warning notifications.
 - `rate_limit_cleanup.php` removes expired file-based rate-limit state.
 
 See [Server metrics pipeline](server-metrics-pipeline.md) and the

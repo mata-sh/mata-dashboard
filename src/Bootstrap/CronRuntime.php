@@ -30,11 +30,15 @@ use Throwable;
  */
 final readonly class CronRuntime
 {
+    /**
+     * @param array<int,array{identifier:string,message:string}> $validationWarnings
+     */
     public function __construct(
         public PathResolver $paths,
         public Logger $log,
         public CronJob $cron,
         public ApplicationConfig $appConfig,
+        public array $validationWarnings,
         public DatabaseInterface $db,
         public Tools $tools,
         public MailerInterface $mailer,
@@ -107,6 +111,7 @@ final readonly class CronRuntime
             log: $log,
             cron: $cron,
             appConfig: $appConfig,
+            validationWarnings: $validationResult['warnings'],
             db: $db,
             tools: $tools,
             mailer: $mailer,

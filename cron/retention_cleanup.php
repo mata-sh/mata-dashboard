@@ -5,6 +5,7 @@ declare(strict_types=1);
 
 use Mata\Bootstrap\CronMonitoringRuntime;
 use Mata\Bootstrap\CronRuntime;
+use Mata\Services\Notification\NotificationManager;
 use Mata\Services\Retention\RetentionCleanupResult;
 use Mata\Services\Retention\RetentionCleanupService;
 
@@ -37,15 +38,26 @@ try {
         $retentionConfig,
         $cron->touchHeartbeat(...)
     );
+
+    $notificationManager = new NotificationManager($db, $log, $runtime->paths);
+    $resolvedConfigWarningsCleanupSucceeded = $notificationManager->cleanupResolvedConfigWarnings(
+        $runtime->validationWarnings
+    );
+    $cron->touchHeartbeat();
+    $oldNotificationsCleanupSucceeded = $notificationManager->cleanupOldNotifications(30);
+
+    $failed = !$resolvedConfigWarningsCleanupSucceeded || !$oldNotificationsCleanupSucceeded;
     $duration = $cron->endTimer();
     $counts = $result->deletedCounts();
     $summary = sprintf(
-        'Finished in %.3fs (memory: %s) | alarms=%d events=%d metrics=%d failures=%d',
+        'Finished in %.3fs (memory: %s) | alarms=%d events=%d metrics=%d notifications=%s config_warnings=%s failures=%d',
         $duration,
         $cron->memoryUsage(),
         $result->alarmsDeleted,
         $result->eventsDeleted,
         array_sum($result->metricsDeleted),
+        $oldNotificationsCleanupSucceeded ? 'ok' : 'failed',
+        $resolvedConfigWarningsCleanupSucceeded ? 'ok' : 'failed',
         count($result->failures)
     );
 
@@ -53,6 +65,10 @@ try {
     $log->info('retention_cleanup.summary', [
         'cutoffs' => $result->cutoffs,
         'deleted' => $counts,
+        'notifications' => [
+            'old_cleanup_succeeded' => $oldNotificationsCleanupSucceeded,
+            'resolved_config_warnings_cleanup_succeeded' => $resolvedConfigWarningsCleanupSucceeded,
+        ],
         'failures' => $result->failures,
         'duration_seconds' => $duration,
         'memory' => $cron->memoryUsage(),

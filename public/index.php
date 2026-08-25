@@ -277,9 +277,6 @@ foreach ($validationWarnings as $warning) {
     $notificationManager->addConfigWarning($warning['identifier'], $warning['message']);
 }
 
-$notificationManager->cleanupResolvedConfigWarnings($validationWarnings);
-$notificationManager->cleanupOldNotifications(30); // delete old notifications (> 30 Days)
-
 // ************************************************************************************************
 // Initialize Mailer
 // ************************************************************************************************
