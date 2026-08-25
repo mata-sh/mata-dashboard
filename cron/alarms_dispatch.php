@@ -4,7 +4,7 @@
 declare(strict_types=1);
 
 use Mata\Bootstrap\CronRuntime;
-use Mata\Config\Monitoring\AlarmLimitsConfigLoader;
+use Mata\Config\Monitoring\Loader\AlarmRateLimitsConfigLoader;
 use Mata\Models\AlarmDeliveryRepository;
 use Mata\Services\Alarm\AlarmDispatcher;
 use Mata\Services\Alarm\AlarmEmailFactory;
@@ -37,8 +37,8 @@ try {
     $deliveryRepository = new AlarmDeliveryRepository($db);
 
     // --- Alarm Limits ---
-    $limitsLoader = new AlarmLimitsConfigLoader($log);
-    $limitsConfig = $limitsLoader->load($paths->appPath . '/config/limits.json');
+    $limitsLoader = new AlarmRateLimitsConfigLoader($log);
+    $limitsConfig = $limitsLoader->load($paths->appPath . '/config');
 
     // --- Senders & Dispatchers ---
     $twig = new Environment(

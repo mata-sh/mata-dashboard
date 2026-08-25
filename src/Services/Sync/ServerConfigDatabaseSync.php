@@ -11,22 +11,19 @@ use Mata\Models\ConfigSyncRepository;
 use Monolog\Logger;
 
 /**
- * Settings to Database Synchronization Service.
+ * Server Configuration Database Synchronization Service.
  *
- * Syncs servers.json settings to database tables, triggered only when
- * the settings file has been modified since the last sync. Enables performance-
- * optimized settings-driven architecture with database persistence for metrics.
+ * Syncs servers.json configuration to database tables when the configuration
+ * file has changed since the last sync.
  *
  * Key Features:
  * - File modification timestamp tracking for efficient sync detection
- * - Upsert logic to create/update server records based on settings
+ * - Upsert logic to create/update server records based on configuration
  * - Automatic filtering of disabled servers
  * - Sync history and status tracking
  * - Graceful degradation when database is unavailable
- *
- * Note: "Settings" refers to JSON-based configuration (vs. "Config" which uses DTOs from .env files)
  */
-final class SettingsDatabaseSync
+final class ServerConfigDatabaseSync
 {
     private Logger $log;
     private ConfigSyncRepository $repository;
@@ -65,24 +62,24 @@ final class SettingsDatabaseSync
             // Update tracking on success
             $this->updateSyncTracking($configFilePath, true);
 
-            $this->log->info("Config synced to database ({$configFilePath})");
+            $this->log->info("Server configuration synced to database ({$configFilePath})");
         } catch (Exception $e) {
-            $this->log->error('Config sync failed: ' . $e->getMessage());
+            $this->log->error('Server configuration sync failed: ' . $e->getMessage());
             $this->updateSyncTracking($configFilePath, false, $e->getMessage());
         }
     }
 
     /**
-     * Check if config file needs syncing based on modification time.
+     * Check if the server configuration file needs syncing based on modification time.
      *
-     * @param string $configFilePath Path to config file
+     * @param string $configFilePath Path to server configuration file
      *
      * @return bool True if sync needed, false if already up to date
      */
     private function needsSync(string $configFilePath): bool
     {
         if (!file_exists($configFilePath)) {
-            $this->log->warning("Config file not found for sync check: {$configFilePath}");
+            $this->log->warning("Server configuration file not found for sync check: {$configFilePath}");
 
             return false;
         }
@@ -107,7 +104,7 @@ final class SettingsDatabaseSync
         // File was modified after last sync - needs sync
         $lastSyncedModTime = strtotime($tracking['file_modified_at']);
         if ($fileModifiedTime > $lastSyncedModTime) {
-            $this->log->info("Config file modified since last sync: {$configFilePath}");
+            $this->log->info("Server configuration file modified since last sync: {$configFilePath}");
 
             return true;
         }
@@ -127,14 +124,14 @@ final class SettingsDatabaseSync
      * Perform actual sync of servers to database.
      *
      * Filters disabled servers and upserts the rest into the servers table.
-     * Uses server name as the unique identifier to match config with database.
+     * Uses server name as the unique identifier to match configuration with database.
      *
-     * @param string              $configFilePath Path to config file
+     * @param string              $configFilePath Path to server configuration file
      * @param array<string,mixed> $serversConfig  Server configuration array
      */
     private function performSync(string $configFilePath, array $serversConfig): void
     {
-        $this->log->info('Syncing servers from config to database');
+        $this->log->info('Syncing servers from configuration to database');
 
         $syncedCount = 0;
         $skippedCount = 0;
@@ -168,7 +165,7 @@ final class SettingsDatabaseSync
      */
     private function upsertServer(string $serverName, array $serverConfig): void
     {
-        // Extract fields from config
+        // Extract fields from configuration
         $hostname = $serverConfig['api_url'] ?? $serverConfig['url'] ?? null;
         $provider = $serverConfig['provider'] ?? null;
         $metadata = json_encode([
@@ -202,7 +199,7 @@ final class SettingsDatabaseSync
     /**
      * Update sync tracking record.
      *
-     * @param string      $configFilePath Path to config file
+     * @param string      $configFilePath Path to server configuration file
      * @param bool        $success        Whether sync was successful
      * @param null|string $errorMessage   Error message if failed
      */

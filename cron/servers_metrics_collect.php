@@ -31,7 +31,7 @@ $db = $runtime->db;
 $configSyncRepository = $monitoringRuntime->configSyncRepository;
 $idResolver = $monitoringRuntime->idResolver;
 $eventManager = $monitoringRuntime->eventManager;
-$monitoringSettings = $monitoringRuntime->monitoringSettings;
+$monitoringConfig = $monitoringRuntime->monitoringConfig;
 
 if (!$cron->acquireLock()) {
     exit("Already running.\n");
@@ -42,23 +42,21 @@ $cron->log('Started');
 
 try {
     // Monitoring services come from CronMonitoringRuntime::fromRuntime()
-    $dataRetentionConfig = $monitoringSettings['data_retention'] ?? [];
+    $dataRetentionConfig = $monitoringConfig->dataRetention;
 
     // Share the dashboard/servers_data_fetch cache so a server/data payload warmed
     // within its TTL is reused instead of re-fetched from the node
     $cacheStore = new FileCacheStore($log, $paths->tempPath . '/api-cache');
     $cacheKeyFactory = new ApiCacheKeyFactory();
-    $ttlResolver = new CacheTtlResolver($monitoringSettings['ttl'] ?? []);
+    $ttlResolver = new CacheTtlResolver($monitoringConfig->ttl);
     $responseNormalizer = new NodeResponseNormalizer($log);
     $repository = new ServerMetricsRepository($db, $idResolver, $configSyncRepository);
     $serverMonitor = new ServerMonitor($log, $eventManager);
 
-    $ingestionHealth = is_array($dataRetentionConfig['ingestion_health'] ?? null)
-        ? $dataRetentionConfig['ingestion_health']
-        : [];
-    $stallThresholdMinutes = (int) max(5, $ingestionHealth['stall_minutes'] ?? 15);
-    $healthLogSizeLimit = (int) max(1, $ingestionHealth['log_rotate_megabytes'] ?? 5) * 1024 * 1024;
-    $healthLogRetainedFiles = (int) max(1, $ingestionHealth['log_rotate_files'] ?? 3);
+    $ingestionHealth = $dataRetentionConfig->ingestionHealth;
+    $stallThresholdMinutes = $ingestionHealth['stall_minutes'];
+    $healthLogSizeLimit = $ingestionHealth['log_rotate_megabytes'] * 1024 * 1024;
+    $healthLogRetainedFiles = $ingestionHealth['log_rotate_files'];
 
     $healthMonitor = new ServerMetricsHealthMonitor(
         repository: $repository,
@@ -80,7 +78,7 @@ try {
     ];
     $activeServers = [];
 
-    foreach ($monitoringSettings['servers'] ?? [] as $serverName => $serverConfig) {
+    foreach ($monitoringConfig->servers->values as $serverName => $serverConfig) {
         if (!is_array($serverConfig)) {
             continue;
         }
@@ -197,8 +195,8 @@ try {
         'memory' => $cron->memoryUsage(),
         'stats' => $stats,
         'retention' => [
-            'raw_days' => $dataRetentionConfig['metrics']['raw_retention_days'] ?? null,
-            'hourly_lag_minutes' => $dataRetentionConfig['aggregation']['hourly']['lag_minutes'] ?? null,
+            'raw_days' => $dataRetentionConfig->metrics['raw_retention_days'] ?? null,
+            'hourly_lag_minutes' => $dataRetentionConfig->aggregation['hourly']['lag_minutes'] ?? null,
         ],
         'ingestion' => [
             'generated_at' => $ingestionReport['generated_at'],

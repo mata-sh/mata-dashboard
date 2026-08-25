@@ -15,7 +15,7 @@ use PHPUnit\Framework\TestCase;
  */
 final class AppLogSizePolicyTest extends TestCase
 {
-    public function testHonorsServerAndApplicationSettings(): void
+    public function testHonorsServerConfigAndApplicationSettings(): void
     {
         $policy = AppLogSizePolicy::fromServerConfig([]);
 

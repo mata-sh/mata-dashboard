@@ -6,6 +6,11 @@ namespace Mata\Tests\Unit\Controllers;
 
 use Exception;
 use Mata\Config\Dto\ApplicationConfig;
+use Mata\Config\Monitoring\MonitoringConfig;
+use Mata\Config\Monitoring\Section\ProbesConfig;
+use Mata\Config\Monitoring\Section\ServersConfig;
+use Mata\Config\Monitoring\Section\ThresholdsConfig;
+use Mata\Config\Monitoring\Section\TtlConfig;
 use Mata\Controllers\DashboardController;
 use Mata\Core\App;
 use Mata\Core\Auth;
@@ -23,13 +28,14 @@ use Mata\Services\Event\EventAggregatorServiceInterface;
 use Mata\Services\Event\EventManager;
 use Mata\Services\Identity\ServerApplicationIdResolver;
 use Mata\Services\Monitor\Dto\AppReachabilityPolicy;
-use Mata\Services\Monitor\Dto\DashboardMonitoringContext;
+use Mata\Services\Monitor\Dto\ServerMonitoringResult;
 use Mata\Services\Monitor\HttpProbeClient;
 use Mata\Services\Monitor\LogSizeEvaluator;
 use Mata\Services\Monitor\ServerMonitoringFactory;
 use Mata\Services\Navigation\MenuBuilder;
 use Mata\Services\Notification\NotificationManager;
 use Mata\Tests\Helpers\ApplicationConfigFactory;
+use Mata\Tests\Helpers\MonitoringConfigFactory;
 use Mata\Tests\Helpers\NotificationManagerFactory;
 use Mata\Utils\PathResolver;
 use Mata\Utils\Tools;
@@ -78,7 +84,7 @@ class DashboardControllerTest extends TestCase
     private CacheTtlResolver $ttlResolver;
     private Endpoints $endpoints;
     private MenuBuilder $menuBuilder;
-    private array $monitoringSettings;
+    private array $monitoringConfigData;
 
     protected function setUp(): void
     {
@@ -112,7 +118,7 @@ class DashboardControllerTest extends TestCase
         $this->eventManager = $this->createMock(EventManager::class);
         $this->cacheStore = $this->createMock(CacheStoreInterface::class);
         $this->cacheKeyFactory = new ApiCacheKeyFactory();
-        $this->ttlResolver = new CacheTtlResolver([]);
+        $this->ttlResolver = new CacheTtlResolver(new TtlConfig([]));
         $this->endpoints = $this->createMock(Endpoints::class);
         $this->menuBuilder = $this->createMock(MenuBuilder::class);
         $this->twig->method('render')->willReturn('<html></html>');
@@ -120,9 +126,8 @@ class DashboardControllerTest extends TestCase
         $this->app->method('getBaseHost')->willReturn('/');
         $this->app->method('getFullBaseUrl')->willReturn('http://localhost');
 
-        // Default monitoring settings - production environment with real collectors
-        $this->monitoringSettings = [
-            'environment' => 'production',
+        // Default monitoring configuration used by the demo collectors
+        $this->monitoringConfigData = [
             'servers' => [
                 'web-server-01' => [
                     'api_url' => 'https://web-server-01.example.com/api',
@@ -193,21 +198,7 @@ class DashboardControllerTest extends TestCase
         ;
 
         // Create controller with dependencies
-        $this->controller = new DashboardController(
-            $this->app,
-            $this->tools,
-            $this->twig,
-            $this->logger,
-            $this->appConfig,
-            $this->notificationManager,
-            $this->eventManager,
-            $this->cacheStore,
-            $this->cacheKeyFactory,
-            $this->endpoints,
-            $this->menuBuilder,
-            $this->monitoringContext(),
-            request: new Request(),
-        );
+        $this->controller = $this->createController();
 
         // Act
         $response = $this->controller->index();
@@ -237,21 +228,7 @@ class DashboardControllerTest extends TestCase
         ;
 
         // Create controller with dependencies
-        $this->controller = new DashboardController(
-            $this->app,
-            $this->tools,
-            $this->twig,
-            $this->logger,
-            $this->appConfig,
-            $this->notificationManager,
-            $this->eventManager,
-            $this->cacheStore,
-            $this->cacheKeyFactory,
-            $this->endpoints,
-            $this->menuBuilder,
-            $this->monitoringContext(),
-            request: new Request(),
-        );
+        $this->controller = $this->createController();
 
         // Act
         $response = $this->controller->index();
@@ -292,21 +269,7 @@ class DashboardControllerTest extends TestCase
         ;
 
         // Create controller with dependencies
-        $this->controller = new DashboardController(
-            $this->app,
-            $this->tools,
-            $this->twig,
-            $this->logger,
-            $this->appConfig,
-            $this->notificationManager,
-            $this->eventManager,
-            $this->cacheStore,
-            $this->cacheKeyFactory,
-            $this->endpoints,
-            $this->menuBuilder,
-            $this->monitoringContext(),
-            request: new Request(),
-        );
+        $this->controller = $this->createController();
 
         // Act
         $response = $this->controller->index();
@@ -326,25 +289,8 @@ class DashboardControllerTest extends TestCase
      */
     public function testRenderServersOverviewSuccessfully(): void
     {
-        // Arrange: Setup monitoring settings with demo environment
-        $this->monitoringSettings['environment'] = 'demo';
-
-        // Recreate controller with demo settings to use mock collectors
-        $this->controller = new DashboardController(
-            $this->app,
-            $this->tools,
-            $this->twig,
-            $this->logger,
-            $this->appConfig,
-            $this->notificationManager,
-            $this->eventManager,
-            $this->cacheStore,
-            $this->cacheKeyFactory,
-            $this->endpoints,
-            $this->menuBuilder,
-            $this->monitoringContext(),
-            request: new Request(),
-        );
+        // Arrange: Create the controller with demo collectors
+        $this->controller = $this->createController();
 
         // Act
         $response = $this->controller->renderServersOverview(forceRefresh: false);
@@ -369,24 +315,8 @@ class DashboardControllerTest extends TestCase
      */
     public function testRenderServersOverviewWithForceRefresh(): void
     {
-        // Arrange: Use demo environment for predictable mock data
-        $this->monitoringSettings['environment'] = 'demo';
-
-        $this->controller = new DashboardController(
-            $this->app,
-            $this->tools,
-            $this->twig,
-            $this->logger,
-            $this->appConfig,
-            $this->notificationManager,
-            $this->eventManager,
-            $this->cacheStore,
-            $this->cacheKeyFactory,
-            $this->endpoints,
-            $this->menuBuilder,
-            $this->monitoringContext(),
-            request: new Request(),
-        );
+        // Arrange
+        $this->controller = $this->createController();
 
         // Act: Request with force refresh
         $response = $this->controller->renderServersOverview(forceRefresh: true);
@@ -411,25 +341,8 @@ class DashboardControllerTest extends TestCase
      */
     public function testRenderServersOverviewHandlesUnreachableServer(): void
     {
-        // Arrange: Use demo environment but expect potential errors
-        $this->monitoringSettings['environment'] = 'demo';
-
-        // Recreate controller
-        $this->controller = new DashboardController(
-            $this->app,
-            $this->tools,
-            $this->twig,
-            $this->logger,
-            $this->appConfig,
-            $this->notificationManager,
-            $this->eventManager,
-            $this->cacheStore,
-            $this->cacheKeyFactory,
-            $this->endpoints,
-            $this->menuBuilder,
-            $this->monitoringContext(),
-            request: new Request(),
-        );
+        // Arrange
+        $this->controller = $this->createController();
 
         // Act: Even with potential errors, should return response
         $response = $this->controller->renderServersOverview(forceRefresh: false);
@@ -450,23 +363,7 @@ class DashboardControllerTest extends TestCase
     public function testRenderDatabasesOverviewSuccessfully(): void
     {
         // Arrange
-        $this->monitoringSettings['environment'] = 'demo';
-
-        $this->controller = new DashboardController(
-            $this->app,
-            $this->tools,
-            $this->twig,
-            $this->logger,
-            $this->appConfig,
-            $this->notificationManager,
-            $this->eventManager,
-            $this->cacheStore,
-            $this->cacheKeyFactory,
-            $this->endpoints,
-            $this->menuBuilder,
-            $this->monitoringContext(),
-            request: new Request(),
-        );
+        $this->controller = $this->createController();
 
         // Act
         $response = $this->controller->renderDatabasesOverview(forceRefresh: false);
@@ -487,23 +384,7 @@ class DashboardControllerTest extends TestCase
     public function testRenderLibrariesOverviewSuccessfully(): void
     {
         // Arrange
-        $this->monitoringSettings['environment'] = 'demo';
-
-        $this->controller = new DashboardController(
-            $this->app,
-            $this->tools,
-            $this->twig,
-            $this->logger,
-            $this->appConfig,
-            $this->notificationManager,
-            $this->eventManager,
-            $this->cacheStore,
-            $this->cacheKeyFactory,
-            $this->endpoints,
-            $this->menuBuilder,
-            $this->monitoringContext(),
-            request: new Request(),
-        );
+        $this->controller = $this->createController();
 
         // Act
         $response = $this->controller->renderLibrariesOverview();
@@ -517,31 +398,25 @@ class DashboardControllerTest extends TestCase
      * Test: Settings overview renders successfully.
      *
      * Validates that:
-     * - Configuration settings are displayed
+     * - Configuration values are displayed
      * - Environment information is shown
      * - Thresholds are included
      * - TTL configuration is shown
      */
-    public function testRenderSettingsOverviewSuccessfully(): void
+    public function testRenderSettingsUsesApplicationConfigEnvironment(): void
     {
         // Arrange
-        $this->monitoringSettings['environment'] = 'demo';
-
-        $this->controller = new DashboardController(
-            $this->app,
-            $this->tools,
-            $this->twig,
-            $this->logger,
-            $this->appConfig,
-            $this->notificationManager,
-            $this->eventManager,
-            $this->cacheStore,
-            $this->cacheKeyFactory,
-            $this->endpoints,
-            $this->menuBuilder,
-            $this->monitoringContext(),
-            request: new Request(),
-        );
+        $this->twig
+            ->expects($this->once())
+            ->method('render')
+            ->with(
+                'partials/containers/settings-container.html.twig',
+                $this->callback(static fn (array $data): bool => ($data['settings']['environment'] ?? null) === 'demo'
+                    && ($data['settings']['app_environment'] ?? null) === 'demo'),
+            )
+            ->willReturn('<div>Settings container</div>')
+        ;
+        $this->controller = $this->createController();
 
         // Act
         $response = $this->controller->renderSettingsOverview();
@@ -561,21 +436,7 @@ class DashboardControllerTest extends TestCase
     public function testRenderEventsSuccessfully(): void
     {
         // Arrange
-        $this->controller = new DashboardController(
-            $this->app,
-            $this->tools,
-            $this->twig,
-            $this->logger,
-            $this->appConfig,
-            $this->notificationManager,
-            $this->eventManager,
-            $this->cacheStore,
-            $this->cacheKeyFactory,
-            $this->endpoints,
-            $this->menuBuilder,
-            $this->monitoringContext(),
-            request: new Request(),
-        );
+        $this->controller = $this->createController();
 
         $this->twig
             ->expects($this->once())
@@ -603,21 +464,7 @@ class DashboardControllerTest extends TestCase
     public function testRenderAlarmsSuccessfully(): void
     {
         // Arrange
-        $this->controller = new DashboardController(
-            $this->app,
-            $this->tools,
-            $this->twig,
-            $this->logger,
-            $this->appConfig,
-            $this->notificationManager,
-            $this->eventManager,
-            $this->cacheStore,
-            $this->cacheKeyFactory,
-            $this->endpoints,
-            $this->menuBuilder,
-            $this->monitoringContext(),
-            request: new Request(),
-        );
+        $this->controller = $this->createController();
 
         $this->endpoints
             ->expects($this->once())
@@ -657,21 +504,7 @@ class DashboardControllerTest extends TestCase
     public function testGetEventsJsonReturnsProperData(): void
     {
         // Arrange
-        $this->controller = new DashboardController(
-            $this->app,
-            $this->tools,
-            $this->twig,
-            $this->logger,
-            $this->appConfig,
-            $this->notificationManager,
-            $this->eventManager,
-            $this->cacheStore,
-            $this->cacheKeyFactory,
-            $this->endpoints,
-            $this->menuBuilder,
-            $this->monitoringContext(),
-            request: new Request(),
-        );
+        $this->controller = $this->createController();
 
         // Setup mock events data
         $expectedEvents = [
@@ -725,24 +558,10 @@ class DashboardControllerTest extends TestCase
     public function testGetEventsJsonHandlesEventManagerFailure(): void
     {
         // Arrange
-        $this->controller = new DashboardController(
-            $this->app,
-            $this->tools,
-            $this->twig,
-            $this->logger,
-            $this->appConfig,
-            $this->notificationManager,
-            $this->eventManager,
-            $this->cacheStore,
-            $this->cacheKeyFactory,
-            $this->endpoints,
-            $this->menuBuilder,
-            $this->monitoringContext(),
-            request: new Request(server: [
-                'REQUEST_URI' => '/api/events',
-                'HTTP_ACCEPT' => 'application/json',
-            ]),
-        );
+        $this->controller = $this->createController(new Request(server: [
+            'REQUEST_URI' => '/api/events',
+            'HTTP_ACCEPT' => 'application/json',
+        ]));
 
         // Mock the aggregator service to throw exception
         $mockAggregator = $this->createMock(EventAggregatorServiceInterface::class);
@@ -780,21 +599,7 @@ class DashboardControllerTest extends TestCase
     public function testGetAlarmsJsonReturnsProperData(): void
     {
         // Arrange
-        $this->controller = new DashboardController(
-            $this->app,
-            $this->tools,
-            $this->twig,
-            $this->logger,
-            $this->appConfig,
-            $this->notificationManager,
-            $this->eventManager,
-            $this->cacheStore,
-            $this->cacheKeyFactory,
-            $this->endpoints,
-            $this->menuBuilder,
-            $this->monitoringContext(),
-            request: new Request(),
-        );
+        $this->controller = $this->createController();
 
         $expectedAlarms = [
             [
@@ -866,23 +671,7 @@ class DashboardControllerTest extends TestCase
     public function testGetLibrariesJsonReturnsDataForAllServers(): void
     {
         // Arrange
-        $this->monitoringSettings['environment'] = 'demo';
-
-        $this->controller = new DashboardController(
-            $this->app,
-            $this->tools,
-            $this->twig,
-            $this->logger,
-            $this->appConfig,
-            $this->notificationManager,
-            $this->eventManager,
-            $this->cacheStore,
-            $this->cacheKeyFactory,
-            $this->endpoints,
-            $this->menuBuilder,
-            $this->monitoringContext(),
-            request: new Request(),
-        );
+        $this->controller = $this->createController();
 
         // Act
         $response = $this->controller->getLibrariesJson();
@@ -909,21 +698,7 @@ class DashboardControllerTest extends TestCase
     public function testAcknowledgeDatabaseNoticeWithAction(): void
     {
         // Arrange
-        $this->controller = new DashboardController(
-            $this->app,
-            $this->tools,
-            $this->twig,
-            $this->logger,
-            $this->appConfig,
-            $this->notificationManager,
-            $this->eventManager,
-            $this->cacheStore,
-            $this->cacheKeyFactory,
-            $this->endpoints,
-            $this->menuBuilder,
-            $this->monitoringContext(),
-            request: new Request(post: ['action' => 'dismiss']),
-        );
+        $this->controller = $this->createController(new Request(post: ['action' => 'dismiss']));
 
         // Act
         $response = $this->controller->acknowledgeDatabaseNotice('snooze');
@@ -947,21 +722,7 @@ class DashboardControllerTest extends TestCase
     public function testAcknowledgeDatabaseNoticeWithoutAction(): void
     {
         // Arrange
-        $this->controller = new DashboardController(
-            $this->app,
-            $this->tools,
-            $this->twig,
-            $this->logger,
-            $this->appConfig,
-            $this->notificationManager,
-            $this->eventManager,
-            $this->cacheStore,
-            $this->cacheKeyFactory,
-            $this->endpoints,
-            $this->menuBuilder,
-            $this->monitoringContext(),
-            request: new Request(),
-        );
+        $this->controller = $this->createController();
 
         // Act
         $response = $this->controller->acknowledgeDatabaseNotice('reset');
@@ -987,23 +748,7 @@ class DashboardControllerTest extends TestCase
     public function testRefreshServerOutputsHtml(): void
     {
         // Arrange
-        $this->monitoringSettings['environment'] = 'demo';
-
-        $this->controller = new DashboardController(
-            $this->app,
-            $this->tools,
-            $this->twig,
-            $this->logger,
-            $this->appConfig,
-            $this->notificationManager,
-            $this->eventManager,
-            $this->cacheStore,
-            $this->cacheKeyFactory,
-            $this->endpoints,
-            $this->menuBuilder,
-            $this->monitoringContext(),
-            request: new Request(),
-        );
+        $this->controller = $this->createController();
 
         $response = $this->controller->refreshServer('web-server-01');
 
@@ -1013,21 +758,7 @@ class DashboardControllerTest extends TestCase
 
     public function testUnknownServerRefreshesReturnHtmlNotFoundFragments(): void
     {
-        $this->controller = new DashboardController(
-            $this->app,
-            $this->tools,
-            $this->twig,
-            $this->logger,
-            $this->appConfig,
-            $this->notificationManager,
-            $this->eventManager,
-            $this->cacheStore,
-            $this->cacheKeyFactory,
-            $this->endpoints,
-            $this->menuBuilder,
-            $this->monitoringContext(),
-            request: new Request(),
-        );
+        $this->controller = $this->createController();
 
         foreach ([
             $this->controller->refreshServer('missing'),
@@ -1049,23 +780,7 @@ class DashboardControllerTest extends TestCase
     public function testRefreshServerStatsOutputsHtml(): void
     {
         // Arrange
-        $this->monitoringSettings['environment'] = 'demo';
-
-        $this->controller = new DashboardController(
-            $this->app,
-            $this->tools,
-            $this->twig,
-            $this->logger,
-            $this->appConfig,
-            $this->notificationManager,
-            $this->eventManager,
-            $this->cacheStore,
-            $this->cacheKeyFactory,
-            $this->endpoints,
-            $this->menuBuilder,
-            $this->monitoringContext(),
-            request: new Request(),
-        );
+        $this->controller = $this->createController();
 
         $response = $this->controller->refreshServerStats('web-server-01');
 
@@ -1074,30 +789,19 @@ class DashboardControllerTest extends TestCase
     }
 
     /**
-     * Test: Controller initializes with empty monitoring settings.
+     * Test: Controller initializes with empty monitoring configuration.
      *
      * Validates that:
      * - Controller handles missing configuration gracefully
      * - Empty arrays are used as defaults
      * - No exceptions are thrown during initialization
      */
-    public function testControllerInitializesWithEmptyMonitoringSettings(): void
+    public function testControllerInitializesWithEmptyMonitoringConfig(): void
     {
-        // Arrange & Act: Create controller with minimal settings
-        $controller = new DashboardController(
-            $this->app,
-            $this->tools,
-            $this->twig,
-            $this->logger,
-            $this->appConfig,
-            $this->notificationManager,
-            $this->eventManager,
-            $this->cacheStore,
-            $this->cacheKeyFactory,
-            $this->endpoints,
-            $this->menuBuilder,
-            DashboardMonitoringContext::fromSettingsAndServices([], []),
-            request: new Request(),
+        // Arrange & Act: Create controller with minimal configuration
+        $controller = $this->createController(
+            monitoringConfig: MonitoringConfigFactory::create(),
+            monitoringResult: new ServerMonitoringResult([], []),
         );
 
         // Assert: Controller is created successfully
@@ -1116,7 +820,6 @@ class DashboardControllerTest extends TestCase
     {
         // Arrange: Invalid server config (missing required fields)
         $invalidSettings = [
-            'environment' => 'production',
             'servers' => [
                 'invalid-server' => [
                     // Missing api_url and api_key
@@ -1127,8 +830,38 @@ class DashboardControllerTest extends TestCase
             'thresholds' => [],
         ];
 
-        // Act: Create controller with invalid settings
-        $controller = new DashboardController(
+        // Act: Create controller with invalid configuration
+        $controller = $this->createController(
+            monitoringConfig: $this->monitoringConfig($invalidSettings),
+            monitoringResult: new ServerMonitoringResult([], []),
+        );
+
+        // Assert: Controller is created (doesn't crash)
+        $this->assertInstanceOf(DashboardController::class, $controller);
+    }
+
+    private function createController(
+        ?Request $request = null,
+        ?MonitoringConfig $monitoringConfig = null,
+        ?ServerMonitoringResult $monitoringResult = null,
+    ): DashboardController {
+        $monitoringConfig ??= $this->monitoringConfig();
+        $factory = new ServerMonitoringFactory(
+            $this->logger,
+            $this->cacheStore,
+            $this->cacheKeyFactory,
+            $this->ttlResolver,
+            $this->eventManager,
+            new NodeResponseNormalizer($this->logger),
+            new HttpProbeClient(),
+            AppReachabilityPolicy::fromMonitoringConfig($monitoringConfig),
+            new ServerApplicationIdResolver(),
+            new AppFatalStateRepository($this->createStub(DatabaseInterface::class)),
+            new LogSizeEvaluator($this->tools, $this->eventManager),
+        );
+        $monitoringResult ??= $factory->createDemoAll($monitoringConfig->servers->values);
+
+        return new DashboardController(
             $this->app,
             $this->tools,
             $this->twig,
@@ -1140,34 +873,25 @@ class DashboardControllerTest extends TestCase
             $this->cacheKeyFactory,
             $this->endpoints,
             $this->menuBuilder,
-            DashboardMonitoringContext::fromSettingsAndServices($invalidSettings, []),
-            request: new Request(),
+            $monitoringConfig,
+            $monitoringResult,
+            request: $request ?? new Request(),
         );
-
-        // Assert: Controller is created (doesn't crash)
-        $this->assertInstanceOf(DashboardController::class, $controller);
     }
 
-    private function monitoringContext(): DashboardMonitoringContext
+    /** @param null|array<string,mixed> $data */
+    private function monitoringConfig(?array $data = null): MonitoringConfig
     {
-        $factory = new ServerMonitoringFactory(
-            $this->logger,
-            $this->cacheStore,
-            $this->cacheKeyFactory,
-            $this->ttlResolver,
-            $this->eventManager,
-            new NodeResponseNormalizer($this->logger),
-            new HttpProbeClient(),
-            AppReachabilityPolicy::fromSettings($this->monitoringSettings),
-            new ServerApplicationIdResolver(),
-            new AppFatalStateRepository($this->createStub(DatabaseInterface::class)),
-            new LogSizeEvaluator($this->tools, $this->eventManager),
-        );
-        $serverMonitoringBuild = $factory->createDemoAll($this->monitoringSettings['servers']);
+        $data ??= $this->monitoringConfigData;
+        $servers = is_array($data['servers'] ?? null) ? $data['servers'] : [];
+        $ttl = is_array($data['ttl'] ?? null) ? $data['ttl'] : [];
+        $thresholds = is_array($data['thresholds'] ?? null) ? $data['thresholds'] : [];
 
-        return DashboardMonitoringContext::fromSettingsAndServices(
-            $this->monitoringSettings,
-            $serverMonitoringBuild->servicesByServer,
+        return MonitoringConfigFactory::create(
+            servers: ServersConfig::fromArray($servers),
+            ttl: TtlConfig::fromArray($ttl),
+            probes: ProbesConfig::default(),
+            thresholds: new ThresholdsConfig(serverData: $thresholds, appData: [], alarmRules: []),
         );
     }
 
@@ -1175,21 +899,7 @@ class DashboardControllerTest extends TestCase
     {
         // Ensure controller is created in setUp for tests that need it
         if (!isset($this->controller)) {
-            $this->controller = new DashboardController(
-                $this->app,
-                $this->tools,
-                $this->twig,
-                $this->logger,
-                $this->appConfig,
-                $this->notificationManager,
-                $this->eventManager,
-                $this->cacheStore,
-                $this->cacheKeyFactory,
-                $this->endpoints,
-                $this->menuBuilder,
-                $this->monitoringContext(),
-                request: new Request(),
-            );
+            $this->controller = $this->createController();
         }
 
         parent::tearDown();

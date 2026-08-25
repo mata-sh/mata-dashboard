@@ -33,8 +33,8 @@ $cron->log('Started');
 $exitCode = 0;
 
 try {
-    $alarmDecisionService = AlarmDecisionServiceFactory::fromEnv();
-    $notificationRuleResolver = new NotificationRuleResolver($monitoringRuntime->settingsSection('notification_rules'));
+    $alarmDecisionService = AlarmDecisionServiceFactory::fromConfig($runtime->appConfig->alarmDecision);
+    $notificationRuleResolver = new NotificationRuleResolver($monitoringRuntime->monitoringConfig->notificationRules);
     $events = $eventAggregator->getAlarmDecisionCandidates(
         $alarmDecisionService->getBatchLimit(),
         ['warning', 'info']

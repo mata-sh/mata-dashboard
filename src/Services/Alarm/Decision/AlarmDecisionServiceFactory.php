@@ -4,21 +4,18 @@ declare(strict_types=1);
 
 namespace Mata\Services\Alarm\Decision;
 
-use Mata\Config\Dto\OpaAlarmDecisionConfig;
-use Mata\Config\Env;
+use Mata\Config\Dto\AlarmDecisionConfig;
 use RuntimeException;
 
 final class AlarmDecisionServiceFactory
 {
-    public static function fromEnv(): AlarmDecisionServiceInterface
+    public static function fromConfig(AlarmDecisionConfig $config): AlarmDecisionServiceInterface
     {
-        $driver = strtolower(trim((string) Env::get('ALARM_DECISION_DRIVER', 'opa')));
-
-        return match ($driver) {
-            'opa' => new OpaAlarmDecisionService(OpaAlarmDecisionConfig::fromEnv()),
-            'builtin' => new BuiltinAlarmDecisionService(max(1, (int) Env::get('ALARM_DECISION_BATCH_LIMIT', '100'))),
+        return match ($config->driver) {
+            'opa' => new OpaAlarmDecisionService($config->opa, $config->batchLimit),
+            'builtin' => new BuiltinAlarmDecisionService($config->batchLimit),
             default => throw new RuntimeException(
-                sprintf('Invalid ALARM_DECISION_DRIVER "%s". Valid options: opa, builtin.', $driver)
+                sprintf('Invalid ALARM_DECISION_DRIVER "%s". Valid options: opa, builtin.', $config->driver)
             ),
         };
     }

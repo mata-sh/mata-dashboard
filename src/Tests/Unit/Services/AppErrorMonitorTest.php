@@ -132,7 +132,7 @@ final class AppErrorMonitorTest extends TestCase
         $this->assertSame(1, $result->fatalEventsRecorded);
     }
 
-    public function testServerSettingsIndependentlyDisableFatalAndLogSizeMonitoring(): void
+    public function testServerConfigIndependentlyDisablesFatalAndLogSizeMonitoring(): void
     {
         $this->events->expects($this->once())->method('getServerDataThresholdLevel')->willReturn('alarm');
         $this->events->expects($this->once())->method('handle')->willReturn(['eventRecorded' => true, 'eventId' => 1]);

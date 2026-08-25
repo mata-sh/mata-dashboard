@@ -6,6 +6,7 @@ namespace Mata\Services\Retention;
 
 use DateInterval;
 use DateTimeImmutable;
+use Mata\Config\Monitoring\Section\DataRetentionConfig;
 use Mata\Database\DatabaseInterface;
 use Psr\Log\LoggerInterface;
 use Throwable;
@@ -13,9 +14,6 @@ use Throwable;
 /** Performs bounded retention cleanup for alarms, events, and metric tables. */
 final class RetentionCleanupService
 {
-    private const DEFAULT_BATCH_LIMIT = 5000;
-    private const MAX_BATCH_LIMIT = 100000;
-
     /** @var array<string,array{tier:string,column:string}> */
     private const METRIC_TABLES = [
         'server_metrics_raw' => ['tier' => 'raw', 'column' => 'collected_at'],
@@ -32,23 +30,22 @@ final class RetentionCleanupService
     ) {}
 
     /**
-     * @param array<string,mixed> $retentionConfig
-     * @param null|callable       $tick            Invoked after each delete statement
+     * @param null|callable $tick Invoked after each delete statement
      */
     public function cleanup(
         DateTimeImmutable $now,
-        array $retentionConfig,
+        DataRetentionConfig $retentionConfig,
         ?callable $tick = null
     ): RetentionCleanupResult {
         $days = [
-            'alarms' => $this->retentionDays($retentionConfig, 'alarms', 'retention_days'),
-            'events' => $this->retentionDays($retentionConfig, 'events', 'retention_days'),
-            'raw' => $this->retentionDays($retentionConfig, 'metrics', 'raw_retention_days'),
-            'hourly' => $this->retentionDays($retentionConfig, 'metrics', 'hourly_retention_days'),
-            'daily' => $this->retentionDays($retentionConfig, 'metrics', 'daily_retention_days'),
+            'alarms' => $retentionConfig->alarms['retention_days'],
+            'events' => $retentionConfig->events['retention_days'],
+            'raw' => $retentionConfig->metrics['raw_retention_days'],
+            'hourly' => $retentionConfig->metrics['hourly_retention_days'],
+            'daily' => $retentionConfig->metrics['daily_retention_days'],
         ];
         $cutoffs = $this->cutoffs($now, $days);
-        $batchLimit = $this->batchLimit($retentionConfig);
+        $batchLimit = $retentionConfig->pruning['batch_limit'];
         $alarmsDeleted = 0;
         $eventsDeleted = 0;
         $metricsDeleted = array_fill_keys(array_keys(self::METRIC_TABLES), 0);
@@ -206,27 +203,6 @@ final class RetentionCleanupService
                 $this->tick($tick);
             }
         } while ($deleted === $batchLimit);
-    }
-
-    /** @param array<string,mixed> $config */
-    private function retentionDays(array $config, string $section, string $key): int
-    {
-        $values = $config[$section] ?? [];
-        $value = is_array($values) ? ($values[$key] ?? 0) : 0;
-
-        return max(0, (int) $value);
-    }
-
-    /** @param array<string,mixed> $config */
-    private function batchLimit(array $config): int
-    {
-        $pruning = $config['pruning'] ?? [];
-        $value = is_array($pruning) ? ($pruning['batch_limit'] ?? self::DEFAULT_BATCH_LIMIT) : self::DEFAULT_BATCH_LIMIT;
-        if (!is_numeric($value) || (int) $value < 1) {
-            return self::DEFAULT_BATCH_LIMIT;
-        }
-
-        return min(self::MAX_BATCH_LIMIT, (int) $value);
     }
 
     /** @return array{category:string,message:string} */

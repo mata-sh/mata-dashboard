@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Mata\Services\Alarm;
 
 use Mata\Config\Dto\ApplicationConfig;
+use Mata\Config\Monitoring\MonitoringConfig;
 use Mata\Services\Alarm\Dto\AlarmRule;
 use Mata\Services\Alarm\Dto\AlarmThresholdEvaluation;
 use Mata\Services\Event\CooldownHashFactory;
@@ -63,7 +64,7 @@ class AlarmThresholdCooldownService
      *
      * @param EventAggregatorServiceInterface $aggregator          Event querying service for threshold checks
      * @param EventRecorderService            $recorder            Event recorder for cooldown tracking
-     * @param ApplicationConfig               $appConfig           Application configuration for alarm settings
+     * @param ApplicationConfig               $appConfig           Application configuration for alarm behavior
      * @param null|CooldownHashFactory        $cooldownHashFactory Optional cooldown hash factory
      */
     public function __construct(
@@ -78,28 +79,17 @@ class AlarmThresholdCooldownService
         $this->cooldownHashFactory = $cooldownHashFactory ?? new CooldownHashFactory();
     }
 
-    /**
-     * Set monitoring settings from loaded configuration.
-     *
-     * Updates alarm thresholds and intervals from monitoring config files.
-     *
-     * @param array<string,mixed> $settings Monitoring settings containing 'thresholds' and 'intervals' keys
-     *
-     * @return $this For method chaining
-     */
-    public function setMonitoringSettings(array $settings): self
+    /** Configure alarm thresholds and intervals from loaded monitoring configuration. */
+    public function setMonitoringConfig(MonitoringConfig $monitoringConfig): self
     {
-        $thresholdsConfig = $settings['thresholds'] ?? [];
-        $intervalsConfig = $settings['intervals'] ?? [];
-
-        $rules = is_array($thresholdsConfig['alarms'] ?? null) ? $thresholdsConfig['alarms'] : [];
+        $rules = $monitoringConfig->thresholds->alarmRules;
         $this->alarmRules = [];
         foreach ($rules as $type => $rule) {
             $this->alarmRules[(string) $type] = is_array($rule)
                 ? AlarmRule::fromArray($rule)
                 : AlarmRule::invalid();
         }
-        $this->alarmIntervals = $intervalsConfig['alarms']['min_alarm_interval_minutes'] ?? [];
+        $this->alarmIntervals = $monitoringConfig->intervals->alarmMinimumMinutes;
 
         return $this;
     }
@@ -280,12 +270,12 @@ class AlarmThresholdCooldownService
     {
         // 1. Check alarm-specific configuration from intervals.json
         if (isset($this->alarmIntervals[$type])) {
-            return max(0, (int) $this->alarmIntervals[$type]);
+            return $this->alarmIntervals[$type];
         }
 
         // 2. Check default from intervals.json
         if (isset($this->alarmIntervals['_default'])) {
-            return max(0, (int) $this->alarmIntervals['_default']);
+            return $this->alarmIntervals['_default'];
         }
 
         // 3. Hardcoded fallback - 24 hours

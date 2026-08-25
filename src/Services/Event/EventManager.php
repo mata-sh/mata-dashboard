@@ -6,6 +6,7 @@ namespace Mata\Services\Event;
 
 use LogicException;
 use Mata\Config\Dto\ApplicationConfig;
+use Mata\Config\Monitoring\MonitoringConfig;
 use Mata\Services\Alarm\AlarmDirectProcessor;
 use Mata\Services\Alarm\Dto\Alarm;
 use Mata\Services\Alarm\Dto\AlarmLevel;
@@ -70,10 +71,10 @@ class EventManager
      */
     private const DEFAULT_EVENT_INTERVAL_MINUTES = 30;
 
-    /** @var array<string,mixed> Server metric thresholds */
+    /** @var array<string,array<string,float|int>> Server metric thresholds */
     private array $serverDataThresholds = [];
 
-    /** @var array<string,mixed> Application metric thresholds */
+    /** @var array<string,array<string,float|int>> Application metric thresholds */
     private array $appDataThresholds = [];
 
     /** @var array<string,int> Event type to interval minutes mapping */
@@ -99,12 +100,12 @@ class EventManager
      * Initialize event manager with optional dependencies.
      *
      * Supports fluent initialization via setter methods for deferred dependency injection.
-     * This allows EventManager to be created before loading monitoring settings.
+     * This allows EventManager to be created before loading monitoring configuration.
      *
-     * Use setMonitoringSettings() to configure thresholds and intervals after initialization.
+     * Use setMonitoringConfig() to configure thresholds and intervals after initialization.
      *
      * @param AlarmDirectProcessor                 $alarmDirectProcessor Direct alarm processor for forced alarms
-     * @param ApplicationConfig                    $appConfig            Application configuration for alarm/event settings
+     * @param ApplicationConfig                    $appConfig            Application configuration for alarm/event behavior
      * @param null|EventRecorderService            $eventRecorder        Optional event recorder (can be set later via setEventRecorder)
      * @param null|EventAggregatorServiceInterface $eventAggregator      Optional event aggregator (can be set later via setEventAggregator)
      * @param null|CooldownHashFactory             $cooldownHashFactory  Optional cooldown hash factory
@@ -151,23 +152,12 @@ class EventManager
         return $this;
     }
 
-    /**
-     * Set monitoring settings (fluent interface).
-     *
-     * Updates event thresholds and intervals from loaded monitoring configuration.
-     *
-     * @param array<string,mixed> $settings Monitoring settings containing 'thresholds' and 'intervals' keys
-     *
-     * @return $this For method chaining
-     */
-    public function setMonitoringSettings(array $settings): self
+    /** Configure event thresholds and intervals from loaded monitoring configuration. */
+    public function setMonitoringConfig(MonitoringConfig $monitoringConfig): self
     {
-        $thresholdsConfig = $settings['thresholds'] ?? [];
-        $intervalsConfig = $settings['intervals'] ?? [];
-
-        $this->serverDataThresholds = $thresholdsConfig['server_data'] ?? [];
-        $this->appDataThresholds = $thresholdsConfig['app_data'] ?? [];
-        $this->eventIntervals = $intervalsConfig['events']['min_event_interval_minutes'] ?? [];
+        $this->serverDataThresholds = $monitoringConfig->thresholds->serverData;
+        $this->appDataThresholds = $monitoringConfig->thresholds->appData;
+        $this->eventIntervals = $monitoringConfig->intervals->eventMinimumMinutes;
 
         return $this;
     }
@@ -199,13 +189,11 @@ class EventManager
     /**
      * Get a numeric threshold limit for a server metric and level.
      *
-     * @return null|float|int Null when the metric level is not configured or is not numeric
+     * @return null|float|int Null when the metric level is not configured
      */
     public function getServerDataThresholdLimit(string $name, string $level = 'alarm'): float|int|null
     {
-        $limit = $this->serverDataThresholds[$name][$level] ?? null;
-
-        return is_numeric($limit) ? $limit + 0 : null;
+        return $this->serverDataThresholds[$name][$level] ?? null;
     }
 
     /**
@@ -356,12 +344,12 @@ class EventManager
     {
         // 1. Check event-specific configuration from intervals.json
         if (isset($this->eventIntervals[$type])) {
-            return max(0, (int) $this->eventIntervals[$type]);
+            return $this->eventIntervals[$type];
         }
 
         // 2. Check default from intervals.json
         if (isset($this->eventIntervals['_default'])) {
-            return max(0, (int) $this->eventIntervals['_default']);
+            return $this->eventIntervals['_default'];
         }
 
         // 3. Hardcoded fallback

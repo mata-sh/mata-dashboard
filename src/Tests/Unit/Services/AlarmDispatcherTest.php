@@ -5,13 +5,13 @@ declare(strict_types=1);
 namespace Mata\Tests\Unit\Services;
 
 use DateTimeImmutable;
-use Mata\Config\Dto\AlarmLimitsConfig;
 use Mata\Config\Dto\MailConfig;
+use Mata\Config\Monitoring\Section\AlarmRateLimit;
+use Mata\Config\Monitoring\Section\AlarmRateLimitsConfig;
 use Mata\Models\AlarmDeliveryRepository;
 use Mata\Services\Alarm\AlarmDispatcher;
 use Mata\Services\Alarm\AlarmEmailFactory;
 use Mata\Services\Alarm\AlarmEmailSender;
-use Mata\Services\Alarm\Dto\AlarmLimit;
 use Mata\Tests\Helpers\SqliteTestDatabase;
 use Mata\Tests\TestCase;
 use Symfony\Component\Mailer\MailerInterface;
@@ -74,10 +74,10 @@ final class AlarmDispatcherTest extends TestCase
 
         $mailer = $this->createMock(MailerInterface::class);
         $mailer->expects($this->never())->method('send');
-        $limit = new AlarmLimit(perMinute: 1, perHour: 0, perDay: 0);
+        $limit = new AlarmRateLimit(perMinute: 1, perHour: 0, perDay: 0);
         $dispatcher = new AlarmDispatcher(
             new AlarmDeliveryRepository($db),
-            new AlarmLimitsConfig($limit, ['email' => $limit]),
+            new AlarmRateLimitsConfig($limit, ['email' => $limit], []),
             $this->sender($mailer)
         );
 
@@ -109,10 +109,10 @@ final class AlarmDispatcherTest extends TestCase
             SQL);
         $mailer = $this->createMock(MailerInterface::class);
         $mailer->expects($this->exactly(2))->method('send');
-        $limit = new AlarmLimit(0, 0, 0);
+        $limit = new AlarmRateLimit(0, 0, 0);
         $dispatcher = new AlarmDispatcher(
             new AlarmDeliveryRepository($db),
-            new AlarmLimitsConfig($limit, ['email' => $limit]),
+            new AlarmRateLimitsConfig($limit, ['email' => $limit], []),
             $this->sender($mailer),
         );
 
@@ -139,10 +139,10 @@ final class AlarmDispatcherTest extends TestCase
                 $sent = $message;
             },
         );
-        $limit = new AlarmLimit(0, 0, 0);
+        $limit = new AlarmRateLimit(0, 0, 0);
         $dispatcher = new AlarmDispatcher(
             new AlarmDeliveryRepository($db),
-            new AlarmLimitsConfig($limit, ['email' => $limit]),
+            new AlarmRateLimitsConfig($limit, ['email' => $limit], []),
             $this->sender($mailer),
         );
 
@@ -165,10 +165,10 @@ final class AlarmDispatcherTest extends TestCase
         $db = $this->createPendingDatabase();
         $mailer = $this->createMock(MailerInterface::class);
         $mailer->expects($this->never())->method('send');
-        $limit = new AlarmLimit(0, 0, 0);
+        $limit = new AlarmRateLimit(0, 0, 0);
         $dispatcher = new AlarmDispatcher(
             new AlarmDeliveryRepository($db),
-            new AlarmLimitsConfig($limit, ['email' => $limit]),
+            new AlarmRateLimitsConfig($limit, ['email' => $limit], []),
             $this->sender($mailer, false),
             maxAttempts: 2,
         );

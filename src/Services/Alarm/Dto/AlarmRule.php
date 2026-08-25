@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Mata\Services\Alarm\Dto;
 
-/** Normalized alarm threshold rule built from monitoring settings. */
+/** Normalized alarm threshold rule built from monitoring configuration. */
 final readonly class AlarmRule
 {
     public const STRATEGY_EVENT_COUNT_WINDOW = 'event_count_window';
@@ -64,27 +64,27 @@ final readonly class AlarmRule
     /** @param array<string,mixed> $config */
     private static function consecutiveFailures(array $config): self
     {
-        return new self(
-            true,
-            self::STRATEGY_CONSECUTIVE_FAILURES,
-            max(1, (int) ($config['required_count'] ?? 2)),
-            max(1, (int) ($config['window_minutes'] ?? 10)),
-        );
+        $requiredCount = $config['required_count'] ?? 2;
+        $windowMinutes = $config['window_minutes'] ?? 10;
+        if (!is_int($requiredCount) || $requiredCount < 1 || !is_int($windowMinutes) || $windowMinutes < 1) {
+            return self::invalid();
+        }
+
+        return new self(true, self::STRATEGY_CONSECUTIVE_FAILURES, $requiredCount, $windowMinutes);
     }
 
     /** @param array<string,mixed> $config */
     private static function eventCountWindow(array $config): self
     {
-        $required = (int) ($config['alarm_threshold_event_count'] ?? 1);
-        if ($required <= 0) {
+        $required = $config['alarm_threshold_event_count'] ?? 1;
+        $windowMinutes = $config['alarm_threshold_window_minutes'] ?? 720;
+        if (!is_int($required) || $required < 0 || !is_int($windowMinutes) || $windowMinutes < 1) {
+            return self::invalid();
+        }
+        if ($required === 0) {
             return self::immediate();
         }
 
-        return new self(
-            true,
-            self::STRATEGY_EVENT_COUNT_WINDOW,
-            $required,
-            max(1, (int) ($config['alarm_threshold_window_minutes'] ?? 720)),
-        );
+        return new self(true, self::STRATEGY_EVENT_COUNT_WINDOW, $required, $windowMinutes);
     }
 }

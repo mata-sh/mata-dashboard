@@ -21,6 +21,16 @@ use PHPUnit\Framework\TestCase;
  */
 final class OpaAlarmDecisionServiceTest extends TestCase
 {
+    public function testBatchLimitIsClamped(): void
+    {
+        $service = new OpaAlarmDecisionService(
+            new OpaAlarmDecisionConfig('http://opa.test', '/v1/data/alarms/decision', 1),
+            0,
+        );
+
+        $this->assertSame(1, $service->getBatchLimit());
+    }
+
     public function testSupportedChannelsAreNormalizedForInputAndDecisions(): void
     {
         $history = [];
@@ -31,7 +41,8 @@ final class OpaAlarmDecisionServiceTest extends TestCase
         ]));
         $stack->push(Middleware::history($history));
         $service = new OpaAlarmDecisionService(
-            new OpaAlarmDecisionConfig('http://opa.test', '/v1/data/alarms/decision', 1, 10),
+            new OpaAlarmDecisionConfig('http://opa.test', '/v1/data/alarms/decision', 1),
+            10,
             new Client(['base_uri' => 'http://opa.test', 'handler' => $stack])
         );
 
@@ -61,7 +72,8 @@ final class OpaAlarmDecisionServiceTest extends TestCase
         ]));
         $stack->push(Middleware::history($history));
         $service = new OpaAlarmDecisionService(
-            new OpaAlarmDecisionConfig('http://opa.test', '/v1/data/alarms/decision', 1, 10),
+            new OpaAlarmDecisionConfig('http://opa.test', '/v1/data/alarms/decision', 1),
+            10,
             new Client(['base_uri' => 'http://opa.test', 'handler' => $stack])
         );
 
@@ -160,7 +172,8 @@ final class OpaAlarmDecisionServiceTest extends TestCase
         ]));
 
         return new OpaAlarmDecisionService(
-            new OpaAlarmDecisionConfig('http://opa.test', '/v1/data/alarms/decision', 1, 10),
+            new OpaAlarmDecisionConfig('http://opa.test', '/v1/data/alarms/decision', 1),
+            10,
             new Client(['base_uri' => 'http://opa.test', 'handler' => $stack])
         );
     }

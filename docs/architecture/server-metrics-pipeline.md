@@ -138,7 +138,7 @@ plus `sample_count`, `first_sample`, and `last_sample`.
 ### Daily planning
 
 Daily planning does not depend on an hourly row being inserted in the same run.
-With `lag_minutes: 30` and the code fallback `catch_up_days: 7`, it upserts
+With `lag_minutes: 30` and configured `catch_up_days: 7`, it upserts
 recent completed UTC days after the 30-minute post-midnight delay.
 
 A daily aggregate normally reads raw rows for:

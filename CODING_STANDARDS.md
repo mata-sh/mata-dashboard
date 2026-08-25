@@ -9,6 +9,10 @@ Document project-specific decisions here, not syntax already visible in nearby c
 - `RouterSetup` owns route registration and HTTP middleware. Register named endpoints and validate route parameters before controller dispatch.
 - Use GET for reads and POST/PUT/PATCH/DELETE for mutations.
 - Replace unwieldy dependency or configuration lists with typed context DTOs. Prefer immutable DTOs at boundaries over mixed arrays.
+- Use `Config` for dashboard-owned startup input, whether `.env` or JSON; `Settings` for per-entity monitored payload values; `Policy` for derived behavior; and `Context` or `Runtime` for composed collaborators.
+- Config factories own defaults and validation. Loaders own I/O and fallback; runtime policy derives from validated config.
+- Distinguish `default()` from `empty()`. Do not expose constructors that bypass config invariants.
+- Accept native JSON integers only and enforce bounds without coercion or clamping. Parse text-only numeric sources with strict source-aware syntax.
 - Use named arguments when they clarify boolean flags or long calls.
 - Extract cohesive collaborators instead of expanding an already broad controller.
 

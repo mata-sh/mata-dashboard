@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Mata\Tests\Unit\Services;
 
+use Mata\Config\Dto\AlarmDecisionConfig;
 use Mata\Config\Dto\ApplicationConfig;
 use Mata\Config\Dto\CliSecurityConfig;
 use Mata\Config\Dto\DashboardConfig;
@@ -12,13 +13,17 @@ use Mata\Config\Dto\EnvironmentConfig;
 use Mata\Config\Dto\GeneralConfig;
 use Mata\Config\Dto\LoggingConfig;
 use Mata\Config\Dto\MailConfig;
+use Mata\Config\Dto\NodeApiConfig;
+use Mata\Config\Dto\OpaAlarmDecisionConfig;
 use Mata\Config\Dto\PhpConfig;
 use Mata\Config\Dto\RateLimitingConfig;
 use Mata\Config\Dto\TemplateConfig;
+use Mata\Config\Monitoring\Section\ThresholdsConfig;
 use Mata\Services\Alarm\AlarmThresholdCooldownService;
 use Mata\Services\Event\Dto\EventContext;
 use Mata\Services\Event\EventAggregatorServiceInterface;
 use Mata\Services\Event\EventRecorderService;
+use Mata\Tests\Helpers\MonitoringConfigFactory;
 use Mata\Tests\TestCase;
 
 /**
@@ -70,9 +75,11 @@ final class AlarmThresholdCooldownServiceTest extends TestCase
             $this->createStub(EventAggregatorServiceInterface::class),
             $this->createStub(EventRecorderService::class),
             $this->config(),
-        ))->setMonitoringSettings(['thresholds' => ['alarms' => [
-            'app_unreachable' => ['strategy' => 'consecutive_failures', 'required_count' => 2, 'window_minutes' => 10],
-        ]]]);
+        ))->setMonitoringConfig(MonitoringConfigFactory::create(thresholds: new ThresholdsConfig(
+            serverData: [],
+            appData: [],
+            alarmRules: ['app_unreachable' => ['strategy' => 'consecutive_failures', 'required_count' => 2, 'window_minutes' => 10]],
+        )));
         $first = EventContext::fromArray(['identifier' => 'one', 'additional_data' => [
             'consecutive_failures' => 1, 'first_failure_at' => gmdate(DATE_ATOM),
         ]]);
@@ -95,9 +102,11 @@ final class AlarmThresholdCooldownServiceTest extends TestCase
             $this->createStub(EventAggregatorServiceInterface::class),
             $this->createStub(EventRecorderService::class),
             $this->config(),
-        ))->setMonitoringSettings(['thresholds' => ['alarms' => [
-            'app_unreachable' => ['enabled' => false],
-        ]]]);
+        ))->setMonitoringConfig(MonitoringConfigFactory::create(thresholds: new ThresholdsConfig(
+            serverData: [],
+            appData: [],
+            alarmRules: ['app_unreachable' => ['enabled' => false]],
+        )));
 
         $evaluation = $service->evaluateAlarmForEvent('app_unreachable', 'server', 'app');
 
@@ -119,6 +128,12 @@ final class AlarmThresholdCooldownServiceTest extends TestCase
             mail: new MailConfig(null, null, null, [], [], [], 'UTF-8', null),
             cliSecurity: new CliSecurityConfig(false, ['root']),
             rateLimiting: new RateLimitingConfig(false, 'file', '/tmp/rate_limit_test.json', null, 6379, null, 0, 5, 300, 60, 60, 100, 60),
+            alarmDecision: new AlarmDecisionConfig(
+                'opa',
+                100,
+                new OpaAlarmDecisionConfig('http://127.0.0.1:3320', '/v1/data/alarms/decision', 5),
+            ),
+            nodeApi: new NodeApiConfig(NodeApiConfig::DEFAULT_TIMEOUT_SECONDS),
         );
     }
 }

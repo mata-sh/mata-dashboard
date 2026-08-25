@@ -27,7 +27,7 @@ schedules, tables, retention, and diagnostics.
 
 Application error, log-size, session, and reachability behavior is controlled
 by the node's per-app `monitoring` settings. The dashboard also has two
-server-scoped application flags. See [Application error monitoring](application-error-monitoring.md).
+server-scoped configuration flags. See [Application error monitoring](application-error-monitoring.md).
 
 ## Alarm delivery
 

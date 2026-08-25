@@ -21,7 +21,7 @@ $cron = $runtime->cron;
 $db = $runtime->db;
 $configSyncRepository = $monitoringRuntime->configSyncRepository;
 $idResolver = $monitoringRuntime->idResolver;
-$monitoringSettings = $monitoringRuntime->monitoringSettings;
+$monitoringConfig = $monitoringRuntime->monitoringConfig;
 
 if (!$cron->acquireLock()) {
     exit("Already running.\n");
@@ -32,11 +32,11 @@ $cron->log('Started');
 $exitCode = 0;
 
 try {
-    $aggregationConfig = $monitoringSettings['data_retention']['aggregation'] ?? [];
-    $hourlyLagMinutes = max(0, (int) ($aggregationConfig['hourly']['lag_minutes'] ?? 5));
-    $hourlyCatchUpHours = max(1, (int) ($aggregationConfig['hourly']['catch_up_hours'] ?? 24));
-    $dailyLagMinutes = max(0, (int) ($aggregationConfig['daily']['lag_minutes'] ?? 30));
-    $dailyCatchUpDays = max(1, (int) ($aggregationConfig['daily']['catch_up_days'] ?? 7));
+    $aggregationConfig = $monitoringConfig->dataRetention->aggregation;
+    $hourlyLagMinutes = $aggregationConfig['hourly']['lag_minutes'];
+    $hourlyCatchUpHours = $aggregationConfig['hourly']['catch_up_hours'];
+    $dailyLagMinutes = $aggregationConfig['daily']['lag_minutes'];
+    $dailyCatchUpDays = $aggregationConfig['daily']['catch_up_days'];
 
     $repository = new ServerMetricsRepository($db, $idResolver, $configSyncRepository);
     $aggregator = new ServerMetricsAggregator($db, $repository, $log);
@@ -58,7 +58,7 @@ try {
         'daily_failed' => 0,
     ];
 
-    foreach ($monitoringSettings['servers'] ?? [] as $serverName => $serverConfig) {
+    foreach ($monitoringConfig->servers->values as $serverName => $serverConfig) {
         if (!is_array($serverConfig) || str_starts_with((string) $serverName, '_') || ServerConfigState::isDisabled($serverConfig)) {
             ++$stats['servers_skipped'];
 

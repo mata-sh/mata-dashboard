@@ -6,7 +6,6 @@ namespace Mata\Config;
 
 use Exception;
 use Mata\Config\Dto\ApplicationConfig;
-use Mata\Config\Dto\ConfigInitializationResult;
 use Psr\Log\LoggerInterface;
 
 /**

@@ -12,6 +12,7 @@ use GuzzleHttp\HandlerStack;
 use GuzzleHttp\Promise\PromiseInterface;
 use GuzzleHttp\Psr7\Request;
 use GuzzleHttp\Psr7\Response;
+use Mata\Config\Monitoring\Section\TtlConfig;
 use Mata\Services\Cache\ApiCacheKeyFactory;
 use Mata\Services\Cache\CacheEntry;
 use Mata\Services\Cache\CacheStoreInterface;
@@ -188,7 +189,7 @@ final class NodeHealthMonitorTest extends TestCase
         return new NodeHealthMonitor(
             $store,
             new ApiCacheKeyFactory(),
-            new CacheTtlResolver([CacheType::Health->value => 60]),
+            new CacheTtlResolver(new TtlConfig([CacheType::Health->value => 60])),
             $apiClient,
             $probe,
             $events ?? $this->createStub(EventManager::class),

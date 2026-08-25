@@ -4,15 +4,21 @@ declare(strict_types=1);
 
 namespace Mata\Tests\Unit\Config;
 
-use Mata\Config\Monitoring\DataRetentionConfigLoader;
-use Mata\Config\Monitoring\IntervalsConfigLoader;
-use Mata\Config\Monitoring\MenuConfigLoader;
-use Mata\Config\Monitoring\MonitoringConfigManager;
-use Mata\Config\Monitoring\NotificationRulesConfigLoader;
-use Mata\Config\Monitoring\ProbesConfigLoader;
-use Mata\Config\Monitoring\ServersConfigLoader;
-use Mata\Config\Monitoring\ThresholdsConfigLoader;
-use Mata\Config\Monitoring\TtlConfigLoader;
+use InvalidArgumentException;
+use Mata\Config\Monitoring\Loader\DataRetentionConfigLoader;
+use Mata\Config\Monitoring\Loader\IntervalsConfigLoader;
+use Mata\Config\Monitoring\Loader\MenuConfigLoader;
+use Mata\Config\Monitoring\Loader\NotificationRulesConfigLoader;
+use Mata\Config\Monitoring\Loader\ProbesConfigLoader;
+use Mata\Config\Monitoring\Loader\ServersConfigLoader;
+use Mata\Config\Monitoring\Loader\ThresholdsConfigLoader;
+use Mata\Config\Monitoring\Loader\TtlConfigLoader;
+use Mata\Config\Monitoring\MonitoringConfigLoader;
+use Mata\Config\Monitoring\Section\AlarmRateLimit;
+use Mata\Config\Monitoring\Section\AlarmRateLimitsConfig;
+use Mata\Config\Monitoring\Section\DataRetentionConfig;
+use Mata\Config\Monitoring\Section\NotificationRulesConfig;
+use Mata\Config\Monitoring\Section\ProbesConfig;
 use Mata\Models\Dto\EventRecordResult;
 use Mata\Services\Event\EventRecorderService;
 use Mata\Services\Navigation\MenuBuilder;
@@ -29,7 +35,7 @@ final class MonitoringConfigLoadersTest extends TestCase
 {
     private EventRecorderService $eventRecorder;
     private ServersConfigLoader $loader;
-    private MonitoringConfigManager $manager;
+    private MonitoringConfigLoader $manager;
     private TtlConfigLoader $ttlLoader;
     private NotificationRulesConfigLoader $notificationRulesLoader;
     private ThresholdsConfigLoader $thresholdsLoader;
@@ -63,18 +69,17 @@ final class MonitoringConfigLoadersTest extends TestCase
         file_put_contents($configPath . '/probes.json', '{"max_retries": 3}');
 
         try {
-            $config = $this->manager->loadAllConfigs($configPath, 'demo');
+            $config = $this->manager->load($configPath, $this->alarmRateLimits());
         } finally {
             $this->cleanupTempFiles([$configPath]);
         }
 
-        $this->assertSame('demo', $config['environment']);
-        $this->assertArrayHasKey('server', $config['servers']);
-        $this->assertSame(3, $config['probes']['max_retries']);
-        $this->assertSame(5, $config['probes']['timeout_seconds'], 'omitted probe keys fall back to defaults');
+        $this->assertArrayHasKey('server', $config->servers->values);
+        $this->assertSame(3, $config->probes->maxRetries);
+        $this->assertSame(5, $config->probes->timeoutSeconds, 'omitted probe keys fall back to defaults');
         $this->assertSame(
             ['enabled' => true, 'channels' => ['email']],
-            $config['notification_rules']['defaults']
+            $config->notificationRules->defaults
         );
     }
 
@@ -86,29 +91,33 @@ final class MonitoringConfigLoadersTest extends TestCase
             ->method('recordEvent')
             ->willReturn(new EventRecordResult(1, null, null, null, null, null));
         $configPath = $this->createTempDirectory();
-        $manager = new MonitoringConfigManager([
-            new ServersConfigLoader(eventRecorder: $this->eventRecorder, fallbackOnFailure: true),
-            new TtlConfigLoader(eventRecorder: $this->eventRecorder, fallbackOnFailure: true),
-            new DataRetentionConfigLoader(eventRecorder: $this->eventRecorder, fallbackOnFailure: true),
-            new IntervalsConfigLoader(eventRecorder: $this->eventRecorder, fallbackOnFailure: true),
-            new ProbesConfigLoader(eventRecorder: $this->eventRecorder, fallbackOnFailure: true),
-            new NotificationRulesConfigLoader(eventRecorder: $this->eventRecorder, fallbackOnFailure: true),
-            new ThresholdsConfigLoader(eventRecorder: $this->eventRecorder, fallbackOnFailure: true),
-        ]);
+        $manager = new MonitoringConfigLoader(
+            servers: new ServersConfigLoader(eventRecorder: $this->eventRecorder, fallbackOnFailure: true),
+            ttl: new TtlConfigLoader(eventRecorder: $this->eventRecorder, fallbackOnFailure: true),
+            dataRetention: new DataRetentionConfigLoader(eventRecorder: $this->eventRecorder, fallbackOnFailure: true),
+            intervals: new IntervalsConfigLoader(eventRecorder: $this->eventRecorder, fallbackOnFailure: true),
+            probes: new ProbesConfigLoader(eventRecorder: $this->eventRecorder, fallbackOnFailure: true),
+            notificationRules: new NotificationRulesConfigLoader(eventRecorder: $this->eventRecorder, fallbackOnFailure: true),
+            thresholds: new ThresholdsConfigLoader(eventRecorder: $this->eventRecorder, fallbackOnFailure: true),
+            menu: new MenuConfigLoader($this->eventRecorder, MenuBuilder::MENU_KEYS),
+        );
 
         try {
-            $config = $manager->loadAllConfigs($configPath, 'demo');
+            $config = $manager->load($configPath, $this->alarmRateLimits());
         } finally {
             $this->cleanupTempFiles([$configPath]);
         }
 
-        $this->assertSame([], $config['servers']);
-        $this->assertSame(60, $config['ttl']['apps']);
-        $this->assertSame(['enabled' => true, 'channels' => ['email']], $config['notification_rules']['defaults']);
-        $this->assertSame('consecutive_failures', $config['thresholds']['alarms']['app_unreachable']['strategy']);
-        $this->assertSame('demo', $config['environment']);
-        $this->assertSame([], $config['charts']);
-        $this->assertArrayNotHasKey('events', $config);
+        // Every registered loader contributed its defaults.
+        $this->assertSame([], $config->servers->values);
+        $this->assertSame(60, $config->ttl->get('apps'));
+        $this->assertSame(['enabled' => true, 'channels' => ['email']], $config->notificationRules->defaults);
+        $this->assertSame('consecutive_failures', $config->thresholds->alarmRules['app_unreachable']['strategy']);
+        $this->assertSame(30, $config->dataRetention->metrics['raw_retention_days']);
+        $this->assertSame(60, $config->intervals->eventMinimumMinutes['_default']);
+        $this->assertEquals(ProbesConfig::default(), $config->probes);
+        $this->assertSame([], $config->menu->overrides);
+        $this->assertInstanceOf(AlarmRateLimitsConfig::class, $config->alarmRateLimits);
     }
 
     public function testLoadNotificationRulesConfigNormalizesValidRules(): void
@@ -121,9 +130,9 @@ final class MonitoringConfigLoadersTest extends TestCase
             }
             JSON);
 
-        $this->assertSame(['enabled' => true, 'channels' => ['email']], $rules['defaults']);
-        $this->assertSame(['enabled' => false, 'channels' => []], $rules['event_types']['fatal_errors_occurring']);
-        $this->assertSame(['enabled' => true], $rules['application_overrides']['app']['fatal_errors_occurring']);
+        $this->assertSame(['enabled' => true, 'channels' => ['email']], $rules->defaults);
+        $this->assertSame(['enabled' => false, 'channels' => []], $rules->eventTypes['fatal_errors_occurring']);
+        $this->assertSame(['enabled' => true], $rules->applicationOverrides['app']['fatal_errors_occurring']);
     }
 
     public function testLoadNotificationRulesConfigFallsBackForUnreadablePath(): void
@@ -133,7 +142,7 @@ final class MonitoringConfigLoadersTest extends TestCase
         $this->expectNotificationRulesFallback();
 
         try {
-            $rules = (new MonitoringConfigManager([$this->notificationRulesLoader]))->loadAllConfigs($configPath)['notification_rules'];
+            $rules = $this->notificationRulesLoader->load($configPath);
         } finally {
             $this->cleanupTempFiles([$configPath]);
         }
@@ -206,9 +215,9 @@ final class MonitoringConfigLoadersTest extends TestCase
             unlink($path);
         }
 
-        $this->assertSame(120, $ttl['apps']);
-        $this->assertSame(86400, $ttl['serverInfo']);
-        $this->assertSame(86400, $ttl['audit']);
+        $this->assertSame(120, $ttl->get('apps'));
+        $this->assertSame(86400, $ttl->get('serverInfo'));
+        $this->assertSame(86400, $ttl->get('audit'));
     }
 
     public function testLoadMenuConfigKeepsValidBooleanOverrides(): void
@@ -223,7 +232,7 @@ final class MonitoringConfigLoadersTest extends TestCase
             unlink($path);
         }
 
-        $this->assertSame(['metrics' => true, 'databases' => false], $menu);
+        $this->assertSame(['metrics' => true, 'databases' => false], $menu->overrides);
     }
 
     public function testLoadMenuConfigReturnsNoOverridesWhenFileMissing(): void
@@ -233,7 +242,7 @@ final class MonitoringConfigLoadersTest extends TestCase
 
         $menu = $this->menuLoader->loadMenuConfig(sys_get_temp_dir() . '/mata-menu-does-not-exist.json');
 
-        $this->assertSame([], $menu, 'a missing optional menu.json keeps built-in defaults silently');
+        $this->assertSame([], $menu->overrides, 'a missing optional menu.json keeps built-in defaults silently');
     }
 
     public function testLoadMenuConfigWarnsAndDropsUnknownMenuKey(): void
@@ -294,7 +303,7 @@ final class MonitoringConfigLoadersTest extends TestCase
             unlink($path);
         }
 
-        $this->assertSame(['enabled-server'], array_keys($result));
+        $this->assertSame(['enabled-server'], array_keys($result->values));
     }
 
     public function testLoadServersConfigAllowsAllServersToBeDisabled(): void
@@ -315,7 +324,7 @@ final class MonitoringConfigLoadersTest extends TestCase
             unlink($path);
         }
 
-        $this->assertSame([], $result);
+        $this->assertSame([], $result->values);
     }
 
     public function testValidateServersConfigRejectsNonBooleanDisabledFlag(): void
@@ -369,7 +378,7 @@ final class MonitoringConfigLoadersTest extends TestCase
             unlink($path);
         }
 
-        $this->assertSame(['valid-server'], array_keys($result));
+        $this->assertSame(['valid-server'], array_keys($result->values));
     }
 
     #[DataProvider('nonBooleanApplicationMonitoringFlagProvider')]
@@ -530,6 +539,25 @@ final class MonitoringConfigLoadersTest extends TestCase
             ->method('recordEvent');
 
         $result = $this->loader->validateServersConfig($config);
+
+        $this->assertTrue($result['is_valid']);
+        $this->assertEmpty($result['errors']);
+    }
+
+    public function testValidateServersConfigDoesNotWarnForDisabledHttpServer(): void
+    {
+        $this->useEventRecorderMock();
+        $this->eventRecorder
+            ->expects($this->never())
+            ->method('recordEvent');
+
+        $result = $this->loader->validateServersConfig([
+            'disabled-server' => [
+                'disabled' => true,
+                'api_url' => 'http://localhost:3310/mata-node',
+                'allow_http' => 'on',
+            ],
+        ]);
 
         $this->assertTrue($result['is_valid']);
         $this->assertEmpty($result['errors']);
@@ -934,7 +962,7 @@ final class MonitoringConfigLoadersTest extends TestCase
     public function testDefaultThresholdsIncludeCronjobCountAndResourceUsageAlarms(): void
     {
         $method = new ReflectionMethod($this->thresholdsLoader, 'getDefaultConfig');
-        $thresholds = $method->invoke($this->thresholdsLoader);
+        $thresholds = $method->invoke($this->thresholdsLoader)->toArray();
 
         $this->assertSame(['good' => -1, 'alarm' => 0], $thresholds['server_data']['cronjobs_failed_count']);
         $this->assertArrayNotHasKey('orders_export_stale', $thresholds['alarms']);
@@ -976,7 +1004,7 @@ final class MonitoringConfigLoadersTest extends TestCase
         ]], JSON_THROW_ON_ERROR));
 
         try {
-            $thresholds = $this->thresholdsLoader->loadThresholdsConfig($path);
+            $thresholds = $this->thresholdsLoader->loadThresholdsConfig($path)->toArray();
         } finally {
             unlink($path);
         }
@@ -1014,7 +1042,7 @@ final class MonitoringConfigLoadersTest extends TestCase
         ]], JSON_THROW_ON_ERROR));
 
         try {
-            $thresholds = $this->thresholdsLoader->loadThresholdsConfig($path);
+            $thresholds = $this->thresholdsLoader->loadThresholdsConfig($path)->toArray();
         } finally {
             unlink($path);
         }
@@ -1038,7 +1066,7 @@ final class MonitoringConfigLoadersTest extends TestCase
         ], JSON_THROW_ON_ERROR));
 
         try {
-            $config = $this->intervalsLoader->loadIntervalsConfig($path);
+            $config = $this->intervalsLoader->loadIntervalsConfig($path)->toArray();
         } finally {
             unlink($path);
         }
@@ -1056,7 +1084,7 @@ final class MonitoringConfigLoadersTest extends TestCase
         file_put_contents($path, '{"unused": true}');
 
         try {
-            $config = $this->intervalsLoader->loadIntervalsConfig($path);
+            $config = $this->intervalsLoader->loadIntervalsConfig($path)->toArray();
         } finally {
             unlink($path);
         }
@@ -1108,21 +1136,12 @@ final class MonitoringConfigLoadersTest extends TestCase
         $this->assertSame(5, $config['ingestion_health']['log_rotate_megabytes']);
     }
 
-    public function testDataRetentionNormalizesNegativeRetentionAndPreservesDisabledZero(): void
+    public function testDataRetentionRejectsNegativeRetention(): void
     {
-        $config = $this->loadDataRetentionConfig([
-            'metrics' => [
-                'raw_retention_days' => -1,
-                'hourly_retention_days' => 0,
-            ],
-            'events' => ['retention_days' => '-2'],
-            'alarms' => ['retention_days' => '0'],
-        ]);
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('data_retention.metrics.raw_retention_days must be at least 0.');
 
-        $this->assertSame(0, $config['metrics']['raw_retention_days']);
-        $this->assertSame(0, $config['metrics']['hourly_retention_days']);
-        $this->assertSame(0, $config['events']['retention_days']);
-        $this->assertSame(0, $config['alarms']['retention_days']);
+        DataRetentionConfig::fromArray(['metrics' => ['raw_retention_days' => -1]]);
     }
 
     private function expectNotificationRulesFallback(): void
@@ -1135,23 +1154,20 @@ final class MonitoringConfigLoadersTest extends TestCase
     }
 
     /** @param array<string,mixed> $rules */
-    private function assertDefaultNotificationRules(array $rules): void
+    private function assertDefaultNotificationRules(NotificationRulesConfig $rules): void
     {
-        $this->assertSame([
-            'defaults' => ['enabled' => true, 'channels' => ['email']],
-            'event_types' => [],
-            'application_overrides' => [],
-        ], $rules);
+        $this->assertSame(['enabled' => true, 'channels' => ['email']], $rules->defaults);
+        $this->assertSame([], $rules->eventTypes);
+        $this->assertSame([], $rules->applicationOverrides);
     }
 
-    /** @return array<string,mixed> */
-    private function loadNotificationRulesJson(string $json): array
+    private function loadNotificationRulesJson(string $json): NotificationRulesConfig
     {
         $configPath = $this->createTempDirectory();
         file_put_contents($configPath . '/notification_rules.json', $json);
 
         try {
-            return (new MonitoringConfigManager([$this->notificationRulesLoader]))->loadAllConfigs($configPath)['notification_rules'];
+            return $this->notificationRulesLoader->load($configPath);
         } finally {
             $this->cleanupTempFiles([$configPath]);
         }
@@ -1164,7 +1180,7 @@ final class MonitoringConfigLoadersTest extends TestCase
         file_put_contents($configPath . '/menu.json', $json);
 
         try {
-            return (new MonitoringConfigManager([$this->menuLoader]))->loadAllConfigs($configPath)['menu'];
+            return $this->menuLoader->load($configPath)->overrides;
         } finally {
             $this->cleanupTempFiles([$configPath]);
         }
@@ -1189,21 +1205,27 @@ final class MonitoringConfigLoadersTest extends TestCase
             validKeys: MenuBuilder::MENU_KEYS,
             fallbackOnFailure: true,
         );
-        $this->manager = new MonitoringConfigManager([
-            $this->loader,
-            $this->ttlLoader,
-            $this->dataRetentionLoader,
-            $this->intervalsLoader,
-            new ProbesConfigLoader(eventRecorder: $this->eventRecorder, fallbackOnFailure: true),
-            $this->notificationRulesLoader,
-            $this->thresholdsLoader,
-        ]);
+        $this->manager = new MonitoringConfigLoader(
+            servers: $this->loader,
+            ttl: $this->ttlLoader,
+            dataRetention: $this->dataRetentionLoader,
+            intervals: $this->intervalsLoader,
+            probes: new ProbesConfigLoader(eventRecorder: $this->eventRecorder, fallbackOnFailure: true),
+            notificationRules: $this->notificationRulesLoader,
+            thresholds: $this->thresholdsLoader,
+            menu: $this->menuLoader,
+        );
     }
 
     private function useEventRecorderMock(): void
     {
         $this->eventRecorder = $this->createMock(EventRecorderService::class);
         $this->initializeLoaders();
+    }
+
+    private function alarmRateLimits(): AlarmRateLimitsConfig
+    {
+        return new AlarmRateLimitsConfig(new AlarmRateLimit(1, 1, 1), [], []);
     }
 
     /** @param array<string,mixed> $config */
@@ -1214,7 +1236,7 @@ final class MonitoringConfigLoadersTest extends TestCase
         file_put_contents($path, json_encode($config, JSON_THROW_ON_ERROR));
 
         try {
-            return $this->dataRetentionLoader->loadDataRetentionConfig($path);
+            return $this->dataRetentionLoader->loadDataRetentionConfig($path)->toArray();
         } finally {
             unlink($path);
         }

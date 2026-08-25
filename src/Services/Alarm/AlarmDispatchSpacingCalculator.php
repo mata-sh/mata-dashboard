@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace Mata\Services\Alarm;
 
-use Mata\Services\Alarm\Dto\AlarmLimit;
+use Mata\Config\Monitoring\Section\AlarmRateLimit;
 
 /**
- * Helper utilities for working with {@see AlarmLimit} windows.
+ * Helper utilities for working with {@see AlarmRateLimit} windows.
  */
 final class AlarmDispatchSpacingCalculator
 {
@@ -19,7 +19,7 @@ final class AlarmDispatchSpacingCalculator
      * Returns the largest spacing derived from per-minute/hour/day limits to
      * ensure none of the windows are exceeded.
      */
-    public static function calculateSpacingSeconds(AlarmLimit $limit): int
+    public static function calculateSpacingSeconds(AlarmRateLimit $limit): int
     {
         $minute = $limit->getPerMinute() > 0 ? (int) max(1, floor(60 / $limit->getPerMinute())) : 0;
         $hour = $limit->getPerHour() > 0 ? (int) max(1, floor(3600 / $limit->getPerHour())) : 0;

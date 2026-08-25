@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Mata\Tests\Unit\Services;
 
+use Mata\Config\Monitoring\Section\NotificationRulesConfig;
 use Mata\Services\Alarm\AlarmCreatorInterface;
 use Mata\Services\Alarm\AlarmThresholdCooldownService;
 use Mata\Services\Alarm\Decision\AlarmDecisionProcessingException;
@@ -375,11 +376,16 @@ final class AlarmDecisionProcessorTest extends TestCase
         array $ruleOverrides = [],
         ?LoggerInterface $logger = null,
     ): AlarmDecisionProcessor {
-        $resolver = new NotificationRuleResolver(array_replace([
+        $config = array_replace([
             'defaults' => ['enabled' => true, 'channels' => ['email']],
             'event_types' => [],
             'application_overrides' => [],
-        ], $ruleOverrides));
+        ], $ruleOverrides);
+        $resolver = new NotificationRuleResolver(new NotificationRulesConfig(
+            defaults: $config['defaults'],
+            eventTypes: $config['event_types'],
+            applicationOverrides: $config['application_overrides'],
+        ));
 
         return new AlarmDecisionProcessor(
             $evaluator,

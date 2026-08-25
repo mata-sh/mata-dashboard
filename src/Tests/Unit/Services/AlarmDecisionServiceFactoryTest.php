@@ -7,6 +7,7 @@ namespace Mata\Tests\Unit\Services;
 use Mata\Services\Alarm\Decision\AlarmDecisionServiceFactory;
 use Mata\Services\Alarm\Decision\BuiltinAlarmDecisionService;
 use Mata\Services\Alarm\Decision\OpaAlarmDecisionService;
+use Mata\Tests\Helpers\ApplicationConfigFactory;
 use Mata\Tests\TestCase;
 use RuntimeException;
 
@@ -17,44 +18,21 @@ use RuntimeException;
  */
 final class AlarmDecisionServiceFactoryTest extends TestCase
 {
-    /** @var array<string,array{bool,mixed}> */
-    private array $originalEnvironment = [];
-
-    protected function setUp(): void
+    public function testOpaDriverResolvesToOpa(): void
     {
-        parent::setUp();
+        $service = AlarmDecisionServiceFactory::fromConfig(
+            ApplicationConfigFactory::createAlarmDecisionConfig(batchLimit: 25),
+        );
 
-        foreach (['ALARM_DECISION_DRIVER', 'ALARM_DECISION_BATCH_LIMIT'] as $key) {
-            $this->originalEnvironment[$key] = [array_key_exists($key, $_ENV), $_ENV[$key] ?? null];
-        }
-    }
-
-    protected function tearDown(): void
-    {
-        foreach ($this->originalEnvironment as $key => [$exists, $value]) {
-            if ($exists) {
-                $_ENV[$key] = $value;
-            } else {
-                unset($_ENV[$key]);
-            }
-        }
-
-        parent::tearDown();
-    }
-
-    public function testDefaultDriverResolvesToOpa(): void
-    {
-        $_ENV['ALARM_DECISION_DRIVER'] = '';
-
-        $this->assertInstanceOf(OpaAlarmDecisionService::class, AlarmDecisionServiceFactory::fromEnv());
+        $this->assertInstanceOf(OpaAlarmDecisionService::class, $service);
+        $this->assertSame(25, $service->getBatchLimit());
     }
 
     public function testBuiltinDriverResolvesToBuiltinService(): void
     {
-        $_ENV['ALARM_DECISION_DRIVER'] = 'builtin';
-        $_ENV['ALARM_DECISION_BATCH_LIMIT'] = '250';
-
-        $service = AlarmDecisionServiceFactory::fromEnv();
+        $service = AlarmDecisionServiceFactory::fromConfig(
+            ApplicationConfigFactory::createAlarmDecisionConfig(driver: 'builtin', batchLimit: 250),
+        );
 
         $this->assertInstanceOf(BuiltinAlarmDecisionService::class, $service);
         $this->assertSame(250, $service->getBatchLimit());
@@ -62,12 +40,12 @@ final class AlarmDecisionServiceFactoryTest extends TestCase
 
     public function testUnknownDriverThrows(): void
     {
-        $_ENV['ALARM_DECISION_DRIVER'] = 'unknown';
-
         $this->expectException(RuntimeException::class);
         $this->expectExceptionMessage('unknown');
         $this->expectExceptionMessage('opa, builtin');
 
-        AlarmDecisionServiceFactory::fromEnv();
+        AlarmDecisionServiceFactory::fromConfig(
+            ApplicationConfigFactory::createAlarmDecisionConfig(driver: 'unknown'),
+        );
     }
 }

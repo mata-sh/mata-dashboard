@@ -23,5 +23,7 @@ final class ApplicationConfig
         public readonly MailConfig $mail,
         public readonly CliSecurityConfig $cliSecurity,
         public readonly RateLimitingConfig $rateLimiting,
+        public readonly AlarmDecisionConfig $alarmDecision,
+        public readonly NodeApiConfig $nodeApi,
     ) {}
 }

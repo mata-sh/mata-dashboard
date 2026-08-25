@@ -8,6 +8,7 @@ use GuzzleHttp\Exception\ConnectException;
 use GuzzleHttp\Exception\RequestException;
 use GuzzleHttp\Psr7\Request;
 use GuzzleHttp\Psr7\Response;
+use Mata\Config\Monitoring\Section\TtlConfig;
 use Mata\Services\Cache\ApiCacheKeyFactory;
 use Mata\Services\Cache\CacheEntry;
 use Mata\Services\Cache\CacheStoreInterface;
@@ -48,7 +49,7 @@ final class ServerDataCollectorTest extends TestCase
             new NullLogger(),
             $cache,
             new ApiCacheKeyFactory(),
-            new CacheTtlResolver([]),
+            new CacheTtlResolver(new TtlConfig([])),
             $apiClient,
             new NodeResponseNormalizer(new NullLogger()),
         );
@@ -73,7 +74,7 @@ final class ServerDataCollectorTest extends TestCase
             new NullLogger(),
             $cache,
             new ApiCacheKeyFactory(),
-            new CacheTtlResolver(['serverData' => 60]),
+            new CacheTtlResolver(new TtlConfig(['serverData' => 60])),
             $apiClient,
             new NodeResponseNormalizer(new NullLogger()),
         );
@@ -97,7 +98,7 @@ final class ServerDataCollectorTest extends TestCase
             new NullLogger(),
             $cache,
             new ApiCacheKeyFactory(),
-            new CacheTtlResolver(['apps' => 240, 'libraries' => 600]),
+            new CacheTtlResolver(new TtlConfig(['apps' => 240, 'libraries' => 600])),
             $apiClient,
             new NodeResponseNormalizer(new NullLogger()),
         );
@@ -146,7 +147,7 @@ final class ServerDataCollectorTest extends TestCase
             new NullLogger(),
             $cache,
             new ApiCacheKeyFactory(),
-            new CacheTtlResolver(['apps' => 300]),
+            new CacheTtlResolver(new TtlConfig(['apps' => 300])),
             $apiClient,
             new NodeResponseNormalizer(new NullLogger()),
         );
@@ -170,7 +171,7 @@ final class ServerDataCollectorTest extends TestCase
             new NullLogger(),
             $cache,
             new ApiCacheKeyFactory(),
-            new CacheTtlResolver(['apps' => 60]),
+            new CacheTtlResolver(new TtlConfig(['apps' => 60])),
             $apiClient,
             new NodeResponseNormalizer(new NullLogger()),
         );
@@ -201,7 +202,7 @@ final class ServerDataCollectorTest extends TestCase
             new NullLogger(),
             $cache,
             $keys,
-            new CacheTtlResolver([]),
+            new CacheTtlResolver(new TtlConfig([])),
             $apiClient,
             new NodeResponseNormalizer(new NullLogger()),
         );
@@ -228,7 +229,7 @@ final class ServerDataCollectorTest extends TestCase
             new NullLogger(),
             $cache,
             new ApiCacheKeyFactory(),
-            new CacheTtlResolver([]),
+            new CacheTtlResolver(new TtlConfig([])),
             $apiClient,
             new NodeResponseNormalizer(new NullLogger()),
         );
@@ -253,7 +254,7 @@ final class ServerDataCollectorTest extends TestCase
             new NullLogger(),
             $cache,
             new ApiCacheKeyFactory(),
-            new CacheTtlResolver(['apps' => 60]),
+            new CacheTtlResolver(new TtlConfig(['apps' => 60])),
             $apiClient,
             new NodeResponseNormalizer(new NullLogger()),
         );
@@ -280,7 +281,7 @@ final class ServerDataCollectorTest extends TestCase
             new NullLogger(),
             $cache,
             new ApiCacheKeyFactory(),
-            new CacheTtlResolver(['apps' => 60]),
+            new CacheTtlResolver(new TtlConfig(['apps' => 60])),
             $apiClient,
             new NodeResponseNormalizer(new NullLogger()),
         );

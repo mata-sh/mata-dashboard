@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Mata\Tests\Unit\Services\Runtime;
 
+use Mata\Config\Monitoring\Section\TtlConfig;
 use Mata\Database\DatabaseInterface;
 use Mata\Models\AlarmRepository;
 use Mata\Models\AppFatalStateRepository;
@@ -22,6 +23,7 @@ use Mata\Services\Monitor\HttpProbeClient;
 use Mata\Services\Monitor\LogSizeEvaluator;
 use Mata\Services\Monitor\ServerMonitoringFactory;
 use Mata\Services\Runtime\DashboardEnvironmentFactory;
+use Mata\Tests\Helpers\MonitoringConfigFactory;
 use Mata\Utils\Tools;
 use PHPUnit\Framework\TestCase;
 use Psr\Log\NullLogger;
@@ -72,11 +74,11 @@ final class DashboardEnvironmentFactoryTest extends TestCase
             $logger,
             $this->createStub(CacheStoreInterface::class),
             new ApiCacheKeyFactory(),
-            new CacheTtlResolver([]),
+            new CacheTtlResolver(new TtlConfig([])),
             $this->createStub(EventManager::class),
             new NodeResponseNormalizer($logger),
             new HttpProbeClient(),
-            AppReachabilityPolicy::fromSettings([]),
+            AppReachabilityPolicy::fromMonitoringConfig(MonitoringConfigFactory::create()),
             new ServerApplicationIdResolver(),
             new AppFatalStateRepository($this->createStub(DatabaseInterface::class)),
             new LogSizeEvaluator(new Tools('/tmp'), $this->createStub(EventManager::class)),

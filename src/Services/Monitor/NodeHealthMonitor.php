@@ -6,6 +6,7 @@ namespace Mata\Services\Monitor;
 
 use Closure;
 use GuzzleHttp\Promise\PromiseInterface;
+use Mata\Config\Monitoring\Section\ProbesConfig;
 use Mata\Services\Cache\ApiCacheKeyFactory;
 use Mata\Services\Cache\CacheStoreInterface;
 use Mata\Services\Cache\CacheTtlResolver;
@@ -37,7 +38,7 @@ class NodeHealthMonitor implements NodeHealthMonitorInterface
         ?ProbePolicy $probePolicy = null,
         private ?Closure $retryDelay = null,
     ) {
-        $this->probePolicy = $probePolicy ?? ProbePolicy::default();
+        $this->probePolicy = $probePolicy ?? ProbePolicy::fromConfig(ProbesConfig::default());
     }
 
     public function checkSynchronously(

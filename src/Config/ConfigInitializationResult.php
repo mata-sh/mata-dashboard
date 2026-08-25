@@ -2,10 +2,16 @@
 
 declare(strict_types=1);
 
-namespace Mata\Config\Dto;
+namespace Mata\Config;
+
+use Mata\Config\Dto\ApplicationConfig;
 
 /**
- * Immutable value object containing the result of successful configuration initialization.
+ * Outcome of EnvConfigManager::initialize(): the loaded configuration plus any
+ * non-fatal validation warnings.
+ *
+ * Lives beside the manager rather than in Dto/ because it describes how loading
+ * went, not what is configured.
  */
 final class ConfigInitializationResult
 {

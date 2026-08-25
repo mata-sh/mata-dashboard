@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Mata\Tests\Unit\Services;
 
+use Mata\Config\Monitoring\Section\TtlConfig;
 use Mata\Services\Cache\CacheTtlResolver;
 use Mata\Services\Collect\MockServerDataCollector;
 use Mata\Services\Collect\NodeResponseNormalizer;
@@ -22,7 +23,7 @@ final class MockServerDataCollectorTest extends TestCase
         $logger = new NullLogger();
         $collector = new MockServerDataCollector(
             $logger,
-            new CacheTtlResolver([]),
+            new CacheTtlResolver(new TtlConfig([])),
             new NodeResponseNormalizer($logger),
             'database-server',
             ['url' => 'https://database-server.example.test'],
@@ -63,7 +64,7 @@ final class MockServerDataCollectorTest extends TestCase
         $logger = new NullLogger();
         $collector = new MockServerDataCollector(
             $logger,
-            new CacheTtlResolver([]),
+            new CacheTtlResolver(new TtlConfig([])),
             new NodeResponseNormalizer($logger),
             'production-web',
             ['url' => 'https://production-web.example.test'],
@@ -90,7 +91,7 @@ final class MockServerDataCollectorTest extends TestCase
         foreach ($cpuRanges as $server => [$minimum, $maximum]) {
             $collector = new MockServerDataCollector(
                 $logger,
-                new CacheTtlResolver([]),
+                new CacheTtlResolver(new TtlConfig([])),
                 $normalizer,
                 $server,
                 ['url' => 'https://' . $server . '.example.test'],
@@ -110,7 +111,7 @@ final class MockServerDataCollectorTest extends TestCase
         foreach (['database-server', 'backup-server'] as $server) {
             $collector = new MockServerDataCollector(
                 $logger,
-                new CacheTtlResolver([]),
+                new CacheTtlResolver(new TtlConfig([])),
                 $normalizer,
                 $server,
                 ['url' => 'https://' . $server . '.example.test'],

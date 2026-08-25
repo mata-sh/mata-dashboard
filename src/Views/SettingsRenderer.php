@@ -5,8 +5,13 @@ declare(strict_types=1);
 namespace Mata\Views;
 
 use DirectoryIterator;
-use Mata\Config\Dto\AlarmLimitsConfig;
 use Mata\Config\Dto\MailConfig;
+use Mata\Config\Monitoring\Section\AlarmRateLimitsConfig;
+use Mata\Config\Monitoring\Section\IntervalsConfig;
+use Mata\Config\Monitoring\Section\ProbesConfig;
+use Mata\Config\Monitoring\Section\ServersConfig;
+use Mata\Config\Monitoring\Section\ThresholdsConfig;
+use Mata\Config\Monitoring\Section\TtlConfig;
 use Mata\Utils\UsersFilePathResolver;
 use UnexpectedValueException;
 
@@ -26,27 +31,25 @@ class SettingsRenderer extends BaseRenderer
     /**
      * Render settings container with configuration overview.
      *
-     * @param string                  $environment      Monitoring environment (prod, dev, etc.)
-     * @param string                  $appEnvironment   Application environment
-     * @param array<string,mixed>     $serversConfig    Servers configuration
-     * @param array<string,float|int> $ttlConfig        TTL configuration
-     * @param array<string,mixed>     $thresholdsConfig Thresholds configuration
-     * @param array<string,mixed>     $intervalsConfig  Event and alarm cooldown intervals
-     * @param array<string,mixed>     $probesConfig     Probe timeout and retry configuration
-     * @param null|AlarmLimitsConfig  $alarmLimits      Alarm delivery rate limits
-     * @param null|MailConfig         $mailConfig       Mail transport and recipient configuration
+     * @param string                     $appEnvironment   Application environment
+     * @param ServersConfig              $serversConfig    Servers configuration
+     * @param TtlConfig                  $ttlConfig        Cache TTLs in seconds
+     * @param ThresholdsConfig           $thresholdsConfig Thresholds configuration
+     * @param IntervalsConfig            $intervalsConfig  Event and alarm cooldown intervals
+     * @param ProbesConfig               $probesConfig     Probe timeout and retry configuration
+     * @param null|AlarmRateLimitsConfig $alarmRateLimits  Alarm delivery rate limits
+     * @param null|MailConfig            $mailConfig       Mail transport and recipient configuration
      *
      * @return string Rendered HTML
      */
     public function renderContainer(
-        string $environment,
         string $appEnvironment,
-        array $serversConfig,
-        array $ttlConfig,
-        array $thresholdsConfig,
-        array $intervalsConfig = [],
-        array $probesConfig = [],
-        ?AlarmLimitsConfig $alarmLimits = null,
+        ServersConfig $serversConfig,
+        TtlConfig $ttlConfig,
+        ThresholdsConfig $thresholdsConfig,
+        IntervalsConfig $intervalsConfig,
+        ProbesConfig $probesConfig,
+        ?AlarmRateLimitsConfig $alarmRateLimits = null,
         ?MailConfig $mailConfig = null
     ): string {
         $configRoot = $this->app->paths->appPath . '/config';
@@ -54,16 +57,16 @@ class SettingsRenderer extends BaseRenderer
 
         return $this->twig->render('partials/containers/settings-container.html.twig', [
             'settings' => [
-                'environment' => $environment,
+                'environment' => $appEnvironment,
                 'app_environment' => $appEnvironment,
                 'config_root' => $this->app->paths->toRelativePath($configRoot),
                 'files' => $this->buildConfigFilesMetadata($configRoot, $usersFilePath),
-                'servers' => $this->summarizeServersConfig($serversConfig),
+                'servers' => $this->summarizeServersConfig($serversConfig->values),
                 'ttl' => $this->summarizeTtlConfig($ttlConfig),
-                'thresholds' => $this->summarizeThresholdsConfig($thresholdsConfig),
-                'intervals' => $this->summarizeIntervalsConfig($intervalsConfig),
-                'probes' => $this->summarizeProbesConfig($probesConfig),
-                'limits' => $this->summarizeAlarmLimits($alarmLimits),
+                'thresholds' => $this->summarizeThresholdsConfig($thresholdsConfig->toArray()),
+                'intervals' => $this->summarizeIntervalsConfig($intervalsConfig->toArray()),
+                'probes' => $this->summarizeProbesConfig($probesConfig->toArray()),
+                'limits' => $this->summarizeAlarmLimits($alarmRateLimits),
                 'mail' => $this->summarizeMailConfig($mailConfig),
             ],
         ]);
@@ -238,18 +241,15 @@ class SettingsRenderer extends BaseRenderer
     /**
      * Build display data for TTL configuration.
      *
-     * @param array<string,float|int> $ttl TTL configuration
-     *
      * @return array<int,array<string,mixed>> Formatted TTL data
      */
-    private function summarizeTtlConfig(array $ttl): array
+    private function summarizeTtlConfig(TtlConfig $ttl): array
     {
         $summary = [];
 
-        foreach ($ttl as $key => $value) {
-            $seconds = (int) $value;
+        foreach ($ttl->values as $key => $seconds) {
             $summary[] = [
-                'key' => (string) $key,
+                'key' => $key,
                 'seconds' => $seconds,
                 'formatted' => $this->tools->formatDuration($seconds),
             ];
@@ -462,11 +462,11 @@ class SettingsRenderer extends BaseRenderer
     /**
      * Build display data for alarm delivery rate limits.
      *
-     * @param null|AlarmLimitsConfig $limits Alarm limits configuration
+     * @param null|AlarmRateLimitsConfig $limits Alarm limits configuration
      *
      * @return array<string,mixed> Formatted limits data
      */
-    private function summarizeAlarmLimits(?AlarmLimitsConfig $limits): array
+    private function summarizeAlarmLimits(?AlarmRateLimitsConfig $limits): array
     {
         if ($limits === null) {
             return ['default' => null, 'channels' => [], 'overrides' => []];

@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Mata\Services\Alarm;
 
-use Mata\Config\Dto\AlarmLimitsConfig;
+use Mata\Config\Monitoring\Section\AlarmRateLimitsConfig;
 use Mata\Models\Dto\EventRecordResult;
 use Mata\Services\Alarm\Dto\Alarm;
 use Mata\Services\Alarm\Dto\AlarmLevel;
@@ -21,7 +21,7 @@ class AlarmDirectProcessor
 {
     public function __construct(
         private AlarmCreatorInterface $alarmCreator,
-        private AlarmLimitsConfig $limitsConfig,
+        private AlarmRateLimitsConfig $limitsConfig,
         private AlarmQueueFailureThrottle $queueFailureThrottle,
         private LoggerInterface $logger
     ) {}
@@ -78,7 +78,7 @@ class AlarmDirectProcessor
         return $server !== '' ? $server : 'global';
     }
 
-    public function setLimitsConfig(AlarmLimitsConfig $limitsConfig): void
+    public function setLimitsConfig(AlarmRateLimitsConfig $limitsConfig): void
     {
         $this->limitsConfig = $limitsConfig;
     }

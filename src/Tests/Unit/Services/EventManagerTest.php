@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Mata\Tests\Unit\Services;
 
+use Mata\Config\Dto\AlarmDecisionConfig;
 use Mata\Config\Dto\ApplicationConfig;
 use Mata\Config\Dto\CliSecurityConfig;
 use Mata\Config\Dto\DashboardConfig;
@@ -12,9 +13,13 @@ use Mata\Config\Dto\EnvironmentConfig;
 use Mata\Config\Dto\GeneralConfig;
 use Mata\Config\Dto\LoggingConfig;
 use Mata\Config\Dto\MailConfig;
+use Mata\Config\Dto\NodeApiConfig;
+use Mata\Config\Dto\OpaAlarmDecisionConfig;
 use Mata\Config\Dto\PhpConfig;
 use Mata\Config\Dto\RateLimitingConfig;
 use Mata\Config\Dto\TemplateConfig;
+use Mata\Config\Monitoring\Section\IntervalsConfig;
+use Mata\Config\Monitoring\Section\ThresholdsConfig;
 use Mata\Models\Dto\EventRecordResult;
 use Mata\Services\Alarm\AlarmDirectProcessor;
 use Mata\Services\Event\Dto\EventCommand;
@@ -23,6 +28,7 @@ use Mata\Services\Event\Dto\EventMetric;
 use Mata\Services\Event\EventAggregatorServiceInterface;
 use Mata\Services\Event\EventManager;
 use Mata\Services\Event\EventRecorderService;
+use Mata\Tests\Helpers\MonitoringConfigFactory;
 use Mata\Tests\TestCase;
 
 /**
@@ -221,7 +227,6 @@ final class EventManagerTest extends TestCase
                 'info',
                 null,
                 null,
-                false,
                 $expectedHash,
                 30
             )
@@ -310,19 +315,18 @@ final class EventManagerTest extends TestCase
         );
     }
 
-    public function testGetServerDataThresholdLimitReturnsOnlyNumericLimits(): void
+    public function testGetServerDataThresholdLimitReturnsConfiguredLimit(): void
     {
         $manager = $this->createManager();
-        $manager->setMonitoringSettings([
-            'thresholds' => ['server_data' => [
-                'disk_space_usage_percent' => ['alarm' => 90],
-                'invalid' => ['alarm' => 'none'],
-            ]],
-            'intervals' => [],
-        ]);
+        $manager->setMonitoringConfig(MonitoringConfigFactory::create(
+            thresholds: new ThresholdsConfig(
+                serverData: ['disk_space_usage_percent' => ['alarm' => 90]],
+                appData: [],
+                alarmRules: [],
+            ),
+        ));
 
         $this->assertSame(90, $manager->getServerDataThresholdLimit('disk_space_usage_percent'));
-        $this->assertNull($manager->getServerDataThresholdLimit('invalid'));
         $this->assertNull($manager->getServerDataThresholdLimit('missing'));
     }
 
@@ -346,12 +350,11 @@ final class EventManagerTest extends TestCase
             $this->eventAggregator
         );
 
-        // Set monitoring settings if intervals provided
+        // Set monitoring configuration if intervals are provided
         if (!empty($intervalsConfig)) {
-            $manager->setMonitoringSettings([
-                'thresholds' => [],
-                'intervals' => $intervalsConfig,
-            ]);
+            $manager->setMonitoringConfig(MonitoringConfigFactory::create(
+                intervals: IntervalsConfig::fromArray($intervalsConfig),
+            ));
         }
 
         return $manager;
@@ -378,7 +381,13 @@ final class EventManagerTest extends TestCase
                 dashboardUrl: null
             ),
             cliSecurity: new CliSecurityConfig(false, ['root', 'http']),
-            rateLimiting: new RateLimitingConfig(false, 'file', '/tmp/rate_limit_test.json', null, 6379, null, 0, 5, 300, 60, 60, 100, 60)
+            rateLimiting: new RateLimitingConfig(false, 'file', '/tmp/rate_limit_test.json', null, 6379, null, 0, 5, 300, 60, 60, 100, 60),
+            alarmDecision: new AlarmDecisionConfig(
+                'opa',
+                100,
+                new OpaAlarmDecisionConfig('http://127.0.0.1:3320', '/v1/data/alarms/decision', 5),
+            ),
+            nodeApi: new NodeApiConfig(NodeApiConfig::DEFAULT_TIMEOUT_SECONDS),
         );
     }
 }

@@ -15,10 +15,12 @@ final class OpaAlarmDecisionService implements AlarmDecisionServiceInterface
 {
     private Client $client;
     private OpaAlarmDecisionConfig $config;
+    private int $batchLimit;
 
-    public function __construct(OpaAlarmDecisionConfig $config, ?Client $client = null)
+    public function __construct(OpaAlarmDecisionConfig $config, int $batchLimit, ?Client $client = null)
     {
         $this->config = $config;
+        $this->batchLimit = max(1, $batchLimit);
         $this->client = $client ?? new Client([
             'base_uri' => $this->config->baseUri,
             'timeout' => $this->config->timeoutSeconds,
@@ -63,7 +65,7 @@ final class OpaAlarmDecisionService implements AlarmDecisionServiceInterface
 
     public function getBatchLimit(): int
     {
-        return $this->config->batchLimit;
+        return $this->batchLimit;
     }
 
     /**

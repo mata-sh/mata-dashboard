@@ -41,15 +41,15 @@ final readonly class DashboardEnvironmentFactory
         return new MockEventAggregatorService($this->logger, $demoData);
     }
 
-    /** @param array<string,mixed> $serverSettings */
+    /** @param array<string,mixed> $serversConfig */
     public function createMonitoring(
-        array $serverSettings,
+        array $serversConfig,
         ServerMonitoringFactory $monitoringFactory,
     ): ServerMonitoringResult {
         if ($this->environment === 'demo') {
-            return $monitoringFactory->createDemoAll($serverSettings);
+            return $monitoringFactory->createDemoAll($serversConfig);
         }
 
-        return $monitoringFactory->createLiveAll($serverSettings, self::LIVE_API_TIMEOUT_SECONDS);
+        return $monitoringFactory->createLiveAll($serversConfig, self::LIVE_API_TIMEOUT_SECONDS);
     }
 }

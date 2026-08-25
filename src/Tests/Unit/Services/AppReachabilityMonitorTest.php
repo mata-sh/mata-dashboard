@@ -13,6 +13,8 @@ use GuzzleHttp\Promise\Create;
 use GuzzleHttp\Promise\PromiseInterface;
 use GuzzleHttp\Psr7\Request;
 use GuzzleHttp\Psr7\Response;
+use Mata\Config\Monitoring\Section\ProbesConfig;
+use Mata\Config\Monitoring\Section\TtlConfig;
 use Mata\Services\Cache\ApiCacheKeyFactory;
 use Mata\Services\Cache\CacheEntry;
 use Mata\Services\Cache\CacheStoreInterface;
@@ -581,12 +583,12 @@ final class AppReachabilityMonitorTest extends TestCase
         return new AppReachabilityMonitor(
             $store,
             new ApiCacheKeyFactory(),
-            new CacheTtlResolver([$cacheType->value => $cacheType === CacheType::None ? 0 : 60]),
+            new CacheTtlResolver(new TtlConfig([$cacheType->value => $cacheType === CacheType::None ? 0 : 60])),
             $apiClient,
             $probe,
             $events ?? $this->createStub(EventManager::class),
             new NullLogger(),
-            $policy ?? new AppReachabilityPolicy(ProbePolicy::default(), 600),
+            $policy ?? new AppReachabilityPolicy(ProbePolicy::fromConfig(ProbesConfig::default()), 600),
             $clock,
             $retryDelay,
         );

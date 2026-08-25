@@ -5,13 +5,13 @@ declare(strict_types=1);
 namespace Mata\Tests\Unit\Views;
 
 use FilesystemIterator;
-use Mata\Config\Dto\AlarmLimitsConfig;
 use Mata\Config\Dto\MailConfig;
+use Mata\Config\Monitoring\Section\AlarmRateLimit;
+use Mata\Config\Monitoring\Section\AlarmRateLimitsConfig;
 use Mata\Core\App;
 use Mata\Core\Auth;
 use Mata\Http\Request;
 use Mata\Http\Routing\Endpoints;
-use Mata\Services\Alarm\Dto\AlarmLimit;
 use Mata\Tests\Helpers\ApplicationConfigFactory;
 use Mata\Utils\PathResolver;
 use Mata\Utils\Tools;
@@ -177,10 +177,10 @@ final class SettingsRendererTest extends TestCase
 
     public function testSummarizesAlarmLimitsWithChannelsAndOverrides(): void
     {
-        $limits = new AlarmLimitsConfig(
-            new AlarmLimit(20, 120, 500),
-            ['webhook' => new AlarmLimit(60, 500, 5000), 'email' => new AlarmLimit(30, 200, 1000)],
-            ['alpha' => ['email' => new AlarmLimit(5, 10, 20)]],
+        $limits = new AlarmRateLimitsConfig(
+            new AlarmRateLimit(20, 120, 500),
+            ['webhook' => new AlarmRateLimit(60, 500, 5000), 'email' => new AlarmRateLimit(30, 200, 1000)],
+            ['alpha' => ['email' => new AlarmRateLimit(5, 10, 20)]],
         );
 
         $method = new ReflectionMethod(SettingsRenderer::class, 'summarizeAlarmLimits');

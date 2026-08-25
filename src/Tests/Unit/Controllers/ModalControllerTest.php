@@ -7,6 +7,7 @@ namespace Mata\Tests\Unit\Controllers;
 use Exception;
 use Mata\Config\Dto\ApplicationConfig;
 use Mata\Config\Dto\EnvironmentConfig;
+use Mata\Config\Monitoring\Section\TtlConfig;
 use Mata\Controllers\ModalController;
 use Mata\Core\App;
 use Mata\Http\Request;
@@ -71,7 +72,7 @@ class ModalControllerTest extends TestCase
         $this->logger = new Logger('test', [new TestHandler()]);
         $this->mockCacheStore = $this->createMock(CacheStoreInterface::class);
         $this->cacheKeyFactory = new ApiCacheKeyFactory();
-        $this->ttlResolver = new CacheTtlResolver([]);
+        $this->ttlResolver = new CacheTtlResolver(new TtlConfig([]));
         $this->mockLogTransformer = $this->createMock(LogDataTransformer::class);
         $this->mockEndpoints = $this->createMock(Endpoints::class);
 

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Mata\Tests\Unit\Services;
 
+use Mata\Config\Monitoring\Section\TtlConfig;
 use Mata\Services\Cache\ApiCacheKeyFactory;
 use Mata\Services\Cache\CacheTtlResolver;
 use Mata\Services\Cache\CacheType;
@@ -74,18 +75,17 @@ final class ApiCacheKeyFactoryTest extends TestCase
         }
     }
 
-    public function testTtlResolverOnlyReturnsConfiguredIntegers(): void
+    public function testTtlResolverReturnsValidatedValuesAndZeroForMissingKeys(): void
     {
-        $resolver = new CacheTtlResolver([
+        $resolver = new CacheTtlResolver(new TtlConfig([
             'apps' => 60,
             'readme' => -1,
-            'ping' => '60',
-        ]);
+        ]));
 
         $this->assertSame(60, $resolver->get(CacheType::Apps));
         $this->assertSame(-1, $resolver->get(CacheType::Readme));
-        $this->assertSame(0, $resolver->get(CacheType::Ping), 'a non-integer config value means no caching');
-        $this->assertSame(0, $resolver->get(CacheType::Audit), 'an unconfigured cache type means no caching');
+        $this->assertSame(0, $resolver->get(CacheType::Ping));
+        $this->assertSame(0, $resolver->get(CacheType::Audit));
     }
 
     /**
@@ -94,7 +94,7 @@ final class ApiCacheKeyFactoryTest extends TestCase
      */
     public function testTtlResolverIgnoresConfigurationForTheNoneSentinel(): void
     {
-        $resolver = new CacheTtlResolver(['none' => 3600]);
+        $resolver = new CacheTtlResolver(new TtlConfig(['none' => 3600]));
 
         $this->assertSame(0, $resolver->get(CacheType::None));
     }

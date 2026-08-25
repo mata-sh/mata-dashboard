@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace Mata\Services\Monitor\Dto;
 
-/** Immutable monitoring policy resolved from complete monitoring settings. */
+use Mata\Config\Monitoring\MonitoringConfig;
+
+/** Immutable monitoring policy resolved from complete monitoring configuration. */
 final readonly class AppReachabilityPolicy
 {
     public function __construct(
@@ -12,23 +14,19 @@ final readonly class AppReachabilityPolicy
         public int $unreachableWindowSeconds,
     ) {}
 
-    /** @param array<string,mixed> $monitoringSettings */
-    public static function fromSettings(array $monitoringSettings): self
+    public static function fromMonitoringConfig(MonitoringConfig $monitoringConfig): self
     {
-        $probes = $monitoringSettings['probes'] ?? [];
-        $thresholds = $monitoringSettings['thresholds'] ?? [];
-        $appUnreachable = is_array($thresholds)
-            && is_array($thresholds['alarms'] ?? null)
-            && is_array($thresholds['alarms']['app_unreachable'] ?? null)
-            ? $thresholds['alarms']['app_unreachable']
+        $appUnreachable = is_array($monitoringConfig->thresholds->alarmRules['app_unreachable'] ?? null)
+            ? $monitoringConfig->thresholds->alarmRules['app_unreachable']
             : [];
-        $windowMinutes = is_numeric($appUnreachable['window_minutes'] ?? null)
-            ? (int) $appUnreachable['window_minutes']
-            : 10;
+        $windowMinutes = $appUnreachable['window_minutes'] ?? 10;
+        if (!is_int($windowMinutes) || $windowMinutes < 1) {
+            $windowMinutes = 10;
+        }
 
         return new self(
-            probe: ProbePolicy::fromArray(is_array($probes) ? $probes : []),
-            unreachableWindowSeconds: max(60, $windowMinutes * 60),
+            probe: ProbePolicy::fromConfig($monitoringConfig->probes),
+            unreachableWindowSeconds: $windowMinutes * 60,
         );
     }
 }

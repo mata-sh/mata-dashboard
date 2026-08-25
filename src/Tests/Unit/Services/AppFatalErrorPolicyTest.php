@@ -15,7 +15,7 @@ use PHPUnit\Framework\TestCase;
  */
 final class AppFatalErrorPolicyTest extends TestCase
 {
-    public function testHonorsServerAndApplicationSettings(): void
+    public function testHonorsServerConfigAndApplicationSettings(): void
     {
         $enabledServer = AppFatalErrorPolicy::fromServerConfig([]);
         $disabledServer = AppFatalErrorPolicy::fromServerConfig(['error_monitoring_enabled' => false]);

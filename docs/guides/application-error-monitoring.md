@@ -30,7 +30,7 @@ Configure optional per-app switches in mata-node `config/apps.json`. Every setti
 
 An omitted result means not measured, not zero. The dashboard shows disabled checks as unavailable and removes log modal triggers. The node rejects the matching detail route with HTTP 409 when `loganalysis`, `logsize`, or `sessions` is disabled.
 
-The dashboard server settings `error_monitoring_enabled` and `logsize_monitoring_enabled` remain server-scoped. They combine with the app's `loganalysis` and `logsize` settings respectively.
+The dashboard server configuration flags `error_monitoring_enabled` and `logsize_monitoring_enabled` remain server-scoped. They combine with the app's `loganalysis` and `logsize` settings respectively.
 
 Fatal events are occurrences. A positive fatal count has an opaque cursor; an event is recorded only when that cursor changes. A valid zero count clears stored cursor state and does not resolve, delete, or acknowledge historical alarms. Fatal events have no event cooldown by default; alarm delivery remains throttled for one day.
 

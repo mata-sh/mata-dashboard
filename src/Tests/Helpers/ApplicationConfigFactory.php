@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Mata\Tests\Helpers;
 
+use Mata\Config\Dto\AlarmDecisionConfig;
 use Mata\Config\Dto\ApplicationConfig;
 use Mata\Config\Dto\CliSecurityConfig;
 use Mata\Config\Dto\DashboardConfig;
@@ -12,6 +13,8 @@ use Mata\Config\Dto\EnvironmentConfig;
 use Mata\Config\Dto\GeneralConfig;
 use Mata\Config\Dto\LoggingConfig;
 use Mata\Config\Dto\MailConfig;
+use Mata\Config\Dto\NodeApiConfig;
+use Mata\Config\Dto\OpaAlarmDecisionConfig;
 use Mata\Config\Dto\PhpConfig;
 use Mata\Config\Dto\RateLimitingConfig;
 use Mata\Config\Dto\TemplateConfig;
@@ -40,6 +43,8 @@ class ApplicationConfigFactory
         ?MailConfig $mail = null,
         ?CliSecurityConfig $cliSecurity = null,
         ?RateLimitingConfig $rateLimiting = null,
+        ?AlarmDecisionConfig $alarmDecision = null,
+        ?NodeApiConfig $nodeApi = null,
     ): ApplicationConfig {
         return new ApplicationConfig(
             environment: $environment ?? self::createEnvironmentConfig(),
@@ -52,7 +57,27 @@ class ApplicationConfigFactory
             mail: $mail ?? self::createMailConfig(),
             cliSecurity: $cliSecurity ?? self::createCliSecurityConfig(),
             rateLimiting: $rateLimiting ?? self::createRateLimitingConfig(),
+            alarmDecision: $alarmDecision ?? self::createAlarmDecisionConfig(),
+            nodeApi: $nodeApi ?? self::createNodeApiConfig(),
         );
+    }
+
+    public static function createAlarmDecisionConfig(
+        string $driver = 'opa',
+        int $batchLimit = 100,
+        ?OpaAlarmDecisionConfig $opa = null,
+    ): AlarmDecisionConfig {
+        return new AlarmDecisionConfig(
+            $driver,
+            $batchLimit,
+            $opa ?? new OpaAlarmDecisionConfig('http://127.0.0.1:3320', '/v1/data/alarms/decision', 5),
+        );
+    }
+
+    public static function createNodeApiConfig(
+        int $timeoutSeconds = NodeApiConfig::DEFAULT_TIMEOUT_SECONDS,
+    ): NodeApiConfig {
+        return new NodeApiConfig($timeoutSeconds);
     }
 
     public static function createEnvironmentConfig(

@@ -17,7 +17,7 @@ $monitoringRuntime = CronMonitoringRuntime::fromRuntime($runtime);
 $log = $runtime->log;
 $cron = $runtime->cron;
 $db = $runtime->db;
-$monitoringSettings = $monitoringRuntime->monitoringSettings;
+$monitoringConfig = $monitoringRuntime->monitoringConfig;
 
 if (!$cron->acquireLock()) {
     exit("Already running.\n");
@@ -29,10 +29,7 @@ $cron->startTimer();
 $cron->log('Started');
 
 try {
-    $retentionConfig = $monitoringSettings['data_retention'] ?? [];
-    if (!is_array($retentionConfig)) {
-        throw new RuntimeException('Invalid data retention configuration');
-    }
+    $retentionConfig = $monitoringConfig->dataRetention;
 
     $service = new RetentionCleanupService($db, $log);
     $result = $service->cleanup(

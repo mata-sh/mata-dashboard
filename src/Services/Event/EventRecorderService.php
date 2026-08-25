@@ -36,7 +36,7 @@ class EventRecorderService
     }
 
     /**
-     * Persist an event (and optional alarm) to the database.
+     * Persist an event to the database.
      *
      * @param string          $type            Event type identifier
      * @param string          $message         Human readable message
@@ -56,7 +56,6 @@ class EventRecorderService
         string $level = 'info',
         int|string|null $server = null,
         int|string|null $app = null,
-        bool $forceAlarm = false,
         ?string $cooldownHash = null,
         int $cooldownMinutes = 0,
     ): EventRecordResult {

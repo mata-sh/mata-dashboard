@@ -1,8 +1,8 @@
 # Configuration
 
-MATA reads application settings from `config/*.env` and monitoring settings
-from JSON files in `config/`. Files in `config/example/` provide starting values
-and show the expected file shape.
+MATA reads application configuration from `config/*.env` and monitoring
+configuration from JSON files in `config/`. Files in `config/example/` provide
+starting values and show the expected file shape.
 
 Run `make setup` first. It creates the core configuration, writes the selected
 `APP_ENV`, and installs dependencies for native setups. Docker setup also
@@ -12,8 +12,8 @@ creates `.env` for Compose.
 
 | File | Purpose |
 | --- | --- |
-| `config/config.env` | Application, logging, OPA, rate-limit, and UI settings |
-| `config/db.config.env` | Database connection settings |
+| `config/config.env` | Application, logging, OPA, rate-limit, and UI configuration |
+| `config/db.config.env` | Database connection details |
 | `config/mail.config.env` | Mailer DSN, sender, and recipients |
 | `config/servers.json` | MATA Nodes monitored by the dashboard |
 | `config/thresholds.json` | Metric thresholds and alarm candidate windows |
@@ -32,6 +32,13 @@ see the [alarm reference](../reference/alarms.md) for its built-in limits.
 
 `menu.json` is a flat map of menu keys to visibility booleans. `probes.json`
 controls timeout, retry count, and retry backoff for HTTP reachability probes.
+
+!!! warning "Numeric values"
+
+    JSON integer fields require JSON integers. Numeric strings, floats, booleans,
+    and `null` are invalid; out-of-range values are not clamped. Integer values in
+    environment files use plain base-10 syntax without whitespace, a leading `+`,
+    or leading zeroes.
 
 When `MATA_USERS_FILE` is unset, `make users-create` creates the fallback
 `config/users.json` with restricted permissions. Do not create or edit it by
@@ -52,10 +59,10 @@ match.
     `DB_USERNAME`, and `DB_PASSWORD`. Validation also requires `DOMAIN` and
     `SYM_MAILER_DSN`. Setup supplies placeholders; replace them before production.
 
-Use `config/example/config.env.example` for the remaining application settings.
+Use `config/example/config.env.example` for the remaining application configuration.
 See the [quickstart](quickstart.md) for alarm driver setup, the
 [alarm reference](../reference/alarms.md) for decision behavior, and
-[Secure an installation](secure-application.md) for production settings.
+[Secure an installation](secure-application.md) for production configuration.
 
 ### Database
 
@@ -92,7 +99,7 @@ messages must not leave the system.
 ## Monitored servers
 
 Follow [Add your first server](first-server.md) to pair node identities and
-credentials. A server entry can also set dashboard monitoring flags:
+credentials. A server entry can also set dashboard monitoring configuration flags:
 
 ```json
 {
@@ -120,7 +127,7 @@ and should not be used for production monitoring.
     `disabled` and invert the value. For example, `"active": false` becomes
     `"disabled": true`.
 
-The two server-scoped application flags default to `true`:
+The two server configuration flags default to `true`:
 
 - `error_monitoring_enabled` controls fatal-error event production.
 - `logsize_monitoring_enabled` controls log-size event production.
@@ -168,8 +175,8 @@ Retention is configured in `data_retention.json`:
 ```
 
 The scheduled cleanup job owns deletion. A value of `0` disables cleanup for
-that category. Aggregation and ingestion-health settings are in the same file;
-see the [server metrics pipeline](../architecture/server-metrics-pipeline.md).
+that category. Aggregation and ingestion-health configuration lives in the same
+file; see the [server metrics pipeline](../architecture/server-metrics-pipeline.md).
 
 ## Validate changes
 

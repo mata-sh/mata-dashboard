@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Mata\Config\Dto;
 
+use InvalidArgumentException;
+
 /**
  * Immutable DTO representing rate limiting configuration.
  *
@@ -26,7 +28,26 @@ final class RateLimitingConfig
         public readonly int $dashboardWindowSeconds,
         public readonly int $apiMaxRequests,
         public readonly int $apiWindowSeconds,
-    ) {}
+    ) {
+        if ($redisPort < 1 || $redisPort > 65535) {
+            throw new InvalidArgumentException('rate_limiting.redis_port must be between 1 and 65535.');
+        }
+        if ($redisDatabase < 0) {
+            throw new InvalidArgumentException('rate_limiting.redis_database must be at least 0.');
+        }
+        foreach ([
+            'login_max_requests' => $loginMaxRequests,
+            'login_window_seconds' => $loginWindowSeconds,
+            'dashboard_max_requests' => $dashboardMaxRequests,
+            'dashboard_window_seconds' => $dashboardWindowSeconds,
+            'api_max_requests' => $apiMaxRequests,
+            'api_window_seconds' => $apiWindowSeconds,
+        ] as $path => $value) {
+            if ($value < 1) {
+                throw new InvalidArgumentException("rate_limiting.{$path} must be at least 1.");
+            }
+        }
+    }
 
     /**
      * Get rate limit configuration for specific route group.

@@ -4,35 +4,29 @@ declare(strict_types=1);
 
 namespace Mata\Services\Alarm;
 
+use Mata\Config\Monitoring\Section\NotificationRulesConfig;
 use Mata\Services\Alarm\Dto\ResolvedNotificationRule;
 
 /** Resolves notification rules into delivery-routing constraints. */
 final class NotificationRuleResolver
 {
-    /**
-     * @param array{
-     *     defaults:array{enabled:bool,channels:list<string>},
-     *     event_types:array<string,array{enabled?:bool,channels?:list<string>}>,
-     *     application_overrides:array<string,array<string,array{enabled?:bool,channels?:list<string>}>>
-     * } $config
-     */
-    public function __construct(private array $config) {}
+    public function __construct(private NotificationRulesConfig $config) {}
 
     public function resolveFor(string $eventType, ?string $appCode): ResolvedNotificationRule
     {
-        $resolved = $this->config['defaults'];
+        $resolved = $this->config->defaults;
         $suppressionReason = $resolved['enabled'] ? null : 'default_disabled';
 
-        if (isset($this->config['event_types'][$eventType])) {
-            $eventRule = $this->config['event_types'][$eventType];
+        if (isset($this->config->eventTypes[$eventType])) {
+            $eventRule = $this->config->eventTypes[$eventType];
             $resolved = $this->overlay($resolved, $eventRule);
             if (array_key_exists('enabled', $eventRule)) {
                 $suppressionReason = $eventRule['enabled'] ? null : 'event_type_disabled';
             }
         }
 
-        if ($appCode !== null && isset($this->config['application_overrides'][$appCode][$eventType])) {
-            $applicationRule = $this->config['application_overrides'][$appCode][$eventType];
+        if ($appCode !== null && isset($this->config->applicationOverrides[$appCode][$eventType])) {
+            $applicationRule = $this->config->applicationOverrides[$appCode][$eventType];
             $resolved = $this->overlay($resolved, $applicationRule);
             if (array_key_exists('enabled', $applicationRule)) {
                 $suppressionReason = $applicationRule['enabled'] ? null : 'application_override_disabled';

@@ -7,10 +7,10 @@ namespace Mata\Models;
 use Mata\Database\DatabaseInterface;
 
 /**
- * Persistence layer for settings synchronization.
+ * Persistence layer for server configuration synchronization.
  *
  * Encapsulates all database interactions required by the
- * SettingsDatabaseSync service, keeping the service focused on
+ * ServerConfigDatabaseSync service, keeping the service focused on
  * decision-making instead of SQL concerns.
  */
 class ConfigSyncRepository

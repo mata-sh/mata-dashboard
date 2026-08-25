@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Mata\Tests\Unit\Services;
 
+use Mata\Config\Monitoring\Section\NotificationRulesConfig;
 use Mata\Services\Alarm\NotificationRuleResolver;
 use PHPUnit\Framework\TestCase;
 
@@ -97,10 +98,16 @@ final class NotificationRuleResolverTest extends TestCase
     /** @param array<string,mixed> $overrides */
     private function resolver(array $overrides = []): NotificationRuleResolver
     {
-        return new NotificationRuleResolver(array_replace([
+        $config = array_replace([
             'defaults' => ['enabled' => true, 'channels' => ['email']],
             'event_types' => [],
             'application_overrides' => [],
-        ], $overrides));
+        ], $overrides);
+
+        return new NotificationRuleResolver(new NotificationRulesConfig(
+            defaults: $config['defaults'],
+            eventTypes: $config['event_types'],
+            applicationOverrides: $config['application_overrides'],
+        ));
     }
 }

@@ -6,6 +6,7 @@ namespace Mata\Config;
 
 use Dotenv\Dotenv;
 use InvalidArgumentException;
+use Mata\Config\Dto\AlarmDecisionConfig;
 use Mata\Config\Dto\ApplicationConfig;
 use Mata\Config\Dto\CliSecurityConfig;
 use Mata\Config\Dto\DashboardConfig;
@@ -14,6 +15,8 @@ use Mata\Config\Dto\EnvironmentConfig;
 use Mata\Config\Dto\GeneralConfig;
 use Mata\Config\Dto\LoggingConfig;
 use Mata\Config\Dto\MailConfig;
+use Mata\Config\Dto\NodeApiConfig;
+use Mata\Config\Dto\OpaAlarmDecisionConfig;
 use Mata\Config\Dto\PhpConfig;
 use Mata\Config\Dto\RateLimitingConfig;
 use Mata\Config\Dto\TemplateConfig;
@@ -61,6 +64,34 @@ final class EnvConfigLoader
             mail: $this->loadMailConfig(),
             cliSecurity: $this->loadCliSecurityConfig(),
             rateLimiting: $this->loadRateLimitingConfig(),
+            alarmDecision: $this->loadAlarmDecisionConfig(),
+            nodeApi: $this->loadNodeApiConfig(),
+        );
+    }
+
+    private function loadAlarmDecisionConfig(): AlarmDecisionConfig
+    {
+        $driver = $this->getEnv('ALARM_DECISION_DRIVER', 'opa');
+
+        return new AlarmDecisionConfig(
+            driver: $driver === '' ? 'opa' : (string) $driver,
+            batchLimit: $this->getEnvInteger('ALARM_DECISION_BATCH_LIMIT', 100, minimum: 1),
+            opa: new OpaAlarmDecisionConfig(
+                baseUri: (string) $this->getEnv('OPA_ALARM_BASE_URI', 'http://127.0.0.1:3320'),
+                decisionPath: (string) $this->getEnv('OPA_ALARM_DECISION_PATH', '/v1/data/alarms/decision'),
+                timeoutSeconds: $this->getEnvDecimal('OPA_ALARM_TIMEOUT_SECONDS', 5, minimum: 1),
+            ),
+        );
+    }
+
+    private function loadNodeApiConfig(): NodeApiConfig
+    {
+        return new NodeApiConfig(
+            timeoutSeconds: $this->getEnvInteger(
+                'NODE_API_TIMEOUT_SECONDS',
+                NodeApiConfig::DEFAULT_TIMEOUT_SECONDS,
+                minimum: 1,
+            ),
         );
     }
 
@@ -103,33 +134,9 @@ final class EnvConfigLoader
 
     private function loadDashboardConfig(): DashboardConfig
     {
-        $rawColumns = $this->getEnv('DASHBOARD_SERVER_COLUMNS', '2');
-        $columns = filter_var(
-            $rawColumns,
-            FILTER_VALIDATE_INT,
-            [
-                'options' => [
-                    'default' => 2,
-                    'min_range' => 1,
-                ],
-            ]
-        );
-
-        $rawContainerWidth = $this->getEnv('DASHBOARD_CONTAINER_WIDTH', '1344');
-        $containerWidth = filter_var(
-            $rawContainerWidth,
-            FILTER_VALIDATE_INT,
-            [
-                'options' => [
-                    'default' => 1344,
-                    'min_range' => 320,
-                ],
-            ]
-        );
-
         return new DashboardConfig(
-            serverColumns: $columns,
-            containerWidth: $containerWidth,
+            serverColumns: $this->getEnvInteger('DASHBOARD_SERVER_COLUMNS', 2, minimum: 1),
+            containerWidth: $this->getEnvInteger('DASHBOARD_CONTAINER_WIDTH', 1344, minimum: 320),
         );
     }
 
@@ -143,7 +150,7 @@ final class EnvConfigLoader
     private function loadPhpConfig(): PhpConfig
     {
         return new PhpConfig(
-            displayErrors: (int) $this->getEnv('DISPLAY_ERRORS', '0'),
+            displayErrors: $this->getEnvInteger('DISPLAY_ERRORS', 0, minimum: 0, maximum: 1),
             logLevel: $this->getEnv('LOG_LEVEL', 'notices'),
         );
     }
@@ -197,16 +204,55 @@ final class EnvConfigLoader
             storageType: $storageType,
             filePath: $this->getEnv('RATE_LIMIT_FILE_PATH'),
             redisHost: $this->getEnv('RATE_LIMIT_REDIS_HOST', '127.0.0.1'),
-            redisPort: (int) $this->getEnv('RATE_LIMIT_REDIS_PORT', '6379'),
+            redisPort: $this->getEnvInteger('RATE_LIMIT_REDIS_PORT', 6379, minimum: 1, maximum: 65535),
             redisPassword: $this->getEnv('RATE_LIMIT_REDIS_PASSWORD'),
-            redisDatabase: (int) $this->getEnv('RATE_LIMIT_REDIS_DATABASE', '0'),
-            loginMaxRequests: (int) $this->getEnv('RATE_LIMIT_LOGIN_MAX_REQUESTS', '10'),
-            loginWindowSeconds: (int) $this->getEnv('RATE_LIMIT_LOGIN_WINDOW_SECONDS', '60'),
-            dashboardMaxRequests: (int) $this->getEnv('RATE_LIMIT_DASHBOARD_MAX_REQUESTS', '100'),
-            dashboardWindowSeconds: (int) $this->getEnv('RATE_LIMIT_DASHBOARD_WINDOW_SECONDS', '60'),
-            apiMaxRequests: (int) $this->getEnv('RATE_LIMIT_API_MAX_REQUESTS', '200'),
-            apiWindowSeconds: (int) $this->getEnv('RATE_LIMIT_API_WINDOW_SECONDS', '60'),
+            redisDatabase: $this->getEnvInteger('RATE_LIMIT_REDIS_DATABASE', 0, minimum: 0),
+            loginMaxRequests: $this->getEnvInteger('RATE_LIMIT_LOGIN_MAX_REQUESTS', 10, minimum: 1),
+            loginWindowSeconds: $this->getEnvInteger('RATE_LIMIT_LOGIN_WINDOW_SECONDS', 60, minimum: 1),
+            dashboardMaxRequests: $this->getEnvInteger('RATE_LIMIT_DASHBOARD_MAX_REQUESTS', 100, minimum: 1),
+            dashboardWindowSeconds: $this->getEnvInteger('RATE_LIMIT_DASHBOARD_WINDOW_SECONDS', 60, minimum: 1),
+            apiMaxRequests: $this->getEnvInteger('RATE_LIMIT_API_MAX_REQUESTS', 200, minimum: 1),
+            apiWindowSeconds: $this->getEnvInteger('RATE_LIMIT_API_WINDOW_SECONDS', 60, minimum: 1),
         );
+    }
+
+    private function getEnvInteger(
+        string $key,
+        int $default,
+        ?int $minimum = null,
+        ?int $maximum = null,
+    ): int {
+        return ConfigValueValidator::integerString(
+            $this->readRawEnv($key) ?? (string) $default,
+            "env.{$key}",
+            $minimum,
+            $maximum,
+        );
+    }
+
+    private function getEnvDecimal(
+        string $key,
+        float $default,
+        ?float $minimum = null,
+        ?float $maximum = null,
+    ): float {
+        return ConfigValueValidator::decimalString(
+            $this->readRawEnv($key) ?? (string) $default,
+            "env.{$key}",
+            $minimum,
+            $maximum,
+        );
+    }
+
+    private function readRawEnv(string $key): mixed
+    {
+        if (array_key_exists($key, $_ENV)) {
+            return $_ENV[$key];
+        }
+
+        $value = getenv($key);
+
+        return $value === false ? null : $value;
     }
 
     /**

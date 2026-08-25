@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Mata\Tests\Integration;
 
 use DateTimeImmutable;
+use Mata\Config\Monitoring\Section\DataRetentionConfig;
 use Mata\Services\Retention\RetentionCleanupResult;
 use Mata\Services\Retention\RetentionCleanupService;
 use Mata\Tests\Helpers\SqliteTestDatabase;
@@ -269,7 +270,11 @@ final class RetentionCleanupServiceSqlIntegrationTest extends TestCase
             'pruning' => ['batch_limit' => 5000],
         ], $overrides);
 
-        return $this->service->cleanup(new DateTimeImmutable(self::NOW), $config, $tick);
+        return $this->service->cleanup(
+            new DateTimeImmutable(self::NOW),
+            DataRetentionConfig::fromArray($config),
+            $tick,
+        );
     }
 
     private function createSchema(): void

@@ -4,14 +4,14 @@ declare(strict_types=1);
 
 namespace Mata\Tests\Unit\Services;
 
-use Mata\Config\Dto\AlarmLimitsConfig;
+use Mata\Config\Monitoring\Section\AlarmRateLimit;
+use Mata\Config\Monitoring\Section\AlarmRateLimitsConfig;
 use Mata\Models\Dto\EventRecordResult;
 use Mata\Services\Alarm\AlarmCreatorInterface;
 use Mata\Services\Alarm\AlarmDirectProcessor;
 use Mata\Services\Alarm\AlarmQueueFailureThrottle;
 use Mata\Services\Alarm\Dto\Alarm;
 use Mata\Services\Alarm\Dto\AlarmLevel;
-use Mata\Services\Alarm\Dto\AlarmLimit;
 use PHPUnit\Framework\TestCase;
 use Psr\Log\NullLogger;
 
@@ -29,10 +29,10 @@ final class AlarmDirectProcessorTest extends TestCase
             ->method('create')
             ->with(42, ['email'], 10)
             ->willReturn(7);
-        $limit = new AlarmLimit(1, 1, 1);
+        $limit = new AlarmRateLimit(1, 1, 1);
         $processor = new AlarmDirectProcessor(
             $creator,
-            new AlarmLimitsConfig($limit, ['email' => $limit]),
+            new AlarmRateLimitsConfig($limit, ['email' => $limit], []),
             new AlarmQueueFailureThrottle(sys_get_temp_dir() . '/mata-direct-' . bin2hex(random_bytes(8))),
             new NullLogger(),
         );

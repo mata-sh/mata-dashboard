@@ -4,16 +4,17 @@ declare(strict_types=1);
 
 namespace Mata\Bootstrap;
 
-use Mata\Config\Dto\AlarmLimitsConfig;
-use Mata\Config\Monitoring\AlarmLimitsConfigLoader;
-use Mata\Config\Monitoring\DataRetentionConfigLoader;
-use Mata\Config\Monitoring\IntervalsConfigLoader;
-use Mata\Config\Monitoring\MonitoringConfigManager;
-use Mata\Config\Monitoring\NotificationRulesConfigLoader;
-use Mata\Config\Monitoring\ProbesConfigLoader;
-use Mata\Config\Monitoring\ServersConfigLoader;
-use Mata\Config\Monitoring\ThresholdsConfigLoader;
-use Mata\Config\Monitoring\TtlConfigLoader;
+use Mata\Config\Monitoring\Loader\AlarmRateLimitsConfigLoader;
+use Mata\Config\Monitoring\Loader\DataRetentionConfigLoader;
+use Mata\Config\Monitoring\Loader\IntervalsConfigLoader;
+use Mata\Config\Monitoring\Loader\NotificationRulesConfigLoader;
+use Mata\Config\Monitoring\Loader\ProbesConfigLoader;
+use Mata\Config\Monitoring\Loader\ServersConfigLoader;
+use Mata\Config\Monitoring\Loader\ThresholdsConfigLoader;
+use Mata\Config\Monitoring\Loader\TtlConfigLoader;
+use Mata\Config\Monitoring\MonitoringConfig;
+use Mata\Config\Monitoring\MonitoringConfigLoader;
+use Mata\Config\Monitoring\Section\AlarmRateLimitsConfig;
 use Mata\Models\AlarmDeliveryRepository;
 use Mata\Models\AlarmRepository;
 use Mata\Models\AppFatalStateRepository;
@@ -36,7 +37,6 @@ use Mata\Services\Runtime\DashboardEnvironmentFactory;
  */
 final readonly class CronMonitoringRuntime
 {
-    /** @param array<string,mixed> $monitoringSettings */
     public function __construct(
         public AlarmRepository $alarmRepository,
         public AlarmDeliveryRepository $deliveryRepository,
@@ -45,14 +45,14 @@ final readonly class CronMonitoringRuntime
         public AppFatalStateRepository $fatalStateRepository,
         public EventRepository $eventRepository,
         public AlarmQueueFailureThrottle $queueFailureThrottle,
-        public AlarmLimitsConfig $alarmLimits,
+        public AlarmRateLimitsConfig $alarmRateLimits,
         public AlarmDirectProcessor $alarmDirectProcessor,
         public AlarmThresholdCooldownService $alarmEvaluator,
         public ServerApplicationIdResolver $idResolver,
         public EventRecorderService $eventRecorder,
         public EventAggregatorServiceInterface $eventAggregator,
         public EventManager $eventManager,
-        public array $monitoringSettings,
+        public MonitoringConfig $monitoringConfig,
     ) {}
 
     /** Create the monitoring runtime from an initialized cron runtime. */
@@ -73,7 +73,7 @@ final readonly class CronMonitoringRuntime
 
         // Alarm limits and queue-failure throttling
         $queueFailureThrottle = new AlarmQueueFailureThrottle($paths->tempPath . '/alarm-locks', $log);
-        $alarmLimits = (new AlarmLimitsConfigLoader($log))->load($paths->appPath . '/config/limits.json');
+        $alarmLimits = (new AlarmRateLimitsConfigLoader($log))->load($paths->appPath . '/config');
 
         // Direct alarm processing
         $alarmDirectProcessor = new AlarmDirectProcessor(
@@ -102,31 +102,31 @@ final readonly class CronMonitoringRuntime
             eventAggregator: $eventAggregator,
         );
 
-        // Monitoring settings
-        $monitoringSettings = (new MonitoringConfigManager([
-            new ServersConfigLoader(
+        // Monitoring configuration
+        $monitoringConfig = (new MonitoringConfigLoader(
+            servers: new ServersConfigLoader(
                 eventRecorder: $eventRecorder,
                 alarmDirectProcessor: $alarmDirectProcessor,
                 fallbackOnFailure: false,
             ),
-            new TtlConfigLoader(eventRecorder: $eventRecorder, fallbackOnFailure: true),
-            new DataRetentionConfigLoader(eventRecorder: $eventRecorder, fallbackOnFailure: true),
-            new IntervalsConfigLoader(eventRecorder: $eventRecorder, fallbackOnFailure: true),
-            new ProbesConfigLoader(eventRecorder: $eventRecorder, fallbackOnFailure: true),
-            new NotificationRulesConfigLoader(eventRecorder: $eventRecorder, fallbackOnFailure: true),
-            new ThresholdsConfigLoader(
+            ttl: new TtlConfigLoader(eventRecorder: $eventRecorder, fallbackOnFailure: true),
+            dataRetention: new DataRetentionConfigLoader(eventRecorder: $eventRecorder, fallbackOnFailure: true),
+            intervals: new IntervalsConfigLoader(eventRecorder: $eventRecorder, fallbackOnFailure: true),
+            probes: new ProbesConfigLoader(eventRecorder: $eventRecorder, fallbackOnFailure: true),
+            notificationRules: new NotificationRulesConfigLoader(eventRecorder: $eventRecorder, fallbackOnFailure: true),
+            thresholds: new ThresholdsConfigLoader(
                 eventRecorder: $eventRecorder,
                 alarmDirectProcessor: $alarmDirectProcessor,
                 fallbackOnFailure: true,
             ),
-        ]))->loadAllConfigs($paths->appPath . '/config', $appConfig->environment->env);
+        ))->load($paths->appPath . '/config', $alarmLimits);
 
-        $eventManager->setMonitoringSettings($monitoringSettings);
-        $idResolver->refreshFromRepository($monitoringSettings['servers'] ?? []);
+        $eventManager->setMonitoringConfig($monitoringConfig);
+        $idResolver->refreshFromRepository($monitoringConfig->servers->values);
 
         // Alarm evaluation
         $alarmEvaluator = new AlarmThresholdCooldownService($eventAggregator, $eventRecorder, $appConfig);
-        $alarmEvaluator->setMonitoringSettings($monitoringSettings);
+        $alarmEvaluator->setMonitoringConfig($monitoringConfig);
 
         return new self(
             alarmRepository: $alarmRepository,
@@ -136,26 +136,14 @@ final readonly class CronMonitoringRuntime
             fatalStateRepository: $fatalStateRepository,
             eventRepository: $eventRepository,
             queueFailureThrottle: $queueFailureThrottle,
-            alarmLimits: $alarmLimits,
+            alarmRateLimits: $alarmLimits,
             alarmDirectProcessor: $alarmDirectProcessor,
             alarmEvaluator: $alarmEvaluator,
             idResolver: $idResolver,
             eventRecorder: $eventRecorder,
             eventAggregator: $eventAggregator,
             eventManager: $eventManager,
-            monitoringSettings: $monitoringSettings,
+            monitoringConfig: $monitoringConfig,
         );
-    }
-
-    /**
-     * Return a monitoring section, or an empty array if it is absent or invalid.
-     *
-     * @return array<string,mixed>
-     */
-    public function settingsSection(string $key): array
-    {
-        $section = $this->monitoringSettings[$key] ?? [];
-
-        return is_array($section) ? $section : [];
     }
 }

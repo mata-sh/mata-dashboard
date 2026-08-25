@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Mata\Services\Cache;
 
+use Mata\Config\Monitoring\Section\TtlConfig;
+
 /**
  * Read-only cache TTL configuration lookup.
  *
@@ -12,10 +14,7 @@ namespace Mata\Services\Cache;
  */
 final class CacheTtlResolver
 {
-    /**
-     * @param array<string,mixed> $ttls
-     */
-    public function __construct(private array $ttls) {}
+    public function __construct(private TtlConfig $ttlConfig) {}
 
     /**
      * Return zero for missing or invalid configuration values.
@@ -29,8 +28,6 @@ final class CacheTtlResolver
             return 0;
         }
 
-        $ttl = $this->ttls[$cacheType->value] ?? null;
-
-        return is_int($ttl) ? $ttl : 0;
+        return $this->ttlConfig->get($cacheType->value) ?? 0;
     }
 }

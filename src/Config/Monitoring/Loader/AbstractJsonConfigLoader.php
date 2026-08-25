@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Mata\Config\Monitoring;
+namespace Mata\Config\Monitoring\Loader;
 
 use JsonException;
 use RuntimeException;

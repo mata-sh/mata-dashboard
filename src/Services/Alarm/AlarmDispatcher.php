@@ -6,7 +6,7 @@ namespace Mata\Services\Alarm;
 
 use DateInterval;
 use DateTimeImmutable;
-use Mata\Config\Dto\AlarmLimitsConfig;
+use Mata\Config\Monitoring\Section\AlarmRateLimitsConfig;
 use Mata\Models\AlarmDeliveryRepository;
 use Mata\Services\Alarm\Dto\Alarm;
 use Mata\Services\Alarm\Dto\AlarmEmailView;
@@ -26,14 +26,14 @@ final class AlarmDispatcher
     private const RETRY_MAX_DELAY_SECONDS = 3600;
 
     private AlarmDeliveryRepository $deliveryRepository;
-    private AlarmLimitsConfig $limitsConfig;
+    private AlarmRateLimitsConfig $limitsConfig;
     private AlarmEmailSender $emailSender;
     private int $maxAttempts;
     private LoggerInterface $logger;
 
     public function __construct(
         AlarmDeliveryRepository $deliveryRepository,
-        AlarmLimitsConfig $limitsConfig,
+        AlarmRateLimitsConfig $limitsConfig,
         AlarmEmailSender $emailSender,
         ?LoggerInterface $logger = null,
         int $maxAttempts = 5,

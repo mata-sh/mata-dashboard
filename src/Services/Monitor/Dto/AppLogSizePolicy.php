@@ -14,7 +14,7 @@ final readonly class AppLogSizePolicy
     /** @param array<string,mixed> $serverConfig */
     public static function fromServerConfig(array $serverConfig): self
     {
-        return new self(self::serverSetting($serverConfig, 'logsize_monitoring_enabled'));
+        return new self(self::serverConfigFlag($serverConfig, 'logsize_monitoring_enabled'));
     }
 
     /** @param array<string,mixed> $appData */
@@ -28,16 +28,16 @@ final readonly class AppLogSizePolicy
      *
      * @throws InvalidArgumentException When the configured value is not a JSON boolean
      */
-    private static function serverSetting(array $config, string $setting): bool
+    private static function serverConfigFlag(array $config, string $configKey): bool
     {
-        if (!array_key_exists($setting, $config)) {
+        if (!array_key_exists($configKey, $config)) {
             return true;
         }
-        if (!is_bool($config[$setting])) {
-            throw new InvalidArgumentException("{$setting} must be a JSON boolean when configured");
+        if (!is_bool($config[$configKey])) {
+            throw new InvalidArgumentException("{$configKey} must be a JSON boolean when configured");
         }
 
-        return $config[$setting];
+        return $config[$configKey];
     }
 
     /**

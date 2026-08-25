@@ -8,16 +8,16 @@ use Mata\Bootstrap\DatabaseBootstrap;
 use Mata\Config\EnvConfigFatalException;
 use Mata\Config\EnvConfigManager;
 use Mata\Config\LogConfigurator;
-use Mata\Config\Monitoring\AlarmLimitsConfigLoader;
-use Mata\Config\Monitoring\DataRetentionConfigLoader;
-use Mata\Config\Monitoring\IntervalsConfigLoader;
-use Mata\Config\Monitoring\MenuConfigLoader;
-use Mata\Config\Monitoring\MonitoringConfigManager;
-use Mata\Config\Monitoring\NotificationRulesConfigLoader;
-use Mata\Config\Monitoring\ProbesConfigLoader;
-use Mata\Config\Monitoring\ServersConfigLoader;
-use Mata\Config\Monitoring\ThresholdsConfigLoader;
-use Mata\Config\Monitoring\TtlConfigLoader;
+use Mata\Config\Monitoring\Loader\AlarmRateLimitsConfigLoader;
+use Mata\Config\Monitoring\Loader\DataRetentionConfigLoader;
+use Mata\Config\Monitoring\Loader\IntervalsConfigLoader;
+use Mata\Config\Monitoring\Loader\MenuConfigLoader;
+use Mata\Config\Monitoring\Loader\NotificationRulesConfigLoader;
+use Mata\Config\Monitoring\Loader\ProbesConfigLoader;
+use Mata\Config\Monitoring\Loader\ServersConfigLoader;
+use Mata\Config\Monitoring\Loader\ThresholdsConfigLoader;
+use Mata\Config\Monitoring\Loader\TtlConfigLoader;
+use Mata\Config\Monitoring\MonitoringConfigLoader;
 use Mata\Controllers\AuditController;
 use Mata\Controllers\DashboardController;
 use Mata\Controllers\LoginController;
@@ -53,7 +53,6 @@ use Mata\Services\Event\EventRecorderService;
 use Mata\Services\Identity\ServerApplicationIdResolver;
 use Mata\Services\Metrics\MetricCatalog;
 use Mata\Services\Monitor\Dto\AppReachabilityPolicy;
-use Mata\Services\Monitor\Dto\DashboardMonitoringContext;
 use Mata\Services\Monitor\HttpProbeClient;
 use Mata\Services\Monitor\LogSizeEvaluator;
 use Mata\Services\Monitor\ServerMonitoringFactory;
@@ -62,7 +61,7 @@ use Mata\Services\Notification\NotificationManager;
 use Mata\Services\Runtime\DashboardEnvironmentFactory;
 use Mata\Services\ServerMetrics\ServerMetricsQueryFactory;
 use Mata\Services\Sync\AppInventorySync;
-use Mata\Services\Sync\SettingsDatabaseSync;
+use Mata\Services\Sync\ServerConfigDatabaseSync;
 use Mata\Services\Validation\MetricsRequestValidator;
 use Mata\Services\View\ChartViewBuilder;
 use Mata\Services\View\MetricsViewBuilder;
@@ -170,7 +169,7 @@ $environment = $appConfig->environment->env;
 $paths->applyConfig($appConfig);
 
 // ************************************************************************************************
-// Apply Configured Monolog Settings
+// Configure Monolog
 // ************************************************************************************************
 $log = $logConfigurator->createConfiguredLogger($appConfig->logging, $paths, 'app');
 ini_set('error_log', $paths->logsPath . '/php-error.log');
@@ -304,8 +303,8 @@ $alarmRepository = new AlarmRepository($db);
 $deliveryRepository = new AlarmDeliveryRepository($db);
 $alarmCreator = new AlarmCreator($db, $alarmRepository, $deliveryRepository);
 
-// --- Settings Sync ---
-$settingsSync = new SettingsDatabaseSync($db, $log, $configSyncRepository);
+// --- Server Configuration Sync ---
+$serverConfigSync = new ServerConfigDatabaseSync($db, $log, $configSyncRepository);
 
 // --- Tools & Resolvers ---
 $idResolver = new ServerApplicationIdResolver($configSyncRepository);
@@ -313,8 +312,8 @@ $appInventorySync = new AppInventorySync($configSyncRepository, $idResolver, $lo
 
 // --- Limits & Locking ---
 $queueFailureThrottle = new AlarmQueueFailureThrottle($paths->tempPath . '/alarm-locks', $log);
-$limitsLoader = new AlarmLimitsConfigLoader($log);
-$limitsConfig = $limitsLoader->load($paths->appPath . '/config/limits.json');
+$limitsLoader = new AlarmRateLimitsConfigLoader($log);
+$limitsConfig = $limitsLoader->load($paths->appPath . '/config');
 
 // --- Alarm Manager ---
 $alarmDirectProcessor = new AlarmDirectProcessor($alarmCreator, $limitsConfig, $queueFailureThrottle, $log);
@@ -342,52 +341,67 @@ $eventManager = new EventManager(
 // ************************************************************************************************
 // Monitoring Configuration
 // ************************************************************************************************
-$monitoringConfigManager = new MonitoringConfigManager([
-    new ServersConfigLoader(
+$monitoringConfigLoader = new MonitoringConfigLoader(
+    servers: new ServersConfigLoader(
         eventRecorder: $eventManager->recorder,
         alarmDirectProcessor: $alarmDirectProcessor,
         db: $db,
-        settingsSync: $settingsSync,
+        serverConfigSync: $serverConfigSync,
         fallbackOnFailure: true,
     ),
-    new TtlConfigLoader(eventRecorder: $eventManager->recorder, fallbackOnFailure: true),
-    new DataRetentionConfigLoader(eventRecorder: $eventManager->recorder, fallbackOnFailure: true),
-    new IntervalsConfigLoader(eventRecorder: $eventManager->recorder, fallbackOnFailure: true),
-    new ProbesConfigLoader(eventRecorder: $eventManager->recorder, fallbackOnFailure: true),
-    new NotificationRulesConfigLoader(eventRecorder: $eventManager->recorder, fallbackOnFailure: true),
-    new MenuConfigLoader(
+    ttl: new TtlConfigLoader(
+        eventRecorder: $eventManager->recorder,
+        fallbackOnFailure: true,
+    ),
+    dataRetention: new DataRetentionConfigLoader(
+        eventRecorder: $eventManager->recorder,
+        fallbackOnFailure: true,
+    ),
+    intervals: new IntervalsConfigLoader(
+        eventRecorder: $eventManager->recorder,
+        fallbackOnFailure: true,
+    ),
+    probes: new ProbesConfigLoader(
+        eventRecorder: $eventManager->recorder,
+        fallbackOnFailure: true,
+    ),
+    notificationRules: new NotificationRulesConfigLoader(
+        eventRecorder: $eventManager->recorder,
+        fallbackOnFailure: true,
+    ),
+    thresholds: new ThresholdsConfigLoader(
+        eventRecorder: $eventManager->recorder,
+        alarmDirectProcessor: $alarmDirectProcessor,
+        fallbackOnFailure: true,
+    ),
+    menu: new MenuConfigLoader(
         eventRecorder: $eventManager->recorder,
         validKeys: MenuBuilder::MENU_KEYS,
         fallbackOnFailure: true,
     ),
-    new ThresholdsConfigLoader(
-        eventRecorder: $eventManager->recorder,
-        alarmDirectProcessor: $alarmDirectProcessor,
-        fallbackOnFailure: true,
-    ),
-]);
+);
 
 $configPath = $paths->appPath . '/config';
 $log->info("Loading monitoring configuration for environment: {$environment}");
-$monitoringSettings = $monitoringConfigManager->loadAllConfigs($configPath, $environment);
-$eventManager->setMonitoringSettings($monitoringSettings);
-$idResolver->refreshFromRepository($monitoringSettings['servers'] ?? []);
+$monitoringConfig = $monitoringConfigLoader->load($configPath, $limitsConfig);
+$eventManager->setMonitoringConfig($monitoringConfig);
+$idResolver->refreshFromRepository($monitoringConfig->servers->values);
 
-$serverSettings = $monitoringSettings['servers'] ?? [];
+$serversConfig = $monitoringConfig->servers->values;
 
 // ************************************************************************************************
 // Cache & Endpoints
 // ************************************************************************************************
 $cacheStore = new FileCacheStore($log, $paths->tempPath . '/api-cache');
 $cacheKeyFactory = new ApiCacheKeyFactory();
-$ttlResolver = new CacheTtlResolver($monitoringSettings['ttl']);
+$ttlResolver = new CacheTtlResolver($monitoringConfig->ttl);
 $endpoints = new Endpoints();
-$menuBuilder = new MenuBuilder($endpoints, $tools, $monitoringSettings['menu'] ?? []);
+$menuBuilder = new MenuBuilder($endpoints, $tools, $monitoringConfig->menu->overrides);
 
 // ************************************************************************************************
 // Server Monitoring Services (live API or demo mocks)
 // ************************************************************************************************
-$monitoringPolicy = AppReachabilityPolicy::fromSettings($monitoringSettings);
+$monitoringPolicy = AppReachabilityPolicy::fromMonitoringConfig($monitoringConfig);
 $serverMonitoringFactory = new ServerMonitoringFactory(
     $log,
     $cacheStore,
@@ -402,22 +416,17 @@ $serverMonitoringFactory = new ServerMonitoringFactory(
     new LogSizeEvaluator($tools, $eventManager),
 );
 
-$serverMonitoringBuild = $dashboardEnvironmentFactory->createMonitoring(
-    $serverSettings,
+$serverMonitoringResult = $dashboardEnvironmentFactory->createMonitoring(
+    $serversConfig,
     $serverMonitoringFactory,
 );
 
-foreach ($serverMonitoringBuild->failures as $server => $reason) {
+foreach ($serverMonitoringResult->failures as $server => $reason) {
     $notificationManager->addConfigWarning(
         'server.monitoring.failed',
         "Could not initialize monitoring for server {$server}: {$reason}"
     );
 }
-
-$dashboardMonitoringContext = DashboardMonitoringContext::fromSettingsAndServices(
-    $monitoringSettings,
-    $serverMonitoringBuild->servicesByServer,
-);
 
 // ************************************************************************************************
 // Controllers
@@ -435,10 +444,10 @@ $dashboardController = new DashboardController(
     $cacheKeyFactory,
     $endpoints,
     $menuBuilder,
-    $dashboardMonitoringContext,
+    $monitoringConfig,
+    $serverMonitoringResult,
     $request,
     $appInventorySync,
-    $limitsConfig,
 );
 
 $logDataTransformer = new LogDataTransformer($log);
@@ -453,7 +462,7 @@ $auditController = new AuditController(
     $cacheKeyFactory,
     $ttlResolver,
     $endpoints,
-    $serverSettings,
+    $serversConfig,
     $request,
 );
 
@@ -468,7 +477,7 @@ $modalController = new ModalController(
     $ttlResolver,
     $logDataTransformer,
     $endpoints,
-    $serverSettings,
+    $serversConfig,
     $request,
 );
 
@@ -478,19 +487,15 @@ $metricsViewBuilder = new MetricsViewBuilder($metricsQuery, $log);
 $metricsRenderer = new MetricsRenderer($twig, $log, $tools, $app, $endpoints);
 $metricCatalog = new MetricCatalog();
 $metricsRequestValidator = new MetricsRequestValidator($metricCatalog);
-$metricsDashboardConfig = isset($monitoringSettings['charts']['dashboard']) && is_array($monitoringSettings['charts']['dashboard'])
-    ? $monitoringSettings['charts']['dashboard']
-    : [];
-$metricsDashboardTtl = isset($monitoringSettings['ttl']['serverMetricsChart'])
-    ? (int) $monitoringSettings['ttl']['serverMetricsChart']
-    : null;
+$metricsDashboardConfig = [];
+$metricsDashboardTtl = $monitoringConfig->ttl->get('serverMetricsChart');
 
 // Metrics Services
 $metricsCacheService = new MetricsCacheService(
     $cacheStore,
     $cacheKeyFactory,
     $log,
-    $serverSettings
+    $serversConfig
 );
 $chartDataTransformer = new ChartDataTransformer();
 $chartViewBuilder = new ChartViewBuilder(
@@ -499,7 +504,7 @@ $chartViewBuilder = new ChartViewBuilder(
     $metricsRequestValidator,
     $chartDataTransformer,
     $metricCatalog,
-    $serverSettings
+    $serversConfig
 );
 
 $metricsController = new MetricsController(
@@ -510,9 +515,9 @@ $metricsController = new MetricsController(
     $metricsRequestValidator,
     $chartViewBuilder,
     $metricCatalog,
-    $serverSettings,
+    $serversConfig,
     $request,
-    isset($monitoringSettings['ttl']['metrics']) ? (int) $monitoringSettings['ttl']['metrics'] : null,
+    $monitoringConfig->ttl->get('metrics'),
     $metricsDashboardConfig,
     $metricsDashboardTtl,
 );
