@@ -16,6 +16,40 @@ if (php_sapi_name() !== 'cli') {
     exit("ERROR: This script can only be executed from the command line.\n");
 }
 
+/**
+ * Prompt for a single line of input, aborting when STDIN is closed.
+ */
+function promptLine(string $label): string
+{
+    $answer = readline($label);
+    if ($answer === false) {
+        exit("\n❌ Aborted: no input available on STDIN.\n");
+    }
+
+    return $answer;
+}
+
+/**
+ * Prompt for a secret without echoing it back to the terminal.
+ *
+ * Terminal echo is restored before any abort so a closed STDIN cannot leave
+ * the operator's shell in a silent state.
+ */
+function promptSecret(string $label): string
+{
+    echo $label;
+    system('stty -echo');
+    $secret = fgets(STDIN);
+    system('stty echo');
+    echo "\n";
+
+    if ($secret === false) {
+        exit("❌ Aborted: no input available on STDIN.\n");
+    }
+
+    return trim($secret);
+}
+
 $runtime = ScriptRuntime::boot($_SERVER['argv'] ?? []);
 $paths = $runtime->paths;
 $appConfig = $runtime->appConfig;
@@ -161,14 +195,16 @@ if (!file_exists($usersFile)) {
     fclose($lockHandle);
 } elseif (!is_readable($usersFile) || !is_writable($usersFile)) {
     // File exists but we don't have permission
-    $owner = posix_getpwuid(fileowner($usersFile));
+    $ownerId = fileowner($usersFile);
+    $owner = $ownerId === false ? false : posix_getpwuid($ownerId);
+    $ownerName = $owner === false ? 'unknown' : $owner['name'];
 
     echo "❌ Permission denied: {$usersFile}\n";
-    echo "   File owner: {$owner['name']}\n";
+    echo "   File owner: {$ownerName}\n";
     echo "   Current user: {$currentUser['name']}\n\n";
     echo "Fix this by running ONE of the following:\n\n";
     echo "  Option 1 - Run as file owner:\n";
-    echo "    sudo -u {$owner['name']} php {$scriptPath}" . ($env !== 'dev' ? " --env={$env}" : '') . "\n\n";
+    echo "    sudo -u {$ownerName} php {$scriptPath}" . ($env !== 'dev' ? " --env={$env}" : '') . "\n\n";
     echo "  Option 2 - Change file ownership (development only):\n";
     echo "    sudo chown {$currentUser['name']}:{$currentUser['name']} {$usersFile}\n\n";
 
@@ -213,13 +249,9 @@ echo "📁 Users file: {$usersFile}\n\n";
 
 switch ($action) {
     case 'create':
-        $username = $arguments[2] ?? readline('Username: ');
-        echo 'Password: ';
-        system('stty -echo');
-        $password = trim(fgets(STDIN));
-        system('stty echo');
-        echo "\n";
-        $role = $arguments[3] ?? readline('Role [viewer/admin]: ');
+        $username = $arguments[2] ?? promptLine('Username: ');
+        $password = promptSecret('Password: ');
+        $role = $arguments[3] ?? promptLine('Role [viewer/admin]: ');
 
         try {
             $auth->createUser($username, $password, $role);
@@ -265,7 +297,7 @@ switch ($action) {
         break;
 
     case 'unlock':
-        $username = $arguments[2] ?? readline('Username to unlock: ');
+        $username = $arguments[2] ?? promptLine('Username to unlock: ');
 
         try {
             $auth->unlockUser($username);
@@ -290,8 +322,8 @@ switch ($action) {
         break;
 
     case 'delete':
-        $username = $arguments[2] ?? readline('Username to delete: ');
-        $confirm = $arguments[3] ?? readline('Are you sure? (yes/no): ');
+        $username = $arguments[2] ?? promptLine('Username to delete: ');
+        $confirm = $arguments[3] ?? promptLine('Are you sure? (yes/no): ');
         if ($confirm === 'yes') {
             try {
                 $auth->deleteUser($username);
@@ -324,12 +356,8 @@ switch ($action) {
         break;
 
     case 'passwd':
-        $username = $arguments[2] ?? readline('Username: ');
-        echo 'New password: ';
-        system('stty -echo');
-        $password = trim(fgets(STDIN));
-        system('stty echo');
-        echo "\n";
+        $username = $arguments[2] ?? promptLine('Username: ');
+        $password = promptSecret('New password: ');
 
         try {
             $auth->changePassword($username, $password);

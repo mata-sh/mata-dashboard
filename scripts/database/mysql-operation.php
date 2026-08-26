@@ -24,7 +24,15 @@ $config = $loader->load(
 );
 $db = $config->database;
 
-$findExecutable = static function (string $name): string {
+/**
+ * Resolve an executable by name from PATH, aborting when it is missing.
+ *
+ * Declared as named functions rather than closures: PHPStan only applies
+ * `@param` PHPDoc to named functions, and `runClient()` needs `list<string>`
+ * to satisfy proc_open().
+ */
+function findExecutable(string $name): string
+{
     $path = getenv('PATH') ?: '';
     foreach (explode(PATH_SEPARATOR, $path) as $directory) {
         $candidate = rtrim($directory, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . $name;
@@ -36,9 +44,15 @@ $findExecutable = static function (string $name): string {
     fwrite(STDERR, "ERROR: {$name} is not available in PATH.\n");
 
     exit(1);
-};
+}
 
-$run = static function (array $command, array $descriptors, array $environment): int {
+/**
+ * @param list<string>         $command     Executable followed by its arguments
+ * @param array<int,resource>  $descriptors File descriptor map for proc_open()
+ * @param array<string,string> $environment Environment for the child process
+ */
+function runClient(array $command, array $descriptors, array $environment): int
+{
     $process = proc_open($command, $descriptors, $pipes, null, $environment);
     if (!is_resource($process)) {
         fwrite(STDERR, "ERROR: Failed to start database client.\n");
@@ -47,7 +61,7 @@ $run = static function (array $command, array $descriptors, array $environment):
     }
 
     return proc_close($process);
-};
+}
 
 $environment = getenv();
 if (!is_array($environment)) {
@@ -62,7 +76,7 @@ $connectionArgs = [
 ];
 
 if ($operation === 'backup') {
-    $binary = $findExecutable('mysqldump');
+    $binary = findExecutable('mysqldump');
     $destination = $file ?: $root . '/backups/backup-' . date('Ymd-His') . '.sql';
     if (!str_starts_with($destination, DIRECTORY_SEPARATOR)) {
         $destination = $root . '/' . ltrim($destination, './');
@@ -89,7 +103,7 @@ if ($operation === 'backup') {
         $connectionArgs,
         ['--single-transaction', '--quick', '--skip-lock-tables', '--no-tablespaces', $db->database]
     );
-    $status = $run($command, [0 => STDIN, 1 => $output, 2 => STDERR], $environment);
+    $status = runClient($command, [0 => STDIN, 1 => $output, 2 => STDERR], $environment);
     fclose($output);
 
     if ($status !== 0) {
@@ -123,7 +137,7 @@ if ($operation === 'restore') {
         exit(1);
     }
 
-    $binary = $findExecutable('mysql');
+    $binary = findExecutable('mysql');
     $input = fopen($source, 'rb');
     if ($input === false) {
         fwrite(STDERR, "ERROR: Cannot open backup: {$source}\n");
@@ -131,13 +145,13 @@ if ($operation === 'restore') {
         exit(1);
     }
     $command = array_merge([$binary], $connectionArgs, [$db->database]);
-    $status = $run($command, [0 => $input, 1 => STDOUT, 2 => STDERR], $environment);
+    $status = runClient($command, [0 => $input, 1 => STDOUT, 2 => STDERR], $environment);
     fclose($input);
 
     exit($status);
 }
 
-$binary = $findExecutable('mysql');
+$binary = findExecutable('mysql');
 $command = array_merge([$binary], $connectionArgs, [$db->database]);
 
-exit($run($command, [0 => STDIN, 1 => STDOUT, 2 => STDERR], $environment));
+exit(runClient($command, [0 => STDIN, 1 => STDOUT, 2 => STDERR], $environment));

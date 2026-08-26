@@ -1,9 +1,12 @@
-# Procedural entrypoints are analysed separately from level 7 `src`. Level 6
-# catches type errors and stale imports; level 7 blockers are tracked in TODO.md.
+# Procedural entrypoints are analysed separately from `src`, but at the same
+# level 7 — union types from the C-style stdlib (`fgets`, `readline`,
+# `fileowner`) must be guarded here just as they are in `src`.
 # Keep entrypoint bootstrapping behind typed factories so PHPStan can follow
-# dependencies across file boundaries.
+# dependencies across file boundaries. Note that PHPStan applies `@param` PHPDoc
+# only to named functions, so helpers in these scripts are declared as functions
+# rather than closures.
 parameters:
-    level: 6
+    level: 7
     paths:
         - public
         - cron

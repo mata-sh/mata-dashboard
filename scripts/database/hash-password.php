@@ -8,9 +8,17 @@ echo "======================\n\n";
 
 echo 'Enter password: ';
 system('stty -echo');
-$password = trim(fgets(STDIN));
+$input = fgets(STDIN);
 system('stty echo');
 echo "\n";
+
+if ($input === false) {
+    fwrite(STDERR, "ERROR: No password received on STDIN.\n");
+
+    exit(1);
+}
+
+$password = trim($input);
 
 $hash = password_hash($password, PASSWORD_DEFAULT);
 
