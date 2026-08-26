@@ -34,6 +34,8 @@ use Mata\Services\Runtime\DashboardEnvironmentFactory;
  * Monitoring configuration and event/alarm services for a cron job.
  *
  * Builds on the shared infrastructure initialized by {@see CronRuntime}.
+ * Omits web-only menu and chart configuration and server config sync.
+ * Disables server fallback so cron fails rather than processing no servers.
  */
 final readonly class CronMonitoringRuntime
 {
