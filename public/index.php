@@ -9,6 +9,7 @@ use Mata\Config\EnvConfigFatalException;
 use Mata\Config\EnvConfigManager;
 use Mata\Config\LogConfigurator;
 use Mata\Config\Monitoring\Loader\AlarmRateLimitsConfigLoader;
+use Mata\Config\Monitoring\Loader\ChartsConfigLoader;
 use Mata\Config\Monitoring\Loader\DataRetentionConfigLoader;
 use Mata\Config\Monitoring\Loader\IntervalsConfigLoader;
 use Mata\Config\Monitoring\Loader\MenuConfigLoader;
@@ -51,7 +52,6 @@ use Mata\Services\DataTransformers\LogDataTransformer;
 use Mata\Services\Event\EventManager;
 use Mata\Services\Event\EventRecorderService;
 use Mata\Services\Identity\ServerApplicationIdResolver;
-use Mata\Services\Metrics\MetricCatalog;
 use Mata\Services\Monitor\Dto\AppReachabilityPolicy;
 use Mata\Services\Monitor\HttpProbeClient;
 use Mata\Services\Monitor\LogSizeEvaluator;
@@ -59,10 +59,12 @@ use Mata\Services\Monitor\ServerMonitoringFactory;
 use Mata\Services\Navigation\MenuBuilder;
 use Mata\Services\Notification\NotificationManager;
 use Mata\Services\Runtime\DashboardEnvironmentFactory;
+use Mata\Services\ServerMetrics\MetricCatalog;
+use Mata\Services\ServerMetrics\MetricQueryPolicy;
+use Mata\Services\ServerMetrics\MetricsRequestValidator;
 use Mata\Services\ServerMetrics\ServerMetricsQueryFactory;
 use Mata\Services\Sync\AppInventorySync;
 use Mata\Services\Sync\ServerConfigDatabaseSync;
-use Mata\Services\Validation\MetricsRequestValidator;
 use Mata\Services\View\ChartViewBuilder;
 use Mata\Services\View\MetricsViewBuilder;
 use Mata\Utils\PathResolver;
@@ -338,6 +340,10 @@ $eventManager = new EventManager(
 // ************************************************************************************************
 // Monitoring Configuration
 // ************************************************************************************************
+$metricCatalog = new MetricCatalog();
+$metricQueryPolicy = new MetricQueryPolicy();
+$metricsRequestValidator = new MetricsRequestValidator($metricCatalog, $metricQueryPolicy);
+
 $monitoringConfigLoader = new MonitoringConfigLoader(
     servers: new ServersConfigLoader(
         eventRecorder: $eventManager->recorder,
@@ -374,6 +380,12 @@ $monitoringConfigLoader = new MonitoringConfigLoader(
     menu: new MenuConfigLoader(
         eventRecorder: $eventManager->recorder,
         validKeys: MenuBuilder::MENU_KEYS,
+        fallbackOnFailure: true,
+    ),
+    charts: new ChartsConfigLoader(
+        eventRecorder: $eventManager->recorder,
+        metricCatalog: $metricCatalog,
+        queryPolicy: $metricQueryPolicy,
         fallbackOnFailure: true,
     ),
 );
@@ -482,9 +494,7 @@ $metricsQueryFactory = new ServerMetricsQueryFactory($environment, $db, $idResol
 $metricsQuery = $metricsQueryFactory->create();
 $metricsViewBuilder = new MetricsViewBuilder($metricsQuery, $log);
 $metricsRenderer = new MetricsRenderer($twig, $log, $tools, $app, $endpoints);
-$metricCatalog = new MetricCatalog();
-$metricsRequestValidator = new MetricsRequestValidator($metricCatalog);
-$metricsDashboardConfig = [];
+$metricsDashboardConfig = $monitoringConfig->charts->dashboardOrDefault($metricQueryPolicy);
 $metricsDashboardTtl = $monitoringConfig->ttl->get('serverMetricsChart');
 
 // Metrics Services
@@ -498,9 +508,7 @@ $chartDataTransformer = new ChartDataTransformer();
 $chartViewBuilder = new ChartViewBuilder(
     $metricsViewBuilder,
     $metricsRenderer,
-    $metricsRequestValidator,
     $chartDataTransformer,
-    $metricCatalog,
     $serversConfig
 );
 
@@ -510,12 +518,13 @@ $metricsController = new MetricsController(
     $metricsRenderer,
     $metricsCacheService,
     $metricsRequestValidator,
+    $metricQueryPolicy,
     $chartViewBuilder,
     $metricCatalog,
     $serversConfig,
     $request,
-    $monitoringConfig->ttl->get('metrics'),
     $metricsDashboardConfig,
+    $monitoringConfig->ttl->get('metrics'),
     $metricsDashboardTtl,
 );
 

@@ -6,6 +6,7 @@ namespace Mata\Tests\Helpers;
 
 use Mata\Config\Monitoring\MonitoringConfig;
 use Mata\Config\Monitoring\Section\AlarmRateLimitsConfig;
+use Mata\Config\Monitoring\Section\ChartsConfig;
 use Mata\Config\Monitoring\Section\DataRetentionConfig;
 use Mata\Config\Monitoring\Section\IntervalsConfig;
 use Mata\Config\Monitoring\Section\MenuConfig;
@@ -27,6 +28,7 @@ final class MonitoringConfigFactory
         ?ThresholdsConfig $thresholds = null,
         ?MenuConfig $menu = null,
         ?AlarmRateLimitsConfig $alarmRateLimits = null,
+        ?ChartsConfig $charts = null,
     ): MonitoringConfig {
         return new MonitoringConfig(
             servers: $servers ?? ServersConfig::empty(),
@@ -38,6 +40,7 @@ final class MonitoringConfigFactory
             thresholds: $thresholds ?? ThresholdsConfig::empty(),
             menu: $menu ?? MenuConfig::empty(),
             alarmRateLimits: $alarmRateLimits ?? AlarmRateLimitsConfig::default(),
+            charts: $charts ?? ChartsConfig::empty(),
         );
     }
 }

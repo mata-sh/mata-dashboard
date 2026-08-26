@@ -5,13 +5,15 @@ declare(strict_types=1);
 namespace Mata\Controllers;
 
 use InvalidArgumentException;
+use Mata\Config\Monitoring\Section\DashboardChartConfig;
 use Mata\Http\Request;
 use Mata\Http\Responses\HtmlResponse;
 use Mata\Http\Responses\JsonResponse;
 use Mata\Http\Responses\Response;
 use Mata\Services\Cache\MetricsCacheService;
-use Mata\Services\Metrics\MetricCatalog;
-use Mata\Services\Validation\MetricsRequestValidator;
+use Mata\Services\ServerMetrics\MetricCatalog;
+use Mata\Services\ServerMetrics\MetricQueryPolicy;
+use Mata\Services\ServerMetrics\MetricsRequestValidator;
 use Mata\Services\View\ChartViewBuilder;
 use Mata\Services\View\MetricsViewBuilder;
 use Mata\Views\MetricsRenderer;
@@ -29,6 +31,7 @@ final class MetricsController extends BaseController
     private MetricsRenderer $metricsRenderer;
     private MetricsCacheService $cacheService;
     private MetricsRequestValidator $validator;
+    private MetricQueryPolicy $queryPolicy;
     private ChartViewBuilder $chartViewBuilder;
     private MetricCatalog $metricCatalog;
 
@@ -51,7 +54,6 @@ final class MetricsController extends BaseController
 
     /**
      * @param array<string,mixed> $serversConfig
-     * @param array<string,mixed> $dashboardChartConfig
      */
     public function __construct(
         Logger $logger,
@@ -59,12 +61,13 @@ final class MetricsController extends BaseController
         MetricsRenderer $metricsRenderer,
         MetricsCacheService $cacheService,
         MetricsRequestValidator $validator,
+        MetricQueryPolicy $queryPolicy,
         ChartViewBuilder $chartViewBuilder,
         MetricCatalog $metricCatalog,
         array $serversConfig,
         Request $request,
+        DashboardChartConfig $dashboardChartConfig,
         ?int $cacheTtlSeconds = null,
-        array $dashboardChartConfig = [],
         ?int $dashboardCacheTtl = null,
     ) {
         parent::__construct($request);
@@ -73,6 +76,7 @@ final class MetricsController extends BaseController
         $this->metricsRenderer = $metricsRenderer;
         $this->cacheService = $cacheService;
         $this->validator = $validator;
+        $this->queryPolicy = $queryPolicy;
         $this->chartViewBuilder = $chartViewBuilder;
         $this->metricCatalog = $metricCatalog;
         $this->serversConfig = $serversConfig;
@@ -121,7 +125,7 @@ final class MetricsController extends BaseController
 
                 $forceRefresh = in_array(strtolower($forceRefreshInput), ['1', 'true', 'yes'], true);
 
-                $metricKey = $this->validator->normalizeMetric($metricInput);
+                $metricKey = $this->queryPolicy->normalizeMetric($metricInput);
                 if (!isset($this->dashboardChartConfig['metrics'][$metricKey])) {
                     return $this->handleValidationError([
                         'metric' => sprintf("Unsupported metric '%s'", $metricInput),
@@ -146,7 +150,13 @@ final class MetricsController extends BaseController
                 $range = (string) $timespanConfig['range'];
                 $granularity = (string) $timespanConfig['granularity'];
 
-                $cacheKey = $this->cacheService->buildDashboardCacheKey($servers, $metricKey, $range, $granularity);
+                $cacheKey = $this->cacheService->buildDashboardCacheKey(
+                    $servers,
+                    $metricKey,
+                    $timespanKey,
+                    $range,
+                    $granularity,
+                );
 
                 $cachedPayload = $this->cacheService->readDashboardCache($cacheKey, $this->dashboardCacheTtl, $forceRefresh);
                 if ($cachedPayload !== null) {
@@ -265,7 +275,7 @@ final class MetricsController extends BaseController
     {
         return $this->executeWithErrorHandling(
             function () use ($server) {
-                $metric = $this->validator->normalizeMetric($this->getQueryParam('metric', 'cpu'));
+                $metric = $this->queryPolicy->normalizeMetric($this->getQueryParam('metric', 'cpu'));
                 $range = $this->normalizeRangeInput($this->getQueryParam('range', '24h'));
                 $allowedMetrics = ['cpu', 'ram_percent', 'disk_percent', 'file_count'];
 
@@ -278,7 +288,7 @@ final class MetricsController extends BaseController
                     );
                 }
 
-                $granularity = $this->validator->resolveGranularity($range, 'auto');
+                $granularity = $this->queryPolicy->resolveGranularity($range, 'auto');
                 $validation = $this->validator->validate(
                     $server,
                     $metric,
@@ -355,7 +365,7 @@ final class MetricsController extends BaseController
                 $metricKey = $validation->normalizedMetric;
 
                 try {
-                    $granularity = $this->validator->resolveGranularity($range, $granularityInput);
+                    $granularity = $this->queryPolicy->resolveGranularity($range, $granularityInput);
                 } catch (InvalidArgumentException $exception) {
                     return $this->handleValidationError(['granularity' => $exception->getMessage()]);
                 }
@@ -449,7 +459,7 @@ final class MetricsController extends BaseController
 
                 // Validate range
                 $rangeIsSpecial = in_array($range, ['all', 'max'], true);
-                $rangeIsValid = $this->validator->parseRange($range) !== null;
+                $rangeIsValid = $this->queryPolicy->parseRange($range) !== null;
                 if ($range !== '' && !$rangeIsSpecial && !$rangeIsValid) {
                     return $this->handleValidationError(['range' => sprintf("Invalid range '%s'", $range)]);
                 }
@@ -457,7 +467,7 @@ final class MetricsController extends BaseController
                 // Normalize and validate each metric
                 $normalizedMetrics = [];
                 foreach ($metrics as $metric) {
-                    $normalized = $this->validator->normalizeMetric($metric);
+                    $normalized = $this->queryPolicy->normalizeMetric($metric);
                     if (!$this->metricCatalog->supports($normalized)) {
                         return $this->handleValidationError(['metric' => sprintf("Unsupported metric '%s'", $metric)]);
                     }
@@ -465,7 +475,7 @@ final class MetricsController extends BaseController
                 }
 
                 try {
-                    $granularity = $this->validator->resolveGranularity($range, $granularityInput);
+                    $granularity = $this->queryPolicy->resolveGranularity($range, $granularityInput);
                 } catch (InvalidArgumentException $exception) {
                     return $this->handleValidationError(['granularity' => $exception->getMessage()]);
                 }
@@ -513,7 +523,7 @@ final class MetricsController extends BaseController
             $ranges[] = [
                 'value' => $value,
                 'label' => $label,
-                'granularity' => $this->validator->resolveGranularity($value, 'auto'),
+                'granularity' => $this->queryPolicy->resolveGranularity($value, 'auto'),
             ];
         }
 

@@ -195,7 +195,8 @@ the hourly weighted fallback is acceptable.
 GET /api/metrics/{server}/{metric}?range=24h&granularity=hourly
 ```
 
-1. `MetricsRequestValidator` validates the server, metric, range, and tier.
+1. `ServerMetrics\MetricsRequestValidator` validates HTTP query inputs using
+   `MetricCatalog` and shared `MetricQueryPolicy` normalization/range rules.
 2. `MetricsCacheService` checks the response cache unless `force=1`.
 3. `MetricsViewBuilder` picks `ServerMetricsQuery::getRawMetrics`,
    `getHourlyMetrics`, or `getDailyMetrics`.
@@ -214,7 +215,9 @@ Supported API metric keys:
 | --- | --- | --- |
 | `cpu` | `cpu_usage` / `cpu_avg` | `%` |
 | `ram_percent` | `ram_usage_percent` / `ram_percent_avg` | `%` |
+| `ram_used` | `ram_used` / `ram_used_avg` | kilobytes |
 | `disk_percent` | `disk_usage_percent` / `disk_percent_avg` | `%` |
+| `disk_used` | `disk_used` / `disk_used_avg` | kilobytes |
 | `file_count` | `total_file_count` / `file_count_avg` | count |
 | `process_count` | `process_count` / `process_count_avg` | count |
 | `ram_used`, `disk_used` | raw value / matching `*_avg` | KiB |

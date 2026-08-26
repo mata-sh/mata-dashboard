@@ -1,0 +1,30 @@
+{
+  "dashboard": {
+    "_comment": "The metrics and timespans lists replace the complete built-in lists; they do not merge.",
+    "default_metric": "cpu",
+    "default_timespan": "24h",
+    "metrics": {
+      "cpu": { "label": "CPU Usage (%)" },
+      "ram_percent": { "label": "RAM Usage (%)" },
+      "ram_used": { "label": "RAM Used" },
+      "disk_percent": { "label": "Disk Usage (%)" },
+      "disk_used": { "label": "Disk Used" },
+      "file_count": { "label": "File Count" },
+      "process_count": { "label": "Process Count" }
+    },
+    "timespans": {
+      "24h": {
+        "label": "24 Hours",
+        "range": "24h",
+        "granularity": "auto",
+        "refresh": 60
+      },
+      "7d": {
+        "label": "7 Days",
+        "range": "7d",
+        "granularity": "auto",
+        "refresh": 300
+      }
+    }
+  }
+}

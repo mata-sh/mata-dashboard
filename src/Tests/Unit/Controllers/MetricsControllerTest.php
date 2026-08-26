@@ -6,15 +6,17 @@ namespace Mata\Tests\Unit\Controllers;
 
 use Exception;
 use InvalidArgumentException;
+use Mata\Config\Monitoring\Section\DashboardChartConfig;
 use Mata\Controllers\MetricsController;
 use Mata\Http\Request;
 use Mata\Http\Responses\HtmlResponse;
 use Mata\Http\Responses\JsonResponse;
 use Mata\Http\Responses\Response;
 use Mata\Services\Cache\MetricsCacheService;
-use Mata\Services\Metrics\MetricCatalog;
-use Mata\Services\Validation\MetricsRequestValidator;
-use Mata\Services\Validation\MetricsValidationResult;
+use Mata\Services\ServerMetrics\Dto\MetricsValidationResult;
+use Mata\Services\ServerMetrics\MetricCatalog;
+use Mata\Services\ServerMetrics\MetricQueryPolicy;
+use Mata\Services\ServerMetrics\MetricsRequestValidator;
 use Mata\Services\View\ChartViewBuilder;
 use Mata\Services\View\MetricsViewBuilder;
 use Mata\Tests\TestCase;
@@ -48,13 +50,13 @@ class MetricsControllerTest extends TestCase
     private MetricsRenderer&MockObject $mockRenderer;
     private MetricsCacheService&MockObject $mockCacheService;
     private MetricsRequestValidator&MockObject $mockValidator;
+    private MetricQueryPolicy&MockObject $mockQueryPolicy;
     private ChartViewBuilder&MockObject $mockChartViewBuilder;
 
     /** @var array<string,mixed> */
     private array $testServersConfig;
 
-    /** @var array<string,mixed> */
-    private array $testDashboardChartConfig;
+    private DashboardChartConfig $testDashboardChartConfig;
 
     protected function setUp(): void
     {
@@ -83,7 +85,11 @@ class MetricsControllerTest extends TestCase
         ;
         $this->mockValidator = $this->getMockBuilder(MetricsRequestValidator::class)
             ->disableOriginalConstructor()
-            ->onlyMethods(['validate', 'normalizeMetric', 'parseRange', 'resolveGranularity'])
+            ->onlyMethods(['validate'])
+            ->getMock()
+        ;
+        $this->mockQueryPolicy = $this->getMockBuilder(MetricQueryPolicy::class)
+            ->onlyMethods(['normalizeMetric', 'parseRange', 'resolveGranularity'])
             ->getMock()
         ;
         $this->mockChartViewBuilder = $this->getMockBuilder(ChartViewBuilder::class)
@@ -106,8 +112,8 @@ class MetricsControllerTest extends TestCase
             ],
         ];
 
-        // Dashboard chart configuration with defaults
-        $this->testDashboardChartConfig = [
+        $this->testDashboardChartConfig = DashboardChartConfig::default(new MetricQueryPolicy());
+        $normalizedChartConfig = [
             'default_metric' => 'cpu',
             'default_timespan' => '24h',
             'metrics' => [
@@ -124,7 +130,7 @@ class MetricsControllerTest extends TestCase
 
         $this->mockChartViewBuilder
             ->method('buildChartConfig')
-            ->willReturn($this->testDashboardChartConfig)
+            ->willReturn($normalizedChartConfig)
         ;
         $this->mockViewBuilder
             ->method('buildServerMetricTimeSeries')
@@ -175,12 +181,13 @@ class MetricsControllerTest extends TestCase
             $this->mockRenderer,
             $this->mockCacheService,
             $this->mockValidator,
+            $this->mockQueryPolicy,
             $this->mockChartViewBuilder,
             new MetricCatalog(),
             $this->testServersConfig,
             $request,
-            300,
             $this->testDashboardChartConfig,
+            300,
             60,
         );
     }
@@ -263,7 +270,7 @@ class MetricsControllerTest extends TestCase
         ];
         $this->controller = $this->createController(new Request(query: $_GET));
 
-        $this->mockValidator
+        $this->mockQueryPolicy
             ->method('normalizeMetric')
             ->with('cpu')
             ->willReturn('cpu')
@@ -330,7 +337,7 @@ class MetricsControllerTest extends TestCase
         $_GET = ['metric' => 'invalid_metric', 'timespan' => '24h'];
         $this->controller = $this->createController(new Request(query: $_GET));
 
-        $this->mockValidator
+        $this->mockQueryPolicy
             ->method('normalizeMetric')
             ->with('invalid_metric')
             ->willReturn('invalid_metric')
@@ -362,7 +369,7 @@ class MetricsControllerTest extends TestCase
         $_GET = ['metric' => 'cpu', 'timespan' => 'invalid_timespan'];
         $this->controller = $this->createController(new Request(query: $_GET));
 
-        $this->mockValidator
+        $this->mockQueryPolicy
             ->method('normalizeMetric')
             ->willReturn('cpu')
         ;
@@ -393,7 +400,7 @@ class MetricsControllerTest extends TestCase
         $_GET = ['metric' => 'cpu', 'timespan' => '24h', 'servers' => ''];
         $this->controller = $this->createController(new Request(query: $_GET));
 
-        $this->mockValidator->method('normalizeMetric')->willReturn('cpu');
+        $this->mockQueryPolicy->method('normalizeMetric')->willReturn('cpu');
         $this->mockChartViewBuilder
             ->expects($this->once())
             ->method('resolveDashboardServers')
@@ -431,7 +438,7 @@ class MetricsControllerTest extends TestCase
         ];
         $this->controller = $this->createController(new Request(query: $_GET));
 
-        $this->mockValidator->method('normalizeMetric')->willReturn('cpu');
+        $this->mockQueryPolicy->method('normalizeMetric')->willReturn('cpu');
         $this->mockChartViewBuilder
             ->method('resolveDashboardServers')
             ->willReturn(['prod-server'])
@@ -658,9 +665,9 @@ class MetricsControllerTest extends TestCase
         $_GET = ['metric' => 'cpu', 'range' => '30d'];
         $this->controller = $this->createController(new Request(query: $_GET));
 
-        $this->mockValidator->method('normalizeMetric')->willReturn('cpu');
+        $this->mockQueryPolicy->method('normalizeMetric')->willReturn('cpu');
         $this->mockValidator->method('validate')->willReturn(new MetricsValidationResult([], 'cpu'));
-        $this->mockValidator->method('resolveGranularity')->willReturnCallback(
+        $this->mockQueryPolicy->method('resolveGranularity')->willReturnCallback(
             static fn (string $range, string $requested): string => match ($range) {
                 '6h' => 'raw',
                 '30d' => 'daily',
@@ -719,7 +726,7 @@ class MetricsControllerTest extends TestCase
 
         $validationResult = new MetricsValidationResult([], 'cpu');
         $this->mockValidator->method('validate')->willReturn($validationResult);
-        $this->mockValidator
+        $this->mockQueryPolicy
             ->expects($this->once())
             ->method('resolveGranularity')
             ->with('6h', 'auto')
@@ -773,7 +780,7 @@ class MetricsControllerTest extends TestCase
         $this->mockValidator->method('validate')->willReturn($validationResult);
 
         // Validator should return hourly without modification
-        $this->mockValidator
+        $this->mockQueryPolicy
             ->expects($this->once())
             ->method('resolveGranularity')
             ->with('30d', 'hourly')
@@ -835,7 +842,7 @@ class MetricsControllerTest extends TestCase
             ->willReturn($validationResult)
         ;
 
-        $this->mockValidator->method('resolveGranularity')->willReturn('hourly');
+        $this->mockQueryPolicy->method('resolveGranularity')->willReturn('hourly');
 
         $seriesPayload = [
             'filters' => ['metric' => 'disk_percent'],
@@ -878,7 +885,7 @@ class MetricsControllerTest extends TestCase
         $this->mockValidator->method('validate')->willReturn($validationResult);
 
         // Validator throws exception for invalid granularity
-        $this->mockValidator
+        $this->mockQueryPolicy
             ->method('resolveGranularity')
             ->willThrowException(new InvalidArgumentException('Invalid granularity value'))
         ;
@@ -911,7 +918,7 @@ class MetricsControllerTest extends TestCase
 
         $validationResult = new MetricsValidationResult([], 'cpu');
         $this->mockValidator->method('validate')->willReturn($validationResult);
-        $this->mockValidator->method('resolveGranularity')->willReturn('hourly');
+        $this->mockQueryPolicy->method('resolveGranularity')->willReturn('hourly');
 
         $this->mockCacheService->method('readSeriesCache')->willReturn(null);
 
@@ -949,7 +956,7 @@ class MetricsControllerTest extends TestCase
 
         $validationResult = new MetricsValidationResult([], 'cpu');
         $this->mockValidator->method('validate')->willReturn($validationResult);
-        $this->mockValidator->method('resolveGranularity')->willReturn('hourly');
+        $this->mockQueryPolicy->method('resolveGranularity')->willReturn('hourly');
 
         $seriesPayload = [
             'filters' => ['server' => 'prod-server', 'metric' => 'cpu', 'range' => '24h', 'granularity' => 'hourly'],
@@ -1046,11 +1053,11 @@ class MetricsControllerTest extends TestCase
         $_GET = ['metrics' => 'cpu,invalid_metric,ram_percent', 'range' => '24h'];
         $this->controller = $this->createController(new Request(query: $_GET));
 
-        $this->mockValidator
+        $this->mockQueryPolicy
             ->method('normalizeMetric')
             ->willReturnCallback(fn ($m) => str_replace('-', '_', strtolower(trim($m))))
         ;
-        $this->mockValidator
+        $this->mockQueryPolicy
             ->method('parseRange')
             ->willReturn(['value' => 24, 'unit' => 'h'])
         ;
@@ -1081,13 +1088,13 @@ class MetricsControllerTest extends TestCase
         $_GET = ['metrics' => 'cpu,ram-percent', 'range' => '24h', 'granularity' => 'hourly'];
         $this->controller = $this->createController(new Request(query: $_GET));
 
-        $this->mockValidator
+        $this->mockQueryPolicy
             ->method('normalizeMetric')
             ->willReturnCallback(fn ($m) => str_replace('-', '_', strtolower(trim($m))))
         ;
 
-        $this->mockValidator->method('parseRange')->willReturn(['value' => 24, 'unit' => 'h']);
-        $this->mockValidator->method('resolveGranularity')->willReturn('hourly');
+        $this->mockQueryPolicy->method('parseRange')->willReturn(['value' => 24, 'unit' => 'h']);
+        $this->mockQueryPolicy->method('resolveGranularity')->willReturn('hourly');
 
         // Mock multi-metric series payload
         $multiMetricPayload = [
@@ -1164,11 +1171,11 @@ class MetricsControllerTest extends TestCase
         $_GET = ['metrics' => 'cpu,ram_percent,disk_percent', 'range' => '7d', 'granularity' => 'daily'];
         $this->controller = $this->createController(new Request(query: $_GET));
 
-        $this->mockValidator->method('normalizeMetric')
+        $this->mockQueryPolicy->method('normalizeMetric')
             ->willReturnCallback(fn ($m) => str_replace('-', '_', strtolower(trim($m))))
         ;
-        $this->mockValidator->method('parseRange')->willReturn(['value' => 7, 'unit' => 'd']);
-        $this->mockValidator->method('resolveGranularity')->willReturn('daily');
+        $this->mockQueryPolicy->method('parseRange')->willReturn(['value' => 7, 'unit' => 'd']);
+        $this->mockQueryPolicy->method('resolveGranularity')->willReturn('daily');
 
         $multiMetricPayload = [
             'filters' => ['metrics' => 'cpu,ram_percent,disk_percent'],
@@ -1233,7 +1240,7 @@ class MetricsControllerTest extends TestCase
         $_GET = ['metrics' => 'cpu', 'range' => '24h'];
         $this->controller = $this->createController(new Request(query: $_GET));
 
-        $this->mockValidator->method('normalizeMetric')->willReturn('cpu');
+        $this->mockQueryPolicy->method('normalizeMetric')->willReturn('cpu');
 
         // Act: Attempt to fetch multi-metric for unknown server
         $response = $this->controller->getServerMultiMetricSeries('unknown-server');
@@ -1304,7 +1311,7 @@ class MetricsControllerTest extends TestCase
 
         $validationResult = new MetricsValidationResult([], 'cpu');
         $this->mockValidator->method('validate')->willReturn($validationResult);
-        $this->mockValidator->method('resolveGranularity')->willReturn('hourly');
+        $this->mockQueryPolicy->method('resolveGranularity')->willReturn('hourly');
 
         $seriesPayload = [
             'filters' => [],
@@ -1357,7 +1364,7 @@ class MetricsControllerTest extends TestCase
 
         $validationResult = new MetricsValidationResult([], 'cpu');
         $this->mockValidator->method('validate')->willReturn($validationResult);
-        $this->mockValidator->method('resolveGranularity')->willReturn('hourly');
+        $this->mockQueryPolicy->method('resolveGranularity')->willReturn('hourly');
 
         $seriesPayload = [
             'filters' => [],

@@ -16,6 +16,7 @@ use Mata\Config\Monitoring\Loader\TtlConfigLoader;
 use Mata\Config\Monitoring\MonitoringConfigLoader;
 use Mata\Config\Monitoring\Section\AlarmRateLimit;
 use Mata\Config\Monitoring\Section\AlarmRateLimitsConfig;
+use Mata\Config\Monitoring\Section\ChartsConfig;
 use Mata\Config\Monitoring\Section\DataRetentionConfig;
 use Mata\Config\Monitoring\Section\NotificationRulesConfig;
 use Mata\Config\Monitoring\Section\ProbesConfig;
@@ -117,6 +118,7 @@ final class MonitoringConfigLoadersTest extends TestCase
         $this->assertSame(60, $config->intervals->eventMinimumMinutes['_default']);
         $this->assertEquals(ProbesConfig::default(), $config->probes);
         $this->assertSame([], $config->menu->overrides);
+        $this->assertEquals(ChartsConfig::empty(), $config->charts);
         $this->assertInstanceOf(AlarmRateLimitsConfig::class, $config->alarmRateLimits);
     }
 

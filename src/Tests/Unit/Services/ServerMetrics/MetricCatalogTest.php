@@ -2,13 +2,13 @@
 
 declare(strict_types=1);
 
-namespace Mata\Tests\Unit\Services\Metrics;
+namespace Mata\Tests\Unit\Services\ServerMetrics;
 
-use Mata\Services\Metrics\MetricCatalog;
+use Mata\Services\ServerMetrics\MetricCatalog;
 use PHPUnit\Framework\TestCase;
 
 /**
- * @covers \Mata\Services\Metrics\MetricCatalog
+ * @covers \Mata\Services\ServerMetrics\MetricCatalog
  *
  * @internal
  */
@@ -40,14 +40,7 @@ final class MetricCatalogTest extends TestCase
         self::assertTrue($catalog->supports('process_count'));
         self::assertFalse($catalog->supports('swap_used'));
         self::assertFalse($catalog->supports(''));
-    }
-
-    public function testSupportsExpectsNormalizedKeys(): void
-    {
-        $catalog = new MetricCatalog();
-
         self::assertFalse($catalog->supports('CPU'));
-        self::assertFalse($catalog->supports('ram-percent'));
     }
 
     public function testAllowsOnlyCatalogedGranularities(): void

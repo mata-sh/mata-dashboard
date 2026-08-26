@@ -2,26 +2,23 @@
 
 declare(strict_types=1);
 
-namespace Mata\Tests\Unit\Services\Validation;
+namespace Mata\Tests\Unit\Services\ServerMetrics;
 
-use Mata\Services\Metrics\MetricCatalog;
-use Mata\Services\Validation\MetricsRequestValidator;
+use Mata\Services\ServerMetrics\MetricQueryPolicy;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
 /**
- * @covers \Mata\Services\Validation\MetricsRequestValidator
+ * @covers \Mata\Services\ServerMetrics\MetricQueryPolicy
  *
  * @internal
  */
-final class MetricsRequestValidatorTest extends TestCase
+final class MetricQueryPolicyTest extends TestCase
 {
     #[DataProvider('automaticGranularityRanges')]
     public function testResolvesAutomaticGranularityAtRangeBoundaries(string $range, string $expected): void
     {
-        $validator = new MetricsRequestValidator(new MetricCatalog());
-
-        self::assertSame($expected, $validator->resolveGranularity($range, 'auto'));
+        self::assertSame($expected, (new MetricQueryPolicy())->resolveGranularity($range, 'auto'));
     }
 
     public static function automaticGranularityRanges(): array
@@ -34,5 +31,15 @@ final class MetricsRequestValidatorTest extends TestCase
             'one week is hourly' => ['1w', 'hourly'],
             'two weeks is daily' => ['2w', 'daily'],
         ];
+    }
+
+    public function testRejectsRangesThatDateIntervalCannotRepresent(): void
+    {
+        self::assertNull((new MetricQueryPolicy())->parseRange('999999999999999999999y'));
+    }
+
+    public function testNormalizesMetricInput(): void
+    {
+        self::assertSame('ram_percent', (new MetricQueryPolicy())->normalizeMetric(' RAM-Percent '));
     }
 }

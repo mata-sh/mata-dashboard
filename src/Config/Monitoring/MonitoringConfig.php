@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Mata\Config\Monitoring;
 
 use Mata\Config\Monitoring\Section\AlarmRateLimitsConfig;
+use Mata\Config\Monitoring\Section\ChartsConfig;
 use Mata\Config\Monitoring\Section\DataRetentionConfig;
 use Mata\Config\Monitoring\Section\IntervalsConfig;
 use Mata\Config\Monitoring\Section\MenuConfig;
@@ -27,5 +28,6 @@ final readonly class MonitoringConfig
         public ThresholdsConfig $thresholds,
         public MenuConfig $menu,
         public AlarmRateLimitsConfig $alarmRateLimits,
+        public ChartsConfig $charts,
     ) {}
 }

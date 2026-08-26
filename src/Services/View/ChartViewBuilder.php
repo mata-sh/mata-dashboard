@@ -4,10 +4,8 @@ declare(strict_types=1);
 
 namespace Mata\Services\View;
 
-use InvalidArgumentException;
+use Mata\Config\Monitoring\Section\DashboardChartConfig;
 use Mata\Services\DataTransformers\ChartDataTransformer;
-use Mata\Services\Metrics\MetricCatalog;
-use Mata\Services\Validation\MetricsRequestValidator;
 use Mata\Views\MetricsRenderer;
 
 /**
@@ -18,44 +16,11 @@ use Mata\Views\MetricsRenderer;
  */
 class ChartViewBuilder
 {
-    /**
-     * Default chart configuration used for the dashboard overview when no
-     * environment-specific overrides are provided.
-     *
-     * @var array<string,mixed>
-     */
-    private const DEFAULT_CHART_CONFIG = [
-        'default_metric' => 'cpu',
-        'default_timespan' => '24h',
-        'metrics' => [
-            'cpu' => ['label' => 'CPU Usage (%)'],
-            'ram_percent' => ['label' => 'RAM Usage (%)'],
-            'disk_percent' => ['label' => 'Disk Usage (%)'],
-            'process_count' => ['label' => 'Process Count'],
-        ],
-        'timespans' => [
-            '24h' => [
-                'label' => '24 Hours',
-                'range' => '24h',
-                'granularity' => 'auto',
-                'refresh' => 60,
-            ],
-            '7d' => [
-                'label' => '7 Days',
-                'range' => '7d',
-                'granularity' => 'auto',
-                'refresh' => 300,
-            ],
-        ],
-    ];
-
     private const DASHBOARD_DATA_ENDPOINT = '/api/metrics/dashboard';
 
     private MetricsViewBuilder $metricsViewBuilder;
     private MetricsRenderer $metricsRenderer;
-    private MetricsRequestValidator $validator;
     private ChartDataTransformer $chartTransformer;
-    private MetricCatalog $metricCatalog;
 
     /** @var array<string,mixed> */
     private array $serversConfig;
@@ -66,16 +31,12 @@ class ChartViewBuilder
     public function __construct(
         MetricsViewBuilder $metricsViewBuilder,
         MetricsRenderer $metricsRenderer,
-        MetricsRequestValidator $validator,
         ChartDataTransformer $chartTransformer,
-        MetricCatalog $metricCatalog,
         array $serversConfig
     ) {
         $this->metricsViewBuilder = $metricsViewBuilder;
         $this->metricsRenderer = $metricsRenderer;
-        $this->validator = $validator;
         $this->chartTransformer = $chartTransformer;
-        $this->metricCatalog = $metricCatalog;
         $this->serversConfig = $serversConfig;
     }
 
@@ -215,7 +176,8 @@ class ChartViewBuilder
             'datasets' => $datasets,
             'stats' => [
                 'metric' => $metric,
-                'metric_label' => $this->metricsRenderer->getMetricLabel($metric),
+                'metric_label' => (string) ($chartConfig['metrics'][$metric]['label']
+                    ?? $this->metricsRenderer->getMetricLabel($metric)),
                 'timespan' => $timespanKey,
                 'timespan_label' => (string) ($timespanConfig['label'] ?? $timespanKey),
                 'unit' => $unit,
@@ -244,50 +206,10 @@ class ChartViewBuilder
         ];
     }
 
-    /**
-     * Build and normalize chart configuration from user overrides.
-     *
-     * @param array<string,mixed> $overrides User-provided configuration overrides
-     *
-     * @return array<string,mixed> Normalized chart configuration
-     */
-    public function buildChartConfig(array $overrides): array
+    /** @return array<string,mixed> */
+    public function buildChartConfig(DashboardChartConfig $config): array
     {
-        $defaultConfig = self::DEFAULT_CHART_CONFIG;
-
-        $metricsSource = $defaultConfig['metrics'];
-        if (isset($overrides['metrics']) && is_array($overrides['metrics']) && $overrides['metrics'] !== []) {
-            $metricsSource = $overrides['metrics'];
-        }
-
-        $timespansSource = $defaultConfig['timespans'];
-        if (isset($overrides['timespans']) && is_array($overrides['timespans']) && $overrides['timespans'] !== []) {
-            $timespansSource = $overrides['timespans'];
-        }
-
-        $metrics = $this->normalizeMetricsConfig($metricsSource);
-        $timespans = $this->normalizeTimespansConfig($timespansSource);
-
-        $defaultMetric = isset($overrides['default_metric'])
-            ? $this->validator->normalizeMetric((string) $overrides['default_metric'])
-            : (string) $defaultConfig['default_metric'];
-        if (!isset($metrics[$defaultMetric])) {
-            $defaultMetric = array_key_first($metrics) ?? 'cpu';
-        }
-
-        $defaultTimespan = isset($overrides['default_timespan'])
-            ? strtolower((string) $overrides['default_timespan'])
-            : (string) $defaultConfig['default_timespan'];
-        if (!isset($timespans[$defaultTimespan])) {
-            $defaultTimespan = array_key_first($timespans) ?? '24h';
-        }
-
-        return [
-            'metrics' => $metrics,
-            'timespans' => $timespans,
-            'default_metric' => $defaultMetric,
-            'default_timespan' => $defaultTimespan,
-        ];
+        return $config->toArray();
     }
 
     /**
@@ -327,110 +249,6 @@ class ChartViewBuilder
         }
 
         return $matched === [] ? $available : $matched;
-    }
-
-    /**
-     * @param array<int,mixed>|array<string,mixed> $metricsConfig
-     *
-     * @return array<string,array{key:string,label:string}>
-     */
-    private function normalizeMetricsConfig(array $metricsConfig): array
-    {
-        $normalized = [];
-
-        foreach ($metricsConfig as $key => $value) {
-            if (is_array($value)) {
-                $metricKey = $this->validator->normalizeMetric((string) ($value['key'] ?? $key));
-                $label = isset($value['label']) && is_string($value['label'])
-                    ? $value['label']
-                    : $this->metricsRenderer->getMetricLabel($metricKey);
-            } else {
-                $metricKey = $this->validator->normalizeMetric(is_string($value) ? $value : (string) $key);
-                $label = $this->metricsRenderer->getMetricLabel($metricKey);
-            }
-
-            if (!$this->metricCatalog->supports($metricKey)) {
-                continue;
-            }
-
-            $normalized[$metricKey] = [
-                'key' => $metricKey,
-                'label' => $label,
-            ];
-        }
-
-        if ($normalized === []) {
-            foreach (self::DEFAULT_CHART_CONFIG['metrics'] as $metricKey => $meta) {
-                $normalized[$metricKey] = [
-                    'key' => $metricKey,
-                    'label' => $meta['label'],
-                ];
-            }
-        }
-
-        return $normalized;
-    }
-
-    /**
-     * @param array<int,mixed>|array<string,mixed> $timespansConfig
-     *
-     * @return array<string,array{key:string,label:string,range:string,granularity:string,refresh:int}>
-     */
-    private function normalizeTimespansConfig(array $timespansConfig): array
-    {
-        $normalized = [];
-
-        foreach ($timespansConfig as $key => $value) {
-            if (is_array($value)) {
-                $timespanKey = strtolower((string) ($value['key'] ?? $key));
-                $label = isset($value['label']) && is_string($value['label'])
-                    ? $value['label']
-                    : strtoupper($timespanKey);
-                $range = strtolower((string) ($value['range'] ?? $timespanKey));
-                $granularity = strtolower((string) ($value['granularity'] ?? 'auto'));
-                $refresh = isset($value['refresh']) ? (int) $value['refresh'] : 60;
-            } else {
-                $timespanKey = strtolower(is_string($value) ? $value : (string) $key);
-                $label = strtoupper($timespanKey);
-                $range = $timespanKey;
-                $granularity = 'auto';
-                $refresh = 60;
-            }
-
-            if ($range !== '' && !in_array($range, ['all', 'max'], true) && $this->validator->parseRange($range) === null) {
-                continue;
-            }
-
-            if ($granularity === 'auto') {
-                try {
-                    $granularity = $this->validator->resolveGranularity($range, 'auto');
-                } catch (InvalidArgumentException) {
-                    $granularity = 'hourly';
-                }
-            }
-
-            $normalized[$timespanKey] = [
-                'key' => $timespanKey,
-                'label' => $label,
-                'range' => $range,
-                'granularity' => $granularity,
-                'refresh' => max(10, $refresh),
-            ];
-        }
-
-        if ($normalized === []) {
-            foreach (self::DEFAULT_CHART_CONFIG['timespans'] as $key => $meta) {
-                $normalized[$key] = [
-                    'key' => (string) $key,
-                    'label' => $meta['label'],
-                    'range' => $meta['range'],
-                    'granularity' => $meta['granularity'],
-                    'refresh' => $meta['refresh'],
-                ];
-            }
-        }
-
-        return $normalized;
     }
 
     /**

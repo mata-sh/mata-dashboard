@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Mata\Config\Monitoring;
 
+use Mata\Config\Monitoring\Loader\ChartsConfigLoader;
 use Mata\Config\Monitoring\Loader\DataRetentionConfigLoader;
 use Mata\Config\Monitoring\Loader\IntervalsConfigLoader;
 use Mata\Config\Monitoring\Loader\MenuConfigLoader;
@@ -13,6 +14,7 @@ use Mata\Config\Monitoring\Loader\ServersConfigLoader;
 use Mata\Config\Monitoring\Loader\ThresholdsConfigLoader;
 use Mata\Config\Monitoring\Loader\TtlConfigLoader;
 use Mata\Config\Monitoring\Section\AlarmRateLimitsConfig;
+use Mata\Config\Monitoring\Section\ChartsConfig;
 use Mata\Config\Monitoring\Section\MenuConfig;
 
 /** Loads the fixed set of dashboard monitoring configuration sections. */
@@ -27,6 +29,7 @@ final readonly class MonitoringConfigLoader
         private NotificationRulesConfigLoader $notificationRules,
         private ThresholdsConfigLoader $thresholds,
         private ?MenuConfigLoader $menu = null,
+        private ?ChartsConfigLoader $charts = null,
     ) {}
 
     public function load(string $configRoot, AlarmRateLimitsConfig $alarmRateLimits): MonitoringConfig
@@ -41,6 +44,7 @@ final readonly class MonitoringConfigLoader
             thresholds: $this->thresholds->load($configRoot),
             menu: $this->menu?->load($configRoot) ?? MenuConfig::empty(),
             alarmRateLimits: $alarmRateLimits,
+            charts: $this->charts?->load($configRoot) ?? ChartsConfig::empty(),
         );
     }
 }

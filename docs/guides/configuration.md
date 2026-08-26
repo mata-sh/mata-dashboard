@@ -23,15 +23,32 @@ creates `.env` for Compose.
 | `config/probes.json` | Optional node probe timeout and retry overrides |
 | `config/notification_rules.json` | Optional email delivery selection rules |
 | `config/menu.json` | Optional dashboard menu visibility overrides |
+| `config/charts.json` | Optional dashboard chart metrics and timespans |
 | `config/limits.json` | Optional transport limits for queued alarm deliveries |
 
-`probes.json`, `notification_rules.json`, `menu.json`, and `limits.json` are not
-created by setup. Their loaders use built-in defaults when they are absent. Copy
-the matching example to customize the first three. `limits.json` has no example;
-see the [alarm reference](../reference/alarms.md) for its built-in limits.
+`probes.json`, `notification_rules.json`, `menu.json`, `charts.json`, and
+`limits.json` are not created by setup. Their loaders use built-in defaults when
+they are absent. Copy the matching example to customize the first four.
+`limits.json` has no example; see the [alarm reference](../reference/alarms.md)
+for its built-in limits.
 
-`menu.json` is a flat map of menu keys to visibility booleans. `probes.json`
-controls timeout, retry count, and retry backoff for HTTP reachability probes.
+`menu.json` is a flat map of menu keys to visibility booleans. `charts.json`
+uses a `dashboard` section to configure the chart's metric and timespan lists.
+Each list replaces the complete built-in list; it does not merge with defaults.
+Metric keys are `cpu`, `ram_percent`, `ram_used`, `disk_percent`, `disk_used`,
+`file_count`, and `process_count`. Timespans accept a parseable range, `all`, or
+`max`; `granularity` can be `auto`, `raw`, `hourly`, or `daily`. `refresh` must
+be a JSON integer of at least 10 seconds. Invalid entries are ignored with a
+warning, and an invalid or empty configuration falls back to built-in chart
+defaults.
+
+!!! info "Dashboard chart scope"
+
+    `charts.json` configures only the dashboard overview chart. The per-server
+    metrics modal keeps its built-in ranges.
+
+`probes.json` controls timeout, retry count, and retry backoff for HTTP
+reachability probes.
 
 !!! warning "Numeric values"
 

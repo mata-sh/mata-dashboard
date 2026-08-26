@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Mata\Tests\Unit\Config;
 
+use Mata\Config\Monitoring\Loader\ChartsConfigLoader;
 use Mata\Config\Monitoring\Loader\DataRetentionConfigLoader;
 use Mata\Config\Monitoring\Loader\IntervalsConfigLoader;
 use Mata\Config\Monitoring\Loader\MenuConfigLoader;
@@ -19,6 +20,8 @@ use Mata\Config\Monitoring\Section\AlarmRateLimit;
 use Mata\Config\Monitoring\Section\AlarmRateLimitsConfig;
 use Mata\Models\Dto\EventRecordResult;
 use Mata\Services\Event\EventRecorderService;
+use Mata\Services\ServerMetrics\MetricCatalog;
+use Mata\Services\ServerMetrics\MetricQueryPolicy;
 use Mata\Tests\TestCase;
 
 /**
@@ -60,6 +63,7 @@ final class MonitoringConfigLoaderTest extends TestCase
             'notification_rules.json' => (object) [],
             'thresholds.json' => ['alarms' => ['app_unreachable' => ['strategy' => 'immediate']]],
             'menu.json' => ['metrics' => false],
+            'charts.json' => ['dashboard' => ['default_metric' => 'disk_used']],
         ];
         foreach ($files as $name => $payload) {
             file_put_contents($this->configRoot . '/' . $name, json_encode($payload, JSON_THROW_ON_ERROR));
@@ -76,6 +80,16 @@ final class MonitoringConfigLoaderTest extends TestCase
         $this->assertSame(3, $config->probes->maxRetries);
         $this->assertSame(['strategy' => 'immediate'], $config->thresholds->alarmRules['app_unreachable']);
         $this->assertSame(['metrics' => false], $config->menu->overrides);
+        $this->assertSame('disk_used', $config->charts->dashboard?->defaultMetric);
+        $this->assertSame([
+            'cpu',
+            'ram_percent',
+            'ram_used',
+            'disk_percent',
+            'disk_used',
+            'file_count',
+            'process_count',
+        ], array_keys($config->charts->dashboard?->metrics ?? []));
         $this->assertSame($limits, $config->alarmRateLimits);
     }
 
@@ -132,6 +146,11 @@ final class MonitoringConfigLoaderTest extends TestCase
             notificationRules: new NotificationRulesConfigLoader($eventRecorder),
             thresholds: new ThresholdsConfigLoader($eventRecorder),
             menu: $loadMenu ? new MenuConfigLoader($eventRecorder, ['metrics']) : null,
+            charts: new ChartsConfigLoader(
+                eventRecorder: $eventRecorder,
+                metricCatalog: new MetricCatalog(),
+                queryPolicy: new MetricQueryPolicy(),
+            ),
         );
     }
 }

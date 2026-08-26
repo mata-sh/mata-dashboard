@@ -7,8 +7,7 @@ Follow [CODING_STANDARDS.md](CODING_STANDARDS.md). Keep it concise and non-obvio
 ## Documentation
 
 Use MkDocs admonitions in `docs/` to highlight prerequisites, conventions, and caveats.
-The theme only colors `!!! info`, `!!! warning`, and `!!! danger`; other types render as a
-neutral box. Indent nested content 4 spaces or the block ends silently.
+The theme only colors `!!! info`, `!!! warning`, and `!!! danger`.
 
 ## Gotchas
 
@@ -18,6 +17,7 @@ Non-obvious facts that have already misled an agent. Verify before asserting oth
 - **Docker auth:** `users.json` lives in the `mata_users` volume, not the repo. Empty volume = CRITICAL + 500 on every route.
 - **Container logs:** `/var/log/apache2/error.log` is a symlink to `/dev/stderr` — tailing it hangs. Truth is `logs/app.log`, `http`-owned, read via the container.
 - **PHP ini:** images use `php-dev.ini` / `php-prod.ini`. `docker/php/php.ini` and `docker/mysql/my.cnf` are unreferenced orphans.
+- **Protected config files:** `config/` is owned by the web container user; edit files there through `docker exec mata-dashboard-web` (start the container first if needed), not directly from the host.
 
 ## Non-Issues
 

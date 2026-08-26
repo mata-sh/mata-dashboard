@@ -29,12 +29,17 @@ class MetricsCacheService
     /**
      * @param string[] $servers
      */
-    public function buildDashboardCacheKey(array $servers, string $metric, string $range, string $granularity): string
-    {
+    public function buildDashboardCacheKey(
+        array $servers,
+        string $metric,
+        string $timespan,
+        string $range,
+        string $granularity
+    ): string {
         $normalizedServers = array_map('strtolower', $servers);
         sort($normalizedServers);
 
-        return implode('|', [$metric, $range, $granularity, implode(',', $normalizedServers)]);
+        return implode('|', [$metric, $timespan, $range, $granularity, implode(',', $normalizedServers)]);
     }
 
     /**

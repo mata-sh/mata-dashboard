@@ -7,6 +7,7 @@ namespace Mata\Tests\Unit\Config;
 use Mata\Config\Monitoring\MonitoringConfig;
 use Mata\Config\Monitoring\Section\AlarmRateLimit;
 use Mata\Config\Monitoring\Section\AlarmRateLimitsConfig;
+use Mata\Config\Monitoring\Section\ChartsConfig;
 use Mata\Config\Monitoring\Section\DataRetentionConfig;
 use Mata\Config\Monitoring\Section\IntervalsConfig;
 use Mata\Config\Monitoring\Section\MenuConfig;
@@ -30,6 +31,7 @@ final class MonitoringConfigTest extends TestCase
         foreach ([
             AlarmRateLimit::class,
             AlarmRateLimitsConfig::class,
+            ChartsConfig::class,
             DataRetentionConfig::class,
             IntervalsConfig::class,
             MenuConfig::class,
@@ -76,6 +78,7 @@ final class MonitoringConfigTest extends TestCase
                 static function (string $message): void {},
             ),
             alarmRateLimits: new AlarmRateLimitsConfig(new AlarmRateLimit(1, 2, 3), [], []),
+            charts: ChartsConfig::empty(),
         );
 
         $this->assertSame(['server'], array_keys($config->servers->values));
@@ -86,6 +89,6 @@ final class MonitoringConfigTest extends TestCase
         $this->assertSame(['metrics' => false], $config->menu->overrides);
         $this->assertSame(1, $config->alarmRateLimits->getGlobalDefault()->getPerMinute());
         $this->assertFalse(property_exists($config, 'environment'));
-        $this->assertFalse(property_exists($config, 'charts'));
+        $this->assertEquals(ChartsConfig::empty(), $config->charts);
     }
 }

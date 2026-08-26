@@ -18,6 +18,21 @@ use PHPUnit\Framework\TestCase;
  */
 final class MetricsCacheServiceTest extends TestCase
 {
+    public function testDashboardCacheKeyDistinguishesTimespanAliases(): void
+    {
+        $service = new MetricsCacheService(
+            $this->createStub(CacheStoreInterface::class),
+            new ApiCacheKeyFactory(),
+            new Logger('test'),
+            [],
+        );
+
+        $dayKey = $service->buildDashboardCacheKey(['node'], 'cpu', 'day', '24h', 'hourly');
+        $recentKey = $service->buildDashboardCacheKey(['node'], 'cpu', 'recent', '24h', 'hourly');
+
+        $this->assertNotSame($dayKey, $recentKey);
+    }
+
     public function testDashboardTtlZeroIsDelegatedToTheStore(): void
     {
         $store = $this->createMock(CacheStoreInterface::class);
