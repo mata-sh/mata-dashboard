@@ -13,8 +13,7 @@
       {% else %}
         <button class="delete"
                 type="button"
-                data-notification-action="close"
-                onclick="this.closest('.notification').classList.add('is-hidden');"></button>
+                data-notification-action="close"></button>
       {% endif %}
       <div class="notification-content">
         <span class="notification-title">{{ ui.notification_title }}</span>
@@ -33,8 +32,6 @@
                         hx-vals='{"action":"{{ action.action }}"}'
                         hx-swap="none"
                         hx-on::afterRequest="this.closest('.notification').classList.add('is-hidden')"
-                      {% else %}
-                        onclick="this.closest('.notification').classList.add('is-hidden');"
                       {% endif %}>
                 {{ action.label }}
               </button>

@@ -21,7 +21,7 @@ class SecurityHeaders
             "frame-ancestors 'none'",
             "object-src 'none'",
             "form-action 'self'",
-            "script-src 'self' 'unsafe-inline'",
+            "script-src 'self'",
             "style-src 'self' 'unsafe-inline'",
             "img-src 'self' data:",
             "font-src 'self'",

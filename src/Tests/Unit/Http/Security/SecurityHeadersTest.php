@@ -37,7 +37,7 @@ final class SecurityHeadersTest extends TestCase
     public function testContentSecurityPolicyIsPinned(): void
     {
         $expected = "default-src 'self'; base-uri 'self'; frame-ancestors 'none'; object-src 'none';"
-            . " form-action 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline';"
+            . " form-action 'self'; script-src 'self'; style-src 'self' 'unsafe-inline';"
             . " img-src 'self' data:; font-src 'self'; connect-src 'self'";
 
         self::assertSame($expected, SecurityHeaders::headers(false)['Content-Security-Policy']);

@@ -291,7 +291,7 @@ Web-accessible files (document root).
 ```
 public/
 ├── assets/
-│   ├── css/       # Compiled Bulma CSS + purged/minified variant, main.css, fonts.css, tabulator themes
+│   ├── css/       # Compiled Bulma CSS, main.css, fonts.css, tabulator themes
 │   ├── js/        # htmx, tabulator, chart.js, hyperscript, tippy/popper, main.js, page scripts
 │   ├── icons/     # Feather-style SVG icon set (large; not itemized here)
 │   ├── fonts/     # Raleway, Nunito webfonts
@@ -521,13 +521,6 @@ Not used in this project. Always use absolute namespaced imports.
     "bulma": "^1.0.0",
     "htmx.org": "^1.9.12",
     "sass": "^1.72.0"
-  },
-  "devDependencies": {
-    "@fullhuman/postcss-purgecss": "^7.0.2",
-    "cssnano": "^7.0.6",
-    "postcss": "^8.5.3",
-    "postcss-cli": "^11.0.1",
-    "postcss-import": "^16.1.0"
   }
 }
 ```
@@ -554,14 +547,14 @@ config/servers.json       # Monitored servers
 
 ## Build Artifacts
 
-Generated files not in version control:
+Generated dependencies and runtime files are not in version control.
+The compiled Bulma CSS is tracked:
 
 ```
 vendor/                                 # Composer packages
 node_modules/                           # NPM packages
 temp/                                   # Cache and runtime files
 public/assets/css/bulma.css             # Compiled from src/main.scss (npm run build-bulma)
-public/assets/css/bulma.purged.min.css  # Purged/minified via postcss
 ```
 
 ## Version Control

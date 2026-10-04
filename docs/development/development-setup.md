@@ -96,6 +96,10 @@ confirmation.
 
 Rebuild Bulma after Sass changes with `npm install` and `npm run build-bulma`.
 
+!!! info "Frontend assets"
+    Frontend CI runs `npm audit` and builds `src/main.scss` directly with Sass
+    into `public/assets/css/bulma.css`. There is no PostCSS step.
+
 ## Documentation
 
 Edit Markdown under `docs/`. Preview it with:

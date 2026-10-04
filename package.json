@@ -8,12 +8,5 @@
   "scripts": {
     "build-bulma": "sass --load-path=node_modules src/main.scss public/assets/css/bulma.css --no-source-map --style=compressed",
     "start": "npm run build-bulma -- --watch"
-  },
-  "devDependencies": {
-    "@fullhuman/postcss-purgecss": "^7.0.2",
-    "cssnano": "^7.0.6",
-    "postcss": "^8.5.3",
-    "postcss-cli": "^11.0.1",
-    "postcss-import": "^16.1.0"
   }
 }

@@ -6,7 +6,11 @@
     refresh_endpoint: endpoints.metrics_server
 } %}
   {% block modal_body %}
-    <div class="metrics-chart-wrapper">
+    <div class="metrics-chart-wrapper js-process-count-modal"
+      data-element-id="{{ chart.element_id }}"
+      data-metric-label="{{ chart.metric_label|e('html_attr') }}"
+      data-initial-series="{{ chart.series|json_encode|e('html_attr') }}"
+      data-api-endpoint="{{ endpoints.metrics_server_json }}">
       <canvas id="{{ chart.element_id }}"></canvas>
       <div class="metrics-chart-stats">
         <span>{{ icons.activity|raw }} Min: <span data-metric-stat="min">{{ stats.min ?? '—' }}</span></span>
@@ -20,136 +24,3 @@
     </div>
   {% endblock %}
 {% endembed %}
-
-<script>
-  (function () {
-    const elementId = '{{ chart.element_id }}';
-    const chartElement = document.getElementById(elementId);
-    if (!chartElement) {
-      console.warn('Metrics modal: chart element not found', elementId);
-      return;
-    }
-
-    if (window.Chart === undefined) {
-      chartElement.insertAdjacentHTML('afterend', '<p class="notification is-warning mt-3">Chart.js is required to render this chart.</p>');
-      return;
-    }
-
-    const metricLabel = '{{ chart.metric_label|e('js') }}';
-    const initialSeries = {{ chart.series|json_encode|raw }};
-    const jsonUrl = '{{ endpoints.metrics_server_json|e('js') }}';
-
-    window.__mataCharts = window.__mataCharts || {};
-
-    const emptyState = chartElement.parentElement.querySelector('.metrics-chart-empty');
-    const statElements = {
-      min: chartElement.parentElement.querySelector('[data-metric-stat="min"]'),
-      max: chartElement.parentElement.querySelector('[data-metric-stat="max"]'),
-      avg: chartElement.parentElement.querySelector('[data-metric-stat="avg"]'),
-      unit: chartElement.parentElement.querySelector('[data-metric-stat="unit"]'),
-    };
-
-    const formatValue = (value) => (value === null || value === undefined) ? '—' : value;
-
-    const updateStats = (series) => {
-      if (statElements.min) statElements.min.textContent = formatValue(series.min);
-      if (statElements.max) statElements.max.textContent = formatValue(series.max);
-      if (statElements.avg) statElements.avg.textContent = formatValue(series.avg);
-      if (statElements.unit) statElements.unit.textContent = series.unit || '';
-    };
-
-    const hasDataPoints = (series) => Array.isArray(series.data) && series.data.some((value) => value !== null && value !== undefined);
-
-    const buildDataset = (series) => ({
-      labels: series.labels,
-      datasets: [{
-        label: metricLabel,
-        data: series.data,
-        borderColor: '#2563eb',
-        backgroundColor: 'rgba(37, 99, 235, 0.20)',
-        fill: true,
-        tension: 0.3,
-        spanGaps: true
-      }]
-    });
-
-    const renderSeries = (series) => {
-      const hasData = hasDataPoints(series);
-
-      if (!hasData) {
-        chartElement.style.display = 'none';
-        if (emptyState) {
-          emptyState.removeAttribute('hidden');
-        }
-      } else {
-        chartElement.style.display = 'block';
-        if (emptyState) {
-          emptyState.setAttribute('hidden', '');
-        }
-
-        if (window.__mataCharts[elementId]) {
-          window.__mataCharts[elementId].destroy();
-        }
-
-        window.__mataCharts[elementId] = new Chart(chartElement.getContext('2d'), {
-          type: 'line',
-          data: buildDataset(series),
-          options: {
-            maintainAspectRatio: false,
-            responsive: true,
-            scales: {
-              x: {
-                ticks: {
-                  autoSkip: true,
-                  maxTicksLimit: 10
-                }
-              },
-              y: {
-                beginAtZero: true,
-                ticks: {
-                  precision: 0
-                }
-              }
-            },
-            plugins: {
-              legend: {
-                display: true
-              },
-              tooltip: {
-                mode: 'index',
-                intersect: false
-              }
-            }
-          }
-        });
-      }
-
-      updateStats(series);
-    };
-
-    renderSeries(initialSeries);
-
-    if (jsonUrl) {
-      fetch(jsonUrl, {
-        headers: {
-          'Accept': 'application/json'
-        },
-        credentials: 'same-origin'
-      })
-        .then((response) => {
-          if (!response.ok) {
-            throw new Error('Metrics request failed with status ' + response.status);
-          }
-          return response.json();
-        })
-        .then((payload) => {
-          if (payload && payload.series) {
-            renderSeries(payload.series);
-          }
-        })
-        .catch((error) => {
-          console.warn('Metrics modal: failed to refresh chart data', error);
-        });
-    }
-  })();
-</script>

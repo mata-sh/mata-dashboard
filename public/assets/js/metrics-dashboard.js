@@ -481,9 +481,7 @@ function formatBytes(bytes) {
 // Event Listeners - Bootstrap & Cleanup
 // ────────────────────────────────────────────────
 
-document.addEventListener('DOMContentLoaded', () => {
-    initializeMetricsDashboards(document);
-});
+initializeMetricsDashboards(document);
 
 document.body.addEventListener('htmx:afterSwap', (event) => {
     if (event.target instanceof Element) {

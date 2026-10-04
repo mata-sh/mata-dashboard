@@ -1,73 +1,171 @@
-function initializeTooltips() {
-    tippy('[data-tippy-content]:not(.app-status):not(.app-filesize)', {
-        allowHTML: true,
-    });
+// Tooltips
 
-    tippy('.app-status[data-tippy-content], .app-filesize[data-tippy-content]', {
-        allowHTML: true,
-        maxWidth: 560,
-    });
+function tooltipElements(context, selector) {
+    const elements = [];
+
+    if (context instanceof Element && context.matches(selector)) {
+        elements.push(context);
+    }
+
+    elements.push(...context.querySelectorAll(selector));
+    return elements.filter((element) => !element._tippy);
+}
+
+function initializeTooltips(context = document) {
+    const standardTooltips = tooltipElements(
+        context,
+        '[data-tippy-content]:not(.app-status):not(.app-filesize)'
+    );
+    const wideTooltips = tooltipElements(
+        context,
+        '.app-status[data-tippy-content], .app-filesize[data-tippy-content]'
+    );
+
+    if (standardTooltips.length > 0) {
+        tippy(standardTooltips, { allowHTML: true });
+    }
+
+    if (wideTooltips.length > 0) {
+        tippy(wideTooltips, {
+            allowHTML: true,
+            maxWidth: 560,
+        });
+    }
 }
 
 initializeTooltips();
 
-// Hide Lodading Indicator before Htmx displays Container
-document.body.addEventListener('htmx:beforeSwap', function (evt) {
+// Progress bar
+
+const progressBar = document.getElementById('htmx-progress-bar');
+const progressTransition = 'width 0.1s linear, opacity 0.3s ease';
+const progressFadeOutMs = 300;
+const activeRequests = new Set();
+
+let progressValue = 0;
+let progressTimer = null;
+let progressResetTimer = null;
+
+function setProgressWidth(value) {
+    progressValue = value;
+    progressBar.style.width = value + '%';
+}
+
+function startProgress(request) {
+    activeRequests.add(request);
+
+    if (!progressBar) return;
+
+    if (progressResetTimer !== null) {
+        clearTimeout(progressResetTimer);
+        progressResetTimer = null;
+    }
+
+    if (activeRequests.size > 1) return;
+
+    clearInterval(progressTimer);
+    progressBar.style.transition = 'none';
+    setProgressWidth(10);
+    progressBar.style.opacity = '1';
+    void progressBar.offsetHeight;
+    progressBar.style.transition = progressTransition;
+
+    progressTimer = setInterval(() => {
+        if (progressValue < 90) {
+            setProgressWidth(progressValue + 1);
+        }
+    }, 500);
+}
+
+function finishProgress(request) {
+    const requestFinished = activeRequests.delete(request);
+    if (!requestFinished || activeRequests.size > 0 || !progressBar) return;
+
+    clearInterval(progressTimer);
+    progressTimer = null;
+    setProgressWidth(100);
+    progressBar.style.opacity = '0';
+
+    progressResetTimer = setTimeout(() => {
+        progressResetTimer = null;
+        if (activeRequests.size > 0) return;
+
+        // Jump to 0% without animation, then restore the transition.
+        progressBar.style.transition = 'none';
+        setProgressWidth(0);
+        void progressBar.offsetHeight;
+        progressBar.style.transition = progressTransition;
+    }, progressFadeOutMs);
+}
+
+// HTMX event handling
+
+// Hide loading indicator before HTMX displays the container.
+document.body.addEventListener('htmx:beforeSwap', () => {
     document.getElementById('loading-indicator')?.style.setProperty('visibility', 'hidden');
 });
 
-
-// Progress bar
-const bar = document.getElementById('htmx-progress-bar');
-let progressInterval;
-let current = 0;
-
-document.body.addEventListener('htmx:configRequest', function (evt) {
+document.body.addEventListener('htmx:configRequest', (event) => {
     const csrfMeta = document.querySelector('meta[name="csrf-token"]');
     if (csrfMeta) {
-        evt.detail.headers['X-CSRF-Token'] = csrfMeta.content;
-    }
-
-    if (bar) {
-        current = 10;
-        bar.style.width = current + '%';
-
-        progressInterval = setInterval(() => {
-            if (current < 90) {
-                current += 1;
-                bar.style.width = current + '%';
-            }
-        }, 500);
-        bar.style.opacity = '1';
+        event.detail.headers['X-CSRF-Token'] = csrfMeta.content;
     }
 });
 
-document.body.addEventListener('htmx:beforeOnLoad', function () {
-    if (bar) {
-        clearInterval(progressInterval);
-        bar.style.width = '100%';
+document.body.addEventListener('htmx:beforeSend', (event) => {
+    startProgress(event.detail.xhr);
+});
+
+document.body.addEventListener('htmx:afterSwap', (event) => {
+    if (event.target instanceof Element) {
+        initializeTooltips(event.target);
+        loadMetricsDashboard(event.target);
     }
 });
 
-document.body.addEventListener('htmx:afterSwap', function () {
-    if (bar) {
-        bar.style.opacity = '0';
-        setTimeout(() => {
-            bar.style.transition = 'none';
-            bar.style.width = '0%';
-            bar.offsetHeight;
-            bar.style.transition = 'width 0.1s linear, opacity 0.3s ease';
-        }, 300); // fade-out duration
+document.body.addEventListener('htmx:afterRequest', (event) => {
+    finishProgress(event.detail.xhr);
+
+    // Close the notification that triggered this request, if any.
+    const trigger = event.detail?.requestConfig?.elt;
+    if (trigger?.matches?.('[data-notification-action="close"]')) {
+        trigger.closest('.notification')?.classList.add('is-hidden');
     }
 });
 
-document.body.addEventListener('htmx:afterRequest', function () {
-    if (bar) {
-        clearInterval(progressInterval);
-        bar.style.transition = 'width 0.1s linear, opacity 0.3s ease';
-        initializeTooltips();
-    }
-});
+// Dynamic module loading: metrics dashboard
+
+let metricsDashboardLoaded = false;
+let metricsDashboardLoading = false;
+
+function loadMetricsDashboard(context = document) {
+    const hasDashboard = (context instanceof Element && context.matches('.js-metrics-dashboard'))
+        || context.querySelector('.js-metrics-dashboard');
+    if (!hasDashboard || metricsDashboardLoaded || metricsDashboardLoading) return;
+
+    metricsDashboardLoading = true;
+
+    const script = document.createElement('script');
+    script.src = '/assets/js/metrics-dashboard.js';
+    script.async = true;
+
+    script.onload = () => {
+        metricsDashboardLoaded = true;
+        metricsDashboardLoading = false;
+        console.log('[main] Metrics dashboard module loaded');
+    };
+
+    script.onerror = () => {
+        metricsDashboardLoading = false;
+        console.error('[main] Failed to load metrics dashboard module');
+    };
+
+    document.head.appendChild(script);
+}
+
+document.addEventListener('DOMContentLoaded', () => loadMetricsDashboard(document));
+
+// Navigation burger
 
 const burger = document.querySelector('.navbar-burger');
 if (burger) {
@@ -78,135 +176,74 @@ if (burger) {
     });
 }
 
-// Close modal on Escape key press
-document.addEventListener('keydown', function (event) {
-    if (event.key === 'Escape' || event.keyCode === 27) {
-        const modal = document.querySelector('#modal');
-        if (modal) {
-            modal.dispatchEvent(new CustomEvent('closeModal'));
-        }
-    }
+// Modals and notifications
+
+// Close modal on Escape key press.
+document.addEventListener('keydown', (event) => {
+    if (event.key !== 'Escape' && event.keyCode !== 27) return;
+
+    document.querySelector('#modal')?.dispatchEvent(new CustomEvent('closeModal'));
 }, true);
 
-// ────────────────────────────────────────────────
-// Dynamic Module Loading - Metrics Dashboard
-// ────────────────────────────────────────────────
-// Loads metrics-dashboard.js only when needed (when .js-metrics-dashboard exists)
+// Close button inside a rendered notification.
+document.body.addEventListener('click', (event) => {
+    const button = event.target instanceof Element
+        ? event.target.closest('[data-notification-action="close"]')
+        : null;
+    if (!button) return;
 
-let metricsDashboardScriptLoaded = false;
-let metricsDashboardScriptLoading = false;
-
-function loadMetricsDashboard(context) {
-    // Check if metrics dashboard elements exist
-    const hasDashboard = (context || document).querySelector('.js-metrics-dashboard');
-
-    if (!hasDashboard) {
-        return; // No metrics dashboard on page
-    }
-
-    // Already loaded or loading
-    if (metricsDashboardScriptLoaded || metricsDashboardScriptLoading) {
-        return;
-    }
-
-    metricsDashboardScriptLoading = true;
-
-    const script = document.createElement('script');
-    script.src = '/assets/js/metrics-dashboard.js';
-    script.async = true;
-
-    script.onload = () => {
-        metricsDashboardScriptLoaded = true;
-        metricsDashboardScriptLoading = false;
-        console.log('[main] Metrics dashboard module loaded');
-    };
-
-    script.onerror = () => {
-        metricsDashboardScriptLoading = false;
-        console.error('[main] Failed to load metrics dashboard module');
-    };
-
-    document.head.appendChild(script);
-}
-
-// Check on page load
-document.addEventListener('DOMContentLoaded', () => {
-    loadMetricsDashboard(document);
+    button.closest('.notification')?.classList.add('is-hidden');
 });
 
-// Check after HTMX content swaps
-document.body.addEventListener('htmx:afterSwap', (event) => {
-    if (event.target instanceof Element) {
-        loadMetricsDashboard(event.target);
-    }
-});
+// Dropdown population (called from inline scripts)
 
-// ────────────────────────────────────────────────
-// Dynamic Populating of Dropdowns from Tables
-// ────────────────────────────────────────────────
 function mataPopulateSelectFromRows(selectId, rows, field, placeholder) {
     const select = document.getElementById(selectId);
-
-    if (!select || !Array.isArray(rows)) {
-        return;
-    }
+    if (!select || !Array.isArray(rows)) return;
 
     const cacheKey = `mata-select:${selectId}`;
     const currentValue = select.value;
-    const cachedValue = window.sessionStorage ? sessionStorage.getItem(cacheKey) : null;
+    const cachedValue = sessionStorage?.getItem(cacheKey) ?? null;
+
     const valueSet = new Set();
+    for (const row of rows) {
+        const rawValue = row?.[field];
+        if (typeof rawValue !== 'string') continue;
 
-    rows.forEach((row) => {
-        if (!row || typeof row[field] !== 'string') {
-            return;
-        }
-
-        const value = row[field].trim();
-
+        const value = rawValue.trim();
         if (value) {
             valueSet.add(value);
         }
-    });
+    }
 
-    const values = Array.from(valueSet).sort((a, b) =>
-        a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' })
-    );
+    const values = [...valueSet]
+        .sort((a, b) => a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' }));
 
     select.innerHTML = '';
 
-    const placeholderOption = document.createElement('option');
-    placeholderOption.value = '';
-    placeholderOption.textContent = placeholder || 'All';
-    select.appendChild(placeholderOption);
-
-    values.forEach((value) => {
+    for (const value of ['', ...values]) {
         const option = document.createElement('option');
         option.value = value;
-        option.textContent = value;
+        option.textContent = value || placeholder || 'All';
         select.appendChild(option);
-    });
+    }
 
-    const preferredValue = currentValue || cachedValue || '';
-
-    if (preferredValue && values.indexOf(preferredValue) !== -1) {
+    const preferredValue = currentValue || cachedValue;
+    if (preferredValue && values.includes(preferredValue)) {
         select.value = preferredValue;
     }
 
-    if (window.sessionStorage) {
-        sessionStorage.setItem(cacheKey, select.value);
-    }
+    sessionStorage?.setItem(cacheKey, select.value);
 
     if (!select.dataset.mataCacheBound) {
-        select.addEventListener('change', () => {
-            if (window.sessionStorage) {
-                sessionStorage.setItem(cacheKey, select.value);
-            }
-        });
+        select.addEventListener('change', () => sessionStorage?.setItem(cacheKey, select.value));
         select.dataset.mataCacheBound = 'true';
     }
 }
 
 window.mataPopulateSelectFromRows = mataPopulateSelectFromRows;
+
+// Tabulator cell formatters (called from inline scripts)
 
 const mataLevelColors = Object.freeze({
     critical: '#ff4d4d',
