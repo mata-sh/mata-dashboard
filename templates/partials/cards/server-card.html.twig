@@ -7,7 +7,7 @@
         {{ server.health.label }}
       </span>
       <button type="button" class="server-info-btn modal-trigger" aria-label="Open server information" aria-haspopup="dialog" hx-get="{{ endpoints.modal_server_info_render }}" hx-target="#modal-container" hx-trigger="click" hx-toggle="modal">{{ icons.info|raw }}</button>
-      <button type="button" class="server-refresh-btn" aria-label="Refresh server" data-tippy-content="Refresh Server" hx-swap="innerHTML" hx-target="#server-{{ server.id }}" hx-get="/watch/refresh/server/{{ server.name }}">{{ icons.refresh_ccw|raw }}</button>
+      <button type="button" class="server-refresh-btn" aria-label="Refresh server" data-tippy-content="Refresh Server" hx-swap="outerHTML" hx-target="#server-{{ server.id }}" hx-get="/watch/refresh/server/{{ server.name }}">{{ icons.refresh_ccw|raw }}</button>
     </h3>
     {% include 'partials/cards/server-stats.html.twig' %}
   </div>
