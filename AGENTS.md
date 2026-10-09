@@ -26,6 +26,7 @@ Non-obvious facts that have already misled an agent. Verify before asserting oth
 - **Container logs:** `/var/log/apache2/error.log` is a symlink to `/dev/stderr` — tailing it hangs. Truth is `logs/app.log`, `http`-owned, read via the container.
 - **PHP ini:** images use `php-dev.ini` / `php-prod.ini`. `docker/php/php.ini` and `docker/mysql/my.cnf` are unreferenced orphans.
 - **Protected config files:** `config/` is owned by the web container user; edit files there through `docker exec mata-dashboard-web` (start the container first if needed), not directly from the host.
+- **Secret scanning:** gitleaks is not in CI; `gitleaks-action` needs a paid licence for org repos. Run `gitleaks detect` locally. After a history rewrite, regenerate `.gitleaksignore`, since its fingerprints contain commit SHAs.
 
 ## Non-Issues
 
