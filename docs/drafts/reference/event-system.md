@@ -12,8 +12,9 @@ MATA maintains a comprehensive event logging system that tracks all monitoring a
 
 MATA uses two database tables for event management:
 
-1. **`event_log`** - Comprehensive event history
-2. **`alarms`** - Active alarms requiring attention
+1. **`events`** - Comprehensive event history
+2. **`alarms`** - Alarms raised from events (one per event, `event_id` unique)
+3. **`alarm_deliveries`** - Per-channel delivery state for each alarm
 
 This separation enables:
 - Detailed audit trails without clutter
@@ -24,43 +25,43 @@ This separation enables:
 
 ---
 
-## Event Log Table
+## Events Table
 
 ### Purpose
 Records all monitoring events, threshold violations, and system activities for audit and analysis.
 
 ### Schema
 
-```sql
-CREATE TABLE event_log (
-    id INT PRIMARY KEY AUTO_INCREMENT,
-    event_type VARCHAR(100) NOT NULL,
-    severity ENUM('info', 'warning', 'critical') DEFAULT 'info',
-    server_id VARCHAR(100),
-    app_name VARCHAR(100),
-    message TEXT NOT NULL,
-    details JSON,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+Source of truth: `migrations/20251024230337_create_dashboard_log_tables.php`
+(later migrations add `alarm_decision` and alarm trigger evidence columns).
 
-    INDEX idx_event_type (event_type),
-    INDEX idx_severity (severity),
-    INDEX idx_server_id (server_id),
-    INDEX idx_created_at (created_at)
+```sql
+CREATE TABLE events (
+    id BIGINT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
+    server_id BIGINT UNSIGNED NULL,       -- FK servers.id, SET NULL on delete
+    application_id BIGINT UNSIGNED NULL,  -- FK applications.id, SET NULL on delete
+    type VARCHAR(50) NOT NULL,
+    message TEXT NOT NULL,
+    context TEXT NULL,                    -- JSON serialized context data
+    level ENUM('info', 'warning', 'error', 'critical') NOT NULL,
+    datetime DATETIME NOT NULL,
+    evaluated_at DATETIME NULL
 );
 ```
 
-### Event Log Fields
+### Event Fields
 
 | Field | Type | Description |
 |-------|------|-------------|
 | `id` | Integer | Auto-incrementing primary key |
-| `event_type` | String | Event type identifier (see Event Types) |
-| `severity` | Enum | `info`, `warning`, `critical` |
-| `server_id` | String | Server identifier from servers.json |
-| `app_name` | String | Application name (if applicable) |
+| `server_id` | Integer | Reference to `servers.id` (nullable) |
+| `application_id` | Integer | Reference to `applications.id` (nullable) |
+| `type` | String(50) | Event type identifier (see Event Types) |
 | `message` | Text | Human-readable event description |
-| `details` | JSON | Additional event data and context |
-| `created_at` | Timestamp | Event creation timestamp |
+| `context` | Text (JSON) | Metric, threshold, actual value, and additional data |
+| `level` | Enum | `info`, `warning`, `error`, `critical` |
+| `datetime` | Datetime | When the event occurred |
+| `evaluated_at` | Datetime | When alarm rules last evaluated this event (NULL = pending) |
 
 ### Event Retention
 
@@ -99,51 +100,33 @@ Manages active alarms that require attention or notification.
 
 ```sql
 CREATE TABLE alarms (
-    id INT PRIMARY KEY AUTO_INCREMENT,
-    alarm_type VARCHAR(100) NOT NULL,
-    severity ENUM('info', 'warning', 'critical') DEFAULT 'warning',
-    server_id VARCHAR(100),
-    app_name VARCHAR(100),
-    message TEXT NOT NULL,
-    details JSON,
-    event_count INT DEFAULT 1,
-    first_occurrence TIMESTAMP,
-    last_occurrence TIMESTAMP,
-    acknowledged BOOLEAN DEFAULT FALSE,
-    acknowledged_at TIMESTAMP NULL,
-    acknowledged_by VARCHAR(100),
-    resolved BOOLEAN DEFAULT FALSE,
-    resolved_at TIMESTAMP NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-
-    INDEX idx_alarm_type (alarm_type),
-    INDEX idx_severity (severity),
-    INDEX idx_server_id (server_id),
-    INDEX idx_acknowledged (acknowledged),
-    INDEX idx_resolved (resolved)
+    id BIGINT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
+    event_id BIGINT UNSIGNED NOT NULL UNIQUE,  -- FK events.id, RESTRICT on delete
+    created_at DATETIME NOT NULL,
+    acknowledged_at DATETIME NULL,
+    acknowledged_by VARCHAR(50) NULL
 );
 ```
+
+Severity, server, application, and message live on the linked event, not on
+the alarm. Alarm state is "unacknowledged" (`acknowledged_at IS NULL`) or
+"acknowledged"; there is no resolved flag or event counter in the schema.
 
 ### Alarm Fields
 
 | Field | Type | Description |
 |-------|------|-------------|
 | `id` | Integer | Auto-incrementing primary key |
-| `alarm_type` | String | Alarm type identifier |
-| `severity` | Enum | `info`, `warning`, `critical` |
-| `server_id` | String | Server identifier |
-| `app_name` | String | Application name (if applicable) |
-| `message` | Text | Alarm description |
-| `details` | JSON | Alarm context and metadata |
-| `event_count` | Integer | Number of occurrences |
-| `first_occurrence` | Timestamp | When alarm first triggered |
-| `last_occurrence` | Timestamp | Most recent occurrence |
-| `acknowledged` | Boolean | Alarm acknowledgment status |
-| `acknowledged_at` | Timestamp | When acknowledged |
-| `acknowledged_by` | String | User who acknowledged |
-| `resolved` | Boolean | Alarm resolution status |
-| `resolved_at` | Timestamp | When resolved |
-| `created_at` | Timestamp | Alarm creation timestamp |
+| `event_id` | Integer | Unique reference to the triggering event |
+| `created_at` | Datetime | When the alarm was raised |
+| `acknowledged_at` | Datetime | When acknowledged (NULL = open) |
+| `acknowledged_by` | String(50) | User who acknowledged |
+
+### Alarm Deliveries Table
+
+One row per alarm and channel (`uq_alarm_deliveries_alarm_channel`). `status`
+is one of `pending`, `processing`, `sent`, `retry`, `failed`, `throttled`, or
+`discarded`. Deleting an alarm cascades to its deliveries.
 
 ---
 
@@ -737,38 +720,30 @@ AcknowledgeAlarm::execute([
 **Database Update:**
 ```sql
 UPDATE alarms
-SET acknowledged = TRUE,
-    acknowledged_at = NOW(),
+SET acknowledged_at = NOW(),
     acknowledged_by = 'admin@example.com'
 WHERE id = 123;
 ```
 
 ### Alarm Resolution
 
+> **Not implemented.** The `alarms` table has no resolved state. The example
+> below describes a planned workflow, not current behaviour.
+
 **Purpose:**
 - Mark issue as fixed
 - Close alarm
 - Archive for historical analysis
 
-**Workflow:**
+**Planned workflow:**
 
 ```php
-// Resolve alarm
+// Resolve alarm (planned)
 ResolveAlarm::execute([
     'alarm_id' => 123,
     'resolved_by' => 'admin@example.com',
     'resolution_notes' => 'Cleared old log files, added log rotation'
 ]);
-```
-
-**Database Update:**
-```sql
-UPDATE alarms
-SET resolved = TRUE,
-    resolved_at = NOW(),
-    acknowledged = TRUE,
-    acknowledged_at = NOW()
-WHERE id = 123;
 ```
 
 ---
@@ -864,52 +839,47 @@ MAIL_INFO_RECIPIENTS=
 
 ### Get Recent Events
 ```sql
-SELECT * FROM event_log
-WHERE created_at > NOW() - INTERVAL 24 HOUR
-ORDER BY created_at DESC
+SELECT * FROM events
+WHERE datetime > NOW() - INTERVAL 24 HOUR
+ORDER BY datetime DESC
 LIMIT 100;
 ```
 
-### Get Events by Severity
+### Get Events by Level
 ```sql
-SELECT * FROM event_log
-WHERE severity = 'critical'
-AND created_at > NOW() - INTERVAL 7 DAY
-ORDER BY created_at DESC;
+SELECT * FROM events
+WHERE level = 'critical'
+AND datetime > NOW() - INTERVAL 7 DAY
+ORDER BY datetime DESC;
 ```
 
 ### Get Events by Server
 ```sql
-SELECT * FROM event_log
-WHERE server_id = 'production-server'
-AND created_at > NOW() - INTERVAL 24 HOUR
-ORDER BY created_at DESC;
-```
-
-### Get Active Alarms
-```sql
-SELECT * FROM alarms
-WHERE resolved = FALSE
-ORDER BY severity DESC, created_at DESC;
+SELECT e.* FROM events e
+JOIN servers s ON s.id = e.server_id
+WHERE s.id = 1
+AND e.datetime > NOW() - INTERVAL 24 HOUR
+ORDER BY e.datetime DESC;
 ```
 
 ### Get Unacknowledged Alarms
 ```sql
-SELECT * FROM alarms
-WHERE acknowledged = FALSE
-AND resolved = FALSE
-ORDER BY severity DESC, created_at DESC;
+SELECT a.*, e.type, e.level, e.message
+FROM alarms a
+JOIN events e ON e.id = a.event_id
+WHERE a.acknowledged_at IS NULL
+ORDER BY e.level DESC, a.created_at DESC;
 ```
 
 ### Event Count by Type (Last 24h)
 ```sql
 SELECT
-    event_type,
-    COUNT(*) as event_count,
-    MAX(created_at) as last_occurrence
-FROM event_log
-WHERE created_at > NOW() - INTERVAL 24 HOUR
-GROUP BY event_type
+    type,
+    COUNT(*) AS event_count,
+    MAX(datetime) AS last_occurrence
+FROM events
+WHERE datetime > NOW() - INTERVAL 24 HOUR
+GROUP BY type
 ORDER BY event_count DESC;
 ```
 
