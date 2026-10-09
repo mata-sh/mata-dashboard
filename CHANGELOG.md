@@ -8,6 +8,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - The documentation site includes the MATA Node reference (configuration, Docker, custom log parsers), synced from mata-node at build time
 
+### Fixed
+- Dashboard notices with a saved choice (such as "never" or "snooze") now close only after the server stores it; a failed request leaves the notice visible
+
 ## [0.6.0] - 2026-10-09
 
 First public release. Versions up to 0.5.0 were developed privately; this entry

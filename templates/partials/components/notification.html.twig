@@ -8,8 +8,7 @@
                 data-notification-action="close"
                 hx-post="{{ ui.notification_close_endpoint }}"
                 hx-vals='{"action":"{{ ui.notification_close_action }}"}'
-                hx-swap="none"
-                hx-on::afterRequest="this.closest('.notification').classList.add('is-hidden')"></button>
+                hx-swap="none"></button>
       {% else %}
         <button class="delete"
                 type="button"
@@ -31,7 +30,6 @@
                         hx-post="{{ actionUrl }}"
                         hx-vals='{"action":"{{ action.action }}"}'
                         hx-swap="none"
-                        hx-on::afterRequest="this.closest('.notification').classList.add('is-hidden')"
                       {% endif %}>
                 {{ action.label }}
               </button>

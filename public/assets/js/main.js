@@ -126,9 +126,9 @@ document.body.addEventListener('htmx:afterSwap', (event) => {
 document.body.addEventListener('htmx:afterRequest', (event) => {
     finishProgress(event.detail.xhr);
 
-    // Close the notification that triggered this request, if any.
-    const trigger = event.detail?.requestConfig?.elt;
-    if (trigger?.matches?.('[data-notification-action="close"]')) {
+    // Close the notification that triggered this request once the choice is saved.
+    const trigger = event.detail?.elt;
+    if (event.detail?.successful && trigger?.matches?.('[data-notification-action="close"]')) {
         trigger.closest('.notification')?.classList.add('is-hidden');
     }
 });
@@ -190,7 +190,8 @@ document.body.addEventListener('click', (event) => {
     const button = event.target instanceof Element
         ? event.target.closest('[data-notification-action="close"]')
         : null;
-    if (!button) return;
+    // HTMX-backed buttons close in htmx:afterRequest, after the server saved the choice.
+    if (!button || button.hasAttribute('hx-post')) return;
 
     button.closest('.notification')?.classList.add('is-hidden');
 });
