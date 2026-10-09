@@ -19,5 +19,13 @@ On first run the default MATA branding images are copied here from
   (it is re-seeded automatically).
 - The application name next to the logo is configured separately via
   `APP_NAME` in `config/config.env`.
-- **Docker (prod):** mount this directory as a volume so custom logos
-  survive redeploys.
+- **Docker (prod):** the compose files do not mount this directory, so custom
+  logos live only in the container and are lost when it is recreated. Add a
+  bind mount to the `mata-web` service to keep them:
+
+  ```yaml
+  volumes:
+    - ./public/branding:/var/www/html/public/branding
+  ```
+
+  The dev setup bind-mounts the whole project, so no extra mount is needed there.
