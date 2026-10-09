@@ -63,7 +63,6 @@ cached read path.
 | `GET` | `/watch/modal/{server}/cronjobs` | Server cronjobs modal. |
 | `GET` | `/watch/modal/{server}/cronjobs/refresh` | Cronjobs modal with a forced source refresh. |
 | `GET` | `/watch/modal/{server}/metrics` | Shared server-card history modal. See [Server metrics](#server-metrics). |
-| `GET` | `/watch/modal/{server}/process-count` | Existing process-count history modal. `range` defaults to `30d`; its series always uses daily granularity. |
 
 ## General JSON API
 
@@ -172,12 +171,11 @@ server-card controls. Query parameters are restricted to:
 
 | Parameter | Default | Accepted values |
 | --- | --- | --- |
-| `metric` | `cpu` | `cpu`, `ram_percent`, `disk_percent`, `file_count` |
+| `metric` | `cpu` | `cpu`, `ram_percent`, `disk_percent`, `file_count`, `process_count` |
 | `range` | `24h` | `6h`, `24h`, `7d`, `30d` |
 
 The modal resolves its tier as `6h` → raw, `24h`/`7d` → hourly, and `30d` →
 daily. Its JavaScript fetches the single-series JSON route when controls change
 or Refresh is clicked, displays timestamps as UTC, preserves null gaps, and
-shows an empty state when no numeric values exist. Process count is displayed as
-a non-interactive server-card statistic; the separate process-count modal route
-remains available.
+shows an empty state when no numeric values exist. The process-count history is
+the total process count, while the server-card badge shows PHP processes.

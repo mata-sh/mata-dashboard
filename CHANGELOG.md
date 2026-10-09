@@ -7,6 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - App cards show the application description reported by the node in the app title tooltip
+- Clicking the process count on a server card opens the server metrics modal with the total process count history
 - The documentation site includes the MATA Node reference (configuration, Docker, custom log parsers), synced from mata-node at build time
 
 - Database alarms: `database_unreachable` when the node cannot reach its database server, and `database_connections_too_high` when connections reach the `server_data.database_connections_percent` alarm level (default 80 % of `max_connections`). Both are checked by the server metrics cron
@@ -16,6 +17,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - The unused `too_many_sql_connections` alarm type is renamed to `database_connections_too_high`, and the unread `sql` section of `thresholds.json` is removed; rename the key in your `thresholds.json` and `intervals.json`
 - Docker images build on the latest PHP 8.3 release on Debian 13 (`php:8.3-apache-trixie`) with the latest Composer 2, and `make dev-rebuild` / `make prod-rebuild` pull the newest base image. If your `.env` sets `PHP_VERSION=8.3.14`, change it to `8.3`; no Debian 13 image exists for 8.3.14
 - Database cards read MATA Node's `/databases/overview` and show connection numbers once per database server; the process list opens per database or for the whole server, is fetched live, and names the privilege the monitoring account lacks when it only sees its own sessions (MariaDB `PROCESS`, PostgreSQL `pg_read_all_stats`). Nodes without database monitoring show the section as not configured. Requires MATA Node 0.3.0 or later
+
+### Removed
+- The unlinked process-count modal (`/watch/modal/{server}/process-count`); its Refresh button replaced the modal with raw JSON. Process history now lives in the server metrics modal
 
 ### Fixed
 - Cache-age tooltips on server, app and database cards no longer append a stray "s" (for example "5 minutes s ago"), and the database card tooltip shows the overview's cache age instead of blank values

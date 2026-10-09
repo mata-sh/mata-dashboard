@@ -343,7 +343,7 @@ class ServerRenderer extends BaseRenderer
     {
         $endpoints = [];
 
-        foreach (['cpu', 'ram_percent', 'disk_percent', 'file_count'] as $metric) {
+        foreach (['cpu', 'ram_percent', 'disk_percent', 'file_count', 'process_count'] as $metric) {
             $endpoints[$metric] = $this->endpoints->url(
                 'modal_server_metrics_render',
                 ['server' => $serverName],

@@ -393,7 +393,6 @@ class RouterSetup
             // Metrics-based modals with time-series charts handled by MetricsController
             $metricsModalRoutes = [
                 ['modal_server_metrics_render', '/modal/{server}/metrics', 'get', fn ($server) => $this->metricsController->renderServerMetricsModal($server)],
-                ['modal_server_process_count_render', '/modal/{server}/process-count', 'get', fn ($server) => $this->metricsController->renderProcessCountModal($server)],
             ];
 
             // Register routes
@@ -511,11 +510,6 @@ class RouterSetup
         // Validate Composer audit route parameters
         $this->router->before('GET', '/watch/audit/run/([^/]+)/([^/]+)', function ($server, $app) {
             RouteParameter::assertAllSafe([$server, $app], 'Invalid audit route parameter');
-        });
-
-        // Validate process count modal route parameters
-        $this->router->before('GET', '/watch/modal/([^/]+)/process-count', function ($server) {
-            RouteParameter::assertSafe($server, 'Invalid server parameter');
         });
 
         // Validate metrics JSON route parameters

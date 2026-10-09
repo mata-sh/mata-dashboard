@@ -182,93 +182,6 @@ final class MetricsController extends BaseController
     }
 
     /**
-     * Render process count modal with time-series chart for a server.
-     *
-     * Returns HTML modal content with daily process count metrics over the
-     * specified time range. Defaults to 30 days with daily granularity.
-     *
-     * @example
-     * GET /watch/modal/prod-server/process-count
-     * GET /watch/modal/prod-server/process-count?range=60d
-     *
-     * @param string $server Server name from servers.json config
-     *
-     * @return Response HTML response with modal content or 422 validation error
-     */
-    public function renderProcessCountModal(string $server): Response
-    {
-        return $this->executeWithErrorHandling(
-            function () use ($server) {
-                $requestStartTime = microtime(true);
-                $rangeInput = $this->getQueryParam('range', '30d');
-                $range = $this->normalizeRangeInput($rangeInput);
-                $granularity = 'daily';
-
-                $this->logger->debug('metrics.request.start', [
-                    'endpoint' => 'renderProcessCountModal',
-                    'server' => $server,
-                    'metric' => 'process_count',
-                    'range' => $range,
-                    'granularity' => $granularity,
-                ]);
-
-                $validation = $this->validator->validate(
-                    $server,
-                    'process_count',
-                    $range,
-                    $granularity,
-                    $this->serversConfig
-                );
-
-                if ($validation->hasErrors()) {
-                    $this->logger->warning('Metrics modal validation failed', [
-                        'server' => $server,
-                        'errors' => $validation->errors,
-                    ]);
-
-                    return new HtmlResponse(
-                        $this->metricsRenderer->renderValidationError($validation->errors),
-                        422
-                    );
-                }
-
-                $metricKey = $validation->normalizedMetric;
-
-                try {
-                    $payload = $this->getSeriesPayload($server, $metricKey, $range, $granularity);
-                } catch (InvalidArgumentException $exception) {
-                    return new HtmlResponse(
-                        $this->metricsRenderer->renderError($exception->getMessage()),
-                        422
-                    );
-                }
-
-                $html = $this->metricsRenderer->renderProcessCountModal($server, $payload);
-
-                $durationMs = round((microtime(true) - $requestStartTime) * 1000, 2);
-                $dataPoints = isset($payload['series']['data']) && is_array($payload['series']['data'])
-                    ? count($payload['series']['data'])
-                    : 0;
-
-                $this->logger->debug('metrics.request.complete', [
-                    'endpoint' => 'renderProcessCountModal',
-                    'server' => $server,
-                    'metric' => 'process_count',
-                    'range' => $range,
-                    'granularity' => $granularity,
-                    'data_points' => $dataPoints,
-                    'duration_ms' => $durationMs,
-                    'from_cache' => $payload['cache']['from_cache'] ?? false,
-                ]);
-
-                return new HtmlResponse($html);
-            },
-            'Failed to render process count metrics',
-            "MetricsController:renderProcessCountModal server={$server}"
-        );
-    }
-
-    /**
      * Render the shared CPU/RAM/disk/files modal used by server cards.
      */
     public function renderServerMetricsModal(string $server): Response
@@ -277,12 +190,12 @@ final class MetricsController extends BaseController
             function () use ($server) {
                 $metric = $this->queryPolicy->normalizeMetric($this->getQueryParam('metric', 'cpu'));
                 $range = $this->normalizeRangeInput($this->getQueryParam('range', '24h'));
-                $allowedMetrics = ['cpu', 'ram_percent', 'disk_percent', 'file_count'];
+                $allowedMetrics = ['cpu', 'ram_percent', 'disk_percent', 'file_count', 'process_count'];
 
                 if (!in_array($metric, $allowedMetrics, true) || !isset(self::SERVER_METRICS_MODAL_RANGES[$range])) {
                     return new HtmlResponse(
                         $this->metricsRenderer->renderValidationError([
-                            'filters' => 'Supported metrics are CPU, RAM, disk, and files with ranges 6h, 24h, 7d, or 30d.',
+                            'filters' => 'Supported metrics are CPU, RAM, disk, files, and processes with ranges 6h, 24h, 7d, or 30d.',
                         ]),
                         422
                     );

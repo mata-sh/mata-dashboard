@@ -75,7 +75,7 @@ class MetricsControllerTest extends TestCase
         ;
         $this->mockRenderer = $this->getMockBuilder(MetricsRenderer::class)
             ->disableOriginalConstructor()
-            ->onlyMethods(['renderDashboardOverview', 'renderProcessCountModal', 'renderServerMetricsModal', 'renderMetricsJson', 'renderValidationError', 'renderError'])
+            ->onlyMethods(['renderDashboardOverview', 'renderServerMetricsModal', 'renderMetricsJson', 'renderValidationError', 'renderError'])
             ->getMock()
         ;
         $this->mockCacheService = $this->getMockBuilder(MetricsCacheService::class)
@@ -482,182 +482,31 @@ class MetricsControllerTest extends TestCase
     }
 
     // ═══════════════════════════════════════════════════════════════════════
-    // Process Count Modal Tests
+    // Server Metrics Modal Tests
     // ═══════════════════════════════════════════════════════════════════════
 
-    /**
-     * @test
-     *
-     * @group metrics-controller
-     * @group process-count-modal
-     * @group validation
-     *
-     * Validates that process count modal rendering validates the server
-     * parameter and returns proper error for unknown servers.
-     */
-    public function testItValidatesServerForProcessCountModal(): void
+    public function testServerMetricsModalAcceptsProcessCount(): void
     {
-        // Arrange: Request modal for unknown server
-        $validationResult = new MetricsValidationResult(
-            ['server' => "Unknown server 'invalid-server'"],
-            'process_count'
-        );
-
-        $this->mockValidator
-            ->expects($this->once())
-            ->method('validate')
-            ->with(
-                'invalid-server',
-                'process_count',
-                '30d', // Default range
-                'daily',
-                $this->testServersConfig
-            )
-            ->willReturn($validationResult)
-        ;
-
-        $this->mockRenderer
-            ->expects($this->once())
-            ->method('renderValidationError')
-            ->with(['server' => "Unknown server 'invalid-server'"])
-            ->willReturn('<div class="notification is-danger">Unknown server</div>')
-        ;
-
-        // Act: Attempt to render modal for invalid server
-        $response = $this->controller->renderProcessCountModal('invalid-server');
-
-        // Assert: Verify validation error response
-        $this->assertInstanceOf(HtmlResponse::class, $response);
-        $this->assertEquals(422, $response->getStatusCode());
-        $this->assertStringContainsString('Unknown server', $response->getContent());
-    }
-
-    /**
-     * @test
-     *
-     * @group metrics-controller
-     * @group process-count-modal
-     *
-     * Validates that process count modal renders successfully with valid
-     * server and retrieves the correct time-series data.
-     */
-    public function testItRendersProcessCountModalSuccessfully(): void
-    {
-        // Arrange: Valid server and range
-        $_GET = ['range' => '60d'];
+        $_GET = ['metric' => 'process_count', 'range' => '24h'];
         $this->controller = $this->createController(new Request(query: $_GET));
 
-        $validationResult = new MetricsValidationResult([], 'process_count');
-
-        $this->mockValidator
-            ->method('validate')
-            ->willReturn($validationResult)
-        ;
-
-        // Mock series payload with realistic process count data
-        $seriesPayload = [
-            'filters' => ['server' => 'prod-server', 'metric' => 'process_count', 'range' => '60d', 'granularity' => 'daily'],
-            'series' => [
-                'server_name' => 'prod-server',
-                'metric' => 'process_count',
-                'range' => '60d',
-                'granularity' => 'daily',
-                'labels' => ['2024-01-01', '2024-01-02', '2024-01-03'],
-                'data' => [145, 152, 149],
-                'min' => 145,
-                'max' => 152,
-                'avg' => 148.67,
-                'unit' => '',
-            ],
-            'cache' => ['from_cache' => false, 'age' => 0],
-        ];
-        $this->controller = $this->createController(new Request(query: $_GET));
-
-        // Mock cache miss and payload build
+        $this->mockQueryPolicy->method('normalizeMetric')->willReturn('process_count');
+        $this->mockQueryPolicy->method('resolveGranularity')->willReturn('hourly');
+        $this->mockValidator->method('validate')->willReturn(new MetricsValidationResult([], 'process_count'));
         $this->mockCacheService->method('readSeriesCache')->willReturn(null);
+        $this->mockCacheService->method('buildCacheMetadata')->willReturn(['from_cache' => false]);
         $this->mockViewBuilder
             ->expects($this->once())
             ->method('buildServerMetricTimeSeries')
-            ->with('prod-server', 'process_count', '60d', 'daily')
-            ->willReturn($seriesPayload['series'])
+            ->with('prod-server', 'process_count', '24h', 'hourly')
+            ->willReturn(['data' => [], 'granularity' => 'hourly'])
         ;
+        $this->mockRenderer->expects($this->once())->method('renderServerMetricsModal')->willReturn('<div>Modal</div>');
 
-        $this->mockCacheService->method('buildCacheMetadata')->willReturn($seriesPayload['cache']);
+        $response = $this->controller->renderServerMetricsModal('prod-server');
 
-        $this->mockRenderer
-            ->expects($this->once())
-            ->method('renderProcessCountModal')
-            ->with('prod-server', $this->callback(function ($payload) {
-                return isset($payload['filters'], $payload['series'], $payload['cache'])
-                    && ($payload['filters']['metric'] ?? '') === 'process_count';
-            }))
-            ->willReturn('<div class="modal">Process count chart</div>')
-        ;
-
-        // Act: Render process count modal
-        $response = $this->controller->renderProcessCountModal('prod-server');
-
-        // Assert: Verify successful HTML response
-        $this->assertInstanceOf(HtmlResponse::class, $response);
-        $this->assertEquals(200, $response->getStatusCode());
-        $this->assertStringContainsString('Process count chart', $response->getContent());
-    }
-
-    /**
-     * @test
-     *
-     * @group metrics-controller
-     * @group process-count-modal
-     * @group logging
-     *
-     * Validates that the controller logs debug information about the
-     * request including timing metrics and data point counts.
-     */
-    public function testItLogsProcessCountModalRequestMetrics(): void
-    {
-        // Arrange
-        $_GET = ['range' => '30d'];
-        $this->controller = $this->createController(new Request(query: $_GET));
-        $validationResult = new MetricsValidationResult([], 'process_count');
-        $this->mockValidator->method('validate')->willReturn($validationResult);
-
-        $seriesPayload = [
-            'filters' => ['server' => 'prod-server', 'metric' => 'process_count', 'range' => '30d', 'granularity' => 'daily'],
-            'series' => [
-                'data' => array_fill(0, 30, 150), // 30 data points
-            ],
-            'cache' => ['from_cache' => false],
-        ];
-        $this->controller = $this->createController(new Request(query: $_GET));
-
-        $this->mockCacheService->method('readSeriesCache')->willReturn(null);
-        $this->mockViewBuilder->method('buildServerMetricTimeSeries')->willReturn($seriesPayload['series']);
-        $this->mockCacheService->method('buildCacheMetadata')->willReturn($seriesPayload['cache']);
-        $this->mockRenderer->method('renderProcessCountModal')->willReturn('<div>Modal</div>');
-
-        // Expect debug logging with request start and completion.
-        // The controller may also log internal build timings.
-        $debugCalls = [];
-        $this->mockLogger
-            ->expects($this->atLeast(2))
-            ->method('debug')
-            ->willReturnCallback(function ($message, $context) use (&$debugCalls) {
-                $debugCalls[$message] = $context;
-            })
-        ;
-
-        // Act
-        $this->controller->renderProcessCountModal('prod-server');
-
-        $this->assertArrayHasKey('metrics.request.start', $debugCalls);
-        $this->assertSame('renderProcessCountModal', $debugCalls['metrics.request.start']['endpoint'] ?? null);
-        $this->assertSame('prod-server', $debugCalls['metrics.request.start']['server'] ?? null);
-        $this->assertSame('process_count', $debugCalls['metrics.request.start']['metric'] ?? null);
-
-        $this->assertArrayHasKey('metrics.request.complete', $debugCalls);
-        $this->assertArrayHasKey('duration_ms', $debugCalls['metrics.request.complete']);
-        $this->assertArrayHasKey('data_points', $debugCalls['metrics.request.complete']);
-        $this->assertArrayHasKey('from_cache', $debugCalls['metrics.request.complete']);
+        self::assertInstanceOf(HtmlResponse::class, $response);
+        self::assertSame(200, $response->getStatusCode());
     }
 
     public function testServerMetricsModalUsesAutomaticGranularityAndExposesRangeMetadata(): void

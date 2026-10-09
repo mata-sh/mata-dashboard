@@ -118,6 +118,7 @@ final class ServerRendererTest extends TestCase
             'ram_percent' => '/modal/production%20server/metrics?metric=ram_percent&range=24h',
             'disk_percent' => '/modal/production%20server/metrics?metric=disk_percent&range=24h',
             'file_count' => '/modal/production%20server/metrics?metric=file_count&range=24h',
+            'process_count' => '/modal/production%20server/metrics?metric=process_count&range=24h',
         ], $result);
     }
 

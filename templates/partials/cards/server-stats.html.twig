@@ -37,10 +37,22 @@
   >
     {{ icons.hard_drive|raw }} {{ storage.disk_percent }}%
   </button>
-  <span class="server-processes count" data-tippy-content="<strong>Prozesse</strong>
-                                    <br>Php: {{ processes.php }}
-                                    <br>Sql: {{ processes.sql }}
-                                    <br>Total: {{ processes.total }}">{{ icons.activity|raw }} {{ processes.php }}</span>
+  <button
+    type="button"
+    class="server-processes count modal-trigger server-metric-trigger"
+    aria-label="Open process count history"
+    aria-haspopup="dialog"
+    data-tippy-content="<strong>Prozesse</strong>
+                        <br>Php: {{ processes.php }}
+                        <br>Sql: {{ processes.sql }}
+                        <br>Total: {{ processes.total }}"
+    hx-get="{{ metrics_modal_endpoints.process_count }}"
+    hx-target="#modal-container"
+    hx-trigger="click"
+    hx-toggle="modal"
+  >
+    {{ icons.activity|raw }} {{ processes.php }}
+  </button>
   <button
     type="button"
     class="server-filecount count {{ files.count_level }} modal-trigger server-metric-trigger"

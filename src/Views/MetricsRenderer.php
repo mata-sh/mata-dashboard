@@ -42,78 +42,6 @@ class MetricsRenderer extends BaseRenderer
     }
 
     /**
-     * Render process count modal with daily granularity for a server.
-     *
-     * @param array<string,mixed> $payload
-     */
-    public function renderProcessCountModal(
-        string $serverName,
-        array $payload
-    ): string {
-        $series = is_array($payload['series'] ?? null) ? $payload['series'] : [];
-        $filters = is_array($payload['filters'] ?? null) ? $payload['filters'] : [];
-        $cache = is_array($payload['cache'] ?? null) ? $payload['cache'] : [];
-
-        $metricKey = (string) ($series['metric'] ?? 'process_count');
-        $metricSlug = str_replace('_', '-', $metricKey);
-        $metricLabel = $this->getMetricLabel($metricKey);
-        $range = (string) ($filters['range'] ?? $series['range'] ?? '30d');
-        $granularity = (string) ($filters['granularity'] ?? $series['granularity'] ?? 'daily');
-
-        $routeParams = [
-            'server' => $serverName,
-            'metric' => $metricSlug,
-        ];
-
-        $queryParams = [
-            'range' => $range,
-        ];
-
-        $jsonParams = [
-            'range' => $range,
-            'granularity' => $granularity,
-        ];
-
-        $modalData = [
-            'server' => [
-                'name' => $serverName,
-            ],
-            'filters' => [
-                'range' => $range,
-                'granularity' => $granularity,
-            ],
-            'stats' => [
-                'min' => $series['min'] ?? null,
-                'max' => $series['max'] ?? null,
-                'avg' => $series['avg'] ?? null,
-                'unit' => $series['unit'] ?? '',
-            ],
-            'endpoints' => [
-                'metrics_server' => $this->endpoints->url('metrics_server', $routeParams, $queryParams),
-                'metrics_server_json' => $this->endpoints->url('metrics_server', $routeParams, $jsonParams),
-            ],
-            'chart' => [
-                'element_id' => $this->generateHtmlId($serverName, $metricKey . '-chart'),
-                'series' => $series,
-                'metric_label' => $metricLabel,
-                'metric' => $metricKey,
-            ],
-            'icons' => $this->getModalIcons(),
-            'cache' => $cache,
-        ];
-
-        try {
-            return $this->twig->render('partials/modals/metrics-process-count-modal.html.twig', $modalData);
-        } catch (Exception $exception) {
-            $this->logError($exception->getMessage(), 'MetricsProcessCountModal', [
-                'server' => $serverName,
-            ]);
-
-            return '<div class="notification is-danger">Failed to render process count metrics.</div>';
-        }
-    }
-
-    /**
      * Render the shared server-card metrics modal.
      *
      * @param array<string,mixed>                                       $payload
@@ -139,6 +67,7 @@ class MetricsRenderer extends BaseRenderer
                     'ram_percent' => 'RAM',
                     'disk_percent' => 'Disk',
                     'file_count' => 'Files',
+                    'process_count' => 'Processes (total)',
                 ],
                 'ranges' => $ranges,
                 'endpoints' => [
