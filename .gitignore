@@ -13,6 +13,7 @@
 *.dat
 *.cache
 *.lock
+!composer.lock
 .htpasswd
 public/.htaccess
 cron/logrotate.shared-hosting.conf
