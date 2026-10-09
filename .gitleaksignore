@@ -1,0 +1,26 @@
+# Reviewed gitleaks findings (2026-10-09): documentation placeholders, test
+# fixtures, and an expired demo-user remember token removed in 62dedbc.
+# Only add fingerprints here after confirming the value is not a real secret.
+25e35ec5cb253f84ac6fca334216c109e1028c07:src/Tests/Unit/Views/SettingsRendererTest.php:generic-api-key:103
+759098c137b212d62b8043f0506a05bf7c4db9e6:docs/reference/client-config.md:generic-api-key:612
+759098c137b212d62b8043f0506a05bf7c4db9e6:docs/reference/client-config.md:generic-api-key:613
+804dd54faf2e36187e5477e4f1c07d3925ba6f63:src/Tests/Helpers/ApplicationConfigFactory.php:generic-api-key:168
+dad6bc2ecce689dad65768d73f7748be288b6f51:src/Tests/Unit/Config/MonitoringSettingsLoaderTest.php:generic-api-key:106
+fa3266715d64b6742c7967685d3a2b58cdfb7cd6:config/example/users.json.example:generic-api-key:8
+fa3266715d64b6742c7967685d3a2b58cdfb7cd6:docs/development/testing.md:curl-auth-header:252
+fa3266715d64b6742c7967685d3a2b58cdfb7cd6:docs/development/testing.md:curl-auth-header:256
+fa3266715d64b6742c7967685d3a2b58cdfb7cd6:docs/guides/configuration.md:generic-api-key:127
+fa3266715d64b6742c7967685d3a2b58cdfb7cd6:docs/guides/configuration.md:generic-api-key:137
+fa3266715d64b6742c7967685d3a2b58cdfb7cd6:docs/reference/configuration-reference.md:generic-api-key:309
+fa3266715d64b6742c7967685d3a2b58cdfb7cd6:docs/reference/configuration-reference.md:generic-api-key:574
+fa3266715d64b6742c7967685d3a2b58cdfb7cd6:docs/reference/configuration-reference.md:generic-api-key:658
+fa3266715d64b6742c7967685d3a2b58cdfb7cd6:docs/tutorials/first-server.md:curl-auth-header:167
+fa3266715d64b6742c7967685d3a2b58cdfb7cd6:docs/tutorials/first-server.md:curl-auth-header:267
+fa3266715d64b6742c7967685d3a2b58cdfb7cd6:docs/tutorials/first-server.md:generic-api-key:225
+fa3266715d64b6742c7967685d3a2b58cdfb7cd6:docs/tutorials/first-server.md:generic-api-key:97
+fa3266715d64b6742c7967685d3a2b58cdfb7cd6:docs/tutorials/troubleshooting.md:curl-auth-header:1219
+fa3266715d64b6742c7967685d3a2b58cdfb7cd6:docs/tutorials/troubleshooting.md:curl-auth-header:1285
+fa3266715d64b6742c7967685d3a2b58cdfb7cd6:docs/tutorials/troubleshooting.md:curl-auth-header:163
+fa3266715d64b6742c7967685d3a2b58cdfb7cd6:docs/tutorials/troubleshooting.md:curl-auth-header:47
+fa3266715d64b6742c7967685d3a2b58cdfb7cd6:docs/tutorials/troubleshooting.md:generic-api-key:158
+fa3266715d64b6742c7967685d3a2b58cdfb7cd6:src/Tests/Helpers/ApplicationConfigFactory.php:generic-api-key:162
