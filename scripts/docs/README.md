@@ -45,10 +45,20 @@ docs/
 site. Keep published guidance in the canonical pages above; do not add duplicate
 draft manuals.
 
+## MATA Node pages
+
+The Node section is copied from mata-node into `docs/node/` (gitignored) by
+`sync-node-docs.sh`. `make docs-serve`, `make docs-deploy` and CI run it first. It
+uses `MATA_NODE_DIR`, else a sibling `../mata-node` checkout, else a sparse clone
+of `MATA_NODE_REPO` at `MATA_NODE_REF` (default `main`). Edit node pages in
+mata-node; to add one, add it to the script and the `Node` nav in `mkdocs.yml`.
+
 ## Deployment
 
-GitHub Actions deploys when `docs/**` or `mkdocs.yml` changes on `main`. To
-deploy manually:
+GitHub Actions deploys when `docs/**`, `scripts/docs/**` or `mkdocs.yml` changes
+on `main`, or manually from the Actions tab (Deploy Docs → Run workflow). Node
+pages refresh on each deploy, so run the workflow manually to publish mata-node
+doc changes sooner. To deploy from a local checkout:
 
 ```bash
 make docs-deploy

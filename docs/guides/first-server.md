@@ -15,8 +15,8 @@ back and never sends alarms.
 
 ## 1. Configure the node
 
-Follow the [MATA Node README](https://github.com/mata-sh/mata-node) and its
-[configuration reference](https://github.com/mata-sh/mata-node/blob/main/docs/configuration.md).
+Follow the [MATA Node README](https://github.com/mata-sh/mata-node) and the
+[node configuration reference](../node/configuration.md).
 For a native node deployment, the short version is:
 
 ```bash

@@ -37,6 +37,13 @@ nav:
       - Secure an installation: guides/secure-application.md
       - Web server examples: examples/webserver-configs/README.md
 
+  # Synced from mata-node by scripts/docs/sync-node-docs.sh
+  - Node:
+      - Configuration: node/configuration.md
+      - Docker: node/docker.md
+      - Custom log parsers: node/log-parsers.md
+      - Shell command surface: node/shell-command-surface.md
+
   - Reference:
       - Alarm decision and delivery flow: reference/alarms.md
 

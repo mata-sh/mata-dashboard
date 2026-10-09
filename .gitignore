@@ -32,6 +32,7 @@ logs/*
 docs/_drafts
 docs/plan
 docs/plans/
+docs/node/
 config/*.json
 config/demo/*.json
 

@@ -50,6 +50,9 @@ jobs:
           pipx install mkdocs
           pipx inject mkdocs mkdocs-shadcn
 
+      - name: Sync MATA Node docs
+        run: scripts/docs/sync-node-docs.sh
+
       - name: Build docs
         run: mkdocs build --strict
 

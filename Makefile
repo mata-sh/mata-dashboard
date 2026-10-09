@@ -596,13 +596,17 @@ users-passwd:
 # Documentation Targets
 # ============================================
 
+# Copy MATA Node reference pages into docs/node/
+docs-node:
+	@scripts/docs/sync-node-docs.sh
+
 # Serve documentation locally
-docs-serve:
+docs-serve: docs-node
 	@echo "$(COLOR_YELLOW)ℹ️  Requires mkdocs in PATH (e.g., via pipx).$(COLOR_RESET)"
 	mkdocs serve -a localhost:3330
 
 # Deploy documentation to GitHub Pages
-docs-deploy:
+docs-deploy: docs-node
 	mkdocs gh-deploy --force
 
 # ============================================
@@ -902,7 +906,7 @@ docker-help:
 	test test-coverage \
 	db-migrate db-rollback db-status db-check db-hash-password db-backup db-restore db-shell \
 	users-list users-create users-unlock users-delete users-passwd \
-	docs-serve docs-deploy \
+	docs-node docs-serve docs-deploy \
 	docker-init docker-setup dev-setup prod-setup prod-fix-perms wait-db dev-start dev-logs dev-stop dev-restart dev-recreate dev-rebuild \
 	prod-start prod-stop prod-restart prod-rebuild \
 	status logs logs-web logs-db logs-php logs-app ps \

@@ -14,6 +14,9 @@ Follow [CODING_STANDARDS.md](CODING_STANDARDS.md). Keep it concise and non-obvio
 Use MkDocs admonitions in `docs/` to highlight prerequisites, conventions, and caveats.
 The theme only colors `!!! info`, `!!! warning`, and `!!! danger`.
 
+`docs/node/` is generated from mata-node by `make docs-node` and gitignored; edit those pages in
+mata-node.
+
 ## Gotchas
 
 Non-obvious facts that have already misled an agent. Verify before asserting otherwise.
