@@ -10,7 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - Docker images build on the latest PHP 8.3 release on Debian 13 (`php:8.3-apache-trixie`) with the latest Composer 2, and `make dev-rebuild` / `make prod-rebuild` pull the newest base image. If your `.env` sets `PHP_VERSION=8.3.14`, change it to `8.3`; no Debian 13 image exists for 8.3.14
-- Database cards read MATA Node's `/databases/overview` and show connection numbers once per database server; the process list opens per database or for the whole server and is fetched live. Nodes without database monitoring show the section as not configured. Requires a MATA Node with the `/databases/*` routes and the new `config/databases.json` format
+- Database cards read MATA Node's `/databases/overview` and show connection numbers once per database server; the process list opens per database or for the whole server and is fetched live. Nodes without database monitoring show the section as not configured. Requires MATA Node 0.3.0 or later
 
 ### Fixed
 - Dashboard notices with a saved choice (such as "never" or "snooze") now close only after the server stores it; a failed request leaves the notice visible
