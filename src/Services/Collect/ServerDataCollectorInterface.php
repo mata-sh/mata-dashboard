@@ -34,13 +34,18 @@ interface ServerDataCollectorInterface
     public function getServerPhpProcesses(CacheType $cacheType = CacheType::ServerProcesses): ?array;
 
     /**
-     * Fetch database server information and statistics.
+     * Fetch instance-wide database status and the monitored database inventory.
      *
-     * @param CacheType $cacheType Cache type key for TTL lookup (default: CacheType::Databases)
-     *
-     * @return null|array<string,mixed>|string Database information or raw string data
+     * @return null|array<string,mixed> Normalized overview response or null on failure
      */
-    public function getServerDatabases(CacheType $cacheType = CacheType::Databases): array|string|null;
+    public function getDatabaseOverview(CacheType $cacheType = CacheType::Databases): ?array;
+
+    /**
+     * Fetch the live database process list, optionally limited to one monitored database.
+     *
+     * @return null|array<string,mixed> Normalized process-list response or null on failure
+     */
+    public function fetchDatabaseProcesses(?string $database): ?array;
 
     /**
      * Fetch server information including OS version, packages, and PHP extensions.

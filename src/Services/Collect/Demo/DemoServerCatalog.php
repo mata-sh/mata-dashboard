@@ -11,6 +11,13 @@ namespace Mata\Services\Collect\Demo;
  */
 final class DemoServerCatalog
 {
+    private const DATABASES = [
+        'mata_dashboard' => 'Dashboard state store',
+        'ecommerce_prod' => 'Production ecommerce database',
+        'analytics' => 'Reporting and analytics warehouse',
+        'legacy_reports' => 'Legacy reporting database',
+    ];
+
     /**
      * Generate base metrics based on server type.
      *
@@ -110,78 +117,73 @@ final class DemoServerCatalog
     }
 
     /**
+     * Node payload for `GET /databases/overview`.
+     *
      * @return array<string,mixed>
      */
-    public function serverDatabases(): array
+    public function databaseOverview(): array
     {
         return [
-            'mysql_version' => '8.0.' . mt_rand(25, 35),
-            'total_databases' => mt_rand(8, 25),
-            'total_tables' => mt_rand(150, 500),
-            'data_size_mb' => mt_rand(500, 5000),
-            'index_size_mb' => mt_rand(100, 1200),
-            'connections_active' => mt_rand(5, 45),
-            'connections_max' => 150,
-            'uptime_hours' => mt_rand(120, 1080),
-            'queries_per_second' => mt_rand(10, 200),
-            'processes' => ['sql' => mt_rand(12, 20)],
-            'databases' => [
-                'mata_dashboard' => [
-                    'database' => 'mata_dashboard',
-                    'configured_database' => 'mata_dashboard',
-                    'host' => 'localhost',
-                    'port' => 3306,
-                    'description' => 'Dashboard state store',
-                    'max_connections' => 150,
-                    'active_threads' => mt_rand(2, 10),
-                    'active_processes' => mt_rand(1, 8),
-                    'process_list' => [
-                        ['id' => 101, 'user' => 'dashboard', 'host' => 'localhost', 'db' => 'mata_dashboard', 'command' => 'Query', 'time' => 0, 'state' => 'executing', 'info' => 'SELECT'],
-                    ],
-                    'connection_error' => '',
-                ],
-                'ecommerce_prod' => [
-                    'database' => 'ecommerce_prod',
-                    'configured_database' => 'ecommerce_prod',
-                    'host' => 'db-prod.internal',
-                    'port' => 3306,
-                    'description' => 'Production ecommerce database',
-                    'max_connections' => 250,
-                    'active_threads' => mt_rand(5, 20),
-                    'active_processes' => mt_rand(3, 15),
-                    'process_list' => [
-                        ['id' => 201, 'user' => 'storefront', 'host' => 'web-01', 'db' => 'ecommerce_prod', 'command' => 'Sleep', 'time' => 4, 'state' => '', 'info' => null],
-                        ['id' => 202, 'user' => 'worker', 'host' => 'queue-01', 'db' => 'ecommerce_prod', 'command' => 'Query', 'time' => 1, 'state' => 'executing', 'info' => 'UPDATE'],
-                    ],
-                    'connection_error' => '',
-                ],
-                'analytics' => [
-                    'database' => 'analytics',
-                    'configured_database' => 'analytics',
-                    'host' => 'analytics-db.internal',
-                    'port' => 3307,
-                    'description' => 'Reporting and analytics warehouse',
-                    'max_connections' => 100,
-                    'active_threads' => mt_rand(1, 6),
-                    'active_processes' => mt_rand(1, 5),
-                    'process_list' => [
-                        ['id' => 301, 'user' => 'reporter', 'host' => 'reports-01', 'db' => 'analytics', 'command' => 'Query', 'time' => 12, 'state' => 'Sending data', 'info' => 'SELECT'],
-                    ],
-                    'connection_error' => '',
-                ],
-                'legacy_reports' => [
-                    'database' => 'legacy_reports',
-                    'configured_database' => 'legacy_reports',
-                    'host' => 'legacy-db.internal',
-                    'port' => 3306,
-                    'description' => 'Legacy reporting database',
-                    'max_connections' => 50,
-                    'active_threads' => 0,
-                    'active_processes' => 0,
-                    'process_list' => [],
-                    'connection_error' => 'SQLSTATE[HY000] [2002] Connection refused',
-                ],
+            'engine' => 'mariadb',
+            'collected_at' => gmdate('c'),
+            'status' => [
+                'max_connections' => 151,
+                'connections' => mt_rand(8, 40),
+                'running' => mt_rand(1, 6),
+                'max_used_connections' => mt_rand(45, 90),
+                'refused_connections' => 0,
+                'aborted_connects' => mt_rand(0, 12),
+                'uptime_seconds' => mt_rand(5, 40) * 86400,
             ],
+            'databases' => array_map(
+                static fn (string $name, string $description): array => ['name' => $name, 'description' => $description],
+                array_keys(self::DATABASES),
+                self::DATABASES,
+            ),
+        ];
+    }
+
+    /**
+     * Node payload for `GET /databases/processes`, or null for an unmonitored database.
+     *
+     * @return null|array<string,mixed>
+     */
+    public function databaseProcesses(?string $database): ?array
+    {
+        if ($database !== null && !isset(self::DATABASES[$database])) {
+            return null;
+        }
+
+        $processes = array_values(array_filter(
+            [
+                ['id' => 301, 'user' => 'reporter', 'host' => '10.0.2.14:40112', 'database' => 'analytics', 'command' => 'Query', 'time_seconds' => 12, 'state' => 'Sending data', 'statement' => 'SELECT'],
+                ['id' => 201, 'user' => 'storefront', 'host' => '10.0.1.21:51234', 'database' => 'ecommerce_prod', 'command' => 'Sleep', 'time_seconds' => 4, 'state' => '', 'statement' => null],
+                ['id' => 202, 'user' => 'worker', 'host' => '10.0.1.30:51290', 'database' => 'ecommerce_prod', 'command' => 'Query', 'time_seconds' => 1, 'state' => 'Updating', 'statement' => 'UPDATE'],
+                ['id' => 101, 'user' => 'dashboard', 'host' => 'localhost', 'database' => 'mata_dashboard', 'command' => 'Query', 'time_seconds' => 0, 'state' => 'executing', 'statement' => 'SELECT'],
+            ],
+            static fn (array $row): bool => $database === null || $row['database'] === $database,
+        ));
+
+        $summary = [];
+        foreach ($database === null ? array_keys(self::DATABASES) : [$database] as $name) {
+            $rows = array_filter($processes, static fn (array $row): bool => $row['database'] === $name);
+            if ($rows === [] && $database === null) {
+                continue;
+            }
+            $summary[] = [
+                'database' => $name,
+                'connections' => count($rows),
+                'running' => count(array_filter($rows, static fn (array $row): bool => $row['command'] !== 'Sleep')),
+            ];
+        }
+
+        return [
+            'engine' => 'mariadb',
+            'collected_at' => gmdate('c'),
+            'visibility' => 'all_sessions',
+            'summary_by_database' => $summary,
+            'processes' => $processes,
+            'truncated' => false,
         ];
     }
 

@@ -522,69 +522,52 @@ class ModalRenderer extends BaseRenderer
      *
      * Values remain plain strings so Twig escapes every node-supplied cell.
      *
-     * @param array<int,array<string,mixed>> $processList Process-list rows
-     * @param array<string,mixed>            $endpoints   Pre-built endpoint URLs
+     * @param array<string,mixed> $result   Normalized `databases/processes` result
+     * @param null|string         $database Monitored database, or null for all of them
      *
      * @return array<string,mixed> Template data array
      */
     public function buildDatabaseProcessesModalData(
-        array $processList,
+        array $result,
         string $server,
-        string $database,
-        int $cacheAge,
-        int $cacheTtl,
-        array $endpoints
+        ?string $database,
+        string $refreshEndpoint
     ): array {
         $processes = [];
-
-        foreach ($processList as $process) {
-            if (!is_array($process)) {
-                continue;
-            }
-
+        foreach (is_array($result['processes'] ?? null) ? $result['processes'] : [] as $process) {
             $row = [];
-            foreach (['id', 'user', 'host', 'db', 'command', 'time', 'state', 'info'] as $field) {
-                $value = $process[$field] ?? null;
-                $row[$field] = is_scalar($value) ? (string) $value : null;
+            foreach (['id', 'user', 'host', 'database', 'command', 'time_seconds', 'state', 'statement'] as $field) {
+                $value = is_array($process) ? ($process[$field] ?? null) : null;
+                $row[$field] = is_scalar($value) && $value !== '' ? (string) $value : null;
             }
             $processes[] = $row;
         }
 
         return [
             'server' => ['name' => $server],
-            'database' => ['name' => $database],
+            'database' => ['name' => $database ?? 'all monitored databases'],
             'processes' => $processes,
-            'endpoints' => $endpoints,
+            'summary' => is_array($result['summary_by_database'] ?? null) ? $result['summary_by_database'] : [],
+            'own_sessions_only' => ($result['visibility'] ?? null) === 'own_sessions',
+            'truncated' => ($result['truncated'] ?? false) === true,
+            'endpoints' => ['refresh' => $refreshEndpoint],
             'icons' => $this->getModalIcons(),
-            'cache' => [
-                'age' => $this->tools->formatDuration($cacheAge),
-                'ttl' => $this->tools->formatDuration($cacheTtl),
-            ],
         ];
     }
 
     /**
      * Render a database process-list modal.
      *
-     * @param array<int,array<string,mixed>> $processList Process-list rows
-     * @param array<string,mixed>            $endpoints   Pre-built endpoint URLs
+     * @param array<string,mixed> $result   Normalized `databases/processes` result
+     * @param null|string         $database Monitored database, or null for all of them
      */
     public function renderDatabaseProcessesModal(
-        array $processList,
+        array $result,
         string $server,
-        string $database,
-        int $cacheAge,
-        int $cacheTtl,
-        array $endpoints
+        ?string $database,
+        string $refreshEndpoint
     ): string {
-        $data = $this->buildDatabaseProcessesModalData(
-            $processList,
-            $server,
-            $database,
-            $cacheAge,
-            $cacheTtl,
-            $endpoints
-        );
+        $data = $this->buildDatabaseProcessesModalData($result, $server, $database, $refreshEndpoint);
 
         try {
             return $this->twig->render('partials/modals/database-processes-modal.html.twig', $data);

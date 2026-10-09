@@ -106,15 +106,43 @@ class ServerDataCollector implements ServerDataCollectorInterface
     }
 
     /**
-     * Fetch database server information and statistics.
+     * Fetch instance-wide database status and the monitored database inventory.
      *
-     * @param CacheType $cacheType Cache type key for TTL lookup (default: CacheType::Databases)
+     * A node error (monitoring not configured, database down) wins over stale data,
+     * so an outage or a disabled section never hides behind old numbers.
      *
-     * @return null|array<string,mixed>|string Database information or raw string data
+     * @return null|array<string,mixed> Normalized overview response or null on failure
      */
-    public function getServerDatabases(CacheType $cacheType = CacheType::Databases): array|string|null
+    public function getDatabaseOverview(CacheType $cacheType = CacheType::Databases): ?array
     {
-        return $this->request('GET', 'server/databases', $cacheType);
+        return $this->request('GET', 'databases/overview', $cacheType, nodeErrorOverridesStale: true);
+    }
+
+    /**
+     * Fetch the live database process list; never cached because it is diagnostic.
+     *
+     * @param null|string $database Monitored database name, or null for all monitored databases
+     *
+     * @return null|array<string,mixed> Normalized process-list response or null on failure
+     */
+    public function fetchDatabaseProcesses(?string $database): ?array
+    {
+        $path = 'databases/processes';
+        $query = ['active_only' => 0, 'limit' => 100];
+        if ($database !== null) {
+            $query['database'] = $database;
+        }
+
+        try {
+            return $this->responseNormalizer->normalizeApiResponse(
+                data: $this->fetchFromApi('GET', $path, ['query' => $query]),
+                path: $path,
+            );
+        } catch (TransferException $e) {
+            $this->logger->warning("Fetching database processes failed: {$e->getMessage()}");
+
+            return $this->nodeErrorResponse($e, $path, 0);
+        }
     }
 
     /**
@@ -303,6 +331,7 @@ class ServerDataCollector implements ServerDataCollectorInterface
         CacheType $cacheType,
         array $requestOptions = [],
         bool $forceRefresh = false,
+        bool $nodeErrorOverridesStale = false,
     ): ?array {
         $ttlSeconds = $this->ttlResolver->get($cacheType);
         $cacheKey = $this->cacheKeyFactory->createApiRequestKey($this->apiClient->getApiBase(), $method, $path);
@@ -333,6 +362,11 @@ class ServerDataCollector implements ServerDataCollectorInterface
             // TransferException covers ConnectException (timeouts, DNS) which is NOT a RequestException
             $this->logger->warning("Fetching data failed trying stale cache: {$e->getMessage()}");
 
+            $nodeError = $nodeErrorOverridesStale ? $this->nodeErrorResponse($e, $path, $ttlSeconds) : null;
+            if ($nodeError !== null) {
+                return $nodeError;
+            }
+
             // 3. Try stale cache
             $staleEntry = $this->cacheStore->getStale($cacheKey, $ttlSeconds);
             if ($staleEntry !== null) {
@@ -347,23 +381,29 @@ class ServerDataCollector implements ServerDataCollectorInterface
             }
 
             // 4. Surface a structured node error when the failed response carried one
-            $response = $e instanceof RequestException ? $e->getResponse() : null;
-            if ($response !== null) {
-                $nodeError = $this->responseNormalizer->normalizeNodeErrorResponse(
-                    (string) $response->getBody(),
-                    $path,
-                    $response->getStatusCode(),
-                );
-                if ($nodeError !== null) {
-                    return $this->responseNormalizer->errorApiResponse(
-                        $nodeError,
-                        cacheTtl: $ttlSeconds,
-                    );
-                }
-            }
+            return $this->nodeErrorResponse($e, $path, $ttlSeconds);
+        }
+    }
 
+    /**
+     * Build an error envelope from a structured node error body, if the failure carried one.
+     *
+     * @return null|array<string,mixed>
+     */
+    private function nodeErrorResponse(TransferException $e, string $path, int $ttlSeconds): ?array
+    {
+        $response = $e instanceof RequestException ? $e->getResponse() : null;
+        if ($response === null) {
             return null;
         }
+
+        $nodeError = $this->responseNormalizer->normalizeNodeErrorResponse(
+            (string) $response->getBody(),
+            $path,
+            $response->getStatusCode(),
+        );
+
+        return $nodeError === null ? null : $this->responseNormalizer->errorApiResponse($nodeError, cacheTtl: $ttlSeconds);
     }
 
     /**

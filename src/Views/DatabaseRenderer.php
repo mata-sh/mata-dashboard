@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Mata\Views;
 
 use Exception;
+use Mata\Services\Cache\CacheType;
 use Mata\Services\Collect\ServerDataCollectorInterface;
 
 /**
@@ -58,20 +59,13 @@ class DatabaseRenderer extends BaseRenderer
                     throw new Exception("Invalid server: {$server}");
                 }
 
-                $serverData = $serversData[$server];
-                [$databaseData, $endpointError] = $this->extractDatabaseResponse($serverData->getServerDatabases());
-
+                $collector = $serversData[$server];
                 $renderData = $this->buildDatabaseCardData(
-                    $databaseData,
+                    $collector->getDatabaseOverview($forceRefresh ? CacheType::None : CacheType::Databases),
+                    $this->extractSqlProcessCount($collector->getServerSystemData()),
                     $serverConfig,
                     $serverId,
-                    $endpointError,
                     $server,
-                );
-
-                $databaseContainerHtml .= $this->twig->render(
-                    'partials/cards/database-card.html.twig',
-                    $renderData
                 );
             } catch (Exception $e) {
                 $this->logError($e->getMessage(), 'DatabaseCard', [
@@ -80,60 +74,47 @@ class DatabaseRenderer extends BaseRenderer
                     'line' => $e->getLine(),
                 ]);
 
-                $databaseContainerHtml .= $this->twig->render(
-                    'partials/cards/database-card.html.twig',
-                    $this->buildDatabaseCardData([], $serverConfig, $serverId, $e->getMessage(), $server)
-                );
+                $renderData = $this->buildDatabaseCardData(null, null, $serverConfig, $serverId, $server, $e->getMessage());
             }
+
+            $databaseContainerHtml .= $this->twig->render('partials/cards/database-card.html.twig', $renderData);
         }
 
         return $databaseContainerHtml;
     }
 
     /**
-     * Render individual database card for a specific server.
+     * Build template data for one server's database card.
      *
-     * @param string                       $server              Server name
-     * @param array<string,mixed>          $serverConfig        Server configuration
-     * @param ServerDataCollectorInterface $serverDataCollector Server API client
+     * The overview describes one database server: status numbers are shown once per
+     * server, and monitored databases are only listed with their process-list links.
+     * A 404 from the overview means the node has database monitoring turned off.
      *
-     * @return string Generated HTML for database card
-     *
-     * @throws Exception When database data cannot be fetched
-     */
-    public function renderCard(string $server, array $serverConfig, ServerDataCollectorInterface $serverDataCollector): string
-    {
-        $serverId = $this->generateHtmlId($server, 'server');
-
-        [$databaseData, $endpointError] = $this->extractDatabaseResponse($serverDataCollector->getServerDatabases());
-
-        $renderData = $this->buildDatabaseCardData(
-            $databaseData,
-            $serverConfig,
-            $serverId,
-            $endpointError,
-            $server,
-        );
-
-        return $this->twig->render('partials/cards/database-card.html.twig', $renderData);
-    }
-
-    /**
-     * Build template data for database card.
-     *
-     * @param array<string,mixed> $databaseData Database data from API
-     * @param array<string,mixed> $serverConfig Server configuration
-     * @param string              $serverId     HTML ID for server
+     * @param null|array<string,mixed> $overviewResponse Collector response for `databases/overview`
+     * @param array<string,mixed>      $serverConfig     Server configuration
      *
      * @return array<string,mixed> Template data array
      */
     public function buildDatabaseCardData(
-        array $databaseData,
+        ?array $overviewResponse,
+        ?int $sqlProcessCount,
         array $serverConfig,
         string $serverId,
+        string $server,
         ?string $errorMessage = null,
-        ?string $server = null,
     ): array {
+        $error = $overviewResponse['error'] ?? null;
+        $overview = $overviewResponse['result'] ?? null;
+        $notConfigured = is_array($error) && ($error['status_code'] ?? null) === 404;
+
+        if ($errorMessage === null && !$notConfigured) {
+            $errorMessage = match (true) {
+                is_array($error) && is_string($error['message'] ?? null) => $error['message'],
+                !is_array($overview) => 'Failed to fetch database overview via API.',
+                default => null,
+            };
+        }
+
         return [
             'server' => [
                 'title' => $serverConfig['title'],
@@ -142,10 +123,10 @@ class DatabaseRenderer extends BaseRenderer
             ],
             'icons' => $this->getCommonIcons(),
             'system' => [
-                'processes_sql' => $databaseData['processes']['sql'] ?? null,
+                'processes_sql' => $sqlProcessCount,
             ],
-            'databases' => $this->buildDatabaseEntries($databaseData, $server),
-            'databases_available' => is_array($databaseData['databases'] ?? null),
+            'not_configured' => $notConfigured,
+            'overview' => is_array($overview) ? $this->buildOverview($overview, $server) : null,
             'ui' => [
                 'error_message' => $errorMessage,
             ],
@@ -153,99 +134,56 @@ class DatabaseRenderer extends BaseRenderer
     }
 
     /**
-     * Build database entries for display.
+     * @param array<string,mixed> $overview Normalized `databases/overview` result
      *
-     * @param array<string,mixed> $databaseData Database data from API
-     *
-     * @return array<int,array<string,mixed>> Display-ready database entries
+     * @return array<string,mixed> Display-ready server status and monitored databases
      */
-    private function buildDatabaseEntries(array $databaseData, ?string $server = null): array
+    private function buildOverview(array $overview, string $server): array
     {
-        $databases = $databaseData['databases'] ?? null;
+        /** @var array<string,null|int> $status */
+        $status = $overview['status'];
 
-        if (!is_array($databases)) {
-            return [];
-        }
+        /** @var list<array{name:string,description:string}> $databases */
+        $databases = $overview['databases'];
 
-        $entries = [];
-
-        foreach ($databases as $databaseName => $entry) {
-            $database = $entry['database'];
-            $name = (string) $databaseName;
-            $name = $name !== '' ? $name : ($database ?? '');
-            $configuredDatabase = $entry['configured_database'];
-            $host = $entry['host'];
-            $port = $entry['port'];
-            $connectionError = $entry['connection_error'];
-
-            if ($connectionError !== '') {
-                $this->logError($connectionError, 'DatabaseCard', [
-                    'database' => $name,
-                ]);
+        $details = [];
+        foreach (['max_used_connections' => 'Peak', 'refused_connections' => 'Refused', 'aborted_connects' => 'Aborted'] as $field => $label) {
+            if ($status[$field] !== null) {
+                $details[] = $label . ' ' . $this->formatNumber($status[$field]);
             }
+        }
 
-            $entries[] = [
-                'name' => $name,
-                'configured_database' => $configuredDatabase !== $database ? $configuredDatabase : null,
-                'endpoint' => $host === null ? '' : $host . ($port === null ? '' : ':' . $port),
-                'description' => $this->escape($entry['description'] ?? ''),
-                'max_connections' => $this->formatCount($entry['max_connections']),
-                'active_threads' => $this->formatCount($entry['active_threads']),
-                'active_processes' => $this->formatCount($entry['active_processes']),
-                'process_count' => count($entry['process_list']),
-                'process_modal_url' => $server === null
-                    ? null
-                    : $this->endpoints->url('modal_db_processes_render', [
+        return [
+            'engine' => $overview['engine'],
+            'uptime' => $this->tools->formatDuration((int) $status['uptime_seconds']),
+            'connections' => $this->formatNumber((int) $status['connections']),
+            'max_connections' => $this->formatNumber((int) $status['max_connections']),
+            'running' => $this->formatNumber((int) $status['running']),
+            'details' => implode(' · ', $details),
+            'process_modal_url' => $this->endpoints->url('modal_db_server_processes_render', ['server' => $server]),
+            'databases' => array_map(
+                fn (array $database): array => [
+                    'name' => $database['name'],
+                    'description' => $database['description'],
+                    'process_modal_url' => $this->endpoints->url('modal_db_processes_render', [
                         'server' => $server,
-                        'database' => $name,
+                        'database' => $database['name'],
                     ]),
-                'status' => $connectionError === '' ? 'ok' : 'error',
-                'status_tooltip' => $connectionError === ''
-                    ? 'Connected'
-                    : $this->truncate($this->escape($connectionError), 160),
-            ];
-        }
-
-        return $entries;
+                ],
+                $databases,
+            ),
+        ];
     }
 
     /**
-     * Format a node-supplied count for display.
+     * Read the OS-level SQL process count from a `server/data` collector response.
      *
-     * @param null|int $value Count value from the normalized node payload
-     *
-     * @return null|string Formatted number, or null when unavailable
+     * @param null|array<string,mixed> $systemResponse
      */
-    private function formatCount(?int $value): ?string
+    private function extractSqlProcessCount(?array $systemResponse): ?int
     {
-        return $value === null ? null : $this->formatNumber($value);
-    }
+        $sql = $systemResponse['result']['processes']['sql'] ?? null;
 
-    /**
-     * Extract database payload and endpoint error from a collector response.
-     *
-     * @param null|array<string,mixed>|string $response Raw collector response
-     *
-     * @return array{0: array<string,mixed>, 1: null|string} [$databaseData, $endpointError]
-     *
-     * @throws Exception When the response carries neither data nor an error
-     */
-    private function extractDatabaseResponse(array|string|null $response): array
-    {
-        $endpointError = is_array($response)
-            && is_array($response['error'] ?? null)
-            && is_string($response['error']['message'] ?? null)
-            ? $response['error']['message']
-            : null;
-
-        $databaseData = is_array($response) && is_array($response['result'] ?? null)
-            ? $response['result']
-            : [];
-
-        if ($endpointError === null && $databaseData === []) {
-            throw new Exception('Failed to fetch databases data via API.');
-        }
-
-        return [$databaseData, $endpointError];
+        return is_int($sql) ? $sql : null;
     }
 }

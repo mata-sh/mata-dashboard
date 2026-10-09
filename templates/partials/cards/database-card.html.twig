@@ -7,32 +7,35 @@
   </div>
 
   <div class="sqlstats-container">
-    SQL Processes: {{ system.processes_sql }}
+    SQL Processes: {{ system.processes_sql ?? '–' }}
   </div>
 
-{% if databases_available %}
-  {% for db in databases %}
+{% if not_configured %}
+  <div class="db-row-empty">Database monitoring is not configured on this node.</div>
+{% elseif overview %}
+  <div class="sqlstats-container db-row">
+    <span class="app-title">{{ icons.database|raw }} {{ overview.engine }}</span>
+    <span class="db-endpoint" data-tippy-content="Server uptime">up {{ overview.uptime }}</span>
+    <span class="db-metric" data-tippy-content="Connections / max connections">
+      {{ overview.connections }} <em>/ {{ overview.max_connections }}</em>
+    </span>
+    <span class="db-metric" data-tippy-content="Running threads">{{ overview.running }} <em>run</em></span>
+    <button type="button" class="db-metric db-process-list modal-trigger" aria-label="Open process list for all monitored databases" aria-haspopup="dialog" data-tippy-content="Process list" hx-get="{{ overview.process_modal_url }}" hx-target="#modal-container" hx-trigger="click" hx-toggle="modal">{{ icons.activity|raw }}</button>
+    <span class="db-status is-ok" role="img" aria-label="Database server OK" data-tippy-content="Connected">{{ icons.check_circle|raw }}</span>
+  </div>
+  {% if overview.details %}
+    <div class="db-row-note">{{ overview.details }}</div>
+  {% endif %}
+  {% for db in overview.databases %}
     <div class="sqlstats-container db-row">
-      <span class="app-title" {% if db.configured_database %}data-tippy-content="configured as {{ db.configured_database }}"{% endif %}>
-        {{ icons.database|raw }} {{ db.name }}
-      </span>
-      <span class="db-endpoint" {% if db.description %}data-tippy-content="{{ db.description }}"{% endif %}>{{ db.endpoint }}</span>
-      <span class="db-metric" data-tippy-content="Active processes / max connections">
-        {{ db.active_processes ?? '–' }} <em>/ {{ db.max_connections ?? '–' }}</em>
-      </span>
-      <span class="db-metric" data-tippy-content="Active threads">{{ db.active_threads ?? '–' }} <em>thr</em></span>
-      {% if db.process_modal_url %}
-        <button type="button" class="db-metric db-process-list modal-trigger" aria-label="Open database process list" aria-haspopup="dialog" data-tippy-content="Process list entries" hx-get="{{ db.process_modal_url }}" hx-target="#modal-container" hx-trigger="click" hx-toggle="modal">{{ db.process_count }} {{ icons.activity|raw }}</button>
-      {% else %}
-        <span class="db-metric" data-tippy-content="Process list entries">{{ db.process_count }} {{ icons.activity|raw }}</span>
-      {% endif %}
-      <span class="db-status {{ db.status == 'ok' ? 'is-ok' : 'is-error' }}" role="img" aria-label="{{ db.status == 'ok' ? 'Database OK' : 'Database error' }}" data-tippy-content="{{ db.status_tooltip }}">
-        {% if db.status == 'ok' %}{{ icons.check_circle|raw }}{% else %}{{ icons.alert|raw }}{% endif %}
-      </span>
+      <span class="app-title">{{ icons.database|raw }} {{ db.name }}</span>
+      <span class="db-endpoint">{{ db.description }}</span>
+      <span></span>
+      <span></span>
+      <button type="button" class="db-metric db-process-list modal-trigger" aria-label="Open process list for {{ db.name }}" aria-haspopup="dialog" data-tippy-content="Process list" hx-get="{{ db.process_modal_url }}" hx-target="#modal-container" hx-trigger="click" hx-toggle="modal">{{ icons.activity|raw }}</button>
+      <span></span>
     </div>
   {% endfor %}
-{% else %}
-  <div class="db-row-empty">Per-database status not reported by this node.</div>
 {% endif %}
 
   <br />

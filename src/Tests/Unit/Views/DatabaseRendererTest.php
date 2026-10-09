@@ -7,14 +7,15 @@ namespace Mata\Tests\Unit\Views;
 use Mata\Core\App;
 use Mata\Http\Routing\Endpoints;
 use Mata\Services\Collect\NodeResponseNormalizer;
+use Mata\Services\Collect\ServerDataCollectorInterface;
 use Mata\Utils\Tools;
 use Mata\Views\DatabaseRenderer;
 use Monolog\Logger;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use Psr\Log\NullLogger;
-use ReflectionMethod;
 use Twig\Environment;
+use Twig\Loader\FilesystemLoader;
 
 /**
  * @covers \Mata\Views\DatabaseRenderer
@@ -23,231 +24,74 @@ use Twig\Environment;
  */
 final class DatabaseRendererTest extends TestCase
 {
-    public function testBuildsFullHealthyEntry(): void
+    public function testShowsServerStatusOnceForSeveralDatabasesAndOmitsUnreportedCounters(): void
     {
-        $entries = $this->buildEntries([
-            'databases' => [
-                'main' => $this->databaseEntry([
-                    'database' => 'main',
-                    'configured_database' => 'main_replica',
-                    'host' => 'db.example.test',
-                    'port' => 3306,
-                    'description' => 'Primary database',
-                    'max_connections' => 1234,
-                    'active_threads' => 12,
-                    'active_processes' => 34,
-                    'process_list' => [[], []],
-                ]),
+        $overview = (new NodeResponseNormalizer(new NullLogger()))->normalizeApiResponse([
+            'engine' => 'pgsql',
+            'collected_at' => '2026-10-10T12:00:00+00:00',
+            'status' => [
+                'max_connections' => 151,
+                'connections' => 12,
+                'running' => 2,
+                'max_used_connections' => null,
+                'refused_connections' => null,
+                'aborted_connects' => null,
+                'uptime_seconds' => 864000,
             ],
-        ]);
-
-        $this->assertSame([[
-            'name' => 'main',
-            'configured_database' => 'main_replica',
-            'endpoint' => 'db.example.test:3306',
-            'description' => 'Primary database',
-            'max_connections' => '1.234',
-            'active_threads' => '12',
-            'active_processes' => '34',
-            'process_count' => 2,
-            'process_modal_url' => null,
-            'status' => 'ok',
-            'status_tooltip' => 'Connected',
-        ]], $entries);
-    }
-
-    public function testUsesDefaultPrimaryColorWhenServerConfigOmitsIt(): void
-    {
-        $serverConfig = $this->serverConfig();
-        unset($serverConfig['primary_color']);
-
-        $data = $this->createRenderer()->buildDatabaseCardData([], $serverConfig, 'server-id');
-
-        $this->assertSame('#fefefe', $data['server']['primary_color']);
-    }
-
-    public function testAddsProcessListModalUrl(): void
-    {
-        $endpoints = new Endpoints();
-        $endpoints->register(
-            'modal_db_processes_render',
-            '/watch/modal/{server}/database/{database}/processes'
-        );
-        $data = $this->createRenderer($endpoints)->buildDatabaseCardData(
-            ['databases' => ['main db' => $this->databaseEntry()]],
-            $this->serverConfig(),
-            'server-id',
-            server: 'server-01'
-        );
-
-        $this->assertSame(
-            '/watch/modal/server-01/database/main%20db/processes',
-            $data['databases'][0]['process_modal_url']
-        );
-    }
-
-    public function testFallsBackToReportedDatabaseName(): void
-    {
-        $entries = $this->buildEntries([
-            'databases' => ['' => $this->databaseEntry(['database' => 'reported_database'])],
-        ]);
-
-        $this->assertSame('reported_database', $entries[0]['name']);
-        $this->assertNull($entries[0]['configured_database']);
-    }
-
-    public function testEscapesConnectionErrorTooltipAndMarksEntryAsError(): void
-    {
-        $entries = $this->buildEntries([
             'databases' => [
-                'main' => $this->databaseEntry([
-                    'connection_error' => '<script>alert(1)</script>',
-                ]),
+                ['name' => 'shop', 'description' => 'Shop'],
+                ['name' => 'analytics', 'description' => 'Reports'],
+                ['name' => 'crm', 'description' => 'CRM'],
             ],
-        ]);
+        ], path: 'databases/overview');
 
-        $this->assertSame('error', $entries[0]['status']);
-        $this->assertSame('&lt;script&gt;alert(1)&lt;/script&gt;', $entries[0]['status_tooltip']);
+        $html = $this->render($overview);
+
+        $this->assertSame(1, substr_count($html, '/ 151'));
+        $this->assertStringContainsString('analytics', $html);
+        $this->assertStringNotContainsString('Refused', $html);
+        $this->assertStringNotContainsString('server-fetch-error', $html);
     }
 
-    public function testTruncatesConnectionErrorTooltip(): void
+    #[DataProvider('nodeErrors')]
+    public function testDistinguishesDisabledMonitoringFromDatabaseOutage(int $status, string $expected, bool $isError): void
     {
-        $entries = $this->buildEntries([
-            'databases' => [
-                'main' => $this->databaseEntry(['connection_error' => str_repeat('x', 200)]),
-            ],
+        $html = $this->render([
+            'result' => null,
+            'error' => ['kind' => 'node_response', 'message' => 'Node message', 'endpoint' => 'databases/overview', 'status_code' => $status],
         ]);
 
-        $this->assertSame(str_repeat('x', 159) . '…', $entries[0]['status_tooltip']);
-    }
-
-    public function testEscapesDescription(): void
-    {
-        $entries = $this->buildEntries([
-            'databases' => [
-                'main' => $this->databaseEntry([
-                    'description' => '<img src=x onerror=alert(1)>',
-                ]),
-            ],
-        ]);
-
-        $this->assertSame('&lt;img src=x onerror=alert(1)&gt;', $entries[0]['description']);
+        $this->assertStringContainsString($expected, $html);
+        $this->assertSame($isError, str_contains($html, 'server-fetch-error'));
     }
 
     /**
-     * @param array<string,mixed> $databaseData
+     * @return iterable<string,array{int,string,bool}>
      */
-    #[DataProvider('databaseAvailability')]
-    public function testReportsDatabaseAvailability(array $databaseData, bool $available): void
+    public static function nodeErrors(): iterable
     {
-        $data = $this->createRenderer()->buildDatabaseCardData($databaseData, $this->serverConfig(), 'server-id');
+        yield 'monitoring not configured' => [404, 'not configured on this node', false];
 
-        $this->assertSame([], $data['databases']);
-        $this->assertSame($available, $data['databases_available']);
+        yield 'database server down' => [503, 'Node message', true];
     }
 
     /**
-     * @return iterable<string,array{array<string,mixed>,bool}>
+     * @param array<string,mixed> $overviewResponse
      */
-    public static function databaseAvailability(): iterable
+    private function render(array $overviewResponse): string
     {
-        yield 'missing databases key' => [[], false];
+        $collector = $this->createStub(ServerDataCollectorInterface::class);
+        $collector->method('getDatabaseOverview')->willReturn($overviewResponse);
+        $collector->method('getServerSystemData')->willReturn(['result' => ['processes' => ['sql' => 3]]]);
 
-        yield 'null databases key' => [['databases' => null], false];
-
-        yield 'empty databases map' => [['databases' => []], true];
-    }
-
-    public function testTreatsNormalizedNullDatabasesAsNotReported(): void
-    {
-        $normalized = (new NodeResponseNormalizer(new NullLogger()))->normalizeDatabaseData([
-            'processes' => ['sql' => 0],
-            'databases' => null,
-        ]);
-
-        $data = $this->createRenderer()->buildDatabaseCardData($normalized, $this->serverConfig(), 'server-id');
-
-        $this->assertFalse($data['databases_available']);
-        $this->assertSame([], $data['databases']);
-    }
-
-    public function testKeepsSqlProcesses(): void
-    {
-        $data = $this->createRenderer()->buildDatabaseCardData([
-            'processes' => ['sql' => 7],
-        ], $this->serverConfig(), 'server-id');
-
-        $this->assertSame(7, $data['system']['processes_sql']);
-    }
-
-    public function testAcceptsTransformerNormalizedDatabaseContract(): void
-    {
-        $normalized = (new NodeResponseNormalizer(new NullLogger()))->normalizeDatabaseData([
-            'processes' => ['sql' => '7'],
-            'databases' => [
-                'main' => ['database' => 'main', 'active_threads' => '1.6'],
-            ],
-        ]);
-
-        $data = $this->createRenderer()->buildDatabaseCardData($normalized, $this->serverConfig(), 'server-id');
-
-        $this->assertSame(7, $data['system']['processes_sql']);
-        $this->assertSame('2', $data['databases'][0]['active_threads']);
-        $this->assertSame('ok', $data['databases'][0]['status']);
-    }
-
-    /**
-     * @param array<string,mixed> $databaseData
-     *
-     * @return array<int,array<string,mixed>>
-     */
-    private function buildEntries(array $databaseData): array
-    {
-        $method = new ReflectionMethod(DatabaseRenderer::class, 'buildDatabaseEntries');
-
-        return $method->invoke($this->createRenderer(), $databaseData);
-    }
-
-    /**
-     * @param array<string,mixed> $overrides
-     *
-     * @return array<string,mixed>
-     */
-    private function databaseEntry(array $overrides = []): array
-    {
-        return array_merge([
-            'database' => null,
-            'configured_database' => null,
-            'host' => null,
-            'port' => null,
-            'description' => null,
-            'max_connections' => null,
-            'active_threads' => null,
-            'active_processes' => null,
-            'process_list' => [],
-            'connection_error' => '',
-        ], $overrides);
-    }
-
-    /**
-     * @return array<string,string>
-     */
-    private function serverConfig(): array
-    {
-        return [
-            'title' => 'Test server',
-            'primary_color' => '#000000',
-        ];
-    }
-
-    private function createRenderer(?Endpoints $endpoints = null): DatabaseRenderer
-    {
-        return new DatabaseRenderer(
-            $this->createStub(Environment::class),
+        $renderer = new DatabaseRenderer(
+            new Environment(new FilesystemLoader(dirname(__DIR__, 4) . '/templates')),
             $this->createStub(Logger::class),
             $this->createStub(Tools::class),
             $this->createStub(App::class),
-            $endpoints ?? $this->createStub(Endpoints::class),
+            $this->createStub(Endpoints::class),
         );
+
+        return $renderer->renderDatabaseCards(['db1' => $collector], ['db1' => ['title' => 'DB server']]);
     }
 }

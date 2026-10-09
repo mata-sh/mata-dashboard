@@ -107,15 +107,43 @@ final class ModalRendererTest extends TestCase
         );
 
         $html = $renderer->renderDatabaseProcessesModal(
-            [['info' => '<script>alert(1)</script>']],
+            ['visibility' => 'all_sessions', 'processes' => [['host' => '<script>alert(1)</script>']], 'truncated' => false],
             'server1',
             'main',
-            0,
-            0,
-            ['modal_db_processes_refresh' => '/refresh']
+            '/refresh'
         );
 
         $this->assertStringNotContainsString('<script>', $html);
         $this->assertStringContainsString('&lt;script&gt;alert(1)&lt;/script&gt;', $html);
+    }
+
+    public function testWarnsWhenTheProcessListIsIncomplete(): void
+    {
+        $renderer = new ModalRenderer(
+            new Environment(new FilesystemLoader(dirname(__DIR__, 4) . '/templates')),
+            new Logger('test'),
+            $this->createStub(Tools::class),
+            $this->createStub(App::class),
+            $this->createStub(Endpoints::class),
+        );
+        $result = [
+            'visibility' => 'own_sessions',
+            'summary_by_database' => [],
+            'processes' => [['id' => 7, 'database' => 'shop', 'command' => 'Query', 'time_seconds' => 4, 'statement' => 'SELECT']],
+            'truncated' => true,
+        ];
+
+        $incomplete = $renderer->renderDatabaseProcessesModal($result, 'server1', 'shop', '/refresh');
+        $complete = $renderer->renderDatabaseProcessesModal(
+            ['visibility' => 'all_sessions', 'truncated' => false] + $result,
+            'server1',
+            'shop',
+            '/refresh',
+        );
+
+        $this->assertStringContainsString('PROCESS privilege', $incomplete);
+        $this->assertStringContainsString('more exist', $incomplete);
+        $this->assertStringNotContainsString('PROCESS privilege', $complete);
+        $this->assertStringNotContainsString('more exist', $complete);
     }
 }

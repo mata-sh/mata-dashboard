@@ -758,9 +758,15 @@ svg {
     }
 }
 
-.db-row-empty {
+.db-row-empty,
+.db-row-note {
     font-size: 0.8em;
     opacity: 0.6;
+}
+
+.db-row-note {
+    padding: 2px 12px 0;
+    text-align: right;
 }
 
 /* .app-container span {
@@ -2833,6 +2839,12 @@ label.audit-chip:has(input:checked)::after {
     min-height: 0;
     overflow-y: auto;
     padding: 1rem 1.1rem;
+}
+
+.modal-summary {
+    margin-bottom: .75rem;
+    font-size: .85rem;
+    color: #8b93a5;
 }
 
 .modal-empty {

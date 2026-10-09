@@ -2,12 +2,25 @@
     modal_class: 'database-processes-modal',
     modal_title: 'Database Processes',
     modal_context: server.name ~ ' / ' ~ database.name,
-    refresh_endpoint: endpoints.modal_db_processes_refresh,
+    refresh_endpoint: endpoints.refresh,
     wide: true
 } %}
   {% block modal_body %}
+    {% if own_sessions_only %}
+      <p class="notification is-warning">The monitoring account lacks the PROCESS privilege; this list only shows its own sessions and is incomplete.</p>
+    {% endif %}
+    {% if truncated %}
+      <p class="notification is-warning">Showing the {{ processes|length }} longest-running sessions; more exist.</p>
+    {% endif %}
+    {% if summary is not empty %}
+      <p class="modal-summary">
+        {% for group in summary %}
+          {{ group.database }}: {{ group.connections }} connection{{ group.connections == 1 ? '' : 's' }}, {{ group.running }} running{% if not loop.last %} · {% endif %}
+        {% endfor %}
+      </p>
+    {% endif %}
     {% if processes is empty %}
-      <div class="modal-empty">No process-list entries found.</div>
+      <div class="modal-empty">No sessions found.</div>
     {% else %}
       <div class="modal-table-shell">
         <table class="modal-table">
@@ -20,7 +33,7 @@
               <th>Command</th>
               <th>Time</th>
               <th>State</th>
-              <th>Info</th>
+              <th>Statement</th>
             </tr>
           </thead>
           <tbody>
@@ -29,11 +42,11 @@
                 <td class="cell-mono cell-nowrap">{{ process.id ?? '–' }}</td>
                 <td class="cell-nowrap">{{ process.user ?? '–' }}</td>
                 <td class="cell-mono cell-nowrap">{{ process.host ?? '–' }}</td>
-                <td class="cell-nowrap">{{ process.db ?? '–' }}</td>
+                <td class="cell-nowrap">{{ process.database ?? '–' }}</td>
                 <td class="cell-nowrap">{{ process.command ?? '–' }}</td>
-                <td class="cell-mono cell-nowrap">{{ process.time ?? '–' }}</td>
+                <td class="cell-mono cell-nowrap">{{ process.time_seconds is null ? '–' : process.time_seconds ~ ' s' }}</td>
                 <td class="cell-nowrap">{{ process.state ?? '–' }}</td>
-                <td class="cell-mono cell-grow">{{ process.info ?? '–' }}</td>
+                <td class="cell-mono cell-grow">{{ process.statement ?? '–' }}</td>
               </tr>
             {% endfor %}
           </tbody>

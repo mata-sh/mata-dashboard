@@ -33,7 +33,7 @@ final class ServerDataCollectorTest extends TestCase
     public function testServerRoutesUseTheNewNamespace(): void
     {
         $cache = $this->createStub(CacheStoreInterface::class);
-        $paths = ['server/data', 'server/info', 'server/php', 'server/databases', 'server/cronjobs'];
+        $paths = ['server/data', 'server/info', 'server/php', 'databases/overview', 'server/cronjobs'];
         $apiClient = $this->createMock(NodeApiClient::class);
         $apiClient->method('getApiBase')->willReturn('https://node.example.test/api');
         $apiClient->expects($this->exactly(5))
@@ -57,7 +57,7 @@ final class ServerDataCollectorTest extends TestCase
         $this->assertNull($collector->getServerSystemData());
         $this->assertNull($collector->getServerInfo());
         $this->assertNull($collector->getServerPhpProcesses());
-        $this->assertNull($collector->getServerDatabases());
+        $this->assertNull($collector->getDatabaseOverview());
         $this->assertNull($collector->fetchServerCronjobs());
         $this->assertSame([], $paths);
     }
@@ -292,5 +292,53 @@ final class ServerDataCollectorTest extends TestCase
         $this->assertSame('node_response', $response['error']['kind']);
         $this->assertSame('Unknown application.', $response['error']['message']);
         $this->assertSame(404, $response['error']['status_code']);
+    }
+
+    public function testDatabaseOutageIsReportedInsteadOfStaleOverview(): void
+    {
+        $cache = $this->createStub(CacheStoreInterface::class);
+        $cache->method('getStale')->willReturn(new CacheEntry(['engine' => 'mariadb'], time() - 600));
+        $apiClient = $this->createStub(NodeApiClient::class);
+        $apiClient->method('getApiBase')->willReturn('https://node.example.test/api');
+        $apiClient->method('request')->willThrowException(new RequestException(
+            'Server error',
+            new Request('GET', 'databases/overview'),
+            new Response(503, [], '{"error":"Database connection failed","message":"Failed to connect to the database server on db:3306: refused","details":{"host":"db","port":"3306"}}'),
+        ));
+
+        $response = $this->createCollector($cache, $apiClient)->getDatabaseOverview();
+
+        $this->assertNull($response['result']);
+        $this->assertSame(503, $response['error']['status_code']);
+        $this->assertStringContainsString('db:3306', $response['error']['message']);
+    }
+
+    public function testDatabaseProcessesAreRequestedForOneDatabaseAndNeverCached(): void
+    {
+        $cache = $this->createMock(CacheStoreInterface::class);
+        $cache->expects($this->never())->method('put');
+        $apiClient = $this->createMock(NodeApiClient::class);
+        $apiClient->method('getApiBase')->willReturn('https://node.example.test/api');
+        $apiClient->expects($this->once())
+            ->method('request')
+            ->with('GET', 'databases/processes', ['query' => ['active_only' => 0, 'limit' => 100, 'database' => 'shop']])
+            ->willReturn('{"visibility":"all_sessions","summary_by_database":[],"processes":[],"truncated":false}')
+        ;
+
+        $response = $this->createCollector($cache, $apiClient)->fetchDatabaseProcesses('shop');
+
+        $this->assertNull($response['error']);
+    }
+
+    private function createCollector(CacheStoreInterface $cache, NodeApiClient $apiClient): ServerDataCollector
+    {
+        return new ServerDataCollector(
+            new NullLogger(),
+            $cache,
+            new ApiCacheKeyFactory(),
+            new CacheTtlResolver(new TtlConfig(['databases' => 60])),
+            $apiClient,
+            new NodeResponseNormalizer(new NullLogger()),
+        );
     }
 }

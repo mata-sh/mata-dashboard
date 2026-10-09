@@ -442,57 +442,40 @@ class ModalController extends BaseController
     }
 
     /**
-     * Fetch and render the process list for a database.
+     * Fetch and render the live process list for one monitored database, or all of them.
      *
      * @return Response Rendered modal HTML response
      */
-    public function renderDatabaseProcesses(
-        string $server,
-        string $database,
-        bool $forceRefresh = false
-    ): Response {
+    public function renderDatabaseProcesses(string $server, ?string $database = null): Response
+    {
+        $target = $database === null ? "databases on {$server}" : "database '{$database}' on {$server}";
+
         return $this->executeWithErrorHandling(
-            function () use ($server, $database, $forceRefresh) {
+            function () use ($server, $database, $target) {
                 if (!isset($this->serverDataCollectors[$server])) {
                     return $this->handleHtmlNotFound("Server '{$server}'", 'Database process request');
                 }
 
-                $databaseResponse = $this->requireValidResponse(
-                    $this->modalCacheService->fetchServerDatabases(
-                        $this->serverDataCollectors[$server],
-                        $forceRefresh
-                    ),
-                    "database processes for {$database} on {$server}"
-                );
-                $databases = $databaseResponse['result']['databases'] ?? null;
-
-                if (!is_array($databases) || !isset($databases[$database]) || !is_array($databases[$database])) {
-                    return $this->handleHtmlNotFound("Database '{$database}'", "process request on {$server}");
+                $processesResponse = $this->serverDataCollectors[$server]->fetchDatabaseProcesses($database);
+                // The node answers 404 for unknown databases and when monitoring is off.
+                if (($processesResponse['error']['status_code'] ?? null) === 404) {
+                    return $this->handleHtmlNotFound(ucfirst($target), 'Database process request');
                 }
 
-                $processList = $databases[$database]['process_list'] ?? [];
-                $processList = is_array($processList) ? $processList : [];
+                $processesResponse = $this->requireValidResponse($processesResponse, "process list for {$target}");
+                $refreshEndpoint = $database === null
+                    ? $this->endpoints->url('modal_db_server_processes_render', ['server' => $server])
+                    : $this->endpoints->url('modal_db_processes_render', ['server' => $server, 'database' => $database]);
 
-                $endpoints = [
-                    'modal_db_processes_refresh' => $this->endpoints->url(
-                        'modal_db_processes_refresh',
-                        ['server' => $server, 'database' => $database]
-                    ),
-                ];
-
-                $html = $this->modalRenderer->renderDatabaseProcessesModal(
-                    $processList,
+                return new HtmlResponse($this->modalRenderer->renderDatabaseProcessesModal(
+                    $processesResponse['result'],
                     $server,
                     $database,
-                    $databaseResponse['cache_age'] ?? 0,
-                    $databaseResponse['cache_ttl'] ?? 0,
-                    $endpoints
-                );
-
-                return new HtmlResponse($html);
+                    $refreshEndpoint,
+                ));
             },
             'Failed to load database processes',
-            "Database processes for {$database} on {$server}"
+            "Database processes for {$target}"
         );
     }
 

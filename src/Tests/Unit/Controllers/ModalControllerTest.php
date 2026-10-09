@@ -17,7 +17,6 @@ use Mata\Http\Routing\Endpoints;
 use Mata\Services\Cache\ApiCacheKeyFactory;
 use Mata\Services\Cache\CacheStoreInterface;
 use Mata\Services\Cache\CacheTtlResolver;
-use Mata\Services\Cache\CacheType;
 use Mata\Services\Collect\ServerDataCollectorInterface;
 use Mata\Services\DataTransformers\LogDataTransformer;
 use Mata\Tests\Helpers\ApplicationConfigFactory;
@@ -1186,88 +1185,25 @@ MARKDOWN;
         $this->assertInstanceOf(HtmlResponse::class, $response);
     }
 
-    public function testRendersDatabaseProcessesModal(): void
+    public function testDatabaseNoLongerMonitoredByNodeReturnsNotFound(): void
     {
         $collector = $this->createMockServerDataCollector('server1');
         $collector->expects($this->once())
-            ->method('getServerDatabases')
-            ->with(CacheType::Databases)
+            ->method('fetchDatabaseProcesses')
+            ->with('dropped')
             ->willReturn([
-                'result' => [
-                    'databases' => [
-                        'main' => [
-                            'process_list' => [[
-                                'id' => 42,
-                                'user' => 'app',
-                                'host' => 'web-01',
-                                'db' => 'main',
-                                'command' => 'Query',
-                                'time' => 3,
-                                'state' => 'executing',
-                                'info' => 'SELECT 1',
-                            ]],
-                        ],
-                    ],
+                'result' => null,
+                'error' => [
+                    'kind' => 'node_response',
+                    'message' => "Database 'dropped' is not monitored.",
+                    'endpoint' => 'databases/processes',
+                    'status_code' => 404,
                 ],
-                'cache_age' => 120,
-                'cache_ttl' => 300,
             ])
         ;
         $this->injectMockCollector('server1', $collector);
 
-        $this->mockEndpoints->expects($this->once())
-            ->method('url')
-            ->with('modal_db_processes_refresh', ['server' => 'server1', 'database' => 'main'])
-            ->willReturn('/watch/modal/server1/database/main/processes/refresh')
-        ;
-        $this->mockTwig->expects($this->once())
-            ->method('render')
-            ->with(
-                'partials/modals/database-processes-modal.html.twig',
-                $this->callback(static fn (array $data): bool => $data['server']['name'] === 'server1'
-                    && $data['database']['name'] === 'main'
-                    && $data['processes'][0]['info'] === 'SELECT 1'
-                    && $data['endpoints']['modal_db_processes_refresh']
-                        === '/watch/modal/server1/database/main/processes/refresh')
-            )
-            ->willReturn('<div>Database processes</div>')
-        ;
-
-        $response = $this->controller->renderDatabaseProcesses('server1', 'main');
-
-        $this->assertInstanceOf(HtmlResponse::class, $response);
-        $this->assertSame('<div>Database processes</div>', $response->getContent());
-    }
-
-    public function testForceRefreshesDatabaseProcessesModal(): void
-    {
-        $collector = $this->createMockServerDataCollector('server1');
-        $collector->expects($this->once())
-            ->method('getServerDatabases')
-            ->with(CacheType::None)
-            ->willReturn([
-                'result' => ['databases' => ['main' => ['process_list' => []]]],
-            ])
-        ;
-        $this->injectMockCollector('server1', $collector);
-        $this->mockEndpoints->method('url')->willReturn('/refresh');
-        $this->mockTwig->method('render')->willReturn('<div>Fresh processes</div>');
-
-        $response = $this->controller->renderDatabaseProcesses('server1', 'main', forceRefresh: true);
-
-        $this->assertInstanceOf(HtmlResponse::class, $response);
-    }
-
-    public function testReturnsNotFoundForMissingDatabaseProcesses(): void
-    {
-        $collector = $this->createMockServerDataCollector('server1');
-        $collector->expects($this->once())
-            ->method('getServerDatabases')
-            ->willReturn(['result' => ['databases' => []]])
-        ;
-        $this->injectMockCollector('server1', $collector);
-
-        $response = $this->controller->renderDatabaseProcesses('server1', 'missing');
+        $response = $this->controller->renderDatabaseProcesses('server1', 'dropped');
 
         $this->assertInstanceOf(HtmlResponse::class, $response);
         $this->assertSame(404, $response->getStatusCode());

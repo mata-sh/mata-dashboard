@@ -382,7 +382,7 @@ class RouterSetup
                 ['modal_app_log_files_render', '/modal/{server}/{app}/log-files', 'get', fn ($server, $app) => $this->modalController->renderAppLogFiles($server, $app)],
                 ['modal_app_log_files_refresh', '/modal/{server}/{app}/log-files/refresh', 'get', fn ($server, $app) => $this->modalController->renderAppLogFiles($server, $app, forceRefresh: true)],
                 ['modal_db_processes_render', '/modal/{server}/database/{database}/processes', 'get', fn ($server, $database) => $this->modalController->renderDatabaseProcesses($server, $database)],
-                ['modal_db_processes_refresh', '/modal/{server}/database/{database}/processes/refresh', 'get', fn ($server, $database) => $this->modalController->renderDatabaseProcesses($server, $database, forceRefresh: true)],
+                ['modal_db_server_processes_render', '/modal/{server}/databases/processes', 'get', fn ($server) => $this->modalController->renderDatabaseProcesses($server)],
                 ['modal_server_info_render', '/modal/{server}/info', 'get', fn ($server) => $this->modalController->renderServerInfo($server)],
                 ['modal_server_info_refresh', '/modal/{server}/info/refresh', 'get', fn ($server) => $this->modalController->renderServerInfo($server, forceRefresh: true)],
                 ['modal_server_cronjobs_render', '/modal/{server}/cronjobs', 'get', fn ($server) => $this->modalController->renderServerCronjobs($server)],
@@ -492,7 +492,7 @@ class RouterSetup
     private function setupParameterValidation(): void
     {
         // Validate server and database parameters for database process-list modal routes
-        $this->router->before('GET', '/watch/modal/([^/]+)/database/([^/]+)/processes.*', function ($server, $database) {
+        $this->router->before('GET', '/watch/modal/([^/]+)/database/([^/]+)/processes', function ($server, $database) {
             RouteParameter::assertAllSafe([$server, $database], 'Invalid database process route parameter');
         });
 

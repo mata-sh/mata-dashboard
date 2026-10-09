@@ -15,6 +15,19 @@ use RuntimeException;
  */
 class NodeResponseNormalizer
 {
+    /**
+     * Instance-wide status fields; `true` marks fields an engine may report as null.
+     */
+    private const DATABASE_STATUS_FIELDS = [
+        'max_connections' => false,
+        'connections' => false,
+        'running' => false,
+        'max_used_connections' => true,
+        'refused_connections' => true,
+        'aborted_connects' => true,
+        'uptime_seconds' => false,
+    ];
+
     public function __construct(private LoggerInterface $logger) {}
 
     /**
@@ -76,7 +89,8 @@ class NodeResponseNormalizer
                 !is_array($data), $path === '' => $data,
                 $path === 'apps' => $this->normalizeAppsData($data),
                 $path === 'server/data' => $this->normalizeServerSystemData($data),
-                $path === 'server/databases' => $this->normalizeDatabaseData($data),
+                $path === 'databases/overview' => $this->normalizeDatabaseOverview($data),
+                $path === 'databases/processes' => $this->normalizeDatabaseProcesses($data),
                 str_ends_with($path, '/sessions') => $this->normalizeAppSessions($data),
                 str_ends_with($path, 'server/cronjobs') => $this->normalizeServerCronjobs($data),
                 str_contains($path, '/logs/') || str_ends_with($path, '/logs') => $this->normalizeAppLogs($data),
@@ -478,101 +492,99 @@ class NodeResponseNormalizer
     /**
      * @param array<string,mixed> $data
      *
-     * @return array<string,mixed>
+     * @return array{
+     *     engine:string,
+     *     collected_at:string,
+     *     status:array<string,null|int>,
+     *     databases:list<array{name:string,description:string}>
+     * }
      *
      * @throws InvalidNodePayloadException When the node payload is invalid
      */
-    public function normalizeDatabaseData(array $data): array
+    public function normalizeDatabaseOverview(array $data): array
     {
-        $processes = $data['processes'] ?? null;
-        $sql = is_array($processes) ? TypeConverter::toInt($processes['sql'] ?? null) : null;
-        if ($sql === null || $sql < 0) {
-            throw new InvalidNodePayloadException('Node returned invalid database process data.', 'server/databases');
+        $endpoint = 'databases/overview';
+        $engine = TypeConverter::toString($data['engine'] ?? null);
+        $collectedAt = TypeConverter::toString($data['collected_at'] ?? null);
+        $status = $data['status'] ?? null;
+        $databases = $data['databases'] ?? null;
+        if ($engine === null || $collectedAt === null || !is_array($status) || !is_array($databases) || !array_is_list($databases)) {
+            throw new InvalidNodePayloadException('Node returned an invalid database overview.', $endpoint);
         }
 
-        $data['processes']['sql'] = $sql;
-
-        if (array_key_exists('databases', $data)) {
-            if ($data['databases'] === null) {
-                unset($data['databases']);
-            } elseif (!is_array($data['databases'])) {
-                throw new InvalidNodePayloadException('Node returned an invalid databases map.', 'server/databases');
-            } else {
-                $databases = [];
-                foreach ($data['databases'] as $databaseName => $entry) {
-                    $databases[$databaseName] = $this->normalizeDatabaseEntry((string) $databaseName, $entry);
-                }
-                $data['databases'] = $databases;
+        $normalizedStatus = [];
+        foreach (self::DATABASE_STATUS_FIELDS as $field => $nullable) {
+            $value = $status[$field] ?? null;
+            if (!(is_int($value) && $value >= 0) && !($nullable && $value === null)) {
+                throw new InvalidNodePayloadException("Node returned invalid database {$field} data.", $endpoint);
             }
+            $normalizedStatus[$field] = $value;
         }
 
-        return $data;
-    }
-
-    /**
-     * @return array{
-     *     database:null|string,
-     *     configured_database:null|string,
-     *     host:null|string,
-     *     port:null|int,
-     *     description:null|string,
-     *     max_connections:null|int,
-     *     active_threads:null|int,
-     *     active_processes:null|int,
-     *     process_list:array<int,array<string,mixed>>,
-     *     connection_error:string
-     * }
-     */
-    private function normalizeDatabaseEntry(string $name, mixed $entry): array
-    {
-        if (!is_array($entry) || (array_key_exists('connection_error', $entry)
-            && $entry['connection_error'] !== null && !is_scalar($entry['connection_error']))) {
-            $this->logger->warning('Malformed database entry from node', [
-                'endpoint' => 'server/databases',
-                'database' => $name,
-            ]);
-
-            return [
-                'database' => null,
-                'configured_database' => null,
-                'host' => null,
-                'port' => null,
-                'description' => null,
-                'max_connections' => null,
-                'active_threads' => null,
-                'active_processes' => null,
-                'process_list' => [],
-                'connection_error' => 'Malformed entry from node',
-            ];
-        }
-
-        $port = TypeConverter::toInt($entry['port'] ?? null);
-        if ($port === null || $port < 1 || $port > 65535) {
-            $port = null;
-        }
-
-        $counts = [];
-        foreach (['max_connections', 'active_threads', 'active_processes'] as $field) {
-            $count = TypeConverter::toInt($entry[$field] ?? null);
-            $counts[$field] = $count === null || $count < 0 ? null : $count;
-        }
-
-        $processList = $entry['process_list'] ?? null;
-        if (!is_array($processList)) {
-            $processList = [];
+        $normalizedDatabases = [];
+        foreach ($databases as $entry) {
+            $name = is_array($entry) ? TypeConverter::toString($entry['name'] ?? null) : null;
+            if ($name === null || !is_string($entry['description'] ?? null)) {
+                throw new InvalidNodePayloadException('Node returned an invalid monitored database entry.', $endpoint);
+            }
+            $normalizedDatabases[] = ['name' => $name, 'description' => $entry['description']];
         }
 
         return [
-            'database' => TypeConverter::toString($entry['database'] ?? null),
-            'configured_database' => TypeConverter::toString($entry['configured_database'] ?? null),
-            'host' => TypeConverter::toString($entry['host'] ?? null),
-            'port' => $port,
-            'description' => TypeConverter::toString($entry['description'] ?? null),
-            'max_connections' => $counts['max_connections'],
-            'active_threads' => $counts['active_threads'],
-            'active_processes' => $counts['active_processes'],
-            'process_list' => array_values(array_filter($processList, static fn (mixed $row): bool => is_array($row))),
-            'connection_error' => TypeConverter::toString($entry['connection_error'] ?? null) ?? '',
+            'engine' => $engine,
+            'collected_at' => $collectedAt,
+            'status' => $normalizedStatus,
+            'databases' => $normalizedDatabases,
+        ];
+    }
+
+    /**
+     * @param array<string,mixed> $data
+     *
+     * @return array{
+     *     visibility:string,
+     *     summary_by_database:list<array{database:string,connections:int,running:int}>,
+     *     processes:list<array<string,mixed>>,
+     *     truncated:bool
+     * }
+     *
+     * @throws InvalidNodePayloadException When the node payload is invalid
+     */
+    public function normalizeDatabaseProcesses(array $data): array
+    {
+        $endpoint = 'databases/processes';
+        $visibility = $data['visibility'] ?? null;
+        $summary = $data['summary_by_database'] ?? null;
+        $processes = $data['processes'] ?? null;
+        if (!in_array($visibility, ['all_sessions', 'own_sessions'], true) || !is_bool($data['truncated'] ?? null)
+            || !is_array($summary) || !array_is_list($summary) || !is_array($processes) || !array_is_list($processes)) {
+            throw new InvalidNodePayloadException('Node returned an invalid database process list.', $endpoint);
+        }
+
+        $normalizedSummary = [];
+        foreach ($summary as $group) {
+            $database = is_array($group) ? TypeConverter::toString($group['database'] ?? null) : null;
+            $connections = $group['connections'] ?? null;
+            $running = $group['running'] ?? null;
+            if ($database === null || !is_int($connections) || $connections < 0 || !is_int($running) || $running < 0) {
+                throw new InvalidNodePayloadException('Node returned an invalid database process summary.', $endpoint);
+            }
+            $normalizedSummary[] = ['database' => $database, 'connections' => $connections, 'running' => $running];
+        }
+
+        $normalizedProcesses = [];
+        foreach ($processes as $process) {
+            if (!is_array($process)) {
+                throw new InvalidNodePayloadException('Node returned an invalid database process row.', $endpoint);
+            }
+            $normalizedProcesses[] = $process;
+        }
+
+        return [
+            'visibility' => $visibility,
+            'summary_by_database' => $normalizedSummary,
+            'processes' => $normalizedProcesses,
+            'truncated' => $data['truncated'],
         ];
     }
 
@@ -873,7 +885,9 @@ class NodeResponseNormalizer
     private function nodeErrorFromPayload(array $payload, string $endpoint, ?int $statusCode): ?array
     {
         $error = $payload['error'] ?? null;
-        if (($error !== true && $error !== 'Monitoring disabled') || !is_string($payload['message'] ?? null)) {
+        // Non-2xx bodies carry an error label (`{"error": "Unknown database", "message": ...}`).
+        $isErrorBody = $error === true || $error === 'Monitoring disabled' || ($statusCode !== null && is_string($error));
+        if (!$isErrorBody || !is_string($payload['message'] ?? null)) {
             return null;
         }
 

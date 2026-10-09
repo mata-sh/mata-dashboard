@@ -382,13 +382,19 @@ final class NodeResponseNormalizerValidationTest extends TestCase
 
     public function testInvalidDatabaseAndLibrariesPayloadsAreExplicitErrors(): void
     {
-        $databaseResponse = $this->normalizer->normalizeApiResponse([], path: 'server/databases');
+        // A missing required count must not render as 0 connections.
+        $databaseResponse = $this->normalizer->normalizeApiResponse([
+            'engine' => 'mariadb',
+            'collected_at' => '2026-10-10T12:00:00+00:00',
+            'status' => ['max_connections' => 151, 'connections' => null, 'running' => 2, 'uptime_seconds' => 60],
+            'databases' => [],
+        ], path: 'databases/overview');
         $librariesResponse = $this->normalizer->normalizeApiResponse([
             'shop' => [['name' => 'vendor/package']],
         ], path: 'apps/libraries');
 
         $this->assertNull($databaseResponse['result']);
-        $this->assertSame('server/databases', $databaseResponse['error']['endpoint']);
+        $this->assertSame('databases/overview', $databaseResponse['error']['endpoint']);
         $this->assertNull($librariesResponse['result']);
         $this->assertSame('libraries', $librariesResponse['error']['endpoint']);
     }

@@ -176,15 +176,37 @@ class MockServerDataCollector implements ServerDataCollectorInterface
     }
 
     /**
-     * Generate demo database information.
+     * Generate demo database overview.
      */
-    public function getServerDatabases(CacheType $cacheType = CacheType::Databases): array|string|null
+    public function getDatabaseOverview(CacheType $cacheType = CacheType::Databases): ?array
     {
         $ttlSeconds = $this->ttlResolver->get($cacheType);
 
-        $data = $this->serverCatalog->serverDatabases();
+        return $this->responseNormalizer->normalizeApiResponse(
+            $this->serverCatalog->databaseOverview(),
+            $this->cacheAge,
+            $ttlSeconds,
+            path: 'databases/overview',
+        );
+    }
 
-        return $this->responseNormalizer->normalizeApiResponse($data, $this->cacheAge, $ttlSeconds, false, false, 'server/databases');
+    /**
+     * Generate a demo database process list; unmonitored databases get the node's 404.
+     */
+    public function fetchDatabaseProcesses(?string $database): ?array
+    {
+        $path = 'databases/processes';
+        $data = $this->serverCatalog->databaseProcesses($database);
+        if ($data === null) {
+            return $this->responseNormalizer->errorApiResponse([
+                'kind' => 'node_response',
+                'message' => "Database '{$database}' is not monitored.",
+                'endpoint' => $path,
+                'status_code' => 404,
+            ]);
+        }
+
+        return $this->responseNormalizer->normalizeApiResponse($data, path: $path);
     }
 
     /**
