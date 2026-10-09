@@ -1,6 +1,6 @@
 # MATA Dashboard - Multi-Stage Production Build
 ARG PHP_VERSION=8.3
-ARG COMPOSER_VERSION=2.7.9
+ARG COMPOSER_VERSION=2
 
 # Composer stage (allows variable expansion)
 FROM composer:${COMPOSER_VERSION} AS composer

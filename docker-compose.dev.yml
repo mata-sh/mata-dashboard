@@ -9,7 +9,7 @@ services:
       dockerfile: Dockerfile.dev
       args:
         PHP_VERSION: ${PHP_VERSION:-8.3}
-        COMPOSER_VERSION: ${COMPOSER_VERSION:-latest}
+        COMPOSER_VERSION: ${COMPOSER_VERSION:-2}
 
     # Mount entire source code for hot reload
     volumes:

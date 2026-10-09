@@ -5,7 +5,7 @@ services:
       dockerfile: Dockerfile
       args:
         PHP_VERSION: ${PHP_VERSION:-8.3}
-        COMPOSER_VERSION: ${COMPOSER_VERSION:-2.7.9}
+        COMPOSER_VERSION: ${COMPOSER_VERSION:-2}
     # Note: container_name prevents scaling (docker compose up --scale)
     # Remove if you need multiple replicas or orchestration
     container_name: ${COMPOSE_PROJECT_NAME:-mata-dashboard}-web

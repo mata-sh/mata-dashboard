@@ -9,7 +9,7 @@ services:
       target: production
       args:
         PHP_VERSION: ${PHP_VERSION:-8.3}
-        COMPOSER_VERSION: ${COMPOSER_VERSION:-2.7.9}
+        COMPOSER_VERSION: ${COMPOSER_VERSION:-2}
     restart: always
 
     # Only mount persistent directories, not source code
