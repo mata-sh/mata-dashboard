@@ -5,14 +5,17 @@ declare(strict_types=1);
 namespace Mata\Tests\Unit\Services;
 
 use Exception;
+use Mata\Config\Monitoring\Section\ThresholdsConfig;
 use Mata\Services\Cache\CacheType;
 use Mata\Services\Collect\ServerDataCollectorInterface;
 use Mata\Services\Event\Dto\EventCommand;
 use Mata\Services\Event\EventManager;
 use Mata\Services\Monitor\ServerMonitor;
+use Mata\Tests\Helpers\MonitoringConfigFactory;
 use Mata\Tests\TestCase;
 use Monolog\Handler\NullHandler;
 use Monolog\Logger;
+use PHPUnit\Framework\Attributes\DataProvider;
 
 /**
  * @covers \Mata\Services\Monitor\ServerMonitor
@@ -317,5 +320,46 @@ final class ServerMonitorTest extends TestCase
         $this->expectException(Exception::class);
 
         $this->monitor->collectServerHealthData($collector, 'broken-server');
+    }
+
+    /**
+     * @param array<string,mixed> $overview
+     * @param list<string>        $expectedEvents
+     */
+    #[DataProvider('databaseOverviews')]
+    public function testDatabaseOverviewRaisesEventsOnlyForOutagesAndCrowdedServers(array $overview, array $expectedEvents): void
+    {
+        $collector = $this->createStub(ServerDataCollectorInterface::class);
+        $collector->method('getDatabaseOverview')->willReturn($overview);
+
+        $events = [];
+        $eventManager = $this->createPartialMock(EventManager::class, ['handle']);
+        $eventManager->setMonitoringConfig(MonitoringConfigFactory::create(thresholds: ThresholdsConfig::default()));
+        $eventManager->expects($this->exactly(count($expectedEvents)))->method('handle')->willReturnCallback(static function (EventCommand $event) use (&$events): array {
+            $events[] = $event->type;
+
+            return ['eventRecorded' => true, 'eventId' => 1];
+        });
+
+        (new ServerMonitor(new Logger('test', [new NullHandler()]), $eventManager))->evaluateDatabaseOverview($collector, 'db-server');
+
+        $this->assertSame($expectedEvents, $events);
+    }
+
+    /**
+     * @return iterable<string,array{array<string,mixed>,list<string>}>
+     */
+    public static function databaseOverviews(): iterable
+    {
+        $status = static fn (int $connections): array => ['result' => ['status' => ['connections' => $connections, 'max_connections' => 151]]];
+        $nodeError = static fn (int $statusCode): array => ['result' => null, 'error' => ['message' => 'Node message', 'status_code' => $statusCode]];
+
+        yield 'database server down' => [$nodeError(503), ['database_unreachable']];
+
+        yield 'monitoring not configured on the node' => [$nodeError(404), []];
+
+        yield 'connections near max_connections' => [$status(140), ['database_connections_too_high']];
+
+        yield 'normal load' => [$status(40), []];
     }
 }

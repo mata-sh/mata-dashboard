@@ -31,6 +31,8 @@ final class AlarmPresenter
             'remaining_diskspace_too_low' => ['Detected disk usage above threshold.', $this->thresholdDetail($context, '%') ?? $ruleDetail],
             'cronjobs_failing' => ['Detected failing cronjobs.', $ruleDetail],
             'cpu_usage_too_high', 'ram_usage_too_high' => ['Detected elevated server resource usage.', $ruleDetail],
+            'database_connections_too_high' => ['Detected database connections near max_connections.', $this->thresholdDetail($context, '%') ?? $ruleDetail],
+            'database_unreachable' => ['Detected an unreachable database server.', $ruleDetail],
             'server_metrics.ingestion_run_empty' => ['Detected an empty metrics ingestion run.', $ruleDetail],
             'node_unhealthy' => ['Detected an unhealthy health response.', $ruleDetail],
             'node_unreachable' => ['Detected an unreachable server health endpoint.', $ruleDetail ?? 'Alarm rule: first failed check'],
@@ -89,11 +91,11 @@ final class AlarmPresenter
     {
         return match ($type) {
             'fatal_errors_occurring' => $this->formatMetricValue($actualValue, $this->numberFormatter->formatCompact(...)),
-            'remaining_diskspace_too_low', 'cpu_usage_too_high', 'ram_usage_too_high' => $this->formatMetricValue($actualValue, $this->formatPercent(...)),
+            'remaining_diskspace_too_low', 'cpu_usage_too_high', 'ram_usage_too_high', 'database_connections_too_high' => $this->formatMetricValue($actualValue, $this->formatPercent(...)),
             'cronjobs_failing' => $this->formatMetricValue($actualValue, $this->formatNumber(...)),
             'server_metrics.ingestion_run_empty' => 'EMPTY',
             'node_unhealthy' => 'UNHEALTHY',
-            'node_unreachable', 'app_unreachable', 'server_apps_transport_unreachable' => 'UNREACHABLE',
+            'node_unreachable', 'app_unreachable', 'server_apps_transport_unreachable', 'database_unreachable' => 'UNREACHABLE',
             default => null,
         };
     }

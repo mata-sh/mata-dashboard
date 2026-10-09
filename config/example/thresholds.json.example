@@ -1,5 +1,11 @@
 {
     "server_data": {
+        "database_connections_percent": {
+            "good": 0,
+            "warn": 60,
+            "critical": 70,
+            "alarm": 80
+        },
         "cpu_usage": {
             "good": 0,
             "warn": 70,
@@ -49,14 +55,6 @@
             "alarm": 50000
         }
     },
-    "sql": {
-        "max_connections_percent": {
-            "good": 10,
-            "warn": 30,
-            "critical": 50,
-            "alarm": 75
-        }
-    },
     "alarms": {
         "app_unreachable": {
             "strategy": "consecutive_failures",
@@ -75,7 +73,7 @@
             "alarm_threshold_event_count": 1,
             "alarm_threshold_window_minutes": 720
         },
-        "too_many_sql_connections": {
+        "database_connections_too_high": {
             "alarm_threshold_event_count": 1,
             "alarm_threshold_window_minutes": 60
         },

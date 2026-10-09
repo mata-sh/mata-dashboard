@@ -408,41 +408,50 @@ Configuration file failed validation.
 
 ### Database Events
 
-#### `too_many_sql_connections`
-Database connection count exceeded threshold.
+Produced by the `servers_metrics_collect` cron from the node's `/databases/overview`.
+Nodes without database monitoring (`404`) and stale overviews raise nothing; a node
+that does not answer at all is reported as `node_unreachable`.
+
+#### `database_connections_too_high`
+Connections reached the alarm share of `max_connections`.
 
 **Severity:** Critical
-
-**Event Type:** `too_many_sql_connections`
-
-**Thresholds:**
-- Good: < 10% of max_connections
-- Warning: 30% of max_connections
-- Critical: 50% of max_connections
-- Alarm: 75% of max_connections
 
 **Details:**
 ```json
 {
-    "server_id": "production-server",
-    "current_connections": 180,
-    "max_connections": 200,
-    "connection_percent": 90,
-    "threshold_level": "alarm"
+    "metric": "database_connections_percent",
+    "actual_value": 92,
+    "threshold": 80,
+    "additional_data": {"connections": 140, "max_connections": 151}
 }
 ```
 
-**Configuration:**
+**Configuration** (`thresholds.json`):
 ```json
 {
-    "sql": {
-        "max_connections_percent": {
-            "good": 10,
-            "warn": 30,
-            "critical": 50,
-            "alarm": 75
+    "server_data": {
+        "database_connections_percent": {
+            "good": 0,
+            "warn": 60,
+            "critical": 70,
+            "alarm": 80
         }
     }
+}
+```
+
+#### `database_unreachable`
+The node answered, but could not connect to or query the database server (`503`).
+
+**Severity:** Critical
+
+**Details:**
+```json
+{
+    "metric": "database_reachable",
+    "actual_value": 0,
+    "additional_data": {"error": "<node message, with host and port>"}
 }
 ```
 

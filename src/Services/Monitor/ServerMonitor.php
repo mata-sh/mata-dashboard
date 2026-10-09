@@ -126,6 +126,56 @@ class ServerMonitor
     }
 
     /**
+     * Raise events for an unavailable database server or connections near max_connections.
+     *
+     * Nodes without database monitoring (404), node transport failures (covered by node
+     * health) and stale overviews raise nothing.
+     */
+    public function evaluateDatabaseOverview(ServerDataCollectorInterface $serverDataCollector, string $server): void
+    {
+        $response = $serverDataCollector->getDatabaseOverview();
+        $error = $response['error'] ?? null;
+        if (is_array($error)) {
+            if (($error['status_code'] ?? null) === 503) {
+                $this->eventManager->handle(new EventCommand(
+                    type: 'database_unreachable',
+                    message: "Database server unreachable on Server: {$server}",
+                    level: 'critical',
+                    server: $server,
+                    metric: new EventMetric('database_reachable', 0, additional: ['error' => $error['message'] ?? null]),
+                ));
+            }
+
+            return;
+        }
+
+        $status = $response['result']['status'] ?? null;
+        if (($response['stale_cache'] ?? false) === true || !is_array($status) || $status['max_connections'] === 0) {
+            return;
+        }
+
+        $connections = (int) $status['connections'];
+        $maxConnections = (int) $status['max_connections'];
+        $percent = (int) ($connections / $maxConnections * 100);
+        if ($this->eventManager->getServerDataThresholdLevel($percent, 'database_connections_percent') !== 'alarm') {
+            return;
+        }
+
+        $this->eventManager->handle(new EventCommand(
+            type: 'database_connections_too_high',
+            message: "Database connections critical ({$connections}/{$maxConnections}, {$percent} %) on Server: {$server}",
+            level: 'critical',
+            server: $server,
+            metric: new EventMetric(
+                'database_connections_percent',
+                $percent,
+                $this->eventManager->getServerDataThresholdLimit('database_connections_percent'),
+                ['connections' => $connections, 'max_connections' => $maxConnections]
+            )
+        ));
+    }
+
+    /**
      * Build cronjobs badge view data.
      *
      * @param array<string,mixed> $serverData Server data array

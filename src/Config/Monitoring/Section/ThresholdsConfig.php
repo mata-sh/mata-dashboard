@@ -77,6 +77,7 @@ final readonly class ThresholdsConfig
                 'total_system_filecount' => ['info' => 100000, 'warning' => 500000, 'error' => 1000000, 'alarm' => 2000000],
                 'log_filesize_kb' => ['info' => 1000, 'warning' => 5000, 'error' => 10000, 'alarm' => 50000],
                 'cronjobs_failed_count' => ['good' => -1, 'alarm' => 0],
+                'database_connections_percent' => ['info' => 50, 'warning' => 60, 'error' => 70, 'alarm' => 80],
             ],
             'app_data' => [
                 'session_count' => ['info' => 50, 'warning' => 100, 'error' => 200, 'alarm' => 500],

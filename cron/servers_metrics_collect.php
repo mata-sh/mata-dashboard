@@ -138,6 +138,15 @@ try {
                 $responseNormalizer
             );
 
+            try {
+                $serverMonitor->evaluateDatabaseOverview($collector, (string) $serverName);
+            } catch (Throwable $databaseError) {
+                $log->error('collect_server_metrics.database_failed', [
+                    'server' => $serverName,
+                    'error' => $databaseError->getMessage(),
+                ]);
+            }
+
             $metricsPayload = $serverMonitor->collectServerHealthData($collector, (string) $serverName);
 
             $snapshot = buildSnapshotFromPayload($metricsPayload);

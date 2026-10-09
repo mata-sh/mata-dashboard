@@ -82,14 +82,6 @@ Each metric object may contain any non-empty subset of `good`, `warn`, `critical
             "alarm": number
         }
     },
-    "sql": {
-        "metric_name": {
-            "good": number,
-            "warn": number,
-            "critical": number,
-            "alarm": number
-        }
-    },
     "alarms": {
         "alarm_type": {
             "alarm_threshold_event_count": number,
@@ -446,9 +438,11 @@ Age of last order export (application-specific).
 
 ---
 
-## SQL Database Thresholds
+## Database Thresholds
 
-### max_connections_percent
+Key: `server_data.database_connections_percent` (an alarm raises `database_connections_too_high`).
+
+### database_connections_percent
 Database connection usage percentage.
 
 **Metric:** Percentage of max_connections in use
@@ -456,7 +450,7 @@ Database connection usage percentage.
 **Default Configuration:**
 ```json
 {
-    "max_connections_percent": {
+    "database_connections_percent": {
         "good": 10,
         "warn": 30,
         "critical": 50,
@@ -490,7 +484,7 @@ If `max_connections = 200`:
 **Small Database (max_connections = 100):**
 ```json
 {
-    "max_connections_percent": {
+    "database_connections_percent": {
         "good": 20,
         "warn": 40,
         "critical": 60,
@@ -502,7 +496,7 @@ If `max_connections = 200`:
 **Medium Database (max_connections = 200-500):**
 ```json
 {
-    "max_connections_percent": {
+    "database_connections_percent": {
         "good": 10,
         "warn": 30,
         "critical": 50,
@@ -514,7 +508,7 @@ If `max_connections = 200`:
 **Large Database (max_connections = 500+):**
 ```json
 {
-    "max_connections_percent": {
+    "database_connections_percent": {
         "good": 5,
         "warn": 20,
         "critical": 40,
@@ -715,13 +709,13 @@ Low disk space alarm.
 
 ---
 
-### too_many_sql_connections
-Database connection threshold alarm.
+### database_connections_too_high
+Database connections reached the alarm share of `max_connections` (`server_data.database_connections_percent`).
 
 **Default Configuration:**
 ```json
 {
-    "too_many_sql_connections": {
+    "database_connections_too_high": {
         "alarm_threshold_event_count": 1,
         "alarm_threshold_window_minutes": 720,
         "min_alarm_interval_minutes": 60
@@ -797,14 +791,6 @@ Missing cronjob execution alarm.
             "alarm": 50000
         }
     },
-    "sql": {
-        "max_connections_percent": {
-            "good": 10,
-            "warn": 30,
-            "critical": 50,
-            "alarm": 75
-        }
-    },
     "alarms": {
         "app_unreachable": {
             "alarm_threshold_event_count": 3,
@@ -831,7 +817,7 @@ Missing cronjob execution alarm.
             "alarm_threshold_window_minutes": 60,
             "min_alarm_interval_minutes": 180
         },
-        "too_many_sql_connections": {
+        "database_connections_too_high": {
             "alarm_threshold_event_count": 1,
             "alarm_threshold_window_minutes": 720,
             "min_alarm_interval_minutes": 60
