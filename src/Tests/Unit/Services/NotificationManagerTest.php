@@ -77,18 +77,16 @@ class NotificationManagerTest extends TestCase
      */
     public function testItAddsNotificationSuccessfully(): void
     {
-        $callCount = 0;
         $this->useMockDatabase();
 
-        $this->mockDb->expects($this->exactly(2))
-            ->method('runQuery')
-            ->willReturnCallback(function ($sql, $params) use (&$callCount) {
-                ++$callCount;
-                if ($callCount === 1) {
-                    $this->assertStringContainsString('SELECT id FROM notifications', $sql);
-
-                    return [];
-                }
+        $this->mockDb->expects($this->once())
+            ->method('runSelect')
+            ->with($this->stringContains('SELECT id FROM notifications'), $this->anything())
+            ->willReturn([])
+        ;
+        $this->mockDb->expects($this->once())
+            ->method('runInsert')
+            ->willReturnCallback(function ($sql, $params) {
                 $this->assertStringContainsString('INSERT INTO notifications', $sql);
                 $this->assertSame('warning', $params[1]);
                 $this->assertSame('Test Title', $params[2]);
@@ -117,22 +115,17 @@ class NotificationManagerTest extends TestCase
      */
     public function testItHandlesAddNotificationFailure(): void
     {
-        $callCount = 0;
         $this->useMockDatabase();
 
-        $this->mockDb->expects($this->exactly(2))
-            ->method('runQuery')
-            ->willReturnCallback(function ($sql, $params) use (&$callCount) {
-                ++$callCount;
-                if ($callCount === 1) {
-                    $this->assertStringContainsString('SELECT id FROM notifications', $sql);
-
-                    return [];
-                }
-                $this->assertStringContainsString('INSERT INTO notifications', $sql);
-
-                throw new Exception('Database error');
-            })
+        $this->mockDb->expects($this->once())
+            ->method('runSelect')
+            ->with($this->stringContains('SELECT id FROM notifications'), $this->anything())
+            ->willReturn([])
+        ;
+        $this->mockDb->expects($this->once())
+            ->method('runInsert')
+            ->with($this->stringContains('INSERT INTO notifications'), $this->anything())
+            ->willThrowException(new Exception('Database error'))
         ;
 
         $result = $this->notificationManager->addNotification(
@@ -156,13 +149,14 @@ class NotificationManagerTest extends TestCase
         $this->useMockDatabase();
 
         $this->mockDb->expects($this->once())
-            ->method('runQuery')
+            ->method('runSelect')
             ->with(
                 $this->stringContains('SELECT id FROM notifications'),
                 $this->anything()
             )
             ->willReturn([['id' => 1]]) // Duplicate exists
         ;
+        $this->mockDb->expects($this->never())->method('runInsert');
 
         $result = $this->notificationManager->addNotification(
             'info',
@@ -183,22 +177,17 @@ class NotificationManagerTest extends TestCase
     public function testItAddsNotificationWithIdentifier(): void
     {
         // First check if exists
-        $callCount = 0;
         $this->useMockDatabase();
 
-        $this->mockDb->expects($this->exactly(2))
-            ->method('runQuery')
-            ->willReturnCallback(function ($sql) use (&$callCount) {
-                ++$callCount;
-                if ($callCount === 1) {
-                    $this->assertStringContainsString('SELECT * FROM notifications', $sql);
-
-                    return [];
-                }
-                $this->assertStringContainsString('INSERT INTO notifications', $sql);
-
-                return 1;
-            })
+        $this->mockDb->expects($this->once())
+            ->method('runSelect')
+            ->with($this->stringContains('SELECT * FROM notifications'), $this->anything())
+            ->willReturn([])
+        ;
+        $this->mockDb->expects($this->once())
+            ->method('runInsert')
+            ->with($this->stringContains('INSERT INTO notifications'), $this->anything())
+            ->willReturn(1)
         ;
 
         $result = $this->notificationManager->addNotification(
@@ -223,22 +212,17 @@ class NotificationManagerTest extends TestCase
     {
         // First call: Check if identifier exists
         // Second call: Update the notification
-        $callCount = 0;
         $this->useMockDatabase();
 
-        $this->mockDb->expects($this->exactly(2))
-            ->method('runQuery')
-            ->willReturnCallback(function ($sql) use (&$callCount) {
-                ++$callCount;
-                if ($callCount === 1) {
-                    $this->assertStringContainsString('SELECT * FROM notifications', $sql);
-
-                    return [['id' => 1, 'identifier' => 'config.test', 'deactivated_at' => null]];
-                }
-                $this->assertStringContainsString('UPDATE notifications', $sql);
-
-                return 1;
-            })
+        $this->mockDb->expects($this->once())
+            ->method('runSelect')
+            ->with($this->stringContains('SELECT * FROM notifications'), $this->anything())
+            ->willReturn([['id' => 1, 'identifier' => 'config.test', 'deactivated_at' => null]])
+        ;
+        $this->mockDb->expects($this->once())
+            ->method('runStatement')
+            ->with($this->stringContains('UPDATE notifications'), $this->anything())
+            ->willReturn(1)
         ;
 
         $result = $this->notificationManager->addNotification(
@@ -264,7 +248,7 @@ class NotificationManagerTest extends TestCase
         $this->useMockDatabase();
 
         $this->mockDb->expects($this->once())
-            ->method('runQuery')
+            ->method('runStatement')
             ->with(
                 $this->stringContains('UPDATE notifications SET deactivated_at'),
                 ['config.resolved']
@@ -288,7 +272,7 @@ class NotificationManagerTest extends TestCase
         $this->useMockDatabase();
 
         $this->mockDb->expects($this->once())
-            ->method('runQuery')
+            ->method('runStatement')
             ->with(
                 $this->stringContains('WHERE identifier IN (?,?,?)'),
                 $identifiers
@@ -310,7 +294,7 @@ class NotificationManagerTest extends TestCase
         $this->useMockDatabase();
 
         $this->mockDb->expects($this->never())
-            ->method('runQuery')
+            ->method('runStatement')
         ;
 
         $result = $this->notificationManager->removeNotificationsByIdentifiers([]);
@@ -349,7 +333,7 @@ class NotificationManagerTest extends TestCase
         $this->useMockDatabase();
 
         $this->mockDb->expects($this->once())
-            ->method('runQuery')
+            ->method('runSelect')
             ->willReturn($expectedNotifications)
         ;
 
@@ -371,7 +355,7 @@ class NotificationManagerTest extends TestCase
         $this->useMockDatabase();
 
         $this->mockDb->expects($this->once())
-            ->method('runQuery')
+            ->method('runSelect')
             ->willThrowException(new Exception('Database error'))
         ;
 
@@ -392,7 +376,7 @@ class NotificationManagerTest extends TestCase
         $this->useMockDatabase();
 
         $this->mockDb->expects($this->once())
-            ->method('runQuery')
+            ->method('runStatement')
             ->with(
                 $this->stringContains('UPDATE notifications SET dismissed_at'),
                 [123]
@@ -414,7 +398,7 @@ class NotificationManagerTest extends TestCase
         $this->useMockDatabase();
 
         $this->mockDb->expects($this->once())
-            ->method('runQuery')
+            ->method('runStatement')
             ->with(
                 $this->stringContains('UPDATE notifications SET deactivated_at'),
                 [456]
@@ -436,7 +420,7 @@ class NotificationManagerTest extends TestCase
         $this->useMockDatabase();
 
         $this->mockDb->expects($this->once())
-            ->method('runQuery')
+            ->method('runStatement')
             ->with(
                 $this->stringContains('DELETE FROM notifications'),
                 [30]
@@ -458,7 +442,7 @@ class NotificationManagerTest extends TestCase
         $this->useMockDatabase();
 
         $this->mockDb->expects($this->once())
-            ->method('runQuery')
+            ->method('runStatement')
             ->with(
                 $this->anything(),
                 [30] // Default value
@@ -485,7 +469,7 @@ class NotificationManagerTest extends TestCase
         $this->useMockDatabase();
 
         $this->mockDb->expects($this->once())
-            ->method('runQuery')
+            ->method('runSelect')
             ->willReturn($dbResults)
         ;
 
@@ -510,7 +494,7 @@ class NotificationManagerTest extends TestCase
         $this->useMockDatabase();
 
         $this->mockDb->expects($this->once())
-            ->method('runQuery')
+            ->method('runSelect')
             ->willReturn([])
         ;
 
@@ -529,12 +513,13 @@ class NotificationManagerTest extends TestCase
     {
         $this->useMockDatabase();
 
-        $this->mockDb->expects($this->exactly(2))
-            ->method('runQuery')
-            ->willReturnOnConsecutiveCalls(
-                [], // getNotificationByIdentifier returns empty
-                1 // insert successful
-            )
+        $this->mockDb->expects($this->once())
+            ->method('runSelect')
+            ->willReturn([]) // getNotificationByIdentifier returns empty
+        ;
+        $this->mockDb->expects($this->once())
+            ->method('runInsert')
+            ->willReturn(1)
         ;
 
         $this->notificationManager->addConfigWarning(
@@ -563,7 +548,7 @@ class NotificationManagerTest extends TestCase
         $this->useMockDatabase();
 
         $this->mockDb->expects($this->once())
-            ->method('runQuery')
+            ->method('runSelect')
             ->willReturn($dbResults)
         ;
 
@@ -595,12 +580,13 @@ class NotificationManagerTest extends TestCase
 
         $this->useMockDatabase();
 
-        $this->mockDb->expects($this->exactly(2))
-            ->method('runQuery')
-            ->willReturnOnConsecutiveCalls(
-                $existingIdentifiers, // getConfigWarningIdentifiers
-                1 // removeNotificationsByIdentifiers
-            )
+        $this->mockDb->expects($this->once())
+            ->method('runSelect')
+            ->willReturn($existingIdentifiers) // getConfigWarningIdentifiers
+        ;
+        $this->mockDb->expects($this->once())
+            ->method('runStatement') // removeNotificationsByIdentifiers
+            ->willReturn(1)
         ;
 
         $result = $this->notificationManager->cleanupResolvedConfigWarnings($currentWarnings);
@@ -724,9 +710,11 @@ class NotificationManagerTest extends TestCase
      */
     public function testItHandlesDatabaseExceptionsGracefully(): void
     {
-        $this->mockDb->method('runQuery')
-            ->willThrowException(new Exception('Connection lost'))
-        ;
+        foreach (['runSelect', 'runInsert', 'runStatement'] as $method) {
+            $this->mockDb->method($method)
+                ->willThrowException(new Exception('Connection lost'))
+            ;
+        }
 
         // These should not throw exceptions but return false/empty results
         $this->assertFalse($this->notificationManager->addNotification('info', 'Title', 'Message'));
@@ -744,23 +732,22 @@ class NotificationManagerTest extends TestCase
      */
     public function testItHandlesNotificationWithZeroShowInterval(): void
     {
-        $callCount = 0;
         $this->useMockDatabase();
 
-        $this->mockDb->expects($this->exactly(2))
-            ->method('runQuery')
-            ->willReturnCallback(function ($sql, $params) use (&$callCount) {
-                ++$callCount;
-                if ($callCount === 1) {
-                    $this->assertStringContainsString('SELECT id FROM notifications', $sql);
-
-                    return [];
-                }
+        $this->mockDb->expects($this->once())
+            ->method('runSelect')
+            ->with($this->stringContains('SELECT id FROM notifications'), $this->anything())
+            ->willReturn([])
+        ;
+        $this->mockDb->expects($this->once())
+            ->method('runInsert')
+            ->willReturnCallback(function ($sql, $params) {
                 $this->assertStringContainsString('INSERT INTO notifications', $sql);
                 $this->assertSame(0, $params[4]);
 
                 return 1;
-            });
+            })
+        ;
 
         $this->notificationManager->addNotification(
             'info',

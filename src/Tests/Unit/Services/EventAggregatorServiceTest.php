@@ -34,7 +34,9 @@ final class EventAggregatorServiceTest extends TestCase
             ->willReturn($events)
         ;
         $database = $this->createMock(DatabaseInterface::class);
-        $database->expects($this->never())->method('runQuery');
+        $database->expects($this->never())->method('runSelect');
+        $database->expects($this->never())->method('runInsert');
+        $database->expects($this->never())->method('runStatement');
         $alarmRepository = new AlarmRepository($database);
         $idResolver = $this->createStub(ServerApplicationIdResolver::class);
 

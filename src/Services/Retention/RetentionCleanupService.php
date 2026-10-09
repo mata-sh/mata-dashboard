@@ -148,7 +148,7 @@ final class RetentionCleanupService
             )
             SQL;
 
-        return $this->deleted($this->db->runQuery($sql, ['cutoff' => $cutoff]));
+        return $this->db->runStatement($sql, ['cutoff' => $cutoff]);
     }
 
     private function deleteEvents(string $cutoff, int $batchLimit): int
@@ -171,7 +171,7 @@ final class RetentionCleanupService
             )
             SQL;
 
-        return $this->deleted($this->db->runQuery($sql, ['cutoff' => $cutoff]));
+        return $this->db->runStatement($sql, ['cutoff' => $cutoff]);
     }
 
     private function deleteMetrics(string $table, string $column, string $cutoff, int $batchLimit): int
@@ -189,7 +189,7 @@ final class RetentionCleanupService
             )
             SQL;
 
-        return $this->deleted($this->db->runQuery($sql, ['cutoff' => $cutoff]));
+        return $this->db->runStatement($sql, ['cutoff' => $cutoff]);
     }
 
     /** @param callable():int $delete */
@@ -217,12 +217,6 @@ final class RetentionCleanupService
             'category' => $category,
             'message' => $exception->getMessage(),
         ];
-    }
-
-    /** @param array<mixed>|int $result */
-    private function deleted(array|int $result): int
-    {
-        return is_int($result) ? $result : 0;
     }
 
     private function tick(?callable $tick): void

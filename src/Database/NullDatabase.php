@@ -22,17 +22,25 @@ final class NullDatabase implements DatabaseInterface
         $this->logger = $logger;
     }
 
-    public function runQuery(string $sql, array $params = []): array|int
+    public function runSelect(string $sql, array $params = []): array
     {
-        $this->logUnavailable('runQuery', [
-            'sql' => $this->sanitizeSql($sql),
-            'params' => $this->sanitizeParams($params),
-        ]);
+        $this->logSkippedQuery('runSelect', $sql, $params);
 
-        return match (SqlQueryClassifier::leadingKeyword($sql)) {
-            'INSERT', 'UPDATE', 'DELETE' => 0,
-            default => [],
-        };
+        return [];
+    }
+
+    public function runInsert(string $sql, array $params = []): int
+    {
+        $this->logSkippedQuery('runInsert', $sql, $params);
+
+        return 0;
+    }
+
+    public function runStatement(string $sql, array $params = []): int
+    {
+        $this->logSkippedQuery('runStatement', $sql, $params);
+
+        return 0;
     }
 
     public function beginTransaction(): void
@@ -48,6 +56,15 @@ final class NullDatabase implements DatabaseInterface
     public function rollback(): void
     {
         $this->logUnavailable('rollback');
+    }
+
+    /** @param array<int|string,mixed> $params */
+    private function logSkippedQuery(string $operation, string $sql, array $params): void
+    {
+        $this->logUnavailable($operation, [
+            'sql' => $this->sanitizeSql($sql),
+            'params' => $this->sanitizeParams($params),
+        ]);
     }
 
     /** @param array<string,mixed> $context */

@@ -78,7 +78,7 @@ final class NotificationManager
                 VALUES (?, ?, ?, ?, NOW(), NOW(), NULL, ?, NULL, ?)';
 
         try {
-            $this->db->runQuery($sql, [$identifier, $type, $title, $message, $showInterval, $isActive ? null : date('Y-m-d H:i:s')]);
+            $this->db->runInsert($sql, [$identifier, $type, $title, $message, $showInterval, $isActive ? null : date('Y-m-d H:i:s')]);
 
             return true;
         } catch (Exception $e) {
@@ -128,7 +128,7 @@ final class NotificationManager
                     VALUES (?, ?, ?, ?, NOW(), NOW(), NULL, ?, NULL, ?)';
 
         try {
-            $this->db->runQuery($sql, [$identifier, $type, $title, $message, $showInterval, $isActive ? null : date('Y-m-d H:i:s')]);
+            $this->db->runInsert($sql, [$identifier, $type, $title, $message, $showInterval, $isActive ? null : date('Y-m-d H:i:s')]);
 
             return true;
         } catch (Exception $e) {
@@ -165,7 +165,7 @@ final class NotificationManager
                 WHERE identifier = ? AND deactivated_at IS NULL';
 
         try {
-            $this->db->runQuery($sql, [$type, $title, $message, $showInterval, $isActive ? null : date('Y-m-d H:i:s'), $identifier]);
+            $this->db->runStatement($sql, [$type, $title, $message, $showInterval, $isActive ? null : date('Y-m-d H:i:s'), $identifier]);
 
             return true;
         } catch (Exception $e) {
@@ -187,8 +187,8 @@ final class NotificationManager
         $sql = 'SELECT * FROM notifications WHERE identifier = ? AND deactivated_at IS NULL LIMIT 1';
 
         try {
-            $result = $this->db->runQuery($sql, [$identifier]);
-            if (is_array($result) && !empty($result)) {
+            $result = $this->db->runSelect($sql, [$identifier]);
+            if ($result !== []) {
                 return $result[0];
             }
 
@@ -212,7 +212,7 @@ final class NotificationManager
         $sql = 'UPDATE notifications SET deactivated_at = NOW() WHERE identifier = ? AND deactivated_at IS NULL';
 
         try {
-            $this->db->runQuery($sql, [$identifier]);
+            $this->db->runStatement($sql, [$identifier]);
 
             return true;
         } catch (Exception $e) {
@@ -241,7 +241,7 @@ final class NotificationManager
                 WHERE identifier IN ({$placeholders}) AND deactivated_at IS NULL";
 
         try {
-            $this->db->runQuery($sql, $identifiers);
+            $this->db->runStatement($sql, $identifiers);
 
             return true;
         } catch (Exception $e) {
@@ -279,10 +279,7 @@ final class NotificationManager
                         created_at DESC";
 
             try {
-                $result = $this->db->runQuery($sql);
-                if (is_array($result)) {
-                    $notifications = $result;
-                }
+                $notifications = $this->db->runSelect($sql);
             } catch (Exception $e) {
                 $this->logger->error('Failed to get active notifications: ' . $e->getMessage());
             }
@@ -303,7 +300,7 @@ final class NotificationManager
         $sql = 'UPDATE notifications SET dismissed_at = NOW() WHERE id = ?';
 
         try {
-            $this->db->runQuery($sql, [$notificationId]);
+            $this->db->runStatement($sql, [$notificationId]);
 
             return true;
         } catch (Exception $e) {
@@ -325,7 +322,7 @@ final class NotificationManager
         $sql = 'UPDATE notifications SET deactivated_at = NOW() WHERE id = ?';
 
         try {
-            $this->db->runQuery($sql, [$notificationId]);
+            $this->db->runStatement($sql, [$notificationId]);
 
             return true;
         } catch (Exception $e) {
@@ -349,7 +346,7 @@ final class NotificationManager
                 AND deactivated_at IS NOT NULL';
 
         try {
-            $this->db->runQuery($sql, [$daysOld]);
+            $this->db->runStatement($sql, [$daysOld]);
 
             return true;
         } catch (Exception $e) {
@@ -372,10 +369,7 @@ final class NotificationManager
                 GROUP BY type';
 
         try {
-            $results = $this->db->runQuery($sql);
-            if (!is_array($results)) {
-                return [];
-            }
+            $results = $this->db->runSelect($sql);
             $counts = [];
             foreach ($results as $row) {
                 $counts[$row['type']] = (int) $row['count'];
@@ -409,7 +403,7 @@ final class NotificationManager
                 LIMIT 1';
 
         try {
-            $result = $this->db->runQuery($sql, [$type, $title, $message]);
+            $result = $this->db->runSelect($sql, [$type, $title, $message]);
 
             return !empty($result);
         } catch (Exception $e) {
@@ -589,12 +583,7 @@ final class NotificationManager
                 AND deactivated_at IS NULL";
 
         try {
-            $result = $this->db->runQuery($sql);
-            if (!is_array($result)) {
-                return [];
-            }
-
-            return array_column($result, 'identifier');
+            return array_column($this->db->runSelect($sql), 'identifier');
         } catch (Exception $e) {
             $this->logger->error('Failed to get config warning identifiers: ' . $e->getMessage());
 

@@ -16,19 +16,19 @@ use PHPUnit\Framework\TestCase;
  */
 final class NullDatabaseTest extends TestCase
 {
-    public function testItReturnsEmptyResultsForReadAndDefaultQueries(): void
+    public function testRunSelectReturnsNoRows(): void
     {
         $database = new NullDatabase(new Logger('test'));
 
-        self::assertSame([], $database->runQuery('SELECT * FROM users'));
-        self::assertSame([], $database->runQuery('CREATE TABLE users (id INTEGER)'));
+        self::assertSame([], $database->runSelect('SELECT * FROM users'));
     }
 
-    public function testItReturnsZeroForInsertsWithLeadingWhitespace(): void
+    public function testWritesReturnZero(): void
     {
         $database = new NullDatabase(new Logger('test'));
 
-        self::assertSame(0, $database->runQuery("\n\t INSERT INTO users (name) VALUES (?)", ['Alice']));
+        self::assertSame(0, $database->runInsert('INSERT INTO users (name) VALUES (?)', ['Alice']));
+        self::assertSame(0, $database->runStatement('DELETE FROM users'));
     }
 
     public function testItLogsOnlyParameterTypes(): void
@@ -36,13 +36,13 @@ final class NullDatabaseTest extends TestCase
         $handler = new TestHandler();
         $database = new NullDatabase(new Logger('test', [$handler]));
 
-        $database->runQuery('INSERT INTO users (name, active) VALUES (?, ?)', [
+        $database->runInsert('INSERT INTO users (name, active) VALUES (?, ?)', [
             'private-value',
             true,
         ]);
 
         self::assertTrue($handler->hasDebug([
-            'message' => 'Skipped database operation: runQuery',
+            'message' => 'Skipped database operation: runInsert',
             'context' => [
                 'sql' => 'INSERT INTO users (name, active) VALUES (?, ?)',
                 'params' => ['string', 'bool'],

@@ -24,13 +24,13 @@ final class AlarmRepository
         try {
             $evidence = $triggerEvidence === [] ? null : json_encode($triggerEvidence, JSON_UNESCAPED_SLASHES);
 
-            return (int) $this->db->runQuery(
+            return $this->db->runInsert(
                 'INSERT INTO alarms (event_id, trigger_evidence, created_at) VALUES (?, ?, CURRENT_TIMESTAMP)',
                 [$eventId, $evidence === false ? null : $evidence]
             );
         } catch (PDOException $exception) {
-            $rows = $this->db->runQuery('SELECT id FROM alarms WHERE event_id = ?', [$eventId]);
-            if (is_array($rows) && isset($rows[0]['id'])) {
+            $rows = $this->db->runSelect('SELECT id FROM alarms WHERE event_id = ?', [$eventId]);
+            if (isset($rows[0]['id'])) {
                 return (int) $rows[0]['id'];
             }
 
@@ -68,8 +68,8 @@ final class AlarmRepository
             LIMIT {$limit}
         SQL;
 
-        $alarms = $this->db->runQuery($sql);
-        if (!is_array($alarms) || $alarms === []) {
+        $alarms = $this->db->runSelect($sql);
+        if ($alarms === []) {
             return [];
         }
 
@@ -93,7 +93,7 @@ final class AlarmRepository
     private function fetchDeliveriesByAlarm(array $alarmIds): array
     {
         $placeholders = implode(', ', array_fill(0, count($alarmIds), '?'));
-        $deliveries = $this->db->runQuery(<<<SQL
+        $deliveries = $this->db->runSelect(<<<SQL
             SELECT alarm_id, channel, status, attempts, processed_at, next_retry_at
             FROM alarm_deliveries
             WHERE alarm_id IN ({$placeholders})
@@ -101,7 +101,7 @@ final class AlarmRepository
             SQL, $alarmIds);
 
         $grouped = [];
-        foreach (is_array($deliveries) ? $deliveries : [] as $delivery) {
+        foreach ($deliveries as $delivery) {
             $channel = strtolower(trim((string) $delivery['channel']));
             if ($channel === '') {
                 continue;
@@ -121,7 +121,7 @@ final class AlarmRepository
     /** @return array<string,int> */
     public function getUnacknowledgedCounts(): array
     {
-        $rows = $this->db->runQuery(<<<'SQL'
+        $rows = $this->db->runSelect(<<<'SQL'
             SELECT COALESCE(e.level, 'info') AS level, COUNT(*) AS cnt
             FROM alarms AS al
             LEFT JOIN events AS e ON e.id = al.event_id
@@ -130,7 +130,7 @@ final class AlarmRepository
             SQL);
 
         $counts = [];
-        foreach (is_array($rows) ? $rows : [] as $row) {
+        foreach ($rows as $row) {
             $counts[(string) $row['level']] = (int) $row['cnt'];
         }
 
@@ -139,7 +139,7 @@ final class AlarmRepository
 
     public function acknowledge(int $alarmId, string $user): bool
     {
-        return (int) $this->db->runQuery(
+        return $this->db->runStatement(
             'UPDATE alarms SET acknowledged_at = CURRENT_TIMESTAMP, acknowledged_by = ? WHERE id = ? AND acknowledged_at IS NULL',
             [$user, $alarmId]
         ) > 0;
@@ -147,7 +147,7 @@ final class AlarmRepository
 
     public function acknowledgeAll(string $user): int
     {
-        return (int) $this->db->runQuery(
+        return $this->db->runStatement(
             'UPDATE alarms SET acknowledged_at = CURRENT_TIMESTAMP, acknowledged_by = ? WHERE acknowledged_at IS NULL',
             [$user]
         );
@@ -193,8 +193,6 @@ final class AlarmRepository
         }
         $sql .= ' ORDER BY al.created_at DESC';
 
-        $result = $this->db->runQuery($sql, $params);
-
-        return is_array($result) ? $result : [];
+        return $this->db->runSelect($sql, $params);
     }
 }

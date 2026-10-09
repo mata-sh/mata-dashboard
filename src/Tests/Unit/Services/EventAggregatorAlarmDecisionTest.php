@@ -20,7 +20,7 @@ final class EventAggregatorAlarmDecisionTest extends TestCase
         $db = $this->createMock(DatabaseInterface::class);
         $db
             ->expects($this->once())
-            ->method('runQuery')
+            ->method('runStatement')
             ->with(
                 'UPDATE events SET evaluated_at = CURRENT_TIMESTAMP, alarm_decision = NULL WHERE id = ?',
                 [42]
@@ -40,7 +40,7 @@ final class EventAggregatorAlarmDecisionTest extends TestCase
         $db = $this->createMock(DatabaseInterface::class);
         $db
             ->expects($this->once())
-            ->method('runQuery')
+            ->method('runStatement')
             ->with(
                 'UPDATE events SET evaluated_at = CURRENT_TIMESTAMP, alarm_decision = ? WHERE id = ?',
                 ['{"outcome":"alarmed","requested_channels":["email"]}', 42]
@@ -56,7 +56,7 @@ final class EventAggregatorAlarmDecisionTest extends TestCase
         $db = $this->createMock(DatabaseInterface::class);
         $db
             ->expects($this->once())
-            ->method('runQuery')
+            ->method('runStatement')
             ->with(
                 'UPDATE events SET evaluated_at = CURRENT_TIMESTAMP, alarm_decision = NULL WHERE id = ?',
                 [42]

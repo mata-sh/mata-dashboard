@@ -72,15 +72,11 @@ final class ServerMetricsQuery implements ServerMetricsQueryInterface
             ORDER BY h.hour_timestamp ASC
         SQL;
 
-        $rows = $this->db->runQuery($sql, [
+        $rows = $this->db->runSelect($sql, [
             $serverId,
             $from->format('Y-m-d H:i:s'),
             $to->format('Y-m-d H:i:s'),
         ]);
-
-        if (!is_array($rows)) {
-            return [];
-        }
 
         $results = [];
         foreach ($rows as $row) {
@@ -131,15 +127,11 @@ final class ServerMetricsQuery implements ServerMetricsQueryInterface
             ORDER BY d.date ASC
         SQL;
 
-        $rows = $this->db->runQuery($sql, [
+        $rows = $this->db->runSelect($sql, [
             $serverId,
             $from->format('Y-m-d'),
             $to->format('Y-m-d'),
         ]);
-
-        if (!is_array($rows)) {
-            return [];
-        }
 
         $results = [];
         foreach ($rows as $row) {
@@ -189,15 +181,11 @@ final class ServerMetricsQuery implements ServerMetricsQueryInterface
             $sql .= ' LIMIT ' . (int) $limit;
         }
 
-        $rows = $this->db->runQuery($sql, [
+        $rows = $this->db->runSelect($sql, [
             $serverId,
             $from->format('Y-m-d H:i:s'),
             $to->format('Y-m-d H:i:s'),
         ]);
-
-        if (!is_array($rows)) {
-            return [];
-        }
 
         $results = [];
         foreach ($rows as $row) {
@@ -216,11 +204,7 @@ final class ServerMetricsQuery implements ServerMetricsQueryInterface
             ORDER BY s.name ASC
         SQL;
 
-        $rows = $this->db->runQuery($sql, []);
-
-        if (!is_array($rows)) {
-            return [];
-        }
+        $rows = $this->db->runSelect($sql, []);
 
         $servers = [];
         foreach ($rows as $row) {

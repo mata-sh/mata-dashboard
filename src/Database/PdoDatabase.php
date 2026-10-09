@@ -7,6 +7,7 @@ namespace Mata\Database;
 use Mata\Config\Dto\DatabaseConfig;
 use PDO;
 use PDOException;
+use PDOStatement;
 
 /**
  * MySQL database connection wrapper with prepared statements.
@@ -48,26 +49,37 @@ class PdoDatabase implements DatabaseInterface
     }
 
     /**
-     * Execute SQL query with prepared statement parameters.
-     *
-     * Handles both SELECT and INSERT/UPDATE/DELETE operations.
-     *
      * @param array<int|string,mixed> $params Parameters for prepared statement
      *
-     * @return array<int,array<string,mixed>>|int Result array for SELECT, insert ID for INSERT, affected rows for UPDATE/DELETE
+     * @return array<int,array<string,mixed>>
      *
      * @throws PDOException If query execution fails
      */
-    public function runQuery(string $sql, array $params = []): array|int
+    public function runSelect(string $sql, array $params = []): array
     {
-        $stmt = $this->pdo->prepare($sql);
-        $stmt->execute($params);
+        return $this->execute($sql, $params)->fetchAll(PDO::FETCH_ASSOC);
+    }
 
-        return match (SqlQueryClassifier::leadingKeyword($sql)) {
-            'INSERT' => (int) $this->pdo->lastInsertId(),
-            'UPDATE', 'DELETE' => $stmt->rowCount(),
-            default => $stmt->fetchAll(PDO::FETCH_ASSOC),
-        };
+    /**
+     * @param array<int|string,mixed> $params Parameters for prepared statement
+     *
+     * @throws PDOException If query execution fails
+     */
+    public function runInsert(string $sql, array $params = []): int
+    {
+        $this->execute($sql, $params);
+
+        return (int) $this->pdo->lastInsertId();
+    }
+
+    /**
+     * @param array<int|string,mixed> $params Parameters for prepared statement
+     *
+     * @throws PDOException If query execution fails
+     */
+    public function runStatement(string $sql, array $params = []): int
+    {
+        return $this->execute($sql, $params)->rowCount();
     }
 
     /**
@@ -108,5 +120,14 @@ class PdoDatabase implements DatabaseInterface
     public function getPdo(): PDO
     {
         return $this->pdo;
+    }
+
+    /** @param array<int|string,mixed> $params */
+    private function execute(string $sql, array $params): PDOStatement
+    {
+        $statement = $this->pdo->prepare($sql);
+        $statement->execute($params);
+
+        return $statement;
     }
 }

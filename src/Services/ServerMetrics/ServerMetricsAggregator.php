@@ -118,7 +118,7 @@ WHERE
     AND r.collected_at < ?
 SQL;
 
-        $rows = $this->db->runQuery($sql, [
+        $rows = $this->db->runSelect($sql, [
             $serverName,
             $windowStart->format('Y-m-d H:i:s'),
             $windowEnd->format('Y-m-d H:i:s'),
@@ -159,7 +159,7 @@ INNER JOIN servers AS s ON s.id = h.server_id
 WHERE s.name = ? AND h.hour_timestamp >= ? AND h.hour_timestamp < ?
 SQL;
 
-        $rows = $this->db->runQuery($sql, [
+        $rows = $this->db->runSelect($sql, [
             $serverName,
             $startOfDay->format('Y-m-d H:i:s'),
             $dayEnd->format('Y-m-d H:i:s'),
@@ -189,7 +189,7 @@ WHERE
 SQL;
 
         try {
-            $rows = $this->db->runQuery($sql, [
+            $rows = $this->db->runSelect($sql, [
                 $serverName,
                 $startOfDay->format('Y-m-d H:i:s'),
                 $dayEnd->format('Y-m-d H:i:s'),

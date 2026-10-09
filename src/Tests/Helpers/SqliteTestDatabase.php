@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace Mata\Tests\Helpers;
 
 use Mata\Database\DatabaseInterface;
-use Mata\Database\SqlQueryClassifier;
 use PDO;
+use PDOStatement;
 use RuntimeException;
 
 /**
@@ -64,7 +64,40 @@ final class SqliteTestDatabase implements DatabaseInterface
         $this->failureAttempts[$needle] = $attempt;
     }
 
-    public function runQuery(string $sql, array $params = []): array|int
+    public function runSelect(string $sql, array $params = []): array
+    {
+        return $this->execute($sql, $params)->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    public function runInsert(string $sql, array $params = []): int
+    {
+        $this->execute($sql, $params);
+
+        return (int) $this->pdo->lastInsertId();
+    }
+
+    public function runStatement(string $sql, array $params = []): int
+    {
+        return $this->execute($sql, $params)->rowCount();
+    }
+
+    public function beginTransaction(): void
+    {
+        $this->pdo->beginTransaction();
+    }
+
+    public function commit(): void
+    {
+        $this->pdo->commit();
+    }
+
+    public function rollback(): void
+    {
+        $this->pdo->rollBack();
+    }
+
+    /** @param array<int|string,mixed> $params */
+    private function execute(string $sql, array $params): PDOStatement
     {
         $this->queryLog[] = ['sql' => $sql, 'params' => $params];
         foreach ($this->failureNeedles as $needle) {
@@ -86,25 +119,6 @@ final class SqliteTestDatabase implements DatabaseInterface
         $statement = $this->pdo->prepare($sql);
         $statement->execute($params);
 
-        return match (SqlQueryClassifier::leadingKeyword($sql)) {
-            'INSERT' => (int) $this->pdo->lastInsertId(),
-            'UPDATE', 'DELETE' => $statement->rowCount(),
-            default => $statement->fetchAll(PDO::FETCH_ASSOC),
-        };
-    }
-
-    public function beginTransaction(): void
-    {
-        $this->pdo->beginTransaction();
-    }
-
-    public function commit(): void
-    {
-        $this->pdo->commit();
-    }
-
-    public function rollback(): void
-    {
-        $this->pdo->rollBack();
+        return $statement;
     }
 }

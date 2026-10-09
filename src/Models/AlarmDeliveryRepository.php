@@ -26,7 +26,7 @@ final class AlarmDeliveryRepository
         $channel = strtolower(trim($channel));
 
         try {
-            return (int) $this->db->runQuery(
+            return $this->db->runInsert(
                 "INSERT INTO alarm_deliveries
                     (alarm_id, channel, status, priority, attempts, created_at, processed_at, next_retry_at, error_payload)
                  VALUES (?, ?, 'pending', ?, 0, CURRENT_TIMESTAMP, NULL, NULL, NULL)",
@@ -50,7 +50,7 @@ final class AlarmDeliveryRepository
             ->sub(new DateInterval('PT' . self::STALE_PROCESSING_MINUTES . 'M'))
             ->format(self::SQL_DATETIME);
         $limit = max(1, $limit);
-        $rows = $this->runSelect(<<<SQL
+        $rows = $this->db->runSelect(<<<SQL
             SELECT ad.id, al.id AS alarm_id, al.created_at AS alarm_created_at, al.event_id, al.trigger_evidence,
                 (
                     SELECT MAX(previous_alarm.created_at)
@@ -91,7 +91,7 @@ final class AlarmDeliveryRepository
 
         $ids = array_column($rows, 'id');
         $placeholders = implode(',', array_fill(0, count($ids), '?'));
-        $this->db->runQuery(
+        $this->db->runStatement(
             "UPDATE alarm_deliveries SET status = 'processing', processed_at = ? WHERE id IN ({$placeholders})",
             array_merge([$nowSql], $ids)
         );
@@ -109,7 +109,7 @@ final class AlarmDeliveryRepository
         if ($pairs === []) {
             return [];
         }
-        $rows = $this->runSelect(<<<'SQL'
+        $rows = $this->db->runSelect(<<<'SQL'
             SELECT LOWER(COALESCE(s.name, 'global')) AS server_key, LOWER(ad.channel) AS channel,
                 SUM(CASE WHEN ad.processed_at >= :minute_threshold THEN 1 ELSE 0 END) AS minute_count,
                 SUM(CASE WHEN ad.processed_at >= :hour_threshold THEN 1 ELSE 0 END) AS hour_count,
@@ -148,7 +148,7 @@ final class AlarmDeliveryRepository
 
     public function updateError(int $deliveryId, ?string $errorPayload): void
     {
-        $this->db->runQuery(
+        $this->db->runStatement(
             'UPDATE alarm_deliveries SET error_payload = ?, processed_at = CURRENT_TIMESTAMP WHERE id = ?',
             [$errorPayload, $deliveryId]
         );
@@ -156,7 +156,7 @@ final class AlarmDeliveryRepository
 
     public function updateStatus(int $deliveryId, string $status, int $attempts, ?DateTimeImmutable $nextRetryAt = null): void
     {
-        $this->db->runQuery(
+        $this->db->runStatement(
             'UPDATE alarm_deliveries SET status = ?, attempts = ?, next_retry_at = ?, processed_at = CURRENT_TIMESTAMP WHERE id = ?',
             [$status, $attempts, $nextRetryAt?->format(self::SQL_DATETIME), $deliveryId]
         );
@@ -164,24 +164,12 @@ final class AlarmDeliveryRepository
 
     private function findExistingId(int $alarmId, string $channel): ?int
     {
-        $rows = $this->runSelect(
+        $rows = $this->db->runSelect(
             'SELECT id FROM alarm_deliveries WHERE alarm_id = ? AND channel = ?',
             [$alarmId, $channel]
         );
 
         return isset($rows[0]['id']) ? (int) $rows[0]['id'] : null;
-    }
-
-    /**
-     * @param array<int|string,mixed> $params
-     *
-     * @return array<int,array<string,mixed>>
-     */
-    private function runSelect(string $sql, array $params = []): array
-    {
-        $rows = $this->db->runQuery($sql, $params);
-
-        return is_array($rows) ? $rows : [];
     }
 
     /** @param array<string,mixed> $row */

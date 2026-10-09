@@ -148,7 +148,7 @@ final class ServerMetricsHealthMonitorTest extends TestCase
     ): ServerMetricsHealthMonitor {
         $database = $this->createMock(DatabaseInterface::class);
         $database->expects($this->exactly(4))
-            ->method('runQuery')
+            ->method('runSelect')
             ->willReturnOnConsecutiveCalls($baselineCounts, $baselineLatest, $afterCounts, $afterLatest);
         $repository = new ServerMetricsRepository(
             $database,

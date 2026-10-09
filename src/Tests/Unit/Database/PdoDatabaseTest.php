@@ -31,7 +31,7 @@ final class PdoDatabaseTest extends TestCase
             config: ApplicationConfigFactory::createDatabaseConfig(),
             pdo: $this->pdo,
         );
-        $this->database->runQuery('CREATE TABLE users (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT)');
+        $this->database->runStatement('CREATE TABLE users (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT)');
     }
 
     public function testInjectedPdoReceivesSecureDefaults(): void
@@ -41,49 +41,61 @@ final class PdoDatabaseTest extends TestCase
         self::assertSame($this->pdo, $this->database->getPdo());
     }
 
-    public function testItExecutesSelectQueries(): void
+    public function testRunSelectReturnsRows(): void
     {
         $this->pdo->exec("INSERT INTO users (name) VALUES ('Alice')");
 
-        self::assertSame([['id' => 1, 'name' => 'Alice']], $this->database->runQuery("\n SELECT * FROM users"));
+        self::assertSame([['id' => 1, 'name' => 'Alice']], $this->database->runSelect('SELECT * FROM users'));
     }
 
-    public function testItExecutesInsertQueries(): void
-    {
-        self::assertSame(1, $this->database->runQuery("\n\t INSERT INTO users (name) VALUES (:name)", ['name' => 'Alice']));
-    }
-
-    public function testItExecutesUpdateQueries(): void
+    public function testRunSelectReturnsRowsForCommonTableExpressions(): void
     {
         $this->pdo->exec("INSERT INTO users (name) VALUES ('Alice')");
 
-        self::assertSame(1, $this->database->runQuery("\r\n UPDATE users SET name = 'Bob' WHERE id = 1"));
+        self::assertSame(
+            [['name' => 'Alice']],
+            $this->database->runSelect('WITH named AS (SELECT name FROM users) SELECT name FROM named'),
+        );
     }
 
-    public function testItExecutesDeleteQueries(): void
+    public function testRunInsertReturnsLastInsertId(): void
     {
         $this->pdo->exec("INSERT INTO users (name) VALUES ('Alice')");
 
-        self::assertSame(1, $this->database->runQuery("\t DELETE FROM users WHERE id = 1"));
+        self::assertSame(2, $this->database->runInsert('INSERT INTO users (name) VALUES (:name)', ['name' => 'Bob']));
+    }
+
+    public function testRunStatementReturnsAffectedRowsForUpdates(): void
+    {
+        $this->pdo->exec("INSERT INTO users (name) VALUES ('Alice'), ('Alma')");
+
+        self::assertSame(2, $this->database->runStatement("UPDATE users SET name = 'Bob' WHERE name LIKE 'Al%'"));
+    }
+
+    public function testRunStatementReturnsAffectedRowsForDeletes(): void
+    {
+        $this->pdo->exec("INSERT INTO users (name) VALUES ('Alice')");
+
+        self::assertSame(1, $this->database->runStatement('DELETE FROM users WHERE id = 1'));
     }
 
     public function testItSupportsTransactions(): void
     {
         $this->database->beginTransaction();
-        $this->database->runQuery("INSERT INTO users (name) VALUES ('Alice')");
+        $this->database->runInsert("INSERT INTO users (name) VALUES ('Alice')");
         $this->database->rollback();
-        self::assertSame([], $this->database->runQuery('SELECT * FROM users'));
+        self::assertSame([], $this->database->runSelect('SELECT * FROM users'));
 
         $this->database->beginTransaction();
-        $this->database->runQuery("INSERT INTO users (name) VALUES ('Bob')");
+        $this->database->runInsert("INSERT INTO users (name) VALUES ('Bob')");
         $this->database->commit();
-        self::assertCount(1, $this->database->runQuery('SELECT * FROM users'));
+        self::assertCount(1, $this->database->runSelect('SELECT * FROM users'));
     }
 
     public function testPdoExceptionsPropagate(): void
     {
         $this->expectException(PDOException::class);
 
-        $this->database->runQuery('SELECT * FROM missing_table');
+        $this->database->runSelect('SELECT * FROM missing_table');
     }
 }

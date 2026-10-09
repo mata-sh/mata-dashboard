@@ -38,7 +38,7 @@ final class ServerMetricRaw
         $db->beginTransaction();
 
         try {
-            $db->runQuery(self::sql(), $this->buildParams());
+            $db->runStatement(self::sql(), $this->buildParams());
             $db->commit();
         } catch (Throwable $exception) {
             $db->rollback();

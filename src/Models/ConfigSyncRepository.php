@@ -35,7 +35,7 @@ class ConfigSyncRepository
             WHERE config_file_path = ?
         SQL;
 
-        $result = $this->db->runQuery($sql, [$configFilePath]);
+        $result = $this->db->runSelect($sql, [$configFilePath]);
 
         return $result[0] ?? null;
     }
@@ -51,7 +51,7 @@ class ConfigSyncRepository
         ?string $provider,
         string $metadata
     ): bool {
-        $existing = $this->db->runQuery(
+        $existing = $this->db->runSelect(
             'SELECT id FROM servers WHERE name = ?',
             [$serverName]
         );
@@ -65,7 +65,7 @@ class ConfigSyncRepository
                     updated_at = CURRENT_TIMESTAMP
                 WHERE name = ?
             SQL;
-            $this->db->runQuery($sql, [$hostname, $provider, $metadata, $serverName]);
+            $this->db->runStatement($sql, [$hostname, $provider, $metadata, $serverName]);
 
             return false;
         }
@@ -74,7 +74,7 @@ class ConfigSyncRepository
             INSERT INTO servers (name, hostname, provider, metadata, created_at, updated_at)
             VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
         SQL;
-        $this->db->runQuery($sql, [$serverName, $hostname, $provider, $metadata]);
+        $this->db->runInsert($sql, [$serverName, $hostname, $provider, $metadata]);
 
         return true;
     }
@@ -86,12 +86,12 @@ class ConfigSyncRepository
      */
     public function findServerIdByName(string $serverName): ?int
     {
-        $result = $this->db->runQuery(
+        $result = $this->db->runSelect(
             'SELECT id FROM servers WHERE name = ? LIMIT 1',
             [$serverName]
         );
 
-        if (is_array($result) && isset($result[0]['id'])) {
+        if (isset($result[0]['id'])) {
             return (int) $result[0]['id'];
         }
 
@@ -111,12 +111,12 @@ class ConfigSyncRepository
         string $displayName,
         ?string $appEnv
     ): bool {
-        $existing = $this->db->runQuery(
+        $existing = $this->db->runSelect(
             'SELECT id, display_name, app_env FROM applications WHERE code = ?',
             [$code]
         );
 
-        if (is_array($existing) && $existing !== []) {
+        if ($existing !== []) {
             $current = $existing[0];
             if (($current['display_name'] ?? null) === $displayName
                 && ($current['app_env'] ?? null) === $appEnv
@@ -131,7 +131,7 @@ class ConfigSyncRepository
                     updated_at = CURRENT_TIMESTAMP
                 WHERE code = ?
             SQL;
-            $this->db->runQuery($sql, [$displayName, $appEnv, $code]);
+            $this->db->runStatement($sql, [$displayName, $appEnv, $code]);
 
             return false;
         }
@@ -140,7 +140,7 @@ class ConfigSyncRepository
             INSERT INTO applications (code, display_name, app_env, created_at, updated_at)
             VALUES (?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
         SQL;
-        $this->db->runQuery($sql, [$code, $displayName, $appEnv]);
+        $this->db->runInsert($sql, [$code, $displayName, $appEnv]);
 
         return true;
     }
@@ -152,11 +152,7 @@ class ConfigSyncRepository
      */
     public function fetchServerIdMap(): array
     {
-        $result = $this->db->runQuery('SELECT id, name FROM servers', []);
-
-        if (!is_array($result)) {
-            return [];
-        }
+        $result = $this->db->runSelect('SELECT id, name FROM servers', []);
 
         $map = [];
         foreach ($result as $row) {
@@ -178,11 +174,7 @@ class ConfigSyncRepository
      */
     public function fetchApplicationIdMap(): array
     {
-        $result = $this->db->runQuery('SELECT id, code FROM applications', []);
-
-        if (!is_array($result)) {
-            return [];
-        }
+        $result = $this->db->runSelect('SELECT id, code FROM applications', []);
 
         $map = [];
         foreach ($result as $row) {
@@ -206,7 +198,7 @@ class ConfigSyncRepository
         string $syncStatus,
         string $syncDetails
     ): void {
-        $existing = $this->db->runQuery(
+        $existing = $this->db->runSelect(
             'SELECT id FROM config_sync_tracking WHERE config_file_path = ?',
             [$configFilePath]
         );
@@ -221,7 +213,7 @@ class ConfigSyncRepository
                     updated_at = CURRENT_TIMESTAMP
                 WHERE config_file_path = ?
             SQL;
-            $this->db->runQuery($sql, [$fileModifiedTime, $syncStatus, $syncDetails, $configFilePath]);
+            $this->db->runStatement($sql, [$fileModifiedTime, $syncStatus, $syncDetails, $configFilePath]);
 
             return;
         }
@@ -231,6 +223,6 @@ class ConfigSyncRepository
             (config_file_path, file_modified_at, last_synced_at, sync_status, sync_details, created_at, updated_at)
             VALUES (?, FROM_UNIXTIME(?), CURRENT_TIMESTAMP, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
         SQL;
-        $this->db->runQuery($sql, [$configFilePath, $fileModifiedTime, $syncStatus, $syncDetails]);
+        $this->db->runInsert($sql, [$configFilePath, $fileModifiedTime, $syncStatus, $syncDetails]);
     }
 }

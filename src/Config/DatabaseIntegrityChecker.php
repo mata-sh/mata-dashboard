@@ -87,7 +87,7 @@ class DatabaseIntegrityChecker
     public function assertReady(): void
     {
         try {
-            $this->db->runQuery('SELECT 1');
+            $this->db->runSelect('SELECT 1');
         } catch (Throwable $exception) {
             throw new RuntimeException('Database connection check failed.', 0, $exception);
         }
@@ -98,12 +98,12 @@ class DatabaseIntegrityChecker
         }
 
         try {
-            $result = $this->db->runQuery('SHOW TABLES LIKE ?', [$referenceTable]);
+            $result = $this->db->runSelect('SHOW TABLES LIKE ?', [$referenceTable]);
         } catch (Throwable $exception) {
             throw new RuntimeException('Database schema check failed.', 0, $exception);
         }
 
-        if (!is_array($result) || count($result) === 0) {
+        if ($result === []) {
             throw new RuntimeException(sprintf('Reference table "%s" missing.', $referenceTable));
         }
     }
@@ -115,8 +115,8 @@ class DatabaseIntegrityChecker
      */
     private function checkTableExists(string $table): array
     {
-        $result = $this->db->runQuery('SHOW TABLES LIKE ?', [$table]);
-        $exists = is_array($result) && count($result) > 0;
+        $result = $this->db->runSelect('SHOW TABLES LIKE ?', [$table]);
+        $exists = $result !== [];
 
         return [
             'label' => "table:{$table}",

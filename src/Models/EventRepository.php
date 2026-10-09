@@ -35,7 +35,7 @@ class EventRepository
                 (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
         SQL;
 
-        $result = $this->db->runQuery($sql, [
+        return $this->db->runInsert($sql, [
             $type,
             $message,
             $level,
@@ -43,8 +43,6 @@ class EventRepository
             $serverId,
             $applicationId,
         ]);
-
-        return is_int($result) ? $result : 0;
     }
 
     public function hasActiveCooldown(string $cooldownHash): bool
@@ -61,9 +59,9 @@ class EventRepository
             LIMIT 1
         SQL;
 
-        $result = $this->db->runQuery($sql, [$cooldownHash]);
+        $result = $this->db->runSelect($sql, [$cooldownHash]);
 
-        return is_array($result) && !empty($result);
+        return $result !== [];
     }
 
     // NOTE: uses MySQL-only `ON DUPLICATE KEY UPDATE` upsert syntax (SQLite uses
@@ -77,7 +75,7 @@ class EventRepository
 
         if ($cooldownMinutes <= 0) {
             $sql = 'DELETE FROM cooldowns WHERE cooldown_hash = ?';
-            $this->db->runQuery($sql, [$cooldownHash]);
+            $this->db->runStatement($sql, [$cooldownHash]);
 
             return;
         }
@@ -93,7 +91,7 @@ class EventRepository
                 updated_at = CURRENT_TIMESTAMP
         SQL;
 
-        $this->db->runQuery($sql, [$cooldownHash, $expiry]);
+        $this->db->runStatement($sql, [$cooldownHash, $expiry]);
     }
 
     /**
@@ -116,11 +114,7 @@ class EventRepository
               AND cooldown_until > CURRENT_TIMESTAMP
         SQL;
 
-        $result = $this->db->runQuery($sql, $alarmHashes);
-
-        if (!is_array($result)) {
-            return [];
-        }
+        $result = $this->db->runSelect($sql, $alarmHashes);
 
         return array_column($result, 'cooldown_hash');
     }
@@ -168,9 +162,7 @@ class EventRepository
 
         $sql .= ' ORDER BY e.`datetime` DESC';
 
-        $result = $this->db->runQuery($sql, $params);
-
-        return is_array($result) ? $result : [];
+        return $this->db->runSelect($sql, $params);
     }
 
     /**
@@ -193,9 +185,7 @@ class EventRepository
             LIMIT {$limit}
         SQL;
 
-        $result = $this->db->runQuery($sql);
-
-        return is_array($result) ? $result : [];
+        return $this->db->runSelect($sql);
     }
 
     /**
@@ -245,16 +235,14 @@ class EventRepository
             LIMIT {$limit}
         SQL;
 
-        $result = $this->db->runQuery($sql, $params);
-
-        return is_array($result) ? $result : [];
+        return $this->db->runSelect($sql, $params);
     }
 
     /** @param null|array<string,mixed> $alarmDecision */
     public function markEventEvaluated(int $eventId, ?array $alarmDecision = null): void
     {
         if ($alarmDecision === null) {
-            $this->db->runQuery(
+            $this->db->runStatement(
                 'UPDATE events SET evaluated_at = CURRENT_TIMESTAMP, alarm_decision = NULL WHERE id = ?',
                 [$eventId]
             );
@@ -264,7 +252,7 @@ class EventRepository
 
         $encodedDecision = json_encode($alarmDecision, JSON_UNESCAPED_SLASHES);
         if ($encodedDecision === false) {
-            $this->db->runQuery(
+            $this->db->runStatement(
                 'UPDATE events SET evaluated_at = CURRENT_TIMESTAMP, alarm_decision = NULL WHERE id = ?',
                 [$eventId]
             );
@@ -272,7 +260,7 @@ class EventRepository
             return;
         }
 
-        $this->db->runQuery(
+        $this->db->runStatement(
             'UPDATE events SET evaluated_at = CURRENT_TIMESTAMP, alarm_decision = ? WHERE id = ?',
             [$encodedDecision, $eventId]
         );

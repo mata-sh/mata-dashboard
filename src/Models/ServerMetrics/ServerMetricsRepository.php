@@ -15,7 +15,6 @@ use Mata\Models\ServerMetrics\Dto\ServerMetricRawSnapshot;
 use Mata\Services\Identity\ServerApplicationIdResolver;
 use RuntimeException;
 use Throwable;
-use UnexpectedValueException;
 
 /**
  * Persistence layer for server metric tables.
@@ -101,7 +100,7 @@ final class ServerMetricsRepository
      */
     public function getRawSampleCountsByServer(): array
     {
-        $rows = $this->db->runQuery(
+        $rows = $this->db->runSelect(
             <<<'SQL'
                 SELECT s.name AS server_name, COUNT(*) AS sample_count
                 FROM server_metrics_raw AS r
@@ -109,10 +108,6 @@ final class ServerMetricsRepository
                 GROUP BY s.name
             SQL
         );
-
-        if (!is_array($rows)) {
-            throw new UnexpectedValueException('Expected rows from raw sample count query.');
-        }
 
         $counts = [];
         foreach ($rows as $row) {
@@ -134,7 +129,7 @@ final class ServerMetricsRepository
      */
     public function getLatestRawSampleCollectedAt(): array
     {
-        $rows = $this->db->runQuery(
+        $rows = $this->db->runSelect(
             <<<'SQL'
                 SELECT s.name AS server_name, MAX(r.collected_at) AS last_collected
                 FROM server_metrics_raw AS r
@@ -142,10 +137,6 @@ final class ServerMetricsRepository
                 GROUP BY s.name
             SQL
         );
-
-        if (!is_array($rows)) {
-            throw new UnexpectedValueException('Expected rows from latest raw sample query.');
-        }
 
         $timestamps = [];
         foreach ($rows as $row) {
@@ -177,7 +168,7 @@ final class ServerMetricsRepository
     {
         $serverId = $this->resolveServerId($serverName);
 
-        $latestHourly = $this->db->runQuery(
+        $latestHourly = $this->db->runSelect(
             <<<'SQL'
             SELECT hour_timestamp, sample_count 
             FROM server_metrics_hourly 
@@ -188,7 +179,7 @@ final class ServerMetricsRepository
             [$serverId]
         );
 
-        $latestDaily = $this->db->runQuery(
+        $latestDaily = $this->db->runSelect(
             <<<'SQL'
             SELECT date, sample_count 
             FROM server_metrics_daily 
@@ -407,7 +398,7 @@ final class ServerMetricsRepository
         $normalizedVersion = $this->normalizeString($collectorVersion);
         $normalizedContact = $this->normalizeString($collectorContact);
 
-        $existing = $this->db->runQuery(
+        $existing = $this->db->runSelect(
             'SELECT id, version, contact FROM metric_collectors WHERE name = ?',
             [$collectorName]
         );
@@ -418,7 +409,7 @@ final class ServerMetricsRepository
             $currentContact = $this->normalizeString($existing[0]['contact'] ?? null);
 
             if ($currentVersion !== $normalizedVersion || $currentContact !== $normalizedContact) {
-                $this->db->runQuery(
+                $this->db->runStatement(
                     <<<'SQL'
                     UPDATE metric_collectors 
                     SET version = ?, contact = ?, updated_at = CURRENT_TIMESTAMP 
@@ -434,7 +425,7 @@ final class ServerMetricsRepository
         }
 
         try {
-            $insertId = $this->db->runQuery(
+            $insertId = $this->db->runInsert(
                 <<<'SQL'
                 INSERT INTO metric_collectors 
                 (name, version, contact, created_at, updated_at) 
@@ -443,7 +434,7 @@ final class ServerMetricsRepository
                 [$collectorName, $normalizedVersion, $normalizedContact]
             );
 
-            if (is_int($insertId) && $insertId > 0) {
+            if ($insertId > 0) {
                 $this->collectorIdCache[$cacheKey] = $insertId;
 
                 return $insertId;
@@ -452,7 +443,7 @@ final class ServerMetricsRepository
             // Likely duplicate insert due to race; continue to lookup below.
         }
 
-        $existing = $this->db->runQuery(
+        $existing = $this->db->runSelect(
             'SELECT id FROM metric_collectors WHERE name = ?',
             [$collectorName]
         );

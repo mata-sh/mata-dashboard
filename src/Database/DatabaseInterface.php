@@ -13,16 +13,34 @@ namespace Mata\Database;
 interface DatabaseInterface
 {
     /**
-     * Execute a SQL statement using prepared parameters.
+     * Execute a statement that returns rows (SELECT, SHOW, WITH ...).
      *
      * @param string                  $sql    SQL statement to execute
      * @param array<int|string,mixed> $params Parameters for prepared statement
      *
-     * @return array<int,array<string,mixed>>|int Result set for SELECT queries,
-     *                                            insert ID for INSERT queries,
-     *                                            affected rows for UPDATE/DELETE
+     * @return array<int,array<string,mixed>> Result rows
      */
-    public function runQuery(string $sql, array $params = []): array|int;
+    public function runSelect(string $sql, array $params = []): array;
+
+    /**
+     * Execute an INSERT whose auto-increment ID the caller needs.
+     *
+     * @param string                  $sql    SQL statement to execute
+     * @param array<int|string,mixed> $params Parameters for prepared statement
+     *
+     * @return int Last insert ID
+     */
+    public function runInsert(string $sql, array $params = []): int;
+
+    /**
+     * Execute a write statement (UPDATE, DELETE, upsert, ...).
+     *
+     * @param string                  $sql    SQL statement to execute
+     * @param array<int|string,mixed> $params Parameters for prepared statement
+     *
+     * @return int Affected row count
+     */
+    public function runStatement(string $sql, array $params = []): int;
 
     /**
      * Begin a database transaction.
