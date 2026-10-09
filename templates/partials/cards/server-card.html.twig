@@ -1,6 +1,6 @@
 <div id="server-{{ server.id }}" class="server-container">
   <div class="server-header" style="border-color: {{ server.primary_color }}">
-    <h3 class="server-title" data-tippy-content="Server Updated: {{ cache.age }} s ago (TTL: {{ cache.ttl }} s)">
+    <h3 class="server-title" data-tippy-content="Server Updated: {{ cache.age }} ago (TTL: {{ cache.ttl }})">
       {{ server.title }}
       <span class="node-health-status node-health-{{ server.health.state }}" data-tippy-content="{{ server.health.tooltip }}">
         <span class="node-health-status-dot" aria-hidden="true"></span>

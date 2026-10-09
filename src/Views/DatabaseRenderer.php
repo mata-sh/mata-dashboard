@@ -115,11 +115,16 @@ class DatabaseRenderer extends BaseRenderer
             };
         }
 
+        $cacheAge = $overviewResponse['cache_age'] ?? null;
+        $cacheTtl = $overviewResponse['cache_ttl'] ?? null;
+
         return [
             'server' => [
                 'title' => $serverConfig['title'],
                 'primary_color' => $serverConfig['primary_color'] ?? '#fefefe',
                 'id' => $serverId,
+                'cache_age' => is_int($cacheAge) ? $this->tools->formatDuration($cacheAge) : null,
+                'cache_ttl' => is_int($cacheTtl) ? $this->tools->formatDuration($cacheTtl) : null,
             ],
             'icons' => $this->getCommonIcons(),
             'system' => [

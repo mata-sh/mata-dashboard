@@ -18,7 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Database cards read MATA Node's `/databases/overview` and show connection numbers once per database server; the process list opens per database or for the whole server, is fetched live, and names the privilege the monitoring account lacks when it only sees its own sessions (MariaDB `PROCESS`, PostgreSQL `pg_read_all_stats`). Nodes without database monitoring show the section as not configured. Requires MATA Node 0.3.0 or later
 
 ### Fixed
-- The app title tooltip no longer appends a stray "s" to the cache age and TTL (for example "5 minutes s ago")
+- Cache-age tooltips on server, app and database cards no longer append a stray "s" (for example "5 minutes s ago"), and the database card tooltip shows the overview's cache age instead of blank values
 - Dashboard notices with a saved choice (such as "never" or "snooze") now close only after the server stores it; a failed request leaves the notice visible
 
 ## [0.6.0] - 2026-10-09

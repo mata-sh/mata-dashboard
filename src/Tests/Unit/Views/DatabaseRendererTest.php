@@ -53,6 +53,20 @@ final class DatabaseRendererTest extends TestCase
         $this->assertStringNotContainsString('server-fetch-error', $html);
     }
 
+    public function testTitleTooltipShowsOverviewCacheAge(): void
+    {
+        $html = $this->render(['result' => null, 'error' => null, 'cache_age' => 42, 'cache_ttl' => 300]);
+
+        $this->assertStringContainsString('data-tippy-content="Server Updated: 42 ago (TTL: 300)"', $html);
+    }
+
+    public function testOmitsTitleTooltipWithoutOverview(): void
+    {
+        $html = $this->render(['result' => null, 'error' => null]);
+
+        $this->assertStringNotContainsString('Server Updated', $html);
+    }
+
     #[DataProvider('nodeErrors')]
     public function testDistinguishesDisabledMonitoringFromDatabaseOutage(int $status, string $expected, bool $isError): void
     {
@@ -84,10 +98,13 @@ final class DatabaseRendererTest extends TestCase
         $collector->method('getDatabaseOverview')->willReturn($overviewResponse);
         $collector->method('getServerSystemData')->willReturn(['result' => ['processes' => ['sql' => 3]]]);
 
+        $tools = $this->createStub(Tools::class);
+        $tools->method('formatDuration')->willReturnCallback(static fn (int $seconds): string => (string) $seconds);
+
         $renderer = new DatabaseRenderer(
             new Environment(new FilesystemLoader(dirname(__DIR__, 4) . '/templates')),
             $this->createStub(Logger::class),
-            $this->createStub(Tools::class),
+            $tools,
             $this->createStub(App::class),
             $this->createStub(Endpoints::class),
         );
