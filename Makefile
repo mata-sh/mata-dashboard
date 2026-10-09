@@ -683,7 +683,7 @@ docker-setup:
 	@echo "$(COLOR_YELLOW)⚠️  docker-setup is deprecated; use dev-setup or prod-setup.$(COLOR_RESET)"
 	@case "$(ENV)" in dev|demo) $(MAKE) dev-setup MODE=docker ENV=$(ENV) ;; *) echo "$(COLOR_RED)❌ docker-setup only supports dev/demo. Use prod-setup for production.$(COLOR_RESET)"; exit 1 ;; esac
 
-# Standalone diagnostic/recovery target; startup relies on Compose depends_on.
+# Diagnostic/recovery target; `up` relies on Compose depends_on, but `restart` ignores it.
 wait-db:
 	@$(REQUIRE_DOCKER_MODE); \
 	container=$$($(SELECTED_COMPOSE) ps -q mata-db); [ -n "$$container" ] || { echo "$(COLOR_RED)❌ mata-db container does not exist.$(COLOR_RESET)"; exit 1; }; \
@@ -697,11 +697,16 @@ wait-db:
 
 ## Development (Docker)
 
+# Dev MySQL lives on tmpfs, so every target that (re)starts it gets an empty schema.
+define DEV_MIGRATE
+if [ "$(RUN_MIGRATIONS)" != "no" ]; then $(MAKE) db-migrate MODE=docker ENV=$(ENV) DOCKER_DAEMON_CHECKED=1; else echo "$(COLOR_YELLOW)⚠️  Database migrations skipped.$(COLOR_RESET)"; fi
+endef
+
 dev-start:
 	@$(REQUIRE_DOCKER_MODE); $(REQUIRE_DEV_ENV)
 	@$(MAKE) dev-setup MODE=docker ENV=$(ENV) DOCKER_DAEMON_CHECKED=1
 	@$(DEV_COMPOSE) up -d --build
-	@if [ "$(RUN_MIGRATIONS)" != "no" ]; then $(MAKE) db-migrate MODE=docker ENV=$(ENV) DOCKER_DAEMON_CHECKED=1; else echo "$(COLOR_YELLOW)⚠️  Database migrations skipped.$(COLOR_RESET)"; fi
+	@$(DEV_MIGRATE)
 	@PORT=$$(awk -F= '/^WEB_PORT=/{print $$2; exit}' .env); PORT=$${PORT:-3300}; \
 	echo "$(COLOR_GREEN)✅ $(ENV) environment running.$(COLOR_RESET)"; \
 	echo "$(COLOR_CYAN)Dashboard: http://localhost:$$PORT$(COLOR_RESET)"; \
@@ -719,16 +724,20 @@ dev-stop:
 dev-restart:
 	@$(REQUIRE_DOCKER_MODE); $(REQUIRE_DEV_ENV)
 	@$(DEV_COMPOSE) restart
+	@$(MAKE) wait-db MODE=docker ENV=$(ENV) DOCKER_DAEMON_CHECKED=1
+	@$(DEV_MIGRATE)
 
 dev-recreate:
 	@$(REQUIRE_DOCKER_MODE); $(REQUIRE_DEV_ENV)
 	@$(DEV_COMPOSE) up -d --force-recreate --no-build
+	@$(DEV_MIGRATE)
 
 dev-rebuild:
 	@$(REQUIRE_DOCKER_MODE); $(REQUIRE_DEV_ENV)
 	@$(DEV_COMPOSE) down
 	@$(DEV_COMPOSE) build --no-cache --pull
 	@$(DEV_COMPOSE) up -d
+	@$(DEV_MIGRATE)
 
 ## Production (Docker)
 
