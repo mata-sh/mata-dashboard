@@ -50,6 +50,29 @@ function promptSecret(string $label): string
     return trim($secret);
 }
 
+/**
+ * Enforce the password length policy, exiting before any user data changes.
+ *
+ * bcrypt (PASSWORD_DEFAULT) ignores everything after 72 bytes. Demo accounts
+ * publish their credentials by design, so the demo environment is exempt.
+ */
+function assertPasswordPolicy(string $password, string $env): void
+{
+    if ($env === 'demo') {
+        return;
+    }
+    if (mb_strlen($password) < 12) {
+        echo "❌ Error: Password must be at least 12 characters.\n";
+
+        exit(1);
+    }
+    if (strlen($password) > 72) {
+        echo "❌ Error: Password must be at most 72 bytes; bcrypt ignores the rest.\n";
+
+        exit(1);
+    }
+}
+
 $runtime = ScriptRuntime::boot($_SERVER['argv'] ?? []);
 $paths = $runtime->paths;
 $appConfig = $runtime->appConfig;
@@ -251,6 +274,7 @@ switch ($action) {
     case 'create':
         $username = $arguments[2] ?? promptLine('Username: ');
         $password = promptSecret('Password: ');
+        assertPasswordPolicy($password, $env);
         $role = $arguments[3] ?? promptLine('Role [viewer/admin]: ');
 
         try {
@@ -358,6 +382,7 @@ switch ($action) {
     case 'passwd':
         $username = $arguments[2] ?? promptLine('Username: ');
         $password = promptSecret('New password: ');
+        assertPasswordPolicy($password, $env);
 
         try {
             $auth->changePassword($username, $password);

@@ -53,6 +53,10 @@ sudo -u <php-fpm-user> php /var/www/vhosts/<domain>/httpdocs/<app>/scripts/user-
 - `unlock` - Unlock a user
 - `delete` - Delete a user
 
+`create` and `passwd` require passwords of 12 characters to 72 bytes; bcrypt ignores
+anything longer. The `demo` environment is exempt because its credentials are public.
+Existing passwords keep working.
+
 ## Initial User
 
 `make setup` offers to create the initial user. Setup does not install static default credentials.
