@@ -1,5 +1,5 @@
 # MATA Dashboard - Multi-Stage Production Build
-ARG PHP_VERSION=8.3.14
+ARG PHP_VERSION=8.3
 ARG COMPOSER_VERSION=2.7.9
 
 # Composer stage (allows variable expansion)
@@ -7,7 +7,7 @@ FROM composer:${COMPOSER_VERSION} AS composer
 
 # MATA Dashboard - Multi-Stage Production Build
 # Stage 1: Builder - Install dependencies
-FROM php:${PHP_VERSION}-apache AS builder
+FROM php:${PHP_VERSION}-apache-trixie AS builder
 
 # Install system dependencies for building
 RUN apt-get update && apt-get install -y \
@@ -51,7 +51,7 @@ RUN composer dump-autoload --optimize --no-dev
 
 # ============================================================
 # Stage 2: Production Runtime - Clean, minimal image
-FROM php:${PHP_VERSION}-apache AS production
+FROM php:${PHP_VERSION}-apache-trixie AS production
 
 # Install dependencies, build extensions, and remove build deps in single layer
 RUN apt-get update && apt-get install -y \
@@ -68,7 +68,7 @@ RUN apt-get update && apt-get install -y \
     libfreetype6 \
     libonig5 \
     libxml2 \
-    libzip4 \
+    libzip5 \
     cron \
     curl \
     && docker-php-ext-configure gd --with-freetype --with-jpeg \

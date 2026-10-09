@@ -6,7 +6,7 @@ ARG COMPOSER_VERSION=latest
 FROM composer:${COMPOSER_VERSION} AS composer
 
 # Main stage
-FROM php:${PHP_VERSION}-apache
+FROM php:${PHP_VERSION}-apache-trixie
 
 # Install system dependencies including development tools
 RUN apt-get update && apt-get install -y \

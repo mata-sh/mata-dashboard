@@ -660,12 +660,12 @@ prod-fix-perms: prod-setup
 	@set -e; \
 	data_path=$$(awk -F= '/^DATA_PATH=/{sub(/^[^=]*=/, ""); gsub(/["[:space:]]/, ""); print; exit}' .env); data_path=$${data_path:-./data}; \
 	case "$$data_path" in /*) ;; *) data_path="$(CURDIR)/$${data_path#./}" ;; esac; \
-	php_version=$$(awk -F= '/^PHP_VERSION=/{gsub(/["[:space:]]/, "", $$2); print $$2; exit}' .env); php_version=$${php_version:-8.3.14}; \
+	php_version=$$(awk -F= '/^PHP_VERSION=/{gsub(/["[:space:]]/, "", $$2); print $$2; exit}' .env); php_version=$${php_version:-8.3}; \
 	docker run --rm \
 		-v "$(CURDIR)/config:/mata/config" \
 		-v "$(CURDIR)/logs:/mata/logs" \
 		-v "$(CURDIR)/temp:/mata/temp" \
-		"php:$${php_version}-apache" sh -c \
+		"php:$${php_version}-apache-trixie" sh -c \
 		'chgrp -R www-data /mata/config \
 		&& find /mata/config -type d -exec chmod 0750 {} + \
 		&& find /mata/config -type f -exec chmod 0640 {} + \
@@ -727,7 +727,7 @@ dev-recreate:
 dev-rebuild:
 	@$(REQUIRE_DOCKER_MODE); $(REQUIRE_DEV_ENV)
 	@$(DEV_COMPOSE) down
-	@$(DEV_COMPOSE) build --no-cache
+	@$(DEV_COMPOSE) build --no-cache --pull
 	@$(DEV_COMPOSE) up -d
 
 ## Production (Docker)
@@ -755,7 +755,7 @@ prod-restart:
 prod-rebuild:
 	@$(REQUIRE_DOCKER_MODE); [ "$(ENV)" = prod ] || { echo "$(COLOR_RED)❌ prod-rebuild requires ENV=prod.$(COLOR_RESET)"; exit 1; }
 	@$(MAKE) prod-setup MODE=docker ENV=prod
-	@$(PROD_COMPOSE) build --no-cache
+	@$(PROD_COMPOSE) build --no-cache --pull
 	@$(PROD_COMPOSE) up -d
 
 ## Logs & Monitoring
