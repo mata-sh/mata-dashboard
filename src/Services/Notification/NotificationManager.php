@@ -241,7 +241,8 @@ final class NotificationManager
                 WHERE identifier IN ({$placeholders}) AND deactivated_at IS NULL";
 
         try {
-            $this->db->runStatement($sql, $identifiers);
+            // Positional placeholders need a list; callers may pass array_diff() output.
+            $this->db->runStatement($sql, array_values($identifiers));
 
             return true;
         } catch (Exception $e) {

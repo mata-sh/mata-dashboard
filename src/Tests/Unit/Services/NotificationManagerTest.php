@@ -585,7 +585,8 @@ class NotificationManagerTest extends TestCase
             ->willReturn($existingIdentifiers) // getConfigWarningIdentifiers
         ;
         $this->mockDb->expects($this->once())
-            ->method('runStatement') // removeNotificationsByIdentifiers
+            ->method('runStatement')
+            ->with($this->stringContains('WHERE identifier IN (?)'), ['config.issue3'])
             ->willReturn(1)
         ;
 
