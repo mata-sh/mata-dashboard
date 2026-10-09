@@ -176,7 +176,8 @@ Bugs and feature requests go to [issues](https://github.com/mata-sh/mata-dashboa
 
 ## License
 
-Apache License 2.0 [`LICENSE`](LICENSE).
+Apache License 2.0 [`LICENSE`](LICENSE). Bundled third-party assets keep
+their own licenses; see [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md).
 
 ## Contact
 
