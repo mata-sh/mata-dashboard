@@ -1,7 +1,9 @@
 {
     "name": "mata/mata-dashboard",
-    "description": "Mata Monitoring Tool",
+    "description": "Self-hosted monitoring dashboard for shared hosting, small VPS and legacy servers: polls MATA nodes, stores metrics and events, and sends alarm emails.",
     "type": "project",
+    "keywords": ["monitoring", "dashboard", "alerting", "server-monitoring", "shared-hosting", "htmx", "opa"],
+    "homepage": "https://mata.sh",
     "license": "Apache-2.0",
     "authors": [
         {
@@ -9,9 +11,16 @@
             "email": "mata@xarc.dev"
         }
     ],
+    "support": {
+        "email": "mata@xarc.dev",
+        "issues": "https://github.com/mata-sh/mata-dashboard/issues",
+        "source": "https://github.com/mata-sh/mata-dashboard",
+        "security": "https://github.com/mata-sh/mata-dashboard/blob/main/SECURITY.md"
+    },
     "minimum-stability": "stable",
     "prefer-stable": true,
     "require": {
+        "php": "^8.3",
         "symfony/mailer": "^7.2",
         "guzzlehttp/guzzle": "^7.0",
         "monolog/monolog": "^3.0",
