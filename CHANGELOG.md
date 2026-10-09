@@ -1,3 +1,33 @@
+# Changelog
+
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
+and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+## [0.6.0] - 2026-10-09
+
+First public release. Versions up to 0.5.0 were developed privately; this entry
+summarizes what landed since then.
+
+### Added
+- Node monitoring: health, sessions, cron jobs, per-database status and process views
+- Application monitoring: status-endpoint probes with retries, error-log monitoring with log-file viewer, per-app settings, shared transport failure detection
+- Server metrics: collection, hourly/daily aggregation, history charts, CPU and RAM thresholds
+- Alarms: logical alarms with per-channel deliveries, notification rules, acknowledgement, templated emails with event details
+- Alarm decisions via OPA policies with a built-in fallback driver (`ALARM_DECISION_DRIVER`) and persisted decision traces
+- Composer audit dashboard for vulnerable and abandoned packages
+- Guided `make setup`, unified native and Docker workflows, shared-hosting crontab and logrotate templates
+- Standardized cron logging, scheduled data retention cleanup, dashboard cache warming
+- Settings overview, configurable menu, instance branding, demo mode
+- Security: hardened sessions, configurable security headers and CSP, opt-in HSTS, trusted proxy handling, IP whitelist on application routes, request rate limiting
+
+### Changed
+- Alarms are split into logical alarms and deliveries; run database migrations when upgrading
+- Node requests use per-request HMAC tokens and require a matching MATA Node
+- User data is stored outside the application directory
+- The `live` environment is renamed to `prod`
+- Alarm threshold window key renamed; legacy keys are no longer read
+- Obsolete mail and monitoring settings and encryption helpers removed
+- Password and role changes revoke existing sessions and remember-me logins; accounts from earlier versions sign in with their password once after upgrading
 
 ## [0.5.0] - 2026-01-12
 
@@ -144,7 +174,3 @@
 ### Changed
 
 ### Fixed
-
-## Misc
-The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
-and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).

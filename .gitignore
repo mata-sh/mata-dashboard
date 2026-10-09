@@ -17,6 +17,7 @@
 .htpasswd
 public/.htaccess
 cron/logrotate.shared-hosting.conf
+/git-history.html
 
 # folder
 .git/
