@@ -7,6 +7,7 @@ namespace Mata\Tests\Integration;
 use InvalidArgumentException;
 use Mata\Config\EnvConfigLoader;
 use Mata\Core\Auth;
+use Mata\Core\Session;
 use Mata\Http\Request;
 use Mata\Tests\TestCase;
 use Mata\Utils\PathResolver;
@@ -58,6 +59,7 @@ class AuthenticationFlowTest extends TestCase
             'id' => 'admin_1',
             'username' => 'admin',
             'password_hash' => password_hash('admin123', PASSWORD_DEFAULT),
+            'auth_revision' => bin2hex(random_bytes(32)),
             'role' => 'admin',
             'created_at' => date('Y-m-d H:i:s'),
             'failed_attempts' => 0,
@@ -68,13 +70,6 @@ class AuthenticationFlowTest extends TestCase
         $this->startTestRequest();
         $this->request = new Request();
         $this->auth = new Auth(new NullLogger(), $usersFile, $this->request->isSecure(), $this->request->cookie('remember_token'));
-        $_SESSION = [
-            'user' => [
-                'username' => 'admin',
-                'role' => 'admin',
-            ],
-            'logged_in' => true,
-        ];
         $this->auth->login('admin', 'admin123');
     }
 
@@ -328,6 +323,118 @@ class AuthenticationFlowTest extends TestCase
         } catch (InvalidArgumentException $e) {
             $this->assertStringContainsString('Required environment variable', $e->getMessage());
         }
+    }
+
+    public function testPasswordResetRevokesOldAccessWithoutDamagingFreshCredentials(): void
+    {
+        $adminSession = $_SESSION;
+        $this->auth->createUser('operator', 'old-password', 'editor');
+        $this->auth->login('operator', 'old-password', true);
+        $oldSession = $_SESSION;
+        $oldCookie = $this->rememberCookieFor('operator');
+
+        $manager = $this->requestAuth($adminSession);
+        $manager->changePassword('operator', 'new-password');
+        $this->assertTrue($manager->check(), 'An unrelated account stays authenticated');
+        $resetUser = $this->storedUser('operator');
+        $this->assertNotSame($oldSession['user']['auth_revision'], $resetUser['auth_revision']);
+        $this->assertArrayNotHasKey('remember_token', $resetUser);
+        $this->assertArrayNotHasKey('remember_expires', $resetUser);
+
+        $this->assertUnauthenticated($this->requestAuth($oldSession, $oldCookie));
+        $this->assertUnauthenticated($this->requestAuth([], $oldCookie));
+        $fresh = $this->requestAuth();
+        $this->assertFalse($fresh->login('operator', 'old-password'));
+        $this->assertTrue($fresh->login('operator', 'new-password', true));
+        $freshSession = $_SESSION;
+        $freshCookie = $this->rememberCookieFor('operator');
+        $freshUser = $this->storedUser('operator');
+
+        $this->assertUnauthenticated($this->requestAuth($oldSession, $oldCookie));
+        $this->assertSame($freshUser, $this->storedUser('operator'), 'Stale replay must not revoke a fresh token');
+        $this->assertTrue($this->requestAuth($freshSession)->check());
+        $remembered = $this->requestAuth([], $freshCookie);
+        $this->assertTrue($remembered->check());
+        $this->assertSame($freshUser['auth_revision'], Session::get('user')['auth_revision']);
+        $this->assertNotSame($freshUser['remember_token'], $this->storedUser('operator')['remember_token']);
+        $this->assertTrue($this->requestAuth($adminSession)->hasRole('admin'));
+    }
+
+    public function testDemotionAndUsernameReuseCannotRestoreOldAccess(): void
+    {
+        $adminSession = $_SESSION;
+        $this->auth->createUser('operator', 'password', 'admin');
+        $this->auth->login('operator', 'password', true);
+        $adminOperatorSession = $_SESSION;
+        $adminOperatorCookie = $this->rememberCookieFor('operator');
+
+        $this->requestAuth($adminSession)->updateUserRole('operator', 'viewer');
+        $demoted = $this->storedUser('operator');
+        $this->assertNotSame($adminOperatorSession['user']['auth_revision'], $demoted['auth_revision']);
+        $this->assertArrayNotHasKey('remember_token', $demoted);
+        $this->assertArrayNotHasKey('remember_expires', $demoted);
+        $this->assertUnauthenticated($this->requestAuth($adminOperatorSession));
+        $this->assertUnauthenticated($this->requestAuth([], $adminOperatorCookie));
+
+        $viewer = $this->requestAuth();
+        $this->assertTrue($viewer->login('operator', 'password', true));
+        $this->assertTrue($viewer->hasRole('viewer'));
+        $viewerSession = $_SESSION;
+        $viewerCookie = $this->rememberCookieFor('operator');
+        $manager = $this->requestAuth($adminSession);
+        $manager->deleteUser('operator');
+        $this->assertUnauthenticated($this->requestAuth($viewerSession, $viewerCookie));
+
+        $this->requestAuth($adminSession)->createUser('operator', 'password', 'admin');
+        $this->assertNotSame($viewerSession['user']['auth_revision'], $this->storedUser('operator')['auth_revision']);
+        $this->assertUnauthenticated($this->requestAuth($viewerSession, $viewerCookie));
+        $this->assertUnauthenticated($this->requestAuth($adminOperatorSession, $adminOperatorCookie));
+        $replacement = $this->requestAuth();
+        $this->assertTrue($replacement->login('operator', 'password'));
+        $this->assertTrue($replacement->hasRole('admin'));
+    }
+
+    private function requestAuth(array $session = [], ?string $cookie = null): Auth
+    {
+        Session::close();
+        Session::start();
+        $_SESSION = $session;
+
+        return new Auth(new NullLogger(), $this->pathResolver->getConfigPath('users.json'), false, $cookie);
+    }
+
+    private function assertUnauthenticated(Auth $auth): void
+    {
+        $this->assertNull($auth->getUser());
+        $this->assertNull($auth->getUsername());
+        $this->assertFalse($auth->hasRole('admin'));
+        $this->assertFalse($auth->check());
+        $this->assertSame(PHP_SESSION_ACTIVE, session_status());
+    }
+
+    private function storedUser(string $username): array
+    {
+        $users = json_decode(file_get_contents($this->pathResolver->getConfigPath('users.json')), true);
+
+        return array_column($users, null, 'username')[$username];
+    }
+
+    private function rememberCookieFor(string $username): string
+    {
+        // CLI cannot inspect Set-Cookie headers; seed a known browser credential.
+        $token = bin2hex(random_bytes(32));
+        $usersFile = $this->pathResolver->getConfigPath('users.json');
+        $users = json_decode(file_get_contents($usersFile), true);
+        foreach ($users as &$user) {
+            if ($user['username'] === $username) {
+                $user['remember_token'] = hash('sha256', $token);
+                $user['remember_expires'] = time() + 3600;
+            }
+        }
+        unset($user);
+        file_put_contents($usersFile, json_encode($users));
+
+        return $username . '|' . $token;
     }
 
     private function writeEnvFile(array $lines, string $filename = '.env'): void

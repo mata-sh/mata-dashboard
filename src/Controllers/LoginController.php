@@ -8,6 +8,7 @@ use Mata\Core\App;
 use Mata\Http\Request;
 use Mata\Http\Security\CsrfGuard;
 use Mata\Utils\Tools;
+use RuntimeException;
 use Twig\Environment;
 
 /**
@@ -70,12 +71,25 @@ class LoginController
         $password = $this->request->postString('password') ?? '';
         $rememberme = $this->request->postBool('remember_me');
 
-        if ($this->app->auth->login($username, $password, $rememberme)) {
-            $this->csrf->regenerate();
-            $this->app->redirect('watch');
+        try {
+            if ($this->app->auth->login($username, $password, $rememberme)) {
+                $this->csrf->regenerate();
+                $this->app->redirect('watch');
+
+                return;
+            }
+        } catch (RuntimeException) {
+            // The users file changed between the password check and the save.
+            $this->renderLogin('Sign-in conflicted with another account change. Please try again.');
 
             return;
         }
+
+        $this->renderLogin('Invalid login.');
+    }
+
+    private function renderLogin(string $errorMessage): void
+    {
         echo $this->twig->render('pages/login.html.twig', [
             'config' => [
                 'base_host' => $this->app->getBaseHost(),
@@ -83,7 +97,7 @@ class LoginController
             ],
             'ui' => [
                 'main_logo' => $this->tools->icon('sea-turtle-bl', 150),
-                'login_error_message' => 'Invalid login.',
+                'login_error_message' => $errorMessage,
             ],
         ]);
     }

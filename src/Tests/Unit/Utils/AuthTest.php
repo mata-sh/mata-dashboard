@@ -32,12 +32,14 @@ class AuthTest extends TestCase
         // Create temporary users file with secure permissions and admin user
         $this->testUsersFile = $this->createTempFile('', '.json');
         $this->tempFiles[] = $this->testUsersFile;
+        $this->tempFiles[] = $this->testUsersFile . '.lock';
 
         // Create initial admin user
         $adminUser = [
             'id' => 'admin_1',
             'username' => 'admin',
             'password_hash' => password_hash('admin123', PASSWORD_DEFAULT),
+            'auth_revision' => bin2hex(random_bytes(32)),
             'role' => 'admin',
             'created_at' => date('Y-m-d H:i:s'),
             'failed_attempts' => 0,
@@ -469,6 +471,7 @@ class AuthTest extends TestCase
             'id' => 'user_locked',
             'username' => 'lockeduser',
             'password_hash' => password_hash('correct_password', PASSWORD_DEFAULT),
+            'auth_revision' => bin2hex(random_bytes(32)),
             'role' => 'viewer',
             'created_at' => date('Y-m-d H:i:s'),
             'failed_attempts' => 5,
@@ -573,6 +576,7 @@ class AuthTest extends TestCase
             'id' => 'admin_1',
             'username' => 'admin',
             'password_hash' => password_hash('admin123', PASSWORD_DEFAULT),
+            'auth_revision' => bin2hex(random_bytes(32)),
             'role' => 'admin',
             'created_at' => date('Y-m-d H:i:s'),
             'failed_attempts' => 0,
@@ -630,6 +634,7 @@ class AuthTest extends TestCase
             'id' => 'admin_1',
             'username' => 'admin',
             'password_hash' => password_hash('admin123', PASSWORD_DEFAULT),
+            'auth_revision' => bin2hex(random_bytes(32)),
             'role' => 'admin',
             'created_at' => date('Y-m-d H:i:s'),
             'failed_attempts' => 0,
@@ -758,23 +763,122 @@ class AuthTest extends TestCase
      * @group concurrency
      * @group file-locking
      */
-    public function testItHandlesConcurrentFileAccess(): void
+    public function testStaleWritersCannotRestoreRevokedCredentials(): void
     {
-        // Test that file locking works by simulating concurrent writes
+        $this->auth->login('admin', 'admin123', true);
+        $mtime = filemtime($this->testUsersFile);
+        $staleManager = new Auth(new NullLogger(), $this->testUsersFile, false, null, true);
+        $staleLogin = new Auth(new NullLogger(), $this->testUsersFile, false, null);
+
+        $this->auth->changePassword('admin', 'replacement');
+        touch($this->testUsersFile, $mtime);
+        $revoked = file_get_contents($this->testUsersFile);
+        $this->startTestRequest();
+        $sessionId = session_id();
+
+        try {
+            $staleManager->createUser('another', 'password');
+            $this->fail('A stale writer must not restore the old password or remember token');
+        } catch (RuntimeException $e) {
+            $this->assertStringContainsString('changed on disk', $e->getMessage());
+        }
+
+        try {
+            $staleLogin->login('admin', 'admin123', true);
+            $this->fail('A stale password login must fail before publishing authentication');
+        } catch (RuntimeException $e) {
+            $this->assertStringContainsString('changed on disk', $e->getMessage());
+        }
+
+        $this->assertSame($revoked, file_get_contents($this->testUsersFile));
+        $this->assertFalse($staleLogin->check());
+        $this->assertNull($staleLogin->getUser());
+        $this->assertSame($sessionId, session_id());
+    }
+
+    public function testConflictsIncludeUsersFileCreationAndDeletion(): void
+    {
+        unlink($this->testUsersFile);
+        $first = new Auth(new NullLogger(), $this->testUsersFile, false, null, true);
+        $second = new Auth(new NullLogger(), $this->testUsersFile, false, null, true);
+        $first->createUser('first', 'password');
+        $created = file_get_contents($this->testUsersFile);
+
+        try {
+            $second->createUser('second', 'password');
+            $this->fail('A competing bootstrap must not replace the first users file');
+        } catch (RuntimeException $e) {
+            $this->assertStringContainsString('changed on disk', $e->getMessage());
+        }
+        $this->assertSame($created, file_get_contents($this->testUsersFile));
+
+        unlink($this->testUsersFile);
+
+        try {
+            $first->changePassword('first', 'replacement');
+            $this->fail('A stale writer must not recreate a deleted users file');
+        } catch (RuntimeException $e) {
+            $this->assertStringContainsString('changed on disk', $e->getMessage());
+        }
+        $this->assertFileDoesNotExist($this->testUsersFile);
+    }
+
+    public function testGettersValidateSessionAndUseTheCurrentRole(): void
+    {
         $this->auth->login('admin', 'admin123');
+        $_SESSION['user']['role'] = 'viewer';
+        $this->assertTrue($this->auth->hasRole('admin'));
+        $this->assertSame('admin', $this->auth->getUser()['role']);
 
-        // Create multiple users rapidly (tests file locking in saveUsers)
-        for ($i = 0; $i < 10; ++$i) {
-            $this->auth->createUser("concurrent_user_{$i}", 'password', 'viewer');
-        }
+        $this->auth->updateUserRole('admin', 'viewer');
+        $this->assertNull($this->auth->getUser());
+        $this->assertNull($this->auth->getUsername());
+        $this->assertFalse($this->auth->hasRole('admin'));
+        $this->assertSame(PHP_SESSION_ACTIVE, session_status());
 
-        // Verify all users were created successfully
-        for ($i = 0; $i < 10; ++$i) {
-            $this->assertTrue(
-                $this->auth->userExists("concurrent_user_{$i}"),
-                "User concurrent_user_{$i} should exist"
-            );
-        }
+        $this->assertTrue($this->auth->login('admin', 'admin123'));
+        $this->assertTrue($this->auth->hasRole('viewer'));
+        unset($_SESSION['user']['auth_revision']);
+        $this->assertNull($this->auth->getUsername());
+        $this->assertFalse($this->auth->hasRole('viewer'));
+        $this->assertNull($this->auth->getUser());
+    }
+
+    public function testStoredUserWithoutRevisionRejectsSessionWithoutError(): void
+    {
+        $this->auth->login('admin', 'admin123');
+        $users = json_decode(file_get_contents($this->testUsersFile), true);
+        unset($users[0]['auth_revision']);
+        file_put_contents($this->testUsersFile, json_encode($users));
+
+        $auth = new Auth(new NullLogger(), $this->testUsersFile, false, null);
+        $this->assertFalse($auth->check());
+        $this->assertNull($auth->getUser());
+    }
+
+    public function testSignInBackfillsMissingRevision(): void
+    {
+        $token = bin2hex(random_bytes(32));
+        $users = json_decode(file_get_contents($this->testUsersFile), true);
+        unset($users[0]['auth_revision']);
+        $users[0]['remember_token'] = hash('sha256', $token);
+        $users[0]['remember_expires'] = time() + 3600;
+        file_put_contents($this->testUsersFile, json_encode($users));
+
+        $remembered = new Auth(new NullLogger(), $this->testUsersFile, false, 'admin|' . $token);
+        $this->assertTrue($remembered->check());
+        $revision = json_decode(file_get_contents($this->testUsersFile), true)[0]['auth_revision'];
+        $this->assertSame($revision, Session::get('user')['auth_revision']);
+
+        $users = json_decode(file_get_contents($this->testUsersFile), true);
+        unset($users[0]['auth_revision']);
+        file_put_contents($this->testUsersFile, json_encode($users));
+        $_SESSION = [];
+
+        $auth = new Auth(new NullLogger(), $this->testUsersFile, false, null);
+        $this->assertTrue($auth->login('admin', 'admin123'));
+        $this->assertTrue($auth->check());
+        $this->assertNotEmpty(json_decode(file_get_contents($this->testUsersFile), true)[0]['auth_revision']);
     }
 
     /**
@@ -790,9 +894,11 @@ class AuthTest extends TestCase
 
         $this->assertTrue($result);
 
-        // Check that remember_token cookie was set
-        // Note: In testing, cookies are set but we can't easily verify them
-        // This test mainly ensures no exceptions are thrown
+        $user = json_decode(file_get_contents($this->testUsersFile), true)[0];
+        $this->assertNotEmpty($user['remember_token']);
+        $this->assertGreaterThan(time(), $user['remember_expires']);
+        $this->assertNotEmpty($user['auth_revision']);
+        $this->assertSame($user['auth_revision'], Session::get('user')['auth_revision']);
     }
 
     /**

@@ -27,8 +27,10 @@ echo $hash . "\n\n";
 
 echo "Add this to your users.json:\n";
 echo json_encode([
+    'id' => uniqid('user_'),
     'username' => 'your_username',
     'password_hash' => $hash,
+    'auth_revision' => bin2hex(random_bytes(32)),
     'role' => 'admin',
     'created_at' => date('c'),
 ], JSON_PRETTY_PRINT) . "\n";

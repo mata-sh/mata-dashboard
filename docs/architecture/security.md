@@ -66,6 +66,12 @@ private directory owned by the PHP-FPM user with mode `0700`; the application
 creates the file and lock file with mode `0600`. Docker stores its users file on
 the `mata_users` named volume.
 
+Each user has a random authentication revision stored in the users file and
+matched against the session on every request; there is no central session
+registry. Password or role changes rotate the revision and remove remember-me
+tokens, revoking existing sessions and tokens on their next request. Deleting an
+account removes its access on its next request.
+
 See the [user management guide](../guides/user-management.md) for setup
 commands and the [secure application guide](../guides/secure-application.md)
 for deployment checks.

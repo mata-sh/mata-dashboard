@@ -25,12 +25,13 @@ use RuntimeException;
 class Auth
 {
     private string $usersFile;
-    private ?int $usersFileMtime = null;
+    private ?string $usersFileFingerprint = null;
 
     /** @var array<string,array<string,mixed>> */
     private array $users = [];
     private const MAX_ATTEMPTS = 5;
     private const LOCKOUT_TIME_SECONDS = 900; // 15 minutes
+    private const REMEMBER_LIFETIME_SECONDS = 30 * 24 * 60 * 60;
 
     /** @var bool CLI mode bypasses role checks for user management */
     private bool $cliMode;
@@ -113,15 +114,7 @@ class Auth
                 throw new RuntimeException("Users file not readable: {$this->usersFile}");
             }
 
-            $content = file_get_contents($this->usersFile);
-            if ($content === false) {
-                throw new RuntimeException("Failed to read users file: {$this->usersFile}");
-            }
-
-            $mtime = filemtime($this->usersFile);
-            if ($mtime === false) {
-                throw new RuntimeException("Failed to stat users file: {$this->usersFile}");
-            }
+            $content = $this->readUsersFile() ?? throw new RuntimeException("Users file not found: {$this->usersFile}");
 
             $users = json_decode($content, true);
             if (json_last_error() !== JSON_ERROR_NONE) {
@@ -136,7 +129,7 @@ class Auth
                 }
             }
 
-            $this->usersFileMtime = $mtime;
+            $this->usersFileFingerprint = hash('sha256', $content);
             $this->logger->info('Loaded users file');
         });
     }
@@ -180,57 +173,80 @@ class Auth
         // Rehash password (if algorithm upgrade)
         if (password_needs_rehash($user['password_hash'], PASSWORD_DEFAULT)) {
             $this->users[$username]['password_hash'] = password_hash($password, PASSWORD_DEFAULT);
-            $this->saveUsers();
             $this->logger->info("Password rehashed for user: {$username}");
         }
 
-        // Successful login
-        Session::set('user', [
-            'username' => $username,
-            'role' => $user['role'] ?? 'viewer',
-            'id' => $user['id'] ?? uniqid('usr_'),
-        ]);
-        Session::set('logged_in', true);
-        Session::regenerate();
+        $this->users[$username]['failed_attempts'] = 0;
+        unset($this->users[$username]['locked_until']);
+        $this->backfillAuthRevision($username);
 
-        // Clear failed attempts
-        if (isset($this->users[$username]['failed_attempts'])) {
-            $this->users[$username]['failed_attempts'] = 0;
-            unset($this->users[$username]['locked_until']);
-            $this->saveUsers();
+        // Persist all changes (and detect stale credentials) before publishing the cookie or session.
+        $rememberToken = $remember ? $this->issueRememberToken($username) : null;
+        $this->saveUsers();
+        if ($rememberToken !== null) {
+            $this->sendRememberCookie($username, $rememberToken);
         }
-
-        if ($remember) {
-            $this->setRememberMe($username);
-        }
+        $this->authenticateSession($username);
 
         $this->logger->info("Successful login: {$username}");
 
         return true;
     }
 
-    /**
-     * Set secure remember-me cookie for user.
-     *
-     * @param string $username Username to remember
-     */
-    private function setRememberMe(string $username): void
+    /** Accounts created before revision-based sessions get a revision on their next sign-in. */
+    private function backfillAuthRevision(string $username): void
     {
-        // Generate secure token
+        $this->users[$username]['auth_revision'] ??= bin2hex(random_bytes(32));
+    }
+
+    private function rotateAuthRevision(string $username): void
+    {
+        $this->users[$username]['auth_revision'] = bin2hex(random_bytes(32));
+        unset($this->users[$username]['remember_token'], $this->users[$username]['remember_expires']);
+    }
+
+    /** @return array<string,mixed> */
+    private function sessionUser(string $username): array
+    {
+        $user = $this->users[$username];
+
+        return [
+            'username' => $username,
+            'role' => $user['role'],
+            'id' => $user['id'],
+            'auth_revision' => $user['auth_revision'],
+        ];
+    }
+
+    private function authenticateSession(string $username): void
+    {
+        Session::regenerate();
+        Session::set('user', $this->sessionUser($username));
+        Session::set('logged_in', true);
+    }
+
+    /**
+     * Replace the user's remember token in memory and return the raw token.
+     *
+     * The caller must save before calling sendRememberCookie().
+     */
+    private function issueRememberToken(string $username): string
+    {
         $token = bin2hex(random_bytes(32));
-        $hashedToken = hash('sha256', $token);
 
-        // Store hashed token with user
-        $this->users[$username]['remember_token'] = $hashedToken;
-        $this->users[$username]['remember_expires'] = time() + (30 * 24 * 60 * 60);
-        $this->saveUsers();
+        $this->users[$username]['remember_token'] = hash('sha256', $token);
+        $this->users[$username]['remember_expires'] = time() + self::REMEMBER_LIFETIME_SECONDS;
 
-        // Set cookie with unhashed token
+        return $token;
+    }
+
+    private function sendRememberCookie(string $username, string $token): void
+    {
         setcookie(
             'remember_token',
             $username . '|' . $token,
             [
-                'expires' => time() + (30 * 24 * 60 * 60),
+                'expires' => time() + self::REMEMBER_LIFETIME_SECONDS,
                 'path' => '/',
                 'secure' => $this->secureRequest,
                 'httponly' => true,
@@ -260,16 +276,21 @@ class Auth
             hash_equals($user['remember_token'], hash('sha256', $token))
             && time() < $user['remember_expires']
         ) {
-            Session::set('user', [
-                'username' => $username,
-                'role' => $user['role'] ?? 'viewer',
-                'id' => $user['id'] ?? uniqid('usr_'),
-            ]);
-            Session::set('logged_in', true);
-            Session::regenerate();
+            // Persist token rotation before publishing authenticated state.
+            $this->backfillAuthRevision($username);
+            $rememberToken = $this->issueRememberToken($username);
 
-            // Regenerate token for security
-            $this->setRememberMe($username);
+            try {
+                $this->saveUsers();
+            } catch (RuntimeException $e) {
+                // Another request changed users.json. Skip auto-login rather than failing every page.
+                $this->logger->warning("Remember-me skipped for {$username}: {$e->getMessage()}");
+
+                return;
+            }
+
+            $this->sendRememberCookie($username, $rememberToken);
+            $this->authenticateSession($username);
 
             $this->logger->info("Auto-login via remember token: {$username}");
         }
@@ -311,14 +332,10 @@ class Auth
         $this->assertUsersDirectoryWritable();
 
         $this->withFileLock(LOCK_EX, function () {
-            if (file_exists($this->usersFile)) {
-                $currentMtime = filemtime($this->usersFile);
-                if ($currentMtime === false) {
-                    throw new RuntimeException("Failed to stat users file: {$this->usersFile}");
-                }
-                if ($this->usersFileMtime !== null && $currentMtime !== $this->usersFileMtime) {
-                    throw new RuntimeException('Users file changed on disk; reload before saving');
-                }
+            $content = $this->readUsersFile();
+            $currentFingerprint = $content === null ? null : hash('sha256', $content);
+            if ($currentFingerprint !== $this->usersFileFingerprint) {
+                throw new RuntimeException('Users file changed on disk; reload before saving');
             }
 
             $encoded = json_encode(array_values($this->users), JSON_PRETTY_PRINT);
@@ -353,11 +370,27 @@ class Auth
             if (!chmod($this->usersFile, 0600)) {
                 throw new RuntimeException("Failed to secure users file: {$this->usersFile}");
             }
-            $savedMtime = filemtime($this->usersFile);
-            if ($savedMtime !== false) {
-                $this->usersFileMtime = $savedMtime;
-            }
+            $this->usersFileFingerprint = hash('sha256', $encoded);
         });
+    }
+
+    /**
+     * Return the users file contents, or null when the file does not exist yet.
+     *
+     * @throws RuntimeException If the file exists but cannot be read
+     */
+    private function readUsersFile(): ?string
+    {
+        if (!file_exists($this->usersFile)) {
+            return null;
+        }
+
+        $content = file_get_contents($this->usersFile);
+        if ($content === false) {
+            throw new RuntimeException("Failed to read users file: {$this->usersFile}");
+        }
+
+        return $content;
     }
 
     private function assertUsersDirectoryWritable(): void
@@ -454,7 +487,29 @@ class Auth
      */
     public function check(): bool
     {
-        return Session::get('logged_in') === true;
+        $sessionUser = Session::get('user');
+
+        return Session::get('logged_in') === true
+            && is_array($sessionUser)
+            && $this->isCurrentSession($sessionUser);
+    }
+
+    /**
+     * Compare a session snapshot with the stored account it claims to represent.
+     *
+     * Read-only by design: stale snapshots are ignored, not cleared, so check() never has side effects.
+     *
+     * @param array<string,mixed> $sessionUser
+     */
+    private function isCurrentSession(array $sessionUser): bool
+    {
+        $username = $sessionUser['username'] ?? null;
+        $user = is_string($username) ? ($this->users[$username] ?? null) : null;
+
+        return $user !== null
+            && is_string($user['auth_revision'] ?? null)
+            && is_string($sessionUser['auth_revision'] ?? null)
+            && hash_equals($user['auth_revision'], $sessionUser['auth_revision']);
     }
 
     /**
@@ -464,9 +519,12 @@ class Auth
      */
     public function getUser(): ?array
     {
-        $user = Session::get('user');
+        if (!$this->check()) {
+            return null;
+        }
+        $sessionUser = Session::get('user');
 
-        return is_array($user) ? $user : null;
+        return $this->sessionUser($sessionUser['username']);
     }
 
     /**
@@ -519,6 +577,7 @@ class Auth
             'id' => uniqid('user_'),
             'username' => $username,
             'password_hash' => password_hash($password, PASSWORD_DEFAULT),
+            'auth_revision' => bin2hex(random_bytes(32)),
             'role' => $role,
             'created_at' => date('Y-m-d H:i:s'),
             'failed_attempts' => 0,
@@ -577,6 +636,7 @@ class Auth
         $this->users[$username]['password_hash'] = password_hash($newPassword, PASSWORD_DEFAULT);
         $this->users[$username]['failed_attempts'] = 0; // Reset failed attempts
         unset($this->users[$username]['locked_until']); // Remove any lockout
+        $this->rotateAuthRevision($username);
 
         $this->saveUsers();
         $this->logger->info("Password changed for user: {$username}");
@@ -604,6 +664,7 @@ class Auth
         }
 
         $this->users[$username]['role'] = $role;
+        $this->rotateAuthRevision($username);
         $this->saveUsers();
         $this->logger->info("Updated role for user {$username} to: {$role}");
 

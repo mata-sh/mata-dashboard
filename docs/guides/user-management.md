@@ -83,6 +83,9 @@ Docker always uses `/var/lib/mata-dashboard/users.json` on its `mata_users` name
 
 If `MATA_USERS_FILE` is empty, MATA uses `config/users.json`. This is intended for development only.
 
+!!! warning
+    After upgrading to revision-based sessions, existing users must sign in with their password once. No manual `users.json` migration is required.
+
 ## Environments
 
 The script uses the same `MATA_USERS_FILE` as the web application. Without it, it uses the shared `config/users.json`; `APP_ENV` does not select a separate user file.
