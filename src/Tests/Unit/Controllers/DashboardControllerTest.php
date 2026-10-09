@@ -763,10 +763,27 @@ class DashboardControllerTest extends TestCase
         foreach ([
             $this->controller->refreshServer('missing'),
             $this->controller->refreshServerStats('missing'),
+            $this->controller->refreshDatabase('missing'),
         ] as $response) {
             $this->assertInstanceOf(HtmlResponse::class, $response);
             $this->assertSame(404, $response->getStatusCode());
         }
+    }
+
+    public function testRefreshDatabaseRendersOnlyThatServersCard(): void
+    {
+        $this->twig = $this->createMock(Environment::class);
+        $this->twig->expects($this->once())
+            ->method('render')
+            ->with('partials/cards/database-card.html.twig')
+            ->willReturn('<div class="database-container"></div>')
+        ;
+        $this->controller = $this->createController();
+
+        $response = $this->controller->refreshDatabase('web-server-01');
+
+        $this->assertInstanceOf(HtmlResponse::class, $response);
+        $this->assertSame('<div class="database-container"></div>', $response->getContent());
     }
 
     /**

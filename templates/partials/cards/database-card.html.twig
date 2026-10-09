@@ -1,8 +1,8 @@
-<div id="server-{{ server.id }}" class="database-container">
+<div id="database-{{ server.id }}" class="database-container">
   <div class="server-header" style="border-color: {{ server.primary_color }}">
     <h3 class="server-title"{% if server.cache_age is not null %} data-tippy-content="Server Updated: {{ server.cache_age }} ago (TTL: {{ server.cache_ttl }})"{% endif %}>
       {{ server.title }}
-      <a class="server-refresh-btn" data-tippy-content="Refresh Server">{{ icons.refresh_ccw|raw }}</a>
+      <button type="button" class="server-refresh-btn" aria-label="Refresh databases" data-tippy-content="Refresh Databases" hx-swap="outerHTML" hx-target="#database-{{ server.id }}" hx-get="{{ server.refresh_url }}">{{ icons.refresh_ccw|raw }}</button>
     </h3>
   </div>
 

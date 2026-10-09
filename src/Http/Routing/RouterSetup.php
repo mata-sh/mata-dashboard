@@ -361,6 +361,7 @@ class RouterSetup
                 ['refresh_server', '/refresh/server/{server}', 'get', fn ($server) => $this->dashboardController->refreshServer(server: $server, forceRefresh: true)],
                 ['refresh_serverstats', '/refresh/serverstats/{server}', 'get', fn ($server) => $this->dashboardController->refreshServerStats(server: $server, forceRefresh: true)],
                 ['refresh_databases', '/refresh/databases', 'get', fn () => $this->dashboardController->renderDatabasesOverview(forceRefresh: true)],
+                ['refresh_database', '/refresh/database/{server}', 'get', fn ($server) => $this->dashboardController->refreshDatabase(server: $server, forceRefresh: true)],
             ];
 
             $metricsRoutes = [

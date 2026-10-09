@@ -67,6 +67,14 @@ final class DatabaseRendererTest extends TestCase
         $this->assertStringNotContainsString('Server Updated', $html);
     }
 
+    public function testRefreshButtonReplacesItsOwnCard(): void
+    {
+        $html = $this->render(['result' => null, 'error' => null]);
+
+        $this->assertStringContainsString('id="database-db1-server"', $html);
+        $this->assertStringContainsString('hx-target="#database-db1-server" hx-get="watch/refresh/database/db1"', $html);
+    }
+
     #[DataProvider('nodeErrors')]
     public function testDistinguishesDisabledMonitoringFromDatabaseOutage(int $status, string $expected, bool $isError): void
     {
@@ -101,12 +109,15 @@ final class DatabaseRendererTest extends TestCase
         $tools = $this->createStub(Tools::class);
         $tools->method('formatDuration')->willReturnCallback(static fn (int $seconds): string => (string) $seconds);
 
+        $endpoints = new Endpoints();
+        $endpoints->register('refresh_database', 'watch/refresh/database/{server}');
+
         $renderer = new DatabaseRenderer(
             new Environment(new FilesystemLoader(dirname(__DIR__, 4) . '/templates')),
             $this->createStub(Logger::class),
             $tools,
             $this->createStub(App::class),
-            $this->createStub(Endpoints::class),
+            $endpoints,
         );
 
         return $renderer->renderDatabaseCards(['db1' => $collector], ['db1' => ['title' => 'DB server']]);

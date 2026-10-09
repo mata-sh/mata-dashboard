@@ -430,6 +430,33 @@ class DashboardController extends BaseController
     }
 
     /**
+     * Refresh one server's database card via AJAX.
+     *
+     * @param string $server       Server identifier
+     * @param bool   $forceRefresh Force cache bypass
+     */
+    public function refreshDatabase(string $server, bool $forceRefresh = false): Response
+    {
+        if (!isset($this->monitoringConfig->servers->values[$server])) {
+            return $this->handleHtmlNotFound("Server '{$server}'", 'Database card rendering');
+        }
+
+        return $this->executeWithErrorHandling(
+            function () use ($server, $forceRefresh) {
+                $html = $this->databaseRenderer->renderDatabaseCards(
+                    [$server => $this->requireDashboardServices($server)->collector],
+                    [$server => $this->monitoringConfig->servers->values[$server]],
+                    $forceRefresh
+                );
+
+                return new HtmlResponse($html);
+            },
+            'Failed to load database card',
+            'Database card rendering'
+        );
+    }
+
+    /**
      * Refresh individual serverstats via AJAX.
      *
      * @param string $server       Server identifier

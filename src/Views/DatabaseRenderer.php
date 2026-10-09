@@ -125,6 +125,7 @@ class DatabaseRenderer extends BaseRenderer
                 'id' => $serverId,
                 'cache_age' => is_int($cacheAge) ? $this->tools->formatDuration($cacheAge) : null,
                 'cache_ttl' => is_int($cacheTtl) ? $this->tools->formatDuration($cacheTtl) : null,
+                'refresh_url' => $this->endpoints->url('refresh_database', ['server' => $server]),
             ],
             'icons' => $this->getCommonIcons(),
             'system' => [
