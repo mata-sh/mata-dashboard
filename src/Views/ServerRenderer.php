@@ -456,8 +456,11 @@ class ServerRenderer extends BaseRenderer
                 'status_tooltip' => $this->logRenderer->formatErrorAnalysisTooltip($logAnalysis['error_analysis']),
                 'loganalysis_enabled' => $logAnalysisEnabled,
                 'status_clickable' => $logAnalysisEnabled,
-                'cache_age' => $this->tools->formatDuration($appsCacheAge),
-                'cache_ttl' => $this->tools->formatDuration($appsCacheTtl),
+                'title_tooltip' => $this->buildAppTitleTooltip(
+                    is_string($appData['description'] ?? null) ? $appData['description'] : null,
+                    $appsCacheAge,
+                    $appsCacheTtl
+                ),
             ],
             'icons' => $this->getCommonIcons(),
             'endpoints' => [
@@ -487,6 +490,26 @@ class ServerRenderer extends BaseRenderer
                 'tooltip' => $sessionData['tooltip'],
             ],
         ];
+    }
+
+    /**
+     * Build the app title tooltip: the node's description above the cache age.
+     *
+     * The description is remote input, so it is escaped before joining the tooltip HTML.
+     */
+    private function buildAppTitleTooltip(?string $description, int $cacheAge, int $cacheTtl): string
+    {
+        $cache = sprintf(
+            'Cache Updated: %s ago (TTL: %s)',
+            $this->tools->formatDuration($cacheAge),
+            $this->tools->formatDuration($cacheTtl)
+        );
+
+        if ($description === null || trim($description) === '') {
+            return $cache;
+        }
+
+        return Html::escapeTooltipValue($description) . '<br>' . $cache;
     }
 
     /**

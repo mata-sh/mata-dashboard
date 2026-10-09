@@ -6,6 +6,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- App cards show the application description reported by the node in the app title tooltip
 - The documentation site includes the MATA Node reference (configuration, Docker, custom log parsers), synced from mata-node at build time
 
 - Database alarms: `database_unreachable` when the node cannot reach its database server, and `database_connections_too_high` when connections reach the `server_data.database_connections_percent` alarm level (default 80 % of `max_connections`). Both are checked by the server metrics cron
@@ -17,6 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Database cards read MATA Node's `/databases/overview` and show connection numbers once per database server; the process list opens per database or for the whole server, is fetched live, and names the privilege the monitoring account lacks when it only sees its own sessions (MariaDB `PROCESS`, PostgreSQL `pg_read_all_stats`). Nodes without database monitoring show the section as not configured. Requires MATA Node 0.3.0 or later
 
 ### Fixed
+- The app title tooltip no longer appends a stray "s" to the cache age and TTL (for example "5 minutes s ago")
 - Dashboard notices with a saved choice (such as "never" or "snooze") now close only after the server stores it; a failed request leaves the notice visible
 
 ## [0.6.0] - 2026-10-09

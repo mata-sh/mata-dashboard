@@ -156,6 +156,31 @@ final class ServerRendererTest extends TestCase
         $this->assertFalse($result['logs']['file_size_clickable']);
     }
 
+    public function testTitleTooltipShowsEscapedDescriptionAboveCacheAge(): void
+    {
+        $result = $this->buildAppCardData(
+            ['level' => 'good', 'max_size_formatted' => '12 KB'],
+            ['show_events_count' => 0, 'show_events_type' => 'working'],
+            extraAppData: ['description' => 'Shop <img src=x onerror=alert(1)>'],
+        );
+
+        $this->assertSame(
+            'Shop &lt;img src=x onerror=alert(1)&gt;<br>Cache Updated: 1 s ago (TTL: 1 s)',
+            $result['app']['title_tooltip']
+        );
+    }
+
+    public function testTitleTooltipShowsOnlyCacheAgeWithoutDescription(): void
+    {
+        $result = $this->buildAppCardData(
+            ['level' => 'good', 'max_size_formatted' => '12 KB'],
+            ['show_events_count' => 0, 'show_events_type' => 'working'],
+            extraAppData: ['description' => '   '],
+        );
+
+        $this->assertSame('Cache Updated: 1 s ago (TTL: 1 s)', $result['app']['title_tooltip']);
+    }
+
     public function testRendersInertFilesizeDashAndUnclickableStatus(): void
     {
         $html = $this->renderAppCard(
@@ -192,13 +217,15 @@ final class ServerRendererTest extends TestCase
      * @param array<string,mixed> $logAnalysisData
      * @param array<string,mixed> $errorAnalysisData
      * @param array<string,mixed> $sessionData
+     * @param array<string,mixed> $extraAppData
      *
      * @return array<string,mixed>
      */
     private function buildAppCardData(
         array $logAnalysisData,
         array $errorAnalysisData,
-        array $sessionData = ['formatted_count' => '0', 'level' => 'good', 'tooltip' => 'sessions']
+        array $sessionData = ['formatted_count' => '0', 'level' => 'good', 'tooltip' => 'sessions'],
+        array $extraAppData = []
     ): array {
         $tools = $this->createStub(Tools::class);
         $tools->method('formatDuration')->willReturn('1 s');
@@ -217,7 +244,8 @@ final class ServerRendererTest extends TestCase
 
         return (new ReflectionMethod($renderer, 'buildAppCardData'))->invokeArgs($renderer, [
             'shop',
-            ['title' => 'Shop', 'url' => 'https://shop.example.test', 'env' => 'prod', 'path' => '/srv/shop'],
+            ['title' => 'Shop', 'url' => 'https://shop.example.test', 'env' => 'prod', 'path' => '/srv/shop']
+            + $extraAppData,
             'server-a',
             ['log_analysis' => $logAnalysisData, 'error_analysis' => $errorAnalysisData],
             $sessionData,
