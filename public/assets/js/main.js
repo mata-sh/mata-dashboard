@@ -196,7 +196,7 @@ document.body.addEventListener('click', (event) => {
     button.closest('.notification')?.classList.add('is-hidden');
 });
 
-// Dropdown population (called from inline scripts)
+// Dropdown population (called from the *-table.js modules)
 
 function mataPopulateSelectFromRows(selectId, rows, field, placeholder) {
     const select = document.getElementById(selectId);
@@ -244,7 +244,7 @@ function mataPopulateSelectFromRows(selectId, rows, field, placeholder) {
 
 window.mataPopulateSelectFromRows = mataPopulateSelectFromRows;
 
-// Tabulator cell formatters (called from inline scripts)
+// Tabulator cell formatters (called from the *-table.js modules)
 
 const mataLevelColors = Object.freeze({
     critical: '#ff4d4d',
