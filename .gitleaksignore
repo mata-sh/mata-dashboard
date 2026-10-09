@@ -1,11 +1,11 @@
-# Reviewed gitleaks findings (2026-10-09): documentation placeholders, test
-# fixtures, and an expired demo-user remember token removed in 62dedbc.
-# Only add fingerprints here after confirming the value is not a real secret.
-25e35ec5cb253f84ac6fca334216c109e1028c07:src/Tests/Unit/Views/SettingsRendererTest.php:generic-api-key:103
-759098c137b212d62b8043f0506a05bf7c4db9e6:docs/reference/client-config.md:generic-api-key:612
-759098c137b212d62b8043f0506a05bf7c4db9e6:docs/reference/client-config.md:generic-api-key:613
-804dd54faf2e36187e5477e4f1c07d3925ba6f63:src/Tests/Helpers/ApplicationConfigFactory.php:generic-api-key:168
-dad6bc2ecce689dad65768d73f7748be288b6f51:src/Tests/Unit/Config/MonitoringSettingsLoaderTest.php:generic-api-key:106
+# Reviewed gitleaks findings (2026-10-09): documentation placeholders and test
+# fixtures in commit fa32667 (on main). Only add fingerprints here after
+# confirming the value is not a real secret.
+4afa4ac9fa38740d7062b9fa8e693d70087a9f9e:src/Tests/Unit/Views/SettingsRendererTest.php:generic-api-key:103
+763eeac7e314223b988b06ce173952408ddeea8d:docs/reference/client-config.md:generic-api-key:612
+763eeac7e314223b988b06ce173952408ddeea8d:docs/reference/client-config.md:generic-api-key:613
+7ee256b496c1babe69ef9c7c34cd948957a9d9ba:src/Tests/Helpers/ApplicationConfigFactory.php:generic-api-key:168
+b84f28d1c57cba034b11f6b1e1a8582abbb5e817:src/Tests/Unit/Config/MonitoringSettingsLoaderTest.php:generic-api-key:106
 fa3266715d64b6742c7967685d3a2b58cdfb7cd6:config/example/users.json.example:generic-api-key:8
 fa3266715d64b6742c7967685d3a2b58cdfb7cd6:docs/development/testing.md:curl-auth-header:252
 fa3266715d64b6742c7967685d3a2b58cdfb7cd6:docs/development/testing.md:curl-auth-header:256
