@@ -118,13 +118,6 @@ header('Content-Type: text/html; charset=utf-8');
     <pre>cd /path/to/mata-dashboard
 php -S 0.0.0.0:8001 -t public/</pre>
 
-    <h3>Docker</h3>
-    <pre>docker run -d \
-    -p 8001:80 \
-    -v $(pwd):/var/www/html \
-    -w /var/www/html/public \
-    php:8.3-apache</pre>
-
     <div class="info">
         <strong>💡 Why is this required?</strong><br>
         Setting the document root to <code>public/</code> prevents unauthorized access to:
