@@ -48,12 +48,24 @@ Common types are `feat`, `fix`, `docs`, `refactor`, `test`, and `chore`.
 Update documentation when a command, route, configuration key, or runtime
 behavior changes.
 
-## Release helper
-
-`scripts/build/generate-changelog.sh` requires Claude Code. It edits
-`CHANGELOG.md`, opens an editor, and, after confirmation, creates a commit and
-annotated tag. Run it only from a clean release branch and inspect the proposed
-version and content.
-
 Do not commit secrets, generated `site/` output, local `.env` files, or
 populated configuration files.
+
+## Release & Changelog
+
+Update `CHANGELOG.md` in the same change as anything an operator would notice, such as:
+
+- routes or node API expectations
+- configuration keys
+- security behavior
+- deployment steps
+
+Add one short bullet under `## [Unreleased]`, in `Added`, `Changed`, `Fixed` or `Removed`.
+Say what changed and any action operators need to take. Skip refactors, tests and
+internal-only work. If `[Unreleased]` does not exist yet, create it above the latest release.
+
+To release:
+
+1. Rename `[Unreleased]` to the new version heading.
+2. Tag the commit with a plain semantic version, without a `v` prefix (for example `0.7.0`).
+3. Push the tag. This runs `.github/workflows/release.yml`.

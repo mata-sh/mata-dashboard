@@ -390,8 +390,6 @@ scripts/
 │   └── mysql-operation.php      # DB maintenance ops
 ├── user-management/
 │   └── manage-users.php         # Create/update/remove users
-├── build/
-│   └── generate-changelog.sh    # Changelog generation
 ├── systemd/                     # Unit/timer files (critical-alarm eval, OPA)
 └── docs/
 ```

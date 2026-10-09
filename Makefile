@@ -133,7 +133,6 @@ help:
 	@echo "$(COLOR_BOLD)DEVELOPMENT$(COLOR_RESET)"
 	@echo "  $(COLOR_GREEN)make test$(COLOR_RESET)           Run tests"
 	@echo "  $(COLOR_GREEN)make docs-serve$(COLOR_RESET)     Serve documentation"
-	@echo "  $(COLOR_GREEN)make changelog$(COLOR_RESET)      Generate the changelog"
 	@echo ""
 	@echo "$(COLOR_BOLD)MORE$(COLOR_RESET)"
 	@echo "  $(COLOR_GREEN)make help-all$(COLOR_RESET)       Show all command groups"
@@ -290,9 +289,6 @@ install-hooks:
 	else \
 		echo "$(COLOR_YELLOW)⚠️  .githooks/pre-commit not found, skipping$(COLOR_RESET)"; \
 	fi
-	@echo "$(COLOR_BLUE)🔧 Making scripts executable...$(COLOR_RESET)"
-	@chmod +x scripts/build/generate-changelog.sh 2>/dev/null || true
-	@echo "$(COLOR_GREEN)✅ Scripts are now executable$(COLOR_RESET)"
 
 # ============================================
 # OPA (Open Policy Agent)
@@ -595,10 +591,6 @@ users-passwd:
 # ============================================
 # Build & Release
 # ============================================
-
-# Generate changelog from git history
-changelog:
-	./scripts/build/generate-changelog.sh
 
 # ============================================
 # Documentation Targets
@@ -910,7 +902,6 @@ docker-help:
 	test test-coverage \
 	db-migrate db-rollback db-status db-check db-hash-password db-backup db-restore db-shell \
 	users-list users-create users-unlock users-delete users-passwd \
-	changelog \
 	docs-serve docs-deploy \
 	docker-init docker-setup dev-setup prod-setup prod-fix-perms wait-db dev-start dev-logs dev-stop dev-restart dev-recreate dev-rebuild \
 	prod-start prod-stop prod-restart prod-rebuild \

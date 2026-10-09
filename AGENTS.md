@@ -1,5 +1,10 @@
 # Agent Notes
 
+## Changelog
+
+Keep `CHANGELOG.md` current without being asked, following
+[CONTRIBUTING.md](CONTRIBUTING.md#release--changelog).
+
 ## Coding Standards
 
 Follow [CODING_STANDARDS.md](CODING_STANDARDS.md). Keep it concise and non-obvious; do not restate patterns visible in the code or enforced by tooling. Update it when feedback reveals a clear recurring taste or style direction.

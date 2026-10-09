@@ -9,7 +9,6 @@ Run `make help` for the mode-aware command list.
 scripts/
 ├── database/           # migrations, backups, integrity checks, passwords
 ├── user-management/   # dashboard user CLI
-├── build/              # release helpers
 ├── docs/               # documentation tooling
 ├── systemd/            # native service units
 ├── cron_database_probe.php
@@ -45,12 +44,9 @@ php scripts/database/migrate.php status --env=dev
 php scripts/database/hash-password.php "mypassword"
 php scripts/user-management/manage-users.php list --env=dev
 php scripts/server_metrics_diagnostic.php
-./scripts/build/generate-changelog.sh
 ```
 
 User-management commands must run as the PHP-FPM user when that user owns the
 authentication data. Prefer Make targets for database writes so environment and
 production confirmation checks apply.
 
-`generate-changelog.sh` requires Claude Code. It edits `CHANGELOG.md` and, after
-confirmation, commits it and creates an annotated tag.
