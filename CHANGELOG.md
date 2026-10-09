@@ -13,7 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - The unused `too_many_sql_connections` alarm type is renamed to `database_connections_too_high`, and the unread `sql` section of `thresholds.json` is removed; rename the key in your `thresholds.json` and `intervals.json`
 - Docker images build on the latest PHP 8.3 release on Debian 13 (`php:8.3-apache-trixie`) with the latest Composer 2, and `make dev-rebuild` / `make prod-rebuild` pull the newest base image. If your `.env` sets `PHP_VERSION=8.3.14`, change it to `8.3`; no Debian 13 image exists for 8.3.14
-- Database cards read MATA Node's `/databases/overview` and show connection numbers once per database server; the process list opens per database or for the whole server and is fetched live. Nodes without database monitoring show the section as not configured. Requires MATA Node 0.3.0 or later
+- Database cards read MATA Node's `/databases/overview` and show connection numbers once per database server; the process list opens per database or for the whole server, is fetched live, and names the privilege the monitoring account lacks when it only sees its own sessions (MariaDB `PROCESS`, PostgreSQL `pg_read_all_stats`). Nodes without database monitoring show the section as not configured. Requires MATA Node 0.3.0 or later
 
 ### Fixed
 - Dashboard notices with a saved choice (such as "never" or "snooze") now close only after the server stores it; a failed request leaves the notice visible

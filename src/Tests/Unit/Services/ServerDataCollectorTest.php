@@ -322,7 +322,7 @@ final class ServerDataCollectorTest extends TestCase
         $apiClient->expects($this->once())
             ->method('request')
             ->with('GET', 'databases/processes', ['query' => ['active_only' => 0, 'limit' => 100, 'database' => 'shop']])
-            ->willReturn('{"visibility":"all_sessions","summary_by_database":[],"processes":[],"truncated":false}')
+            ->willReturn('{"engine":"mariadb","visibility":"all_sessions","summary_by_database":[],"processes":[],"truncated":false}')
         ;
 
         $response = $this->createCollector($cache, $apiClient)->fetchDatabaseProcesses('shop');

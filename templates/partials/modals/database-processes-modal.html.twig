@@ -7,7 +7,7 @@
 } %}
   {% block modal_body %}
     {% if own_sessions_only %}
-      <p class="notification is-warning">The monitoring account lacks the PROCESS privilege; this list only shows its own sessions and is incomplete.</p>
+      <p class="notification is-warning">The monitoring account lacks {{ missing_privilege }}; this list only shows its own sessions and is incomplete.</p>
     {% endif %}
     {% if truncated %}
       <p class="notification is-warning">Showing the {{ processes|length }} longest-running sessions; more exist.</p>

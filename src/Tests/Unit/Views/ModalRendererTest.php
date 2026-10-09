@@ -127,6 +127,7 @@ final class ModalRendererTest extends TestCase
             $this->createStub(Endpoints::class),
         );
         $result = [
+            'engine' => 'pgsql',
             'visibility' => 'own_sessions',
             'summary_by_database' => [],
             'processes' => [['id' => 7, 'database' => 'shop', 'command' => 'Query', 'time_seconds' => 4, 'statement' => 'SELECT']],
@@ -141,9 +142,9 @@ final class ModalRendererTest extends TestCase
             '/refresh',
         );
 
-        $this->assertStringContainsString('PROCESS privilege', $incomplete);
+        $this->assertStringContainsString('pg_read_all_stats', $incomplete);
         $this->assertStringContainsString('more exist', $incomplete);
-        $this->assertStringNotContainsString('PROCESS privilege', $complete);
+        $this->assertStringNotContainsString('pg_read_all_stats', $complete);
         $this->assertStringNotContainsString('more exist', $complete);
     }
 }

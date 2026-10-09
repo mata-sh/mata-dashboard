@@ -549,6 +549,11 @@ class ModalRenderer extends BaseRenderer
             'processes' => $processes,
             'summary' => is_array($result['summary_by_database'] ?? null) ? $result['summary_by_database'] : [],
             'own_sessions_only' => ($result['visibility'] ?? null) === 'own_sessions',
+            'missing_privilege' => match ($result['engine'] ?? null) {
+                'mariadb' => 'the PROCESS privilege',
+                'pgsql' => 'the pg_read_all_stats role',
+                default => 'the privilege to see other sessions',
+            },
             'truncated' => ($result['truncated'] ?? false) === true,
             'endpoints' => ['refresh' => $refreshEndpoint],
             'icons' => $this->getModalIcons(),

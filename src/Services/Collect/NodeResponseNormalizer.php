@@ -553,10 +553,11 @@ class NodeResponseNormalizer
     public function normalizeDatabaseProcesses(array $data): array
     {
         $endpoint = 'databases/processes';
+        $engine = TypeConverter::toString($data['engine'] ?? null);
         $visibility = $data['visibility'] ?? null;
         $summary = $data['summary_by_database'] ?? null;
         $processes = $data['processes'] ?? null;
-        if (!in_array($visibility, ['all_sessions', 'own_sessions'], true) || !is_bool($data['truncated'] ?? null)
+        if ($engine === null || !in_array($visibility, ['all_sessions', 'own_sessions'], true) || !is_bool($data['truncated'] ?? null)
             || !is_array($summary) || !array_is_list($summary) || !is_array($processes) || !array_is_list($processes)) {
             throw new InvalidNodePayloadException('Node returned an invalid database process list.', $endpoint);
         }
@@ -581,6 +582,7 @@ class NodeResponseNormalizer
         }
 
         return [
+            'engine' => $engine,
             'visibility' => $visibility,
             'summary_by_database' => $normalizedSummary,
             'processes' => $normalizedProcesses,
