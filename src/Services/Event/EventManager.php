@@ -12,6 +12,9 @@ use Mata\Services\Alarm\Dto\Alarm;
 use Mata\Services\Alarm\Dto\AlarmLevel;
 use Mata\Services\Event\Dto\EventCommand;
 use PDOException;
+use Psr\Log\LoggerInterface;
+use Psr\Log\LogLevel;
+use Psr\Log\NullLogger;
 
 /**
  * Monitoring events.
@@ -83,6 +86,7 @@ class EventManager
     private ?AlarmDirectProcessor $alarmDirectProcessor;
     private ApplicationConfig $appConfig;
     private CooldownHashFactory $cooldownHashFactory;
+    private LoggerInterface $logger;
 
     /**
      * Event recorder for persistence and cooldown tracking.
@@ -109,19 +113,30 @@ class EventManager
      * @param null|EventRecorderService            $eventRecorder        Optional event recorder (can be set later via setEventRecorder)
      * @param null|EventAggregatorServiceInterface $eventAggregator      Optional event aggregator (can be set later via setEventAggregator)
      * @param null|CooldownHashFactory             $cooldownHashFactory  Optional cooldown hash factory
+     * @param null|LoggerInterface                 $logger               Receives events that could not be stored
      */
     public function __construct(
         ApplicationConfig $appConfig,
         ?AlarmDirectProcessor $alarmDirectProcessor = null,
         ?EventRecorderService $eventRecorder = null,
         ?EventAggregatorServiceInterface $eventAggregator = null,
-        ?CooldownHashFactory $cooldownHashFactory = null
+        ?CooldownHashFactory $cooldownHashFactory = null,
+        ?LoggerInterface $logger = null,
     ) {
         $this->alarmDirectProcessor = $alarmDirectProcessor;
         $this->appConfig = $appConfig;
         $this->recorder = $eventRecorder;
         $this->aggregator = $eventAggregator;
         $this->cooldownHashFactory = $cooldownHashFactory ?? new CooldownHashFactory();
+        $this->logger = $logger ?? new NullLogger();
+    }
+
+    /** Attach alarm processing once alarm limits are loaded; forced alarms are skipped before that. */
+    public function setAlarmDirectProcessor(AlarmDirectProcessor $alarmDirectProcessor): self
+    {
+        $this->alarmDirectProcessor = $alarmDirectProcessor;
+
+        return $this;
     }
 
     /**
@@ -274,25 +289,25 @@ class EventManager
             context: $context
         );
 
-        $shouldCreateEvent = $this->shouldCreateEvent(
-            cooldownHash: $cooldownHash,
-            cooldownMinutes: $cooldownMinutes
-        );
-
-        if (!$shouldCreateEvent) {
-            return [
-                'eventRecorded' => false,
-                'eventId' => null,
-            ];
-        }
-
-        if ($this->recorder === null) {
-            throw new LogicException(
-                'EventRecorder not initialized. Call setEventRecorder() before using handle().'
-            );
-        }
-
         try {
+            $shouldCreateEvent = $this->shouldCreateEvent(
+                cooldownHash: $cooldownHash,
+                cooldownMinutes: $cooldownMinutes
+            );
+
+            if (!$shouldCreateEvent) {
+                return [
+                    'eventRecorded' => false,
+                    'eventId' => null,
+                ];
+            }
+
+            if ($this->recorder === null) {
+                throw new LogicException(
+                    'EventRecorder not initialized. Call setEventRecorder() before using handle().'
+                );
+            }
+
             $eventRecordResult = $this->recorder->recordEvent(
                 type: $event->type,
                 message: $event->message,
@@ -315,17 +330,31 @@ class EventManager
                 );
                 $this->alarmDirectProcessor->process($alarm, $eventRecordResult);
             }
+            if (!$eventRecordResult->wasRecorded()) {
+                $this->logUnstoredEvent($event, 'no database');
+            }
 
             return [
                 'eventRecorded' => $eventRecordResult->wasRecorded(),
                 'eventId' => $eventRecordResult->eventId > 0 ? $eventRecordResult->eventId : null,
             ];
         } catch (PDOException $exception) {
+            $this->logUnstoredEvent($event, $exception->getMessage());
+
             return [
                 'eventRecorded' => false,
                 'eventId' => null,
             ];
         }
+    }
+
+    /** Keep events visible in no-database mode and when a write fails. */
+    private function logUnstoredEvent(EventCommand $event, string $reason): void
+    {
+        $level = in_array($event->level, [LogLevel::CRITICAL, LogLevel::ERROR, LogLevel::WARNING], true)
+            ? $event->level
+            : LogLevel::INFO;
+        $this->logger->log($level, $event->message, ['event_type' => $event->type, 'event_not_stored' => $reason]);
     }
 
     /**

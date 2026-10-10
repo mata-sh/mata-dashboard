@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Mata\Config\Monitoring\Loader;
 
 use Mata\Config\Monitoring\Section\ChartsConfig;
-use Mata\Services\Event\EventRecorderService;
+use Mata\Services\Event\EventManager;
 use Mata\Services\ServerMetrics\MetricCatalog;
 use Mata\Services\ServerMetrics\MetricQueryPolicy;
 use RuntimeException;
@@ -14,7 +14,7 @@ use RuntimeException;
 final class ChartsConfigLoader extends AbstractJsonConfigLoader
 {
     public function __construct(
-        private EventRecorderService $eventRecorder,
+        private EventManager $events,
         private MetricCatalog $metricCatalog,
         private MetricQueryPolicy $queryPolicy,
         private bool $fallbackOnFailure = true,
@@ -67,19 +67,15 @@ final class ChartsConfigLoader extends AbstractJsonConfigLoader
 
     private function reportLoadFailure(string $filePath, string $reason): void
     {
-        $this->eventRecorder->recordEvent(
-            type: 'charts_config_invalid',
-            message: "Could not load {$filePath}; falling back to chart defaults: {$reason}",
-            level: 'warning',
+        $this->reportProblem(
+            $this->events,
+            'charts_config_invalid',
+            "Could not load {$filePath}; falling back to chart defaults: {$reason}",
         );
     }
 
     private function reportInvalidEntry(string $message): void
     {
-        $this->eventRecorder->recordEvent(
-            type: 'charts_config_invalid_entry',
-            message: $message,
-            level: 'warning',
-        );
+        $this->reportProblem($this->events, 'charts_config_invalid_entry', $message);
     }
 }

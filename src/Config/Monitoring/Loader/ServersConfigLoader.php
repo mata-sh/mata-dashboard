@@ -9,10 +9,7 @@ use Mata\Config\Monitoring\Section\ServersConfig;
 use Mata\Config\Monitoring\ServerConfigState;
 use Mata\Database\DatabaseInterface;
 use Mata\Database\NullDatabase;
-use Mata\Services\Alarm\AlarmDirectProcessor;
-use Mata\Services\Alarm\Dto\Alarm;
-use Mata\Services\Alarm\Dto\AlarmLevel;
-use Mata\Services\Event\EventRecorderService;
+use Mata\Services\Event\EventManager;
 use Mata\Services\Sync\ServerConfigDatabaseSync;
 use Mata\Utils\TypeConverter;
 use RuntimeException;
@@ -20,8 +17,7 @@ use RuntimeException;
 final class ServersConfigLoader extends AbstractJsonConfigLoader
 {
     public function __construct(
-        private EventRecorderService $eventRecorder,
-        private ?AlarmDirectProcessor $alarmDirectProcessor = null,
+        private EventManager $events,
         private ?DatabaseInterface $db = null,
         private ?ServerConfigDatabaseSync $serverConfigSync = null,
         private bool $fallbackOnFailure = false,
@@ -62,7 +58,7 @@ final class ServersConfigLoader extends AbstractJsonConfigLoader
         );
         $validation = $this->validateServersConfig($visible);
         foreach ($validation['errors'] as $error) {
-            $this->recordConfigurationEvent('servers_config_validation_error', $error, 'warning');
+            $this->reportProblem($this->events, 'servers_config_validation_error', $error, 'warning');
         }
         $servers = ServersConfig::fromArray($raw);
 
@@ -71,7 +67,8 @@ final class ServersConfigLoader extends AbstractJsonConfigLoader
                 $this->serverConfigSync->syncIfNeeded($filePath, $servers->values);
             } catch (Exception $exception) {
                 // Persisted event identifier; rename only with a migration.
-                $this->recordConfigurationEvent(
+                $this->reportProblem(
+                    $this->events,
                     'settings_sync_error',
                     'Failed to sync server configuration to database: ' . $exception->getMessage(),
                     'warning',
@@ -117,7 +114,8 @@ final class ServersConfigLoader extends AbstractJsonConfigLoader
             ) {
                 continue;
             }
-            $this->recordConfigurationEvent(
+            $this->reportProblem(
+                $this->events,
                 'http_connection_allowed',
                 "Security warning: HTTP connection allowed for server '{$serverName}' (api_url: {$config['api_url']}). Recommendation: Use HTTPS for production environments.",
                 'warning',
@@ -127,26 +125,12 @@ final class ServersConfigLoader extends AbstractJsonConfigLoader
 
     private function reportLoadFailure(string $filePath): void
     {
-        $this->recordConfigurationEvent(
+        $this->reportProblem(
+            $this->events,
             type: 'servers_config_not_found',
             message: "Could not load {$filePath} -> file not found",
             level: 'critical',
             forceAlarm: true,
         );
-    }
-
-    private function recordConfigurationEvent(string $type, string $message, string $level = 'info', bool $forceAlarm = false): void
-    {
-        $recordResult = $this->eventRecorder->recordEvent(type: $type, message: $message, level: $level);
-        if ($forceAlarm && $this->alarmDirectProcessor !== null) {
-            $this->alarmDirectProcessor->process(new Alarm(
-                type: $type,
-                message: $message,
-                level: AlarmLevel::fromString($level),
-                server: $recordResult->serverLabel,
-                app: $recordResult->appLabel,
-                channels: ['email'],
-            ), $recordResult);
-        }
     }
 }

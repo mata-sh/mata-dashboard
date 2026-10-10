@@ -186,7 +186,7 @@ final class ChartsConfigLoaderTest extends TestCase
     private function createLoader(EventRecorderService $eventRecorder): ChartsConfigLoader
     {
         return new ChartsConfigLoader(
-            eventRecorder: $eventRecorder,
+            events: $this->eventManagerFor($eventRecorder),
             metricCatalog: new MetricCatalog(),
             queryPolicy: new MetricQueryPolicy(),
         );

@@ -87,20 +87,21 @@ final class MonitoringConfigLoadersTest extends TestCase
     public function testFallbackDefaultsKeepTheCompleteMonitoringShape(): void
     {
         $this->useEventRecorderMock();
+        // Required files only; missing optional files (probes, notification rules, menu) are silent.
         $this->eventRecorder
-            ->expects($this->exactly(6))
+            ->expects($this->exactly(5))
             ->method('recordEvent')
             ->willReturn(new EventRecordResult(1, null, null, null, null, null));
         $configPath = $this->createTempDirectory();
         $manager = new MonitoringConfigLoader(
-            servers: new ServersConfigLoader(eventRecorder: $this->eventRecorder, fallbackOnFailure: true),
-            ttl: new TtlConfigLoader(eventRecorder: $this->eventRecorder, fallbackOnFailure: true),
-            dataRetention: new DataRetentionConfigLoader(eventRecorder: $this->eventRecorder, fallbackOnFailure: true),
-            intervals: new IntervalsConfigLoader(eventRecorder: $this->eventRecorder, fallbackOnFailure: true),
-            probes: new ProbesConfigLoader(eventRecorder: $this->eventRecorder, fallbackOnFailure: true),
-            notificationRules: new NotificationRulesConfigLoader(eventRecorder: $this->eventRecorder, fallbackOnFailure: true),
-            thresholds: new ThresholdsConfigLoader(eventRecorder: $this->eventRecorder, fallbackOnFailure: true),
-            menu: new MenuConfigLoader($this->eventRecorder, MenuBuilder::MENU_KEYS),
+            servers: new ServersConfigLoader(events: $this->eventManagerFor($this->eventRecorder), fallbackOnFailure: true),
+            ttl: new TtlConfigLoader(events: $this->eventManagerFor($this->eventRecorder), fallbackOnFailure: true),
+            dataRetention: new DataRetentionConfigLoader(events: $this->eventManagerFor($this->eventRecorder), fallbackOnFailure: true),
+            intervals: new IntervalsConfigLoader(events: $this->eventManagerFor($this->eventRecorder), fallbackOnFailure: true),
+            probes: new ProbesConfigLoader(events: $this->eventManagerFor($this->eventRecorder), fallbackOnFailure: true),
+            notificationRules: new NotificationRulesConfigLoader(events: $this->eventManagerFor($this->eventRecorder), fallbackOnFailure: true),
+            thresholds: new ThresholdsConfigLoader(events: $this->eventManagerFor($this->eventRecorder), fallbackOnFailure: true),
+            menu: new MenuConfigLoader($this->eventManagerFor($this->eventRecorder), MenuBuilder::MENU_KEYS),
         );
 
         try {
@@ -353,7 +354,7 @@ final class MonitoringConfigLoadersTest extends TestCase
             ->with(
                 'servers_config_validation_error',
                 "Server 'invalid-server' disabled must be a boolean",
-                '',
+                $this->anything(),
                 'warning',
             )
             ->willReturn(new EventRecordResult(1, null, null, null, null, null));
@@ -1190,20 +1191,20 @@ final class MonitoringConfigLoadersTest extends TestCase
 
     private function initializeLoaders(): void
     {
-        $this->loader = new ServersConfigLoader(eventRecorder: $this->eventRecorder, fallbackOnFailure: false);
-        $this->ttlLoader = new TtlConfigLoader(eventRecorder: $this->eventRecorder, fallbackOnFailure: true);
+        $this->loader = new ServersConfigLoader(events: $this->eventManagerFor($this->eventRecorder), fallbackOnFailure: false);
+        $this->ttlLoader = new TtlConfigLoader(events: $this->eventManagerFor($this->eventRecorder), fallbackOnFailure: true);
         $this->notificationRulesLoader = new NotificationRulesConfigLoader(
-            eventRecorder: $this->eventRecorder,
+            events: $this->eventManagerFor($this->eventRecorder),
             fallbackOnFailure: true,
         );
         $this->thresholdsLoader = new ThresholdsConfigLoader(
-            eventRecorder: $this->eventRecorder,
+            events: $this->eventManagerFor($this->eventRecorder),
             fallbackOnFailure: true,
         );
-        $this->intervalsLoader = new IntervalsConfigLoader(eventRecorder: $this->eventRecorder, fallbackOnFailure: true);
-        $this->dataRetentionLoader = new DataRetentionConfigLoader(eventRecorder: $this->eventRecorder, fallbackOnFailure: true);
+        $this->intervalsLoader = new IntervalsConfigLoader(events: $this->eventManagerFor($this->eventRecorder), fallbackOnFailure: true);
+        $this->dataRetentionLoader = new DataRetentionConfigLoader(events: $this->eventManagerFor($this->eventRecorder), fallbackOnFailure: true);
         $this->menuLoader = new MenuConfigLoader(
-            eventRecorder: $this->eventRecorder,
+            events: $this->eventManagerFor($this->eventRecorder),
             validKeys: MenuBuilder::MENU_KEYS,
             fallbackOnFailure: true,
         );
@@ -1212,7 +1213,7 @@ final class MonitoringConfigLoadersTest extends TestCase
             ttl: $this->ttlLoader,
             dataRetention: $this->dataRetentionLoader,
             intervals: $this->intervalsLoader,
-            probes: new ProbesConfigLoader(eventRecorder: $this->eventRecorder, fallbackOnFailure: true),
+            probes: new ProbesConfigLoader(events: $this->eventManagerFor($this->eventRecorder), fallbackOnFailure: true),
             notificationRules: $this->notificationRulesLoader,
             thresholds: $this->thresholdsLoader,
             menu: $this->menuLoader,

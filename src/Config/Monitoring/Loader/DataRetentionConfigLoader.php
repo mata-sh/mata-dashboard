@@ -6,13 +6,13 @@ namespace Mata\Config\Monitoring\Loader;
 
 use InvalidArgumentException;
 use Mata\Config\Monitoring\Section\DataRetentionConfig;
-use Mata\Services\Event\EventRecorderService;
+use Mata\Services\Event\EventManager;
 use RuntimeException;
 
 final class DataRetentionConfigLoader extends AbstractJsonConfigLoader
 {
     public function __construct(
-        private EventRecorderService $eventRecorder,
+        private EventManager $events,
         private bool $fallbackOnFailure = true,
     ) {}
 
@@ -64,10 +64,6 @@ final class DataRetentionConfigLoader extends AbstractJsonConfigLoader
         if ($reason !== null) {
             $message .= " (reason: {$reason})";
         }
-        $this->eventRecorder->recordEvent(
-            type: 'data_retention_config_not_found',
-            message: $message,
-            level: 'warning',
-        );
+        $this->reportProblem($this->events, 'data_retention_config_not_found', $message);
     }
 }

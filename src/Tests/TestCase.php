@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace Mata\Tests;
 
+use Mata\Services\Event\EventManager;
+use Mata\Services\Event\EventRecorderService;
+use Mata\Tests\Helpers\ApplicationConfigFactory;
 use PHPUnit\Framework\TestCase as BaseTestCase;
 use ReflectionClass;
 use ReflectionException;
@@ -166,5 +169,11 @@ abstract class TestCase extends BaseTestCase
                 $this->assertEquals($expectedType, $actualType, "Key '{$key}' has wrong type. Expected {$expectedType}, got {$actualType}");
             }
         }
+    }
+
+    /** A real EventManager around a recorder double, so recordEvent() expectations still apply. */
+    protected function eventManagerFor(EventRecorderService $recorder): EventManager
+    {
+        return new EventManager(ApplicationConfigFactory::create(), eventRecorder: $recorder);
     }
 }

@@ -6,13 +6,13 @@ namespace Mata\Config\Monitoring\Loader;
 
 use InvalidArgumentException;
 use Mata\Config\Monitoring\Section\TtlConfig;
-use Mata\Services\Event\EventRecorderService;
+use Mata\Services\Event\EventManager;
 use RuntimeException;
 
 final class TtlConfigLoader extends AbstractJsonConfigLoader
 {
     public function __construct(
-        private EventRecorderService $eventRecorder,
+        private EventManager $events,
         private bool $fallbackOnFailure = true,
     ) {}
 
@@ -52,10 +52,10 @@ final class TtlConfigLoader extends AbstractJsonConfigLoader
 
     private function reportLoadFailure(string $filePath, string $reason): void
     {
-        $this->eventRecorder->recordEvent(
-            type: 'ttl_config_not_found',
-            message: "Could not load {$filePath} -> fallback to Default Values (reason: {$reason})",
-            level: 'warning',
+        $this->reportProblem(
+            $this->events,
+            'ttl_config_not_found',
+            "Could not load {$filePath} -> fallback to Default Values (reason: {$reason})",
         );
     }
 }

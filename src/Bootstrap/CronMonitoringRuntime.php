@@ -73,9 +73,15 @@ final readonly class CronMonitoringRuntime
         $fatalStateRepository = new AppFatalStateRepository($db);
         $eventRepository = new EventRepository($db);
 
+        // Early initialization for config loaders.
+        // Event aggregator and monitoring config are attached once they exist.
+        $idResolver = new ServerApplicationIdResolver($configSyncRepository);
+        $eventRecorder = new EventRecorderService($db, $idResolver);
+        $eventManager = new EventManager(appConfig: $appConfig, eventRecorder: $eventRecorder, logger: $log);
+
         // Alarm limits and queue-failure throttling
         $queueFailureThrottle = new AlarmQueueFailureThrottle($paths->tempPath . '/alarm-locks', $log);
-        $alarmLimits = (new AlarmRateLimitsConfigLoader($log))->load($paths->appPath . '/config');
+        $alarmLimits = (new AlarmRateLimitsConfigLoader($eventManager))->load($paths->appPath . '/config');
 
         // Direct alarm processing
         $alarmDirectProcessor = new AlarmDirectProcessor(
@@ -84,10 +90,9 @@ final readonly class CronMonitoringRuntime
             $queueFailureThrottle,
             $log,
         );
+        $eventManager->setAlarmDirectProcessor($alarmDirectProcessor);
 
-        // Event services
-        $idResolver = new ServerApplicationIdResolver($configSyncRepository);
-        $eventRecorder = new EventRecorderService($db, $idResolver);
+        // Event aggregation
         $eventAggregator = (new DashboardEnvironmentFactory(
             $appConfig->environment->env,
             $eventRepository,
@@ -96,31 +101,17 @@ final readonly class CronMonitoringRuntime
             $log,
             $paths->appPath . '/config/demo/events.json',
         ))->createEventAggregator();
-
-        $eventManager = new EventManager(
-            appConfig: $appConfig,
-            alarmDirectProcessor: $alarmDirectProcessor,
-            eventRecorder: $eventRecorder,
-            eventAggregator: $eventAggregator,
-        );
+        $eventManager->setEventAggregator($eventAggregator);
 
         // Monitoring configuration
         $monitoringConfig = (new MonitoringConfigLoader(
-            servers: new ServersConfigLoader(
-                eventRecorder: $eventRecorder,
-                alarmDirectProcessor: $alarmDirectProcessor,
-                fallbackOnFailure: false,
-            ),
-            ttl: new TtlConfigLoader(eventRecorder: $eventRecorder, fallbackOnFailure: true),
-            dataRetention: new DataRetentionConfigLoader(eventRecorder: $eventRecorder, fallbackOnFailure: true),
-            intervals: new IntervalsConfigLoader(eventRecorder: $eventRecorder, fallbackOnFailure: true),
-            probes: new ProbesConfigLoader(eventRecorder: $eventRecorder, fallbackOnFailure: true),
-            notificationRules: new NotificationRulesConfigLoader(eventRecorder: $eventRecorder, fallbackOnFailure: true),
-            thresholds: new ThresholdsConfigLoader(
-                eventRecorder: $eventRecorder,
-                alarmDirectProcessor: $alarmDirectProcessor,
-                fallbackOnFailure: true,
-            ),
+            servers: new ServersConfigLoader(events: $eventManager, fallbackOnFailure: false),
+            ttl: new TtlConfigLoader(events: $eventManager, fallbackOnFailure: true),
+            dataRetention: new DataRetentionConfigLoader(events: $eventManager, fallbackOnFailure: true),
+            intervals: new IntervalsConfigLoader(events: $eventManager, fallbackOnFailure: true),
+            probes: new ProbesConfigLoader(events: $eventManager, fallbackOnFailure: true),
+            notificationRules: new NotificationRulesConfigLoader(events: $eventManager, fallbackOnFailure: true),
+            thresholds: new ThresholdsConfigLoader(events: $eventManager, fallbackOnFailure: true),
         ))->load($paths->appPath . '/config', $alarmLimits);
 
         $eventManager->setMonitoringConfig($monitoringConfig);

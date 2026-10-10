@@ -5,17 +5,13 @@ declare(strict_types=1);
 namespace Mata\Config\Monitoring\Loader;
 
 use Mata\Config\Monitoring\Section\ThresholdsConfig;
-use Mata\Services\Alarm\AlarmDirectProcessor;
-use Mata\Services\Alarm\Dto\Alarm;
-use Mata\Services\Alarm\Dto\AlarmLevel;
-use Mata\Services\Event\EventRecorderService;
+use Mata\Services\Event\EventManager;
 use RuntimeException;
 
 final class ThresholdsConfigLoader extends AbstractJsonConfigLoader
 {
     public function __construct(
-        private EventRecorderService $eventRecorder,
-        private ?AlarmDirectProcessor $alarmDirectProcessor = null,
+        private EventManager $events,
         private bool $fallbackOnFailure = true,
     ) {}
 
@@ -49,7 +45,7 @@ final class ThresholdsConfigLoader extends AbstractJsonConfigLoader
         }
 
         return ThresholdsConfig::fromArray($thresholds, function (string $message): void {
-            $this->recordConfigurationEvent('thresholds_config_validation_error', $message, 'warning');
+            $this->reportProblem($this->events, 'thresholds_config_validation_error', $message);
         });
     }
 
@@ -60,26 +56,10 @@ final class ThresholdsConfigLoader extends AbstractJsonConfigLoader
 
     private function reportLoadFailure(string $filePath, RuntimeException $exception): void
     {
-        $this->recordConfigurationEvent(
-            type: 'thresholds_config_not_found',
-            message: "Could not load {$filePath} -> no Server Watching (JSON error: {$exception->getMessage()})",
-            level: 'critical',
-            forceAlarm: true,
+        $this->reportProblem(
+            $this->events,
+            'thresholds_config_not_found',
+            "Could not load {$filePath} -> fallback to default thresholds (reason: {$exception->getMessage()})",
         );
-    }
-
-    private function recordConfigurationEvent(string $type, string $message, string $level = 'info', bool $forceAlarm = false): void
-    {
-        $recordResult = $this->eventRecorder->recordEvent(type: $type, message: $message, level: $level);
-        if ($forceAlarm && $this->alarmDirectProcessor !== null) {
-            $this->alarmDirectProcessor->process(new Alarm(
-                type: $type,
-                message: $message,
-                level: AlarmLevel::fromString($level),
-                server: $recordResult->serverLabel,
-                app: $recordResult->appLabel,
-                channels: ['email'],
-            ), $recordResult);
-        }
     }
 }

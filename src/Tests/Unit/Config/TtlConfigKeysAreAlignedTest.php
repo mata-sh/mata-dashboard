@@ -37,7 +37,7 @@ final class TtlConfigKeysAreAlignedTest extends TestCase
 
     public function testDefaultConfigCoversEveryCacheType(): void
     {
-        $defaults = (new TtlConfigLoader($this->createStub(EventRecorderService::class)))->getDefaultConfig()->values;
+        $defaults = (new TtlConfigLoader($this->eventManagerFor($this->createStub(EventRecorderService::class))))->getDefaultConfig()->values;
 
         $this->assertSame(
             $this->sorted(CacheType::ttlConfigKeys()),

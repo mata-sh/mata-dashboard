@@ -309,17 +309,23 @@ $serverConfigSync = new ServerConfigDatabaseSync($db, $log, $configSyncRepositor
 $idResolver = new ServerApplicationIdResolver($configSyncRepository);
 $appInventorySync = new AppInventorySync($configSyncRepository, $idResolver, $log);
 
+// --- Event Manager ---
+// Early initialization for config loaders.
+// Event aggregator and monitoring config are attached once they exist.
+$eventRepository = new EventRepository($db);
+$eventRecorder = new EventRecorderService($db, $idResolver);
+$eventManager = new EventManager($appConfig, eventRecorder: $eventRecorder, logger: $log);
+
 // --- Limits & Locking ---
 $queueFailureThrottle = new AlarmQueueFailureThrottle($paths->tempPath . '/alarm-locks', $log);
-$limitsLoader = new AlarmRateLimitsConfigLoader($log);
+$limitsLoader = new AlarmRateLimitsConfigLoader($eventManager);
 $limitsConfig = $limitsLoader->load($paths->appPath . '/config');
 
 // --- Alarm Manager ---
 $alarmDirectProcessor = new AlarmDirectProcessor($alarmCreator, $limitsConfig, $queueFailureThrottle, $log);
+$eventManager->setAlarmDirectProcessor($alarmDirectProcessor);
 
-// --- Event Manager ---
-$eventRepository = new EventRepository($db);
-$eventRecorder = new EventRecorderService($db, $idResolver);
+// --- Event Aggregation ---
 $dashboardEnvironmentFactory = new DashboardEnvironmentFactory(
     $environment,
     $eventRepository,
@@ -329,13 +335,7 @@ $dashboardEnvironmentFactory = new DashboardEnvironmentFactory(
     $paths->appPath . '/config/demo/events.json',
 );
 $eventAggregator = $dashboardEnvironmentFactory->createEventAggregator();
-
-$eventManager = new EventManager(
-    $appConfig,
-    $alarmDirectProcessor,
-    $eventRecorder,
-    $eventAggregator,
-);
+$eventManager->setEventAggregator($eventAggregator);
 
 // ************************************************************************************************
 // Monitoring Configuration
@@ -346,44 +346,42 @@ $metricsRequestValidator = new MetricsRequestValidator($metricCatalog, $metricQu
 
 $monitoringConfigLoader = new MonitoringConfigLoader(
     servers: new ServersConfigLoader(
-        eventRecorder: $eventManager->recorder,
-        alarmDirectProcessor: $alarmDirectProcessor,
+        events: $eventManager,
         db: $db,
         serverConfigSync: $serverConfigSync,
         fallbackOnFailure: true,
     ),
     ttl: new TtlConfigLoader(
-        eventRecorder: $eventManager->recorder,
+        events: $eventManager,
         fallbackOnFailure: true,
     ),
     dataRetention: new DataRetentionConfigLoader(
-        eventRecorder: $eventManager->recorder,
+        events: $eventManager,
         fallbackOnFailure: true,
     ),
     intervals: new IntervalsConfigLoader(
-        eventRecorder: $eventManager->recorder,
+        events: $eventManager,
         fallbackOnFailure: true,
     ),
     probes: new ProbesConfigLoader(
-        eventRecorder: $eventManager->recorder,
+        events: $eventManager,
         fallbackOnFailure: true,
     ),
     notificationRules: new NotificationRulesConfigLoader(
-        eventRecorder: $eventManager->recorder,
+        events: $eventManager,
         fallbackOnFailure: true,
     ),
     thresholds: new ThresholdsConfigLoader(
-        eventRecorder: $eventManager->recorder,
-        alarmDirectProcessor: $alarmDirectProcessor,
+        events: $eventManager,
         fallbackOnFailure: true,
     ),
     menu: new MenuConfigLoader(
-        eventRecorder: $eventManager->recorder,
+        events: $eventManager,
         validKeys: MenuBuilder::MENU_KEYS,
         fallbackOnFailure: true,
     ),
     charts: new ChartsConfigLoader(
-        eventRecorder: $eventManager->recorder,
+        events: $eventManager,
         metricCatalog: $metricCatalog,
         queryPolicy: $metricQueryPolicy,
         fallbackOnFailure: true,

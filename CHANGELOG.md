@@ -14,6 +14,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Security alarms from the users file: `user_account_locked` (warning) when failed logins lock an account, and `users_file_insecure` (critical) when the users file is readable or writable by group or others. Both are checked every 5 minutes by `servers_data_fetch`
 
 ### Changed
+- A missing `probes.json` or `limits.json` is no longer reported, since both are optional. A malformed `limits.json` is now reported as a dashboard configuration event instead of only in `logs/app.log`
+- Configuration problems are recorded once per 30 minutes per distinct problem instead of on every page load and cron run, and are skipped when `EVENTS_ENABLED=false`
+- Events that cannot be stored, because the database is unavailable or a write fails, are written to `logs/app.log`; a database error while recording a configuration problem no longer stops the page or cron job
+- An unreadable or empty `thresholds.json` now records a warning and uses the built-in thresholds instead of raising a critical alarm email; monitoring was already continuing with those defaults
 - `manage-users.php create` / `passwd` reject passwords shorter than 12 characters or longer than 72 bytes (except in `demo`); existing passwords are unaffected
 - The unused `too_many_sql_connections` alarm type is renamed to `database_connections_too_high`, and the unread `sql` section of `thresholds.json` is removed; rename the key in your `thresholds.json` and `intervals.json`
 - Docker images build on the latest PHP 8.3 release on Debian 13 (`php:8.3-apache-trixie`) with the latest Composer 2, and `make dev-rebuild` / `make prod-rebuild` pull the newest base image. If your `.env` sets `PHP_VERSION=8.3.14`, change it to `8.3`; no Debian 13 image exists for 8.3.14

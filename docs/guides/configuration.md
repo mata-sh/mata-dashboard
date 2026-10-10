@@ -203,8 +203,10 @@ It confirms the selected `MODE` and `ENV`, that `config/config.env`,
 matches `ENV` (and `.env` for Docker), and that `config/`, `logs/`, and
 `temp/` are present. Native mode also checks for PHP, Composer
 dependencies, and whether the OPA service is running. It does not read
-JSON files or validate keys. Loaders record configuration events when a
-JSON file is missing or invalid.
+JSON files or validate keys. Loaders record a warning event when a JSON
+file is invalid or a required one is missing, and fall back to built-in
+defaults; a missing optional file is not reported. Only a missing or invalid
+`servers.json` also raises an alarm.
 
 ```bash
 make doctor

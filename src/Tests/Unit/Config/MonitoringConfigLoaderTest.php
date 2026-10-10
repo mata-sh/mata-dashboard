@@ -95,10 +95,10 @@ final class MonitoringConfigLoaderTest extends TestCase
 
     public function testWebStyleServerLoaderFallsBackButCronStyleThrows(): void
     {
-        $web = new ServersConfigLoader($this->eventRecorder, fallbackOnFailure: true);
+        $web = new ServersConfigLoader($this->eventManagerFor($this->eventRecorder), fallbackOnFailure: true);
         $this->assertSame([], $web->load($this->configRoot)->values);
 
-        $cron = new ServersConfigLoader($this->eventRecorder, fallbackOnFailure: false);
+        $cron = new ServersConfigLoader($this->eventManagerFor($this->eventRecorder), fallbackOnFailure: false);
         $this->expectException(MonitoringConfigLoadException::class);
         $cron->load($this->configRoot);
     }
@@ -138,16 +138,16 @@ final class MonitoringConfigLoaderTest extends TestCase
         $eventRecorder ??= $this->eventRecorder;
 
         return new MonitoringConfigLoader(
-            servers: new ServersConfigLoader($eventRecorder, fallbackOnFailure: $serversFallback),
-            ttl: new TtlConfigLoader($eventRecorder),
-            dataRetention: new DataRetentionConfigLoader($eventRecorder),
-            intervals: new IntervalsConfigLoader($eventRecorder),
-            probes: new ProbesConfigLoader($eventRecorder),
-            notificationRules: new NotificationRulesConfigLoader($eventRecorder),
-            thresholds: new ThresholdsConfigLoader($eventRecorder),
-            menu: $loadMenu ? new MenuConfigLoader($eventRecorder, ['metrics']) : null,
+            servers: new ServersConfigLoader($this->eventManagerFor($eventRecorder), fallbackOnFailure: $serversFallback),
+            ttl: new TtlConfigLoader($this->eventManagerFor($eventRecorder)),
+            dataRetention: new DataRetentionConfigLoader($this->eventManagerFor($eventRecorder)),
+            intervals: new IntervalsConfigLoader($this->eventManagerFor($eventRecorder)),
+            probes: new ProbesConfigLoader($this->eventManagerFor($eventRecorder)),
+            notificationRules: new NotificationRulesConfigLoader($this->eventManagerFor($eventRecorder)),
+            thresholds: new ThresholdsConfigLoader($this->eventManagerFor($eventRecorder)),
+            menu: $loadMenu ? new MenuConfigLoader($this->eventManagerFor($eventRecorder), ['metrics']) : null,
             charts: new ChartsConfigLoader(
-                eventRecorder: $eventRecorder,
+                events: $this->eventManagerFor($eventRecorder),
                 metricCatalog: new MetricCatalog(),
                 queryPolicy: new MetricQueryPolicy(),
             ),

@@ -37,8 +37,8 @@ final readonly class MonitoringConfigLoader
     ) {}
 
     /**
-     * Alarm rate limits arrive pre-built: AlarmDirectProcessor needs them, and the servers and
-     * thresholds loaders need that processor, so limits load before this aggregate.
+     * Alarm rate limits arrive pre-built: AlarmDirectProcessor needs them, and the servers
+     * loader needs that processor, so limits load before this aggregate.
      */
     public function load(string $configRoot, AlarmRateLimitsConfig $alarmRateLimits): MonitoringConfig
     {

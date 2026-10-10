@@ -10,6 +10,8 @@ use Mata\Services\Alarm\AlarmDispatcher;
 use Mata\Services\Alarm\AlarmEmailFactory;
 use Mata\Services\Alarm\AlarmEmailSender;
 use Mata\Services\Alarm\AlarmPresenter;
+use Mata\Services\Event\EventManager;
+use Mata\Services\Event\EventRecorderService;
 use Twig\Environment;
 use Twig\Loader\FilesystemLoader;
 
@@ -37,7 +39,8 @@ try {
     $deliveryRepository = new AlarmDeliveryRepository($db);
 
     // --- Alarm Limits ---
-    $limitsLoader = new AlarmRateLimitsConfigLoader($log);
+    $eventManager = new EventManager($appConfig, eventRecorder: new EventRecorderService($db), logger: $log);
+    $limitsLoader = new AlarmRateLimitsConfigLoader($eventManager);
     $limitsConfig = $limitsLoader->load($paths->appPath . '/config');
 
     // --- Senders & Dispatchers ---

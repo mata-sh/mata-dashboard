@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Mata\Config\Monitoring\Loader;
 
 use Mata\Config\Monitoring\Section\MenuConfig;
-use Mata\Services\Event\EventRecorderService;
+use Mata\Services\Event\EventManager;
 use RuntimeException;
 
 /** Loads optional dashboard top-menu visibility overrides. */
@@ -13,7 +13,7 @@ final class MenuConfigLoader extends AbstractJsonConfigLoader
 {
     /** @param list<string> $validKeys */
     public function __construct(
-        private EventRecorderService $eventRecorder,
+        private EventManager $events,
         private array $validKeys,
         private bool $fallbackOnFailure = true,
     ) {}
@@ -55,19 +55,15 @@ final class MenuConfigLoader extends AbstractJsonConfigLoader
 
     private function reportLoadFailure(string $filePath, string $reason): void
     {
-        $this->eventRecorder->recordEvent(
-            type: 'menu_config_invalid',
-            message: "Could not load {$filePath}; falling back to menu defaults: {$reason}",
-            level: 'warning',
+        $this->reportProblem(
+            $this->events,
+            'menu_config_invalid',
+            "Could not load {$filePath}; falling back to menu defaults: {$reason}",
         );
     }
 
     private function reportInvalidEntry(string $message): void
     {
-        $this->eventRecorder->recordEvent(
-            type: 'menu_config_invalid_entry',
-            message: $message,
-            level: 'warning',
-        );
+        $this->reportProblem($this->events, 'menu_config_invalid_entry', $message);
     }
 }

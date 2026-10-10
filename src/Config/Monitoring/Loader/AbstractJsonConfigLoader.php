@@ -5,11 +5,34 @@ declare(strict_types=1);
 namespace Mata\Config\Monitoring\Loader;
 
 use JsonException;
+use Mata\Services\Event\Dto\EventCommand;
+use Mata\Services\Event\EventManager;
 use RuntimeException;
 use stdClass;
 
 abstract class AbstractJsonConfigLoader
 {
+    /**
+     * Report a config problem through EventManager, which works before monitoring config is
+     * loaded: it uses its default cooldown and logs the problem when no database is available.
+     * The message is the cooldown identity, so each distinct problem is reported once per window.
+     */
+    protected function reportProblem(
+        EventManager $events,
+        string $type,
+        string $message,
+        string $level = 'warning',
+        bool $forceAlarm = false,
+    ): void {
+        $events->handle(new EventCommand(
+            type: $type,
+            message: $message,
+            level: $level,
+            forceAlarm: $forceAlarm,
+            context: ['detail' => $message],
+        ));
+    }
+
     protected function readJsonObject(string $filePath): stdClass
     {
         if (!is_file($filePath) || !is_readable($filePath)) {

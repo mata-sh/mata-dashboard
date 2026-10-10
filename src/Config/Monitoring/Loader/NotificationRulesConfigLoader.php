@@ -6,13 +6,13 @@ namespace Mata\Config\Monitoring\Loader;
 
 use InvalidArgumentException;
 use Mata\Config\Monitoring\Section\NotificationRulesConfig;
-use Mata\Services\Event\EventRecorderService;
+use Mata\Services\Event\EventManager;
 use RuntimeException;
 
 final class NotificationRulesConfigLoader extends AbstractJsonConfigLoader
 {
     public function __construct(
-        private EventRecorderService $eventRecorder,
+        private EventManager $events,
         private bool $fallbackOnFailure = true,
     ) {}
 
@@ -38,10 +38,10 @@ final class NotificationRulesConfigLoader extends AbstractJsonConfigLoader
         try {
             return NotificationRulesConfig::fromObject($this->readJsonObject($filePath));
         } catch (InvalidArgumentException|RuntimeException $exception) {
-            $this->eventRecorder->recordEvent(
-                type: 'notification_rules_config_invalid',
-                message: "Could not load {$filePath}; falling back to defaults: {$exception->getMessage()}",
-                level: 'warning',
+            $this->reportProblem(
+                $this->events,
+                'notification_rules_config_invalid',
+                "Could not load {$filePath}; falling back to defaults: {$exception->getMessage()}",
             );
 
             throw new MonitoringConfigLoadException('notification rules invalid', previous: $exception);

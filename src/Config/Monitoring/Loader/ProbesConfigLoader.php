@@ -6,13 +6,14 @@ namespace Mata\Config\Monitoring\Loader;
 
 use InvalidArgumentException;
 use Mata\Config\Monitoring\Section\ProbesConfig;
-use Mata\Services\Event\EventRecorderService;
+use Mata\Services\Event\EventManager;
 use RuntimeException;
 
+/** Loads optional node probe overrides; a missing probes.json means built-in defaults. */
 final class ProbesConfigLoader extends AbstractJsonConfigLoader
 {
     public function __construct(
-        private EventRecorderService $eventRecorder,
+        private EventManager $events,
         private bool $fallbackOnFailure = true,
     ) {}
 
@@ -31,6 +32,10 @@ final class ProbesConfigLoader extends AbstractJsonConfigLoader
 
     public function loadProbesConfig(string $filePath): ProbesConfig
     {
+        if (!is_file($filePath)) {
+            return $this->getDefaultConfig();
+        }
+
         try {
             $config = $this->normalizeJson($this->readJsonObject($filePath));
         } catch (RuntimeException $exception) {
@@ -64,10 +69,6 @@ final class ProbesConfigLoader extends AbstractJsonConfigLoader
         if ($reason !== null) {
             $message .= " (reason: {$reason})";
         }
-        $this->eventRecorder->recordEvent(
-            type: 'probes_config_not_found',
-            message: $message,
-            level: 'warning',
-        );
+        $this->reportProblem($this->events, 'probes_config_not_found', $message);
     }
 }
