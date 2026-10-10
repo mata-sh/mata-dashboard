@@ -33,10 +33,10 @@ final class ServerDataCollectorTest extends TestCase
     public function testServerRoutesUseTheNewNamespace(): void
     {
         $cache = $this->createStub(CacheStoreInterface::class);
-        $paths = ['server/data', 'server/info', 'databases/overview', 'server/cronjobs'];
+        $paths = ['server/data', 'server/info', 'server/php', 'databases/overview', 'server/cronjobs'];
         $apiClient = $this->createMock(NodeApiClient::class);
         $apiClient->method('getApiBase')->willReturn('https://node.example.test/api');
-        $apiClient->expects($this->exactly(4))
+        $apiClient->expects($this->exactly(5))
             ->method('request')
             ->willReturnCallback(function (string $method, string $path) use (&$paths): never {
                 $this->assertSame('GET', $method);
@@ -56,6 +56,7 @@ final class ServerDataCollectorTest extends TestCase
 
         $this->assertNull($collector->getServerSystemData());
         $this->assertNull($collector->getServerInfo());
+        $this->assertNull($collector->getServerPhpProcesses());
         $this->assertNull($collector->getDatabaseOverview());
         $this->assertNull($collector->fetchServerCronjobs());
         $this->assertSame([], $paths);

@@ -25,6 +25,15 @@ interface ServerDataCollectorInterface
     public function getServerSystemData(CacheType $cacheType = CacheType::ServerData, bool $forceRefresh = false): ?array;
 
     /**
+     * Fetch raw PHP process information from server.
+     *
+     * @param CacheType $cacheType Cache type key for TTL lookup (default: CacheType::ServerProcesses)
+     *
+     * @return null|array<string,mixed> Raw PHP process data array or null on failure
+     */
+    public function getServerPhpProcesses(CacheType $cacheType = CacheType::ServerProcesses): ?array;
+
+    /**
      * Fetch instance-wide database status and the monitored database inventory.
      *
      * @return null|array<string,mixed> Normalized overview response or null on failure

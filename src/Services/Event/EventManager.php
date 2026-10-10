@@ -104,7 +104,7 @@ class EventManager
      *
      * @param AlarmDirectProcessor                 $alarmDirectProcessor Direct alarm processor for forced alarms
      * @param ApplicationConfig                    $appConfig            Application configuration for alarm/event behavior
-     * @param null|EventRecorderService            $eventRecorder        Optional event recorder (can be set later via setEventRecorder)
+     * @param null|EventRecorderService            $eventRecorder        Event recorder; required before events are handled
      * @param null|EventAggregatorServiceInterface $eventAggregator      Optional event aggregator (can be set later via setEventAggregator)
      * @param null|CooldownHashFactory             $cooldownHashFactory  Optional cooldown hash factory
      * @param null|LoggerInterface                 $logger               Receives events that could not be stored
@@ -129,20 +129,6 @@ class EventManager
     public function setAlarmDirectProcessor(AlarmDirectProcessor $alarmDirectProcessor): self
     {
         $this->alarmDirectProcessor = $alarmDirectProcessor;
-
-        return $this;
-    }
-
-    /**
-     * Set event recorder service (fluent interface).
-     *
-     * @param EventRecorderService $recorder Event recorder instance
-     *
-     * @return $this For method chaining
-     */
-    public function setEventRecorder(EventRecorderService $recorder): self
-    {
-        $this->recorder = $recorder;
 
         return $this;
     }
@@ -260,7 +246,7 @@ class EventManager
 
         if ($this->recorder === null) {
             throw new LogicException(
-                'EventRecorder not initialized. Call setEventRecorder() before using shouldCreateEvent().'
+                'EventRecorder not initialized. Pass eventRecorder to the constructor before using shouldCreateEvent().'
             );
         }
 
@@ -298,7 +284,7 @@ class EventManager
 
             if ($this->recorder === null) {
                 throw new LogicException(
-                    'EventRecorder not initialized. Call setEventRecorder() before using handle().'
+                    'EventRecorder not initialized. Pass eventRecorder to the constructor before using handle().'
                 );
             }
 
