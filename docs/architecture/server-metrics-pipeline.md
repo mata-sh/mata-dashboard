@@ -74,7 +74,7 @@ the configured node API.
 The collector identity is read from `data.collector` when present; otherwise it
 uses configured fallback values. `ServerMetricsRepository` resolves/creates
 `servers.id` and `metric_collectors.id`, normalizes non-negative counts and
-0–100 percentages, then uses `ServerMetricRaw` for the database upsert.
+0–100 percentages, then uses `ServerMetricRawUpserter` for the database upsert.
 
 Duplicate protection is database-enforced by unique `(server_id, collector_id,
 collected_at)` and `(server_id, payload_hash, collected_at)` keys. A duplicate

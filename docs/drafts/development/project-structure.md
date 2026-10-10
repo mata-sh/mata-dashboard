@@ -89,8 +89,8 @@ src/Services/
 ├── Event/             # Event recording and aggregation (EventManager, EventRecorderService)
 ├── Identity/          # Server/application id resolution (ServerApplicationIdResolver)
 ├── Monitor/           # Server/app health monitoring — reachability, errors, node health
-├── Navigation/        # Menu building, notification center
-├── Notification/      # Email notifications (NotificationManager)
+├── Navigation/        # Menu building, alarm notification center (AlarmNotificationCenter)
+├── Notification/      # System notices such as database outage banners (SystemNotificationManager)
 ├── Retention/         # Metrics retention cleanup
 ├── Runtime/           # Dashboard environment assembly (DashboardEnvironmentFactory)
 ├── ServerMetrics/     # Metrics aggregation/query — see server-metrics-pipeline.md
@@ -119,10 +119,10 @@ src/Models/
 ├── ConfigSyncRepository.php       # Config sync data access
 ├── EventRepository.php            # Event data access
 └── ServerMetrics/
-    ├── ServerMetricsRepository.php   # Metrics data access
-    ├── ServerMetricRaw.php           # Raw metric row model
-    ├── ServerMetricHourly.php        # Hourly aggregate row model
-    ├── ServerMetricDaily.php         # Daily aggregate row model
+    ├── ServerMetricsRepository.php    # Metrics data access
+    ├── ServerMetricRawUpserter.php    # Upserts server_metrics_raw rows
+    ├── ServerMetricHourlyUpserter.php # Upserts server_metrics_hourly rows
+    ├── ServerMetricDailyUpserter.php  # Upserts server_metrics_daily rows
     └── Dto/
         ├── ServerMetricRawSnapshot.php
         ├── ServerMetricHourlyAggregate.php

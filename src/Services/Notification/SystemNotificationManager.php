@@ -22,7 +22,7 @@ use Psr\Log\LoggerInterface;
  * - Auto-cleanup of old notifications
  * - Duplicate notification prevention
  */
-final class NotificationManager
+final class SystemNotificationManager
 {
     private DatabaseInterface $db;
     private LoggerInterface $logger;

@@ -24,9 +24,9 @@ use Mata\Services\Monitor\Dto\ServerMonitoringResult;
 use Mata\Services\Monitor\Dto\ServerMonitoringServices;
 use Mata\Services\Monitor\LogSizeEvaluator;
 use Mata\Services\Monitor\ServerMonitor;
+use Mata\Services\Navigation\AlarmNotificationCenter;
 use Mata\Services\Navigation\MenuBuilder;
-use Mata\Services\Navigation\NotificationCenter;
-use Mata\Services\Notification\NotificationManager;
+use Mata\Services\Notification\SystemNotificationManager;
 use Mata\Services\Sync\AppInventorySync;
 use Mata\Services\View\LibrariesViewBuilder;
 use Mata\Services\View\ServerViewBuilder;
@@ -56,7 +56,7 @@ use Twig\Environment;
  */
 class DashboardController extends BaseController
 {
-    private NotificationManager $notificationManager;
+    private SystemNotificationManager $notificationManager;
     private EventManager $eventManager;
     private Endpoints $endpoints;
     private ServerMonitor $serverMonitor;
@@ -70,7 +70,7 @@ class DashboardController extends BaseController
     private EventsRenderer $eventsRenderer;
     private AlarmsRenderer $alarmsRenderer;
     private NotificationCenterRenderer $notificationCenterRenderer;
-    private NotificationCenter $notificationCenter;
+    private AlarmNotificationCenter $notificationCenter;
     private MenuBuilder $menuBuilder;
     private App $app;
 
@@ -86,20 +86,20 @@ class DashboardController extends BaseController
      *
      * Uses prebuilt per-server monitoring services and configuration.
      *
-     * @param App                    $app                 Application container with auth and paths
-     * @param Tools                  $tools               Utility functions for formatting and icons
-     * @param Environment            $twig                Twig template rendering engine
-     * @param Logger                 $logger              PSR-3 logger for system logging
-     * @param ApplicationConfig      $appConfig           Application configuration DTO
-     * @param NotificationManager    $notificationManager System notification management
-     * @param EventManager           $eventManager        Server alarm and threshold management
-     * @param CacheStoreInterface    $cacheStore          Cache persistence service
-     * @param ApiCacheKeyFactory     $cacheKeyFactory     API cache key factory
-     * @param Endpoints              $endpoints           Route endpoints for template access
-     * @param MenuBuilder            $menuBuilder         Navigation menu builder service
-     * @param MonitoringConfig       $monitoringConfig    Dashboard monitoring configuration
-     * @param ServerMonitoringResult $monitoringResult    Prebuilt per-server monitoring services
-     * @param null|AppInventorySync  $appInventorySync    Syncs apps during manual force-refresh recovery
+     * @param App                       $app                 Application container with auth and paths
+     * @param Tools                     $tools               Utility functions for formatting and icons
+     * @param Environment               $twig                Twig template rendering engine
+     * @param Logger                    $logger              PSR-3 logger for system logging
+     * @param ApplicationConfig         $appConfig           Application configuration DTO
+     * @param SystemNotificationManager $notificationManager System notification management
+     * @param EventManager              $eventManager        Server alarm and threshold management
+     * @param CacheStoreInterface       $cacheStore          Cache persistence service
+     * @param ApiCacheKeyFactory        $cacheKeyFactory     API cache key factory
+     * @param Endpoints                 $endpoints           Route endpoints for template access
+     * @param MenuBuilder               $menuBuilder         Navigation menu builder service
+     * @param MonitoringConfig          $monitoringConfig    Dashboard monitoring configuration
+     * @param ServerMonitoringResult    $monitoringResult    Prebuilt per-server monitoring services
+     * @param null|AppInventorySync     $appInventorySync    Syncs apps during manual force-refresh recovery
      */
     public function __construct(
         App $app,
@@ -107,7 +107,7 @@ class DashboardController extends BaseController
         Environment $twig,
         Logger $logger,
         ApplicationConfig $appConfig,
-        NotificationManager $notificationManager,
+        SystemNotificationManager $notificationManager,
         EventManager $eventManager,
         CacheStoreInterface $cacheStore,
         ApiCacheKeyFactory $cacheKeyFactory,
@@ -137,7 +137,7 @@ class DashboardController extends BaseController
         $this->eventsRenderer = new EventsRenderer($twig, $logger, $tools, $app, $endpoints);
         $this->alarmsRenderer = new AlarmsRenderer($twig, $logger, $tools, $app, $endpoints);
         $this->notificationCenterRenderer = new NotificationCenterRenderer($twig, $logger, $tools, $app, $endpoints);
-        $this->notificationCenter = new NotificationCenter(
+        $this->notificationCenter = new AlarmNotificationCenter(
             $eventManager,
             $cacheStore,
             $cacheKeyFactory,

@@ -5,7 +5,7 @@ declare(strict_types=1);
 
 use Mata\Bootstrap\CronMonitoringRuntime;
 use Mata\Bootstrap\CronRuntime;
-use Mata\Services\Notification\NotificationManager;
+use Mata\Services\Notification\SystemNotificationManager;
 use Mata\Services\Retention\RetentionCleanupResult;
 use Mata\Services\Retention\RetentionCleanupService;
 
@@ -39,7 +39,7 @@ try {
         $cron->touchHeartbeat(...)
     );
 
-    $notificationManager = new NotificationManager($db, $log, $runtime->paths);
+    $notificationManager = new SystemNotificationManager($db, $log, $runtime->paths);
     $resolvedConfigWarningsCleanupSucceeded = $notificationManager->cleanupResolvedConfigWarnings(
         $runtime->validationWarnings
     );

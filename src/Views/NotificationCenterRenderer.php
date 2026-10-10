@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Mata\Views;
 
-use Mata\Services\Navigation\NotificationCenter;
+use Mata\Services\Navigation\AlarmNotificationCenter;
 
 /**
  * Topbar notification bell rendering service.
@@ -25,7 +25,7 @@ class NotificationCenterRenderer extends BaseRenderer
     public function renderBell(array $counts): string
     {
         $pills = [];
-        foreach (NotificationCenter::PILL_LEVELS as $level) {
+        foreach (AlarmNotificationCenter::PILL_LEVELS as $level) {
             $pills[] = [
                 'level' => $level,
                 'count' => $counts[$level] ?? 0,

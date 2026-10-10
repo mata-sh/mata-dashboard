@@ -9,7 +9,7 @@ use Mata\Config\Monitoring\Section\AlarmRateLimitsConfig;
 /**
  * In-memory helper to enforce per-server/channel alarm limits during dispatch.
  */
-final class AlarmRateLimiter
+final class AlarmDeliveryRateLimiter
 {
     private AlarmRateLimitsConfig $limitsConfig;
 

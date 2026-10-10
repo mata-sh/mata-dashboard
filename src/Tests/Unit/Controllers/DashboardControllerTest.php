@@ -33,10 +33,10 @@ use Mata\Services\Monitor\HttpProbeClient;
 use Mata\Services\Monitor\LogSizeEvaluator;
 use Mata\Services\Monitor\ServerMonitoringFactory;
 use Mata\Services\Navigation\MenuBuilder;
-use Mata\Services\Notification\NotificationManager;
+use Mata\Services\Notification\SystemNotificationManager;
 use Mata\Tests\Helpers\ApplicationConfigFactory;
 use Mata\Tests\Helpers\MonitoringConfigFactory;
-use Mata\Tests\Helpers\NotificationManagerFactory;
+use Mata\Tests\Helpers\SystemNotificationManagerFactory;
 use Mata\Utils\PathResolver;
 use Mata\Utils\Tools;
 use Monolog\Logger;
@@ -77,7 +77,7 @@ class DashboardControllerTest extends TestCase
     private App $app;
     private Tools $tools;
     private ApplicationConfig $appConfig;
-    private NotificationManager $notificationManager;
+    private SystemNotificationManager $notificationManager;
     private EventManager $eventManager;
     private CacheStoreInterface $cacheStore;
     private ApiCacheKeyFactory $cacheKeyFactory;
@@ -113,8 +113,8 @@ class DashboardControllerTest extends TestCase
             ->onlyMethods(['getBaseHost', 'getFullBaseUrl'])
             ->getMock()
         ;
-        // NotificationManager is final, so we create a real instance with NullDatabase
-        $this->notificationManager = NotificationManagerFactory::create($this->logger);
+        // SystemNotificationManager is final, so we create a real instance with NullDatabase
+        $this->notificationManager = SystemNotificationManagerFactory::create($this->logger);
         $this->eventManager = $this->createMock(EventManager::class);
         $this->cacheStore = $this->createMock(CacheStoreInterface::class);
         $this->cacheKeyFactory = new ApiCacheKeyFactory();
@@ -165,7 +165,7 @@ class DashboardControllerTest extends TestCase
      * - Endpoints are properly configured and passed to view
      * - HTML response is returned with successful status code
      *
-     * Note: NotificationManager is a real instance, so we test with
+     * Note: SystemNotificationManager is a real instance, so we test with
      * whatever notifications it returns (likely empty from NullDatabase)
      */
     public function testIndexRendersSuccessfullyWithActiveNotification(): void
@@ -217,7 +217,7 @@ class DashboardControllerTest extends TestCase
      * - Empty notification array is properly handled
      * - No errors occur with missing notifications
      *
-     * Note: Using real NotificationManager which returns empty array by default
+     * Note: Using real SystemNotificationManager which returns empty array by default
      */
     public function testIndexHandlesEmptyNotifications(): void
     {
@@ -247,7 +247,7 @@ class DashboardControllerTest extends TestCase
      * - User-friendly error response is returned
      * - Application doesn't crash
      *
-     * Note: We cannot make NotificationManager throw since it's a real instance,
+     * Note: We cannot make SystemNotificationManager throw since it's a real instance,
      * so we test error handling by making the renderer fail instead
      */
     public function testIndexHandlesRendererFailure(): void
@@ -692,7 +692,7 @@ class DashboardControllerTest extends TestCase
      * - Response is returned (JSON format)
      * - No exceptions are thrown
      *
-     * Note: Using real NotificationManager, so we just verify
+     * Note: Using real SystemNotificationManager, so we just verify
      * the endpoint works and returns proper response format
      */
     public function testAcknowledgeDatabaseNoticeWithAction(): void

@@ -9,16 +9,16 @@ use Mata\Services\Cache\CacheEntry;
 use Mata\Services\Cache\CacheStoreInterface;
 use Mata\Services\Event\EventAggregatorServiceInterface;
 use Mata\Services\Event\EventManager;
-use Mata\Services\Navigation\NotificationCenter;
+use Mata\Services\Navigation\AlarmNotificationCenter;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 
 /**
- * @covers \Mata\Services\Navigation\NotificationCenter
+ * @covers \Mata\Services\Navigation\AlarmNotificationCenter
  *
  * @internal
  */
-final class NotificationCenterTest extends TestCase
+final class AlarmNotificationCenterTest extends TestCase
 {
     public function testCountsAreReadFromTheSharedCacheAfterTheFirstRequest(): void
     {
@@ -72,10 +72,10 @@ final class NotificationCenterTest extends TestCase
     private function notificationCenter(
         EventAggregatorServiceInterface $aggregator,
         CacheStoreInterface $cacheStore,
-    ): NotificationCenter {
+    ): AlarmNotificationCenter {
         $eventManager = $this->createStub(EventManager::class);
         $eventManager->aggregator = $aggregator;
 
-        return new NotificationCenter($eventManager, $cacheStore, new ApiCacheKeyFactory());
+        return new AlarmNotificationCenter($eventManager, $cacheStore, new ApiCacheKeyFactory());
     }
 }

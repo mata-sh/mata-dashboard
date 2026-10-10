@@ -6,21 +6,21 @@ namespace Mata\Tests\Unit\Services;
 
 use Mata\Config\Monitoring\Section\AlarmRateLimit;
 use Mata\Config\Monitoring\Section\AlarmRateLimitsConfig;
-use Mata\Services\Alarm\AlarmRateLimiter;
+use Mata\Services\Alarm\AlarmDeliveryRateLimiter;
 use Mata\Tests\TestCase;
 
 /**
- * @covers \Mata\Services\Alarm\AlarmRateLimiter
+ * @covers \Mata\Services\Alarm\AlarmDeliveryRateLimiter
  *
  * @internal
  */
-final class AlarmRateLimiterTest extends TestCase
+final class AlarmDeliveryRateLimiterTest extends TestCase
 {
     public function testAllowHonoursLimits(): void
     {
         $default = new AlarmRateLimit(perMinute: 2, perHour: 5, perDay: 10);
         $config = new AlarmRateLimitsConfig($default, ['email' => $default], []);
-        $limiter = new AlarmRateLimiter($config);
+        $limiter = new AlarmDeliveryRateLimiter($config);
 
         $this->assertTrue($limiter->allow('srv-1', 'email'));
         $limiter->recordSend('srv-1', 'email');
@@ -34,7 +34,7 @@ final class AlarmRateLimiterTest extends TestCase
     {
         $default = new AlarmRateLimit(perMinute: 3, perHour: 5, perDay: 6);
         $config = new AlarmRateLimitsConfig($default, ['email' => $default], []);
-        $limiter = new AlarmRateLimiter($config);
+        $limiter = new AlarmDeliveryRateLimiter($config);
 
         $limiter->preload([
             'srv-1' => [

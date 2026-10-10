@@ -64,7 +64,7 @@ final class ServerMetricsRepository
         );
         $payloadHash = $this->computePayloadHashHex($serverId, $collectorId, $normalizedSnapshot);
 
-        ServerMetricRaw::fromSnapshot($serverId, $collectorId, $normalizedSnapshot, $payloadHash)
+        ServerMetricRawUpserter::fromSnapshot($serverId, $collectorId, $normalizedSnapshot, $payloadHash)
             ->insertOrUpdate($this->db)
         ;
     }
@@ -76,7 +76,7 @@ final class ServerMetricsRepository
         $normalizedAggregate = $this->normalizeHourlyAggregate($aggregate);
         $serverId = $this->resolveServerId($serverName);
 
-        ServerMetricHourly::fromAggregate($serverId, $normalizedAggregate)
+        ServerMetricHourlyUpserter::fromAggregate($serverId, $normalizedAggregate)
             ->insertOrUpdate($this->db)
         ;
     }
@@ -88,7 +88,7 @@ final class ServerMetricsRepository
         $normalizedAggregate = $this->normalizeDailyAggregate($aggregate);
         $serverId = $this->resolveServerId($serverName);
 
-        ServerMetricDaily::fromAggregate($serverId, $normalizedAggregate)
+        ServerMetricDailyUpserter::fromAggregate($serverId, $normalizedAggregate)
             ->insertOrUpdate($this->db)
         ;
     }

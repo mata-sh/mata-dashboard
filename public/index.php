@@ -57,7 +57,7 @@ use Mata\Services\Monitor\HttpProbeClient;
 use Mata\Services\Monitor\LogSizeEvaluator;
 use Mata\Services\Monitor\ServerMonitoringFactory;
 use Mata\Services\Navigation\MenuBuilder;
-use Mata\Services\Notification\NotificationManager;
+use Mata\Services\Notification\SystemNotificationManager;
 use Mata\Services\Runtime\DashboardEnvironmentFactory;
 use Mata\Services\ServerMetrics\MetricCatalog;
 use Mata\Services\ServerMetrics\MetricQueryPolicy;
@@ -273,7 +273,7 @@ $db = (new DatabaseBootstrap($appConfig->database, $log))->initialize();
 // ************************************************************************************************
 // Notification Manager & Config Warnings
 // ************************************************************************************************
-$notificationManager = new NotificationManager($db, $log, $paths);
+$notificationManager = new SystemNotificationManager($db, $log, $paths);
 
 foreach ($validationWarnings as $warning) {
     $notificationManager->addConfigWarning($warning['identifier'], $warning['message']);

@@ -15,7 +15,7 @@ use Throwable;
  * Encapsulates SQL for insert/upsert operations and keeps the repository
  * focused on orchestration instead of string-concatenated queries.
  */
-final class ServerMetricRaw
+final class ServerMetricRawUpserter
 {
     private function __construct(
         private readonly int $serverId,

@@ -57,7 +57,7 @@ final class AlarmDispatcher
 
         $pairs = $this->collectServerChannelPairs($deliveries);
         $counts = $this->deliveryRepository->getRecentDispatchCounts($pairs, $now);
-        $rateLimiter = new AlarmRateLimiter($this->limitsConfig);
+        $rateLimiter = new AlarmDeliveryRateLimiter($this->limitsConfig);
         $rateLimiter->preload($counts);
 
         foreach ($deliveries as $queuedDelivery) {
@@ -88,7 +88,7 @@ final class AlarmDispatcher
         return $pairs;
     }
 
-    private function processDelivery(QueuedAlarmDelivery $queuedDelivery, AlarmRateLimiter $rateLimiter, DateTimeImmutable $now): void
+    private function processDelivery(QueuedAlarmDelivery $queuedDelivery, AlarmDeliveryRateLimiter $rateLimiter, DateTimeImmutable $now): void
     {
         $serverKey = $queuedDelivery->getServerKey();
         $channel = strtolower($queuedDelivery->channel);

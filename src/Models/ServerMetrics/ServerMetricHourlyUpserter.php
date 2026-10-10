@@ -12,7 +12,7 @@ use Throwable;
 /**
  * Persistence helper for the `server_metrics_hourly` table.
  */
-final class ServerMetricHourly
+final class ServerMetricHourlyUpserter
 {
     private function __construct(
         private readonly int $serverId,

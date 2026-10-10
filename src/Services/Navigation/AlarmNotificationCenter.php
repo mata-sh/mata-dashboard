@@ -17,10 +17,10 @@ use Mata\Services\Event\EventManager;
  * dealt with this alarm yet". The acting username is recorded in
  * `alarms.acknowledged_by` as an audit trail.
  *
- * This is distinct from NotificationManager which handles system-wide
+ * This is distinct from SystemNotificationManager which handles system-wide
  * notifications like database availability banners.
  */
-class NotificationCenter
+class AlarmNotificationCenter
 {
     /** Severity levels shown as bell pills, in display order. */
     public const PILL_LEVELS = ['warning', 'error', 'critical'];
@@ -112,7 +112,7 @@ class NotificationCenter
     {
         if ($this->eventManager->aggregator === null) {
             throw new LogicException(
-                'EventAggregator not initialized. Call setEventAggregator() on EventManager before using NotificationCenter.'
+                'EventAggregator not initialized. Call setEventAggregator() on EventManager before using AlarmNotificationCenter.'
             );
         }
 
