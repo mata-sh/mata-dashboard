@@ -557,6 +557,30 @@ class AuthTest extends TestCase
     }
 
     /**
+     * Parallel requests all load users.json before any of them records its failure.
+     *
+     * @group auth
+     * @group lockout
+     * @group concurrency
+     */
+    public function testConcurrentFailedLoginsAllCountTowardsLockout(): void
+    {
+        $requests = [];
+        for ($i = 0; $i < 6; ++$i) {
+            $requests[] = new Auth(new NullLogger(), $this->testUsersFile, false, null);
+        }
+        $lateRequest = array_pop($requests);
+
+        foreach ($requests as $request) {
+            $this->assertFalse($request->login('admin', 'wrong_password'));
+        }
+
+        $this->assertSame(5, json_decode((string) file_get_contents($this->testUsersFile), true)[0]['failed_attempts']);
+        $this->assertFalse($lateRequest->login('admin', 'admin123'), 'A request loaded before the lockout must not sign in');
+        $this->assertFalse($lateRequest->check());
+    }
+
+    /**
      * @group auth
      * @group security
      */
@@ -917,59 +941,44 @@ class AuthTest extends TestCase
     public function testStaleWritersCannotRestoreRevokedCredentials(): void
     {
         $this->auth->login('admin', 'admin123', true);
-        $mtime = filemtime($this->testUsersFile);
         $staleManager = new Auth(new NullLogger(), $this->testUsersFile, false, null, true);
         $staleLogin = new Auth(new NullLogger(), $this->testUsersFile, false, null);
 
         $this->auth->changePassword('admin', 'replacement');
-        touch($this->testUsersFile, $mtime);
-        $revoked = file_get_contents($this->testUsersFile);
         $this->startTestRequest();
         $sessionId = session_id();
 
-        try {
-            $staleManager->createUser('another', 'password');
-            $this->fail('A stale writer must not restore the old password or remember token');
-        } catch (RuntimeException $e) {
-            $this->assertStringContainsString('changed on disk', $e->getMessage());
-        }
+        $staleManager->createUser('another', 'password');
+        $admin = $this->storedUser('admin');
+        $this->assertTrue(password_verify('replacement', $admin['password_hash']), 'A stale writer must not restore the old password');
+        $this->assertArrayNotHasKey('remember_token', $admin, 'A stale writer must not restore the revoked remember token');
+        $afterStaleWrite = file_get_contents($this->testUsersFile);
 
-        try {
-            $staleLogin->login('admin', 'admin123', true);
-            $this->fail('A stale password login must fail before publishing authentication');
-        } catch (RuntimeException $e) {
-            $this->assertStringContainsString('changed on disk', $e->getMessage());
-        }
-
-        $this->assertSame($revoked, file_get_contents($this->testUsersFile));
+        $this->assertFalse($staleLogin->login('admin', 'admin123', true), 'A password verified before the reset must not sign in');
+        $this->assertSame($afterStaleWrite, file_get_contents($this->testUsersFile));
         $this->assertFalse($staleLogin->check());
         $this->assertNull($staleLogin->getUser());
         $this->assertSame($sessionId, session_id());
     }
 
-    public function testConflictsIncludeUsersFileCreationAndDeletion(): void
+    public function testConcurrentWritersKeepEachOthersChanges(): void
     {
         unlink($this->testUsersFile);
         $first = new Auth(new NullLogger(), $this->testUsersFile, false, null, true);
         $second = new Auth(new NullLogger(), $this->testUsersFile, false, null, true);
         $first->createUser('first', 'password');
-        $created = file_get_contents($this->testUsersFile);
+        $second->createUser('second', 'password');
 
-        try {
-            $second->createUser('second', 'password');
-            $this->fail('A competing bootstrap must not replace the first users file');
-        } catch (RuntimeException $e) {
-            $this->assertStringContainsString('changed on disk', $e->getMessage());
-        }
-        $this->assertSame($created, file_get_contents($this->testUsersFile));
+        $this->assertNotNull($this->storedUser('first'), 'A competing bootstrap must not replace the first users file');
+        $this->assertNotNull($this->storedUser('second'));
 
         unlink($this->testUsersFile);
 
         try {
             $first->changePassword('first', 'replacement');
-            $this->fail('A stale writer must not recreate a deleted users file');
+            $this->fail('A stale writer must not recreate a deleted user');
         } catch (RuntimeException $e) {
-            $this->assertStringContainsString('changed on disk', $e->getMessage());
+            $this->assertStringContainsString('User does not exist', $e->getMessage());
         }
         $this->assertFileDoesNotExist($this->testUsersFile);
     }
@@ -1197,5 +1206,13 @@ class AuthTest extends TestCase
         $this->expectExceptionMessage('Unauthorized: Admin access required');
 
         $this->auth->unlockUser('admin');
+    }
+
+    /** @return null|array<string,mixed> */
+    private function storedUser(string $username): ?array
+    {
+        $users = json_decode((string) file_get_contents($this->testUsersFile), true);
+
+        return array_column($users, null, 'username')[$username] ?? null;
     }
 }

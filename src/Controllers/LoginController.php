@@ -79,8 +79,8 @@ class LoginController
                 return;
             }
         } catch (RuntimeException) {
-            // The users file changed between the password check and the save.
-            $this->renderLogin('Sign-in conflicted with another account change. Please try again.');
+            // The users file could not be locked or written; Auth has logged why.
+            $this->renderLogin('Sign-in is temporarily unavailable. Please try again.');
 
             return;
         }

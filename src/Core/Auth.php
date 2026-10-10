@@ -26,7 +26,6 @@ use RuntimeException;
 class Auth
 {
     private string $usersFile;
-    private ?string $usersFileFingerprint = null;
 
     /** @var array<string,array<string,mixed>> */
     private array $users = [];
@@ -118,23 +117,31 @@ class Auth
             }
 
             $content = $this->readUsersFile() ?? throw new RuntimeException("Users file not found: {$this->usersFile}");
-
-            $users = json_decode($content, true);
-            if (json_last_error() !== JSON_ERROR_NONE) {
-                throw new RuntimeException('Invalid JSON in users file: ' . json_last_error_msg());
-            }
-
-            // Index by username
-            $this->users = [];
-            foreach ($users as $user) {
-                if (isset($user['username'])) {
-                    $this->users[$user['username']] = $user;
-                }
-            }
-
-            $this->usersFileFingerprint = hash('sha256', $content);
+            $this->users = self::decodeUsers($content);
             $this->logger->info('Loaded users file');
         });
+    }
+
+    /**
+     * @return array<string,array<string,mixed>> Users indexed by username
+     *
+     * @throws RuntimeException If the content is not valid JSON
+     */
+    private static function decodeUsers(string $content): array
+    {
+        $users = json_decode($content, true);
+        if (json_last_error() !== JSON_ERROR_NONE) {
+            throw new RuntimeException('Invalid JSON in users file: ' . json_last_error_msg());
+        }
+
+        $indexed = [];
+        foreach ($users as $user) {
+            if (isset($user['username'])) {
+                $indexed[$user['username']] = $user;
+            }
+        }
+
+        return $indexed;
     }
 
     /**
@@ -145,8 +152,21 @@ class Auth
      * @param bool   $remember Whether to create remember-me cookie (default: false)
      *
      * @return bool True on successful login, false on failure
+     *
+     * @throws RuntimeException If the users file cannot be updated
      */
     public function login(string $username, string $password, bool $remember = false): bool
+    {
+        try {
+            return $this->attemptLogin($username, $password, $remember);
+        } catch (RuntimeException $e) {
+            $this->logger->error("Login could not update the users file for {$username}: {$e->getMessage()}");
+
+            throw $e;
+        }
+    }
+
+    private function attemptLogin(string $username, string $password, bool $remember): bool
     {
         $user = $this->users[$username] ?? null;
 
@@ -159,8 +179,7 @@ class Auth
             return false;
         }
 
-        // Check if account is locked
-        if (isset($user['locked_until']) && time() < $user['locked_until']) {
+        if (self::isLocked($user)) {
             $this->logger->warning("Login attempt on locked account: {$username}");
 
             return false;
@@ -173,19 +192,39 @@ class Auth
             return false;
         }
 
-        // Rehash password (if algorithm upgrade)
-        if (password_needs_rehash($user['password_hash'], PASSWORD_DEFAULT)) {
-            $this->users[$username]['password_hash'] = password_hash($password, PASSWORD_DEFAULT);
-            $this->logger->info("Password rehashed for user: {$username}");
+        // Hash outside the exclusive lock; bcrypt is deliberately slow.
+        $verifiedHash = $user['password_hash'];
+        $rehash = password_needs_rehash($verifiedHash, PASSWORD_DEFAULT) ? password_hash($password, PASSWORD_DEFAULT) : null;
+        $rememberToken = $remember ? bin2hex(random_bytes(32)) : null;
+
+        // Persist all changes before publishing the cookie or session.
+        $signedIn = $this->updateUsers(function () use ($username, $verifiedHash, $rehash, $rememberToken): bool {
+            $user = $this->users[$username] ?? null;
+            // Another request changed the password or locked the account after it was verified.
+            if ($user === null || $user['password_hash'] !== $verifiedHash || self::isLocked($user)) {
+                return false;
+            }
+
+            if ($rehash !== null) {
+                $this->users[$username]['password_hash'] = $rehash;
+                $this->logger->info("Password rehashed for user: {$username}");
+            }
+            $this->users[$username]['failed_attempts'] = 0;
+            unset($this->users[$username]['locked_until']);
+            $this->backfillAuthRevision($username);
+            if ($rememberToken !== null) {
+                $this->issueRememberToken($username, $rememberToken);
+            }
+
+            return true;
+        });
+
+        if (!$signedIn) {
+            $this->logger->warning("Login rejected, account changed during sign-in: {$username}");
+
+            return false;
         }
 
-        $this->users[$username]['failed_attempts'] = 0;
-        unset($this->users[$username]['locked_until']);
-        $this->backfillAuthRevision($username);
-
-        // Persist all changes (and detect stale credentials) before publishing the cookie or session.
-        $rememberToken = $remember ? $this->issueRememberToken($username) : null;
-        $this->saveUsers();
         if ($rememberToken !== null) {
             $this->sendRememberCookie($username, $rememberToken);
         }
@@ -206,6 +245,12 @@ class Auth
         return sprintf('$2y$%02d$', PASSWORD_BCRYPT_DEFAULT_COST) . str_repeat('.', 53);
     }
 
+    /** @param array<string,mixed> $user */
+    private static function isLocked(array $user): bool
+    {
+        return isset($user['locked_until']) && time() < $user['locked_until'];
+    }
+
     /** Accounts created before revision-based sessions get a revision on their next sign-in. */
     private function backfillAuthRevision(string $username): void
     {
@@ -216,6 +261,13 @@ class Auth
     {
         if (!in_array($role, self::ROLES, true)) {
             throw new InvalidArgumentException('Role must be one of: ' . implode(', ', self::ROLES));
+        }
+    }
+
+    private function assertUserExists(string $username): void
+    {
+        if (!isset($this->users[$username])) {
+            throw new RuntimeException("User does not exist: {$username}");
         }
     }
 
@@ -246,18 +298,23 @@ class Auth
     }
 
     /**
-     * Replace the user's remember token in memory and return the raw token.
+     * Replace the user's remember token in memory.
      *
      * The caller must save before calling sendRememberCookie().
      */
-    private function issueRememberToken(string $username): string
+    private function issueRememberToken(string $username, string $token): void
     {
-        $token = bin2hex(random_bytes(32));
-
         $this->users[$username]['remember_token'] = hash('sha256', $token);
         $this->users[$username]['remember_expires'] = time() + self::REMEMBER_LIFETIME_SECONDS;
+    }
 
-        return $token;
+    private function rememberTokenMatches(string $username, string $token): bool
+    {
+        $user = $this->users[$username] ?? null;
+
+        return isset($user['remember_token'], $user['remember_expires'])
+            && hash_equals($user['remember_token'], hash('sha256', $token))
+            && time() < $user['remember_expires'];
     }
 
     private function sendRememberCookie(string $username, string $token): void
@@ -285,35 +342,40 @@ class Auth
         }
 
         [$username, $token] = explode('|', $this->rememberToken . '|');
-        $user = $this->users[$username] ?? null;
-
-        if (!$user || !isset($user['remember_token'])) {
+        if (!$this->rememberTokenMatches($username, $token)) {
             return;
         }
 
-        // Verify token and expiry
-        if (
-            hash_equals($user['remember_token'], hash('sha256', $token))
-            && time() < $user['remember_expires']
-        ) {
-            // Persist token rotation before publishing authenticated state.
-            $this->backfillAuthRevision($username);
-            $rememberToken = $this->issueRememberToken($username);
+        // Persist token rotation before publishing authenticated state.
+        $rotatedToken = bin2hex(random_bytes(32));
 
-            try {
-                $this->saveUsers();
-            } catch (RuntimeException $e) {
-                // Another request changed users.json. Skip auto-login rather than failing every page.
-                $this->logger->warning("Remember-me skipped for {$username}: {$e->getMessage()}");
+        try {
+            $rotated = $this->updateUsers(function () use ($username, $token, $rotatedToken): bool {
+                // Another request may have rotated or revoked the token since it was read.
+                if (!$this->rememberTokenMatches($username, $token)) {
+                    return false;
+                }
 
-                return;
-            }
+                $this->backfillAuthRevision($username);
+                $this->issueRememberToken($username, $rotatedToken);
 
-            $this->sendRememberCookie($username, $rememberToken);
-            $this->authenticateSession($username);
+                return true;
+            });
+        } catch (RuntimeException $e) {
+            // Skip auto-login rather than failing every page.
+            $this->logger->warning("Remember-me skipped for {$username}: {$e->getMessage()}");
 
-            $this->logger->info("Auto-login via remember token: {$username}");
+            return;
         }
+
+        if (!$rotated) {
+            return;
+        }
+
+        $this->sendRememberCookie($username, $rotatedToken);
+        $this->authenticateSession($username);
+
+        $this->logger->info("Auto-login via remember token: {$username}");
     }
 
     /**
@@ -323,75 +385,94 @@ class Auth
      */
     private function recordFailedAttempt(string $username): void
     {
-        if (!isset($this->users[$username])) {
-            return;
-        }
+        $this->updateUsers(function () use ($username): bool {
+            if (!isset($this->users[$username])) {
+                return false;
+            }
 
-        // Reset the attempt counter after an expired lockout.
-        if (isset($this->users[$username]['locked_until'])
-            && time() >= $this->users[$username]['locked_until']) {
-            $this->users[$username]['failed_attempts'] = 0;
-            unset($this->users[$username]['locked_until']);
-        }
+            // Reset the attempt counter after an expired lockout.
+            if (isset($this->users[$username]['locked_until'])
+                && time() >= $this->users[$username]['locked_until']) {
+                $this->users[$username]['failed_attempts'] = 0;
+                unset($this->users[$username]['locked_until']);
+            }
 
-        $this->users[$username]['failed_attempts']
-            = ($this->users[$username]['failed_attempts'] ?? 0) + 1;
+            $this->users[$username]['failed_attempts']
+                = ($this->users[$username]['failed_attempts'] ?? 0) + 1;
 
-        if ($this->users[$username]['failed_attempts'] >= self::MAX_ATTEMPTS) {
-            $this->users[$username]['locked_until'] = time() + self::LOCKOUT_TIME_SECONDS;
-        }
+            if ($this->users[$username]['failed_attempts'] >= self::MAX_ATTEMPTS) {
+                $this->users[$username]['locked_until'] = time() + self::LOCKOUT_TIME_SECONDS;
+            }
 
-        $this->saveUsers();
+            return true;
+        });
     }
 
     /**
-     * Atomically save users array to JSON file with secure permissions.
+     * Reload users under an exclusive lock, apply a change and save the result.
+     *
+     * The change always sees the latest file, so concurrent requests never overwrite each other.
+     * It re-checks its own preconditions against that file and returns false to skip the write.
+     *
+     * @param callable(): bool $change Mutates $this->users
+     *
+     * @return bool Whether the change was saved
      */
-    private function saveUsers(): void
+    private function updateUsers(callable $change): bool
     {
         $this->assertUsersDirectoryWritable();
 
-        $this->withFileLock(LOCK_EX, function () {
+        return $this->withFileLock(LOCK_EX, function () use ($change): bool {
             $content = $this->readUsersFile();
-            $currentFingerprint = $content === null ? null : hash('sha256', $content);
-            if ($currentFingerprint !== $this->usersFileFingerprint) {
-                throw new RuntimeException('Users file changed on disk; reload before saving');
+            $this->users = $content === null ? [] : self::decodeUsers($content);
+
+            if (!$change()) {
+                return false;
             }
 
-            $encoded = json_encode(array_values($this->users), JSON_PRETTY_PRINT);
-            if ($encoded === false) {
-                throw new RuntimeException('Failed to encode users JSON');
-            }
+            $this->writeUsers();
 
-            $directory = dirname($this->usersFile);
-            $temp = tempnam($directory, basename($this->usersFile) . '.');
-            if ($temp === false || realpath(dirname($temp)) !== realpath($directory)) {
-                if ($temp !== false) {
-                    @unlink($temp);
-                }
-
-                throw new RuntimeException("Failed to create temp users file in: {$directory}");
-            }
-
-            try {
-                if (!chmod($temp, 0600) || file_put_contents($temp, $encoded) === false) {
-                    throw new RuntimeException("Failed to write temp users file: {$temp}");
-                }
-
-                if (!rename($temp, $this->usersFile)) {
-                    throw new RuntimeException("Failed to replace users file: {$this->usersFile}");
-                }
-            } finally {
-                if (file_exists($temp)) {
-                    @unlink($temp);
-                }
-            }
-
-            if (!chmod($this->usersFile, 0600)) {
-                throw new RuntimeException("Failed to secure users file: {$this->usersFile}");
-            }
-            $this->usersFileFingerprint = hash('sha256', $encoded);
+            return true;
         });
+    }
+
+    /**
+     * Atomically replace the users file with secure permissions. Callers hold the exclusive lock.
+     */
+    private function writeUsers(): void
+    {
+        $encoded = json_encode(array_values($this->users), JSON_PRETTY_PRINT);
+        if ($encoded === false) {
+            throw new RuntimeException('Failed to encode users JSON');
+        }
+
+        $directory = dirname($this->usersFile);
+        $temp = tempnam($directory, basename($this->usersFile) . '.');
+        if ($temp === false || realpath(dirname($temp)) !== realpath($directory)) {
+            if ($temp !== false) {
+                @unlink($temp);
+            }
+
+            throw new RuntimeException("Failed to create temp users file in: {$directory}");
+        }
+
+        try {
+            if (!chmod($temp, 0600) || file_put_contents($temp, $encoded) === false) {
+                throw new RuntimeException("Failed to write temp users file: {$temp}");
+            }
+
+            if (!rename($temp, $this->usersFile)) {
+                throw new RuntimeException("Failed to replace users file: {$this->usersFile}");
+            }
+        } finally {
+            if (file_exists($temp)) {
+                @unlink($temp);
+            }
+        }
+
+        if (!chmod($this->usersFile, 0600)) {
+            throw new RuntimeException("Failed to secure users file: {$this->usersFile}");
+        }
     }
 
     /**
@@ -481,11 +562,15 @@ class Auth
     {
         $username = $this->getUsername();
 
-        // Clear remember token
-        if ($username && isset($this->users[$username]['remember_token'])) {
-            unset($this->users[$username]['remember_token'], $this->users[$username]['remember_expires']);
+        if ($username !== null && isset($this->users[$username]['remember_token'])) {
+            $this->updateUsers(function () use ($username): bool {
+                if (!isset($this->users[$username]['remember_token'])) {
+                    return false;
+                }
+                unset($this->users[$username]['remember_token'], $this->users[$username]['remember_expires']);
 
-            $this->saveUsers();
+                return true;
+            });
         }
 
         Session::destroy($this->secureRequest);
@@ -593,21 +678,25 @@ class Auth
             throw new InvalidArgumentException('Username must be 1-64 characters: letters, digits, dot, underscore or hyphen');
         }
         $this->assertValidRole($role);
-        if (isset($this->users[$username])) {
-            throw new RuntimeException("User already exists: {$username}");
-        }
+        $passwordHash = password_hash($password, PASSWORD_DEFAULT);
 
-        $this->users[$username] = [
-            'id' => uniqid('user_'),
-            'username' => $username,
-            'password_hash' => password_hash($password, PASSWORD_DEFAULT),
-            'auth_revision' => bin2hex(random_bytes(32)),
-            'role' => $role,
-            'created_at' => date('Y-m-d H:i:s'),
-            'failed_attempts' => 0,
-        ];
+        $this->updateUsers(function () use ($username, $passwordHash, $role): bool {
+            if (isset($this->users[$username])) {
+                throw new RuntimeException("User already exists: {$username}");
+            }
 
-        $this->saveUsers();
+            $this->users[$username] = [
+                'id' => uniqid('user_'),
+                'username' => $username,
+                'password_hash' => $passwordHash,
+                'auth_revision' => bin2hex(random_bytes(32)),
+                'role' => $role,
+                'created_at' => date('Y-m-d H:i:s'),
+                'failed_attempts' => 0,
+            ];
+
+            return true;
+        });
         $this->logger->info("Created new user: {$username}");
 
         return true;
@@ -627,12 +716,12 @@ class Auth
         if (!$this->cliMode && !$this->hasRole('admin')) {
             throw new RuntimeException('Unauthorized: Admin access required');
         }
-        if (!isset($this->users[$username])) {
-            throw new RuntimeException("User does not exist: {$username}");
-        }
+        $this->updateUsers(function () use ($username): bool {
+            $this->assertUserExists($username);
+            unset($this->users[$username]);
 
-        unset($this->users[$username]);
-        $this->saveUsers();
+            return true;
+        });
         $this->logger->info("Deleted user: {$username}");
 
         return true;
@@ -653,16 +742,17 @@ class Auth
         if (!$this->cliMode && !$this->hasRole('admin')) {
             throw new RuntimeException('Unauthorized: Admin access required');
         }
-        if (!isset($this->users[$username])) {
-            throw new RuntimeException("User does not exist: {$username}");
-        }
+        $passwordHash = password_hash($newPassword, PASSWORD_DEFAULT);
 
-        $this->users[$username]['password_hash'] = password_hash($newPassword, PASSWORD_DEFAULT);
-        $this->users[$username]['failed_attempts'] = 0; // Reset failed attempts
-        unset($this->users[$username]['locked_until']); // Remove any lockout
-        $this->rotateAuthRevision($username);
+        $this->updateUsers(function () use ($username, $passwordHash): bool {
+            $this->assertUserExists($username);
+            $this->users[$username]['password_hash'] = $passwordHash;
+            $this->users[$username]['failed_attempts'] = 0;
+            unset($this->users[$username]['locked_until']);
+            $this->rotateAuthRevision($username);
 
-        $this->saveUsers();
+            return true;
+        });
         $this->logger->info("Password changed for user: {$username}");
 
         return true;
@@ -683,14 +773,15 @@ class Auth
         if (!$this->cliMode && !$this->hasRole('admin')) {
             throw new RuntimeException('Unauthorized: Admin access required');
         }
-        if (!isset($this->users[$username])) {
-            throw new RuntimeException("User does not exist: {$username}");
-        }
         $this->assertValidRole($role);
 
-        $this->users[$username]['role'] = $role;
-        $this->rotateAuthRevision($username);
-        $this->saveUsers();
+        $this->updateUsers(function () use ($username, $role): bool {
+            $this->assertUserExists($username);
+            $this->users[$username]['role'] = $role;
+            $this->rotateAuthRevision($username);
+
+            return true;
+        });
         $this->logger->info("Updated role for user {$username} to: {$role}");
 
         return true;
@@ -747,14 +838,13 @@ class Auth
         if (!$this->cliMode && !$this->hasRole('admin')) {
             throw new RuntimeException('Unauthorized: Admin access required');
         }
-        if (!isset($this->users[$username])) {
-            throw new RuntimeException("User does not exist: {$username}");
-        }
+        $this->updateUsers(function () use ($username): bool {
+            $this->assertUserExists($username);
+            $this->users[$username]['failed_attempts'] = 0;
+            unset($this->users[$username]['locked_until']);
 
-        $this->users[$username]['failed_attempts'] = 0;
-        unset($this->users[$username]['locked_until']);
-
-        $this->saveUsers();
+            return true;
+        });
         $this->logger->info("Unlocked user account: {$username}");
 
         return true;
