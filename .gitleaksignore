@@ -1,10 +1,10 @@
 # Reviewed gitleaks findings (2026-10-09): documentation placeholders and test
 # fixtures in commit fa32667 (on main). Only add fingerprints here after
 # confirming the value is not a real secret.
-4afa4ac9fa38740d7062b9fa8e693d70087a9f9e:src/Tests/Unit/Views/SettingsRendererTest.php:generic-api-key:103
-763eeac7e314223b988b06ce173952408ddeea8d:docs/reference/client-config.md:generic-api-key:612
-763eeac7e314223b988b06ce173952408ddeea8d:docs/reference/client-config.md:generic-api-key:613
-7ee256b496c1babe69ef9c7c34cd948957a9d9ba:src/Tests/Helpers/ApplicationConfigFactory.php:generic-api-key:168
+2d62bf4e254ea658155f6df63389b6a4bcf25fa7:src/Tests/Unit/Views/SettingsRendererTest.php:generic-api-key:103
+6b1d82495f27b7ab038ff7b63b48e454b708cc0f:docs/reference/client-config.md:generic-api-key:612
+6b1d82495f27b7ab038ff7b63b48e454b708cc0f:docs/reference/client-config.md:generic-api-key:613
+6546aebaf38c190d2d2078a724f768d68ee2337a:src/Tests/Helpers/ApplicationConfigFactory.php:generic-api-key:168
 b84f28d1c57cba034b11f6b1e1a8582abbb5e817:src/Tests/Unit/Config/MonitoringSettingsLoaderTest.php:generic-api-key:106
 fa3266715d64b6742c7967685d3a2b58cdfb7cd6:config/example/users.json.example:generic-api-key:8
 fa3266715d64b6742c7967685d3a2b58cdfb7cd6:docs/development/testing.md:curl-auth-header:252
