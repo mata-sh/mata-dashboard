@@ -10,7 +10,7 @@ declare(strict_types=1);
  * Exit codes: 0 sent, 1 delivery failed, 2 usage or unknown channel.
  */
 
-use Mata\Bootstrap\AlarmChannelBootstrap;
+use Mata\Bootstrap\AlarmChannelRuntime;
 use Mata\Bootstrap\CronRuntime;
 use Mata\Services\Alarm\Delivery\Dto\AlarmDeliveryView;
 use Mata\Services\Alarm\Dto\Alarm;
@@ -24,13 +24,8 @@ $runtime = CronRuntime::boot(__FILE__);
 $appConfig = $runtime->appConfig;
 
 $eventManager = new EventManager($appConfig, eventRecorder: new EventRecorderService($runtime->db), logger: $runtime->log);
-$senders = AlarmChannelBootstrap::senders(
-    $runtime->paths,
-    $appConfig,
-    $runtime->mailer,
-    AlarmChannelBootstrap::loadChannels($runtime->paths, $eventManager),
-    $runtime->log,
-);
+$alarmChannels = AlarmChannelRuntime::fromRuntime($runtime, $eventManager);
+$senders = $alarmChannels->senders();
 
 $channel = strtolower(trim((string) ($argv[1] ?? '')));
 if (!isset($senders[$channel])) {

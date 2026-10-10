@@ -6,6 +6,10 @@ namespace Mata\Bootstrap;
 
 use Psr\Log\LoggerInterface;
 
+/**
+ * Resolves the logo and favicon paths for the web UI. Seeds missing files in public/branding/
+ * from the bundled defaults, so instance-specific assets placed there take precedence.
+ */
 final readonly class BrandingResolver
 {
     public function __construct(

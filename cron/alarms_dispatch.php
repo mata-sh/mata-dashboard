@@ -3,7 +3,7 @@
 
 declare(strict_types=1);
 
-use Mata\Bootstrap\AlarmChannelBootstrap;
+use Mata\Bootstrap\AlarmChannelRuntime;
 use Mata\Bootstrap\CronRuntime;
 use Mata\Config\Monitoring\Loader\AlarmRateLimitsConfigLoader;
 use Mata\Models\AlarmDeliveryRepository;
@@ -21,7 +21,6 @@ $log = $runtime->log;
 $cron = $runtime->cron;
 $appConfig = $runtime->appConfig;
 $db = $runtime->db;
-$mailer = $runtime->mailer;
 
 if (!$cron->acquireLock()) {
     exit("Already running.\n");
@@ -40,13 +39,8 @@ try {
     $limitsConfig = $limitsLoader->load($paths->appPath . '/config');
 
     // --- Senders & Dispatchers ---
-    $senders = AlarmChannelBootstrap::senders(
-        $paths,
-        $appConfig,
-        $mailer,
-        AlarmChannelBootstrap::loadChannels($paths, $eventManager),
-        $log,
-    );
+    $alarmChannels = AlarmChannelRuntime::fromRuntime($runtime, $eventManager);
+    $senders = $alarmChannels->senders();
     $dispatcher = new AlarmDispatcher($deliveryRepository, $limitsConfig, $senders, $log);
 
     // --- Dispatch Alarm Deliveries ---

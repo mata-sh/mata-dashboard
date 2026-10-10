@@ -3,7 +3,7 @@
 
 declare(strict_types=1);
 
-use Mata\Bootstrap\AlarmChannelBootstrap;
+use Mata\Bootstrap\AlarmChannelRuntime;
 use Mata\Bootstrap\CronMonitoringRuntime;
 use Mata\Bootstrap\CronRuntime;
 use Mata\Services\Alarm\Evaluation\AlarmDecisionServiceFactory;
@@ -52,8 +52,8 @@ try {
         $log,
     );
 
-    $channels = AlarmChannelBootstrap::loadChannels($runtime->paths, $eventManager);
-    AlarmChannelBootstrap::reportUnknownRuleChannels($notificationRules, $channels, $eventManager);
+    $alarmChannels = AlarmChannelRuntime::fromRuntime($runtime, $eventManager);
+    $alarmChannels->reportUnknownRuleChannels($notificationRules);
     $stats = [
         'considered' => 0,
         'enqueued' => 0,
@@ -66,7 +66,7 @@ try {
         ++$stats['considered'];
 
         try {
-            $result = $alarmEvaluationProcessor->process($event, $channels->names());
+            $result = $alarmEvaluationProcessor->process($event, $alarmChannels->channels->names());
         } catch (AlarmEvaluationException $exception) {
             ++$stats['failed'];
             if ($exception->isEnrichmentRequested()) {
