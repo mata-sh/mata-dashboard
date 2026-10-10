@@ -94,7 +94,7 @@ class Auth
         $this->withFileLock(LOCK_SH, function () {
             // Check file permissions (relaxed in CLI mode)
             $perms = fileperms($this->usersFile);
-            if (!$this->cliMode && (($perms & 0x0040) || ($perms & 0x0004))) {
+            if (!$this->cliMode && $perms !== false && ($perms & 0o077) !== 0) {
                 throw new RuntimeException("Users file has insecure permissions. Run: chmod 600 {$this->usersFile}");
             }
 

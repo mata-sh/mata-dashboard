@@ -8,6 +8,7 @@ use Mata\Core\Auth;
 use Mata\Core\Session;
 use Mata\Http\Request;
 use Mata\Tests\TestCase;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Psr\Log\NullLogger;
 use RuntimeException;
 
@@ -566,9 +567,9 @@ class AuthTest extends TestCase
      * @group security
      * @group file-permissions
      */
-    public function testItRejectsUsersFileWithInsecurePermissions(): void
+    #[DataProvider('insecureUsersFileModes')]
+    public function testItRejectsUsersFileWithInsecurePermissions(int $mode): void
     {
-        // Create a new users file with insecure permissions
         $insecureFile = $this->createTempFile('', '.json');
         $this->tempFiles[] = $insecureFile;
 
@@ -582,12 +583,42 @@ class AuthTest extends TestCase
             'failed_attempts' => 0,
         ];
         file_put_contents($insecureFile, json_encode([$adminUser], JSON_PRETTY_PRINT));
-        chmod($insecureFile, 0644); // World-readable
+        chmod($insecureFile, $mode);
 
         $this->expectException(RuntimeException::class);
         $this->expectExceptionMessage('insecure permissions');
 
         new Auth(new NullLogger(), $insecureFile, $this->request->isSecure(), $this->request->cookie('remember_token'));
+    }
+
+    /** @return array<string,array{int}> */
+    public static function insecureUsersFileModes(): array
+    {
+        return [
+            'world-readable' => [0o644],
+            'other-readable only' => [0o604],
+            'group-readable' => [0o640],
+            'group-writable' => [0o620],
+        ];
+    }
+
+    /**
+     * Owner-only bits are not an exposure, including the execute bit.
+     *
+     * @group auth
+     * @group security
+     * @group file-permissions
+     */
+    public function testItAcceptsUsersFileWithOwnerOnlyPermissions(): void
+    {
+        $usersFile = $this->createTempFile('', '.json');
+        $this->tempFiles[] = $usersFile;
+        file_put_contents($usersFile, json_encode([['username' => 'admin']], JSON_PRETTY_PRINT));
+        chmod($usersFile, 0o700);
+
+        $auth = new Auth(new NullLogger(), $usersFile, $this->request->isSecure(), $this->request->cookie('remember_token'));
+
+        $this->assertInstanceOf(Auth::class, $auth);
     }
 
     /**

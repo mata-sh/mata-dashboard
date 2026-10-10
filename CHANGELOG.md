@@ -23,6 +23,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - The unlinked process-count modal (`/watch/modal/{server}/process-count`); its Refresh button replaced the modal with raw JSON. Process history now lives in the server metrics modal
 
 ### Fixed
+- The dashboard now refuses a users file that is readable or writable by its group (for example mode `0640`), as it already did for world-readable files, and no longer refuses an owner-only file with the execute bit set. If the dashboard shows an authentication error after upgrading, run `chmod 600` on the users file
 - Cache-age tooltips on server, app and database cards no longer append a stray "s" (for example "5 minutes s ago"), and the database card tooltip shows the overview's cache age instead of blank values
 - The refresh button on database cards reloads that server's card; it previously did nothing
 - Resolved configuration warnings are cleared reliably; previously the cleanup query failed unless the resolved warnings were listed first
