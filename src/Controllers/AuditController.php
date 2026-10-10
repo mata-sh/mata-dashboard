@@ -4,9 +4,6 @@ declare(strict_types=1);
 
 namespace Mata\Controllers;
 
-use Exception;
-use InvalidArgumentException;
-use Mata\Config\Dto\ApplicationConfig;
 use Mata\Core\App;
 use Mata\Core\Session;
 use Mata\Http\Request;
@@ -14,17 +11,9 @@ use Mata\Http\Responses\HtmlResponse;
 use Mata\Http\Responses\Response;
 use Mata\Http\Routing\Endpoints;
 use Mata\Services\Audit\AuditAggregator;
-use Mata\Services\Cache\ApiCacheKeyFactory;
-use Mata\Services\Cache\CacheStoreInterface;
-use Mata\Services\Cache\CacheTtlResolver;
 use Mata\Services\Cache\CacheType;
-use Mata\Services\Collect\MockServerDataCollector;
-use Mata\Services\Collect\NodeApiClient;
-use Mata\Services\Collect\NodeResponseNormalizer;
-use Mata\Services\Collect\ServerDataCollector;
 use Mata\Services\Collect\ServerDataCollectorInterface;
 use Mata\Utils\Tools;
-use Mata\Utils\TypeConverter;
 use Mata\Views\AuditRenderer;
 use Monolog\Logger;
 use Twig\Environment;
@@ -34,61 +23,31 @@ use Twig\Environment;
  */
 class AuditController extends BaseController
 {
-    private ApplicationConfig $appConfig;
-    private CacheStoreInterface $cacheStore;
-    private ApiCacheKeyFactory $cacheKeyFactory;
-    private CacheTtlResolver $ttlResolver;
     private Endpoints $endpoints;
     private AuditRenderer $auditRenderer;
     private AuditAggregator $auditAggregator;
 
     /** @var array<string,ServerDataCollectorInterface> */
-    private array $serverDataCollectors = [];
-
-    /** @var array<string,mixed> */
-    private array $serversConfig;
+    private array $serverDataCollectors;
 
     /**
-     * @param array<string,mixed> $serversConfig
+     * @param array<string,ServerDataCollectorInterface> $serverDataCollectors Collectors built at bootstrap, keyed by server
      */
     public function __construct(
         App $app,
         Tools $tools,
         Environment $twig,
         Logger $logger,
-        ApplicationConfig $appConfig,
-        CacheStoreInterface $cacheStore,
-        ApiCacheKeyFactory $cacheKeyFactory,
-        CacheTtlResolver $ttlResolver,
         Endpoints $endpoints,
-        array $serversConfig,
+        array $serverDataCollectors,
         Request $request,
     ) {
         parent::__construct($request);
         $this->logger = $logger;
-        $this->appConfig = $appConfig;
-        $this->cacheStore = $cacheStore;
-        $this->cacheKeyFactory = $cacheKeyFactory;
-        $this->ttlResolver = $ttlResolver;
         $this->endpoints = $endpoints;
-        $this->serversConfig = $serversConfig;
+        $this->serverDataCollectors = $serverDataCollectors;
         $this->auditRenderer = new AuditRenderer($twig, $logger, $tools, $app, $endpoints);
         $this->auditAggregator = new AuditAggregator();
-
-        foreach ($this->serversConfig as $server => $serverConfig) {
-            try {
-                if (!is_array($serverConfig)) {
-                    throw new InvalidArgumentException("Server {$server} configuration is invalid");
-                }
-                $this->serverDataCollectors[$server] = $this->createServerDataCollector($server, $serverConfig);
-            } catch (Exception $e) {
-                $this->logger->error("{$server}", [
-                    'msg' => $e->getMessage(),
-                    'file' => $e->getFile(),
-                    'line' => $e->getLine(),
-                ]);
-            }
-        }
     }
 
     public function renderAuditSection(): Response
@@ -169,7 +128,7 @@ class AuditController extends BaseController
 
     private function isValidTarget(string $server, string $app): bool
     {
-        if (!isset($this->serversConfig[$server], $this->serverDataCollectors[$server])) {
+        if (!isset($this->serverDataCollectors[$server])) {
             return false;
         }
 
@@ -196,44 +155,5 @@ class AuditController extends BaseController
         }
 
         return $names;
-    }
-
-    /**
-     * @param array<string,mixed> $serverConfig
-     */
-    private function createServerDataCollector(string $server, array $serverConfig): ServerDataCollectorInterface
-    {
-        if ($this->appConfig->environment->env === 'demo') {
-            return new MockServerDataCollector(
-                $this->logger,
-                $this->ttlResolver,
-                new NodeResponseNormalizer($this->logger),
-                $server,
-                $serverConfig
-            );
-        }
-        if (!isset($serverConfig['api_key'], $serverConfig['api_url'])) {
-            throw new InvalidArgumentException("Server {$server} missing required config");
-        }
-
-        $apiClient = new NodeApiClient(
-            $this->logger,
-            $serverConfig['api_url'],
-            $server,
-            $serverConfig['api_key'],
-            10,
-            true,
-            TypeConverter::toBool($serverConfig['allow_http'] ?? null) ?? false,
-            TypeConverter::toBool($serverConfig['suppress_http_warning'] ?? null) ?? false
-        );
-
-        return new ServerDataCollector(
-            $this->logger,
-            $this->cacheStore,
-            $this->cacheKeyFactory,
-            $this->ttlResolver,
-            $apiClient,
-            new NodeResponseNormalizer($this->logger)
-        );
     }
 }

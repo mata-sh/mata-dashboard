@@ -464,12 +464,8 @@ $auditController = new AuditController(
     $tools,
     $twig,
     $log,
-    $appConfig,
-    $cacheStore,
-    $cacheKeyFactory,
-    $ttlResolver,
     $endpoints,
-    $serversConfig,
+    $serverMonitoringResult->collectors(),
     $request,
 );
 
@@ -478,13 +474,9 @@ $modalController = new ModalController(
     $tools,
     $twig,
     $log,
-    $appConfig,
-    $cacheStore,
-    $cacheKeyFactory,
-    $ttlResolver,
     $logDataTransformer,
     $endpoints,
-    $serversConfig,
+    $serverMonitoringResult->collectors(),
     $request,
 );
 

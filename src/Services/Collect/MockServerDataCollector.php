@@ -151,31 +151,6 @@ class MockServerDataCollector implements ServerDataCollectorInterface
     }
 
     /**
-     * Generate demo PHP processes.
-     */
-    public function getServerPhpProcesses(CacheType $cacheType = CacheType::ServerProcesses): ?array
-    {
-        $ttlSeconds = $this->ttlResolver->get($cacheType);
-
-        $processes = [];
-        $processCount = mt_rand(15, 40);
-
-        for ($i = 0; $i < $processCount; ++$i) {
-            $processes[] = [
-                'user' => ['www-data', 'nginx', 'apache', 'php-fpm'][array_rand(['www-data', 'nginx', 'apache', 'php-fpm'])],
-                'pid' => mt_rand(1000, 65000),
-                'ppid' => mt_rand(1, 1000),
-                'cpu' => round(mt_rand(0, 1500) / 100, 1),
-                'mem' => round(mt_rand(50, 2000) / 100, 1),
-                'etime' => sprintf('%02d:%02d:%02d', mt_rand(0, 23), mt_rand(0, 59), mt_rand(0, 59)),
-                'args' => 'php-fpm: pool ' . ['www', 'api', 'admin'][array_rand(['www', 'api', 'admin'])],
-            ];
-        }
-
-        return $this->responseNormalizer->normalizeApiResponse($processes, $this->cacheAge, $ttlSeconds, false);
-    }
-
-    /**
      * Generate demo database overview.
      */
     public function getDatabaseOverview(CacheType $cacheType = CacheType::Databases): ?array
@@ -224,17 +199,6 @@ class MockServerDataCollector implements ServerDataCollectorInterface
         }
 
         return $this->responseNormalizer->normalizeApiResponse($libraries, $this->cacheAge, $ttlSeconds, false, false, 'apps/libraries');
-    }
-
-    /**
-     * Generate demo libraries for specific app.
-     */
-    public function getAppLibraries(string $app, CacheType $cacheType = CacheType::Libraries): ?array
-    {
-        $ttlSeconds = $this->ttlResolver->get($cacheType);
-        $data = $this->generateLibrariesForApp($app);
-
-        return $this->responseNormalizer->normalizeApiResponse($data, $this->cacheAge, $ttlSeconds, false, false, "{$app}/libraries");
     }
 
     /**

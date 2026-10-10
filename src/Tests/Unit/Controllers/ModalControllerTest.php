@@ -5,21 +5,14 @@ declare(strict_types=1);
 namespace Mata\Tests\Unit\Controllers;
 
 use Exception;
-use Mata\Config\Dto\ApplicationConfig;
-use Mata\Config\Dto\EnvironmentConfig;
-use Mata\Config\Monitoring\Section\TtlConfig;
 use Mata\Controllers\ModalController;
 use Mata\Core\App;
 use Mata\Http\Request;
 use Mata\Http\Responses\HtmlResponse;
 use Mata\Http\Responses\JsonResponse;
 use Mata\Http\Routing\Endpoints;
-use Mata\Services\Cache\ApiCacheKeyFactory;
-use Mata\Services\Cache\CacheStoreInterface;
-use Mata\Services\Cache\CacheTtlResolver;
 use Mata\Services\Collect\ServerDataCollectorInterface;
 use Mata\Services\DataTransformers\LogDataTransformer;
-use Mata\Tests\Helpers\ApplicationConfigFactory;
 use Mata\Tests\TestCase;
 use Mata\Utils\Tools;
 use Mata\Views\ModalRenderer;
@@ -53,13 +46,8 @@ class ModalControllerTest extends TestCase
     private MockObject&Tools $mockTools;
     private Environment&MockObject $mockTwig;
     private Logger $logger;
-    private CacheStoreInterface&MockObject $mockCacheStore;
-    private ApiCacheKeyFactory $cacheKeyFactory;
-    private CacheTtlResolver $ttlResolver;
     private LogDataTransformer&MockObject $mockLogTransformer;
     private Endpoints&MockObject $mockEndpoints;
-    private ApplicationConfig $appConfig;
-    private array $serversConfig;
 
     protected function setUp(): void
     {
@@ -69,28 +57,10 @@ class ModalControllerTest extends TestCase
         $this->mockTools = $this->createMock(Tools::class);
         $this->mockTwig = $this->createMock(Environment::class);
         $this->logger = new Logger('test', [new TestHandler()]);
-        $this->mockCacheStore = $this->createMock(CacheStoreInterface::class);
-        $this->cacheKeyFactory = new ApiCacheKeyFactory();
-        $this->ttlResolver = new CacheTtlResolver(new TtlConfig([]));
         $this->mockLogTransformer = $this->createMock(LogDataTransformer::class);
         $this->mockEndpoints = $this->createMock(Endpoints::class);
 
-        // Create minimal ApplicationConfig with all required DTOs
-        $this->appConfig = $this->createTestApplicationConfig();
 
-        // Configure sample servers
-        $this->serversConfig = [
-            'server1' => [
-                'api_url' => 'https://server1.example.com/api',
-                'api_key' => 'test-api-key-1',
-                'title' => 'Server 1',
-            ],
-            'server2' => [
-                'api_url' => 'https://server2.example.com/api',
-                'api_key' => 'test-api-key-2',
-                'title' => 'Server 2',
-            ],
-        ];
 
         // Mock icon method for ModalRenderer
         $this->mockTools->method('icon')
@@ -112,13 +82,9 @@ class ModalControllerTest extends TestCase
             $this->mockTools,
             $this->mockTwig,
             $this->logger,
-            $this->appConfig,
-            $this->mockCacheStore,
-            $this->cacheKeyFactory,
-            $this->ttlResolver,
             $this->mockLogTransformer,
             $this->mockEndpoints,
-            $this->serversConfig,
+            [],
             request: new Request(),
         );
     }
@@ -132,41 +98,6 @@ class ModalControllerTest extends TestCase
     public function testItInitializesWithDependencies(): void
     {
         $this->assertInstanceOf(ModalController::class, $this->controller);
-    }
-
-    /**
-     * @test
-     *
-     * @group modal-controller
-     * @group initialization
-     * @group demo-mode
-     *
-     * Validates that in demo mode, the controller creates MockServerDataCollector
-     * instead of the real ServerDataCollector. This is important for testing
-     * and demonstration environments where real API calls should not be made.
-     */
-    public function testItCreatesMockCollectorsInDemoMode(): void
-    {
-        // Create demo environment config
-        $demoConfig = $this->createTestApplicationConfig('demo');
-
-        $demoController = new ModalController(
-            $this->mockApp,
-            $this->mockTools,
-            $this->mockTwig,
-            $this->logger,
-            $demoConfig,
-            $this->mockCacheStore,
-            $this->cacheKeyFactory,
-            $this->ttlResolver,
-            $this->mockLogTransformer,
-            $this->mockEndpoints,
-            $this->serversConfig,
-            request: new Request(),
-        );
-
-        // Test that we can still call methods (implicitly testing mock collectors exist)
-        $this->assertInstanceOf(ModalController::class, $demoController);
     }
 
     /**
@@ -1037,57 +968,6 @@ MARKDOWN;
      * @test
      *
      * @group modal-controller
-     * @group error-handling
-     * @group logging
-     *
-     * Tests that exceptions during initialization (e.g., invalid server config)
-     * are logged but don't crash the controller. The controller should be
-     * resilient to configuration errors.
-     */
-    public function testItHandlesServerCollectorCreationFailureGracefully(): void
-    {
-        // Create a logger mock to verify error logging
-        $mockLogger = $this->createMock(Logger::class);
-        $mockLogger->expects($this->atLeastOnce())
-            ->method('error')
-            ->with(
-                $this->anything(),
-                $this->callback(function ($context) {
-                    return isset($context['msg']) || isset($context['error']);
-                })
-            )
-        ;
-
-        // Create config with invalid server (missing required fields)
-        $invalidServersConfig = [
-            'bad-server' => [
-                // Missing api_url and api_key - should trigger error
-            ],
-        ];
-
-        // Should not throw exception despite bad config
-        $controller = new ModalController(
-            $this->mockApp,
-            $this->mockTools,
-            $this->mockTwig,
-            $mockLogger,
-            $this->appConfig,
-            $this->mockCacheStore,
-            $this->cacheKeyFactory,
-            $this->ttlResolver,
-            $this->mockLogTransformer,
-            $this->mockEndpoints,
-            $invalidServersConfig,
-            request: new Request(),
-        );
-
-        $this->assertInstanceOf(ModalController::class, $controller);
-    }
-
-    /**
-     * @test
-     *
-     * @group modal-controller
      * @group template-rendering
      * @group error-handling
      *
@@ -1139,29 +1019,6 @@ MARKDOWN;
         $specialServer = 'server-with-dashes_and_underscores.123';
         $specialApp = 'app.name-with_special.chars';
 
-        $specialConfig = array_merge($this->serversConfig, [
-            $specialServer => [
-                'api_url' => 'https://example.com/api',
-                'api_key' => 'test-key',
-                'title' => 'Special Server',
-            ],
-        ]);
-
-        $controller = new ModalController(
-            $this->mockApp,
-            $this->mockTools,
-            $this->mockTwig,
-            $this->logger,
-            $this->appConfig,
-            $this->mockCacheStore,
-            $this->cacheKeyFactory,
-            $this->ttlResolver,
-            $this->mockLogTransformer,
-            $this->mockEndpoints,
-            $specialConfig,
-            request: new Request(),
-        );
-
         $mockCollector = $this->createMockServerDataCollector($specialServer);
         $mockCollector->method('fetchAppReadme')
             ->willReturn([
@@ -1171,10 +1028,16 @@ MARKDOWN;
             ])
         ;
 
-        // Use reflection to inject mock collector
-        $this->setProperty($controller, 'serverDataCollectors', [
-            $specialServer => $mockCollector,
-        ]);
+        $controller = new ModalController(
+            $this->mockApp,
+            $this->mockTools,
+            $this->mockTwig,
+            $this->logger,
+            $this->mockLogTransformer,
+            $this->mockEndpoints,
+            [$specialServer => $mockCollector],
+            request: new Request(),
+        );
 
         $this->mockTwig->method('render')
             ->willReturn('<div>Content</div>')
@@ -1225,15 +1088,5 @@ MARKDOWN;
         $collectors = $this->getProperty($this->controller, 'serverDataCollectors');
         $collectors[$serverName] = $mockCollector;
         $this->setProperty($this->controller, 'serverDataCollectors', $collectors);
-    }
-
-    /**
-     * Helper method to create a minimal ApplicationConfig for testing.
-     */
-    private function createTestApplicationConfig(string $env = 'production'): ApplicationConfig
-    {
-        return ApplicationConfigFactory::create(
-            environment: new EnvironmentConfig($env, 'test.local', '/test/dir', '')
-        );
     }
 }

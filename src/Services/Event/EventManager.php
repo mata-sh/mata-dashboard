@@ -26,7 +26,7 @@ use Psr\Log\NullLogger;
  * EventManager provides:
  * - Event threshold evaluation (server metrics, app metrics)
  * - Event creation with cooldown deduplication via handle()
- * - Direct access to read/write operations via public properties
+ * - Read access to stored events via the public aggregator property
  *
  * ### Recommended Usage:
  *
@@ -41,9 +41,6 @@ use Psr\Log\NullLogger;
  * // Read operations via public property
  * $events = $eventManager->aggregator->getLatestEvents();
  * $events = $eventManager->aggregator->getLastEventsByContext(...);
- *
- * // Direct write (rare - usually use handle)
- * $eventManager->recorder->recordEvent(...);
  * ```
  *
  * **Specialized: Inject specific service**
@@ -63,7 +60,7 @@ use Psr\Log\NullLogger;
  * - **AlarmDirectProcessor**: Direct alarm queueing for forced alarms
  *
  * @see AlarmThresholdCooldownService For alarm threshold and cooldown logic
- * @see EventRecorderService For direct event persistence (rarely used directly)
+ * @see EventRecorderService For event persistence behind handle()
  * @see EventAggregatorServiceInterface For read-only event querying
  */
 class EventManager
@@ -88,11 +85,8 @@ class EventManager
     private CooldownHashFactory $cooldownHashFactory;
     private LoggerInterface $logger;
 
-    /**
-     * Event recorder for persistence and cooldown tracking.
-     * Public property for direct access when needed (rare - prefer handle).
-     */
-    public ?EventRecorderService $recorder = null;
+    /** Event recorder for persistence and cooldown tracking; writes go through handle(). */
+    private ?EventRecorderService $recorder = null;
 
     /**
      * Event aggregator for querying and reporting.

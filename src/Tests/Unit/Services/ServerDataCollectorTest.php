@@ -33,10 +33,10 @@ final class ServerDataCollectorTest extends TestCase
     public function testServerRoutesUseTheNewNamespace(): void
     {
         $cache = $this->createStub(CacheStoreInterface::class);
-        $paths = ['server/data', 'server/info', 'server/php', 'databases/overview', 'server/cronjobs'];
+        $paths = ['server/data', 'server/info', 'databases/overview', 'server/cronjobs'];
         $apiClient = $this->createMock(NodeApiClient::class);
         $apiClient->method('getApiBase')->willReturn('https://node.example.test/api');
-        $apiClient->expects($this->exactly(5))
+        $apiClient->expects($this->exactly(4))
             ->method('request')
             ->willReturnCallback(function (string $method, string $path) use (&$paths): never {
                 $this->assertSame('GET', $method);
@@ -56,7 +56,6 @@ final class ServerDataCollectorTest extends TestCase
 
         $this->assertNull($collector->getServerSystemData());
         $this->assertNull($collector->getServerInfo());
-        $this->assertNull($collector->getServerPhpProcesses());
         $this->assertNull($collector->getDatabaseOverview());
         $this->assertNull($collector->fetchServerCronjobs());
         $this->assertSame([], $paths);
@@ -89,7 +88,7 @@ final class ServerDataCollectorTest extends TestCase
     public function testLibrariesUseTheirOwnTtlRatherThanTheAppsTtl(): void
     {
         $cache = $this->createMock(CacheStoreInterface::class);
-        $cache->expects($this->exactly(2))->method('get')->willReturn(new CacheEntry([], time()));
+        $cache->expects($this->once())->method('get')->willReturn(new CacheEntry([], time()));
         $apiClient = $this->createMock(NodeApiClient::class);
         $apiClient->method('getApiBase')->willReturn('https://node.example.test/api');
         $apiClient->expects($this->never())->method('request');
@@ -104,10 +103,8 @@ final class ServerDataCollectorTest extends TestCase
         );
 
         $all = $collector->getAppsLibraries();
-        $single = $collector->getAppLibraries('demo');
 
         $this->assertSame(600, $all['cache_ttl']);
-        $this->assertSame(600, $single['cache_ttl']);
     }
 
     /**

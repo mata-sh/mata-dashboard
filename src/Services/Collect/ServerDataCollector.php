@@ -94,18 +94,6 @@ class ServerDataCollector implements ServerDataCollectorInterface
     }
 
     /**
-     * Fetch raw PHP process information from server.
-     *
-     * @param CacheType $cacheType Cache type key for TTL lookup (default: CacheType::ServerProcesses)
-     *
-     * @return null|array<string,mixed> Raw PHP process data array or null on failure
-     */
-    public function getServerPhpProcesses(CacheType $cacheType = CacheType::ServerProcesses): ?array
-    {
-        return $this->request('GET', 'server/php', $cacheType);
-    }
-
-    /**
      * Fetch instance-wide database status and the monitored database inventory.
      *
      * A node error (monitoring not configured, database down) wins over stale data,
@@ -176,21 +164,6 @@ class ServerDataCollector implements ServerDataCollectorInterface
     public function getAppsLibraries(CacheType $cacheType = CacheType::Libraries): ?array
     {
         return $this->request('GET', 'apps/libraries', $cacheType);
-    }
-
-    /**
-     * Fetch library information for a specific app.
-     *
-     * Retrieves installed packages and their versions for a single app.
-     *
-     * @param string    $app       App identifier
-     * @param CacheType $cacheType Cache type key for TTL lookup (default: CacheType::Libraries)
-     *
-     * @return null|array<string,mixed> Libraries data for the specified app or null on failure
-     */
-    public function getAppLibraries(string $app, CacheType $cacheType = CacheType::Libraries): ?array
-    {
-        return $this->request('GET', "{$app}/libraries", $cacheType);
     }
 
     /**

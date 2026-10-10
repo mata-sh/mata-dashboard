@@ -5,27 +5,17 @@ declare(strict_types=1);
 namespace Mata\Controllers;
 
 use Exception;
-use InvalidArgumentException;
-use Mata\Config\Dto\ApplicationConfig;
 use Mata\Core\App;
 use Mata\Http\Request;
 use Mata\Http\Responses\HtmlResponse;
 use Mata\Http\Responses\JsonResponse;
 use Mata\Http\Responses\Response;
 use Mata\Http\Routing\Endpoints;
-use Mata\Services\Cache\ApiCacheKeyFactory;
-use Mata\Services\Cache\CacheStoreInterface;
-use Mata\Services\Cache\CacheTtlResolver;
 use Mata\Services\Cache\CacheTypeResolver;
 use Mata\Services\Cache\ModalCacheService;
-use Mata\Services\Collect\MockServerDataCollector;
-use Mata\Services\Collect\NodeApiClient;
-use Mata\Services\Collect\NodeResponseNormalizer;
-use Mata\Services\Collect\ServerDataCollector;
 use Mata\Services\Collect\ServerDataCollectorInterface;
 use Mata\Services\DataTransformers\LogDataTransformer;
 use Mata\Utils\Tools;
-use Mata\Utils\TypeConverter;
 use Mata\Views\ModalRenderer;
 use Monolog\Logger;
 use Twig\Environment;
@@ -43,123 +33,41 @@ use Twig\Environment;
  */
 class ModalController extends BaseController
 {
-    private CacheStoreInterface $cacheStore;
-    private ApiCacheKeyFactory $cacheKeyFactory;
-    private CacheTtlResolver $ttlResolver;
     private ModalRenderer $modalRenderer;
     private ModalCacheService $modalCacheService;
     private LogDataTransformer $logTransformer;
     private Endpoints $endpoints;
 
     /** @var array<string,ServerDataCollectorInterface> */
-    private array $serverDataCollectors = [];
-
-    /** @var array<string,mixed> */
-    private array $serversConfig;
-
-    private ApplicationConfig $appConfig;
+    private array $serverDataCollectors;
 
     /**
      * Initialize modal controller with dependencies.
      *
-     * @param ApplicationConfig   $appConfig       Application configuration DTO
-     * @param array<string,mixed> $serversConfig   Server configuration array
-     * @param CacheStoreInterface $cacheStore      Cache persistence service
-     * @param ApiCacheKeyFactory  $cacheKeyFactory API cache key factory
-     * @param CacheTtlResolver    $ttlResolver     Cache TTL configuration lookup
-     * @param LogDataTransformer  $logTransformer  Log data transformation service
-     * @param Endpoints           $endpoints       Route endpoints for URL generation
+     * @param LogDataTransformer                         $logTransformer       Log data transformation service
+     * @param Endpoints                                  $endpoints            Route endpoints for URL generation
+     * @param array<string,ServerDataCollectorInterface> $serverDataCollectors Collectors built at bootstrap, keyed by server
      */
     public function __construct(
         App $app,
         Tools $tools,
         Environment $twig,
         Logger $logger,
-        ApplicationConfig $appConfig,
-        CacheStoreInterface $cacheStore,
-        ApiCacheKeyFactory $cacheKeyFactory,
-        CacheTtlResolver $ttlResolver,
         LogDataTransformer $logTransformer,
         Endpoints $endpoints,
-        array $serversConfig,
+        array $serverDataCollectors,
         Request $request,
     ) {
         parent::__construct($request);
         $this->logger = $logger;
-        $this->appConfig = $appConfig;
-        $this->cacheStore = $cacheStore;
-        $this->cacheKeyFactory = $cacheKeyFactory;
-        $this->ttlResolver = $ttlResolver;
         $this->logTransformer = $logTransformer;
         $this->endpoints = $endpoints;
-        $this->serversConfig = $serversConfig;
+        $this->serverDataCollectors = $serverDataCollectors;
         $cacheTypeResolver = new CacheTypeResolver();
         $this->modalCacheService = new ModalCacheService($cacheTypeResolver);
 
         // Initialize ModalRenderer
         $this->modalRenderer = new ModalRenderer($twig, $logger, $tools, $app, $endpoints);
-
-        foreach ($this->serversConfig as $server => $serverConfig) {
-            try {
-                $this->serverDataCollectors[$server] = $this->createServerDataCollector($server, $serverConfig);
-            } catch (Exception $e) {
-                $this->logger->error("{$server}", [
-                    'msg' => $e->getMessage(),
-                    'file' => $e->getFile(),
-                    'line' => $e->getLine(),
-                ]);
-            }
-        }
-    }
-
-    /**
-     * Create appropriate server data collector based on demo mode.
-     *
-     * @param string              $server       Server name
-     * @param array<string,mixed> $serverConfig Server configuration
-     */
-    private function createServerDataCollector(string $server, array $serverConfig): ServerDataCollectorInterface
-    {
-        $environment = $this->appConfig->environment->env;
-
-        if ($environment === 'demo') {
-            $responseNormalizer = new NodeResponseNormalizer($this->logger);
-
-            return new MockServerDataCollector(
-                $this->logger,
-                $this->ttlResolver,
-                $responseNormalizer,
-                $server,
-                $serverConfig
-            );
-        }
-        if (!isset($serverConfig['api_key'], $serverConfig['api_url'])) {
-            throw new InvalidArgumentException("Server {$server} missing required config");
-        }
-        // Extract security flags with defaults
-        $allowHttp = TypeConverter::toBool($serverConfig['allow_http'] ?? null) ?? false;
-        $suppressHttpWarning = TypeConverter::toBool($serverConfig['suppress_http_warning'] ?? null) ?? false;
-
-        $apiClient = new NodeApiClient(
-            $this->logger,
-            $serverConfig['api_url'],
-            $server,
-            $serverConfig['api_key'],
-            10,
-            true,
-            $allowHttp,
-            $suppressHttpWarning
-        );
-        $responseNormalizer = new NodeResponseNormalizer($this->logger);
-
-        return new ServerDataCollector(
-            $this->logger,
-            $this->cacheStore,
-            $this->cacheKeyFactory,
-            $this->ttlResolver,
-            $apiClient,
-            $responseNormalizer
-        );
     }
 
     /**
