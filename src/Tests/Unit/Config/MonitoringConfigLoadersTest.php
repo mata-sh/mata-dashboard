@@ -139,6 +139,20 @@ final class MonitoringConfigLoadersTest extends TestCase
         $this->assertSame(['enabled' => true], $rules->applicationOverrides['app']['fatal_errors_occurring']);
     }
 
+    public function testNotificationRulesAcceptWebhookChannelNamesAndListEveryReferencedChannel(): void
+    {
+        $rules = $this->loadNotificationRulesJson(<<<'JSON'
+            {
+              "defaults": {"enabled": true, "channels": ["email", "Telegram"]},
+              "event_types": {"node_unreachable": {"channels": ["ops-pager"]}},
+              "application_overrides": {"shop": {"fatal_errors_occurring": {"channels": ["telegram", "slack_ops"]}}}
+            }
+            JSON);
+
+        $this->assertSame(['email', 'telegram'], $rules->defaults['channels']);
+        $this->assertSame(['email', 'telegram', 'ops-pager', 'slack_ops'], $rules->channels());
+    }
+
     public function testLoadNotificationRulesConfigFallsBackForUnreadablePath(): void
     {
         $configPath = $this->createTempDirectory();
@@ -202,9 +216,9 @@ final class MonitoringConfigLoadersTest extends TestCase
 
         yield 'empty channel' => [['defaults' => ['channels' => [' ']]]];
 
-        yield 'unsupported channel' => [['defaults' => ['channels' => ['webhook']]]];
+        yield 'invalid channel name' => [['defaults' => ['channels' => ['tele gram']]]];
 
-        yield 'mixed unsupported channel' => [['defaults' => ['channels' => ['email', 'sms']]]];
+        yield 'mixed invalid channel name' => [['defaults' => ['channels' => ['email', '-sms']]]];
     }
 
     public function testLoadTtlConfigAddsMissingCacheTtls(): void

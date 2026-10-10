@@ -5,11 +5,11 @@ declare(strict_types=1);
 namespace Mata\Tests\Unit\Services;
 
 use Mata\Config\Monitoring\Section\AlarmRateLimit;
-use Mata\Services\Alarm\AlarmDispatchSpacingCalculator;
+use Mata\Services\Alarm\Delivery\AlarmDispatchSpacingCalculator;
 use Mata\Tests\TestCase;
 
 /**
- * @covers \Mata\Services\Alarm\AlarmDispatchSpacingCalculator
+ * @covers \Mata\Services\Alarm\Delivery\AlarmDispatchSpacingCalculator
  *
  * @internal
  */

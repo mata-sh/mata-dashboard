@@ -21,14 +21,17 @@ creates `.env` for Compose.
 | `config/ttl.json` | Cache TTLs in seconds |
 | `config/data_retention.json` | Metric, event, and alarm retention |
 | `config/probes.json` | Optional node probe timeout and retry overrides |
-| `config/notification_rules.json` | Optional email delivery selection rules |
+| `config/notification_rules.json` | Optional alarm delivery channel selection rules |
 | `config/menu.json` | Optional dashboard menu visibility overrides |
 | `config/charts.json` | Optional dashboard chart metrics and timespans |
 | `config/limits.json` | Optional transport limits for queued alarm deliveries |
+| `config/channels.json` | Optional alarm channels besides email, such as a Telegram webhook |
 
-`probes.json`, `notification_rules.json`, `menu.json`, `charts.json`, and
-`limits.json` are not created by setup. Their loaders use built-in defaults when
-they are absent. Copy the matching example to customize the first four.
+`probes.json`, `notification_rules.json`, `menu.json`, `charts.json`,
+`limits.json`, and `channels.json` are not created by setup. Their loaders use
+built-in defaults when they are absent; without `channels.json`, alarms are
+delivered by email only. Copy the matching example to customize all but
+`limits.json`.
 `limits.json` has no example; see the [alarm reference](../reference/alarms.md)
 for its built-in limits.
 
@@ -167,7 +170,9 @@ severity boundaries such as `good`, `warn`, `critical`, and `alarm`. The
   deliveries. It does not delay a delivery.
 
 `notification_rules.json` selects delivery channels through `defaults`,
-per-event `event_types`, and `application_overrides`. `limits.json` rate-limits
+per-event `event_types`, and `application_overrides`. Channels are the built-in
+`email` plus any [channels](../reference/alarms.md#channels) defined in
+`channels.json`. `limits.json` rate-limits
 queued transport attempts and can schedule a retry. The full order is in the
 [alarm decision and delivery flow](../reference/alarms.md).
 

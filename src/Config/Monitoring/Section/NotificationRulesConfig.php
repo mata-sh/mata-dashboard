@@ -10,7 +10,11 @@ use stdClass;
 /** Notification routing rules, cascading defaults to event type to application override. */
 final readonly class NotificationRulesConfig
 {
-    private const SUPPORTED_CHANNELS = ['email'];
+    /**
+     * Rules accept any well-formed channel name. Whether a channel is configured is checked
+     * per alarm run, so a missing webhook channel drops only its own deliveries.
+     */
+    public const CHANNEL_NAME_PATTERN = '/^[a-z0-9][a-z0-9_-]{0,49}$/';
 
     /** @var array{enabled:bool,channels:list<string>} */
     public const DEFAULT_RULE = ['enabled' => true, 'channels' => ['email']];
@@ -70,6 +74,26 @@ final readonly class NotificationRulesConfig
     public static function default(): self
     {
         return new self(self::DEFAULT_RULE, [], []);
+    }
+
+    /**
+     * Every channel referenced by defaults, event types, or application overrides.
+     *
+     * @return list<string>
+     */
+    public function channels(): array
+    {
+        $channels = $this->defaults['channels'];
+        foreach ($this->eventTypes as $rule) {
+            $channels = [...$channels, ...($rule['channels'] ?? [])];
+        }
+        foreach ($this->applicationOverrides as $rules) {
+            foreach ($rules as $rule) {
+                $channels = [...$channels, ...($rule['channels'] ?? [])];
+            }
+        }
+
+        return array_values(array_unique($channels));
     }
 
     /** @return array<string,array{enabled?:bool,channels?:list<string>}> */
@@ -140,8 +164,8 @@ final readonly class NotificationRulesConfig
                 throw new InvalidArgumentException("{$path} values must be non-empty strings.");
             }
             $channel = strtolower(trim($channel));
-            if (!in_array($channel, self::SUPPORTED_CHANNELS, true)) {
-                throw new InvalidArgumentException("{$path} contains unsupported channel {$channel}.");
+            if (preg_match(self::CHANNEL_NAME_PATTERN, $channel) !== 1) {
+                throw new InvalidArgumentException("{$path} contains invalid channel name {$channel}.");
             }
             $validated[] = $channel;
         }
@@ -183,7 +207,7 @@ final readonly class NotificationRulesConfig
             if (!is_string($channel)
                 || trim($channel) !== $channel
                 || strtolower($channel) !== $channel
-                || !in_array($channel, self::SUPPORTED_CHANNELS, true)) {
+                || preg_match(self::CHANNEL_NAME_PATTERN, $channel) !== 1) {
                 throw new InvalidArgumentException("{$path}.channels contains an invalid channel.");
             }
         }

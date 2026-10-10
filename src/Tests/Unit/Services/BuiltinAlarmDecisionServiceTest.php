@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace Mata\Tests\Unit\Services;
 
-use Mata\Services\Alarm\Decision\BuiltinAlarmDecisionService;
+use Mata\Services\Alarm\Evaluation\BuiltinAlarmDecisionService;
 use Mata\Tests\TestCase;
 
 /**
- * @covers \Mata\Services\Alarm\Decision\BuiltinAlarmDecisionService
+ * @covers \Mata\Services\Alarm\Evaluation\BuiltinAlarmDecisionService
  *
  * @internal
  */
@@ -50,11 +50,23 @@ final class BuiltinAlarmDecisionServiceTest extends TestCase
         $this->assertSame('builtin_fatal_errors', $decision->reason);
     }
 
-    public function testMissingEmailChannelCreatesDashboardOnlyAlarm(): void
+    public function testCandidateChannelsPassThroughNormalized(): void
     {
         $decision = (new BuiltinAlarmDecisionService())->decide([
             'level' => 'critical',
-        ], [' SMS ']);
+        ], [' Telegram ', 'email', 'telegram']);
+
+        $this->assertTrue($decision->allow);
+        $this->assertSame(['telegram', 'email'], $decision->channels);
+        $this->assertSame(10, $decision->priority);
+        $this->assertSame('builtin_critical_level', $decision->reason);
+    }
+
+    public function testNoCandidateChannelsCreatesDashboardOnlyAlarm(): void
+    {
+        $decision = (new BuiltinAlarmDecisionService())->decide([
+            'level' => 'critical',
+        ], []);
 
         $this->assertTrue($decision->allow);
         $this->assertSame([], $decision->channels);

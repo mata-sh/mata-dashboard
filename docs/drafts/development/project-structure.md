@@ -267,7 +267,7 @@ src/Utils/
 
 Classes with a clear owning domain live with that domain instead of here:
 `CronJob` under `Services\Cron`, `AlarmDispatchSpacingCalculator` under
-`Services\Alarm`, and the presentation helpers under `Views\Support`.
+`Services\Alarm\Delivery`, and the presentation helpers under `Views\Support`.
 
 ### Other `src/` Directories
 

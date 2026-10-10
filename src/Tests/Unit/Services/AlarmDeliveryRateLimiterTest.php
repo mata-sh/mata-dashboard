@@ -6,11 +6,11 @@ namespace Mata\Tests\Unit\Services;
 
 use Mata\Config\Monitoring\Section\AlarmRateLimit;
 use Mata\Config\Monitoring\Section\AlarmRateLimitsConfig;
-use Mata\Services\Alarm\AlarmDeliveryRateLimiter;
+use Mata\Services\Alarm\Delivery\AlarmDeliveryRateLimiter;
 use Mata\Tests\TestCase;
 
 /**
- * @covers \Mata\Services\Alarm\AlarmDeliveryRateLimiter
+ * @covers \Mata\Services\Alarm\Delivery\AlarmDeliveryRateLimiter
  *
  * @internal
  */

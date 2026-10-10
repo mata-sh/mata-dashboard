@@ -7,6 +7,7 @@ namespace Mata\Tests\Unit\Config;
 use Closure;
 use Mata\Config\Monitoring\Loader\AbstractJsonConfigLoader;
 use Mata\Config\Monitoring\Loader\AlarmRateLimitsConfigLoader;
+use Mata\Config\Monitoring\Loader\ChannelsConfigLoader;
 use Mata\Config\Monitoring\Loader\ChartsConfigLoader;
 use Mata\Config\Monitoring\Loader\DataRetentionConfigLoader;
 use Mata\Config\Monitoring\Loader\IntervalsConfigLoader;
@@ -18,6 +19,7 @@ use Mata\Config\Monitoring\Loader\ServersConfigLoader;
 use Mata\Config\Monitoring\Loader\ThresholdsConfigLoader;
 use Mata\Config\Monitoring\Loader\TtlConfigLoader;
 use Mata\Config\Monitoring\Section\AlarmRateLimitsConfig;
+use Mata\Config\Monitoring\Section\ChannelsConfig;
 use Mata\Config\Monitoring\Section\ChartsConfig;
 use Mata\Config\Monitoring\Section\DataRetentionConfig;
 use Mata\Config\Monitoring\Section\IntervalsConfig;
@@ -294,6 +296,16 @@ final class MonitoringConfigLoaderContractTest extends TestCase
                 'wrongType' => '{"channels": {"default": {"per_minute": "abc"}}}',
                 'default' => static fn (): object => AlarmRateLimitsConfig::fromArray([], static function (string $message): void {}),
                 'load' => static fn (EventManager $events, bool $fallback, string $root): object => (new AlarmRateLimitsConfigLoader($events))->load($root),
+            ],
+            // Optional: a missing file means email-only delivery. Never throws.
+            'channels' => [
+                'class' => ChannelsConfigLoader::class,
+                'file' => 'channels.json',
+                'silentWhenMissing' => true,
+                'hasFallbackSwitch' => false,
+                'wrongType' => '{"channels": {"telegram": {"type": "webhook", "url_env": "WEBHOOK_TELEGRAM_URL", "template": "telegram", "timeout_seconds": "abc"}}}',
+                'default' => static fn (): object => ChannelsConfig::empty(),
+                'load' => static fn (EventManager $events, bool $fallback, string $root): object => (new ChannelsConfigLoader($events))->load($root),
             ],
         ];
     }

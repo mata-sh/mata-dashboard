@@ -9,11 +9,14 @@ use Mata\Config\Dto\MailConfig;
 use Mata\Config\Monitoring\Section\AlarmRateLimit;
 use Mata\Config\Monitoring\Section\AlarmRateLimitsConfig;
 use Mata\Models\AlarmDeliveryRepository;
-use Mata\Services\Alarm\AlarmDispatcher;
-use Mata\Services\Alarm\AlarmEmailFactory;
-use Mata\Services\Alarm\AlarmEmailSender;
+use Mata\Services\Alarm\Delivery\AlarmChannelSenderInterface;
+use Mata\Services\Alarm\Delivery\AlarmDispatcher;
+use Mata\Services\Alarm\Delivery\AlarmEmailFactory;
+use Mata\Services\Alarm\Delivery\AlarmEmailSender;
+use Mata\Services\Alarm\Delivery\Dto\AlarmDeliveryView;
 use Mata\Tests\Helpers\SqliteTestDatabase;
 use Mata\Tests\TestCase;
+use RuntimeException;
 use Symfony\Component\Mailer\MailerInterface;
 use Symfony\Component\Mime\Email;
 use Symfony\Component\Mime\RawMessage;
@@ -21,7 +24,7 @@ use Twig\Environment;
 use Twig\Loader\ArrayLoader;
 
 /**
- * @covers \Mata\Services\Alarm\AlarmDispatcher
+ * @covers \Mata\Services\Alarm\Delivery\AlarmDispatcher
  *
  * @internal
  */
@@ -78,7 +81,7 @@ final class AlarmDispatcherTest extends TestCase
         $dispatcher = new AlarmDispatcher(
             new AlarmDeliveryRepository($db),
             new AlarmRateLimitsConfig($limit, ['email' => $limit], []),
-            $this->sender($mailer)
+            $this->senders($mailer)
         );
 
         $dispatcher->dispatch(new DateTimeImmutable('2026-01-01 00:00:30'));
@@ -113,7 +116,7 @@ final class AlarmDispatcherTest extends TestCase
         $dispatcher = new AlarmDispatcher(
             new AlarmDeliveryRepository($db),
             new AlarmRateLimitsConfig($limit, ['email' => $limit], []),
-            $this->sender($mailer),
+            $this->senders($mailer),
         );
 
         $dispatcher->dispatch(new DateTimeImmutable('2026-01-01 00:00:00'));
@@ -143,7 +146,7 @@ final class AlarmDispatcherTest extends TestCase
         $dispatcher = new AlarmDispatcher(
             new AlarmDeliveryRepository($db),
             new AlarmRateLimitsConfig($limit, ['email' => $limit], []),
-            $this->sender($mailer),
+            $this->senders($mailer),
         );
 
         $dispatcher->dispatch(new DateTimeImmutable('2026-01-01 00:00:00'));
@@ -169,7 +172,7 @@ final class AlarmDispatcherTest extends TestCase
         $dispatcher = new AlarmDispatcher(
             new AlarmDeliveryRepository($db),
             new AlarmRateLimitsConfig($limit, ['email' => $limit], []),
-            $this->sender($mailer, false),
+            $this->senders($mailer, false),
             maxAttempts: 2,
         );
 
@@ -184,7 +187,67 @@ final class AlarmDispatcherTest extends TestCase
         $this->assertSame(2, (int) $failed['attempts']);
     }
 
-    private function sender(MailerInterface $mailer, bool $configured = true): AlarmEmailSender
+    public function testFailingWebhookChannelRetriesWhileEmailForTheSameAlarmIsSent(): void
+    {
+        $db = $this->createPendingDatabase();
+        $db->pdo()->exec(<<<'SQL'
+            INSERT INTO alarm_deliveries (id, alarm_id, channel, status, created_at) VALUES (8, 42, 'telegram', 'pending', '2026-01-01 00:00:00');
+            SQL);
+        $mailer = $this->createMock(MailerInterface::class);
+        $mailer->expects($this->once())->method('send');
+        $telegram = $this->createMock(AlarmChannelSenderInterface::class);
+        $telegram->expects($this->once())->method('send')
+            ->with($this->callback(static fn (AlarmDeliveryView $view): bool => $view->alarmId === 42 && $view->alarm->channels === ['telegram']))
+            ->willThrowException(new RuntimeException('Webhook channel telegram (api.telegram.org) returned HTTP 502: Bad Gateway'));
+        $limit = new AlarmRateLimit(0, 0, 0);
+        $dispatcher = new AlarmDispatcher(
+            new AlarmDeliveryRepository($db),
+            new AlarmRateLimitsConfig($limit, [], []),
+            $this->senders($mailer, extra: ['telegram' => $telegram]),
+        );
+
+        $dispatcher->dispatch(new DateTimeImmutable('2026-01-01 00:00:00'));
+
+        $rows = array_column($db->pdo()->query(
+            'SELECT id, status, attempts, error_payload FROM alarm_deliveries ORDER BY id'
+        )->fetchAll(), null, 'id');
+        $this->assertSame('sent', $rows[7]['status']);
+        $this->assertSame('retry', $rows[8]['status']);
+        $this->assertSame(1, (int) $rows[8]['attempts']);
+        $this->assertStringContainsString('returned HTTP 502', (string) $rows[8]['error_payload']);
+    }
+
+    public function testDeliveryForAnUnconfiguredChannelIsRetriedWithAnExplicitError(): void
+    {
+        $db = $this->createPendingDatabase();
+        $db->pdo()->exec("UPDATE alarm_deliveries SET channel = 'slack' WHERE id = 7");
+        $mailer = $this->createMock(MailerInterface::class);
+        $mailer->expects($this->never())->method('send');
+        $limit = new AlarmRateLimit(0, 0, 0);
+        $dispatcher = new AlarmDispatcher(
+            new AlarmDeliveryRepository($db),
+            new AlarmRateLimitsConfig($limit, [], []),
+            $this->senders($mailer),
+        );
+
+        $dispatcher->dispatch(new DateTimeImmutable('2026-01-01 00:00:00'));
+
+        $delivery = $db->pdo()->query('SELECT status, error_payload FROM alarm_deliveries WHERE id = 7')->fetch();
+        $this->assertSame('retry', $delivery['status']);
+        $this->assertStringContainsString('Unsupported alarm delivery channel: slack', (string) $delivery['error_payload']);
+    }
+
+    /**
+     * @param array<string,AlarmChannelSenderInterface> $extra
+     *
+     * @return array<string,AlarmChannelSenderInterface>
+     */
+    private function senders(MailerInterface $mailer, bool $configured = true, array $extra = []): array
+    {
+        return ['email' => $this->emailSender($mailer, $configured)] + $extra;
+    }
+
+    private function emailSender(MailerInterface $mailer, bool $configured): AlarmEmailSender
     {
         $template = <<<'TWIG'
             Alarm ID: {{ alarm.id }}

@@ -23,7 +23,7 @@ use Mata\Models\EventRepository;
 use Mata\Services\Alarm\AlarmCreator;
 use Mata\Services\Alarm\AlarmDirectProcessor;
 use Mata\Services\Alarm\AlarmQueueFailureThrottle;
-use Mata\Services\Alarm\AlarmThresholdCooldownService;
+use Mata\Services\Alarm\Evaluation\AlarmThresholdCooldownService;
 use Mata\Services\Event\EventAggregatorServiceInterface;
 use Mata\Services\Event\EventManager;
 use Mata\Services\Event\EventRecorderService;

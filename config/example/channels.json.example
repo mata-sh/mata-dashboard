@@ -1,0 +1,14 @@
+{
+  "channels": {
+    "telegram": {
+      "type": "webhook",
+      "enabled": true,
+      "url_env": "WEBHOOK_TELEGRAM_URL",
+      "template": "telegram",
+      "params": {
+        "chat_id": "-1001234567890"
+      },
+      "timeout_seconds": 5
+    }
+  }
+}

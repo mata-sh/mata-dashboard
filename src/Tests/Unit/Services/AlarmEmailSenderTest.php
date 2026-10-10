@@ -6,10 +6,10 @@ namespace Mata\Tests\Unit\Services;
 
 use DateTimeImmutable;
 use Mata\Config\Dto\MailConfig;
-use Mata\Services\Alarm\AlarmEmailFactory;
-use Mata\Services\Alarm\AlarmEmailSender;
+use Mata\Services\Alarm\Delivery\AlarmEmailFactory;
+use Mata\Services\Alarm\Delivery\AlarmEmailSender;
+use Mata\Services\Alarm\Delivery\Dto\AlarmDeliveryView;
 use Mata\Services\Alarm\Dto\Alarm;
-use Mata\Services\Alarm\Dto\AlarmEmailView;
 use Mata\Tests\TestCase;
 use RuntimeException;
 use Symfony\Component\Mailer\Envelope;
@@ -19,7 +19,7 @@ use Twig\Environment;
 use Twig\Loader\ArrayLoader;
 
 /**
- * @covers \Mata\Services\Alarm\AlarmEmailSender
+ * @covers \Mata\Services\Alarm\Delivery\AlarmEmailSender
  *
  * @internal
  */
@@ -67,9 +67,9 @@ final class AlarmEmailSenderTest extends TestCase
         );
     }
 
-    private function view(): AlarmEmailView
+    private function view(): AlarmDeliveryView
     {
-        return new AlarmEmailView(
+        return new AlarmDeliveryView(
             alarm: new Alarm('type', 'Message', null, server: 'server', app: 'app'),
             alarmId: 1,
             alarmCreatedAt: new DateTimeImmutable(),

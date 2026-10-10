@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace Mata\Tests\Unit\Services;
 
-use Mata\Services\Alarm\Dto\AlarmEvaluationRecord;
+use Mata\Services\Alarm\Evaluation\Dto\AlarmEvaluationRecord;
 use Mata\Tests\TestCase;
 
 /**
- * @covers \Mata\Services\Alarm\Dto\AlarmEvaluationRecord
+ * @covers \Mata\Services\Alarm\Evaluation\Dto\AlarmEvaluationRecord
  *
  * @internal
  */

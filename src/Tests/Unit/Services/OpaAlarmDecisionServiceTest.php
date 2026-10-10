@@ -10,14 +10,14 @@ use GuzzleHttp\HandlerStack;
 use GuzzleHttp\Middleware;
 use GuzzleHttp\Psr7\Response;
 use Mata\Config\Dto\OpaAlarmDecisionConfig;
-use Mata\Services\Alarm\Decision\OpaAlarmDecisionService;
-use Mata\Services\Alarm\Dto\ResolvedNotificationRule;
+use Mata\Services\Alarm\Evaluation\Dto\ResolvedNotificationRule;
+use Mata\Services\Alarm\Evaluation\OpaAlarmDecisionService;
 use PHPUnit\Framework\TestCase;
 
 /**
  * @internal
  *
- * @covers \Mata\Services\Alarm\Decision\OpaAlarmDecisionService
+ * @covers \Mata\Services\Alarm\Evaluation\OpaAlarmDecisionService
  */
 final class OpaAlarmDecisionServiceTest extends TestCase
 {

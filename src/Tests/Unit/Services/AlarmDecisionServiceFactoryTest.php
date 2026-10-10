@@ -4,15 +4,15 @@ declare(strict_types=1);
 
 namespace Mata\Tests\Unit\Services;
 
-use Mata\Services\Alarm\Decision\AlarmDecisionServiceFactory;
-use Mata\Services\Alarm\Decision\BuiltinAlarmDecisionService;
-use Mata\Services\Alarm\Decision\OpaAlarmDecisionService;
+use Mata\Services\Alarm\Evaluation\AlarmDecisionServiceFactory;
+use Mata\Services\Alarm\Evaluation\BuiltinAlarmDecisionService;
+use Mata\Services\Alarm\Evaluation\OpaAlarmDecisionService;
 use Mata\Tests\Helpers\ApplicationConfigFactory;
 use Mata\Tests\TestCase;
 use RuntimeException;
 
 /**
- * @covers \Mata\Services\Alarm\Decision\AlarmDecisionServiceFactory
+ * @covers \Mata\Services\Alarm\Evaluation\AlarmDecisionServiceFactory
  *
  * @internal
  */

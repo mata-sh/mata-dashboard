@@ -1,0 +1,15 @@
+{#- Telegram Bot API sendMessage. Autoescape is off for JSON templates: every value must pass through json_encode.
+    Plain text on purpose: parse_mode would reject messages with unescaped markup characters. -#}
+{%- set text -%}
+{{ severity.emoji }} {{ severity.value|upper }} · {{ target.is_server_only ? target.server : target.heading }}
+{{ alarm.title }}
+
+{{ alarm.message|slice(0, 3000) }}
+
+{{ target.environment ? target.environment.value ~ ' · ' }}alarm #{{ alarm.id }} · {{ alarm.created_at }}{{ dashboard_url ? "\n" ~ dashboard_url }}
+{%- endset -%}
+{
+  "chat_id": {{ channel.params.chat_id|json_encode }},
+  "text": {{ text|json_encode }},
+  "link_preview_options": {"is_disabled": true}
+}

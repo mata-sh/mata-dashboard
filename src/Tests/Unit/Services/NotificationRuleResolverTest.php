@@ -5,11 +5,11 @@ declare(strict_types=1);
 namespace Mata\Tests\Unit\Services;
 
 use Mata\Config\Monitoring\Section\NotificationRulesConfig;
-use Mata\Services\Alarm\NotificationRuleResolver;
+use Mata\Services\Alarm\Evaluation\NotificationRuleResolver;
 use PHPUnit\Framework\TestCase;
 
 /**
- * @covers \Mata\Services\Alarm\NotificationRuleResolver
+ * @covers \Mata\Services\Alarm\Evaluation\NotificationRuleResolver
  *
  * @internal
  */

@@ -5,6 +5,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Webhook alarm channels, starting with Telegram: define channels in the optional `config/channels.json` (see `config/example/channels.json.example`; each entry has `"type": "webhook"`, and `email` stays built in), put each URL in `config/config.env` (for example `WEBHOOK_TELEGRAM_URL`), and list the channel name in `notification_rules.json`. `php scripts/alarm_channel_test.php <channel>` sends a test alarm. Emergency alarms for configuration failures stay email-only
+
+### Changed
+- `notification_rules.json` accepts any channel name. A channel that is not configured is skipped and reported as a `notification_rules_unknown_channel` warning; previously an unknown channel discarded the whole file's rules
+- The `builtin` alarm decision driver delivers on every channel the notification rule selects instead of email only
+
 ### Fixed
 - Running a Composer audit for a single app (`/watch/audit/run/{server}/{app}`) now requires `POST` with a CSRF token, so another site can no longer start audits through a logged-in browser
 - Signing in with an unknown or locked username now takes as long to fail as a wrong password, so response times no longer reveal which accounts exist or are locked

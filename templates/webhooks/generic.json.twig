@@ -1,0 +1,19 @@
+{#- Generic alarm payload for custom receivers. Autoescape is off for JSON templates: every value must pass through json_encode. -#}
+{
+  "alarm": {
+    "id": {{ alarm.id|json_encode }},
+    "type": {{ alarm.type|json_encode }},
+    "title": {{ alarm.title|json_encode }},
+    "message": {{ alarm.message|json_encode }},
+    "level": {{ severity.value|json_encode }},
+    "created_at": {{ alarm.created_at|json_encode }},
+    "event_id": {{ alarm.event_id|json_encode }}
+  },
+  "target": {
+    "server": {{ target.server|json_encode }},
+    "app": {{ (target.is_server_only ? null : target.app)|json_encode }},
+    "environment": {{ (target.environment ? target.environment.value : null)|json_encode }}
+  },
+  "dashboard_url": {{ dashboard_url|json_encode }},
+  "source": {{ branding|json_encode }}
+}

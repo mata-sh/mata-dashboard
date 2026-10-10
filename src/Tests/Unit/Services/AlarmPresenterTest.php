@@ -4,13 +4,13 @@ declare(strict_types=1);
 
 namespace Mata\Tests\Unit\Services;
 
-use Mata\Services\Alarm\AlarmPresenter;
+use Mata\Services\Alarm\Delivery\AlarmPresenter;
+use Mata\Services\Alarm\Delivery\Dto\AlarmEnvironment;
 use Mata\Services\Alarm\Dto\Alarm;
-use Mata\Services\Alarm\Dto\AlarmEnvironment;
 use Mata\Tests\TestCase;
 
 /**
- * @covers \Mata\Services\Alarm\AlarmPresenter
+ * @covers \Mata\Services\Alarm\Delivery\AlarmPresenter
  *
  * @internal
  */

@@ -3,12 +3,13 @@
 
 declare(strict_types=1);
 
+use Mata\Bootstrap\AlarmChannelBootstrap;
 use Mata\Bootstrap\CronMonitoringRuntime;
 use Mata\Bootstrap\CronRuntime;
-use Mata\Services\Alarm\Decision\AlarmDecisionProcessingException;
-use Mata\Services\Alarm\Decision\AlarmDecisionProcessor;
-use Mata\Services\Alarm\Decision\AlarmDecisionServiceFactory;
-use Mata\Services\Alarm\NotificationRuleResolver;
+use Mata\Services\Alarm\Evaluation\AlarmDecisionServiceFactory;
+use Mata\Services\Alarm\Evaluation\AlarmEvaluationException;
+use Mata\Services\Alarm\Evaluation\AlarmEvaluationProcessor;
+use Mata\Services\Alarm\Evaluation\NotificationRuleResolver;
 
 require_once __DIR__ . '/../vendor/autoload.php';
 
@@ -22,6 +23,8 @@ $alarmCreator = $monitoringRuntime->alarmCreator;
 $alarmEvaluator = $monitoringRuntime->alarmEvaluator;
 $eventRecorder = $monitoringRuntime->eventRecorder;
 $eventAggregator = $monitoringRuntime->eventAggregator;
+$eventManager = $monitoringRuntime->eventManager;
+$notificationRules = $monitoringRuntime->monitoringConfig->notificationRules;
 
 if (!$cron->acquireLock()) {
     exit("Already running.\n");
@@ -34,12 +37,12 @@ $exitCode = 0;
 
 try {
     $alarmDecisionService = AlarmDecisionServiceFactory::fromConfig($runtime->appConfig->alarmDecision);
-    $notificationRuleResolver = new NotificationRuleResolver($monitoringRuntime->monitoringConfig->notificationRules);
+    $notificationRuleResolver = new NotificationRuleResolver($notificationRules);
     $events = $eventAggregator->getAlarmDecisionCandidates(
         $alarmDecisionService->getBatchLimit(),
         'critical'
     );
-    $alarmDecisionProcessor = new AlarmDecisionProcessor(
+    $alarmEvaluationProcessor = new AlarmEvaluationProcessor(
         $alarmEvaluator,
         $notificationRuleResolver,
         $alarmDecisionService,
@@ -49,7 +52,8 @@ try {
         $log,
     );
 
-    $supportedChannels = ['email'];
+    $channels = AlarmChannelBootstrap::loadChannels($runtime->paths, $eventManager);
+    AlarmChannelBootstrap::reportUnknownRuleChannels($notificationRules, $channels, $eventManager);
     $stats = [
         'considered' => 0,
         'enqueued' => 0,
@@ -62,8 +66,8 @@ try {
         ++$stats['considered'];
 
         try {
-            $result = $alarmDecisionProcessor->process($event, $supportedChannels);
-        } catch (AlarmDecisionProcessingException $exception) {
+            $result = $alarmEvaluationProcessor->process($event, $channels->names());
+        } catch (AlarmEvaluationException $exception) {
             ++$stats['failed'];
             if ($exception->isEnrichmentRequested()) {
                 ++$stats['enrich_requested'];
@@ -72,9 +76,9 @@ try {
             $error = $exception->getPrevious()?->getMessage() ?? $exception->getMessage();
 
             $logName = match ($exception->getStage()) {
-                AlarmDecisionProcessingException::POLICY => 'critical_alarm_decision.policy_failed',
-                AlarmDecisionProcessingException::DELIVERY => 'critical_alarm_decision.enqueue_failed',
-                AlarmDecisionProcessingException::COMPLETION => 'critical_alarm_decision.completion_failed',
+                AlarmEvaluationException::POLICY => 'critical_alarm_decision.policy_failed',
+                AlarmEvaluationException::DELIVERY => 'critical_alarm_decision.enqueue_failed',
+                AlarmEvaluationException::COMPLETION => 'critical_alarm_decision.completion_failed',
             };
             $log->error($logName, [
                 'event_id' => $eventId,

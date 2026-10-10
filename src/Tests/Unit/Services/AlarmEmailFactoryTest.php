@@ -6,10 +6,10 @@ namespace Mata\Tests\Unit\Services;
 
 use DateTimeImmutable;
 use Mata\Config\Dto\MailConfig;
-use Mata\Services\Alarm\AlarmEmailFactory;
-use Mata\Services\Alarm\AlarmPresenter;
+use Mata\Services\Alarm\Delivery\AlarmEmailFactory;
+use Mata\Services\Alarm\Delivery\AlarmPresenter;
+use Mata\Services\Alarm\Delivery\Dto\AlarmDeliveryView;
 use Mata\Services\Alarm\Dto\Alarm;
-use Mata\Services\Alarm\Dto\AlarmEmailView;
 use Mata\Services\Alarm\Dto\AlarmLevel;
 use Mata\Tests\TestCase;
 use RuntimeException;
@@ -17,7 +17,7 @@ use Twig\Environment;
 use Twig\Loader\FilesystemLoader;
 
 /**
- * @covers \Mata\Services\Alarm\AlarmEmailFactory
+ * @covers \Mata\Services\Alarm\Delivery\AlarmEmailFactory
  *
  * @internal
  */
@@ -87,7 +87,7 @@ final class AlarmEmailFactoryTest extends TestCase
 
     public function testItRendersThePreviousMatchingAlarmAsLastSeen(): void
     {
-        $view = new AlarmEmailView(
+        $view = new AlarmDeliveryView(
             alarm: new Alarm('node_unhealthy', 'Unhealthy health response', null, AlarmLevel::Warning, 'Api-1'),
             alarmId: 123,
             alarmCreatedAt: new DateTimeImmutable('2026-07-11 17:20:00 UTC'),
@@ -243,9 +243,9 @@ final class AlarmEmailFactoryTest extends TestCase
         );
     }
 
-    private function view(?Alarm $alarm = null): AlarmEmailView
+    private function view(?Alarm $alarm = null): AlarmDeliveryView
     {
-        return new AlarmEmailView(
+        return new AlarmDeliveryView(
             alarm: $alarm ?? new Alarm('fatal_errors_occurring', 'Fatal Error Detected (Count: 2k): Shop on Server: Api-1', '{"actual_value":2000,"metric":"fatal_error_count"}', AlarmLevel::Critical, 'Api-1', 'Shop'),
             alarmId: 123,
             alarmCreatedAt: new DateTimeImmutable('2026-07-11 17:20:00 UTC'),

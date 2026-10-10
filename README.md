@@ -97,7 +97,7 @@ misconfigured node can leak more than intended.
 | --- | --- |
 | Event | A recorded fact. |
 | Logical alarm | A stored alarm associated with an event. |
-| Delivery | One channel attempt for a logical alarm. Email is the only implemented channel. |
+| Delivery | One channel attempt for a logical alarm, by email or webhook (for example Telegram). |
 
 Notification rules select channels for policy-evaluated alarms. Direct
 emergency alarms (configuration failures) bypass both the rules and the

@@ -19,7 +19,7 @@ use Mata\Config\Dto\PhpConfig;
 use Mata\Config\Dto\RateLimitingConfig;
 use Mata\Config\Dto\TemplateConfig;
 use Mata\Config\Monitoring\Section\ThresholdsConfig;
-use Mata\Services\Alarm\AlarmThresholdCooldownService;
+use Mata\Services\Alarm\Evaluation\AlarmThresholdCooldownService;
 use Mata\Services\Event\Dto\EventContext;
 use Mata\Services\Event\EventAggregatorServiceInterface;
 use Mata\Services\Event\EventRecorderService;
@@ -27,7 +27,7 @@ use Mata\Tests\Helpers\MonitoringConfigFactory;
 use Mata\Tests\TestCase;
 
 /**
- * @covers \Mata\Services\Alarm\AlarmThresholdCooldownService
+ * @covers \Mata\Services\Alarm\Evaluation\AlarmThresholdCooldownService
  *
  * @internal
  */

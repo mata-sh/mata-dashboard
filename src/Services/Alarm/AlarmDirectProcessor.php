@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Mata\Services\Alarm;
 
 use Mata\Config\Monitoring\Section\AlarmRateLimitsConfig;
+use Mata\Services\Alarm\Delivery\AlarmDispatchSpacingCalculator;
 use Mata\Services\Alarm\Dto\Alarm;
 use Mata\Services\Alarm\Dto\AlarmLevel;
 use Mata\Services\Event\Dto\EventRecordResult;

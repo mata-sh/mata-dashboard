@@ -447,7 +447,7 @@ class AppReachabilityMonitor implements AppReachabilityMonitorInterface
             app: $app,
             context: $monitoring->isEnabled('alarms')
                 ? ['identifier' => $target->identifier, 'url' => $url]
-                // Keep the event; AlarmDecisionProcessor suppresses its alarm.
+                // Keep the event; AlarmEvaluationProcessor suppresses its alarm.
                 : ['identifier' => $target->identifier, 'url' => $url, 'alarms_suppressed' => true],
             metric: new EventMetric('endpoint_reachability', 0, additional: $diagnostics),
         ));
