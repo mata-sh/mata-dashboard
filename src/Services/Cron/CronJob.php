@@ -53,6 +53,14 @@ class CronJob
      */
     protected array $config;
 
+    /** Job name for logs and lock files: entry-point basename in kebab-case, e.g. "alarms-dispatch". */
+    public static function nameFromEntryPoint(string $entryPointFile): string
+    {
+        $jobName = preg_replace(['/[_\s]+/', '/-+/'], '-', basename($entryPointFile, '.php')) ?? '';
+
+        return trim(strtolower($jobName), '-');
+    }
+
     /**
      * CronJob constructor.
      *

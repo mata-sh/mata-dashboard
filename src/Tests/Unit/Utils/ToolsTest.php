@@ -120,24 +120,6 @@ class ToolsTest extends TestCase
 
     /**
      * @group tools
-     * @group auth
-     */
-    public function testItBuildsHmacAuthToken(): void
-    {
-        $server = 'node-1';
-        $apiKey = 'test-api-key';
-        $timestamp = 1700000000;
-        $nonce = 'nonce-123';
-        $payload = $server . '|' . $timestamp . '|' . $nonce;
-        $signature = hash_hmac('sha256', $payload, $apiKey);
-
-        $token = $this->tools->buildHmacAuthToken($server, $apiKey, $timestamp, $nonce);
-
-        $this->assertSame($server . '|' . $timestamp . '|' . $nonce . '|' . $signature, $token);
-    }
-
-    /**
-     * @group tools
      * @group icons
      */
     public function testItReturnsEmptyStringForMissingIconFiles(): void

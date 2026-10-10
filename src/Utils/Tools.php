@@ -4,19 +4,11 @@ declare(strict_types=1);
 
 namespace Mata\Utils;
 
-use Mata\Services\Collect\HmacAuthTokenGenerator;
 use Psr\Log\LoggerInterface;
 use Psr\Log\NullLogger;
 
 /**
- * Common utility functions and helper methods.
- *
- * Provides various utility functions including:
- * - Environment file parsing
- * - SVG icon loading and manipulation
- * - Data formatting (numbers, sizes, durations)
- * - String and array manipulation helpers
- * - File system utilities
+ * View helpers: inline SVG icons and human-readable sizes and durations.
  */
 class Tools
 {
@@ -188,38 +180,5 @@ class Tools
         $value = (int) floor($value);
 
         return "{$value} {$unit}" . ($value !== 1 ? 's' : '');
-    }
-
-    /**
-     * Build an HMAC auth token for API requests.
-     *
-     * Format: server|timestamp|nonce|signature
-     */
-    public function buildHmacAuthToken(
-        string $server,
-        string $apiKey,
-        int $timestamp,
-        ?string $nonce = null
-    ): string {
-        return (new HmacAuthTokenGenerator())->generate($server, $apiKey, $timestamp, $nonce);
-    }
-
-    /**
-     * Normalize a job name for log filenames.
-     * Converts snake_case / mixed_case to kebab-case, lowercase, filesystem-safe.
-     */
-    public function normalizeJobName(string $jobName): string
-    {
-        // replace underscores and whitespace with hyphens
-        $jobName = preg_replace('/[_\s]+/', '-', $jobName);
-
-        // collapse multiple hyphens
-        $jobName = preg_replace('/-+/', '-', $jobName);
-
-        // lowercase
-        $jobName = strtolower($jobName);
-
-        // trim hyphens
-        return trim($jobName, '-');
     }
 }

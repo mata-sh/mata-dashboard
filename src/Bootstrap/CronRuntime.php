@@ -62,7 +62,7 @@ final readonly class CronRuntime
         ini_set('error_log', $paths->logsPath . '/cron/php-error.log');
 
         $tools = new Tools($paths->appPath);
-        $jobName = $tools->normalizeJobName(basename($entryPointFile, '.php'));
+        $jobName = CronJob::nameFromEntryPoint($entryPointFile);
 
         $logConfigurator = new LogConfigurator();
         $log = $logConfigurator->createCronBootLogger($paths, $jobName);
