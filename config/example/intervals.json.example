@@ -11,6 +11,7 @@
             "server_metrics.ingestion_run_empty": 5,
             "server_metrics.ingestion_stalled": 15,
             "fatal_errors_occurring": 0,
+            "library_outdated_security": 0,
             "cpu_usage_too_high": 30,
             "ram_usage_too_high": 30
         }
@@ -27,6 +28,7 @@
             "server_metrics.ingestion_run_empty": 30,
             "server_metrics.ingestion_stalled": 60,
             "fatal_errors_occurring": 1440,
+            "library_outdated_security": 1440,
             "cpu_usage_too_high": 180,
             "ram_usage_too_high": 180
         }

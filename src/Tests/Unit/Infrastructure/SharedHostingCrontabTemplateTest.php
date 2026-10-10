@@ -22,6 +22,7 @@ final class SharedHostingCrontabTemplateTest extends TestCase
     /** @var array<string,string> */
     private const JOBS = [
         'servers_metrics_aggregate.php' => '4-59/15 * * * *',
+        'libraries_audit.php' => '40 */6 * * *',
         'alarms_evaluate_critical.php' => '* * * * *',
         'alarms_evaluate_non_critical.php' => '*/5 * * * *',
         'alarms_dispatch.php' => '* * * * *',

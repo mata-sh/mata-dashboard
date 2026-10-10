@@ -123,6 +123,7 @@ The image installs `docker/cron/crontab` for `www-data`. The schedule is:
 | --- | --- |
 | `*/5 * * * *` | `servers_data_fetch.php`, then `servers_metrics_collect.php` |
 | `4-59/15 * * * *` | `servers_metrics_aggregate.php` |
+| `40 */6 * * *` | `libraries_audit.php` |
 | `* * * * *` | `alarms_evaluate_critical.php` |
 | `*/5 * * * *` | `alarms_evaluate_non_critical.php` |
 | `* * * * *` | `alarms_dispatch.php` |

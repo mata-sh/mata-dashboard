@@ -11,7 +11,7 @@ use Psr\Log\LoggerInterface;
 final readonly class AppMonitoringSettings
 {
     /** @var list<string> The single source of truth for recognized setting names. */
-    public const SETTINGS = ['loganalysis', 'logsize', 'sessions', 'reachability', 'alarms', 'events'];
+    public const SETTINGS = ['loganalysis', 'logsize', 'sessions', 'reachability', 'alarms', 'events', 'libraryaudit'];
 
     public function __construct(
         public bool $loganalysis = true,
@@ -20,6 +20,7 @@ final readonly class AppMonitoringSettings
         public bool $reachability = true,
         public bool $alarms = true,
         public bool $events = true,
+        public bool $libraryaudit = true,
     ) {}
 
     /** @param array<string,mixed> $appData */
@@ -67,6 +68,7 @@ final readonly class AppMonitoringSettings
             reachability: $resolved['reachability'],
             alarms: $resolved['alarms'],
             events: $resolved['events'],
+            libraryaudit: $resolved['libraryaudit'],
         );
     }
 
@@ -85,6 +87,7 @@ final readonly class AppMonitoringSettings
             'reachability' => $this->reachability,
             'alarms' => $this->alarms,
             'events' => $this->events,
+            'libraryaudit' => $this->libraryaudit,
             default => throw new InvalidArgumentException("Unknown monitoring setting: {$setting}"),
         };
     }

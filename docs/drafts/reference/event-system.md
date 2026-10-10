@@ -454,6 +454,26 @@ The node answered, but could not connect to or query the database server (`503`)
 
 ### Security Events
 
+#### `library_outdated_security`
+A Composer audit reported security advisories that were not in the previously evaluated audit for the app. Recorded by `cron/libraries_audit.php`; see the application error monitoring guide.
+
+**Severity:** Critical when a new advisory is `critical` or `high`, otherwise Warning
+
+**Details:**
+```json
+{
+    "metric": "library_advisory_count",
+    "actual_value": 3,
+    "additional_data": {
+        "new_advisory_ids": ["PKSA-xxxx-xxxx-xxxx"],
+        "new_packages": ["vendor/package"],
+        "worst_new_severity": "high",
+        "previous_advisory_count": 2,
+        "detection_reason": "new_advisories"
+    }
+}
+```
+
 #### `rate_limit_exceeded`
 Request rate limit exceeded.
 

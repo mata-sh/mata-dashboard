@@ -93,6 +93,10 @@
             "alarm_threshold_event_count": 1,
             "alarm_threshold_window_minutes": 1440
         },
+        "library_outdated_security": {
+            "alarm_threshold_event_count": 1,
+            "alarm_threshold_window_minutes": 1440
+        },
         "cpu_usage_too_high": {
             "alarm_threshold_event_count": 2,
             "alarm_threshold_window_minutes": 30

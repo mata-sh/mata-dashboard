@@ -140,6 +140,7 @@ installs the same manifest as the `www-data` crontab.
 | `servers_data_fetch.php` | Pulls application data, records events, warms the API cache |
 | `servers_metrics_collect.php` | Writes raw server snapshots (chained after the fetch, reusing the warm cache) |
 | `servers_metrics_aggregate.php` | Rolls raw rows up to hourly and daily |
+| `libraries_audit.php` | Refreshes expired Composer audits and records new security advisories |
 | `alarms_evaluate_{critical,non_critical}.php` | Turns events into logical alarms |
 | `alarms_dispatch.php` | Sends due deliveries |
 | `retention_cleanup.php` / `rate_limit_cleanup.php` | Expire database rows and file-based rate-limit state |

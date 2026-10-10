@@ -144,6 +144,26 @@ test_users_file_insecure_critical_is_allowed if {
     decision.reason == "monitored_critical"
 }
 
+test_library_outdated_security_warning_is_allowed if {
+    decision := alarms.decision with input as {
+        "event": {"type": "library_outdated_security", "level": "warning"},
+    }
+
+    decision.allow == true
+    decision.priority == 60
+    decision.reason == "monitored_warning"
+}
+
+test_library_outdated_security_critical_is_allowed if {
+    decision := alarms.decision with input as {
+        "event": {"type": "library_outdated_security", "level": "critical"},
+    }
+
+    decision.allow == true
+    decision.priority == 10
+    decision.reason == "monitored_critical"
+}
+
 test_user_account_locked_warning_is_allowed if {
     decision := alarms.decision with input as {
         "event": {"type": "user_account_locked", "level": "warning"},

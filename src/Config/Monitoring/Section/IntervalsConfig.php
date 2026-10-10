@@ -92,6 +92,7 @@ final readonly class IntervalsConfig
                 'cpu_usage_too_high' => 30,
                 'ram_usage_too_high' => 30,
                 'fatal_errors_occurring' => 0,
+                'library_outdated_security' => 0,
             ]],
             'alarms' => ['min_alarm_interval_minutes' => [
                 '_default' => 1440,
@@ -107,6 +108,7 @@ final readonly class IntervalsConfig
                 'cpu_usage_too_high' => 180,
                 'ram_usage_too_high' => 180,
                 'fatal_errors_occurring' => 1440,
+                'library_outdated_security' => 1440,
             ]],
         ];
     }

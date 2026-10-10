@@ -30,7 +30,7 @@ final class AppMonitoringSettingsTest extends TestCase
     public function testKnownSettingNames(): void
     {
         $this->assertSame(
-            ['loganalysis', 'logsize', 'sessions', 'reachability', 'alarms', 'events'],
+            ['loganalysis', 'logsize', 'sessions', 'reachability', 'alarms', 'events', 'libraryaudit'],
             AppMonitoringSettings::SETTINGS
         );
     }

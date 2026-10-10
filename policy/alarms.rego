@@ -92,6 +92,7 @@ monitored_types := {
     "ram_usage_too_high",
     "filecount_too_large",
     "logfile_too_large",
+    "library_outdated_security",
     "database_connections_too_high",
     "database_unreachable",
     "remaining_diskspace_too_low",

@@ -39,6 +39,7 @@ final class AlarmPresenter
             'app_unreachable' => ['Detected an unreachable application endpoint.', $ruleDetail],
             'server_apps_transport_unreachable' => ['Detected a transport failure affecting all application endpoints.', $ruleDetail],
             'users_file_insecure' => ['Detected insecure permissions on the users file.', $ruleDetail],
+            'library_outdated_security' => ['Detected Composer libraries with new security advisories.', $ruleDetail],
             'user_account_locked' => ['Detected an account locked after repeated failed logins.', $ruleDetail],
             'user_account_changed' => ['Detected a created, deleted or re-roled user account.', $ruleDetail],
             default => [$this->defaultDescription($alarm->type), null],
@@ -95,7 +96,7 @@ final class AlarmPresenter
         return match ($type) {
             'fatal_errors_occurring' => $this->formatMetricValue($actualValue, $this->numberFormatter->formatCompact(...)),
             'remaining_diskspace_too_low', 'cpu_usage_too_high', 'ram_usage_too_high', 'database_connections_too_high' => $this->formatMetricValue($actualValue, $this->formatPercent(...)),
-            'cronjobs_failing' => $this->formatMetricValue($actualValue, $this->formatNumber(...)),
+            'cronjobs_failing', 'library_outdated_security' => $this->formatMetricValue($actualValue, $this->formatNumber(...)),
             'server_metrics.ingestion_run_empty' => 'EMPTY',
             'node_unhealthy' => 'UNHEALTHY',
             'node_unreachable', 'app_unreachable', 'server_apps_transport_unreachable', 'database_unreachable' => 'UNREACHABLE',

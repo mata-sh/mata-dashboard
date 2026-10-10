@@ -24,6 +24,9 @@ CRON_ENV_FILE=/etc/mata/cron.env
 */5 * * * * . "$CRON_ENV_FILE" && cd "$APP_ROOT" && { "$PHP_BIN" cron/servers_data_fetch.php >> "$CRON_LOG_DIR/app-servers-data-fetch.log" 2>&1 ; "$PHP_BIN" cron/servers_metrics_collect.php >> "$CRON_LOG_DIR/app-servers-metrics-collect.log" 2>&1 ; }
 # Offset from the :00/:15 slots so it does not start alongside the collection chain.
 4-59/15 * * * * . "$CRON_ENV_FILE" && cd "$APP_ROOT" && "$PHP_BIN" cron/servers_metrics_aggregate.php >> "$CRON_LOG_DIR/app-servers-metrics-aggregate.log" 2>&1
+# Composer audits through the api-cache: the node is only asked again once an app's
+# audit is older than the audit TTL (default 24h), so 6-hourly runs keep it under 30h.
+40 */6 * * * . "$CRON_ENV_FILE" && cd "$APP_ROOT" && "$PHP_BIN" cron/libraries_audit.php >> "$CRON_LOG_DIR/app-libraries-audit.log" 2>&1
 
 # Alarm evaluation and delivery
 * * * * * . "$CRON_ENV_FILE" && cd "$APP_ROOT" && "$PHP_BIN" cron/alarms_evaluate_critical.php >> "$CRON_LOG_DIR/app-alarms-evaluate-critical.log" 2>&1

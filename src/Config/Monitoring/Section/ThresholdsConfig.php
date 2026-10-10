@@ -90,6 +90,7 @@ final readonly class ThresholdsConfig
                 'server_metrics.ingestion_stalled' => ['alarm_threshold_event_count' => 1, 'alarm_threshold_window_minutes' => 60],
                 'fatal_errors_occurring' => ['alarm_threshold_event_count' => 1, 'alarm_threshold_window_minutes' => 1440],
                 'logfile_too_large' => ['alarm_threshold_event_count' => 1, 'alarm_threshold_window_minutes' => 1440],
+                'library_outdated_security' => ['alarm_threshold_event_count' => 1, 'alarm_threshold_window_minutes' => 1440],
                 'cpu_usage_too_high' => ['alarm_threshold_event_count' => 2, 'alarm_threshold_window_minutes' => 30],
                 'ram_usage_too_high' => ['alarm_threshold_event_count' => 2, 'alarm_threshold_window_minutes' => 30],
             ],
