@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Mata\Services\Cron;
 
 use Mata\Services\Cron\Dto\ServerDataFetchResult;
+use Mata\Services\Monitor\Dto\AppErrorMonitoringResult;
 
 final class ServerDataFetchStats
 {
@@ -12,18 +13,12 @@ final class ServerDataFetchStats
     private int $completed = 0;
     private int $failed = 0;
     private int $unreachable = 0;
-    private int $appsSeen = 0;
-    private int $appsChecked = 0;
-    private int $oversizedLogsDetected = 0;
-    private int $fatalEventsRecorded = 0;
-    private int $logfileEventsRecorded = 0;
-    private int $unchangedFatalCursors = 0;
-    private int $errorMonitoringDisabled = 0;
-    private int $logsizeMonitoringDisabled = 0;
-    private int $eventsDisabled = 0;
-    private int $demoSkipped = 0;
-    private int $eventsNotRecorded = 0;
-    private int $monitorFailures = 0;
+    private AppErrorMonitoringResult $monitoring;
+
+    public function __construct()
+    {
+        $this->monitoring = AppErrorMonitoringResult::empty();
+    }
 
     public function recordConfigured(): void
     {
@@ -39,19 +34,7 @@ final class ServerDataFetchStats
         }
 
         ++$this->completed;
-        $monitoring = $result->errorMonitoring;
-        $this->appsSeen += $monitoring->appsSeen;
-        $this->appsChecked += $monitoring->appsChecked;
-        $this->oversizedLogsDetected += $monitoring->oversizedLogsDetected;
-        $this->fatalEventsRecorded += $monitoring->fatalEventsRecorded;
-        $this->logfileEventsRecorded += $monitoring->logfileEventsRecorded;
-        $this->unchangedFatalCursors += $monitoring->unchangedFatalCursors;
-        $this->errorMonitoringDisabled += $monitoring->errorMonitoringDisabled;
-        $this->logsizeMonitoringDisabled += $monitoring->logsizeMonitoringDisabled;
-        $this->eventsDisabled += $monitoring->eventsDisabled;
-        $this->demoSkipped += $monitoring->demoSkipped;
-        $this->eventsNotRecorded += $monitoring->eventsNotRecorded;
-        $this->monitorFailures += $monitoring->failures;
+        $this->monitoring = $this->monitoring->mergedWith($result->errorMonitoring);
     }
 
     public function recordFailure(): void
@@ -74,21 +57,21 @@ final class ServerDataFetchStats
             ),
             sprintf(
                 'App monitoring: seen=%d checked=%d error-disabled=%d logsize-disabled=%d events-disabled=%d demo-skipped=%d',
-                $this->appsSeen,
-                $this->appsChecked,
-                $this->errorMonitoringDisabled,
-                $this->logsizeMonitoringDisabled,
-                $this->eventsDisabled,
-                $this->demoSkipped,
+                $this->monitoring->appsSeen,
+                $this->monitoring->appsChecked,
+                $this->monitoring->errorMonitoringDisabled,
+                $this->monitoring->logsizeMonitoringDisabled,
+                $this->monitoring->eventsDisabled,
+                $this->monitoring->demoSkipped,
             ),
             sprintf(
                 'Events: fatal-recorded=%d logfile-recorded=%d oversized-logs=%d unchanged=%d not-recorded=%d failures=%d',
-                $this->fatalEventsRecorded,
-                $this->logfileEventsRecorded,
-                $this->oversizedLogsDetected,
-                $this->unchangedFatalCursors,
-                $this->eventsNotRecorded,
-                $this->monitorFailures,
+                $this->monitoring->fatalEventsRecorded,
+                $this->monitoring->logfileEventsRecorded,
+                $this->monitoring->oversizedLogsDetected,
+                $this->monitoring->unchangedFatalCursors,
+                $this->monitoring->eventsNotRecorded,
+                $this->monitoring->failures,
             ),
         ];
     }

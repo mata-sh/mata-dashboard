@@ -34,7 +34,7 @@ final class AppErrorMonitor implements AppErrorMonitorInterface
 
     public function monitor(string $server, array $apps): AppErrorMonitoringResult
     {
-        $stats = [
+        $counters = [
             'appsChecked' => 0, 'errorMonitoringDisabled' => 0, 'logsizeMonitoringDisabled' => 0,
             'eventsDisabled' => 0,
             'unchangedFatalCursors' => 0, 'fatalEventsRecorded' => 0, 'oversizedLogsDetected' => 0,
@@ -49,70 +49,70 @@ final class AppErrorMonitor implements AppErrorMonitorInterface
                 $monitoring = AppMonitoringSettings::fromAppPayload($appData, $this->logger);
                 // Disabled events skip the app before policy accounting.
                 if (!$monitoring->isEnabled('events')) {
-                    ++$stats['eventsDisabled'];
+                    ++$counters['eventsDisabled'];
 
                     continue;
                 }
                 $errorEnabled = $this->fatalErrorPolicy->isEnabled($appData);
                 $logsizeEnabled = $this->logSizePolicy->isEnabled($appData);
                 if (!$errorEnabled) {
-                    ++$stats['errorMonitoringDisabled'];
+                    ++$counters['errorMonitoringDisabled'];
                 }
                 if (!$logsizeEnabled) {
-                    ++$stats['logsizeMonitoringDisabled'];
+                    ++$counters['logsizeMonitoringDisabled'];
                 }
                 if ($errorEnabled || $logsizeEnabled) {
-                    ++$stats['appsChecked'];
+                    ++$counters['appsChecked'];
                 }
 
                 if ($errorEnabled) {
                     try {
-                        $this->monitorFatal($server, (string) $app, $appData, $monitoring, $stats);
+                        $this->monitorFatal($server, (string) $app, $appData, $monitoring, $counters);
                     } catch (Throwable $exception) {
-                        ++$stats['failures'];
+                        ++$counters['failures'];
                         $this->logFailure($server, (string) $app, 'fatal', $exception);
                     }
                 }
                 if ($logsizeEnabled) {
                     try {
-                        $this->monitorLogSize($server, (string) $app, $appData, $monitoring, $stats);
+                        $this->monitorLogSize($server, (string) $app, $appData, $monitoring, $counters);
                     } catch (Throwable $exception) {
-                        ++$stats['failures'];
+                        ++$counters['failures'];
                         $this->logFailure($server, (string) $app, 'log size', $exception);
                     }
                 }
             } catch (Throwable $exception) {
-                ++$stats['failures'];
+                ++$counters['failures'];
                 $this->logFailure($server, (string) $app, 'configuration', $exception);
             }
         }
 
         return new AppErrorMonitoringResult(
             appsSeen: count($apps),
-            appsChecked: $stats['appsChecked'],
-            errorMonitoringDisabled: $stats['errorMonitoringDisabled'],
-            logsizeMonitoringDisabled: $stats['logsizeMonitoringDisabled'],
-            eventsDisabled: $stats['eventsDisabled'],
+            appsChecked: $counters['appsChecked'],
+            errorMonitoringDisabled: $counters['errorMonitoringDisabled'],
+            logsizeMonitoringDisabled: $counters['logsizeMonitoringDisabled'],
+            eventsDisabled: $counters['eventsDisabled'],
             demoSkipped: 0,
-            unchangedFatalCursors: $stats['unchangedFatalCursors'],
-            fatalEventsRecorded: $stats['fatalEventsRecorded'],
-            oversizedLogsDetected: $stats['oversizedLogsDetected'],
-            logfileEventsRecorded: $stats['logfileEventsRecorded'],
-            eventsNotRecorded: $stats['eventsNotRecorded'],
-            failures: $stats['failures'],
+            unchangedFatalCursors: $counters['unchangedFatalCursors'],
+            fatalEventsRecorded: $counters['fatalEventsRecorded'],
+            oversizedLogsDetected: $counters['oversizedLogsDetected'],
+            logfileEventsRecorded: $counters['logfileEventsRecorded'],
+            eventsNotRecorded: $counters['eventsNotRecorded'],
+            failures: $counters['failures'],
         );
     }
 
     /**
      * @param array<string,mixed> $appData
-     * @param array<string,int>   $stats
+     * @param array<string,int>   $counters
      */
     private function monitorFatal(
         string $server,
         string $app,
         array $appData,
         AppMonitoringSettings $monitoring,
-        array &$stats
+        array &$counters
     ): void {
         // Disabled log analysis omits status.
         if (!array_key_exists('status', $appData)) {
@@ -140,7 +140,7 @@ final class AppErrorMonitor implements AppErrorMonitorInterface
         [$serverId, $applicationId] = $this->resolveStateIds($server, $app);
         $state = $this->stateRepository->get($serverId, $applicationId);
         if ($state?->fatalCursor === $cursor) {
-            ++$stats['unchangedFatalCursors'];
+            ++$counters['unchangedFatalCursors'];
 
             return;
         }
@@ -166,25 +166,25 @@ final class AppErrorMonitor implements AppErrorMonitorInterface
             ]),
         ));
         if (($result['eventRecorded'] ?? false) !== true) {
-            ++$stats['eventsNotRecorded'];
+            ++$counters['eventsNotRecorded'];
 
             return;
         }
 
-        ++$stats['fatalEventsRecorded'];
+        ++$counters['fatalEventsRecorded'];
         $this->stateRepository->upsert($serverId, $applicationId, $cursor, $fatalCount);
     }
 
     /**
      * @param array<string,mixed> $appData
-     * @param array<string,int>   $stats
+     * @param array<string,int>   $counters
      */
     private function monitorLogSize(
         string $server,
         string $app,
         array $appData,
         AppMonitoringSettings $monitoring,
-        array &$stats
+        array &$counters
     ): void {
         // Disabled log-size monitoring omits logs.
         if (!array_key_exists('logs', $appData)) {
@@ -198,7 +198,7 @@ final class AppErrorMonitor implements AppErrorMonitorInterface
         if ($assessment->level !== 'alarm') {
             return;
         }
-        ++$stats['oversizedLogsDetected'];
+        ++$counters['oversizedLogsDetected'];
         $result = $this->eventManager->handle(new EventCommand(
             type: 'logfile_too_large',
             message: "Log too large ({$assessment->maxSizeFormatted}) - {$assessment->maxPath} : {$app} on Server: {$server}",
@@ -208,11 +208,11 @@ final class AppErrorMonitor implements AppErrorMonitorInterface
             context: $this->suppressionContext($monitoring),
         ));
         if (($result['eventRecorded'] ?? false) === true) {
-            ++$stats['logfileEventsRecorded'];
+            ++$counters['logfileEventsRecorded'];
 
             return;
         }
-        ++$stats['eventsNotRecorded'];
+        ++$counters['eventsNotRecorded'];
     }
 
     /** @return array<string,mixed> Event context for alarm suppression. */
