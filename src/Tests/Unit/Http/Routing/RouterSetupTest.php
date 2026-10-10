@@ -12,7 +12,6 @@ use Mata\Controllers\LoginController;
 use Mata\Controllers\MetricsController;
 use Mata\Controllers\ModalController;
 use Mata\Core\App;
-use Mata\Core\Auth;
 use Mata\Core\Session;
 use Mata\Http\Request;
 use Mata\Http\Responses\HtmlResponse;
@@ -20,6 +19,7 @@ use Mata\Http\Routing\Endpoints;
 use Mata\Http\Routing\RouterSetup;
 use Mata\Http\Security\CsrfGuard;
 use Mata\Http\Security\RouteParameter;
+use Mata\Services\Auth\UserAuthenticator;
 use Mata\Tests\Helpers\ApplicationConfigFactory;
 use Mata\Tests\TestCase;
 use Mata\Utils\PathResolver;
@@ -123,7 +123,7 @@ class RouterSetupTest extends TestCase
 
     public function testItRunsAuthenticationMiddlewareForTheWatchRootRoute(): void
     {
-        $auth = $this->createMock(Auth::class);
+        $auth = $this->createMock(UserAuthenticator::class);
         $auth->expects($this->once())->method('check')->willReturn(true);
 
         $app = new App($auth, ApplicationConfigFactory::create(), $this->createStub(PathResolver::class), new Request());
@@ -185,7 +185,7 @@ class RouterSetupTest extends TestCase
             })
         ;
 
-        $auth = $this->createMock(Auth::class);
+        $auth = $this->createMock(UserAuthenticator::class);
         $auth->expects($this->once())
             ->method('check')
             ->willReturn(true)
@@ -433,7 +433,7 @@ class RouterSetupTest extends TestCase
 
     private function createAppStub(): App
     {
-        $auth = $this->createStub(Auth::class);
+        $auth = $this->createStub(UserAuthenticator::class);
         $auth->method('check')->willReturn(true);
 
         return new App($auth, ApplicationConfigFactory::create(), $this->createStub(PathResolver::class), new Request());

@@ -7,6 +7,7 @@ namespace Mata\Core;
 use Mata\Config\Dto\ApplicationConfig;
 use Mata\Http\Request;
 use Mata\Http\Security\RateLimiting\RequestRateLimiter;
+use Mata\Services\Auth\UserAuthenticator;
 use Mata\Utils\PathResolver;
 
 /**
@@ -14,7 +15,7 @@ use Mata\Utils\PathResolver;
  */
 class App
 {
-    public readonly Auth $auth;
+    public readonly UserAuthenticator $auth;
     public readonly ApplicationConfig $config;
     public readonly PathResolver $paths;
     public readonly ?RequestRateLimiter $rateLimiter;
@@ -25,7 +26,7 @@ class App
      * Initialize application with authentication and path management.
      */
     public function __construct(
-        Auth $auth,
+        UserAuthenticator $auth,
         ApplicationConfig $config,
         PathResolver $paths,
         Request $request,

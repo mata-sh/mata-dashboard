@@ -17,6 +17,7 @@ Document project-specific decisions here, not syntax already visible in nearby c
 - Accept native JSON integers only and enforce bounds without coercion or clamping. Parse text-only numeric sources with strict source-aware syntax.
 - Use named arguments when they clarify boolean flags or long calls.
 - Extract cohesive collaborators instead of expanding an already broad controller.
+- Name service classes `<Domain><Role>` with an agent noun (`AuditAggregator`, `UserAuthenticator`); siblings in one domain share the prefix.
 
 ## Frontend
 

@@ -13,13 +13,13 @@ use Mata\Config\Monitoring\Section\ThresholdsConfig;
 use Mata\Config\Monitoring\Section\TtlConfig;
 use Mata\Controllers\DashboardController;
 use Mata\Core\App;
-use Mata\Core\Auth;
 use Mata\Database\DatabaseInterface;
 use Mata\Http\Request;
 use Mata\Http\Responses\HtmlResponse;
 use Mata\Http\Responses\JsonResponse;
 use Mata\Http\Routing\Endpoints;
 use Mata\Models\AppFatalStateRepository;
+use Mata\Services\Auth\UserAuthenticator;
 use Mata\Services\Cache\ApiCacheKeyFactory;
 use Mata\Services\Cache\CacheStoreInterface;
 use Mata\Services\Cache\CacheTtlResolver;
@@ -109,7 +109,7 @@ class DashboardControllerTest extends TestCase
         $mockPaths->method('toRelativePath')->willReturnCallback(fn ($path) => ltrim(str_replace('/tmp/', '', $path), '/'));
         $mockPaths->appPath = '/tmp/test-app';
         $this->app = $this->getMockBuilder(App::class)
-            ->setConstructorArgs([$this->createStub(Auth::class), $this->appConfig, $mockPaths, new Request()])
+            ->setConstructorArgs([$this->createStub(UserAuthenticator::class), $this->appConfig, $mockPaths, new Request()])
             ->onlyMethods(['getBaseHost', 'getFullBaseUrl'])
             ->getMock()
         ;

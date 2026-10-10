@@ -82,6 +82,7 @@ Business logic organized by domain.
 src/Services/
 ├── Alarm/             # Creation, dispatch, rate limiting, decision policies (Decision/, Dto/)
 ├── Audit/             # Audit log aggregation and row enrichment
+├── Auth/              # Sign-in and sessions (UserAuthenticator), CLI account management (UserAdministrator)
 ├── Cache/              # Cache store, TTL/type resolution (MetricsCacheService, ModalCacheService)
 ├── Collect/           # Node data collection & HMAC auth (ServerDataCollector, NodeApiClient, HmacAuthTokenGenerator, Demo/)
 ├── Cron/              # Cron run orchestration (ServerDataFetchRunner)
@@ -118,6 +119,8 @@ src/Models/
 ├── AppFatalStateRepository.php    # App fatal-state data access
 ├── ConfigSyncRepository.php       # Config sync data access
 ├── EventRepository.php            # Event data access
+├── User.php                       # users.json account model
+├── UserRepository.php             # users.json access with locked, atomic writes
 └── ServerMetrics/
     ├── ServerMetricsRepository.php    # Metrics data access
     ├── ServerMetricRawUpserter.php    # Upserts server_metrics_raw rows
@@ -176,7 +179,6 @@ Core application services and infrastructure.
 ```
 src/Core/
 ├── App.php                  # Application container
-├── Auth.php                 # Authentication service
 ├── Session.php              # Session handling
 ├── Database.php             # Database wrapper
 ├── DatabaseInterface.php    # Database contract

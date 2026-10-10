@@ -6,7 +6,8 @@ declare(strict_types=1);
 require_once __DIR__ . '/../../vendor/autoload.php';
 
 use Mata\Bootstrap\ScriptRuntime;
-use Mata\Core\Auth;
+use Mata\Models\UserRepository;
+use Mata\Services\Auth\UserAdministrator;
 use Mata\Utils\UsersFilePathResolver;
 use Monolog\Formatter\LineFormatter;
 use Monolog\Handler\StreamHandler;
@@ -258,14 +259,18 @@ $logger->info('User management script started', [
     'pid' => getmypid(),
 ]);
 
-$auth = new Auth(
-    logger: $logger,
-    usersFile: $usersFile,
-    secureRequest: false,
-    rememberToken: null,
-    cliMode: true,
-    cliScriptPath: $scriptPath
-);
+try {
+    $administrator = new UserAdministrator(UserRepository::openForAdministration($usersFile), $logger);
+} catch (RuntimeException $e) {
+    echo "❌ {$e->getMessage()}\n";
+    $owner = is_file($usersFile) && !is_readable($usersFile) ? fileowner($usersFile) : false;
+    $ownerInfo = is_int($owner) ? posix_getpwuid($owner) : false;
+    if (is_array($ownerInfo)) {
+        echo "Try running with: sudo -u {$ownerInfo['name']} php {$scriptPath}\n";
+    }
+
+    exit(1);
+}
 
 echo "🔧 Environment: {$env}\n";
 echo "📁 Users file: {$usersFile}\n\n";
@@ -278,7 +283,7 @@ switch ($action) {
         $role = $arguments[3] ?? promptLine('Role [viewer/admin]: ');
 
         try {
-            $auth->createUser($username, $password, $role);
+            $administrator->createUser($username, $password, $role);
             $logger->info('User created successfully', [
                 'operator' => $currentUser['name'],
                 'target_user' => $username,
@@ -302,7 +307,7 @@ switch ($action) {
         break;
 
     case 'list':
-        $users = $auth->getAllUsers();
+        $users = $administrator->listUsers();
         $logger->info('Users list accessed', [
             'operator' => $currentUser['name'],
             'environment' => $env,
@@ -313,8 +318,8 @@ switch ($action) {
         } else {
             echo "Users:\n";
             foreach ($users as $user) {
-                $locked = ($user['locked_until'] ?? 0) > time() ? ' [LOCKED]' : '';
-                echo "  - {$user['username']} ({$user['role']}){$locked}\n";
+                $locked = $user->isLocked(time()) ? ' [LOCKED]' : '';
+                echo "  - {$user->username} ({$user->role}){$locked}\n";
             }
         }
 
@@ -324,7 +329,7 @@ switch ($action) {
         $username = $arguments[2] ?? promptLine('Username to unlock: ');
 
         try {
-            $auth->unlockUser($username);
+            $administrator->unlockUser($username);
             $logger->info('User unlocked successfully', [
                 'operator' => $currentUser['name'],
                 'target_user' => $username,
@@ -350,7 +355,7 @@ switch ($action) {
         $confirm = $arguments[3] ?? promptLine('Are you sure? (yes/no): ');
         if ($confirm === 'yes') {
             try {
-                $auth->deleteUser($username);
+                $administrator->deleteUser($username);
                 $logger->warning('User deleted', [
                     'operator' => $currentUser['name'],
                     'target_user' => $username,
@@ -385,7 +390,7 @@ switch ($action) {
         assertPasswordPolicy($password, $env);
 
         try {
-            $auth->changePassword($username, $password);
+            $administrator->changePassword($username, $password);
             $logger->warning('Password changed', [
                 'operator' => $currentUser['name'],
                 'target_user' => $username,

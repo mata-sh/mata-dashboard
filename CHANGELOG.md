@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - `notification_rules.json` accepts any channel name. A channel that is not configured is skipped and reported as a `notification_rules_unknown_channel` warning; previously an unknown channel discarded the whole file's rules
 - The `builtin` alarm decision driver delivers on every channel the notification rule selects instead of email only
+- `users.json` is validated on load: an entry without `id`, `username`, `password_hash` or `role`, or with a non-integer `failed_attempts`, `locked_until` or `remember_expires`, now shows the authentication error page naming the entry, instead of being skipped or failing at sign-in. Fields the dashboard does not use are dropped the next time the file is written
 
 ### Fixed
 - Alarm titles for event types with a dotted area prefix now read `Server metrics: ingestion run empty` instead of `Server metrics.ingestion run empty` in emails and webhook messages

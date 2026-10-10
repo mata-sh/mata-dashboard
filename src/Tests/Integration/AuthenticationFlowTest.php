@@ -6,9 +6,10 @@ namespace Mata\Tests\Integration;
 
 use InvalidArgumentException;
 use Mata\Config\EnvConfigLoader;
-use Mata\Core\Auth;
 use Mata\Core\Session;
-use Mata\Http\Request;
+use Mata\Models\UserRepository;
+use Mata\Services\Auth\UserAdministrator;
+use Mata\Services\Auth\UserAuthenticator;
 use Mata\Tests\TestCase;
 use Mata\Utils\PathResolver;
 use Psr\Log\NullLogger;
@@ -17,7 +18,7 @@ use RuntimeException;
 /**
  * Integration test for authentication workflow.
  *
- * Tests how Auth, PathResolver, and EnvConfigLoader work together
+ * Tests how UserAuthenticator, UserAdministrator, PathResolver, and EnvConfigLoader work together
  * in a realistic authentication scenario.
  *
  * @internal
@@ -28,8 +29,7 @@ class AuthenticationFlowTest extends TestCase
 {
     private PathResolver $pathResolver;
     private EnvConfigLoader $configLoader;
-    private Auth $auth;
-    private Request $request;
+    private UserAuthenticator $auth;
     private string $tempAppPath;
     private array $tempFiles = [];
 
@@ -68,8 +68,7 @@ class AuthenticationFlowTest extends TestCase
         chmod($usersFile, 0600);
 
         $this->startTestRequest();
-        $this->request = new Request();
-        $this->auth = new Auth(new NullLogger(), $usersFile, $this->request->isSecure(), $this->request->cookie('remember_token'));
+        $this->auth = $this->requestAuth();
         $this->auth->login('admin', 'admin123');
     }
 
@@ -106,13 +105,13 @@ class AuthenticationFlowTest extends TestCase
         $password = 'secure_password_123';
         $role = 'viewer';
 
-        $createResult = $this->auth->createUser($username, $password, $role);
-        $this->assertTrue($createResult, 'User creation should succeed');
+        $this->administrator()->createUser($username, $password, $role);
 
         // Step 3: Verify user exists in the system
-        $this->assertTrue($this->auth->userExists($username), 'User should exist after creation');
+        $this->assertArrayHasKey($username, $this->administrator()->listUsers(), 'User should exist after creation');
 
         // Step 4: Attempt login with correct credentials
+        $this->auth = $this->requestAuth();
         $loginResult = $this->auth->login($username, $password);
         $this->assertTrue($loginResult, 'Login with correct credentials should succeed');
 
@@ -132,7 +131,7 @@ class AuthenticationFlowTest extends TestCase
         $this->assertNull($this->auth->getUser(), 'User data should be null after logout');
 
         // Step 8: Verify failed login with wrong password
-        $this->startTestRequest();
+        $this->auth = $this->requestAuth();
         $wrongPasswordResult = $this->auth->login($username, 'wrong_password');
         $this->assertFalse($wrongPasswordResult, 'Login with wrong password should fail');
         $this->assertFalse($this->auth->check(), 'User should not be authenticated after failed login');
@@ -168,16 +167,16 @@ class AuthenticationFlowTest extends TestCase
 
         // Create all users
         foreach ($users as $user) {
-            $result = $this->auth->createUser($user['username'], $user['password'], $user['role']);
-            $this->assertTrue($result, "Creating user {$user['username']} should succeed");
+            $this->administrator()->createUser($user['username'], $user['password'], $user['role']);
         }
 
         foreach ($users as $user) {
-            $this->assertTrue($this->auth->userExists($user['username']), 'User should exist after creation');
+            $this->assertArrayHasKey($user['username'], $this->administrator()->listUsers(), 'User should exist after creation');
         }
 
         // Test login for each user and verify their role permissions
         foreach ($users as $user) {
+            $this->auth = $this->requestAuth();
             $loginResult = $this->auth->login($user['username'], $user['password']);
             $this->assertTrue($loginResult, "Login for {$user['username']} should succeed");
 
@@ -187,16 +186,17 @@ class AuthenticationFlowTest extends TestCase
             $this->assertEquals('example.com', $loadedConfig->environment->domain);
 
             $this->auth->logout();
-            $this->startTestRequest();
         }
 
         // Test password change functionality
+        $this->auth = $this->requestAuth();
         $this->assertTrue($this->auth->login('admin_user', 'admin_pass'), 'Admin login should succeed');
         $newPassword = 'new_secure_password';
-        $changeResult = $this->auth->changePassword('admin_user', $newPassword);
-        $this->assertTrue($changeResult, 'Password change should succeed');
+        $this->administrator()->changePassword('admin_user', $newPassword);
+        $this->assertFalse($this->requestAuth($_SESSION)->check(), 'A password change should sign the account out');
 
         // Verify old password no longer works
+        $this->auth = $this->requestAuth();
         $oldPasswordLogin = $this->auth->login('admin_user', 'admin_pass');
         $this->assertFalse($oldPasswordLogin, 'Login with old password should fail');
 
@@ -204,14 +204,11 @@ class AuthenticationFlowTest extends TestCase
         $newPasswordLogin = $this->auth->login('admin_user', $newPassword);
         $this->assertTrue($newPasswordLogin, 'Login with new password should succeed');
 
-        // Test user deletion (admin access required)
-        $deleteResult = $this->auth->deleteUser('viewer_user');
-        $this->assertTrue($deleteResult, 'User deletion should succeed');
-        $this->assertFalse($this->auth->userExists('viewer_user'), 'Deleted user should not exist');
+        // Test user deletion
+        $this->administrator()->deleteUser('viewer_user');
 
-        $this->assertTrue($this->auth->userExists('admin_user'));
-        $this->assertTrue($this->auth->userExists('other_viewer'));
-        $this->assertFalse($this->auth->userExists('viewer_user'));
+        $remaining = array_keys($this->administrator()->listUsers());
+        $this->assertSame(['admin', 'admin_user', 'other_viewer'], $remaining, 'Deleted user should not exist');
     }
 
     /**
@@ -243,10 +240,10 @@ class AuthenticationFlowTest extends TestCase
         $password = 'ConfigPass123!'; // Meets requirements
         $defaultRole = 'viewer';
 
-        $createResult = $this->auth->createUser($username, $password, $defaultRole);
-        $this->assertTrue($createResult);
+        $this->administrator()->createUser($username, $password, $defaultRole);
 
         // Login and verify user gets default settings
+        $this->auth = $this->requestAuth();
         $loginResult = $this->auth->login($username, $password);
         $this->assertTrue($loginResult);
 
@@ -296,7 +293,7 @@ class AuthenticationFlowTest extends TestCase
         chmod($usersFile, 0600);
 
         try {
-            new Auth(new NullLogger(), $usersFile, $this->request->isSecure(), $this->request->cookie('remember_token'));
+            UserRepository::open($usersFile);
             $this->fail('Should throw exception for corrupted users file');
         } catch (RuntimeException $e) {
             $this->assertStringContainsString('Invalid JSON in users file', $e->getMessage());
@@ -328,14 +325,13 @@ class AuthenticationFlowTest extends TestCase
     public function testPasswordResetRevokesOldAccessWithoutDamagingFreshCredentials(): void
     {
         $adminSession = $_SESSION;
-        $this->auth->createUser('operator', 'old-password', 'viewer');
-        $this->auth->login('operator', 'old-password', true);
+        $this->administrator()->createUser('operator', 'old-password', 'viewer');
+        $this->requestAuth()->login('operator', 'old-password', true);
         $oldSession = $_SESSION;
         $oldCookie = $this->rememberCookieFor('operator');
 
-        $manager = $this->requestAuth($adminSession);
-        $manager->changePassword('operator', 'new-password');
-        $this->assertTrue($manager->check(), 'An unrelated account stays authenticated');
+        $this->administrator()->changePassword('operator', 'new-password');
+        $this->assertTrue($this->requestAuth($adminSession)->check(), 'An unrelated account stays authenticated');
         $resetUser = $this->storedUser('operator');
         $this->assertNotSame($oldSession['user']['auth_revision'], $resetUser['auth_revision']);
         $this->assertArrayNotHasKey('remember_token', $resetUser);
@@ -362,13 +358,12 @@ class AuthenticationFlowTest extends TestCase
 
     public function testDemotionAndUsernameReuseCannotRestoreOldAccess(): void
     {
-        $adminSession = $_SESSION;
-        $this->auth->createUser('operator', 'password', 'admin');
-        $this->auth->login('operator', 'password', true);
+        $this->administrator()->createUser('operator', 'password', 'admin');
+        $this->requestAuth()->login('operator', 'password', true);
         $adminOperatorSession = $_SESSION;
         $adminOperatorCookie = $this->rememberCookieFor('operator');
 
-        $this->requestAuth($adminSession)->updateUserRole('operator', 'viewer');
+        $this->administrator()->changeRole('operator', 'viewer');
         $demoted = $this->storedUser('operator');
         $this->assertNotSame($adminOperatorSession['user']['auth_revision'], $demoted['auth_revision']);
         $this->assertArrayNotHasKey('remember_token', $demoted);
@@ -381,11 +376,10 @@ class AuthenticationFlowTest extends TestCase
         $this->assertTrue($viewer->hasRole('viewer'));
         $viewerSession = $_SESSION;
         $viewerCookie = $this->rememberCookieFor('operator');
-        $manager = $this->requestAuth($adminSession);
-        $manager->deleteUser('operator');
+        $this->administrator()->deleteUser('operator');
         $this->assertUnauthenticated($this->requestAuth($viewerSession, $viewerCookie));
 
-        $this->requestAuth($adminSession)->createUser('operator', 'password', 'admin');
+        $this->administrator()->createUser('operator', 'password', 'admin');
         $this->assertNotSame($viewerSession['user']['auth_revision'], $this->storedUser('operator')['auth_revision']);
         $this->assertUnauthenticated($this->requestAuth($viewerSession, $viewerCookie));
         $this->assertUnauthenticated($this->requestAuth($adminOperatorSession, $adminOperatorCookie));
@@ -394,16 +388,24 @@ class AuthenticationFlowTest extends TestCase
         $this->assertTrue($replacement->hasRole('admin'));
     }
 
-    private function requestAuth(array $session = [], ?string $cookie = null): Auth
+    private function requestAuth(array $session = [], ?string $cookie = null): UserAuthenticator
     {
         Session::close();
         Session::start();
         $_SESSION = $session;
 
-        return new Auth(new NullLogger(), $this->pathResolver->getConfigPath('users.json'), false, $cookie);
+        $auth = new UserAuthenticator(UserRepository::open($this->pathResolver->getConfigPath('users.json')), new NullLogger(), false);
+        $auth->resumeFromRememberCookie($cookie);
+
+        return $auth;
     }
 
-    private function assertUnauthenticated(Auth $auth): void
+    private function administrator(): UserAdministrator
+    {
+        return new UserAdministrator(UserRepository::openForAdministration($this->pathResolver->getConfigPath('users.json')), new NullLogger());
+    }
+
+    private function assertUnauthenticated(UserAuthenticator $auth): void
     {
         $this->assertNull($auth->getUser());
         $this->assertNull($auth->getUsername());

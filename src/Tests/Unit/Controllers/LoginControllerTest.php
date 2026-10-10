@@ -6,10 +6,10 @@ namespace Mata\Tests\Unit\Controllers;
 
 use Mata\Controllers\LoginController;
 use Mata\Core\App;
-use Mata\Core\Auth;
 use Mata\Core\Session;
 use Mata\Http\Request;
 use Mata\Http\Security\CsrfGuard;
+use Mata\Services\Auth\UserAuthenticator;
 use Mata\Tests\Helpers\ApplicationConfigFactory;
 use Mata\Tests\TestCase;
 use Mata\Utils\PathResolver;
@@ -26,7 +26,7 @@ use Twig\Environment;
 final class LoginControllerTest extends TestCase
 {
     private App&MockObject $app;
-    private Auth&MockObject $auth;
+    private MockObject&UserAuthenticator $auth;
     private MockObject&Tools $tools;
     private Environment&MockObject $twig;
 
@@ -37,7 +37,7 @@ final class LoginControllerTest extends TestCase
             session_start();
         }
         $_SESSION = [];
-        $this->auth = $this->createMock(Auth::class);
+        $this->auth = $this->createMock(UserAuthenticator::class);
         $this->app = $this->getMockBuilder(App::class)
             ->setConstructorArgs([$this->auth, ApplicationConfigFactory::create(), $this->createStub(PathResolver::class), new Request()])
             ->onlyMethods(['getBaseHost', 'getFullBaseUrl', 'redirect'])

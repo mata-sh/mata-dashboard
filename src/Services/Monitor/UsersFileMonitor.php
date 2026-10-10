@@ -12,7 +12,7 @@ use Psr\Log\LoggerInterface;
  * Raises security events from the users file: permission drift, accounts locked by failed logins,
  * and accounts created, deleted or given a new role since the previous run.
  *
- * Auth already counts failed logins and writes `locked_until`, so this monitor only reports that
+ * UserAuthenticator already counts failed logins and writes `locked_until`, so this monitor only reports that
  * state. Event volume is bounded by the number of users, not by login traffic.
  */
 final class UsersFileMonitor
@@ -133,7 +133,7 @@ final class UsersFileMonitor
         ));
     }
 
-    /** @return null|array<array-key,array<mixed>> Users keyed by username, as Auth indexes them. */
+    /** @return null|array<array-key,array<mixed>> Users keyed by username, as UserRepository indexes them. */
     private function readUsers(): ?array
     {
         $content = @file_get_contents($this->usersFile);

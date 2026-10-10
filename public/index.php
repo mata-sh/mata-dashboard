@@ -25,7 +25,6 @@ use Mata\Controllers\LoginController;
 use Mata\Controllers\MetricsController;
 use Mata\Controllers\ModalController;
 use Mata\Core\App;
-use Mata\Core\Auth;
 use Mata\Core\ExceptionHandler;
 use Mata\Core\Session;
 use Mata\Http\Request;
@@ -39,9 +38,11 @@ use Mata\Models\AlarmRepository;
 use Mata\Models\AppFatalStateRepository;
 use Mata\Models\ConfigSyncRepository;
 use Mata\Models\EventRepository;
+use Mata\Models\UserRepository;
 use Mata\Services\Alarm\AlarmCreator;
 use Mata\Services\Alarm\AlarmDirectProcessor;
 use Mata\Services\Alarm\AlarmQueueFailureThrottle;
+use Mata\Services\Auth\UserAuthenticator;
 use Mata\Services\Cache\ApiCacheKeyFactory;
 use Mata\Services\Cache\CacheTtlResolver;
 use Mata\Services\Cache\FileCacheStore;
@@ -223,12 +224,8 @@ $usersFilePath = null;
 
 try {
     $usersFilePath = UsersFilePathResolver::resolve($paths->appPath);
-    $auth = new Auth(
-        $log,
-        $usersFilePath,
-        $request->isSecure(),
-        $request->cookie('remember_token'),
-    );
+    $auth = new UserAuthenticator(UserRepository::open($usersFilePath), $log, $request->isSecure());
+    $auth->resumeFromRememberCookie($request->cookie(UserAuthenticator::REMEMBER_COOKIE));
 } catch (Throwable $e) {
     $log->critical('Authentication initialization failed: ' . $e->getMessage());
 
