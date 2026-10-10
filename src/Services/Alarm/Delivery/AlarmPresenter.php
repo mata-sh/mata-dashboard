@@ -10,7 +10,10 @@ use Mata\Services\Alarm\Delivery\Dto\AlarmPresentation;
 use Mata\Services\Alarm\Dto\Alarm;
 use Mata\Views\Support\NumberFormatter;
 
-/** Builds the presentation of an alarm for alarm emails. */
+/**
+ * Describes an alarm by its type, for every channel: description, metric, and the target's
+ * server color and environment from servers.json.
+ */
 final class AlarmPresenter
 {
     /** @param array<string,mixed> $servers */

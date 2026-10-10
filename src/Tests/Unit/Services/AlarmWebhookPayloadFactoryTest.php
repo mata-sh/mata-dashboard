@@ -6,7 +6,6 @@ namespace Mata\Tests\Unit\Services;
 
 use DateTimeImmutable;
 use Mata\Config\Monitoring\Section\WebhookChannel;
-use Mata\Services\Alarm\Delivery\AlarmPresenter;
 use Mata\Services\Alarm\Delivery\AlarmTemplateDataFactory;
 use Mata\Services\Alarm\Delivery\AlarmWebhookPayloadFactory;
 use Mata\Services\Alarm\Delivery\Dto\AlarmDeliveryView;
@@ -14,6 +13,8 @@ use Mata\Services\Alarm\Dto\Alarm;
 use Mata\Services\Alarm\Dto\AlarmLevel;
 use Mata\Tests\TestCase;
 use RuntimeException;
+use Twig\Loader\ArrayLoader;
+use Twig\Loader\FilesystemLoader;
 
 /**
  * @covers \Mata\Services\Alarm\Delivery\AlarmTemplateDataFactory
@@ -104,36 +105,26 @@ final class AlarmWebhookPayloadFactoryTest extends TestCase
 
     public function testTemplateProducingInvalidJsonIsRejected(): void
     {
-        $templates = $this->createTempDirectory();
-        mkdir($templates . '/webhooks');
-        file_put_contents($templates . '/webhooks/broken.json.twig', '{"text": {{ alarm.message }}}');
-        file_put_contents($templates . '/webhooks/list.json.twig', '[1, 2]');
+        $factory = new AlarmWebhookPayloadFactory(new ArrayLoader([
+            'webhooks/broken.json.twig' => '{"text": {{ alarm.message }}}',
+            'webhooks/list.json.twig' => '[1, 2]',
+        ]), new AlarmTemplateDataFactory('MATA', null));
 
-        try {
-            $factory = new AlarmWebhookPayloadFactory($templates, new AlarmTemplateDataFactory('MATA', null));
-            foreach (['broken' => 'produced invalid JSON', 'list' => 'must produce a JSON object'] as $template => $expected) {
-                try {
-                    $factory->create($this->view(), $this->channel($template, []));
-                    $this->fail("Template {$template} must be rejected.");
-                } catch (RuntimeException $exception) {
-                    $this->assertStringContainsString($expected, $exception->getMessage());
-                }
+        foreach (['broken' => 'produced invalid JSON', 'list' => 'must produce a JSON object'] as $template => $expected) {
+            try {
+                $factory->create($this->view(), $this->channel($template, []));
+                $this->fail("Template {$template} must be rejected.");
+            } catch (RuntimeException $exception) {
+                $this->assertStringContainsString($expected, $exception->getMessage());
             }
-        } finally {
-            $this->cleanupTempFiles([
-                $templates . '/webhooks/broken.json.twig',
-                $templates . '/webhooks/list.json.twig',
-                $templates . '/webhooks',
-                $templates,
-            ]);
         }
     }
 
     private function factory(?string $dashboardUrl = 'https://mata.example.com/'): AlarmWebhookPayloadFactory
     {
         return new AlarmWebhookPayloadFactory(
-            dirname(__DIR__, 4) . '/templates',
-            new AlarmTemplateDataFactory('MATA', $dashboardUrl, new AlarmPresenter(['osira' => ['env' => 'prod']])),
+            new FilesystemLoader(dirname(__DIR__, 4) . '/templates'),
+            new AlarmTemplateDataFactory('MATA', $dashboardUrl, ['osira' => ['env' => 'prod']]),
         );
     }
 

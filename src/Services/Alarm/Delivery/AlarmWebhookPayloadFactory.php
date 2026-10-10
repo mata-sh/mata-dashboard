@@ -10,18 +10,18 @@ use Mata\Services\Alarm\Delivery\Dto\AlarmDeliveryView;
 use RuntimeException;
 use Twig\Environment;
 use Twig\Error\Error as TwigError;
-use Twig\Loader\FilesystemLoader;
+use Twig\Loader\LoaderInterface;
 
 /** Renders `templates/webhooks/<template>.json.twig` into a validated JSON payload. */
 final class AlarmWebhookPayloadFactory
 {
     private Environment $twig;
 
-    public function __construct(string $templatesPath, private AlarmTemplateDataFactory $templateData)
+    public function __construct(LoaderInterface $templates, private AlarmTemplateDataFactory $templateData)
     {
         // HTML autoescaping would corrupt JSON (`&quot;`), so templates json_encode every value instead.
         // Strict variables turn a missing param such as chat_id into a failed delivery, not an empty field.
-        $this->twig = new Environment(new FilesystemLoader($templatesPath), [
+        $this->twig = new Environment($templates, [
             'autoescape' => false,
             'strict_variables' => true,
         ]);

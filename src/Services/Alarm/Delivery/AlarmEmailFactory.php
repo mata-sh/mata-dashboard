@@ -11,19 +11,20 @@ use Symfony\Component\Mime\Address;
 use Symfony\Component\Mime\Email;
 use Throwable;
 use Twig\Environment;
+use Twig\Loader\LoaderInterface;
 
 /** Creates complete email messages for queued alarm deliveries. */
 final class AlarmEmailFactory
 {
-    private AlarmTemplateDataFactory $templateData;
+    private Environment $twig;
 
     public function __construct(
-        private Environment $twig,
+        LoaderInterface $templates,
+        private AlarmTemplateDataFactory $templateData,
         private MailConfig $mailConfig,
-        private string $applicationName,
-        AlarmPresenter $presenter = new AlarmPresenter(),
     ) {
-        $this->templateData = new AlarmTemplateDataFactory($applicationName, $mailConfig->dashboardUrl, $presenter);
+        // Escape by template extension: HTML for alarm.html.twig, nothing for the plain-text part.
+        $this->twig = new Environment($templates, ['autoescape' => 'name']);
     }
 
     /** @throws RuntimeException */
@@ -44,7 +45,7 @@ final class AlarmEmailFactory
 
         $fromName = trim((string) $this->mailConfig->fromName);
         if ($fromName === '') {
-            $fromName = $this->applicationName . ' Dashboard';
+            $fromName = $this->templateData->applicationName . ' Dashboard';
         }
 
         $data = $this->templateData->create($view);

@@ -24,6 +24,7 @@ use PHPUnit\Framework\Attributes\DataProvider;
 use Psr\Http\Message\ResponseInterface;
 use RuntimeException;
 use Throwable;
+use Twig\Loader\FilesystemLoader;
 
 /**
  * @covers \Mata\Services\Alarm\Delivery\AlarmWebhookSender
@@ -121,7 +122,7 @@ final class AlarmWebhookSenderTest extends TestCase
 
         return new AlarmWebhookSender(
             new WebhookChannel('telegram', self::URL, 'telegram', ['chat_id' => 42], 7),
-            new AlarmWebhookPayloadFactory(dirname(__DIR__, 4) . '/templates', new AlarmTemplateDataFactory('MATA', null)),
+            new AlarmWebhookPayloadFactory(new FilesystemLoader(dirname(__DIR__, 4) . '/templates'), new AlarmTemplateDataFactory('MATA', null)),
             new Client(['handler' => $stack]),
         );
     }

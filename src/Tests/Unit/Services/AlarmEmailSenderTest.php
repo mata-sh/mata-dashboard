@@ -8,6 +8,7 @@ use DateTimeImmutable;
 use Mata\Config\Dto\MailConfig;
 use Mata\Services\Alarm\Delivery\AlarmEmailFactory;
 use Mata\Services\Alarm\Delivery\AlarmEmailSender;
+use Mata\Services\Alarm\Delivery\AlarmTemplateDataFactory;
 use Mata\Services\Alarm\Delivery\Dto\AlarmDeliveryView;
 use Mata\Services\Alarm\Dto\Alarm;
 use Mata\Tests\TestCase;
@@ -15,7 +16,6 @@ use RuntimeException;
 use Symfony\Component\Mailer\Envelope;
 use Symfony\Component\Mailer\MailerInterface;
 use Symfony\Component\Mime\RawMessage;
-use Twig\Environment;
 use Twig\Loader\ArrayLoader;
 
 /**
@@ -28,7 +28,7 @@ final class AlarmEmailSenderTest extends TestCase
     public function testItPassesTheFactoryProducedEmailToTheMailerOnce(): void
     {
         $mailer = new CapturingAlarmMailer();
-        $sender = new AlarmEmailSender($mailer, $this->factory());
+        $sender = new AlarmEmailSender($this->factory(), $mailer);
 
         $sender->send($this->view());
 
@@ -40,11 +40,11 @@ final class AlarmEmailSenderTest extends TestCase
     {
         $mailer = new CapturingAlarmMailer();
         $factory = new AlarmEmailFactory(
-            new Environment(new ArrayLoader()),
+            new ArrayLoader(),
+            new AlarmTemplateDataFactory('MATA', null),
             new MailConfig(null, null, null, [], [], [], 'UTF-8', null),
-            'MATA',
         );
-        $sender = new AlarmEmailSender($mailer, $factory);
+        $sender = new AlarmEmailSender($factory, $mailer);
 
         $this->expectException(RuntimeException::class);
 
@@ -58,12 +58,12 @@ final class AlarmEmailSenderTest extends TestCase
     private function factory(): AlarmEmailFactory
     {
         return new AlarmEmailFactory(
-            new Environment(new ArrayLoader([
+            new ArrayLoader([
                 'emails/alarm.html.twig' => '<p>{{ alarm.message }}</p>',
                 'emails/alarm.txt.twig' => '{{ alarm.message }}',
-            ]), ['autoescape' => 'name']),
+            ]),
+            new AlarmTemplateDataFactory('MATA', null),
             new MailConfig(null, 'alerts@example.com', 'Alerts', ['ops@example.com'], [], [], 'UTF-8', null),
-            'MATA',
         );
     }
 

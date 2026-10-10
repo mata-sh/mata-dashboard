@@ -12,7 +12,6 @@ use Mata\Config\Monitoring\Section\NotificationRulesConfig;
 use Mata\Services\Alarm\Delivery\AlarmChannelSenderInterface;
 use Mata\Services\Alarm\Delivery\AlarmEmailFactory;
 use Mata\Services\Alarm\Delivery\AlarmEmailSender;
-use Mata\Services\Alarm\Delivery\AlarmPresenter;
 use Mata\Services\Alarm\Delivery\AlarmTemplateDataFactory;
 use Mata\Services\Alarm\Delivery\AlarmWebhookPayloadFactory;
 use Mata\Services\Alarm\Delivery\AlarmWebhookSender;
@@ -23,7 +22,6 @@ use Psr\Log\LoggerInterface;
 use RuntimeException;
 use Symfony\Component\Mailer\MailerInterface;
 use Throwable;
-use Twig\Environment;
 use Twig\Loader\FilesystemLoader;
 
 /** Composes alarm delivery channels for the evaluate and dispatch entry points. */
@@ -38,8 +36,11 @@ final class AlarmChannelBootstrap
      * Warns about notification rules that route to a channel channels.json does not define.
      * The evaluators skip those deliveries; events dedupe the warning per cooldown window.
      */
-    public static function reportUnknownRuleChannels(NotificationRulesConfig $rules, ChannelsConfig $channels, EventManager $events): void
-    {
+    public static function reportUnknownRuleChannels(
+        NotificationRulesConfig $rules,
+        ChannelsConfig $channels,
+        EventManager $events
+    ): void {
         $configured = $channels->names();
         foreach (array_diff($rules->channels(), $configured) as $channel) {
             $message = "notification_rules.json routes alarms to channel {$channel}, which is not configured; "
@@ -53,7 +54,12 @@ final class AlarmChannelBootstrap
         }
     }
 
-    /** @return array<string,AlarmChannelSenderInterface> keyed by channel name */
+    /**
+     * One sender per configured channel: the built-in email sender plus one per enabled webhook.
+     * All of them render from the same template data, so every channel shows the same alarm fields.
+     *
+     * @return array<string,AlarmChannelSenderInterface> keyed by channel name
+     */
     public static function senders(
         PathResolver $paths,
         ApplicationConfig $appConfig,
@@ -61,22 +67,18 @@ final class AlarmChannelBootstrap
         ChannelsConfig $channels,
         LoggerInterface $log,
     ): array {
-        $templatesPath = $paths->appPath . '/templates';
-        $presenter = new AlarmPresenter(self::serverPresentationConfig($paths, $log));
-
-        $emailFactory = new AlarmEmailFactory(
-            new Environment(new FilesystemLoader($templatesPath), ['autoescape' => 'name']),
-            $appConfig->mail,
+        $templates = new FilesystemLoader($paths->templatesPath);
+        $templateData = new AlarmTemplateDataFactory(
             $appConfig->general->appName,
-            $presenter,
+            $appConfig->mail->dashboardUrl,
+            self::serverPresentationConfig($paths, $log),
         );
-        $senders = [ChannelsConfig::EMAIL => new AlarmEmailSender($mailer, $emailFactory, $log)];
 
-        $payloadFactory = new AlarmWebhookPayloadFactory(
-            $templatesPath,
-            new AlarmTemplateDataFactory($appConfig->general->appName, $appConfig->mail->dashboardUrl, $presenter),
-        );
+        $emailFactory = new AlarmEmailFactory($templates, $templateData, $appConfig->mail);
+        $payloadFactory = new AlarmWebhookPayloadFactory($templates, $templateData);
         $http = new Client();
+
+        $senders = [ChannelsConfig::EMAIL => new AlarmEmailSender($emailFactory, $mailer, $log)];
         foreach ($channels->webhooks as $name => $webhook) {
             $senders[$name] = new AlarmWebhookSender($webhook, $payloadFactory, $http, $log);
         }

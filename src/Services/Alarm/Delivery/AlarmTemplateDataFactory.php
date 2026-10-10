@@ -11,11 +11,16 @@ use RuntimeException;
 /** Builds the template data shared by every alarm channel, so all channels render identical fields. */
 final readonly class AlarmTemplateDataFactory
 {
+    private AlarmPresenter $presenter;
+
+    /** @param array<string,mixed> $servers servers.json, for each server's color and environment */
     public function __construct(
-        private string $applicationName,
+        public string $applicationName,
         private ?string $dashboardUrl,
-        private AlarmPresenter $presenter = new AlarmPresenter(),
-    ) {}
+        array $servers = [],
+    ) {
+        $this->presenter = new AlarmPresenter($servers);
+    }
 
     /**
      * @return array<string,mixed>
@@ -51,7 +56,7 @@ final readonly class AlarmTemplateDataFactory
                 'color' => $presentation->serverColor,
                 'environment' => $presentation->environment,
             ],
-            'presentation' => $presentation,
+            'presentation' => ['description' => $presentation->description, 'metric' => $presentation->metric],
             'severity' => $alarm->level->getPresentation() + ['emoji' => $alarm->level->getEmoji()],
             'dashboard_url' => $this->normalizeDashboardUrl($this->dashboardUrl),
         ];

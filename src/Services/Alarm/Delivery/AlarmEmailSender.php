@@ -15,8 +15,8 @@ final class AlarmEmailSender implements AlarmChannelSenderInterface
     private LoggerInterface $logger;
 
     public function __construct(
-        private MailerInterface $mailer,
         private AlarmEmailFactory $emailFactory,
+        private MailerInterface $mailer,
         ?LoggerInterface $logger = null,
     ) {
         $this->logger = $logger ?? new NullLogger();

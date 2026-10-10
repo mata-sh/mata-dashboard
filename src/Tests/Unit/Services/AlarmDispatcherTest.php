@@ -13,6 +13,7 @@ use Mata\Services\Alarm\Delivery\AlarmChannelSenderInterface;
 use Mata\Services\Alarm\Delivery\AlarmDispatcher;
 use Mata\Services\Alarm\Delivery\AlarmEmailFactory;
 use Mata\Services\Alarm\Delivery\AlarmEmailSender;
+use Mata\Services\Alarm\Delivery\AlarmTemplateDataFactory;
 use Mata\Services\Alarm\Delivery\Dto\AlarmDeliveryView;
 use Mata\Tests\Helpers\SqliteTestDatabase;
 use Mata\Tests\TestCase;
@@ -20,7 +21,6 @@ use RuntimeException;
 use Symfony\Component\Mailer\MailerInterface;
 use Symfony\Component\Mime\Email;
 use Symfony\Component\Mime\RawMessage;
-use Twig\Environment;
 use Twig\Loader\ArrayLoader;
 
 /**
@@ -258,10 +258,11 @@ final class AlarmDispatcherTest extends TestCase
             TWIG;
 
         $factory = new AlarmEmailFactory(
-            new Environment(new ArrayLoader([
+            new ArrayLoader([
                 'emails/alarm.html.twig' => $template,
                 'emails/alarm.txt.twig' => $template,
-            ]), ['autoescape' => 'name']),
+            ]),
+            new AlarmTemplateDataFactory('MATA', null),
             new MailConfig(
                 null,
                 $configured ? 'alerts@example.com' : null,
@@ -272,10 +273,9 @@ final class AlarmDispatcherTest extends TestCase
                 'UTF-8',
                 null,
             ),
-            'MATA',
         );
 
-        return new AlarmEmailSender($mailer, $factory);
+        return new AlarmEmailSender($factory, $mailer);
     }
 
     private function createPendingDatabase(): SqliteTestDatabase

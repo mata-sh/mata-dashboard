@@ -107,7 +107,7 @@ $log = $logConfigurator->createBootLogger($paths);
 // ************************************************************************************************
 // Template Engine (Twig)
 // ************************************************************************************************
-$loader = new FilesystemLoader($paths->appPath . '/templates');
+$loader = new FilesystemLoader($paths->templatesPath);
 $twig = new Environment($loader, ['autoescape' => 'html']);
 
 // Configuration failures occur before App initialization; derive the public asset path from the request.

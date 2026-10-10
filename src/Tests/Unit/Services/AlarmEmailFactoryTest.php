@@ -7,13 +7,12 @@ namespace Mata\Tests\Unit\Services;
 use DateTimeImmutable;
 use Mata\Config\Dto\MailConfig;
 use Mata\Services\Alarm\Delivery\AlarmEmailFactory;
-use Mata\Services\Alarm\Delivery\AlarmPresenter;
+use Mata\Services\Alarm\Delivery\AlarmTemplateDataFactory;
 use Mata\Services\Alarm\Delivery\Dto\AlarmDeliveryView;
 use Mata\Services\Alarm\Dto\Alarm;
 use Mata\Services\Alarm\Dto\AlarmLevel;
 use Mata\Tests\TestCase;
 use RuntimeException;
-use Twig\Environment;
 use Twig\Loader\FilesystemLoader;
 
 /**
@@ -106,10 +105,8 @@ final class AlarmEmailFactoryTest extends TestCase
 
     public function testItRendersServerColorAndEnvironmentBadge(): void
     {
-        $presenter = new AlarmPresenter(servers: [
-            'Api-1' => ['primary_color' => '#E88C02', 'env' => 'test'],
-        ]);
-        $html = (string) $this->factory(presenter: $presenter)->create($this->view())->getHtmlBody();
+        $servers = ['Api-1' => ['primary_color' => '#E88C02', 'env' => 'test']];
+        $html = (string) $this->factory(servers: $servers)->create($this->view())->getHtmlBody();
 
         $this->assertStringContainsString('background-color:#E88C02; padding:4px 12px', $html);
         $this->assertStringContainsString('border:1px solid #f59e0b', $html);
@@ -119,9 +116,9 @@ final class AlarmEmailFactoryTest extends TestCase
 
     public function testItStylesServerOnlyHeadingsAsColoredBadges(): void
     {
-        $presenter = new AlarmPresenter(servers: ['Api-1' => ['primary_color' => '#E88C02']]);
+        $servers = ['Api-1' => ['primary_color' => '#E88C02']];
         $view = $this->view(new Alarm('node_unhealthy', 'Unhealthy health response', null, AlarmLevel::Warning, 'Api-1'));
-        $html = (string) $this->factory(presenter: $presenter)->create($view)->getHtmlBody();
+        $html = (string) $this->factory(servers: $servers)->create($view)->getHtmlBody();
 
         $this->assertStringNotContainsString('>Server:</td>', $html);
         $this->assertStringContainsString('background-color:#E88C02; padding:4px 12px;', $html);
@@ -233,13 +230,12 @@ final class AlarmEmailFactoryTest extends TestCase
         ?string $fromName = 'MATA Alerts',
         array $alarmRecipients = ['ops@example.com', 'oncall@example.com'],
         string $applicationName = 'MATA',
-        ?AlarmPresenter $presenter = null,
+        array $servers = [],
     ): AlarmEmailFactory {
         return new AlarmEmailFactory(
-            new Environment(new FilesystemLoader(dirname(__DIR__, 4) . '/templates'), ['autoescape' => 'name']),
+            new FilesystemLoader(dirname(__DIR__, 4) . '/templates'),
+            new AlarmTemplateDataFactory($applicationName, $dashboardUrl, $servers),
             new MailConfig(null, $fromEmail, $fromName, $alarmRecipients, [], [], 'UTF-8', $dashboardUrl),
-            $applicationName,
-            $presenter ?? new AlarmPresenter(),
         );
     }
 

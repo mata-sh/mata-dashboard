@@ -27,6 +27,7 @@ class PathResolver
     public string $tempPath;
     public string $publicPath;
     public string $configPath;
+    public string $templatesPath;
     public string $appLogPath;
     public string $bootLogPath;
 
@@ -70,6 +71,7 @@ class PathResolver
         $this->tempPath = $this->appPath . DIRECTORY_SEPARATOR . 'temp';
         $this->publicPath = $this->appPath . DIRECTORY_SEPARATOR . 'public';
         $this->configPath = $this->appPath . DIRECTORY_SEPARATOR . 'config';
+        $this->templatesPath = $this->appPath . DIRECTORY_SEPARATOR . 'templates';
     }
 
     /**

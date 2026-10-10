@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Mata\Services\Alarm\Delivery\Dto;
 
-/** Presentation of an alarm for the alarm email: description, metric card, server color and environment badge. */
+/** How an alarm reads on every channel: description, metric, server color and environment. */
 final readonly class AlarmPresentation
 {
     public function __construct(
