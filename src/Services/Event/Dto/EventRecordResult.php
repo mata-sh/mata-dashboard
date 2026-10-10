@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Mata\Models\Dto;
+namespace Mata\Services\Event\Dto;
 
 /**
  * Event recording result containing IDs and resolved context.

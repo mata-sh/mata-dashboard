@@ -4,7 +4,7 @@
 declare(strict_types=1);
 
 use Mata\Bootstrap\CronRuntime;
-use Mata\Config\DatabaseIntegrityChecker;
+use Mata\Database\DatabaseIntegrityChecker;
 
 require_once __DIR__ . '/../vendor/autoload.php';
 

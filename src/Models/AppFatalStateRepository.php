@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Mata\Models;
 
 use Mata\Database\DatabaseInterface;
-use Mata\Models\Dto\AppFatalState;
 
 final class AppFatalStateRepository
 {

@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Mata\Services\Alarm\Dto;
+namespace Mata\Models;
 
 use DateTimeImmutable;
 

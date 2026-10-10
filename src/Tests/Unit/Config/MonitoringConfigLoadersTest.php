@@ -20,7 +20,7 @@ use Mata\Config\Monitoring\Section\ChartsConfig;
 use Mata\Config\Monitoring\Section\DataRetentionConfig;
 use Mata\Config\Monitoring\Section\NotificationRulesConfig;
 use Mata\Config\Monitoring\Section\ProbesConfig;
-use Mata\Models\Dto\EventRecordResult;
+use Mata\Services\Event\Dto\EventRecordResult;
 use Mata\Services\Event\EventRecorderService;
 use Mata\Services\Navigation\MenuBuilder;
 use Mata\Tests\TestCase;

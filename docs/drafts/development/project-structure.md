@@ -114,12 +114,10 @@ Data access and database interactions.
 src/Models/
 ├── AlarmDeliveryRepository.php    # Alarm delivery data access
 ├── AlarmRepository.php            # Alarm data access
+├── AppFatalState.php              # App fatal-state row model
 ├── AppFatalStateRepository.php    # App fatal-state data access
 ├── ConfigSyncRepository.php       # Config sync data access
 ├── EventRepository.php            # Event data access
-├── Dto/
-│   ├── AppFatalState.php
-│   └── EventRecordResult.php
 └── ServerMetrics/
     ├── ServerMetricsRepository.php   # Metrics data access
     ├── ServerMetricRaw.php           # Raw metric row model
@@ -205,7 +203,6 @@ src/Config/
 ├── EnvConfigCreator.php          # Scaffold env config
 ├── EnvConfigFatalException.php   # Fatal config-load error
 ├── LogConfigurator.php           # Logging setup
-├── DatabaseIntegrityChecker.php  # Database health checks
 ├── Dto/                          # Config DTOs (DatabaseConfig, MailConfig, DashboardConfig, ...)
 └── Monitoring/                   # .json config loaders (ServersConfigLoader, ThresholdsConfigLoader, ...)
 ```

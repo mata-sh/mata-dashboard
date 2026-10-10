@@ -27,7 +27,7 @@ use Mata\Config\Monitoring\Section\ProbesConfig;
 use Mata\Config\Monitoring\Section\ServersConfig;
 use Mata\Config\Monitoring\Section\ThresholdsConfig;
 use Mata\Config\Monitoring\Section\TtlConfig;
-use Mata\Models\Dto\EventRecordResult;
+use Mata\Services\Event\Dto\EventRecordResult;
 use Mata\Services\Event\EventManager;
 use Mata\Services\Event\EventRecorderService;
 use Mata\Services\Navigation\MenuBuilder;

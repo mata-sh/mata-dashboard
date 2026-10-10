@@ -7,7 +7,6 @@ namespace Mata\Models;
 use DateInterval;
 use DateTimeImmutable;
 use Mata\Database\DatabaseInterface;
-use Mata\Services\Alarm\Dto\QueuedAlarmDelivery;
 use PDOException;
 
 /** Persistence operations for channel-specific alarm deliveries. */

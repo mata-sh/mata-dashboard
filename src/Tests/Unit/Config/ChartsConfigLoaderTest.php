@@ -6,7 +6,7 @@ namespace Mata\Tests\Unit\Config;
 
 use Mata\Config\Monitoring\Loader\ChartsConfigLoader;
 use Mata\Config\Monitoring\Section\ChartsConfig;
-use Mata\Models\Dto\EventRecordResult;
+use Mata\Services\Event\Dto\EventRecordResult;
 use Mata\Services\Event\EventRecorderService;
 use Mata\Services\ServerMetrics\MetricCatalog;
 use Mata\Services\ServerMetrics\MetricQueryPolicy;

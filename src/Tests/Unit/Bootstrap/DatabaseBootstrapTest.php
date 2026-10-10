@@ -6,8 +6,8 @@ namespace Mata\Tests\Unit\Bootstrap;
 
 use Exception;
 use Mata\Bootstrap\DatabaseBootstrap;
-use Mata\Config\DatabaseIntegrityChecker;
 use Mata\Config\Dto\DatabaseConfig;
+use Mata\Database\DatabaseIntegrityChecker;
 use Mata\Database\DatabaseInterface;
 use Mata\Database\NullDatabase;
 use Mata\Tests\TestCase;

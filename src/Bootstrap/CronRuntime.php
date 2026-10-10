@@ -5,10 +5,10 @@ declare(strict_types=1);
 namespace Mata\Bootstrap;
 
 use Exception;
-use Mata\Config\DatabaseIntegrityChecker;
 use Mata\Config\Dto\ApplicationConfig;
 use Mata\Config\EnvConfigLoader;
 use Mata\Config\LogConfigurator;
+use Mata\Database\DatabaseIntegrityChecker;
 use Mata\Database\DatabaseInterface;
 use Mata\Database\NullDatabase;
 use Mata\Database\PdoDatabase;

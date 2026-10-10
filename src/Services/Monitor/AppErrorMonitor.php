@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Mata\Services\Monitor;
 
+use Mata\Models\AppFatalState;
 use Mata\Models\AppFatalStateRepository;
-use Mata\Models\Dto\AppFatalState;
 use Mata\Services\Event\Dto\EventCommand;
 use Mata\Services\Event\Dto\EventMetric;
 use Mata\Services\Event\EventManager;

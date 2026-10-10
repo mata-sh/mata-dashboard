@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Mata\Tests\Unit\Config;
 
 use Mata\Config\Monitoring\Loader\AlarmRateLimitsConfigLoader;
-use Mata\Models\Dto\EventRecordResult;
+use Mata\Services\Event\Dto\EventRecordResult;
 use Mata\Services\Event\EventRecorderService;
 use Mata\Tests\TestCase;
 

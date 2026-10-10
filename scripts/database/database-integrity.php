@@ -4,7 +4,7 @@
 declare(strict_types=1);
 
 use Mata\Bootstrap\ScriptRuntime;
-use Mata\Config\DatabaseIntegrityChecker;
+use Mata\Database\DatabaseIntegrityChecker;
 use Mata\Database\PdoDatabase;
 
 require __DIR__ . '/../../vendor/autoload.php';

@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Mata\Models\Dto;
+namespace Mata\Models;
 
 final readonly class AppFatalState
 {

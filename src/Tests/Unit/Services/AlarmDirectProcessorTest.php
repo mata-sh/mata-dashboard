@@ -6,12 +6,12 @@ namespace Mata\Tests\Unit\Services;
 
 use Mata\Config\Monitoring\Section\AlarmRateLimit;
 use Mata\Config\Monitoring\Section\AlarmRateLimitsConfig;
-use Mata\Models\Dto\EventRecordResult;
 use Mata\Services\Alarm\AlarmCreatorInterface;
 use Mata\Services\Alarm\AlarmDirectProcessor;
 use Mata\Services\Alarm\AlarmQueueFailureThrottle;
 use Mata\Services\Alarm\Dto\Alarm;
 use Mata\Services\Alarm\Dto\AlarmLevel;
+use Mata\Services\Event\Dto\EventRecordResult;
 use PHPUnit\Framework\TestCase;
 use Psr\Log\NullLogger;
 

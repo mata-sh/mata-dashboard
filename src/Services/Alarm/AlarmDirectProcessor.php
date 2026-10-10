@@ -5,9 +5,9 @@ declare(strict_types=1);
 namespace Mata\Services\Alarm;
 
 use Mata\Config\Monitoring\Section\AlarmRateLimitsConfig;
-use Mata\Models\Dto\EventRecordResult;
 use Mata\Services\Alarm\Dto\Alarm;
 use Mata\Services\Alarm\Dto\AlarmLevel;
+use Mata\Services\Event\Dto\EventRecordResult;
 use PDOException;
 use Psr\Log\LoggerInterface;
 

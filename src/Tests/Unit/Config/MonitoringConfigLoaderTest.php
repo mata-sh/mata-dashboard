@@ -18,7 +18,7 @@ use Mata\Config\Monitoring\MonitoringConfig;
 use Mata\Config\Monitoring\MonitoringConfigLoader;
 use Mata\Config\Monitoring\Section\AlarmRateLimit;
 use Mata\Config\Monitoring\Section\AlarmRateLimitsConfig;
-use Mata\Models\Dto\EventRecordResult;
+use Mata\Services\Event\Dto\EventRecordResult;
 use Mata\Services\Event\EventRecorderService;
 use Mata\Services\ServerMetrics\MetricCatalog;
 use Mata\Services\ServerMetrics\MetricQueryPolicy;
