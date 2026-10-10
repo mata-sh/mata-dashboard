@@ -450,6 +450,29 @@ class ModalControllerTest extends TestCase
         $this->assertSame('<div>Monitoring disabled</div>', $this->controller->renderAppLogFiles($server, $app)->getContent());
     }
 
+    public function testItRendersNodeErrorsInsideTheModal(): void
+    {
+        $collector = $this->createMockServerDataCollector('server1');
+        $collector->method('fetchAppReadme')->willReturn([
+            'result' => null,
+            'error' => ['kind' => 'node_response', 'message' => 'Unknown app', 'endpoint' => 'apps/gone/readme', 'status_code' => 404],
+        ]);
+        $this->injectMockCollector('server1', $collector);
+
+        $this->mockTwig->expects($this->once())
+            ->method('render')
+            ->with('partials/modals/error-modal.html.twig', $this->callback(
+                static fn (array $data): bool => $data['message'] === 'Unknown app' && $data['modal_context'] === 'gone'
+            ))
+            ->willReturn('<div id="modal">Unknown app</div>');
+
+        $response = $this->controller->renderAppReadme('server1', 'gone');
+
+        $this->assertInstanceOf(HtmlResponse::class, $response);
+        $this->assertSame(502, $response->getStatusCode());
+        $this->assertSame('<div id="modal">Unknown app</div>', $response->getContent());
+    }
+
     public function testItReturnsMonitoringDisabledForLogJsonEndpoints(): void
     {
         $server = 'server1';

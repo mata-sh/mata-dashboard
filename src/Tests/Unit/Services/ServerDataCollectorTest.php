@@ -308,7 +308,8 @@ final class ServerDataCollectorTest extends TestCase
 
         $this->assertNull($response['result']);
         $this->assertSame(503, $response['error']['status_code']);
-        $this->assertStringContainsString('db:3306', $response['error']['message']);
+        // Hosts and driver errors stay in the logs; only the node's label reaches the UI.
+        $this->assertSame('Database connection failed', $response['error']['message']);
     }
 
     public function testDatabaseProcessesAreRequestedForOneDatabaseAndNeverCached(): void

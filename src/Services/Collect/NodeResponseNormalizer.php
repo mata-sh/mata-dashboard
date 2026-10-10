@@ -889,27 +889,46 @@ class NodeResponseNormalizer
         $error = $payload['error'] ?? null;
         // Non-2xx bodies carry an error label (`{"error": "Unknown database", "message": ...}`).
         $isErrorBody = $error === true || $error === 'Monitoring disabled' || ($statusCode !== null && is_string($error));
-        if (!$isErrorBody || !is_string($payload['message'] ?? null)) {
+        if (!$isErrorBody) {
             return null;
         }
 
-        $message = trim($payload['message']);
-        if ($message === '') {
+        $nodeError = is_string($error) ? trim($error) : '';
+        $nodeMessage = is_string($payload['message'] ?? null) ? trim($payload['message']) : '';
+        if ($nodeMessage === '' && $nodeError === '') {
             return null;
         }
 
         $this->logger->warning('Node returned an error payload', [
             'endpoint' => $endpoint,
             'status_code' => $statusCode,
-            'message' => $message,
+            'node_error' => $nodeError,
+            'node_message' => $nodeMessage,
         ]);
 
         return [
             'kind' => 'node_response',
-            'message' => $message,
+            'message' => $this->safeNodeErrorMessage($nodeError, $nodeMessage, $statusCode),
             'endpoint' => $endpoint,
             'status_code' => $statusCode,
         ];
+    }
+
+    /**
+     * Pick the user-facing text for a node error.
+     *
+     * 5xx messages can carry hosts, driver errors or shell commands, so only the node's fixed
+     * label is shown; the full message is logged. 403 and 429 bodies have no message at all.
+     */
+    private function safeNodeErrorMessage(string $nodeError, string $nodeMessage, ?int $statusCode): string
+    {
+        return match (true) {
+            $nodeError === 'Service unavailable' => 'Node is in maintenance mode',
+            $nodeError === 'Rate limit exceeded' => 'Node rate limit exceeded, try again later',
+            $nodeError === 'Forbidden' => 'Node rejected this dashboard (IP not allowed)',
+            $nodeError !== '' && ($nodeMessage === '' || ($statusCode ?? 0) >= 500) => $nodeError,
+            default => $nodeMessage,
+        };
     }
 
     /** @param array<mixed> $array */

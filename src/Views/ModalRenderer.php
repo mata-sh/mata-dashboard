@@ -447,6 +447,26 @@ class ModalRenderer extends BaseRenderer
     }
 
     /**
+     * Render a modal that explains why its content could not be loaded.
+     */
+    public function renderErrorModal(string $title, ?string $context, string $message): string
+    {
+        try {
+            return $this->twig->render('partials/modals/error-modal.html.twig', [
+                'modal_title' => $title,
+                'modal_context' => $context,
+                'message' => $message,
+                'icons' => $this->getModalIcons(),
+            ]);
+        } catch (Exception $e) {
+            $this->logError($e->getMessage(), 'ErrorModal', ['title' => $title]);
+
+            return '<div class="notification is-danger" role="alert">'
+                . htmlspecialchars($message, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . '</div>';
+        }
+    }
+
+    /**
      * Build template data for server info modal.
      *
      * @param array<string,mixed> $serverInfo Server information data

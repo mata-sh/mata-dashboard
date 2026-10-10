@@ -439,4 +439,37 @@ final class NodeResponseNormalizerValidationTest extends TestCase
         ));
         $this->assertNull($this->normalizer->normalizeNodeErrorResponse('<h1>Not Found</h1>', 'apps/foo', 404));
     }
+
+    #[DataProvider('nodeErrorBodies')]
+    public function testRealNodeErrorBodiesBecomeUserSafeMessages(string $body, int $status, string $message): void
+    {
+        $error = $this->normalizer->normalizeNodeErrorResponse($body, 'endpoint', $status);
+
+        $this->assertSame($message, $error['message'] ?? null);
+        $this->assertSame($status, $error['status_code'] ?? null);
+    }
+
+    /**
+     * @return iterable<string,array{string,int,string}>
+     */
+    public static function nodeErrorBodies(): iterable
+    {
+        yield 'watcher error' => ['{"error":"Unknown app","message":"Unknown app","details":{"app":"gone"}}', 404, 'Unknown app'];
+
+        yield 'forbidden without message' => ['{"error":"Forbidden"}', 403, 'Node rejected this dashboard (IP not allowed)'];
+
+        yield 'rate limit without message' => ['{"error":"Rate limit exceeded","limit":60,"reset_at":1760000000}', 429, 'Node rate limit exceeded, try again later'];
+
+        yield 'maintenance' => ['{"error":"Service unavailable","message":"Maintenance mode enabled"}', 503, 'Node is in maintenance mode'];
+
+        yield 'auth reason' => ['{"error":"Unauthorized","message":"Invalid HMAC signature"}', 401, 'Invalid HMAC signature'];
+
+        yield 'database host hidden' => [
+            '{"error":"Database connection failed","message":"Failed to connect to the database server on db.internal:3306: Access denied for user mata@10.0.0.5","details":{"host":"db.internal","port":"3306"}}',
+            503,
+            'Database connection failed',
+        ];
+
+        yield 'command hidden' => ['{"error":"Server command failed","message":"Failed to execute command: crontab -l -u www","details":null}', 500, 'Server command failed'];
+    }
 }

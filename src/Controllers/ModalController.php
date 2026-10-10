@@ -89,10 +89,12 @@ class ModalController extends BaseController
                 }
                 $serverData = $this->serverDataCollectors[$server];
 
-                $readmeResponse = $this->requireValidResponse(
-                    $this->modalCacheService->fetchReadme($serverData, $app, $forceRefresh),
-                    "README of {$app} on {$server}"
-                );
+                $readmeResponse = $this->modalCacheService->fetchReadme($serverData, $app, $forceRefresh);
+                $nodeError = $this->nodeErrorMessage($readmeResponse);
+                if ($nodeError !== null) {
+                    return $this->errorModal('README.md', $app, $nodeError, 502);
+                }
+                $readmeResponse = $this->requireValidResponse($readmeResponse, "README of {$app} on {$server}");
 
                 $markdownContent = $readmeResponse['result'] ?? '';
                 $notice = $this->extractNotice($readmeResponse);
@@ -143,6 +145,10 @@ class ModalController extends BaseController
                 $logsResponse = $this->modalCacheService->fetchLogs($serverData, $app, $forceRefresh);
                 if ($this->monitoringDisabled($logsResponse)) {
                     return new HtmlResponse($this->modalRenderer->renderMonitoringDisabledModal($server, $app, 'Log analysis'));
+                }
+                $nodeError = $this->nodeErrorMessage($logsResponse);
+                if ($nodeError !== null) {
+                    return $this->errorModal('Logs', $app, $nodeError, 502);
                 }
                 $logsResponse = $this->requireValidResponse($logsResponse, "logs of {$app} on {$server}");
 
@@ -202,6 +208,10 @@ class ModalController extends BaseController
                 );
                 if ($this->monitoringDisabled($logsStatusResponse)) {
                     return new HtmlResponse($this->modalRenderer->renderMonitoringDisabledModal($server, $app, 'Log-size monitoring'));
+                }
+                $nodeError = $this->nodeErrorMessage($logsStatusResponse);
+                if ($nodeError !== null) {
+                    return $this->errorModal('Error Log Files', $app, $nodeError, 502);
                 }
                 $logsStatusResponse = $this->requireValidResponse($logsStatusResponse, "log files of {$app} on {$server}");
                 $logFiles = is_array($logsStatusResponse['result'] ?? null)
@@ -318,10 +328,12 @@ class ModalController extends BaseController
                 }
                 $serverData = $this->serverDataCollectors[$server];
 
-                $serverInfoResponse = $this->requireValidResponse(
-                    $this->modalCacheService->fetchServerInfo($serverData, $forceRefresh),
-                    "server info for {$server}"
-                );
+                $serverInfoResponse = $this->modalCacheService->fetchServerInfo($serverData, $forceRefresh);
+                $nodeError = $this->nodeErrorMessage($serverInfoResponse);
+                if ($nodeError !== null) {
+                    return $this->errorModal('Server Info', $server, $nodeError, 502);
+                }
+                $serverInfoResponse = $this->requireValidResponse($serverInfoResponse, "server info for {$server}");
 
                 $serverInfo = !empty($serverInfoResponse['result'])
                     ? $serverInfoResponse['result']
@@ -357,9 +369,10 @@ class ModalController extends BaseController
     public function renderDatabaseProcesses(string $server, ?string $database = null): Response
     {
         $target = $database === null ? "databases on {$server}" : "database '{$database}' on {$server}";
+        $modalContext = $database === null ? $server : "{$server} / {$database}";
 
         return $this->executeWithErrorHandling(
-            function () use ($server, $database, $target) {
+            function () use ($server, $database, $target, $modalContext) {
                 if (!isset($this->serverDataCollectors[$server])) {
                     return $this->handleHtmlNotFound("Server '{$server}'", 'Database process request');
                 }
@@ -367,7 +380,13 @@ class ModalController extends BaseController
                 $processesResponse = $this->serverDataCollectors[$server]->fetchDatabaseProcesses($database);
                 // The node answers 404 for unknown databases and when monitoring is off.
                 if (($processesResponse['error']['status_code'] ?? null) === 404) {
-                    return $this->handleHtmlNotFound(ucfirst($target), 'Database process request');
+                    $this->logNotFound(ucfirst($target), 'Database process request');
+
+                    return $this->errorModal('Database Processes', $modalContext, ucfirst($target) . ' not found', 404);
+                }
+                $nodeError = $this->nodeErrorMessage($processesResponse);
+                if ($nodeError !== null) {
+                    return $this->errorModal('Database Processes', $modalContext, $nodeError, 502);
                 }
 
                 $processesResponse = $this->requireValidResponse($processesResponse, "process list for {$target}");
@@ -406,10 +425,12 @@ class ModalController extends BaseController
                 }
                 $serverData = $this->serverDataCollectors[$server];
 
-                $cronjobsResponse = $this->requireValidResponse(
-                    $this->modalCacheService->fetchServerCronjobs($serverData, $forceRefresh),
-                    "server cronjobs for {$server}"
-                );
+                $cronjobsResponse = $this->modalCacheService->fetchServerCronjobs($serverData, $forceRefresh);
+                $nodeError = $this->nodeErrorMessage($cronjobsResponse);
+                if ($nodeError !== null) {
+                    return $this->errorModal('Server Cronjobs', $server, $nodeError, 502);
+                }
+                $cronjobsResponse = $this->requireValidResponse($cronjobsResponse, "server cronjobs for {$server}");
 
                 $cronjobs = !empty($cronjobsResponse['result']) && is_array($cronjobsResponse['result'])
                     ? $cronjobsResponse['result']
@@ -499,5 +520,25 @@ class ModalController extends BaseController
         }
 
         return $response;
+    }
+
+    /**
+     * The node-reported error of a collector response; the normalizer already made it user-safe.
+     *
+     * @param null|array<string,mixed>|string $response
+     */
+    private function nodeErrorMessage(array|string|null $response): ?string
+    {
+        $message = is_array($response) && is_array($response['error'] ?? null) ? $response['error']['message'] ?? null : null;
+
+        return is_string($message) ? $message : null;
+    }
+
+    /**
+     * Show why the modal content could not be loaded, inside the modal shell.
+     */
+    private function errorModal(string $title, ?string $context, string $message, int $statusCode): HtmlResponse
+    {
+        return new HtmlResponse($this->modalRenderer->renderErrorModal($title, $context, $message), $statusCode);
     }
 }

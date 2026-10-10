@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - The `builtin` alarm decision driver delivers on every channel the notification rule selects instead of email only
 
 ### Fixed
+- Modals (README, logs, server info, cronjobs, database processes) now open with the reason when the node reports an error, instead of not opening at all. Node rate-limit (429) and IP-allowlist (403) rejections are now reported instead of showing as missing data. Node 5xx errors show only their short label in the UI; hosts, driver errors and shell commands appear only in `logs/app.log`
 - Running a Composer audit for a single app (`/watch/audit/run/{server}/{app}`) now requires `POST` with a CSRF token, so another site can no longer start audits through a logged-in browser
 - Signing in with an unknown or locked username now takes as long to fail as a wrong password, so response times no longer reveal which accounts exist or are locked
 

@@ -105,6 +105,36 @@ document.body.addEventListener('htmx:beforeSwap', () => {
     document.getElementById('loading-indicator')?.style.setProperty('visibility', 'hidden');
 });
 
+// Modal routes answer failures with an error modal; htmx skips 4xx/5xx swaps by default.
+document.body.addEventListener('htmx:beforeSwap', (event) => {
+    const { xhr, target } = event.detail;
+    const isHtml = xhr.getResponseHeader('Content-Type')?.startsWith('text/html');
+    if (xhr.status >= 400 && isHtml && target instanceof Element && target.id === 'modal-container') {
+        event.detail.shouldSwap = true;
+        event.detail.isError = false;
+    }
+});
+
+// Other modal failures answer with generic JSON; show its message instead of opening nothing.
+// Background polling (bell, audits) is excluded so an outage does not pop up repeatedly.
+document.body.addEventListener('htmx:responseError', (event) => {
+    const { xhr, elt, target } = event.detail;
+    if (!(target instanceof Element) || target.id !== 'modal-container') {
+        return;
+    }
+
+    let message = `Request failed (HTTP ${xhr.status})`;
+    try {
+        const body = JSON.parse(xhr.responseText);
+        if (typeof body?.message === 'string' && body.message !== '') {
+            message = body.message;
+        }
+    } catch {
+        // Not JSON; keep the status message.
+    }
+    window.mataOpenMessageModal?.(message, elt, 'Request failed');
+});
+
 document.body.addEventListener('htmx:configRequest', (event) => {
     const csrfMeta = document.querySelector('meta[name="csrf-token"]');
     if (csrfMeta) {

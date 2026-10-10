@@ -1,0 +1,8 @@
+{% embed "partials/modals/modal-shell.html.twig" with {
+  modal_title: modal_title,
+  modal_context: modal_context
+} %}
+  {% block modal_body %}
+    <div class="notification is-danger" role="alert">{{ message }}</div>
+  {% endblock %}
+{% endembed %}

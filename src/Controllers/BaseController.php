@@ -103,7 +103,7 @@ abstract class BaseController
         return ResponseFactory::jsonNotFound($resource);
     }
 
-    private function logNotFound(string $resource, string $context): void
+    protected function logNotFound(string $resource, string $context): void
     {
         $logContext = [
             'resource' => $resource,
