@@ -186,7 +186,7 @@ final class AlarmEmailFactoryTest extends TestCase
         $factory = $this->factory('https://user:pass@mata.example.com');
 
         $this->expectException(RuntimeException::class);
-        $this->expectExceptionMessage('dashboard URL');
+        $this->expectExceptionMessage('MAIL_DASHBOARD_URL');
         $factory->create($this->view());
     }
 

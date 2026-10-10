@@ -115,11 +115,11 @@ final readonly class ChannelsConfig
         }
 
         $url = trim((string) $env($urlEnv));
-        $parts = parse_url($url);
-        $scheme = is_array($parts) ? strtolower($parts['scheme'] ?? '') : '';
         if ($url === '') {
             throw new InvalidArgumentException("{$path}: environment variable {$urlEnv} is not set.");
         }
+        $parts = parse_url($url) ?: [];
+        $scheme = strtolower($parts['scheme'] ?? '');
         if (filter_var($url, FILTER_VALIDATE_URL) === false || !in_array($scheme, ['http', 'https'], true)
             || isset($parts['user']) || isset($parts['pass'])) {
             throw new InvalidArgumentException("{$path}: {$urlEnv} must be an absolute http(s) URL without userinfo.");

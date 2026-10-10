@@ -62,15 +62,6 @@ final readonly class AlarmTemplateDataFactory
         ];
     }
 
-    /** Humanize an event type for headlines, e.g. `node_unhealthy` becomes `Node unhealthy`. */
-    public function title(?string $type): string
-    {
-        $type = strtolower($this->singleLine($type, ''));
-        $type = str_replace('_', ' ', $type);
-
-        return $type === '' ? 'Alarm' : ucfirst($type);
-    }
-
     /** Collapse control characters and whitespace runs for single-line fields such as subjects. */
     public function singleLine(?string $value, string $fallback): string
     {
@@ -79,6 +70,15 @@ final readonly class AlarmTemplateDataFactory
         $value = trim($value);
 
         return $value === '' ? $fallback : $value;
+    }
+
+    /** Humanize an event type for headlines, e.g. `node_unhealthy` becomes `Node unhealthy`. */
+    private function title(?string $type): string
+    {
+        $type = strtolower($this->singleLine($type, ''));
+        $type = str_replace('_', ' ', $type);
+
+        return $type === '' ? 'Alarm' : ucfirst($type);
     }
 
     private function formatContext(?string $context): string
@@ -133,7 +133,7 @@ final readonly class AlarmTemplateDataFactory
             || isset($parts['user'])
             || isset($parts['pass'])
         ) {
-            throw new RuntimeException('Alarm email dashboard URL must be an absolute http or https URL without userinfo.');
+            throw new RuntimeException('MAIL_DASHBOARD_URL must be an absolute http or https URL without userinfo.');
         }
 
         return str_ends_with($dashboardUrl, '/') ? substr($dashboardUrl, 0, -1) : $dashboardUrl;

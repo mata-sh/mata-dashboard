@@ -65,17 +65,17 @@ final class AlarmEmailFactory
         return (new Email())
             ->from(new Address($fromEmail, $fromName))
             ->to(...$recipientAddresses)
-            ->subject($this->createSubject($view))
+            ->subject($this->createSubject($view, $data['alarm']['title']))
             ->html($html, $this->mailConfig->charset)
             ->text($text, $this->mailConfig->charset);
     }
 
-    private function createSubject(AlarmDeliveryView $view): string
+    private function createSubject(AlarmDeliveryView $view, string $title): string
     {
         $alarm = $view->alarm;
         $app = $this->templateData->singleLine($alarm->app, '*');
         $server = $this->templateData->singleLine($alarm->server, '*');
 
-        return sprintf('%s [%s.%s] %s', $alarm->level->getEmoji(), $app, $server, $this->templateData->title($alarm->type));
+        return sprintf('%s [%s.%s] %s', $alarm->level->getEmoji(), $app, $server, $title);
     }
 }

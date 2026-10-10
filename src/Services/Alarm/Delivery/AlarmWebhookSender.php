@@ -74,11 +74,11 @@ final class AlarmWebhookSender implements AlarmChannelSenderInterface
     private function failure(string $detail): RuntimeException
     {
         $url = $this->channel->url;
-        $parts = parse_url($url);
-        $host = is_array($parts) ? ($parts['host'] ?? '') : '';
+        $parts = parse_url($url) ?: [];
+        $host = $parts['host'] ?? '';
         // The full URL first, then its path and query alone, since either may hold the secret.
         $secrets = array_filter(
-            [$url, is_array($parts) ? ($parts['path'] ?? '') : '', is_array($parts) ? ($parts['query'] ?? '') : ''],
+            [$url, $parts['path'] ?? '', $parts['query'] ?? ''],
             static fn (string $secret): bool => strlen($secret) > 1,
         );
 
