@@ -34,7 +34,7 @@ pages or HTMX fragments; `/api/*` returns JSON. The node-facing API is separate:
 | `GET` | `/watch/metrics` | Metrics dashboard fragment. |
 | `GET` | `/watch/audit/section` | Composer audit fragment. |
 | `POST` | `/watch/audit/run` | Run the configured audit and return its fragment. |
-| `GET` | `/watch/audit/run/{server}/{app}` | Run an audit for one application and return its fragment. |
+| `POST` | `/watch/audit/run/{server}/{app}` | Run an audit for one application and return its fragment. |
 
 ### Refresh fragments
 

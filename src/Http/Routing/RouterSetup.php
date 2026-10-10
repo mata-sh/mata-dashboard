@@ -371,7 +371,7 @@ class RouterSetup
             $auditRoutes = [
                 ['audit_section_render', '/audit/section', 'get', fn () => $this->auditController->renderAuditSection()],
                 ['audit_run_render', '/audit/run', 'post', fn () => $this->auditController->runAudit()],
-                ['audit_run_app_render', '/audit/run/{server}/{app}', 'get', fn ($server, $app) => $this->auditController->runAuditApp($server, $app)],
+                ['audit_run_app_render', '/audit/run/{server}/{app}', 'post', fn ($server, $app) => $this->auditController->runAuditApp($server, $app)],
             ];
 
             // Content-based modals handled by ModalController

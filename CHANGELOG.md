@@ -3,6 +3,11 @@
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Fixed
+- Running a Composer audit for a single app (`/watch/audit/run/{server}/{app}`) now requires `POST` with a CSRF token, so another site can no longer start audits through a logged-in browser
+
 ## [0.8.0] - 2026-10-10
 
 Pairs with MATA Node 0.4.0.
