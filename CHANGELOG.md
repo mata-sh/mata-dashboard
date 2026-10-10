@@ -3,7 +3,9 @@
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [0.8.0] - 2026-10-10
+
+Pairs with MATA Node 0.4.0.
 
 ### Added
 - App cards show the application description reported by the node in the app title tooltip
@@ -12,7 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Database alarms: `database_unreachable` when the node cannot reach its database server, and `database_connections_too_high` when connections reach the `server_data.database_connections_percent` alarm level (default 80 % of `max_connections`). Both are checked by the server metrics cron
 - Security alarms from the users file: `user_account_locked` (warning) when failed logins lock an account, `user_account_changed` (warning) when an account is created, deleted or given a new role, and `users_file_insecure` (critical) when the users file is readable or writable by group or others. All are checked every 5 minutes by `servers_data_fetch`; account changes are compared against `temp/users-file-monitor.json`, and the first run only records a baseline
-- Library security alarms: `library_outdated_security` when a Composer audit reports a security advisory the app did not have before (critical for `critical`/`high` advisories, otherwise warning). The new `cron/libraries_audit.php` job runs every 6 hours and asks the node for a fresh audit only once the cached one exceeds the `audit` TTL. Run the database migration and add the job to your crontab. MATA Node's `monitoring.libraryaudit: false` switches it off per app; update both before setting it
+- Library security alarms: `library_outdated_security` when a Composer audit reports a security advisory the app did not have before (critical for `critical`/`high` advisories, otherwise warning). The new `cron/libraries_audit.php` job runs every 6 hours and asks the node for a fresh audit only once the cached one exceeds the `audit` TTL. Run the database migration and add the job to your crontab. Requires MATA Dashboard 0.8.0 paired with MATA Node 0.4.0 before setting `monitoring.libraryaudit` in `apps.json`; it defaults to `true`, and `false` disables per-app Composer auditing and library security events.
 
 ### Changed
 - `manage-users.php create` rejects usernames other than 1 to 64 letters, digits, dots, underscores or hyphens, and roles other than `viewer` and `admin` (previously a typo such as `admn` created a user without admin rights); existing accounts are unaffected
