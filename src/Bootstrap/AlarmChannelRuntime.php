@@ -7,6 +7,7 @@ namespace Mata\Bootstrap;
 use GuzzleHttp\Client;
 use Mata\Config\Dto\ApplicationConfig;
 use Mata\Config\Monitoring\Loader\ChannelsConfigLoader;
+use Mata\Config\Monitoring\Section\AlarmRateLimitsConfig;
 use Mata\Config\Monitoring\Section\ChannelsConfig;
 use Mata\Config\Monitoring\Section\NotificationRulesConfig;
 use Mata\Services\Alarm\Delivery\AlarmChannelSenderInterface;
@@ -67,6 +68,30 @@ final readonly class AlarmChannelRuntime
                 . 'its deliveries are skipped. Configured channels: ' . implode(', ', $configured) . '.';
             $this->events->handle(new EventCommand(
                 type: 'notification_rules_unknown_channel',
+                message: $message,
+                level: 'warning',
+                context: ['detail' => $message, 'channel' => $channel],
+            ));
+        }
+    }
+
+    /**
+     * Warns about limits.json entries for a channel channels.json does not define, such as a typo,
+     * since no delivery ever uses them.
+     */
+    public function reportUnknownLimitChannels(AlarmRateLimitsConfig $limits): void
+    {
+        $limited = array_keys($limits->getChannelLimits());
+        foreach ($limits->getServerOverrides() as $overrides) {
+            $limited = [...$limited, ...array_keys($overrides)];
+        }
+
+        $configured = $this->channels->names();
+        foreach (array_unique(array_diff($limited, $configured)) as $channel) {
+            $message = "limits.json sets limits for channel {$channel}, which is not configured; they are never applied. "
+                . 'Configured channels: ' . implode(', ', $configured) . '.';
+            $this->events->handle(new EventCommand(
+                type: 'limits_unknown_channel',
                 message: $message,
                 level: 'warning',
                 context: ['detail' => $message, 'channel' => $channel],

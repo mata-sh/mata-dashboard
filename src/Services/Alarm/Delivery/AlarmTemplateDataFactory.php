@@ -72,11 +72,15 @@ final readonly class AlarmTemplateDataFactory
         return $value === '' ? $fallback : $value;
     }
 
-    /** Humanize an event type for headlines, e.g. `node_unhealthy` becomes `Node unhealthy`. */
+    /**
+     * Humanize an event type for headlines, e.g. `node_unhealthy` becomes `Node unhealthy`.
+     * A dotted prefix names the area: `server_metrics.ingestion_run_empty` becomes `Server metrics: ingestion run empty`.
+     */
     private function title(?string $type): string
     {
         $type = strtolower($this->singleLine($type, ''));
-        $type = str_replace('_', ' ', $type);
+        $type = preg_replace('/\./', ': ', $type, 1) ?? $type;
+        $type = str_replace(['.', '_'], ' ', $type);
 
         return $type === '' ? 'Alarm' : ucfirst($type);
     }

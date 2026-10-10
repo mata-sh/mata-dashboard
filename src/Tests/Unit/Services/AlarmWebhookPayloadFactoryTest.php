@@ -103,6 +103,40 @@ final class AlarmWebhookPayloadFactoryTest extends TestCase
         ], $payload);
     }
 
+    public function testDottedTypePrefixBecomesTheTitleArea(): void
+    {
+        $alarm = new Alarm('server_metrics.ingestion_run_empty', 'No rows', null, AlarmLevel::Warning, 'osira');
+
+        $payload = $this->factory()->create($this->view($alarm), $this->channel('generic', []));
+
+        $this->assertIsArray($payload['alarm']);
+        $this->assertSame('Server metrics: ingestion run empty', $payload['alarm']['title']);
+    }
+
+    public function testSlackPayloadIsPlainTextWithoutControlSequences(): void
+    {
+        $alarm = new Alarm('fatal_errors_occurring', '<!channel> a & b <https://evil.example|click>', null, AlarmLevel::Error, 'osira', 'shop');
+
+        $payload = $this->factory()->create($this->view($alarm), $this->channel('slack', []));
+
+        $this->assertFalse($payload['mrkdwn']);
+        $this->assertIsString($payload['text']);
+        $this->assertStringContainsString('&lt;!channel&gt; a &amp; b &lt;https://evil.example|click&gt;', $payload['text']);
+        $this->assertStringNotContainsString('<', $payload['text']);
+    }
+
+    public function testDiscordPayloadStaysWithinTheContentLimitAndPingsNobody(): void
+    {
+        $alarm = new Alarm('fatal_errors_occurring', '@everyone ' . str_repeat('x', 10000), null, AlarmLevel::Error, 'osira');
+
+        $payload = $this->factory()->create($this->view($alarm), $this->channel('discord', []));
+
+        $this->assertSame(['parse' => []], $payload['allowed_mentions']);
+        $this->assertIsString($payload['content']);
+        $this->assertLessThanOrEqual(2000, mb_strlen($payload['content']));
+        $this->assertStringEndsWith('<https://mata.example.com>', $payload['content']);
+    }
+
     public function testTemplateProducingInvalidJsonIsRejected(): void
     {
         $factory = new AlarmWebhookPayloadFactory(new ArrayLoader([

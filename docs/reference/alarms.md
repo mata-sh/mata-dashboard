@@ -67,7 +67,8 @@ delayed. Another logical alarm may still be stored.
 `limits.json` applies after queueing. A rate-limited delivery remains due for a
 future dispatcher run through `next_retry_at`; no second alarm is created. If
 `limits.json` is absent, built-in per-server/channel limits apply: 20 per minute,
-120 per hour, and 500 per day.
+120 per hour, and 500 per day. Limits for a channel that is not configured are
+never applied; the dispatcher records a `limits_unknown_channel` warning.
 
 ## Channels
 
@@ -95,7 +96,7 @@ per channel. A channel that keeps failing does not affect the others.
 | `type` | Required. `webhook` is currently the only type. |
 | `enabled` | Optional, default `true`. A disabled channel is ignored. |
 | `url_env` | Environment variable in `config/config.env` holding the URL. |
-| `template` | Payload template in `templates/webhooks/`: `telegram` or `generic`. |
+| `template` | Payload template in `templates/webhooks/`: `telegram`, `slack`, `discord`, or `generic`. |
 | `params` | Optional strings, numbers, or booleans passed to the template, such as `chat_id`. |
 | `timeout_seconds` | Optional integer from 1 to 30, default 5. |
 
@@ -126,6 +127,20 @@ usual, and record a `notification_rules_unknown_channel` warning.
 
 Messages are plain text: severity, target, alarm type, message, environment,
 alarm ID, time, and the dashboard link from `MAIL_DASHBOARD_URL`.
+
+### Slack and Discord
+
+1. Create an incoming webhook: in Slack, add the *Incoming Webhooks* app to a
+   channel; in Discord, open the channel settings, then *Integrations* →
+   *Webhooks*.
+2. Set `WEBHOOK_SLACK_URL` or `WEBHOOK_DISCORD_URL` in `config/config.env` to
+   the webhook URL.
+3. Add a channel with `"template": "slack"` or `"template": "discord"` to
+   `config/channels.json`, and list its name in `notification_rules.json`.
+
+Both send the same plain text as Telegram. Mentions such as `@channel` or
+`@everyone` in alarm messages do not notify anyone. Discord messages are cut to
+its 2000-character limit.
 
 ### Testing a channel
 

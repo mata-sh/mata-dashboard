@@ -1,0 +1,15 @@
+{#- Slack incoming webhook. Autoescape is off for JSON templates: every value must pass through json_encode.
+    Plain text on purpose: mrkdwn is off, and &, <, > are escaped so a message cannot form links or @channel mentions. -#}
+{%- set text -%}
+{{ severity.emoji }} {{ severity.value|upper }} · {{ target.is_server_only ? target.server : target.heading }}
+{{ alarm.title }}
+
+{{ alarm.message|slice(0, 3000) }}
+
+{{ target.environment ? target.environment.value ~ ' · ' }}alarm #{{ alarm.id }} · {{ alarm.created_at }}{{ dashboard_url ? "\n" ~ dashboard_url }}
+{%- endset -%}
+{
+  "text": {{ text|replace({'&': '&amp;', '<': '&lt;', '>': '&gt;'})|json_encode }},
+  "mrkdwn": false,
+  "unfurl_links": false
+}

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Mata\Tests\Unit\Bootstrap;
 
 use Mata\Bootstrap\AlarmChannelRuntime;
+use Mata\Config\Monitoring\Section\AlarmRateLimitsConfig;
 use Mata\Config\Monitoring\Section\ChannelsConfig;
 use Mata\Config\Monitoring\Section\NotificationRulesConfig;
 use Mata\Services\Alarm\Delivery\AlarmEmailSender;
@@ -48,6 +49,24 @@ final class AlarmChannelRuntimeTest extends TestCase
 
         $this->assertSame([
             'notification_rules.json routes alarms to channel telgram, which is not configured; its deliveries are skipped. Configured channels: email, telegram.',
+        ], $recorded->messages);
+    }
+
+    public function testLimitsForUnconfiguredChannelsAreReportedOnce(): void
+    {
+        [$events, $recorded] = $this->events();
+        $limits = AlarmRateLimitsConfig::fromArray(
+            [
+                'channels' => ['default' => ['per_minute' => 10], 'email' => ['per_minute' => 5], 'telgram' => ['per_minute' => 1]],
+                'overrides' => ['osira' => ['telegram' => ['per_minute' => 2], 'telgram' => ['per_minute' => 1]]],
+            ],
+            static function (string $message): void {},
+        );
+
+        $this->runtime($this->telegramChannels(), $events)->reportUnknownLimitChannels($limits);
+
+        $this->assertSame([
+            'limits.json sets limits for channel telgram, which is not configured; they are never applied. Configured channels: email, telegram.',
         ], $recorded->messages);
     }
 
