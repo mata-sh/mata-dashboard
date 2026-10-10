@@ -154,6 +154,16 @@ test_user_account_locked_warning_is_allowed if {
     decision.reason == "monitored_warning"
 }
 
+test_user_account_changed_warning_is_allowed if {
+    decision := alarms.decision with input as {
+        "event": {"type": "user_account_changed", "level": "warning"},
+    }
+
+    decision.allow == true
+    decision.priority == 60
+    decision.reason == "monitored_warning"
+}
+
 test_orders_export_stale_critical_is_denied if {
     decision := alarms.decision with input as {
         "event": {"type": "orders_export_stale", "level": "critical"},

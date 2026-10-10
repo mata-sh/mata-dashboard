@@ -40,6 +40,7 @@ final class AlarmPresenter
             'server_apps_transport_unreachable' => ['Detected a transport failure affecting all application endpoints.', $ruleDetail],
             'users_file_insecure' => ['Detected insecure permissions on the users file.', $ruleDetail],
             'user_account_locked' => ['Detected an account locked after repeated failed logins.', $ruleDetail],
+            'user_account_changed' => ['Detected a created, deleted or re-roled user account.', $ruleDetail],
             default => [$this->defaultDescription($alarm->type), null],
         };
 
@@ -100,6 +101,7 @@ final class AlarmPresenter
             'node_unreachable', 'app_unreachable', 'server_apps_transport_unreachable', 'database_unreachable' => 'UNREACHABLE',
             'users_file_insecure' => 'INSECURE',
             'user_account_locked' => 'LOCKED',
+            'user_account_changed' => 'CHANGED',
             default => null,
         };
     }

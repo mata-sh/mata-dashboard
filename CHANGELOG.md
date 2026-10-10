@@ -11,7 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - The documentation site includes the MATA Node reference (configuration, Docker, custom log parsers), synced from mata-node at build time
 
 - Database alarms: `database_unreachable` when the node cannot reach its database server, and `database_connections_too_high` when connections reach the `server_data.database_connections_percent` alarm level (default 80 % of `max_connections`). Both are checked by the server metrics cron
-- Security alarms from the users file: `user_account_locked` (warning) when failed logins lock an account, and `users_file_insecure` (critical) when the users file is readable or writable by group or others. Both are checked every 5 minutes by `servers_data_fetch`
+- Security alarms from the users file: `user_account_locked` (warning) when failed logins lock an account, `user_account_changed` (warning) when an account is created, deleted or given a new role, and `users_file_insecure` (critical) when the users file is readable or writable by group or others. All are checked every 5 minutes by `servers_data_fetch`; account changes are compared against `temp/users-file-monitor.json`, and the first run only records a baseline
 
 ### Changed
 - A missing `probes.json` or `limits.json` is no longer reported, since both are optional. A malformed `limits.json` is now reported as a dashboard configuration event instead of only in `logs/app.log`

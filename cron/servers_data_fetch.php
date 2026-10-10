@@ -91,7 +91,13 @@ try {
     }
 
     try {
-        (new UsersFileMonitor(UsersFilePathResolver::resolve($paths->appPath), $eventManager, $log))->check(time());
+        $usersFileMonitor = new UsersFileMonitor(
+            UsersFilePathResolver::resolve($paths->appPath),
+            $paths->tempPath . '/users-file-monitor.json',
+            $eventManager,
+            $log,
+        );
+        $usersFileMonitor->check(time());
     } catch (Throwable $e) {
         $log->error('Users file monitor: ' . $e->getMessage());
     }

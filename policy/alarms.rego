@@ -101,6 +101,7 @@ monitored_types := {
     "server_metrics.ingestion_stalled",
     "users_file_insecure",
     "user_account_locked",
+    "user_account_changed",
 }
 
 monitored_critical := result if {
