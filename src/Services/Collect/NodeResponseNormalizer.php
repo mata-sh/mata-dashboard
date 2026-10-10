@@ -144,7 +144,7 @@ class NodeResponseNormalizer
         return $this->apiResponse(null, $error, $cacheAge, $cacheTtl, $fromCache, $staleCache);
     }
 
-    public function isValidJsonArray(string $json): bool
+    private function isValidJsonArray(string $json): bool
     {
         if ($json === '') {
             return false;

@@ -410,17 +410,5 @@ class ServerDataCollector implements ServerDataCollectorInterface
         return $this->responseNormalizer->transformResponse($responseBody, $path);
     }
 
-    /**
-     * Validate if a string contains valid JSON array data.
-     *
-     * @param string $json JSON string to validate
-     *
-     * @return bool True if valid JSON array, false otherwise
-     */
-    public function isValidJsonArray(string $json): bool
-    {
-        return $this->responseNormalizer->isValidJsonArray($json);
-    }
-
     // Availability checks were moved to AppReachabilityMonitor.
 }

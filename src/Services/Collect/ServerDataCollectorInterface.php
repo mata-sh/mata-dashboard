@@ -150,13 +150,4 @@ interface ServerDataCollectorInterface
      * @return null|array<string,mixed> Normalized response with cronjob entries or null on failure
      */
     public function fetchServerCronjobs(CacheType $cacheType = CacheType::Cronjobs): ?array;
-
-    /**
-     * Validate if a string contains valid JSON array data.
-     *
-     * @param string $json JSON string to validate
-     *
-     * @return bool True if valid JSON array, false otherwise
-     */
-    public function isValidJsonArray(string $json): bool;
 }

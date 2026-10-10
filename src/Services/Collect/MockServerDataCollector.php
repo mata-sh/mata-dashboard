@@ -396,16 +396,6 @@ class MockServerDataCollector implements ServerDataCollectorInterface
     }
 
     /**
-     * Mock JSON validation.
-     */
-    public function isValidJsonArray(string $json): bool
-    {
-        $decoded = json_decode($json, true);
-
-        return json_last_error() === JSON_ERROR_NONE && is_array($decoded);
-    }
-
-    /**
      * Generate deterministic raw node-shaped Composer audit data for an app.
      *
      * @return array<string,mixed>
