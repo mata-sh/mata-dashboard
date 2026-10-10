@@ -17,7 +17,11 @@ use Mata\Config\Monitoring\Section\AlarmRateLimitsConfig;
 use Mata\Config\Monitoring\Section\ChartsConfig;
 use Mata\Config\Monitoring\Section\MenuConfig;
 
-/** Loads the fixed set of dashboard monitoring configuration sections. */
+/**
+ * Loads the fixed set of dashboard monitoring configuration sections.
+ *
+ * Menu and charts only shape the web UI, so cron omits their loaders and gets empty sections.
+ */
 final readonly class MonitoringConfigLoader
 {
     public function __construct(
@@ -32,6 +36,10 @@ final readonly class MonitoringConfigLoader
         private ?ChartsConfigLoader $charts = null,
     ) {}
 
+    /**
+     * Alarm rate limits arrive pre-built: AlarmDirectProcessor needs them, and the servers and
+     * thresholds loaders need that processor, so limits load before this aggregate.
+     */
     public function load(string $configRoot, AlarmRateLimitsConfig $alarmRateLimits): MonitoringConfig
     {
         return new MonitoringConfig(
