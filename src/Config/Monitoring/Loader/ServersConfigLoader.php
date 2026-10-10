@@ -35,14 +35,15 @@ final class ServersConfigLoader extends AbstractJsonConfigLoader
         try {
             $raw = $this->normalizeJson($this->readJsonObject($filePath));
         } catch (RuntimeException $exception) {
-            $this->reportLoadFailure($filePath);
+            $this->reportLoadFailure($exception->getMessage());
 
-            throw new MonitoringConfigLoadException("servers.json file not found at {$filePath}", previous: $exception);
+            throw new MonitoringConfigLoadException($exception->getMessage(), previous: $exception);
         }
         if ($raw === []) {
-            $this->reportLoadFailure($filePath);
+            $reason = "servers.json at {$filePath} is empty";
+            $this->reportLoadFailure($reason);
 
-            throw new MonitoringConfigLoadException('servers.json invalid or empty');
+            throw new MonitoringConfigLoadException($reason);
         }
 
         $visible = array_filter(
@@ -102,12 +103,14 @@ final class ServersConfigLoader extends AbstractJsonConfigLoader
         }
     }
 
-    private function reportLoadFailure(string $filePath): void
+    /** @param string $reason names the file and the cause: unreadable, invalid JSON, or empty */
+    private function reportLoadFailure(string $reason): void
     {
         $this->reportProblem(
             $this->events,
+            // Persisted event identifier, also used for malformed and empty files; rename only with a migration.
             type: 'servers_config_not_found',
-            message: "Could not load {$filePath} -> file not found",
+            message: "Could not load servers: {$reason}",
             level: 'critical',
             forceAlarm: true,
         );

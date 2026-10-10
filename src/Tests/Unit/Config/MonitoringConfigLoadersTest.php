@@ -8,6 +8,7 @@ use InvalidArgumentException;
 use Mata\Config\Monitoring\Loader\DataRetentionConfigLoader;
 use Mata\Config\Monitoring\Loader\IntervalsConfigLoader;
 use Mata\Config\Monitoring\Loader\MenuConfigLoader;
+use Mata\Config\Monitoring\Loader\MonitoringConfigLoadException;
 use Mata\Config\Monitoring\Loader\NotificationRulesConfigLoader;
 use Mata\Config\Monitoring\Loader\ProbesConfigLoader;
 use Mata\Config\Monitoring\Loader\ServersConfigLoader;
@@ -328,6 +329,47 @@ final class MonitoringConfigLoadersTest extends TestCase
         }
 
         $this->assertSame([], $result->values);
+    }
+
+    #[DataProvider('unloadableServersFileProvider')]
+    public function testLoadServersConfigReportsWhyTheFileCouldNotBeLoaded(?string $contents, string $cause): void
+    {
+        $messages = [];
+        $this->eventRecorder
+            ->method('recordEvent')
+            ->willReturnCallback(static function (string $type, string $message) use (&$messages): EventRecordResult {
+                $messages[$type] = $message;
+
+                return new EventRecordResult(1, null, null, null, null, null);
+            });
+
+        $directory = $this->createTempDirectory();
+        $path = $directory . '/servers.json';
+        if ($contents !== null) {
+            file_put_contents($path, $contents);
+        }
+
+        try {
+            $this->loader->loadServersConfig($path);
+            $this->fail('Expected the servers config load to fail');
+        } catch (MonitoringConfigLoadException $exception) {
+            $this->assertStringContainsString($cause, $exception->getMessage());
+        } finally {
+            $this->cleanupTempFiles([$directory]);
+        }
+
+        $this->assertStringContainsString($cause, $messages['servers_config_not_found'] ?? '');
+        $this->assertStringNotContainsString('file not found', $messages['servers_config_not_found'] ?? '');
+    }
+
+    /** @return array<string,array{?string,string}> */
+    public static function unloadableServersFileProvider(): array
+    {
+        return [
+            'missing' => [null, 'Cannot read JSON config at'],
+            'malformed' => ['{"server": ', 'Invalid JSON config at'],
+            'empty' => ['{}', 'is empty'],
+        ];
     }
 
     public function testValidateServersConfigRejectsNonBooleanDisabledFlag(): void

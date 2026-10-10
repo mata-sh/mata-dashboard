@@ -368,21 +368,16 @@ Application log file exceeded size threshold.
 ### Configuration Events
 
 #### `servers_config_not_found`
-servers.json configuration file missing or unreadable.
+servers.json configuration file missing, unreadable, malformed, or empty.
 
 **Severity:** Critical
 
 **Event Type:** `servers_config_not_found`
 
-**Details:**
+**Details:** the message names the cause, for example:
 ```json
 {
-    "config_file": "config/servers.json",
-    "error": "File not found",
-    "checked_paths": [
-        "/var/www/mata/config/servers.json",
-        "/var/www/mata/config/demo/servers.json"
-    ]
+    "detail": "Could not load servers: Invalid JSON config at /var/www/mata/config/servers.json: Syntax error"
 }
 ```
 
