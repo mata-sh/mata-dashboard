@@ -256,7 +256,6 @@ Helper classes and utilities.
 src/Utils/
 ├── PathResolver.php            # Path management
 ├── UsersFilePathResolver.php   # users.json path resolution
-├── LogHandler.php              # Logging utilities
 ├── Tools.php                   # General utilities
 ├── TypeConverter.php           # Type conversion helpers
 └── FileStateStore.php          # File state management
@@ -266,7 +265,6 @@ src/Utils/
 
 - Common utilities
 - Path resolution
-- Logging
 - Type conversion
 - File operations
 
