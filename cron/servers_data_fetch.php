@@ -15,7 +15,9 @@ use Mata\Services\Monitor\HttpProbeClient;
 use Mata\Services\Monitor\LogSizeEvaluator;
 use Mata\Services\Monitor\Dto\AppReachabilityPolicy;
 use Mata\Services\Monitor\ServerMonitoringFactory;
+use Mata\Services\Monitor\UsersFileMonitor;
 use Mata\Services\Sync\AppInventorySync;
+use Mata\Utils\UsersFilePathResolver;
 
 require_once __DIR__ . '/../vendor/autoload.php';
 
@@ -86,6 +88,12 @@ try {
             $log->error("{$server}: " . $e->getMessage());
             $stats->recordFailure();
         }
+    }
+
+    try {
+        (new UsersFileMonitor(UsersFilePathResolver::resolve($paths->appPath), $eventManager, $log))->check(time());
+    } catch (Throwable $e) {
+        $log->error('Users file monitor: ' . $e->getMessage());
     }
 
     foreach ($stats->summaryLines($cron->endTimer(), $cron->memoryUsage()) as $line) {

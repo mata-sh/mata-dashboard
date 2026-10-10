@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - The documentation site includes the MATA Node reference (configuration, Docker, custom log parsers), synced from mata-node at build time
 
 - Database alarms: `database_unreachable` when the node cannot reach its database server, and `database_connections_too_high` when connections reach the `server_data.database_connections_percent` alarm level (default 80 % of `max_connections`). Both are checked by the server metrics cron
+- Security alarms from the users file: `user_account_locked` (warning) when failed logins lock an account, and `users_file_insecure` (critical) when the users file is readable or writable by group or others. Both are checked every 5 minutes by `servers_data_fetch`
 
 ### Changed
 - `manage-users.php create` / `passwd` reject passwords shorter than 12 characters or longer than 72 bytes (except in `demo`); existing passwords are unaffected

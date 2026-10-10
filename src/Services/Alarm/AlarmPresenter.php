@@ -38,6 +38,8 @@ final class AlarmPresenter
             'node_unreachable' => ['Detected an unreachable server health endpoint.', $ruleDetail ?? 'Alarm rule: first failed check'],
             'app_unreachable' => ['Detected an unreachable application endpoint.', $ruleDetail],
             'server_apps_transport_unreachable' => ['Detected a transport failure affecting all application endpoints.', $ruleDetail],
+            'users_file_insecure' => ['Detected insecure permissions on the users file.', $ruleDetail],
+            'user_account_locked' => ['Detected an account locked after repeated failed logins.', $ruleDetail],
             default => [$this->defaultDescription($alarm->type), null],
         };
 
@@ -96,6 +98,8 @@ final class AlarmPresenter
             'server_metrics.ingestion_run_empty' => 'EMPTY',
             'node_unhealthy' => 'UNHEALTHY',
             'node_unreachable', 'app_unreachable', 'server_apps_transport_unreachable', 'database_unreachable' => 'UNREACHABLE',
+            'users_file_insecure' => 'INSECURE',
+            'user_account_locked' => 'LOCKED',
             default => null,
         };
     }

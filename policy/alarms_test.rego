@@ -134,6 +134,26 @@ test_server_metrics_ingestion_stalled_warning_is_allowed if {
     decision.reason == "monitored_warning"
 }
 
+test_users_file_insecure_critical_is_allowed if {
+    decision := alarms.decision with input as {
+        "event": {"type": "users_file_insecure", "level": "critical"},
+    }
+
+    decision.allow == true
+    decision.priority == 10
+    decision.reason == "monitored_critical"
+}
+
+test_user_account_locked_warning_is_allowed if {
+    decision := alarms.decision with input as {
+        "event": {"type": "user_account_locked", "level": "warning"},
+    }
+
+    decision.allow == true
+    decision.priority == 60
+    decision.reason == "monitored_warning"
+}
+
 test_orders_export_stale_critical_is_denied if {
     decision := alarms.decision with input as {
         "event": {"type": "orders_export_stale", "level": "critical"},

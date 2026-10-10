@@ -99,6 +99,8 @@ monitored_types := {
     "node_unhealthy",
     "server_metrics.ingestion_run_empty",
     "server_metrics.ingestion_stalled",
+    "users_file_insecure",
+    "user_account_locked",
 }
 
 monitored_critical := result if {
