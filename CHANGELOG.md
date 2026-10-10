@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Security alarms from the users file: `user_account_locked` (warning) when failed logins lock an account, `user_account_changed` (warning) when an account is created, deleted or given a new role, and `users_file_insecure` (critical) when the users file is readable or writable by group or others. All are checked every 5 minutes by `servers_data_fetch`; account changes are compared against `temp/users-file-monitor.json`, and the first run only records a baseline
 
 ### Changed
+- `manage-users.php create` rejects usernames other than 1 to 64 letters, digits, dots, underscores or hyphens, and roles other than `viewer` and `admin` (previously a typo such as `admn` created a user without admin rights); existing accounts are unaffected
 - A missing `probes.json` or `limits.json` is no longer reported, since both are optional. A malformed `limits.json` is now reported as a dashboard configuration event instead of only in `logs/app.log`
 - Configuration problems are recorded once per 30 minutes per distinct problem instead of on every page load and cron run, and are skipped when `EVENTS_ENABLED=false`
 - Events that cannot be stored, because the database is unavailable or a write fails, are written to `logs/app.log`; a database error while recording a configuration problem no longer stops the page or cron job

@@ -162,8 +162,8 @@ class AuthenticationFlowTest extends TestCase
         // Create users with different roles
         $users = [
             ['username' => 'admin_user', 'password' => 'admin_pass', 'role' => 'admin'],
-            ['username' => 'editor_user', 'password' => 'editor_pass', 'role' => 'editor'],
             ['username' => 'viewer_user', 'password' => 'viewer_pass', 'role' => 'viewer'],
+            ['username' => 'other_viewer', 'password' => 'other_pass', 'role' => 'viewer'],
         ];
 
         // Create all users
@@ -210,7 +210,7 @@ class AuthenticationFlowTest extends TestCase
         $this->assertFalse($this->auth->userExists('viewer_user'), 'Deleted user should not exist');
 
         $this->assertTrue($this->auth->userExists('admin_user'));
-        $this->assertTrue($this->auth->userExists('editor_user'));
+        $this->assertTrue($this->auth->userExists('other_viewer'));
         $this->assertFalse($this->auth->userExists('viewer_user'));
     }
 
@@ -328,7 +328,7 @@ class AuthenticationFlowTest extends TestCase
     public function testPasswordResetRevokesOldAccessWithoutDamagingFreshCredentials(): void
     {
         $adminSession = $_SESSION;
-        $this->auth->createUser('operator', 'old-password', 'editor');
+        $this->auth->createUser('operator', 'old-password', 'viewer');
         $this->auth->login('operator', 'old-password', true);
         $oldSession = $_SESSION;
         $oldCookie = $this->rememberCookieFor('operator');

@@ -113,5 +113,8 @@ jobs:
       - name: Static analysis (PHPStan, level 7)
         run: vendor/bin/phpstan analyse --level=7
 
+      - name: Static analysis of entrypoints (PHPStan, level 7)
+        run: composer stan-entrypoints
+
       - name: Unit tests (PHPUnit)
         run: vendor/bin/phpunit

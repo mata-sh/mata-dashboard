@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Mata\Core;
 
+use InvalidArgumentException;
 use Psr\Log\LoggerInterface;
 use RuntimeException;
 
@@ -31,6 +32,8 @@ class Auth
     private array $users = [];
     private const MAX_ATTEMPTS = 5;
     private const LOCKOUT_TIME_SECONDS = 900; // 15 minutes
+    private const ROLES = ['viewer', 'admin'];
+    private const USERNAME_PATTERN = '/^[A-Za-z0-9._-]{1,64}$/';
     private const REMEMBER_LIFETIME_SECONDS = 30 * 24 * 60 * 60;
 
     /** @var bool CLI mode bypasses role checks for user management */
@@ -197,6 +200,13 @@ class Auth
     private function backfillAuthRevision(string $username): void
     {
         $this->users[$username]['auth_revision'] ??= bin2hex(random_bytes(32));
+    }
+
+    private function assertValidRole(string $role): void
+    {
+        if (!in_array($role, self::ROLES, true)) {
+            throw new InvalidArgumentException('Role must be one of: ' . implode(', ', self::ROLES));
+        }
     }
 
     private function rotateAuthRevision(string $username): void
@@ -569,6 +579,10 @@ class Auth
         if (!$this->cliMode && !$this->hasRole('admin')) {
             throw new RuntimeException('Unauthorized: Admin access required');
         }
+        if (preg_match(self::USERNAME_PATTERN, $username) !== 1) {
+            throw new InvalidArgumentException('Username must be 1-64 characters: letters, digits, dot, underscore or hyphen');
+        }
+        $this->assertValidRole($role);
         if (isset($this->users[$username])) {
             throw new RuntimeException("User already exists: {$username}");
         }
@@ -662,6 +676,7 @@ class Auth
         if (!isset($this->users[$username])) {
             throw new RuntimeException("User does not exist: {$username}");
         }
+        $this->assertValidRole($role);
 
         $this->users[$username]['role'] = $role;
         $this->rotateAuthRevision($username);

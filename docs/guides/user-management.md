@@ -57,6 +57,9 @@ sudo -u <php-fpm-user> php /var/www/vhosts/<domain>/httpdocs/<app>/scripts/user-
 anything longer. The `demo` environment is exempt because its credentials are public.
 Existing passwords keep working.
 
+`create` accepts usernames of 1 to 64 letters, digits, dots, underscores or hyphens, and the
+roles `viewer` and `admin`. Existing accounts with other usernames keep working.
+
 ## Initial User
 
 `make setup` offers to create the initial user. Setup does not install static default credentials.

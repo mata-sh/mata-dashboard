@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Mata\Tests\Unit\Utils;
 
+use InvalidArgumentException;
 use Mata\Core\Auth;
 use Mata\Core\Session;
 use Mata\Http\Request;
@@ -313,7 +314,7 @@ class AuthTest extends TestCase
         // Login as admin and create multiple users
         $this->auth->login('admin', 'admin123');
         $this->auth->createUser('user1', 'pass1', 'viewer');
-        $this->auth->createUser('user2', 'pass2', 'editor');
+        $this->auth->createUser('user2', 'pass2', 'admin');
 
         $users = $this->auth->getAllUsers();
 
@@ -395,10 +396,74 @@ class AuthTest extends TestCase
         $this->auth->login('admin', 'admin123');
         $this->auth->createUser('roletest', 'password', 'viewer');
 
-        $this->auth->updateUserRole('roletest', 'editor');
+        $this->auth->updateUserRole('roletest', 'admin');
 
         $userInfo = $this->auth->getUserInfo('roletest');
-        $this->assertEquals('editor', $userInfo['role']);
+        $this->assertEquals('admin', $userInfo['role']);
+    }
+
+    /**
+     * @group auth
+     * @group user-management
+     */
+    #[DataProvider('invalidUsernames')]
+    public function testItRejectsInvalidUsernames(string $username): void
+    {
+        $this->auth->login('admin', 'admin123');
+
+        try {
+            $this->auth->createUser($username, 'password123');
+            $this->fail('Invalid username was accepted');
+        } catch (InvalidArgumentException) {
+            $this->assertArrayNotHasKey($username, $this->auth->getAllUsers());
+        }
+    }
+
+    /** @return array<string,array{string}> */
+    public static function invalidUsernames(): array
+    {
+        return [
+            'empty' => [''],
+            'space' => ['bob smith'],
+            'newline' => ["bob\nFailed login for user: admin"],
+            'path' => ['../bob'],
+            'too long' => [str_repeat('a', 65)],
+        ];
+    }
+
+    /**
+     * @group auth
+     * @group role-management
+     */
+    #[DataProvider('invalidRoles')]
+    public function testItRejectsUnknownRoles(string $role): void
+    {
+        $this->auth->login('admin', 'admin123');
+        $this->auth->createUser('roletest', 'password', 'viewer');
+
+        try {
+            $this->auth->createUser('newuser', 'password', $role);
+            $this->fail('Unknown role was accepted on create');
+        } catch (InvalidArgumentException) {
+            $this->assertArrayNotHasKey('newuser', $this->auth->getAllUsers());
+        }
+
+        try {
+            $this->auth->updateUserRole('roletest', $role);
+            $this->fail('Unknown role was accepted on update');
+        } catch (InvalidArgumentException) {
+            $this->assertSame('viewer', $this->auth->getUserInfo('roletest')['role']);
+        }
+    }
+
+    /** @return array<string,array{string}> */
+    public static function invalidRoles(): array
+    {
+        return [
+            'typo' => ['admn'],
+            'empty' => [''],
+            'wrong case' => ['Admin'],
+        ];
     }
 
     /**
