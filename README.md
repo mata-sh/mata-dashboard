@@ -88,8 +88,7 @@ Collected from nodes:
 - Application metadata
 
 Not collected: secrets, environment variables, database contents, source code.
-What a node exposes is what the node is configured to expose — a
-misconfigured node can leak more than intended.
+What a node exposes is what the node is configured to expose.
 
 ## Alarm model
 
@@ -147,7 +146,7 @@ installs the same manifest as the `www-data` crontab.
 
 ## Scope
 
-MATA began as an internal tool for monitoring PHP deployments with limited hosting access.
+MATA began as minimalistic tool for monitoring PHP deployments with limited hosting access.
 
 **Ideal for**
 

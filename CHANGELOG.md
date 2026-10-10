@@ -6,57 +6,50 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
-- Webhook alarm channels, starting with Telegram: define channels in the optional `config/channels.json` (see `config/example/channels.json.example`; each entry has `"type": "webhook"`, and `email` stays built in), put each URL in `config/config.env` (for example `WEBHOOK_TELEGRAM_URL`), and list the channel name in `notification_rules.json`. `php scripts/alarm_channel_test.php <channel>` sends a test alarm. Emergency alarms for configuration failures stay email-only
-- Slack and Discord alarm templates: set `"template": "slack"` or `"discord"` in `config/channels.json` with the webhook URL in `config/config.env` (for example `WEBHOOK_SLACK_URL`). Mentions in alarm messages never notify anyone
-- The alarm dispatcher records a `limits_unknown_channel` warning when `limits.json` sets limits for a channel that is not configured, such as a misspelled name
+- Webhook alarm channels (Telegram, Slack, Discord): define them in the optional `config/channels.json` (see `config/example/channels.json.example`), put each URL in `config/config.env` (e.g. `WEBHOOK_TELEGRAM_URL`), and reference the channel in `notification_rules.json`. Test with `php scripts/alarm_channel_test.php <channel>`. Emergency alarms stay email-only; mentions never notify anyone
+- `limits_unknown_channel` warning when `limits.json` names an unconfigured channel
 
 ### Changed
-- `notification_rules.json` accepts any channel name. A channel that is not configured is skipped and reported as a `notification_rules_unknown_channel` warning; previously an unknown channel discarded the whole file's rules
-- The `builtin` alarm decision driver delivers on every channel the notification rule selects instead of email only
-- `users.json` is validated on load: an entry without `id`, `username`, `password_hash` or `role`, or with a non-integer `failed_attempts`, `locked_until` or `remember_expires`, now shows the authentication error page naming the entry, instead of being skipped or failing at sign-in. Fields the dashboard does not use are dropped the next time the file is written
+- `notification_rules.json` skips unconfigured channels with a `notification_rules_unknown_channel` warning instead of discarding all rules
+- The `builtin` alarm decision driver delivers on every selected channel, not just email
+- `users.json` is validated on load: a missing required field or non-integer counter shows the authentication error page naming the entry. Unused fields are dropped on the next write
 
 ### Fixed
-- Alarm titles for event types with a dotted area prefix now read `Server metrics: ingestion run empty` instead of `Server metrics.ingestion run empty` in emails and webhook messages
-- Modals (README, logs, server info, cronjobs, database processes) now open with the reason when the node reports an error, instead of not opening at all. Node rate-limit (429) and IP-allowlist (403) rejections are now reported instead of showing as missing data. Node 5xx errors show only their short label in the UI; hosts, driver errors and shell commands appear only in `logs/app.log`
-- Running a Composer audit for a single app (`/watch/audit/run/{server}/{app}`) now requires `POST` with a CSRF token, so another site can no longer start audits through a logged-in browser
-- Signing in with an unknown or locked username now takes as long to fail as a wrong password, so response times no longer reveal which accounts exist or are locked
-- Wrong passwords sent in parallel now all count towards the account lockout; previously most were rejected as a conflict without being counted, allowing more than 5 guesses per 15 minutes. Sign-in and `manage-users.php` no longer fail when another account is changed at the same time
+- Alarm titles with a dotted area prefix read `Server metrics: …` instead of `Server metrics.…`
+- Modals open with the node's error instead of not opening; node 429 and 403 rejections are reported instead of showing as missing data, and 5xx details stay in `logs/app.log`
+- Single-app Composer audits (`/watch/audit/run/{server}/{app}`) require `POST` with a CSRF token
+- Sign-in with an unknown or locked username takes as long as a wrong password, so timing no longer reveals accounts
+- Parallel wrong passwords all count towards the lockout; concurrent changes to other accounts no longer break sign-in or `manage-users.php`
 
 ## [0.8.0] - 2026-10-10
 
 Pairs with MATA Node 0.4.0.
 
 ### Added
-- App cards show the application description reported by the node in the app title tooltip
-- Clicking the process count on a server card opens the server metrics modal with the total process count history
-- The documentation site includes the MATA Node reference (configuration, Docker, custom log parsers), synced from mata-node at build time
-
-- Database alarms: `database_unreachable` when the node cannot reach its database server, and `database_connections_too_high` when connections reach the `server_data.database_connections_percent` alarm level (default 80 % of `max_connections`). Both are checked by the server metrics cron
-- Security alarms from the users file: `user_account_locked` (warning) when failed logins lock an account, `user_account_changed` (warning) when an account is created, deleted or given a new role, and `users_file_insecure` (critical) when the users file is readable or writable by group or others. All are checked every 5 minutes by `servers_data_fetch`; account changes are compared against `temp/users-file-monitor.json`, and the first run only records a baseline
-- Library security alarms: `library_outdated_security` when a Composer audit reports a security advisory the app did not have before (critical for `critical`/`high` advisories, otherwise warning). The new `cron/libraries_audit.php` job runs every 6 hours and asks the node for a fresh audit only once the cached one exceeds the `audit` TTL. Run the database migration and add the job to your crontab. Requires MATA Dashboard 0.8.0 paired with MATA Node 0.4.0 before setting `monitoring.libraryaudit` in `apps.json`; it defaults to `true`, and `false` disables per-app Composer auditing and library security events.
+- App title tooltips show the node-reported description; the server card's process count opens its history in the server metrics modal
+- The documentation site includes the MATA Node reference
+- Database alarms `database_unreachable` and `database_connections_too_high` (default at 80 % of `max_connections`, `server_data.database_connections_percent`)
+- Users-file alarms: `user_account_locked`, `user_account_changed` (create, delete, role change; first run records a baseline) and `users_file_insecure` (group/other access)
+- `library_outdated_security` alarm for new Composer security advisories (critical for `critical`/`high`). **Action:** run the migration and add `cron/libraries_audit.php` (every 6 hours) to your crontab. Needs MATA Node 0.4.0; disable per app with `monitoring.libraryaudit: false` in `apps.json`
 
 ### Changed
-- `manage-users.php create` rejects usernames other than 1 to 64 letters, digits, dots, underscores or hyphens, and roles other than `viewer` and `admin` (previously a typo such as `admn` created a user without admin rights); existing accounts are unaffected
-- A missing `probes.json` or `limits.json` is no longer reported, since both are optional. A malformed `limits.json` is now reported as a dashboard configuration event instead of only in `logs/app.log`
-- Configuration problems are recorded once per 30 minutes per distinct problem instead of on every page load and cron run, and are skipped when `EVENTS_ENABLED=false`
-- Events that cannot be stored, because the database is unavailable or a write fails, are written to `logs/app.log`; a database error while recording a configuration problem no longer stops the page or cron job
-- An unreadable or empty `thresholds.json` now records a warning and uses the built-in thresholds instead of raising a critical alarm email; monitoring was already continuing with those defaults
-- `manage-users.php create` / `passwd` reject passwords shorter than 12 characters or longer than 72 bytes (except in `demo`); existing passwords are unaffected
-- The unused `too_many_sql_connections` alarm type is renamed to `database_connections_too_high`, and the unread `sql` section of `thresholds.json` is removed; rename the key in your `thresholds.json` and `intervals.json`
-- Docker images build on the latest PHP 8.3 release on Debian 13 (`php:8.3-apache-trixie`) with the latest Composer 2, and `make dev-rebuild` / `make prod-rebuild` pull the newest base image. If your `.env` sets `PHP_VERSION=8.3.14`, change it to `8.3`; no Debian 13 image exists for 8.3.14
-- Database cards read MATA Node's `/databases/overview` and show connection numbers once per database server; the process list opens per database or for the whole server, is fetched live, and names the privilege the monitoring account lacks when it only sees its own sessions (MariaDB `PROCESS`, PostgreSQL `pg_read_all_stats`). Nodes without database monitoring show the section as not configured. Requires MATA Node 0.3.0 or later
+- `manage-users.php` rejects invalid usernames, unknown roles, and passwords under 12 characters or over 72 bytes (except in `demo`); existing accounts are unaffected
+- Configuration problems are recorded once per 30 minutes per problem, respect `EVENTS_ENABLED`, and fall back to `logs/app.log` when the database is unavailable. Missing `probes.json` and `limits.json` are no longer reported; a malformed `limits.json` is
+- An unreadable or empty `thresholds.json` records a warning instead of a critical alarm
+- `too_many_sql_connections` is renamed to `database_connections_too_high` and the `sql` section of `thresholds.json` is removed. **Action:** rename the key in `thresholds.json` and `intervals.json`
+- Docker images use `php:8.3-apache-trixie` and the `*-rebuild` targets pull the newest base. **Action:** change `PHP_VERSION=8.3.14` in `.env` to `8.3`
+- Database cards use the node's `/databases/overview`, fetch process lists live, and name the missing privilege when the monitoring account sees only its own sessions. Requires MATA Node 0.3.0
 
 ### Removed
-- The unlinked process-count modal (`/watch/modal/{server}/process-count`); its Refresh button replaced the modal with raw JSON. Process history now lives in the server metrics modal
+- The unlinked process-count modal (`/watch/modal/{server}/process-count`)
 
 ### Fixed
-- The dashboard now refuses a users file that is readable or writable by its group (for example mode `0640`), as it already did for world-readable files, and no longer refuses an owner-only file with the execute bit set. If the dashboard shows an authentication error after upgrading, run `chmod 600` on the users file
-- Cache-age tooltips on server, app and database cards no longer append a stray "s" (for example "5 minutes s ago"), and the database card tooltip shows the overview's cache age instead of blank values
-- The refresh button on database cards reloads that server's card; it previously did nothing
-- Resolved configuration warnings are cleared reliably; previously the cleanup query failed unless the resolved warnings were listed first
-- Dashboard notices with a saved choice (such as "never" or "snooze") now close only after the server stores it; a failed request leaves the notice visible
-- The `servers_config_not_found` alarm names the actual cause (unreadable file, invalid JSON, or an empty file); previously it said "file not found" even when the file existed but contained a syntax error
-- A failed sync of `servers.json` to the database is now recorded as a `settings_sync_error` dashboard event; previously it only reached `logs/app.log`
+- The users file is refused when group-accessible (e.g. `0640`) and accepted when owner-only with the execute bit. **Action:** `chmod 600` the users file if sign-in fails after upgrading
+- Database card refresh button and cache-age tooltips
+- Resolved configuration warnings are cleared reliably
+- Notices with a saved choice ("never", "snooze") close only after the server stores it
+- `servers_config_not_found` names the actual cause (unreadable, invalid JSON, empty)
+- A failed `servers.json` database sync is recorded as a `settings_sync_error` event
 
 ## [0.6.0] - 2026-10-09
 
@@ -86,146 +79,47 @@ summarizes what landed since then.
 
 ## [0.5.0] - 2026-01-12
 
-### Breaking Changes
-- Changed root namespace from `Watcher` to `Mata` across entire codebase
-- Removed `Loggable` trait in favor of direct `LoggerInterface` constructor injection
-- `EventAggregatorService` now implements `EventAggregatorServiceInterface`
-- Moved alert-related services from `Services\Foundation` to `Services\Alert`
-- Moved event-related services from `Services\Foundation` to `Services\Event`
-- Moved notification services from `Services\Foundation` to `Services\Notification`
-- Removed foreign key constraint between `alarms.event_id` and `events.id`
-
-### Added
-- Added `MockEventAggregatorService` for demo/testing scenarios with static event data
-- Added `EventAggregatorServiceInterface` to allow swapping real/mock implementations
-- Added `app_env` field to `applications` table
-- Added composite index `idx_event_alarm_eval` on `events` table
-- Added `*.lock` to `.gitignore`
-- Added file locking to `Auth` class for concurrent user file access
-- Added `treatPhpDocTypesAsCertain: false` to PHPStan configuration
-- Added logging to `AlertDispatcher`, `AlertEmailSender`
+### Changed
+- Root namespace renamed from `Watcher` to `Mata`
+- Database tables renamed (`dashboard_*` → shorter names); the `alarms.event_id` foreign key is removed
+- Demo mode uses static mock event data
 
 ### Fixed
-- Fixed user file race conditions in `Auth` with exclusive file locking
-- Fixed unsafe user file initialization in `manage-users.php` with atomic writes
-- Removed outdated SMTP dev config examples from `mail.config.env.example`
-- Improved alert email subject format to show app and server more clearly
-- Streamlined `CronJob` constructor to require logger as first parameter
-- Database table renames for consistency (`dashboard_*` → simpler names)
+- Race conditions when writing the users file
 
 ## [0.4.0] - 2026-01-06
 
-### Breaking Changes
-- None
-
 ### Added
-- GitHub Actions CI workflow (composer validate, security audit, PHPStan level 5, PHP-CS-Fixer, PHPUnit)
-- GitHub Actions Release workflow with SBOM generation (CycloneDX)
-- Dependabot configuration for monthly composer dependency updates
-- CLI security checks for user management with audit logging
-- HTTP connection security validation with `allow_http` and `suppress_http_warning` configuration flags
-- IP whitelisting for login protection (`IP_WHITELIST_ENABLED`, `ALLOWED_IPS`)
-- Rate limiting support with file/Redis storage backends
-- Server entry filtering (skip underscore-prefixed keys in `servers.json`)
+- CI and release workflows (with CycloneDX SBOM) and Dependabot
+- IP whitelisting for login (`IP_WHITELIST_ENABLED`, `ALLOWED_IPS`) and rate limiting with file or Redis storage
 
 ### Fixed
-- Guzzle downgraded from 8.0.x-dev to ^7.0 for stability
-- Composer installation order in `make setup` (now runs after config prompts)
-- Database docker port mapping (3307:3306)
-- Monolog initialization in cronjobs
-- Array access on potentially undefined server config keys in `ServerRenderer.php`
+- Docker database port mapping (3307:3306) and Monolog initialization in cron jobs
 
 ## [0.3.0] - 2026-01-05
 
-### Breaking Changes
-- None
-
 ### Added
-- GitHub Actions CI workflow (composer validate, security audit, PHPStan level 5, PHP-CS-Fixer, PHPUnit)
-- GitHub Actions Release workflow with SBOM generation (CycloneDX)
-- Dependabot configuration for monthly composer dependency updates
-- CLI security checks for `manage-users.php` (user authorization, SSH warnings, production confirmations)
-- Audit logging for user management operations in `logs/user-management-audit.log`
-- `CLI_STRICT_USER_CHECK` and `CLI_ALLOWED_USERS` config options
-- CLI mode support in `Auth` class to bypass session/role checks
-- HTTP connection security validation with `allow_http` and `suppress_http_warning` flags
-- Server entry filtering (skip underscore-prefixed keys in `servers.json`)
-
-### Fixed
-- Composer installation order in `make setup` (now runs after config prompts)
-- `manage-users.php` permission errors now show resolution steps
-- Guzzle downgraded from 8.0.x-dev to ^7.0 for stability
-- Array access on potentially undefined server config keys in `ServerRenderer.php`
+- `manage-users.php` safety checks (`CLI_STRICT_USER_CHECK`, `CLI_ALLOWED_USERS`) and audit log in `logs/user-management-audit.log`
+- `allow_http` and `suppress_http_warning` flags for node connections
+- `servers.json` entries whose keys start with `_` are skipped
 
 ## [0.2.1] - 2026-01-03
 
-### Breaking Changes
-- None
-
-### Added
-- CLI security checks for `manage-users.php` (user authorization, SSH warnings, production confirmations)
-- Audit logging for all user management operations in `logs/user-management-audit.log`
-- `CLI_STRICT_USER_CHECK` and `CLI_ALLOWED_USERS` config options in `config.env`
-- CLI mode support in `Auth` class to bypass session/role checks
-- Server entry filtering: skip `servers.json` entries with keys beginning with underscore
-
-### Fixed
-- Composer installation order in `make setup` (now runs after config prompts)
-- Fallback handling for composer detection in setup
-- `manage-users.php` permission errors now show helpful resolution steps
-- Renamed `make dev` to `make dev-start` and `make prod` to `make prod-start` for consistency
-- Updated webserver config paths from `examples/` to `docs/examples/`
-- Renamed `db.config.example` to `db.config.env.example` for consistency
-- Removed database config section from `config.env.example` (moved to `db.config.env`)
-- Array access on potentially undefined server config keys in `ServerRenderer.php`
+### Changed
+- `make dev`/`make prod` renamed to `make dev-start`/`make prod-start`; `db.config.example` renamed to `db.config.env.example`, and database settings moved there from `config.env`
 
 ## [0.2.0] - 2026-01-03
 
-### Breaking Changes
-- None
+### Added
+- Config files are created from templates on first run, with permissions `600`
+- `make setup` offers Apache, Nginx and Caddy configs (`docs/examples/webserver-configs/`)
 
-### Added  
-- `EnvConfigManager` class for orchestrating configuration initialization workflow
-- `EnvConfigCreator` class for automatic config file creation from templates
-- `EnvConfigFatalException` for configuration errors with styled HTML error pages
-- `ConfigInitializationResult` DTO for initialization results
-- Interactive webserver configuration selection in `make setup`
-- Example webserver configs for Apache, Nginx, Caddy in `docs/examples/webserver-configs/`
-- Automatic config file creation from templates on first run
-- Docker config file initialization in entrypoint
-
-### Fixed
-- Improved error handling in configuration initialization with user-friendly error pages
-- Docker Apache vhost now uses server-level URL rewriting (removed `.htaccess` dependency)
-- `.htaccess` files removed from root and config directories (security improvement)
-- `make setup` now creates config files and guides webserver selection
-- `make docker-setup` creates all required config files from examples
-- `.env.example` clarified to separate Docker infrastructure vs application settings
-- Config file permissions set to 600 (owner read/write only) on creation
-- README streamlined to focus on quick start with links to detailed guides
+### Changed
+- The Docker Apache vhost rewrites URLs itself; `.htaccess` files are removed
 
 ## [0.1.0] - 2026-01-02
 
-### Breaking Changes
-- None
-
-### Added  
-- `EnvConfigManager` class for orchestrating configuration initialization workflow
-- `EnvConfigCreator` class for automatic config file creation from templates
-- `EnvConfigFatalException` for configuration errors with styled HTML error pages
-- `ConfigInitializationResult` DTO for initialization results
-
-### Fixed
-- Improved error handling in configuration initialization with user-friendly error pages
-- Automatic creation of missing config files from templates on first run
-
+### Added
+- Error pages for configuration initialization failures
 
 ## [0.0.1] - 2025-08-22
-
-### Breaking Changes
-
-### Added
-
-### Changed
-
-### Fixed
