@@ -11,6 +11,7 @@ use Mata\Http\Request;
 use Mata\Tests\TestCase;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Psr\Log\NullLogger;
+use ReflectionMethod;
 use RuntimeException;
 
 /**
@@ -553,6 +554,60 @@ class AuthTest extends TestCase
 
         $result = $auth->login('lockeduser', 'correct_password');
         $this->assertTrue($result, 'Correct password after expired lockout plus one typo must succeed');
+    }
+
+    /**
+     * @group auth
+     * @group security
+     */
+    public function testItUsesWellFormedDummyHashAtDefaultCost(): void
+    {
+        $hash = (new ReflectionMethod(Auth::class, 'dummyPasswordHash'))->invoke(null);
+
+        $this->assertSame('bcrypt', password_get_info($hash)['algoName']);
+        $this->assertFalse(password_needs_rehash($hash, PASSWORD_DEFAULT), 'Dummy hash must cost as much as a current password hash');
+    }
+
+    /**
+     * Response time must not reveal which usernames exist or are locked.
+     *
+     * The broken path was ~2000x faster than bcrypt, so a 4x margin on the fastest of three runs stays stable on noisy runners.
+     *
+     * @group auth
+     * @group lockout
+     * @group security
+     */
+    public function testItRejectsUnknownAndLockedUsersAsSlowlyAsWrongPasswords(): void
+    {
+        $users = json_decode((string) file_get_contents($this->testUsersFile), true);
+        $users[] = [
+            'id' => 'user_locked',
+            'username' => 'lockeduser',
+            'password_hash' => password_hash('correct_password', PASSWORD_DEFAULT),
+            'auth_revision' => bin2hex(random_bytes(32)),
+            'role' => 'viewer',
+            'created_at' => date('Y-m-d H:i:s'),
+            'failed_attempts' => 5,
+            'locked_until' => time() + 900,
+        ];
+        file_put_contents($this->testUsersFile, json_encode($users, JSON_PRETTY_PRINT));
+        $auth = new Auth(new NullLogger(), $this->testUsersFile, $this->request->isSecure(), $this->request->cookie('remember_token'));
+
+        $fastestRejection = function (string $username, string $password) use ($auth): float {
+            $fastest = INF;
+            for ($i = 0; $i < 3; ++$i) {
+                $start = hrtime(true);
+                $this->assertFalse($auth->login($username, $password));
+                $fastest = min($fastest, hrtime(true) - $start);
+            }
+
+            return $fastest;
+        };
+
+        $wrongPassword = $fastestRejection('admin', 'wrong_password');
+
+        $this->assertGreaterThan($wrongPassword / 4, $fastestRejection('nonexistent', 'any_password'), 'Unknown user rejected too quickly');
+        $this->assertGreaterThan($wrongPassword / 4, $fastestRejection('lockeduser', 'correct_password'), 'Locked account rejected too quickly');
     }
 
     /**

@@ -150,9 +150,10 @@ class Auth
     {
         $user = $this->users[$username] ?? null;
 
+        // Verify before any early return, so unknown and locked accounts take as long to reject as a wrong password.
+        $passwordValid = password_verify($password, $user['password_hash'] ?? self::dummyPasswordHash());
+
         if (!$user) {
-            // Prevent timing attacks
-            password_verify('dummy', '$2y$10$dummy');
             $this->logger->warning("Login attempt for non-existent user: {$username}");
 
             return false;
@@ -165,8 +166,7 @@ class Auth
             return false;
         }
 
-        // Verify password
-        if (!password_verify($password, $user['password_hash'])) {
+        if (!$passwordValid) {
             $this->recordFailedAttempt($username);
             $this->logger->warning("Failed login for user: {$username}");
 
@@ -194,6 +194,16 @@ class Auth
         $this->logger->info("Successful login: {$username}");
 
         return true;
+    }
+
+    /**
+     * A well-formed bcrypt hash at the default cost, for users that do not exist.
+     *
+     * password_verify() returns immediately for a malformed hash, and the default cost differs between PHP versions.
+     */
+    private static function dummyPasswordHash(): string
+    {
+        return sprintf('$2y$%02d$', PASSWORD_BCRYPT_DEFAULT_COST) . str_repeat('.', 53);
     }
 
     /** Accounts created before revision-based sessions get a revision on their next sign-in. */

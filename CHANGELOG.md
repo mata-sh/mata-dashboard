@@ -7,6 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - Running a Composer audit for a single app (`/watch/audit/run/{server}/{app}`) now requires `POST` with a CSRF token, so another site can no longer start audits through a logged-in browser
+- Signing in with an unknown or locked username now takes as long to fail as a wrong password, so response times no longer reveal which accounts exist or are locked
 
 ## [0.8.0] - 2026-10-10
 
