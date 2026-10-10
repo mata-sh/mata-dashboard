@@ -4,13 +4,9 @@ declare(strict_types=1);
 
 namespace Mata\Config\Monitoring\Loader;
 
-use Exception;
 use Mata\Config\Monitoring\Section\ServersConfig;
 use Mata\Config\Monitoring\ServerConfigState;
-use Mata\Database\DatabaseInterface;
-use Mata\Database\NullDatabase;
 use Mata\Services\Event\EventManager;
-use Mata\Services\Sync\ServerConfigDatabaseSync;
 use Mata\Utils\TypeConverter;
 use RuntimeException;
 
@@ -18,8 +14,6 @@ final class ServersConfigLoader extends AbstractJsonConfigLoader
 {
     public function __construct(
         private EventManager $events,
-        private ?DatabaseInterface $db = null,
-        private ?ServerConfigDatabaseSync $serverConfigSync = null,
         private bool $fallbackOnFailure = false,
     ) {}
 
@@ -60,23 +54,8 @@ final class ServersConfigLoader extends AbstractJsonConfigLoader
         foreach ($validation['errors'] as $error) {
             $this->reportProblem($this->events, 'servers_config_validation_error', $error, 'warning');
         }
-        $servers = ServersConfig::fromArray($raw);
 
-        if ($this->db && $this->serverConfigSync && !($this->db instanceof NullDatabase)) {
-            try {
-                $this->serverConfigSync->syncIfNeeded($filePath, $servers->values);
-            } catch (Exception $exception) {
-                // Persisted event identifier; rename only with a migration.
-                $this->reportProblem(
-                    $this->events,
-                    'settings_sync_error',
-                    'Failed to sync server configuration to database: ' . $exception->getMessage(),
-                    'warning',
-                );
-            }
-        }
-
-        return $servers;
+        return ServersConfig::fromArray($raw);
     }
 
     public function getDefaultConfig(): ServersConfig

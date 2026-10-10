@@ -33,6 +33,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - The refresh button on database cards reloads that server's card; it previously did nothing
 - Resolved configuration warnings are cleared reliably; previously the cleanup query failed unless the resolved warnings were listed first
 - Dashboard notices with a saved choice (such as "never" or "snooze") now close only after the server stores it; a failed request leaves the notice visible
+- A failed sync of `servers.json` to the database is now recorded as a `settings_sync_error` dashboard event; previously it only reached `logs/app.log`
 
 ## [0.6.0] - 2026-10-09
 

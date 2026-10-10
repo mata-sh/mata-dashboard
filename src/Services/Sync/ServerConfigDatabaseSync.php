@@ -7,7 +7,10 @@ namespace Mata\Services\Sync;
 use Exception;
 use Mata\Config\Monitoring\ServerConfigState;
 use Mata\Database\DatabaseInterface;
+use Mata\Database\NullDatabase;
 use Mata\Models\ConfigSyncRepository;
+use Mata\Services\Event\Dto\EventCommand;
+use Mata\Services\Event\EventManager;
 use Monolog\Logger;
 
 /**
@@ -21,21 +24,27 @@ use Monolog\Logger;
  * - Upsert logic to create/update server records based on configuration
  * - Automatic filtering of disabled servers
  * - Sync history and status tracking
- * - Graceful degradation when database is unavailable
+ * - Graceful degradation when database is unavailable: skipped without a database,
+ *   and a failed sync is reported as an event instead of being thrown
  */
 final class ServerConfigDatabaseSync
 {
+    private bool $databaseAvailable;
     private Logger $log;
+    private EventManager $events;
     private ConfigSyncRepository $repository;
 
     /**
      * @param DatabaseInterface         $db         Database connection
      * @param Logger                    $log        Application logger
+     * @param EventManager              $events     Receives sync failures
      * @param null|ConfigSyncRepository $repository Optional repository override (primarily for testing)
      */
-    public function __construct(DatabaseInterface $db, Logger $log, ?ConfigSyncRepository $repository = null)
+    public function __construct(DatabaseInterface $db, Logger $log, EventManager $events, ?ConfigSyncRepository $repository = null)
     {
+        $this->databaseAvailable = !$db instanceof NullDatabase;
         $this->log = $log;
+        $this->events = $events;
         $this->repository = $repository ?? new ConfigSyncRepository($db);
     }
 
@@ -43,13 +52,18 @@ final class ServerConfigDatabaseSync
      * Sync servers configuration to database if file was modified.
      *
      * Checks if the config file was modified since last successful sync.
-     * Only performs database operations if changes detected.
+     * Only performs database operations if changes detected. Does nothing without a
+     * database or when no servers were loaded (servers.json missing or invalid).
      *
      * @param string              $configFilePath Absolute path to servers.json
      * @param array<string,mixed> $serversConfig  Loaded servers configuration
      */
     public function syncIfNeeded(string $configFilePath, array $serversConfig): void
     {
+        if (!$this->databaseAvailable || $serversConfig === []) {
+            return;
+        }
+
         try {
             // Check if sync is needed
             if (!$this->needsSync($configFilePath)) {
@@ -64,8 +78,22 @@ final class ServerConfigDatabaseSync
 
             $this->log->info("Server configuration synced to database ({$configFilePath})");
         } catch (Exception $e) {
-            $this->log->error('Server configuration sync failed: ' . $e->getMessage());
-            $this->updateSyncTracking($configFilePath, false, $e->getMessage());
+            $this->reportFailure($configFilePath, $e);
+        }
+    }
+
+    /** Report a failed sync; recording the failure may hit the same broken database, so it must not throw. */
+    private function reportFailure(string $configFilePath, Exception $failure): void
+    {
+        $message = 'Failed to sync server configuration to database: ' . $failure->getMessage();
+        $this->log->error($message);
+        // Persisted event identifier; rename only with a migration.
+        $this->events->handle(new EventCommand(type: 'settings_sync_error', message: $message, level: 'warning', context: ['detail' => $message]));
+
+        try {
+            $this->updateSyncTracking($configFilePath, false, $failure->getMessage());
+        } catch (Exception $trackingFailure) {
+            $this->log->error('Could not record the failed server configuration sync: ' . $trackingFailure->getMessage());
         }
     }
 

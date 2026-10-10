@@ -302,9 +302,6 @@ $alarmRepository = new AlarmRepository($db);
 $deliveryRepository = new AlarmDeliveryRepository($db);
 $alarmCreator = new AlarmCreator($db, $alarmRepository, $deliveryRepository);
 
-// --- Server Configuration Sync ---
-$serverConfigSync = new ServerConfigDatabaseSync($db, $log, $configSyncRepository);
-
 // --- Tools & Resolvers ---
 $idResolver = new ServerApplicationIdResolver($configSyncRepository);
 $appInventorySync = new AppInventorySync($configSyncRepository, $idResolver, $log);
@@ -347,8 +344,6 @@ $metricsRequestValidator = new MetricsRequestValidator($metricCatalog, $metricQu
 $monitoringConfigLoader = new MonitoringConfigLoader(
     servers: new ServersConfigLoader(
         events: $eventManager,
-        db: $db,
-        serverConfigSync: $serverConfigSync,
         fallbackOnFailure: true,
     ),
     ttl: new TtlConfigLoader(
@@ -392,6 +387,10 @@ $configPath = $paths->appPath . '/config';
 $log->info("Loading monitoring configuration for environment: {$environment}");
 $monitoringConfig = $monitoringConfigLoader->load($configPath, $limitsConfig);
 $eventManager->setMonitoringConfig($monitoringConfig);
+
+// Persist servers.json before server IDs are resolved from the database. Web only: cron reads what this wrote.
+$serverConfigSync = new ServerConfigDatabaseSync($db, $log, $eventManager, $configSyncRepository);
+$serverConfigSync->syncIfNeeded($configPath . '/servers.json', $monitoringConfig->servers->values);
 $idResolver->refreshFromRepository($monitoringConfig->servers->values);
 
 $serversConfig = $monitoringConfig->servers->values;
