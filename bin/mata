@@ -4,7 +4,15 @@
 declare(strict_types=1);
 
 use Mata\Cli\Command\ConfigValidateCommand;
+use Mata\Cli\Command\ServerAddCommand;
+use Mata\Cli\Command\ServerListCommand;
+use Mata\Cli\Command\ServerRemoveCommand;
+use Mata\Cli\Command\ServerTestCommand;
+use Mata\Config\Dto\NodeApiConfig;
 use Mata\Config\Validation\InstanceConfigValidator;
+use Mata\Services\Monitor\HttpProbeClient;
+use Mata\Services\ServerConfig\ServerConfigFileEditor;
+use Mata\Services\ServerConfig\ServerConnectionTester;
 use Mata\Utils\PathResolver;
 use Symfony\Component\Console\Application;
 use Symfony\Component\Console\Input\ArgvInput;
@@ -27,9 +35,20 @@ if (function_exists('posix_geteuid') && posix_geteuid() === 0 && getenv('MATA_AL
 
 $paths = PathResolver::fromAppPath(dirname(__DIR__));
 
+// MATA_CONFIG_PATH points the commands at another config directory, e.g. a config repo checkout.
+$configPath = getenv('MATA_CONFIG_PATH');
+$configPath = is_string($configPath) && $configPath !== '' ? $configPath : $paths->configPath;
+
+$serverFiles = new ServerConfigFileEditor($configPath);
+$connectionTester = new ServerConnectionTester(new HttpProbeClient(), NodeApiConfig::DEFAULT_TIMEOUT_SECONDS);
+
 $application = new Application('mata', 'dashboard');
 $application->addCommands([
-    new ConfigValidateCommand(new InstanceConfigValidator(), $paths->configPath),
+    new ConfigValidateCommand(new InstanceConfigValidator(), $configPath),
+    new ServerListCommand($serverFiles),
+    new ServerAddCommand($serverFiles, $connectionTester),
+    new ServerTestCommand($serverFiles, $connectionTester),
+    new ServerRemoveCommand($serverFiles),
 ]);
 
 // Accept `mata config validate` as well as Symfony's `mata config:validate`.
@@ -38,4 +57,10 @@ if (is_array($argv) && isset($argv[1], $argv[2]) && is_string($argv[1]) && is_st
     array_splice($argv, 1, 2, ["{$argv[1]}:{$argv[2]}"]);
 }
 
-exit($application->run(new ArgvInput(array_values(array_filter($argv, 'is_string')))));
+$input = new ArgvInput(array_values(array_filter($argv, 'is_string')));
+// Never prompt when an agent or script drives the CLI; commands then need --yes.
+if (!stream_isatty(STDIN)) {
+    $input->setInteractive(false);
+}
+
+exit($application->run($input));
