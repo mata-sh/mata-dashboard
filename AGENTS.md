@@ -15,6 +15,10 @@ The theme only colors `!!! info`, `!!! warning`, and `!!! danger`.
 Keep `CHANGELOG.md` current without being asked, following
 [docs/development/changelog.md](docs/development/changelog.md).
 
+## Tests
+
+Add a test only for a real-world failure it would catch. Skip tautological tests that stub a dependency's return value and then assert the code passed it through.
+
 ## Gotchas
 
 Non-obvious facts that have already misled an agent. Verify before asserting otherwise.
@@ -32,4 +36,3 @@ Record very concise insights about findings the user explicitly declared non-iss
 2026-07-18 — **Alarm delivery claiming:** selecting and marking deliveries is not atomic across workers. **Decision:** only one non-overlapping alarm dispatch cron runs.
 2026-07-21 — **Demo event selection:** `MATA_EVENTS_MOCK` and configurable mock-event paths were removed. **Decision:** demo mode always uses the fixed mock event fixture; no override is needed.
 2026-08-16 — **Session save path permissions:** existing directories may be intentionally shared. **Decision:** secure directories created by the application, but do not chmod existing writable directories.
-2026-10-10 — **Users file duplicates:** `UserRepository::read()` keeps the last entry for a duplicated username. **Decision:** users are managed through `manage-users.php`, which rejects duplicates.

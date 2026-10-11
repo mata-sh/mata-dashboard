@@ -216,6 +216,17 @@ class EventManager
     }
 
     /**
+     * Get the configured limit of one threshold level for an app metric.
+     *
+     * @param string $name  Metric name (session_count, log_filesize_kb, error_count, etc.)
+     * @param string $level Threshold level as returned by getAppDataThresholdLevel()
+     */
+    public function getAppDataThreshold(string $name, string $level): float|int|null
+    {
+        return $this->appDataThresholds[$name][$level] ?? null;
+    }
+
+    /**
      * Determine if an event should be created based on configuration.
      *
      * Evaluates event creation criteria:

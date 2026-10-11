@@ -583,8 +583,18 @@ class ServerViewBuilder
                 $tooltipParts[] = sprintf('<strong>Size:</strong> %s KB', (string) $session['size_kb']);
             }
 
+            $level = $this->eventManager->getAppDataThresholdLevel($lastHour, 'session_count');
+            $limit = $this->eventManager->getAppDataThreshold('session_count', $level);
+            if ($level !== '' && $level !== 'good' && $limit !== null) {
+                $tooltipParts[] = sprintf(
+                    '<strong>%s:</strong> more than %s sessions in the last hour',
+                    ucfirst($level),
+                    $this->formatNumber($limit)
+                );
+            }
+
             return [
-                'level' => $this->eventManager->getAppDataThresholdLevel($lastHour, 'session_count'),
+                'level' => $level,
                 'formatted_count' => $this->numberFormatter->formatCompact($lastHour),
                 'tooltip' => implode('<br>', $tooltipParts),
             ];
