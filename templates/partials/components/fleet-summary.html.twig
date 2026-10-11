@@ -1,0 +1,31 @@
+<div id="fleet-summary" class="fleet-summary" role="toolbar" aria-label="Fleet summary">
+  {% for group in summary %}
+    <div class="fleet-group">
+      <div class="fleet-group-head">
+        <span class="fleet-group-label">{{ group.label }}</span>
+        <span class="fleet-group-total" data-fleet-total="{{ group.key }}">{{ group.total }}</span>
+      </div>
+      <div class="fleet-segments">
+        {% for segment in group.segments %}
+          <button type="button"
+                  class="fleet-segment fleet-{{ segment.state }}"
+                  data-fleet-filter="{{ group.key }}:{{ segment.state }}"
+                  aria-pressed="false"
+                  aria-label="Show only {{ segment.label|lower }} {{ group.key }}"
+                  {{ segment.count == 0 ? 'disabled' }}>
+            <span class="fleet-count">{{ segment.count }}</span>
+            <span class="fleet-label">{{ segment.label }}</span>
+          </button>
+        {% endfor %}
+      </div>
+      <div class="fleet-meter" aria-hidden="true">
+        {% for segment in group.segments %}
+          <span class="fleet-{{ segment.state }}"
+                data-fleet-meter="{{ group.key }}:{{ segment.state }}"
+                style="flex-grow: {{ segment.count }}"
+                {{ segment.count == 0 ? 'hidden' }}></span>
+        {% endfor %}
+      </div>
+    </div>
+  {% endfor %}
+</div>

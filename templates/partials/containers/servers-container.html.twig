@@ -1,4 +1,7 @@
 {% set server_columns = layout.server_columns|default(4) %}
+{% if summary is defined and summary is not empty %}
+  {% include 'partials/components/fleet-summary.html.twig' %}
+{% endif %}
 <div class="server-section" style="--server-columns: {{ server_columns }}">
   {{ content.server_container|raw }}
 </div>

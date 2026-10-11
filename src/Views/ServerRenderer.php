@@ -24,6 +24,22 @@ use Twig\Environment;
  */
 class ServerRenderer extends BaseRenderer
 {
+    /** Summary bar segments per group, most severe first. */
+    private const SUMMARY_GROUPS = [
+        'servers' => [
+            'unreachable' => 'Unreachable',
+            'unhealthy' => 'Unhealthy',
+            'maintenance' => 'Maintenance',
+            'healthy' => 'Healthy',
+        ],
+        'apps' => [
+            'offline' => 'Offline',
+            'errors' => 'Errors',
+            'warnings' => 'Warnings',
+            'working' => 'Working',
+        ],
+    ];
+
     private LogRenderer $logRenderer;
 
     public function __construct(
@@ -55,7 +71,85 @@ class ServerRenderer extends BaseRenderer
                 'server_container' => $serverCardsHtml,
             ],
             'layout' => $layoutConfig,
+            'summary' => $this->buildSummaryData($serversViewData),
         ]);
+    }
+
+    /**
+     * Count servers and apps per summary state for the summary bar.
+     *
+     * Uses the same states the cards carry in data-summary, so the browser can
+     * recount after a single card refresh.
+     *
+     * @param array<int,array<string,mixed>> $serversViewData
+     *
+     * @return list<array{key:string,label:string,total:int,segments:list<array{state:string,label:string,count:int}>}>
+     */
+    private function buildSummaryData(array $serversViewData): array
+    {
+        $counts = array_map(
+            static fn (array $labels): array => array_fill_keys(array_keys($labels), 0),
+            self::SUMMARY_GROUPS
+        );
+
+        foreach ($serversViewData as $serverRenderData) {
+            $nodeHealth = is_array($serverRenderData['health'] ?? null) ? $serverRenderData['health'] : [];
+            $rawState = $nodeHealth['state'] ?? null;
+            ++$counts['servers'][$this->serverSummaryState(NodeHealthState::fromNodePayload(is_string($rawState) ? $rawState : null))];
+
+            // Error cards render no app rows
+            if (isset($serverRenderData['error'])) {
+                continue;
+            }
+
+            foreach ($serverRenderData['apps'] ?? [] as $appRenderData) {
+                $availability = $this->buildAvailabilityData($appRenderData['availability'] ?? []);
+                ++$counts['apps'][$this->appSummaryState($availability['status'], $appRenderData['logAnalysis'] ?? [])];
+            }
+        }
+
+        $groups = [];
+        foreach (self::SUMMARY_GROUPS as $key => $labels) {
+            $segments = [];
+            foreach ($labels as $state => $label) {
+                $segments[] = ['state' => $state, 'label' => $label, 'count' => $counts[$key][$state]];
+            }
+
+            $groups[] = [
+                'key' => $key,
+                'label' => ucfirst($key),
+                'total' => array_sum($counts[$key]),
+                'segments' => $segments,
+            ];
+        }
+
+        return $groups;
+    }
+
+    private function serverSummaryState(NodeHealthState $state): string
+    {
+        return match ($state) {
+            NodeHealthState::Healthy => 'healthy',
+            NodeHealthState::Maintenance => 'maintenance',
+            NodeHealthState::Unreachable => 'unreachable',
+            NodeHealthState::Unhealthy, NodeHealthState::Unknown => 'unhealthy',
+        };
+    }
+
+    /**
+     * Offline wins over log status; anything else is working.
+     *
+     * @param array<string,mixed> $logAnalysis
+     */
+    private function appSummaryState(string $availabilityStatus, array $logAnalysis): string
+    {
+        if ($availabilityStatus === AppAvailabilityStatus::Offline->value) {
+            return 'offline';
+        }
+
+        $type = $logAnalysis['error_analysis']['show_events_type'] ?? null;
+
+        return in_array($type, ['errors', 'warnings'], true) ? $type : 'working';
     }
 
     /**
@@ -451,6 +545,7 @@ class ServerRenderer extends BaseRenderer
                 'path_tooltip' => Html::escapeTooltipValue($appData['path'] ?? ''),
                 'ping' => $availabilityView['status'],
                 'ping_latency' => $availabilityView['tooltip'],
+                'summary' => $this->appSummaryState($availabilityView['status'], $logAnalysis),
                 'status_count' => $logAnalysis['error_analysis']['show_events_count'],
                 'status_type' => $logAnalysis['error_analysis']['show_events_type'],
                 'status_tooltip' => $this->logRenderer->formatErrorAnalysisTooltip($logAnalysis['error_analysis']),
@@ -542,7 +637,7 @@ class ServerRenderer extends BaseRenderer
      *
      * @param array<string,mixed> $nodeHealth
      *
-     * @return array{state:string,label:string,tooltip:string}
+     * @return array{state:string,label:string,summary:string,tooltip:string}
      */
     private function buildNodeHealthData(array $nodeHealth): array
     {
@@ -555,6 +650,7 @@ class ServerRenderer extends BaseRenderer
         return [
             'state' => $state->value,
             'label' => $label,
+            'summary' => $this->serverSummaryState($state),
             'tooltip' => implode('<br>', $this->buildHealthTooltipLines($state, $label, $nodeHealth)),
         ];
     }

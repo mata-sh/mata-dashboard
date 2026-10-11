@@ -342,6 +342,178 @@ svg {
     background-color: var(--surface-hover);
 }
 
+/* Fleet summary bar above the server grid */
+.fleet-summary {
+    display: flex;
+    flex-wrap: wrap;
+    margin-bottom: 12px;
+    background-color: #000;
+    border: 1px solid var(--border-default);
+    border-radius: 8px;
+}
+
+.fleet-group {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: center;
+    column-gap: 20px;
+    row-gap: 10px;
+    flex: 1 1 420px;
+    min-width: 0;
+    padding: 12px 16px 14px;
+}
+
+.fleet-group + .fleet-group {
+    border-left: 1px solid var(--border-default);
+}
+
+.fleet-group-head {
+    display: flex;
+    flex-direction: column;
+    min-width: 64px;
+}
+
+.fleet-group-label {
+    color: var(--text-muted);
+    font-family: "Raleway", sans-serif;
+    font-size: .6rem;
+    font-weight: 700;
+    letter-spacing: .14em;
+    text-transform: uppercase;
+}
+
+.fleet-group-total {
+    color: var(--text-bright);
+    font-family: "Raleway", sans-serif;
+    font-size: 1.6rem;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    line-height: 1.1;
+}
+
+.fleet-segments {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+}
+
+.fleet-segment {
+    --tone: var(--text-faint);
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    padding: 5px 10px;
+    border: 1px solid transparent;
+    border-radius: 6px;
+    background: transparent;
+    color: var(--text-muted);
+    font: inherit;
+    cursor: pointer;
+    transition: background-color .12s ease, border-color .12s ease;
+}
+
+.fleet-segment::before {
+    content: "";
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background-color: var(--tone);
+}
+
+.fleet-count {
+    color: var(--tone-text, var(--text-body));
+    font-family: "Raleway", sans-serif;
+    font-size: 1.05rem;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+}
+
+.fleet-label {
+    font-size: .62rem;
+    font-weight: 600;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+}
+
+.fleet-segment:hover:not(:disabled) {
+    background-color: var(--surface-hover);
+}
+
+.fleet-segment:focus-visible {
+    outline: 2px solid var(--accent-border);
+    outline-offset: 1px;
+}
+
+.fleet-segment[aria-pressed="true"] {
+    border-color: var(--tone);
+    background-color: color-mix(in srgb, var(--tone) 14%, transparent);
+    color: var(--text-bright);
+}
+
+.fleet-segment:disabled {
+    opacity: .35;
+    cursor: default;
+}
+
+.fleet-segment:disabled::before {
+    background-color: var(--text-faint);
+}
+
+/* Problems get a halo so they stand out; healthy stays quiet */
+.fleet-segment:is(.fleet-unreachable, .fleet-offline, .fleet-errors):not(:disabled)::before {
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--tone) 28%, transparent);
+}
+
+.fleet-meter {
+    grid-column: 1 / -1;
+    display: flex;
+    gap: 2px;
+    height: 4px;
+    overflow: hidden;
+    border-radius: 2px;
+    background-color: var(--border-hairline);
+}
+
+.fleet-meter > span {
+    flex-basis: 0;
+    min-width: 0;
+    background-color: var(--tone);
+}
+
+.fleet-meter > span[hidden] {
+    display: none;
+}
+
+.fleet-unreachable,
+.fleet-offline,
+.fleet-errors {
+    --tone: var(--sev-critical-border);
+    --tone-text: var(--sev-critical-tint);
+}
+
+.fleet-unhealthy,
+.fleet-warnings {
+    --tone: var(--sev-high-border);
+    --tone-text: var(--sev-high-tint);
+}
+
+.fleet-maintenance {
+    --tone: var(--sev-medium-border);
+    --tone-text: var(--sev-medium-tint);
+}
+
+.fleet-healthy,
+.fleet-working {
+    --tone: var(--sev-low-border);
+}
+
+@media (max-width: 960px) {
+    .fleet-group + .fleet-group {
+        border-left: 0;
+        border-top: 1px solid var(--border-default);
+    }
+}
+
 @media (max-width: 645px) {
     .server-section {
         display: flex;
@@ -356,7 +528,8 @@ svg {
         content: "Dashboard requires at least 646px.";
     }
 
-    .server-container {
+    .server-container,
+    .fleet-summary {
         display: none;
     }
 }

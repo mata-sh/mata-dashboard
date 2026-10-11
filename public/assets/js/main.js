@@ -226,6 +226,77 @@ document.body.addEventListener('click', (event) => {
     button.closest('.notification')?.classList.add('is-hidden');
 });
 
+// Fleet summary bar
+
+// The pressed segment is the filter, so a full re-render resets it without extra state.
+const fleetSelectors = {
+    servers: (state) => `.server-container[data-summary="${state}"]`,
+    apps: (state) => `.server-container .app-container[data-summary="${state}"]`,
+};
+
+function applyFleetFilter(summary) {
+    const active = summary.querySelector('.fleet-segment[aria-pressed="true"]');
+    const [scope, state] = (active?.dataset.fleetFilter ?? '').split(':');
+
+    document.querySelectorAll('.server-section .server-container').forEach((card) => {
+        card.querySelectorAll('.app-container').forEach((row) => {
+            row.classList.toggle('is-hidden', scope === 'apps' && row.dataset.summary !== state);
+        });
+
+        let visible = true;
+        if (scope === 'servers') visible = card.dataset.summary === state;
+        if (scope === 'apps') visible = card.querySelector(`.app-container[data-summary="${state}"]`) !== null;
+        card.classList.toggle('is-hidden', !visible);
+    });
+}
+
+// Recount from the cards' data-summary attributes, e.g. after a single card refresh.
+function recountFleetSummary(summary) {
+    const totals = {};
+    summary.querySelectorAll('.fleet-segment').forEach((segment) => {
+        const filter = segment.dataset.fleetFilter;
+        const [scope, state] = filter.split(':');
+        const count = document.querySelectorAll(fleetSelectors[scope](state)).length;
+        totals[scope] = (totals[scope] ?? 0) + count;
+
+        segment.querySelector('.fleet-count').textContent = count;
+        // A pressed segment stays enabled so it can still be released.
+        segment.disabled = count === 0 && segment.getAttribute('aria-pressed') !== 'true';
+
+        const meter = summary.querySelector(`[data-fleet-meter="${filter}"]`);
+        if (meter) {
+            meter.style.flexGrow = count;
+            meter.hidden = count === 0;
+        }
+    });
+
+    Object.entries(totals).forEach(([scope, total]) => {
+        const totalElement = summary.querySelector(`[data-fleet-total="${scope}"]`);
+        if (totalElement) totalElement.textContent = total;
+    });
+}
+
+document.body.addEventListener('click', (event) => {
+    const segment = event.target instanceof Element ? event.target.closest('.fleet-segment') : null;
+    if (!segment) return;
+
+    const summary = segment.closest('.fleet-summary');
+    const pressed = segment.getAttribute('aria-pressed') === 'true';
+    summary.querySelectorAll('.fleet-segment').forEach((other) => other.setAttribute('aria-pressed', 'false'));
+    segment.setAttribute('aria-pressed', String(!pressed));
+
+    recountFleetSummary(summary);
+    applyFleetFilter(summary);
+});
+
+document.body.addEventListener('htmx:afterSettle', () => {
+    const summary = document.getElementById('fleet-summary');
+    if (!summary) return;
+
+    recountFleetSummary(summary);
+    applyFleetFilter(summary);
+});
+
 // Dropdown population (called from the *-table.js modules)
 
 function mataPopulateSelectFromRows(selectId, rows, field, placeholder) {
