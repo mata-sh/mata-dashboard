@@ -5,3 +5,6 @@
 <div class="server-section" style="--server-columns: {{ server_columns }}">
   {{ content.server_container|raw }}
 </div>
+{% if summary is defined and summary is not empty %}
+  <p class="fleet-empty" hidden>No servers or applications match the filter.</p>
+{% endif %}

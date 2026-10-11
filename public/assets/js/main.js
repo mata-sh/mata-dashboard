@@ -228,65 +228,187 @@ document.body.addEventListener('click', (event) => {
 
 // Fleet summary bar
 
-// The pressed segment is the filter, so a full re-render resets it without extra state.
+// The pressed item is the filter, so a full re-render resets it without extra state.
+// A filter lists one or more "scope:state" pairs, e.g. "servers:unreachable apps:errors".
 const fleetSelectors = {
-    servers: (state) => `.server-container[data-summary="${state}"]`,
-    apps: (state) => `.server-container .app-container[data-summary="${state}"]`,
+    servers: (state) => `.server-section .server-container[data-summary${state ? `="${state}"` : ''}]`,
+    apps: (state) => `.server-section .server-container .app-container[data-summary${state ? `="${state}"` : ''}]`,
 };
 
+function parseFleetFilter(filter) {
+    const states = { servers: [], apps: [] };
+    (filter ?? '').split(' ').filter(Boolean).forEach((pair) => {
+        const [scope, state] = pair.split(':');
+        states[scope]?.push(state);
+    });
+    return states;
+}
+
+// State filter and search must both match. A matching server shows all its rows;
+// otherwise only the matching rows remain.
 function applyFleetFilter(summary) {
-    const active = summary.querySelector('.fleet-segment[aria-pressed="true"]');
-    const [scope, state] = (active?.dataset.fleetFilter ?? '').split(':');
+    const active = summary.querySelector('.fleet-item[aria-pressed="true"]');
+    const states = parseFleetFilter(active?.dataset.fleetFilter);
+    const query = (summary.querySelector('#fleet-search')?.value ?? '').trim().toLowerCase();
+    const matchesQuery = (element) => (element?.textContent ?? '').toLowerCase().includes(query);
+    let anyVisible = false;
 
     document.querySelectorAll('.server-section .server-container').forEach((card) => {
+        const serverState = !active || states.servers.includes(card.dataset.summary);
+        const serverText = !query || matchesQuery(card.querySelector('.server-title-text'));
+        let rowVisible = false;
+
         card.querySelectorAll('.app-container').forEach((row) => {
-            row.classList.toggle('is-hidden', scope === 'apps' && row.dataset.summary !== state);
+            const visible = (serverState || states.apps.includes(row.dataset.summary))
+                && (serverText || matchesQuery(row.querySelector('.app-name')));
+            rowVisible ||= visible;
+            row.classList.toggle('is-hidden', !visible);
         });
 
-        let visible = true;
-        if (scope === 'servers') visible = card.dataset.summary === state;
-        if (scope === 'apps') visible = card.querySelector(`.app-container[data-summary="${state}"]`) !== null;
-        card.classList.toggle('is-hidden', !visible);
+        const cardVisible = rowVisible || (serverState && serverText);
+        anyVisible ||= cardVisible;
+        card.classList.toggle('is-hidden', !cardVisible);
     });
+
+    const empty = document.querySelector('.fleet-empty');
+    if (empty) empty.hidden = anyVisible;
 }
 
 // Recount from the cards' data-summary attributes, e.g. after a single card refresh.
 function recountFleetSummary(summary) {
-    const totals = {};
-    summary.querySelectorAll('.fleet-segment').forEach((segment) => {
-        const filter = segment.dataset.fleetFilter;
-        const [scope, state] = filter.split(':');
-        const count = document.querySelectorAll(fleetSelectors[scope](state)).length;
-        totals[scope] = (totals[scope] ?? 0) + count;
+    summary.querySelectorAll('.fleet-item').forEach((item) => {
+        const states = parseFleetFilter(item.dataset.fleetFilter);
+        const count = Object.entries(states).reduce((sum, [scope, list]) => sum + list.reduce(
+            (scopeSum, state) => scopeSum + document.querySelectorAll(fleetSelectors[scope](state)).length,
+            0
+        ), 0);
 
-        segment.querySelector('.fleet-count').textContent = count;
-        // A pressed segment stays enabled so it can still be released.
-        segment.disabled = count === 0 && segment.getAttribute('aria-pressed') !== 'true';
-
-        const meter = summary.querySelector(`[data-fleet-meter="${filter}"]`);
-        if (meter) {
-            meter.style.flexGrow = count;
-            meter.hidden = count === 0;
+        item.querySelector('.fleet-count').textContent = count;
+        const mini = item.dataset.level && summary.querySelector(`[data-fleet-mini="${item.dataset.level}"]`);
+        if (mini) {
+            mini.textContent = count;
+            mini.parentElement.hidden = count === 0;
         }
+        // A pressed item stays enabled so it can still be released.
+        item.disabled = count === 0 && item.getAttribute('aria-pressed') !== 'true';
     });
 
-    Object.entries(totals).forEach(([scope, total]) => {
-        const totalElement = summary.querySelector(`[data-fleet-total="${scope}"]`);
-        if (totalElement) totalElement.textContent = total;
+    summary.querySelectorAll('[data-fleet-total]').forEach((total) => {
+        total.textContent = document.querySelectorAll(fleetSelectors[total.dataset.fleetTotal]()).length;
     });
+
+    const attention = summary.querySelector('[data-fleet-attention]');
+    if (attention) {
+        // Items are ordered by severity, so the first non-zero one sets the level.
+        const worst = [...attention.querySelectorAll('.fleet-item')]
+            .find((item) => item.querySelector('.fleet-count').textContent !== '0');
+        attention.dataset.fleetAttention = worst?.dataset.level ?? 'clear';
+    }
 }
 
 document.body.addEventListener('click', (event) => {
-    const segment = event.target instanceof Element ? event.target.closest('.fleet-segment') : null;
-    if (!segment) return;
+    const item = event.target instanceof Element ? event.target.closest('.fleet-item') : null;
+    if (!item) return;
 
-    const summary = segment.closest('.fleet-summary');
-    const pressed = segment.getAttribute('aria-pressed') === 'true';
-    summary.querySelectorAll('.fleet-segment').forEach((other) => other.setAttribute('aria-pressed', 'false'));
-    segment.setAttribute('aria-pressed', String(!pressed));
+    const summary = item.closest('.fleet-summary');
+    const pressed = item.getAttribute('aria-pressed') === 'true';
+    summary.querySelectorAll('.fleet-item').forEach((other) => other.setAttribute('aria-pressed', 'false'));
+    item.setAttribute('aria-pressed', String(!pressed));
 
     recountFleetSummary(summary);
     applyFleetFilter(summary);
+});
+
+function formatFleetAge(seconds) {
+    if (seconds < 60) return 'just now';
+    const minutes = Math.floor(seconds / 60);
+    return minutes < 60 ? `${minutes} min ago` : `${Math.floor(minutes / 60)} h ago`;
+}
+
+// Cards carry their data age at render time; add the time since the browser first saw them.
+function updateFleetFreshness(summary) {
+    const freshness = summary.querySelector('.fleet-freshness');
+    if (!freshness) return;
+
+    const now = Date.now();
+    const cards = [...document.querySelectorAll('.server-section .server-container[data-age]')];
+    freshness.hidden = cards.length === 0;
+    if (cards.length === 0) return;
+
+    let oldest = 0;
+    let stale = 0;
+    cards.forEach((card) => {
+        card.dataset.seenAt ??= String(now);
+        const elapsed = (now - Number(card.dataset.seenAt)) / 1000;
+        oldest = Math.max(oldest, Number(card.dataset.age) + elapsed);
+        if (card.dataset.expiresIn !== undefined && Number(card.dataset.expiresIn) - elapsed < 0) stale++;
+    });
+
+    freshness.textContent = `Updated ${formatFleetAge(oldest)}`;
+    freshness.classList.toggle('is-stale', stale > 0);
+
+    const tooltip = stale > 0
+        ? `${stale} of ${cards.length} servers are older than their refresh interval`
+        : 'Age of the oldest server data on this page';
+    freshness.dataset.tippyContent = tooltip;
+    freshness._tippy?.setContent(tooltip);
+}
+
+setInterval(() => {
+    const summary = document.getElementById('fleet-summary');
+    if (summary) updateFleetFreshness(summary);
+}, 30000);
+
+const fleetCollapsedKey = 'mata-fleet-summary-collapsed';
+
+function setFleetCollapsed(summary, collapsed) {
+    summary.classList.toggle('is-collapsed', collapsed);
+    summary.querySelectorAll('.fleet-expand, .fleet-collapse')
+        .forEach((button) => button.setAttribute('aria-expanded', String(!collapsed)));
+
+    // A hidden state filter would hide cards without saying why.
+    if (collapsed) {
+        summary.querySelectorAll('.fleet-item').forEach((item) => item.setAttribute('aria-pressed', 'false'));
+    }
+}
+
+document.body.addEventListener('click', (event) => {
+    const button = event.target instanceof Element ? event.target.closest('.fleet-expand, .fleet-collapse') : null;
+    if (!button) return;
+
+    const summary = button.closest('.fleet-summary');
+    const collapsed = button.classList.contains('fleet-collapse');
+    setFleetCollapsed(summary, collapsed);
+    try {
+        localStorage.setItem(fleetCollapsedKey, collapsed ? '1' : '0');
+    } catch {
+        // Storage unavailable; the choice lasts until the next page load.
+    }
+
+    recountFleetSummary(summary);
+    applyFleetFilter(summary);
+});
+
+document.body.addEventListener('input', (event) => {
+    if (!(event.target instanceof Element) || event.target.id !== 'fleet-search') return;
+
+    applyFleetFilter(event.target.closest('.fleet-summary'));
+});
+
+// Restore the collapsed state before the first paint of a freshly swapped summary.
+document.body.addEventListener('htmx:afterSwap', () => {
+    const summary = document.getElementById('fleet-summary');
+    if (!summary || summary.dataset.restored) return;
+
+    summary.dataset.restored = 'true';
+    // Compact unless the viewer opened the full summary before.
+    let collapsed = true;
+    try {
+        collapsed = localStorage.getItem(fleetCollapsedKey) !== '0';
+    } catch {
+        // Storage unavailable; stay compact.
+    }
+    setFleetCollapsed(summary, collapsed);
 });
 
 document.body.addEventListener('htmx:afterSettle', () => {
@@ -295,6 +417,7 @@ document.body.addEventListener('htmx:afterSettle', () => {
 
     recountFleetSummary(summary);
     applyFleetFilter(summary);
+    updateFleetFreshness(summary);
 });
 
 // Dropdown population (called from the *-table.js modules)

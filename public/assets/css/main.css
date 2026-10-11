@@ -1,5 +1,5 @@
 body {
-    padding-top: 80px;
+    padding-top: 70px;
 }
 
 :root {
@@ -354,71 +354,343 @@ svg {
 /* Fleet summary bar above the server grid */
 .fleet-summary {
     display: flex;
-    flex-wrap: wrap;
-    gap: 12px;
     margin-bottom: 12px;
-}
-
-.fleet-group {
-    display: grid;
-    grid-template-columns: auto minmax(0, 1fr);
-    align-items: center;
-    column-gap: 20px;
-    row-gap: 10px;
-    flex: 1 1 420px;
-    min-width: 0;
-    padding: 12px 16px 14px;
+    padding: 10px 0;
     background-color: #000;
     border: 1px solid var(--border-default);
     border-radius: 8px;
 }
 
-.fleet-group-head {
+.fleet-section {
     display: flex;
-    flex-direction: column;
-    min-width: 64px;
+    flex: 1 1 0;
+    align-items: center;
+    justify-content: center;
+    gap: 20px;
+    min-width: 0;
+    padding: 4px 24px;
 }
 
-.fleet-group-label {
+.fleet-section + .fleet-section {
+    border-left: 1px solid var(--border-default);
+}
+
+.fleet-head,
+.fleet-attention-body {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.fleet-label {
     color: var(--text-muted);
     font-family: "Raleway", sans-serif;
-    font-size: .6rem;
+    font-size: .62rem;
     font-weight: 700;
     letter-spacing: .14em;
     text-transform: uppercase;
 }
 
-.fleet-group-total {
+.fleet-total {
     color: var(--text-bright);
     font-family: "Raleway", sans-serif;
-    font-size: 1.6rem;
+    font-size: 2.4rem;
     font-weight: 700;
-    font-variant-numeric: tabular-nums;
-    line-height: 1.1;
+    font-variant-numeric: lining-nums tabular-nums;
+    line-height: 1;
 }
 
-.fleet-segments {
+.fleet-items {
     display: flex;
-    flex-wrap: wrap;
-    gap: 4px;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
+    padding-left: 16px;
+    border-left: 1px solid var(--border-default);
 }
 
-.fleet-segment {
+.fleet-item {
     --tone: var(--text-faint);
+    position: relative;
     display: inline-flex;
     align-items: center;
+    gap: 8px;
+    padding: 3px 8px;
+    border: 1px solid transparent;
+    border-radius: 6px;
+    background: transparent;
+    color: var(--text-body);
+    font: inherit;
+    font-size: .95rem;
+    cursor: pointer;
+    transition: background-color .12s ease, border-color .12s ease;
+}
+
+.fleet-item::before {
+    content: "";
+    flex-shrink: 0;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background-color: var(--tone);
+}
+
+.fleet-count {
+    color: var(--text-bright);
+    font-family: "Raleway", sans-serif;
+    font-weight: 700;
+    font-variant-numeric: lining-nums tabular-nums;
+}
+
+.fleet-item:hover:not(:disabled) {
+    background-color: var(--surface-hover);
+}
+
+.fleet-item:focus-visible {
+    outline: 2px solid var(--accent-border);
+    outline-offset: 1px;
+}
+
+.fleet-item[aria-pressed="true"] {
+    border-color: var(--tone);
+    background-color: color-mix(in srgb, var(--tone) 14%, transparent);
+}
+
+/* Zero counts stay readable but step back */
+.fleet-item:disabled {
+    color: var(--text-faint);
+    cursor: default;
+}
+
+.fleet-item:disabled .fleet-count {
+    color: var(--text-faint);
+}
+
+.fleet-item:disabled::before {
+    background-color: var(--border-strong-alt);
+}
+
+.fleet-healthy,
+.fleet-working {
+    --tone: var(--sev-low-border);
+}
+
+.fleet-maintenance {
+    --tone: var(--sev-medium-border);
+}
+
+.fleet-offline,
+.fleet-critical {
+    --tone: var(--sev-critical-border);
+}
+
+.fleet-warning {
+    --tone: var(--sev-high-border);
+}
+
+.fleet-attention-icon {
+    display: flex;
+    color: var(--text-faint);
+}
+
+.fleet-attention-icon svg {
+    width: 30px;
+    height: 30px;
+    stroke: currentColor;
+    stroke-width: 1.75;
+}
+
+.fleet-attention[data-fleet-attention="critical"] .fleet-attention-icon {
+    color: var(--sev-critical-border);
+}
+
+.fleet-attention[data-fleet-attention="warning"] .fleet-attention-icon {
+    color: var(--sev-high-border);
+}
+
+.fleet-attention-items {
+    display: flex;
+    align-items: center;
+    gap: 25px;
+}
+
+.fleet-attention-items .fleet-item {
+    gap: 10px;
+    padding: 0 10px;
+    font-size: 1.6rem;
+}
+
+.fleet-attention-items .fleet-item::before {
+    width: 10px;
+    height: 10px;
+}
+
+.fleet-attention-items .fleet-item:not(:disabled)::before {
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--tone) 28%, transparent);
+}
+
+.fleet-attention-items .fleet-item + .fleet-item::after {
+    content: "";
+    position: absolute;
+    left: -13px;
+    top: 15%;
+    height: 70%;
+    border-left: 1px solid var(--border-default);
+}
+
+/* Search and summary toggle; when collapsed they are all that remains */
+.fleet-tools {
+    display: flex;
+    flex: 0 0 auto;
+    align-items: center;
+    gap: 12px;
+    padding: 4px 16px 4px 20px;
+    border-left: 1px solid var(--border-default);
+}
+
+.fleet-freshness {
+    display: inline-flex;
+    flex-shrink: 0;
+    align-items: center;
     gap: 7px;
-    padding: 5px 10px;
+    color: var(--text-faint);
+    font-size: .8rem;
+    white-space: nowrap;
+}
+
+.fleet-freshness::before {
+    content: "";
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background-color: var(--sev-low-border);
+}
+
+.fleet-freshness.is-stale {
+    color: var(--sev-medium-tint);
+}
+
+.fleet-freshness.is-stale::before {
+    background-color: var(--sev-medium-border);
+}
+
+.fleet-freshness[hidden] {
+    display: none;
+}
+
+.fleet-search {
+    position: relative;
+    display: flex;
+    align-items: center;
+    flex: 0 1 auto;
+}
+
+.fleet-search svg {
+    position: absolute;
+    left: 10px;
+    width: 14px;
+    height: 14px;
+    stroke: var(--text-faint);
+    stroke-width: 2;
+    pointer-events: none;
+}
+
+.fleet-search input {
+    box-sizing: border-box;
+    width: clamp(195px, 14vw, 260px);
+    max-width: 100%;
+    padding: 7px 10px 7px 32px;
+    background: var(--surface-control);
+    border: 1px solid var(--border-control);
+    border-radius: 6px;
+    color: var(--text-bright);
+    font: inherit;
+    font-size: .85rem;
+    color-scheme: dark;
+    transition: border-color .15s ease, box-shadow .15s ease;
+}
+
+.fleet-search input::placeholder {
+    color: var(--text-faint);
+}
+
+.fleet-search input:hover {
+    border-color: var(--border-control-hover);
+}
+
+.fleet-search input:focus {
+    outline: none;
+    border-color: var(--accent-border);
+    box-shadow: 0 0 0 2px var(--accent-focus-ring);
+}
+
+/* Hide and show controls: an icon when open, a one-line summary when hidden */
+.fleet-collapse,
+.fleet-expand {
+    display: inline-flex;
+    flex-shrink: 0;
+    align-items: center;
     border: 1px solid transparent;
     border-radius: 6px;
     background: transparent;
     color: var(--text-muted);
     font: inherit;
     cursor: pointer;
-    transition: background-color .12s ease, border-color .12s ease;
+    transition: color .12s ease, background-color .12s ease, border-color .12s ease;
 }
 
-.fleet-segment::before {
+.fleet-collapse {
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    padding: 0;
+}
+
+.fleet-collapse svg,
+.fleet-expand svg {
+    width: 16px;
+    height: 16px;
+    stroke: currentColor;
+    stroke-width: 2;
+}
+
+.fleet-expand {
+    display: none;
+    gap: 12px;
+    padding: 6px 10px;
+    font-size: .8rem;
+}
+
+.fleet-expand svg {
+    width: 14px;
+    height: 14px;
+}
+
+.fleet-collapse:hover,
+.fleet-expand:hover {
+    color: var(--text-bright);
+    background-color: var(--surface-hover);
+}
+
+.fleet-collapse:focus-visible,
+.fleet-expand:focus-visible {
+    outline: 2px solid var(--accent-border);
+    outline-offset: 1px;
+}
+
+.fleet-mini-count {
+    color: var(--text-body);
+    font-weight: 700;
+    font-variant-numeric: lining-nums tabular-nums;
+}
+
+.fleet-mini-attention {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.fleet-mini-attention::before {
     content: "";
     width: 7px;
     height: 7px;
@@ -426,91 +698,101 @@ svg {
     background-color: var(--tone);
 }
 
-.fleet-count {
-    color: var(--tone-text, var(--text-body));
-    font-family: "Raleway", sans-serif;
-    font-size: 1.05rem;
-    font-weight: 700;
-    font-variant-numeric: tabular-nums;
-}
-
-.fleet-label {
-    font-size: .62rem;
-    font-weight: 600;
-    letter-spacing: .08em;
-    text-transform: uppercase;
-}
-
-.fleet-segment:hover:not(:disabled) {
-    background-color: var(--surface-hover);
-}
-
-.fleet-segment:focus-visible {
-    outline: 2px solid var(--accent-border);
-    outline-offset: 1px;
-}
-
-.fleet-segment[aria-pressed="true"] {
-    border-color: var(--tone);
-    background-color: color-mix(in srgb, var(--tone) 14%, transparent);
-    color: var(--text-bright);
-}
-
-.fleet-segment:disabled {
-    opacity: .35;
-    cursor: default;
-}
-
-.fleet-segment:disabled::before {
-    background-color: var(--text-faint);
-}
-
-/* Problems get a halo so they stand out; healthy stays quiet */
-.fleet-segment:is(.fleet-unreachable, .fleet-offline, .fleet-errors):not(:disabled)::before {
-    box-shadow: 0 0 0 3px color-mix(in srgb, var(--tone) 28%, transparent);
-}
-
-.fleet-meter {
-    grid-column: 1 / -1;
-    display: flex;
-    gap: 2px;
-    height: 4px;
-    overflow: hidden;
-    border-radius: 2px;
-    background-color: var(--border-hairline);
-}
-
-.fleet-meter > span {
-    flex-basis: 0;
-    min-width: 0;
-    background-color: var(--tone);
-}
-
-.fleet-meter > span[hidden] {
+.fleet-mini-attention[hidden] {
     display: none;
 }
 
-.fleet-unreachable,
-.fleet-offline,
-.fleet-errors {
-    --tone: var(--sev-critical-border);
-    --tone-text: var(--sev-critical-tint);
+/* Hidden: no panel, just the search field and the one-line summary */
+.fleet-summary.is-collapsed {
+    padding: 0;
+    background: transparent;
+    border-color: transparent;
 }
 
-.fleet-unhealthy,
-.fleet-warnings {
-    --tone: var(--sev-high-border);
-    --tone-text: var(--sev-high-tint);
+.fleet-summary.is-collapsed .fleet-section,
+.fleet-summary.is-collapsed .fleet-collapse {
+    display: none;
 }
 
-.fleet-maintenance {
-    --tone: var(--sev-medium-border);
-    --tone-text: var(--sev-medium-tint);
+.fleet-summary.is-collapsed .fleet-expand {
+    display: inline-flex;
 }
 
-.fleet-healthy,
-.fleet-working {
-    --tone: var(--sev-low-border);
+.fleet-summary.is-collapsed .fleet-tools {
+    flex: 1 1 auto;
+    justify-content: flex-end;
+    padding: 0;
+    border-left: 0;
+}
+
+/* Freshness takes the free space on the left of the hidden row */
+.fleet-summary.is-collapsed .fleet-freshness {
+    margin-right: auto;
+}
+
+.fleet-empty {
+    padding: 32px 0;
+    color: var(--text-muted);
+    text-align: center;
+}
+
+/* Too tight next to the three sections; the hidden row keeps it */
+@media (max-width: 1440px) {
+    .fleet-summary:not(.is-collapsed) .fleet-freshness {
+        display: none;
+    }
+}
+
+/* Below this the tools take their own row */
+@media (max-width: 1200px) {
+    .fleet-summary:not(.is-collapsed) {
+        flex-wrap: wrap;
+    }
+
+    .fleet-summary:not(.is-collapsed) .fleet-freshness {
+        display: inline-flex;
+        margin-right: auto;
+    }
+
+    .fleet-summary:not(.is-collapsed) .fleet-tools {
+        flex-basis: 100%;
+        justify-content: flex-end;
+        margin-top: 14px;
+        padding-top: 14px;
+        border-left: 0;
+        border-top: 1px solid var(--border-default);
+    }
+}
+
+@media (max-width: 960px) {
+    .fleet-summary {
+        flex-direction: column;
+        padding: 0;
+    }
+
+    .fleet-section,
+    .fleet-summary:not(.is-collapsed) .fleet-tools {
+        justify-content: flex-start;
+        padding: 14px 20px;
+    }
+
+    .fleet-summary:not(.is-collapsed) .fleet-tools {
+        margin-top: 0;
+        padding-top: 14px;
+    }
+
+    .fleet-search {
+        flex: 1 1 auto;
+    }
+
+    .fleet-section + .fleet-section {
+        border-left: 0;
+        border-top: 1px solid var(--border-default);
+    }
+
+    .fleet-search input {
+        width: 100%;
+    }
 }
 
 @media (max-width: 645px) {

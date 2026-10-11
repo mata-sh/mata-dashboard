@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - `DEMO_SEED` makes the generated demo data repeatable
-- A summary bar above the server grid counts servers and apps by state; click a count to show only those
+- A summary bar above the server grid counts servers and apps by state and totals what needs attention; click a count to show only those, or filter cards by server or application name.
 
 ### Changed
 - Documentation is published at https://docs.mata.sh

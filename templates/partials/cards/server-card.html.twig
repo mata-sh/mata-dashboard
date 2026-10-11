@@ -1,4 +1,5 @@
-<div id="server-{{ server.id }}" class="server-container" data-summary="{{ server.health.summary }}">
+<div id="server-{{ server.id }}" class="server-container" data-summary="{{ server.health.summary }}"
+     {%- if freshness is defined %} data-age="{{ freshness.age }}"{% if freshness.expires_in is not null %} data-expires-in="{{ freshness.expires_in }}"{% endif %}{% endif %}>
   <div class="server-header" style="border-color: {{ server.primary_color }}">
     <h3 class="server-title" data-tippy-content="Server Updated: {{ cache.age }} ago (TTL: {{ cache.ttl }})">
       <span class="server-title-text">{{ server.title }}</span>

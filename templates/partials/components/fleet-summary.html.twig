@@ -1,31 +1,61 @@
-<div id="fleet-summary" class="fleet-summary" role="toolbar" aria-label="Fleet summary">
-  {% for group in summary %}
-    <div class="fleet-group">
-      <div class="fleet-group-head">
-        <span class="fleet-group-label">{{ group.label }}</span>
-        <span class="fleet-group-total" data-fleet-total="{{ group.key }}">{{ group.total }}</span>
+<div id="fleet-summary" class="fleet-summary is-collapsed" role="toolbar" aria-label="Fleet summary">
+  {% for group in summary.groups %}
+    <div class="fleet-section">
+      <div class="fleet-head">
+        <span class="fleet-label">{{ group.label }}</span>
+        <span class="fleet-total" data-fleet-total="{{ group.key }}">{{ group.total }}</span>
       </div>
-      <div class="fleet-segments">
-        {% for segment in group.segments %}
+      <div class="fleet-items">
+        {% for item in group.items %}
           <button type="button"
-                  class="fleet-segment fleet-{{ segment.state }}"
-                  data-fleet-filter="{{ group.key }}:{{ segment.state }}"
+                  class="fleet-item fleet-{{ item.state }}"
+                  data-fleet-filter="{{ item.filter }}"
                   aria-pressed="false"
-                  aria-label="Show only {{ segment.label|lower }} {{ group.key }}"
-                  {{ segment.count == 0 ? 'disabled' }}>
-            <span class="fleet-count">{{ segment.count }}</span>
-            <span class="fleet-label">{{ segment.label }}</span>
+                  aria-label="Show only {{ item.state }} {{ group.key }}"
+                  {{ item.count == 0 ? 'disabled' }}>
+            <span class="fleet-count">{{ item.count }}</span> {{ item.state }}
           </button>
-        {% endfor %}
-      </div>
-      <div class="fleet-meter" aria-hidden="true">
-        {% for segment in group.segments %}
-          <span class="fleet-{{ segment.state }}"
-                data-fleet-meter="{{ group.key }}:{{ segment.state }}"
-                style="flex-grow: {{ segment.count }}"
-                {{ segment.count == 0 ? 'hidden' }}></span>
         {% endfor %}
       </div>
     </div>
   {% endfor %}
+  <div class="fleet-section fleet-attention" data-fleet-attention="{{ summary.attention_level }}">
+    <span class="fleet-attention-icon" aria-hidden="true">{{ icons.alert_triangle|raw }}</span>
+    <div class="fleet-attention-body">
+      <span class="fleet-label">Needs attention</span>
+      <div class="fleet-attention-items">
+        {% for item in summary.attention %}
+          <button type="button"
+                  class="fleet-item fleet-{{ item.level }}"
+                  data-level="{{ item.level }}"
+                  data-fleet-filter="{{ item.filter }}"
+                  data-tippy-content="{{ item.tooltip }}"
+                  aria-pressed="false"
+                  aria-label="Show only {{ item.tooltip|lower }}"
+                  {{ item.count == 0 ? 'disabled' }}>
+            <span class="fleet-count">{{ item.count }}</span>
+          </button>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+  <div class="fleet-tools">
+    <span class="fleet-freshness" data-tippy-content="Age of the oldest server data on this page" hidden></span>
+    <label class="fleet-search">
+      {{ icons.search|raw }}
+      <input type="search" id="fleet-search" placeholder="Filter servers or apps…" aria-label="Filter servers or applications" autocomplete="off">
+    </label>
+    <button type="button" class="fleet-expand" aria-expanded="false" aria-controls="fleet-summary" data-tippy-content="Show summary">
+      {% for group in summary.groups %}
+        <span><span class="fleet-mini-count" data-fleet-total="{{ group.key }}">{{ group.total }}</span> {{ group.key }}</span>
+      {% endfor %}
+      {% for item in summary.attention %}
+        <span class="fleet-mini-attention fleet-{{ item.level }}" {{ item.count == 0 ? 'hidden' }}><span class="fleet-mini-count" data-fleet-mini="{{ item.level }}">{{ item.count }}</span></span>
+      {% endfor %}
+      {{ icons.chevron_down|raw }}
+    </button>
+    <button type="button" class="fleet-collapse" aria-expanded="false" aria-controls="fleet-summary" aria-label="Hide summary" data-tippy-content="Hide summary">
+      {{ icons.chevron_up|raw }}
+    </button>
+  </div>
 </div>

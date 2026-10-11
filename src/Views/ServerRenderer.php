@@ -25,18 +25,23 @@ use Twig\Environment;
 class ServerRenderer extends BaseRenderer
 {
     /** Summary bar segments per group, most severe first. */
+    /**
+     * Summary columns list the calm states; the problems go to "Needs attention".
+     * Together they cover every state exactly once, so each total adds up.
+     */
     private const SUMMARY_GROUPS = [
-        'servers' => [
-            'unreachable' => 'Unreachable',
-            'unhealthy' => 'Unhealthy',
-            'maintenance' => 'Maintenance',
-            'healthy' => 'Healthy',
+        'servers' => ['label' => 'Servers', 'states' => ['healthy', 'maintenance']],
+        'apps' => ['label' => 'Applications', 'states' => ['working', 'offline']],
+    ];
+
+    private const SUMMARY_ATTENTION = [
+        'critical' => [
+            'filter' => ['servers' => 'unreachable', 'apps' => 'errors'],
+            'tooltip' => 'Unreachable servers and apps with errors',
         ],
-        'apps' => [
-            'offline' => 'Offline',
-            'errors' => 'Errors',
-            'warnings' => 'Warnings',
-            'working' => 'Working',
+        'warning' => [
+            'filter' => ['servers' => 'unhealthy', 'apps' => 'warnings'],
+            'tooltip' => 'Unhealthy servers and apps with warnings',
         ],
     ];
 
@@ -72,6 +77,12 @@ class ServerRenderer extends BaseRenderer
             ],
             'layout' => $layoutConfig,
             'summary' => $this->buildSummaryData($serversViewData),
+            'icons' => [
+                'alert_triangle' => $this->tools->icon('alert-triangle', 26),
+                'search' => $this->tools->icon('search', 14),
+                'chevron_up' => $this->tools->icon('chevron-up', 16),
+                'chevron_down' => $this->tools->icon('chevron-down', 14),
+            ],
         ]);
     }
 
@@ -83,19 +94,21 @@ class ServerRenderer extends BaseRenderer
      *
      * @param array<int,array<string,mixed>> $serversViewData
      *
-     * @return list<array{key:string,label:string,total:int,segments:list<array{state:string,label:string,count:int}>}>
+     * @return array{
+     *     groups: list<array{key:string,label:string,total:int,items:list<array{state:string,filter:string,count:int}>}>,
+     *     attention: list<array{level:string,filter:string,tooltip:string,count:int}>,
+     *     attention_level: string
+     * }
      */
     private function buildSummaryData(array $serversViewData): array
     {
-        $counts = array_map(
-            static fn (array $labels): array => array_fill_keys(array_keys($labels), 0),
-            self::SUMMARY_GROUPS
-        );
+        $counts = ['servers' => [], 'apps' => []];
 
         foreach ($serversViewData as $serverRenderData) {
             $nodeHealth = is_array($serverRenderData['health'] ?? null) ? $serverRenderData['health'] : [];
             $rawState = $nodeHealth['state'] ?? null;
-            ++$counts['servers'][$this->serverSummaryState(NodeHealthState::fromNodePayload(is_string($rawState) ? $rawState : null))];
+            $serverState = $this->serverSummaryState(NodeHealthState::fromNodePayload(is_string($rawState) ? $rawState : null));
+            $counts['servers'][$serverState] = ($counts['servers'][$serverState] ?? 0) + 1;
 
             // Error cards render no app rows
             if (isset($serverRenderData['error'])) {
@@ -104,26 +117,49 @@ class ServerRenderer extends BaseRenderer
 
             foreach ($serverRenderData['apps'] ?? [] as $appRenderData) {
                 $availability = $this->buildAvailabilityData($appRenderData['availability'] ?? []);
-                ++$counts['apps'][$this->appSummaryState($availability['status'], $appRenderData['logAnalysis'] ?? [])];
+                $appState = $this->appSummaryState($availability['status'], $appRenderData['logAnalysis'] ?? []);
+                $counts['apps'][$appState] = ($counts['apps'][$appState] ?? 0) + 1;
             }
         }
 
         $groups = [];
-        foreach (self::SUMMARY_GROUPS as $key => $labels) {
-            $segments = [];
-            foreach ($labels as $state => $label) {
-                $segments[] = ['state' => $state, 'label' => $label, 'count' => $counts[$key][$state]];
+        foreach (self::SUMMARY_GROUPS as $key => $group) {
+            $items = [];
+            foreach ($group['states'] as $state) {
+                $items[] = ['state' => $state, 'filter' => "{$key}:{$state}", 'count' => $counts[$key][$state] ?? 0];
             }
 
             $groups[] = [
                 'key' => $key,
-                'label' => ucfirst($key),
+                'label' => $group['label'],
                 'total' => array_sum($counts[$key]),
-                'segments' => $segments,
+                'items' => $items,
             ];
         }
 
-        return $groups;
+        $attention = [];
+        $attentionLevel = 'clear';
+        foreach (self::SUMMARY_ATTENTION as $level => $definition) {
+            $count = 0;
+            $filters = [];
+            foreach ($definition['filter'] as $key => $state) {
+                $count += $counts[$key][$state] ?? 0;
+                $filters[] = "{$key}:{$state}";
+            }
+
+            if ($count > 0 && $attentionLevel === 'clear') {
+                $attentionLevel = $level;
+            }
+
+            $attention[] = [
+                'level' => $level,
+                'filter' => implode(' ', $filters),
+                'tooltip' => $definition['tooltip'],
+                'count' => $count,
+            ];
+        }
+
+        return ['groups' => $groups, 'attention' => $attention, 'attention_level' => $attentionLevel];
     }
 
     private function serverSummaryState(NodeHealthState $state): string
@@ -218,8 +254,37 @@ class ServerRenderer extends BaseRenderer
             $appsHtml,
             $nodeHealth
         );
+        $data['freshness'] = $this->buildFreshnessData($metrics['cache'] ?? [], $appsCache);
 
         return $this->twig->render('partials/cards/server-card.html.twig', $data);
+    }
+
+    /**
+     * Age of the card's oldest data and seconds until it outlives its TTL.
+     *
+     * Relative values keep the summary's "Updated … ago" independent of clock skew
+     * between server and browser.
+     *
+     * @param array<string,mixed> ...$caches Cache info with age and ttl in seconds
+     *
+     * @return array{age:int,expires_in:null|int}
+     */
+    private function buildFreshnessData(array ...$caches): array
+    {
+        $age = 0;
+        $expiresIn = null;
+
+        foreach ($caches as $cache) {
+            $cacheAge = max(0, (int) ($cache['age'] ?? 0));
+            $age = max($age, $cacheAge);
+
+            $ttl = (int) ($cache['ttl'] ?? 0);
+            if ($ttl > 0) {
+                $expiresIn = min($expiresIn ?? PHP_INT_MAX, $ttl - $cacheAge);
+            }
+        }
+
+        return ['age' => $age, 'expires_in' => $expiresIn];
     }
 
     /**
