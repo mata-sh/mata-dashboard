@@ -9,9 +9,8 @@ namespace Mata\Services\Collect\Demo;
  *
  * Extracted verbatim from MockServerDataCollector::generateDemoApps(): the
  * static data now lives in {@see DemoAppCatalog} and the weighting/random
- * helpers in {@see WeightedRandom}; the assembly algorithm (weighting →
- * environment selection → status roll → prod bias → session assignment → log
- * selection → outlier injection → fatal cursor) is unchanged.
+ * helpers in {@see WeightedRandom}. Apps are mostly healthy; one app on the
+ * {@see DemoAppCatalog::incident()} server gets fatal errors.
  */
 final class DemoAppGenerator
 {
@@ -36,6 +35,7 @@ final class DemoAppGenerator
         $categorySessionMultipliers = $this->catalog->categorySessionMultipliers();
         $logSizeBase = $this->catalog->logSizeBase();
 
+        $warningProfile = $this->catalog->warningProfile();
         $presetKey = $presetKeyMap[$serverName] ?? 'mixed_all';
 
         /** @var array<string,mixed> $preset */
@@ -63,9 +63,6 @@ final class DemoAppGenerator
         $selectedAppKeys = $this->random->selectWeightedUnique($appWeights, $appCount);
 
         $apps = [];
-        $unconfiguredAssigned = false;
-        $errorSessionAssigned = false;
-        $lastAppKey = $selectedAppKeys[count($selectedAppKeys) - 1] ?? null;
 
         foreach ($selectedAppKeys as $appKey) {
             $template = $appTemplates[$appKey];
@@ -87,38 +84,8 @@ final class DemoAppGenerator
 
             $environment = $this->random->pickWeightedKey($envWeights);
 
-            $fatalCount = $this->random->rollProfile($preset['status_profile']['fatal']);
-            $warningCount = $this->random->rollProfile($preset['status_profile']['warnings']);
-
-            if ($environment === 'prod' && isset($preset['prod_environment_bias'])) {
-                $bias = $preset['prod_environment_bias'];
-                $cleanProbability = max(0.0, min(1.0, (float) ($bias['clean_probability'] ?? 0.8)));
-                if (mt_rand(1, 1000) <= (int) round($cleanProbability * 1000)) {
-                    $fatalCount = 0;
-                    $warningCount = 0;
-                } else {
-                    $maxFatal = isset($bias['max_fatal']) ? max(0, (int) $bias['max_fatal']) : null;
-                    $maxWarnings = isset($bias['max_warnings']) ? max(0, (int) $bias['max_warnings']) : null;
-
-                    if ($maxFatal !== null && $fatalCount > $maxFatal) {
-                        $fatalCount = mt_rand(0, $maxFatal);
-                    } elseif ($fatalCount > 0) {
-                        $suppressFatal = max(0.0, min(1.0, (float) ($bias['suppress_fatal_probability'] ?? 0.55)));
-                        if (mt_rand(1, 1000) <= (int) round($suppressFatal * 1000)) {
-                            $fatalCount = 0;
-                        }
-                    }
-
-                    if ($maxWarnings !== null && $warningCount > $maxWarnings) {
-                        $warningCount = mt_rand(0, $maxWarnings);
-                    } elseif ($warningCount > 0) {
-                        $suppressWarnings = max(0.0, min(1.0, (float) ($bias['suppress_warning_probability'] ?? 0.45)));
-                        if (mt_rand(1, 1000) <= (int) round($suppressWarnings * 1000)) {
-                            $warningCount = mt_rand(0, $warningCount);
-                        }
-                    }
-                }
-            }
+            $fatalCount = 0;
+            $warningCount = $this->random->rollProfile($warningProfile);
 
             $statusBaseRange = $preset['status_total_base'] ?? [150, 400];
             $statusTotal = $this->random->randomFromRange($statusBaseRange, $preset['session_multiplier'] ?? 1.0);
@@ -145,18 +112,7 @@ final class DemoAppGenerator
                 'size_kb' => round($sessionsTotal * 1.8, 1),
             ];
 
-            if ($environment === 'dev' && !$unconfiguredAssigned) {
-                $session = [
-                    'type' => 'none',
-                    'status' => 'unconfigured',
-                    'count_last_hour' => null,
-                    'count_last_day' => null,
-                    'count_total' => null,
-                    'path' => null,
-                    'size_kb' => null,
-                ];
-                $unconfiguredAssigned = true;
-            } elseif ($environment === 'prod' && mt_rand(1, 100) <= 25) {
+            if ($environment === 'prod' && mt_rand(1, 100) <= 25) {
                 $session = [
                     'type' => 'redis',
                     'status' => 'ok',
@@ -168,19 +124,6 @@ final class DemoAppGenerator
                 ];
             }
 
-            if ($appKey === $lastAppKey && $session['status'] !== 'unconfigured') {
-                $session = [
-                    'type' => 'memcached',
-                    'status' => 'unsupported',
-                    'count_last_hour' => null,
-                    'count_last_day' => null,
-                    'count_total' => null,
-                    'path' => null,
-                    'size_kb' => null,
-                    'error' => 'session handler memcached is not supported',
-                ];
-                $errorSessionAssigned = true;
-            }
 
             $logCandidates = $template['log_templates'] ?? ['logs/error.log', 'logs/debug.log', 'logs/app.log'];
             $maxLogs = min(count($logCandidates), $preset['log_files']['max'] ?? count($logCandidates));
@@ -218,87 +161,7 @@ final class DemoAppGenerator
             ];
         }
 
-        if (!$errorSessionAssigned) {
-            foreach (array_reverse(array_keys($apps)) as $appKey) {
-                if (($apps[$appKey]['session']['status'] ?? null) === 'unconfigured') {
-                    continue;
-                }
-
-                $apps[$appKey]['session'] = [
-                    'type' => 'memcached',
-                    'status' => 'unsupported',
-                    'count_last_hour' => null,
-                    'count_last_day' => null,
-                    'count_total' => null,
-                    'path' => null,
-                    'size_kb' => null,
-                    'error' => 'session handler memcached is not supported',
-                ];
-                $errorSessionAssigned = true;
-
-                break;
-            }
-        }
-
-        $appKeys = array_keys($apps);
-        $totalApps = count($appKeys);
-        if ($totalApps > 0) {
-            $outlierTargets = [];
-            $groupSize = 6;
-
-            for ($offset = 0; $offset < $totalApps; $offset += $groupSize) {
-                $chunk = array_slice($appKeys, $offset, $groupSize);
-                if (empty($chunk)) {
-                    continue;
-                }
-
-                $chunkCount = count($chunk);
-                $outlierCount = min($chunkCount, mt_rand(1, min(2, $chunkCount)));
-                $chunkShuffled = $chunk;
-                shuffle($chunkShuffled);
-                $outlierTargets = array_merge($outlierTargets, array_slice($chunkShuffled, 0, $outlierCount));
-            }
-
-            $outlierProfile = $preset['outlier_profile'] ?? [];
-            $fatalRange = $outlierProfile['fatal'] ?? [25, 60];
-            $warningRange = $outlierProfile['warnings'] ?? [70, 200];
-            $distribution = $outlierProfile['distribution'] ?? ['warnings' => 0.5, 'fatal' => 0.3, 'both' => 0.2];
-
-            foreach (array_unique($outlierTargets) as $appKey) {
-                if (!isset($apps[$appKey])) {
-                    continue;
-                }
-
-                $outlierType = $this->random->pickWeightedKey([
-                    'fatal' => $distribution['fatal'] ?? 0.3,
-                    'warnings' => $distribution['warnings'] ?? 0.5,
-                    'both' => $distribution['both'] ?? 0.2,
-                ]);
-
-                $status = is_array($apps[$appKey]['status'] ?? null) ? $apps[$appKey]['status'] : [];
-                $fatal = is_int($status['fatal'] ?? null) ? $status['fatal'] : 0;
-                $warnings = is_int($status['warnings'] ?? null) ? $status['warnings'] : 0;
-                $total = is_int($status['total'] ?? null) ? $status['total'] : 0;
-
-                if ($outlierType === 'fatal' || $outlierType === 'both') {
-                    $fatal = max($fatal, $this->random->randomFromRange($fatalRange, 1.0));
-                }
-
-                if ($outlierType === 'warnings' || $outlierType === 'both') {
-                    $warnings = max($warnings, $this->random->randomFromRange($warningRange, 1.0));
-                }
-
-                $statusWeights = $preset['status_total_weight'] ?? ['fatal' => 18, 'warnings' => 5];
-                $status['fatal'] = $fatal;
-                $status['warnings'] = $warnings;
-                $status['total'] = max(
-                    $total,
-                    (int) round($fatal * ($statusWeights['fatal'] ?? 18) + $warnings * ($statusWeights['warnings'] ?? 5))
-                );
-                $apps[$appKey]['status'] = $status;
-
-            }
-        }
+        $apps = $this->injectIncident($serverName, $apps, $preset);
 
         foreach ($apps as $appKey => &$app) {
             $status = is_array($app['status'] ?? null) ? $app['status'] : [];
@@ -317,49 +180,33 @@ final class DemoAppGenerator
         }
         unset($app);
 
-        return $this->applyMonitoringSettings($apps);
+        return $apps;
     }
 
     /**
-     * Add disabled demo states and omit their unavailable payload fields.
+     * Give one app on the incident server fatal errors.
      *
      * @param array<string,mixed> $apps
+     * @param array<string,mixed> $preset
      *
      * @return array<string,mixed>
      */
-    private function applyMonitoringSettings(array $apps): array
+    private function injectIncident(string $serverName, array $apps, array $preset): array
     {
-        $appKeys = array_keys($apps);
-        if ($appKeys === []) {
+        $incident = $this->catalog->incident();
+        if ($serverName !== $incident['server'] || $apps === []) {
             return $apps;
         }
 
-        /** @var array<string,array<string,false>> $disabledByApp */
-        $disabledByApp = [];
-        foreach (['loganalysis', 'logsize', 'sessions', 'reachability'] as $index => $setting) {
-            $appKey = $appKeys[$index % count($appKeys)];
-            $disabledByApp[$appKey][$setting] = false;
-        }
-
-        foreach ($disabledByApp as $appKey => $disabled) {
-            if (!is_array($apps[$appKey])) {
-                continue;
-            }
-
-            $app = $apps[$appKey];
-            $app['monitoring'] = $disabled;
-            if (isset($disabled['loganalysis'])) {
-                unset($app['status']);
-            }
-            if (isset($disabled['logsize'])) {
-                unset($app['logs']);
-            }
-            if (isset($disabled['sessions'])) {
-                unset($app['session']);
-            }
-
-            $apps[$appKey] = $app;
-        }
+        $appKey = array_rand($apps);
+        $status = $apps[$appKey]['status'];
+        $status['fatal'] = $this->random->randomFromRange($incident['fatal']);
+        $statusWeights = $preset['status_total_weight'] ?? ['fatal' => 18, 'warnings' => 5];
+        $status['total'] = max(
+            $status['total'],
+            (int) round($status['fatal'] * ($statusWeights['fatal'] ?? 18) + $status['warnings'] * ($statusWeights['warnings'] ?? 5))
+        );
+        $apps[$appKey]['status'] = $status;
 
         return $apps;
     }

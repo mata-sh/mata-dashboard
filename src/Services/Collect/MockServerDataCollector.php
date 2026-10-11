@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Mata\Services\Collect;
 
+use Mata\Config\Dto\DemoConfig;
 use Mata\Services\Cache\CacheTtlResolver;
 use Mata\Services\Cache\CacheType;
 use Mata\Services\Collect\Demo\DemoAppCatalog;
@@ -44,6 +45,7 @@ class MockServerDataCollector implements ServerDataCollectorInterface
      * @param NodeResponseNormalizer $responseNormalizer Node response normalizer
      * @param string                 $serverName         Server identifier for demo data generation
      * @param array<string,mixed>    $serverConfig       Server configuration from demo-servers.json
+     * @param DemoConfig             $demo               Seed for repeatable generated data
      */
     public function __construct(
         LoggerInterface $logger,
@@ -51,13 +53,14 @@ class MockServerDataCollector implements ServerDataCollectorInterface
         NodeResponseNormalizer $responseNormalizer,
         string $serverName,
         array $serverConfig,
+        private readonly DemoConfig $demo = new DemoConfig(),
     ) {
         $this->logger = $logger;
         $this->ttlResolver = $ttlResolver;
         $this->responseNormalizer = $responseNormalizer;
         $this->serverName = $serverName;
         $this->serverConfig = $serverConfig;
-        $this->cacheAge = mt_rand(10, 180); // Simulate cache age
+        $this->cacheAge = $this->seeded('cache-age', static fn (): int => mt_rand(10, 180)); // Simulate cache age
         $this->serverCatalog = new DemoServerCatalog();
         $this->appCatalog = new DemoAppCatalog();
         $this->appGenerator = new DemoAppGenerator($this->appCatalog, new WeightedRandom());
@@ -73,10 +76,8 @@ class MockServerDataCollector implements ServerDataCollectorInterface
         // Generate realistic metrics based on server type
         $baseMetrics = $this->serverCatalog->baseMetricsForServerType($this->serverName);
 
-        $data = [
-            'cpu_usage' => $this->serverName === 'production-web'
-                ? 97
-                : $baseMetrics['cpu'] + mt_rand(-5, 15),
+        $data = $this->seeded('system-data', fn (): array => [
+            'cpu_usage' => $baseMetrics['cpu'] + mt_rand(-5, 15),
             'ram_capacity' => $baseMetrics['ram_capacity'],
             'ram_used' => $baseMetrics['ram_used'] + mt_rand(-200, 500),
             'disk_space_capacity' => $baseMetrics['disk_capacity'],
@@ -92,7 +93,7 @@ class MockServerDataCollector implements ServerDataCollectorInterface
                 'sql' => mt_rand(12, 20),
             ],
             'cronjobs' => ['total' => 5, 'working' => 5, 'stale' => 0, 'missing' => 0],
-        ];
+        ]);
 
         return $this->responseNormalizer->normalizeApiResponse($data, $this->cacheAge, $ttlSeconds, false, false, 'server/data');
     }
@@ -108,26 +109,28 @@ class MockServerDataCollector implements ServerDataCollectorInterface
         $commonPhpExtensions = $this->serverCatalog->commonPhpExtensions();
         $optionalExtensions = $this->serverCatalog->optionalPhpExtensions();
 
-        // Randomly include some optional extensions
-        $extensionCount = mt_rand(5, count($optionalExtensions) - 2);
+        $data = $this->seeded('server-info', function () use ($osOptions, $commonPhpExtensions, $optionalExtensions): array {
+            // Randomly include some optional extensions
+            $extensionCount = mt_rand(5, count($optionalExtensions) - 2);
 
-        /** @var array<int, string> $selectedOptional */
-        $selectedOptional = array_rand(array_flip($optionalExtensions), $extensionCount);
+            /** @var array<int, string> $selectedOptional */
+            $selectedOptional = array_rand(array_flip($optionalExtensions), $extensionCount);
 
-        $allExtensions = array_merge($commonPhpExtensions, $selectedOptional);
-        sort($allExtensions);
+            $allExtensions = array_merge($commonPhpExtensions, $selectedOptional);
+            sort($allExtensions);
 
-        $data = [
-            'os_name' => $osOptions[array_rand($osOptions)],
-            'os_version' => $osOptions[array_rand($osOptions)],
-            'kernel_version' => '5.' . mt_rand(10, 19) . '.' . mt_rand(0, 120) . '-' . mt_rand(1, 100) . '-generic',
-            'package_count' => mt_rand(800, 2500),
-            'php_version' => '8.' . mt_rand(1, 3) . '.' . mt_rand(0, 20),
-            'php_extensions' => $allExtensions,
-            'php_extension_count' => count($allExtensions),
-            'architecture' => 'x86_64',
-            'hostname' => $this->serverName . '.example.com',
-        ];
+            return [
+                'os_name' => $osOptions[array_rand($osOptions)],
+                'os_version' => $osOptions[array_rand($osOptions)],
+                'kernel_version' => '5.' . mt_rand(10, 19) . '.' . mt_rand(0, 120) . '-' . mt_rand(1, 100) . '-generic',
+                'package_count' => mt_rand(800, 2500),
+                'php_version' => '8.' . mt_rand(1, 3) . '.' . mt_rand(0, 20),
+                'php_extensions' => $allExtensions,
+                'php_extension_count' => count($allExtensions),
+                'architecture' => 'x86_64',
+                'hostname' => $this->serverName . '.example.com',
+            ];
+        });
 
         return $this->responseNormalizer->normalizeApiResponse($data, $this->cacheAge, $ttlSeconds, false);
     }
@@ -138,7 +141,7 @@ class MockServerDataCollector implements ServerDataCollectorInterface
     public function getApps(CacheType $cacheType = CacheType::Apps, bool $forceRefresh = false): ?array
     {
         $ttlSeconds = $this->ttlResolver->get($cacheType);
-        $data = $this->appGenerator->generate($this->serverName, $this->serverConfig);
+        $data = $this->demoApps();
 
         return $this->responseNormalizer->normalizeApiResponse(
             $data,
@@ -157,20 +160,24 @@ class MockServerDataCollector implements ServerDataCollectorInterface
     {
         $ttlSeconds = $this->ttlResolver->get($cacheType);
 
-        $processes = [];
-        $processCount = mt_rand(15, 40);
+        $processes = $this->seeded('processes', static function (): array {
+            $processes = [];
+            $processCount = mt_rand(15, 40);
 
-        for ($i = 0; $i < $processCount; ++$i) {
-            $processes[] = [
-                'user' => ['www-data', 'nginx', 'apache', 'php-fpm'][array_rand(['www-data', 'nginx', 'apache', 'php-fpm'])],
-                'pid' => mt_rand(1000, 65000),
-                'ppid' => mt_rand(1, 1000),
-                'cpu' => round(mt_rand(0, 1500) / 100, 1),
-                'mem' => round(mt_rand(50, 2000) / 100, 1),
-                'etime' => sprintf('%02d:%02d:%02d', mt_rand(0, 23), mt_rand(0, 59), mt_rand(0, 59)),
-                'args' => 'php-fpm: pool ' . ['www', 'api', 'admin'][array_rand(['www', 'api', 'admin'])],
-            ];
-        }
+            for ($i = 0; $i < $processCount; ++$i) {
+                $processes[] = [
+                    'user' => ['www-data', 'nginx', 'apache', 'php-fpm'][array_rand(['www-data', 'nginx', 'apache', 'php-fpm'])],
+                    'pid' => mt_rand(1000, 65000),
+                    'ppid' => mt_rand(1, 1000),
+                    'cpu' => round(mt_rand(0, 1500) / 100, 1),
+                    'mem' => round(mt_rand(50, 2000) / 100, 1),
+                    'etime' => sprintf('%02d:%02d:%02d', mt_rand(0, 23), mt_rand(0, 59), mt_rand(0, 59)),
+                    'args' => 'php-fpm: pool ' . ['www', 'api', 'admin'][array_rand(['www', 'api', 'admin'])],
+                ];
+            }
+
+            return $processes;
+        });
 
         return $this->responseNormalizer->normalizeApiResponse($processes, $this->cacheAge, $ttlSeconds, false);
     }
@@ -216,12 +223,15 @@ class MockServerDataCollector implements ServerDataCollectorInterface
     {
         $ttlSeconds = $this->ttlResolver->get($cacheType);
 
-        $apps = array_keys($this->appGenerator->generate($this->serverName, $this->serverConfig));
-        $libraries = [];
+        $apps = array_keys($this->demoApps());
+        $libraries = $this->seeded('libraries', function () use ($apps): array {
+            $libraries = [];
+            foreach ($apps as $app) {
+                $libraries[$app] = $this->generateLibrariesForApp($app);
+            }
 
-        foreach ($apps as $app) {
-            $libraries[$app] = $this->generateLibrariesForApp($app);
-        }
+            return $libraries;
+        });
 
         return $this->responseNormalizer->normalizeApiResponse($libraries, $this->cacheAge, $ttlSeconds, false, false, 'apps/libraries');
     }
@@ -251,30 +261,33 @@ class MockServerDataCollector implements ServerDataCollectorInterface
             "{$app}/logs/debug.log",
         ];
 
-        $groupedLogs = [];
-
         $errorTypes = $this->appCatalog->logErrorTypes();
+        $groupedLogs = $this->seeded("logs:{$app}", static function () use ($app, $logFiles, $errorTypes): array {
+            $groupedLogs = [];
 
-        foreach ($logFiles as $logFile) {
-            $entriesCount = mt_rand(5, 20);
-            $entries = [];
+            foreach ($logFiles as $logFile) {
+                $entriesCount = mt_rand(5, 20);
+                $entries = [];
 
-            for ($i = 0; $i < $entriesCount; ++$i) {
-                $timestamp = date('Y-m-d H:i:s', time() - mt_rand(3600, 86400 * 7));
-                $errorType = $errorTypes[array_rand($errorTypes)];
-                $file = '/var/www/' . $app . '/src/' . ['Controller', 'Model', 'Service'][array_rand(['Controller', 'Model', 'Service'])] . '/'
-                       . ucfirst($app) . ['Controller', 'Model', 'Service'][array_rand(['Controller', 'Model', 'Service'])] . '.php';
-                $line = mt_rand(15, 250);
+                for ($i = 0; $i < $entriesCount; ++$i) {
+                    $timestamp = date('Y-m-d H:i:s', time() - mt_rand(3600, 86400 * 7));
+                    $errorType = $errorTypes[array_rand($errorTypes)];
+                    $file = '/var/www/' . $app . '/src/' . ['Controller', 'Model', 'Service'][array_rand(['Controller', 'Model', 'Service'])] . '/'
+                           . ucfirst($app) . ['Controller', 'Model', 'Service'][array_rand(['Controller', 'Model', 'Service'])] . '.php';
+                    $line = mt_rand(15, 250);
 
-                $entries[] = [
-                    'timestamp' => $timestamp,
-                    'type' => $errorType['type'],
-                    'message' => $errorType['message'] . ' ' . $file . ':' . $line,
-                ];
+                    $entries[] = [
+                        'timestamp' => $timestamp,
+                        'type' => $errorType['type'],
+                        'message' => $errorType['message'] . ' ' . $file . ':' . $line,
+                    ];
+                }
+
+                $groupedLogs[$logFile] = $entries;
             }
 
-            $groupedLogs[$logFile] = $entries;
-        }
+            return $groupedLogs;
+        });
 
         return $this->responseNormalizer->normalizeApiResponse(
             ['entries' => $groupedLogs, 'readout_limit' => 200],
@@ -293,7 +306,7 @@ class MockServerDataCollector implements ServerDataCollectorInterface
     {
         $ttlSeconds = $this->ttlResolver->get($cacheType);
 
-        $logsStatus = [
+        $logsStatus = $this->seeded("logs-status:{$app}", static fn (): array => [
             "{$app}/logs/error.log" => [
                 'size' => mt_rand(10240, 524288), // 10KB to 512KB
                 'lines' => mt_rand(100, 5000),
@@ -309,7 +322,7 @@ class MockServerDataCollector implements ServerDataCollectorInterface
                 'lines' => mt_rand(50, 2000),
                 'last_modified' => date('Y-m-d H:i:s', time() - mt_rand(300, 43200)),
             ],
-        ];
+        ]);
 
         return $this->responseNormalizer->normalizeApiResponse($logsStatus, $this->cacheAge, $ttlSeconds, false);
     }
@@ -393,6 +406,40 @@ class MockServerDataCollector implements ServerDataCollectorInterface
         $cronjobs = $this->serverCatalog->cronjobs();
 
         return $this->responseNormalizer->normalizeApiResponse($cronjobs, $this->cacheAge, $ttlSeconds, false, path: 'server/cronjobs');
+    }
+
+    /**
+     * Demo apps for this server; seeded so the app list matches across endpoints.
+     *
+     * @return array<string,mixed>
+     */
+    private function demoApps(): array
+    {
+        return $this->seeded('apps', fn (): array => $this->appGenerator->generate($this->serverName, $this->serverConfig));
+    }
+
+    /**
+     * Run a generator with mt_rand seeded per server and section when DEMO_SEED is set.
+     *
+     * @template T
+     *
+     * @param callable():T $generate
+     *
+     * @return T
+     */
+    private function seeded(string $section, callable $generate): mixed
+    {
+        if ($this->demo->seed === null) {
+            return $generate();
+        }
+
+        mt_srand($this->demo->seed ^ (int) crc32($this->serverName . ':' . $section));
+
+        try {
+            return $generate();
+        } finally {
+            mt_srand();
+        }
     }
 
     /**

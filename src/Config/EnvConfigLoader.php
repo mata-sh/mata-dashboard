@@ -11,6 +11,7 @@ use Mata\Config\Dto\ApplicationConfig;
 use Mata\Config\Dto\CliSecurityConfig;
 use Mata\Config\Dto\DashboardConfig;
 use Mata\Config\Dto\DatabaseConfig;
+use Mata\Config\Dto\DemoConfig;
 use Mata\Config\Dto\EnvironmentConfig;
 use Mata\Config\Dto\GeneralConfig;
 use Mata\Config\Dto\LoggingConfig;
@@ -66,6 +67,7 @@ final class EnvConfigLoader
             rateLimiting: $this->loadRateLimitingConfig(),
             alarmDecision: $this->loadAlarmDecisionConfig(),
             nodeApi: $this->loadNodeApiConfig(),
+            demo: $this->loadDemoConfig(),
         );
     }
 
@@ -92,6 +94,15 @@ final class EnvConfigLoader
                 NodeApiConfig::DEFAULT_TIMEOUT_SECONDS,
                 minimum: 1,
             ),
+        );
+    }
+
+    private function loadDemoConfig(): DemoConfig
+    {
+        $seed = $this->normalizeOptionalEnvValue($this->getEnv('DEMO_SEED'));
+
+        return new DemoConfig(
+            seed: $seed === null ? null : ConfigValueValidator::integerString($seed, 'env.DEMO_SEED', minimum: 0),
         );
     }
 

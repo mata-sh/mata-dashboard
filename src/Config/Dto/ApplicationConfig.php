@@ -25,5 +25,6 @@ final class ApplicationConfig
         public readonly RateLimitingConfig $rateLimiting,
         public readonly AlarmDecisionConfig $alarmDecision,
         public readonly NodeApiConfig $nodeApi,
+        public readonly DemoConfig $demo = new DemoConfig(),
     ) {}
 }

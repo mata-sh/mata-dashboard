@@ -417,6 +417,7 @@ $serverMonitoringFactory = new ServerMonitoringFactory(
     $idResolver,
     $fatalStateRepository,
     new LogSizeEvaluator($tools, $eventManager),
+    $appConfig->demo,
 );
 
 $serverMonitoringResult = $dashboardEnvironmentFactory->createMonitoring(

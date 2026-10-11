@@ -74,6 +74,10 @@ web root with `MATA_USERS_FILE`; see the [user management guide](user-management
 `config/config.env`. Docker also stores it in `.env`, and both values must
 match.
 
+In `demo`, nodes are simulated. Set `DEMO_SEED` to a non-negative integer to
+make the generated data repeat across requests, for example when taking
+screenshots.
+
 !!! info "Required environment values"
     Configuration loading requires `DB_HOST`, `DB_PORT`, `DB_DATABASE`,
     `DB_USERNAME`, and `DB_PASSWORD`. Validation also requires `DOMAIN` and

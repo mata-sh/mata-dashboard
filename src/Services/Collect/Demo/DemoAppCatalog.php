@@ -55,7 +55,7 @@ final class DemoAppCatalog
                 'log_templates' => ['logs/error.log', 'logs/access.log', 'logs/ui.log'],
             ],
             'inventory-system' => [
-                'title' => 'Inventory Management',
+                'title' => 'Inventory',
                 'description' => 'Tracks inventory, stock levels, and fulfillment operations.',
                 'path' => 'inventory',
                 'environment' => 'prod',
@@ -64,7 +64,7 @@ final class DemoAppCatalog
                 'log_templates' => ['logs/error.log', 'logs/sync.log', 'logs/report.log'],
             ],
             'analytics-dashboard' => [
-                'title' => 'Analytics Dashboard',
+                'title' => 'Analytics',
                 'description' => 'Explores product and operational analytics.',
                 'path' => 'analytics',
                 'environment' => 'dev',
@@ -82,7 +82,7 @@ final class DemoAppCatalog
                 'log_templates' => ['logs/error.log', 'logs/access.log', 'logs/security.log', 'logs/settlement.log'],
             ],
             'notification-service' => [
-                'title' => 'Notification Service',
+                'title' => 'Notifications',
                 'description' => 'Delivers email, SMS, and application notifications.',
                 'path' => 'notifications',
                 'environment' => 'test',
@@ -91,9 +91,9 @@ final class DemoAppCatalog
                 'log_templates' => ['logs/error.log', 'logs/queue.log', 'logs/delivery.log'],
             ],
             'warehouse-system' => [
-                'title' => 'Warenwirtschaft Backend',
+                'title' => 'ERP Backend',
                 'description' => 'Coordinates warehouse and enterprise resource operations.',
-                'path' => 'warenwirtschaft',
+                'path' => 'erp',
                 'environment' => 'prod',
                 'category' => 'operations',
                 'suitable_environments' => ['prod', 'stg'],
@@ -118,7 +118,7 @@ final class DemoAppCatalog
                 'log_templates' => ['logs/error.log', 'logs/indexer.log', 'logs/query.log'],
             ],
             'load-balancer-node' => [
-                'title' => 'Load Balancer Node',
+                'title' => 'Load Balancer',
                 'description' => 'Balances traffic across application instances.',
                 'path' => 'load-balancer',
                 'environment' => 'prod',
@@ -127,7 +127,7 @@ final class DemoAppCatalog
                 'log_templates' => ['logs/error.log', 'logs/access.log', 'logs/health.log'],
             ],
             'shared-storage-cluster' => [
-                'title' => 'Shared Storage Cluster',
+                'title' => 'Shared Storage',
                 'description' => 'Provides shared storage for distributed services.',
                 'path' => 'shared-storage',
                 'environment' => 'prod',
@@ -145,7 +145,7 @@ final class DemoAppCatalog
                 'log_templates' => ['logs/error.log', 'logs/pipeline.log', 'logs/worker.log'],
             ],
             'feature-flags' => [
-                'title' => 'Feature Flag Service',
+                'title' => 'Feature Flags',
                 'description' => 'Controls feature rollout and runtime configuration.',
                 'path' => 'feature-flags',
                 'environment' => 'dev',
@@ -181,7 +181,7 @@ final class DemoAppCatalog
                 'log_templates' => ['logs/error.log', 'logs/run.log', 'logs/assertion.log'],
             ],
             'beta-portal' => [
-                'title' => 'Beta Customer Portal',
+                'title' => 'Beta Portal',
                 'description' => 'Preview customer portal for upcoming features.',
                 'path' => 'beta-portal',
                 'environment' => 'test',
@@ -252,35 +252,11 @@ final class DemoAppCatalog
                     'analytics-dashboard' => 2,
                     'notification-service' => 2,
                 ],
-                'status_profile' => [
-                    'fatal' => [
-                        ['prob' => 0.9, 'range' => [0, 0]],
-                        ['prob' => 0.08, 'range' => [1, 1]],
-                        ['prob' => 0.02, 'range' => [2, 4]],
-                    ],
-                    'warnings' => [
-                        ['prob' => 0.82, 'range' => [0, 1]],
-                        ['prob' => 0.14, 'range' => [2, 4]],
-                        ['prob' => 0.04, 'range' => [5, 10]],
-                    ],
-                ],
                 'status_total_base' => [250, 550],
                 'status_total_weight' => ['fatal' => 25, 'warnings' => 6],
                 'session_multiplier' => 1.15,
                 'log_files' => ['min' => 2, 'max' => 5],
                 'log_size_multiplier' => 1.0,
-                'prod_environment_bias' => [
-                    'clean_probability' => 0.86,
-                    'max_fatal' => 2,
-                    'max_warnings' => 5,
-                    'suppress_fatal_probability' => 0.6,
-                    'suppress_warning_probability' => 0.48,
-                ],
-                'outlier_profile' => [
-                    'fatal' => [15, 45],
-                    'warnings' => [30, 140],
-                    'distribution' => ['warnings' => 0.7, 'fatal' => 0.2, 'both' => 0.1],
-                ],
             ],
             'test_only' => [
                 'environment_weights' => ['test' => 1.0],
@@ -304,28 +280,11 @@ final class DemoAppCatalog
                     'notification-service' => 2,
                     'workflow-engine' => 2,
                 ],
-                'status_profile' => [
-                    'fatal' => [
-                        ['prob' => 0.45, 'range' => [0, 0]],
-                        ['prob' => 0.35, 'range' => [1, 3]],
-                        ['prob' => 0.20, 'range' => [4, 10]],
-                    ],
-                    'warnings' => [
-                        ['prob' => 0.25, 'range' => [0, 2]],
-                        ['prob' => 0.45, 'range' => [5, 25]],
-                        ['prob' => 0.30, 'range' => [30, 90]],
-                    ],
-                ],
                 'status_total_base' => [80, 200],
                 'status_total_weight' => ['fatal' => 12, 'warnings' => 5],
                 'session_multiplier' => 0.45,
                 'log_files' => ['min' => 1, 'max' => 3],
                 'log_size_multiplier' => 0.6,
-                'outlier_profile' => [
-                    'fatal' => [12, 40],
-                    'warnings' => [80, 200],
-                    'distribution' => ['warnings' => 0.8, 'fatal' => 0.1, 'both' => 0.1],
-                ],
             ],
             'dev_test_mix' => [
                 'environment_weights' => ['dev' => 0.6, 'test' => 0.4],
@@ -349,28 +308,11 @@ final class DemoAppCatalog
                     'message-broker' => 2,
                     'workflow-engine' => 2,
                 ],
-                'status_profile' => [
-                    'fatal' => [
-                        ['prob' => 0.35, 'range' => [0, 1]],
-                        ['prob' => 0.40, 'range' => [2, 6]],
-                        ['prob' => 0.25, 'range' => [7, 18]],
-                    ],
-                    'warnings' => [
-                        ['prob' => 0.30, 'range' => [0, 4]],
-                        ['prob' => 0.45, 'range' => [5, 25]],
-                        ['prob' => 0.25, 'range' => [26, 80]],
-                    ],
-                ],
                 'status_total_base' => [120, 320],
                 'status_total_weight' => ['fatal' => 18, 'warnings' => 6],
                 'session_multiplier' => 0.5,
                 'log_files' => ['min' => 2, 'max' => 4],
                 'log_size_multiplier' => 0.7,
-                'outlier_profile' => [
-                    'fatal' => [25, 70],
-                    'warnings' => [90, 220],
-                    'distribution' => ['warnings' => 0.5, 'fatal' => 0.3, 'both' => 0.2],
-                ],
             ],
             'mixed_all' => [
                 'environment_weights' => ['prod' => 0.4, 'stg' => 0.25, 'test' => 0.25, 'dev' => 0.1],
@@ -396,28 +338,11 @@ final class DemoAppCatalog
                     'reporting-service' => 3,
                     'workflow-engine' => 2,
                 ],
-                'status_profile' => [
-                    'fatal' => [
-                        ['prob' => 0.48, 'range' => [0, 1]],
-                        ['prob' => 0.32, 'range' => [2, 5]],
-                        ['prob' => 0.20, 'range' => [6, 15]],
-                    ],
-                    'warnings' => [
-                        ['prob' => 0.38, 'range' => [0, 4]],
-                        ['prob' => 0.40, 'range' => [5, 25]],
-                        ['prob' => 0.22, 'range' => [26, 90]],
-                    ],
-                ],
                 'status_total_base' => [150, 420],
                 'status_total_weight' => ['fatal' => 20, 'warnings' => 6],
                 'session_multiplier' => 0.95,
                 'log_files' => ['min' => 2, 'max' => 5],
                 'log_size_multiplier' => 0.9,
-                'outlier_profile' => [
-                    'fatal' => [20, 60],
-                    'warnings' => [80, 250],
-                    'distribution' => ['warnings' => 0.55, 'fatal' => 0.25, 'both' => 0.2],
-                ],
             ],
             'staging_prod' => [
                 'environment_weights' => ['stg' => 0.55, 'prod' => 0.45],
@@ -443,28 +368,11 @@ final class DemoAppCatalog
                     'workflow-engine' => 2,
                     'shared-storage-cluster' => 2,
                 ],
-                'status_profile' => [
-                    'fatal' => [
-                        ['prob' => 0.58, 'range' => [0, 1]],
-                        ['prob' => 0.28, 'range' => [2, 4]],
-                        ['prob' => 0.14, 'range' => [5, 12]],
-                    ],
-                    'warnings' => [
-                        ['prob' => 0.40, 'range' => [0, 3]],
-                        ['prob' => 0.40, 'range' => [4, 18]],
-                        ['prob' => 0.20, 'range' => [19, 70]],
-                    ],
-                ],
                 'status_total_base' => [130, 360],
                 'status_total_weight' => ['fatal' => 18, 'warnings' => 6],
                 'session_multiplier' => 0.85,
                 'log_files' => ['min' => 2, 'max' => 4],
                 'log_size_multiplier' => 0.85,
-                'outlier_profile' => [
-                    'fatal' => [18, 50],
-                    'warnings' => [60, 180],
-                    'distribution' => ['warnings' => 0.5, 'fatal' => 0.2, 'both' => 0.3],
-                ],
             ],
             'infra_mix' => [
                 'environment_weights' => ['prod' => 0.4, 'stg' => 0.3, 'test' => 0.2, 'dev' => 0.1],
@@ -488,30 +396,37 @@ final class DemoAppCatalog
                     'workflow-engine' => 2,
                     'notification-service' => 2,
                 ],
-                'status_profile' => [
-                    'fatal' => [
-                        ['prob' => 0.40, 'range' => [0, 1]],
-                        ['prob' => 0.35, 'range' => [2, 5]],
-                        ['prob' => 0.25, 'range' => [6, 15]],
-                    ],
-                    'warnings' => [
-                        ['prob' => 0.30, 'range' => [0, 3]],
-                        ['prob' => 0.40, 'range' => [4, 20]],
-                        ['prob' => 0.30, 'range' => [21, 80]],
-                    ],
-                ],
                 'status_total_base' => [90, 260],
                 'status_total_weight' => ['fatal' => 16, 'warnings' => 5],
                 'session_multiplier' => 0.4,
                 'log_files' => ['min' => 1, 'max' => 4],
                 'log_size_multiplier' => 0.7,
-                'outlier_profile' => [
-                    'fatal' => [25, 70],
-                    'warnings' => [70, 180],
-                    'distribution' => ['warnings' => 0.5, 'fatal' => 0.3, 'both' => 0.2],
-                ],
             ],
         ];
+    }
+
+    /**
+     * Warning counts per app; fatal errors only come from {@see incident()}.
+     *
+     * @return array<int,array<string,mixed>>
+     */
+    public function warningProfile(): array
+    {
+        return [
+            ['prob' => 0.7, 'range' => [0, 0]],
+            ['prob' => 0.25, 'range' => [1, 3]],
+            ['prob' => 0.05, 'range' => [4, 9]],
+        ];
+    }
+
+    /**
+     * The demo's single incident: one app on this server gets fatal errors.
+     *
+     * @return array{server:string,fatal:array{0:int,1:int}}
+     */
+    public function incident(): array
+    {
+        return ['server' => 'production-web', 'fatal' => [3, 8]];
     }
 
     /**

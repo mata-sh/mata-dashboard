@@ -10,10 +10,12 @@ use Mata\Services\Monitor\Dto\NodeHealthResult;
 use Mata\Services\Monitor\Dto\NodeHealthState;
 
 /**
- * Demo node health monitor with stable, varied health states.
+ * Demo node health monitor: every node is healthy, one is in maintenance.
  */
 class MockNodeHealthMonitor implements NodeHealthMonitorInterface
 {
+    private const MAINTENANCE_SERVER = 'staging-server';
+
     /**
      * @param array<string,array<string,mixed>> $variants Health results keyed by server name
      */
@@ -28,8 +30,7 @@ class MockNodeHealthMonitor implements NodeHealthMonitorInterface
             return NodeHealthResult::fromArray($this->variants[$serverName]);
         }
 
-        $variant = crc32($serverName) % 3;
-        if ($variant === 1) {
+        if ($serverName === self::MAINTENANCE_SERVER) {
             return NodeHealthResult::fromArray([
                 'status' => NodeHealthState::Healthy->value,
                 'httpCode' => 200,
@@ -38,19 +39,6 @@ class MockNodeHealthMonitor implements NodeHealthMonitorInterface
                 'node_timestamp' => gmdate(DATE_ATOM),
                 'latency_ms' => 42,
                 'error' => null,
-                'checked_at' => time(),
-            ]);
-        }
-
-        if ($variant === 2) {
-            return NodeHealthResult::fromArray([
-                'status' => NodeHealthState::Unreachable->value,
-                'httpCode' => null,
-                'maintenance_mode' => null,
-                'checks' => null,
-                'node_timestamp' => null,
-                'latency_ms' => null,
-                'error' => 'Mock health check timeout',
                 'checked_at' => time(),
             ]);
         }

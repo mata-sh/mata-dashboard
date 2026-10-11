@@ -60,6 +60,7 @@ try {
         $idResolver,
         $fatalStateRepository,
         $eventMonitor,
+        $appConfig->demo,
     );
     $dataFetchRunner = new ServerDataFetchRunner($log);
     $stats = new ServerDataFetchStats();

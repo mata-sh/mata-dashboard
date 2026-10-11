@@ -5,8 +5,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- `DEMO_SEED` makes the generated demo data repeatable
+
 ### Changed
 - Documentation is published at https://docs.mata.sh
+- The demo shows a mostly healthy fleet with a single incident instead of every failure state at once, and uses shorter app names so rows no longer truncate
 
 ### Fixed
 - The users-file error page links to the users-file setup guide instead of a missing page

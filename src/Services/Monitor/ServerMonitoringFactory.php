@@ -6,6 +6,7 @@ namespace Mata\Services\Monitor;
 
 use Exception;
 use InvalidArgumentException;
+use Mata\Config\Dto\DemoConfig;
 use Mata\Models\Monitor\AppFatalStateRepository;
 use Mata\Services\Cache\ApiCacheKeyFactory;
 use Mata\Services\Cache\CacheStoreInterface;
@@ -40,6 +41,7 @@ final readonly class ServerMonitoringFactory
         private ServerApplicationIdResolver $idResolver,
         private AppFatalStateRepository $fatalStateRepository,
         private LogSizeEvaluator $logSizeEvaluator,
+        private DemoConfig $demo = new DemoConfig(),
     ) {}
 
     /** @param array<string,mixed> $servers */
@@ -166,6 +168,7 @@ final readonly class ServerMonitoringFactory
                 $this->responseNormalizer,
                 $server,
                 $serverConfig,
+                $this->demo,
             ),
             reachabilityMonitor: new MockAppReachabilityMonitor(),
             errorMonitor: new MockAppErrorMonitor(),

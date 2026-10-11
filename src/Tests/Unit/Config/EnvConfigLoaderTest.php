@@ -26,6 +26,7 @@ final class EnvConfigLoaderTest extends TestCase
         'OPA_ALARM_DECISION_PATH',
         'OPA_ALARM_TIMEOUT_SECONDS',
         'NODE_API_TIMEOUT_SECONDS',
+        'DEMO_SEED',
     ];
 
     /** @var array<string,array{bool,mixed,false|string}> */
@@ -175,5 +176,33 @@ final class EnvConfigLoaderTest extends TestCase
         $this->expectExceptionMessage('env.NODE_API_TIMEOUT_SECONDS must be at least 1.');
 
         $this->invokeMethod(new EnvConfigLoader(), 'loadNodeApiConfig');
+    }
+
+    public function testDemoConfigDefaultsToNoSeed(): void
+    {
+        $_ENV['DEMO_SEED'] = '';
+
+        $config = $this->invokeMethod(new EnvConfigLoader(), 'loadDemoConfig');
+
+        self::assertNull($config->seed);
+    }
+
+    public function testDemoConfigMapsValidEnvironment(): void
+    {
+        $_ENV['DEMO_SEED'] = '42';
+
+        $config = $this->invokeMethod(new EnvConfigLoader(), 'loadDemoConfig');
+
+        self::assertSame(42, $config->seed);
+    }
+
+    public function testDemoConfigRejectsNegativeSeed(): void
+    {
+        $_ENV['DEMO_SEED'] = '-1';
+
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('env.DEMO_SEED must be at least 0.');
+
+        $this->invokeMethod(new EnvConfigLoader(), 'loadDemoConfig');
     }
 }
