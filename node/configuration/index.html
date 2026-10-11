@@ -1,0 +1,2182 @@
+<!DOCTYPE html>
+
+<html lang="en">
+
+<head>
+    <script>
+        /* const base_url = "https://docs.mata.sh/"; */
+        const base_url = (new URL("../..", window.location)).href.replace(/\/+$/, ""); /* for search plugin notably */
+        /* const root_relative_url = "../.."; */
+    </script>
+    <script integrity="sha384-m6cZ+Whl1ci89lidlu8DH4C+sZLNOYBvImtjUIhUK+iaNffXhqtbYgBVuuPfRsa0" src="../../js/dark.js"></script>
+
+
+    <meta charset="utf-8" />
+    <meta content="width=device-width, initial-scale=1" name="viewport" />
+
+    
+    
+
+
+<title>Configuration</title>
+
+
+
+
+
+
+
+
+
+<link rel="canonical" href="https://docs.mata.sh/node/configuration/">
+
+
+<!-- Open Graph (Facebook, LinkedIn) -->
+
+<meta property="og:title" content="Configuration">
+
+
+
+
+
+<meta property="og:url" content="https://docs.mata.sh/node/configuration/">
+
+
+
+
+
+
+<!-- Twitter Card -->
+
+<meta name="twitter:title" content="Configuration">
+
+
+
+
+
+
+<!-- JSON-LD Structured Data -->
+
+
+
+    
+    <link href="../../images/logo_transparent.png" rel="icon" />
+
+    <link href="../../css/base.css" rel="stylesheet" />
+    <link href="../../css/geist.css" rel="stylesheet" />
+
+    
+
+    <style>
+        :root {
+            --theme-accent: oklch(62.3% 0.214 259.815);
+        }
+    </style>
+    <link href="../../styles/pygments-dark.css" rel="stylesheet" />
+
+    
+
+    <script integrity="sha384-V2jkXRy811qODUbfkLlkVJYBbf4h6XHAEjcU6ReASBPrJvTrlYh4GrI4t6GCju6n"
+        src="../../js/callbacks.js"></script>
+
+    
+
+    
+
+    
+
+    
+    <script>
+    document.addEventListener("DOMContentLoaded", function () {
+        document.querySelectorAll("a.headerlink").forEach(function (link) {
+            link.addEventListener("click", function (e) {
+                e.preventDefault();
+
+                // Build the full URL with the anchor fragment
+                const url = window.location.origin + window.location.pathname + this.getAttribute("href");
+
+                navigator.clipboard.writeText(url).then(function () {
+                    // Optional: brief visual feedback
+                });
+            });
+        });
+    });
+</script>
+    
+
+    
+    
+</head>
+
+<body
+    class="text-foreground group/body overscroll-none font-sans antialiased [--footer-height:calc(var(--spacing)*14)] [--header-height:calc(var(--spacing)*14)] xl:[--footer-height:calc(var(--spacing)*24)] theme-default">
+    <div class="bg-background relative z-10 flex min-h-svh flex-col" id="inner-body">
+        <header class="bg-background sticky top-0 z-50 w-full" view-transition-name="header">
+    <div class="container-wrapper 3xl:fixed:px-0 px-6">
+        <div class="3xl:fixed:container flex h-(--header-height) items-center gap-2 **:data-[slot=separator]:!h-4">
+            <button id="menu-button" data-slot="popover-trigger" onclick="onMobileMenuButtonClick(event)"
+                class="group whitespace-nowrap rounded-md text-sm font-medium transition-all disabled:pointer-events-none disabled:opacity-50 [&amp;_svg]:pointer-events-none [&amp;_svg:not([class*='size-'])]:size-4 shrink-0 [&amp;_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive hover:text-accent-foreground px-4 py-2 has-[&gt;svg]:px-3 extend-touch-target h-8 touch-manipulation items-center justify-start gap-2.5 !p-0 hover:bg-transparent focus-visible:bg-transparent focus-visible:ring-0 active:bg-transparent dark:hover:bg-transparent flex lg:hidden"
+                type="button" aria-haspopup="dialog" aria-expanded="false" aria-controls="radix-«Rmplb»"
+                data-state="closed">
+                <div class="relative flex h-8 w-4 items-center justify-center">
+                    <div class="relative size-4">
+                        <!-- 16px x 16px -->
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="none" stroke="currentColor"
+                            stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <line x1="0" x2="16" y1="5" y2="5"
+                                class="group-data-[state=open]:translate-y-[2.25px] group-data-[state=open]:-translate-x-[2.25px] group-data-[state=open]:rotate-45 transition-all duration-300 origin-center" />
+                            <line x1="0" x2="16" y1="11" y2="11"
+                                class="group-data-[state=open]:-translate-y-[2.25px] group-data-[state=open]:-translate-x-[2.25px] group-data-[state=open]:-rotate-45 transition-all duration-300 origin-center" />
+                        </svg>
+                    </div>
+
+                    <span class="sr-only">Toggle Menu</span>
+                </div>
+                <span class="flex h-8 items-center text-lg leading-none font-medium">Menu</span>
+            </button>
+            <a data-slot="button"
+                class="items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-all disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-5 shrink-0 [&_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50 hidden h-8 lg:flex"
+                href="https://docs.mata.sh/">
+                <span class="size-8 flex flex-row justify-center items-center">
+                    
+
+
+<img class="size-5" src="../../images/logo_transparent.png" alt="icon">
+
+
+
+                </span>
+
+                
+                <h1 class="pr-2">MATA Dashboard</h1>
+                
+            </a>
+            
+            <div class="ml-auto flex items-center gap-2 md:flex-1 md:justify-end">
+                <div class="hidden w-full flex-1 md:flex md:w-auto md:flex-none">
+                    <div class="hidden w-full flex-1 md:flex md:w-auto md:flex-none">
+    <button onclick="onSearchBarClick(event)" data-slot="dialog-trigger" data-variant="outline" data-size="default"
+        class="inline-flex shrink-0 items-center gap-2 text-sm whitespace-nowrap transition-all outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:pointer-events-none disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 [&amp;_svg]:pointer-events-none [&amp;_svg]:shrink-0 [&amp;_svg:not([class*='size-'])]:size-4 border bg-background hover:text-accent-foreground dark:border-input dark:hover:bg-input/50 px-4 py-2 has-[&gt;svg]:px-3 relative h-8 w-full justify-start rounded-lg pl-3 font-normal text-foreground shadow-none hover:bg-muted/50 sm:pr-12 md:w-48 lg:w-56 xl:w-64 dark:bg-card"
+        type="button" aria-haspopup="dialog" aria-expanded="false" aria-controls="radix-_r_1_" data-state="closed">
+        <span class="hidden lg:inline-flex">Search documentation...</span>
+        <span class="inline-flex lg:hidden">Search...</span>
+    </button>
+</div>
+<dialog id="search-dialog" onclick="onSearchDialogClick(event)"
+    class="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-background rounded-lg shadow-lg border overflow-hidden p-0">
+    <div class="w-lg gap-4">
+        <div class="flex h-full w-full flex-col overflow-hidden rounded-md bg-popover text-popover-foreground">
+            <div data-slot="command-input-wrapper" class="flex h-9 items-center gap-2 border-b px-3"><svg
+                    xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+                    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                    class="lucide lucide-search size-4 shrink-0 opacity-50">
+                    <circle cx="11" cy="11" r="8"></circle>
+                    <path d="m21 21-4.3-4.3"></path>
+                </svg>
+                <input data-slot="command-input"
+                    class="placeholder:text-muted-foreground flex h-10 w-full rounded-md bg-transparent py-3 text-sm outline-hidden disabled:cursor-not-allowed disabled:opacity-50"
+                    placeholder="Search documentation..." cmdk-input="" autocomplete="off" autocorrect="off"
+                    spellcheck="false" aria-autocomplete="list" role="combobox" aria-expanded="true"
+                    aria-controls="radix-«r1t6»" aria-labelledby="radix-«r1t7»" id="radix-«r1t8»" type="text" value=""
+                    aria-activedescendant="radix-«r1th»" oninput="onInputHandler(event)">
+            </div>
+        </div>
+        <div id="mkdocs-search-results">
+            <!-- search results go there -->
+        </div>
+    </div>
+</dialog>
+<script>
+    document.removeEventListener("keydown", searchShortcutHandler);
+    document.addEventListener("keydown", searchShortcutHandler);
+</script>
+                </div>
+                
+                <div data-orientation="vertical" role="none" data-slot="separator"
+                    class="bg-border shrink-0 data-[orientation=horizontal]:h-px data-[orientation=horizontal]:w-full data-[orientation=vertical]:h-full data-[orientation=vertical]:w-px ml-2 hidden lg:block">
+                </div>
+                <a target="_blank" rel="noreferrer" data-slot="button"
+                    class="inline-flex items-center justify-center whitespace-nowrap text-sm font-medium transition-all disabled:pointer-events-none disabled:opacity-50 [&amp;_svg]:pointer-events-none [&amp;_svg:not([class*='size-'])]:size-4 shrink-0 [&amp;_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50 rounded-md gap-1.5 px-3 has-[&gt;svg]:px-2.5 h-8 shadow-none"
+                    href="https://github.com/mata-sh/mata-dashboard">
+                    <svg viewBox="0 0 438.549 438.549">
+                        <path fill="currentColor"
+                            d="M409.132 114.573c-19.608-33.596-46.205-60.194-79.798-79.8-33.598-19.607-70.277-29.408-110.063-29.408-39.781 0-76.472 9.804-110.063 29.408-33.596 19.605-60.192 46.204-79.8 79.8C9.803 148.168 0 184.854 0 224.63c0 47.78 13.94 90.745 41.827 128.906 27.884 38.164 63.906 64.572 108.063 79.227 5.14.954 8.945.283 11.419-1.996 2.475-2.282 3.711-5.14 3.711-8.562 0-.571-.049-5.708-.144-15.417a2549.81 2549.81 0 01-.144-25.406l-6.567 1.136c-4.187.767-9.469 1.092-15.846 1-6.374-.089-12.991-.757-19.842-1.999-6.854-1.231-13.229-4.086-19.13-8.559-5.898-4.473-10.085-10.328-12.56-17.556l-2.855-6.57c-1.903-4.374-4.899-9.233-8.992-14.559-4.093-5.331-8.232-8.945-12.419-10.848l-1.999-1.431c-1.332-.951-2.568-2.098-3.711-3.429-1.142-1.331-1.997-2.663-2.568-3.997-.572-1.335-.098-2.43 1.427-3.289 1.525-.859 4.281-1.276 8.28-1.276l5.708.853c3.807.763 8.516 3.042 14.133 6.851 5.614 3.806 10.229 8.754 13.846 14.842 4.38 7.806 9.657 13.754 15.846 17.847 6.184 4.093 12.419 6.136 18.699 6.136 6.28 0 11.704-.476 16.274-1.423 4.565-.952 8.848-2.383 12.847-4.285 1.713-12.758 6.377-22.559 13.988-29.41-10.848-1.14-20.601-2.857-29.264-5.14-8.658-2.286-17.605-5.996-26.835-11.14-9.235-5.137-16.896-11.516-22.985-19.126-6.09-7.614-11.088-17.61-14.987-29.979-3.901-12.374-5.852-26.648-5.852-42.826 0-23.035 7.52-42.637 22.557-58.817-7.044-17.318-6.379-36.732 1.997-58.24 5.52-1.715 13.706-.428 24.554 3.853 10.85 4.283 18.794 7.952 23.84 10.994 5.046 3.041 9.089 5.618 12.135 7.708 17.705-4.947 35.976-7.421 54.818-7.421s37.117 2.474 54.823 7.421l10.849-6.849c7.419-4.57 16.18-8.758 26.262-12.565 10.088-3.805 17.802-4.853 23.134-3.138 8.562 21.509 9.325 40.922 2.279 58.24 15.036 16.18 22.559 35.787 22.559 58.817 0 16.178-1.958 30.497-5.853 42.966-3.9 12.471-8.941 22.457-15.125 29.979-6.191 7.521-13.901 13.85-23.131 18.986-9.232 5.14-18.182 8.85-26.84 11.136-8.662 2.286-18.415 4.004-29.263 5.146 9.894 8.562 14.842 22.077 14.842 40.539v60.237c0 3.422 1.19 6.279 3.572 8.562 2.379 2.279 6.136 2.95 11.276 1.995 44.163-14.653 80.185-41.062 108.068-79.226 27.88-38.161 41.825-81.126 41.825-128.906-.01-39.771-9.818-76.454-29.414-110.049z">
+                        </path>
+                    </svg>
+                    
+                </a>
+                
+                <div data-orientation="vertical" role="none" data-slot="separator"
+                    class="bg-border shrink-0 data-[orientation=horizontal]:h-px data-[orientation=horizontal]:w-full data-[orientation=vertical]:h-full data-[orientation=vertical]:w-px 3xl:flex hidden">
+                </div>
+                
+                <button data-slot="button"
+                    class="items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-all disabled:pointer-events-none disabled:opacity-50 [&amp;_svg]:pointer-events-none [&amp;_svg:not([class*='size-'])]:size-4 shrink-0 [&amp;_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50 size-8 3xl:flex hidden"
+                    title="Toggle layout" onclick="toggleLayout(event)">
+                    <span class="sr-only">Toggle layout</span>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                        class="lucide lucide-gallery-horizontal">
+                        <path d="M2 3v18"></path>
+                        <rect width="12" height="18" x="6" y="3" rx="2"></rect>
+                        <path d="M22 3v18"></path>
+                    </svg>
+                </button>
+                <div data-orientation="vertical" role="none" data-slot="separator"
+                    class="bg-border shrink-0 data-[orientation=horizontal]:h-px data-[orientation=horizontal]:w-full data-[orientation=vertical]:h-full data-[orientation=vertical]:w-px">
+                </div>
+                <button data-slot="button"
+                    class="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-all disabled:pointer-events-none disabled:opacity-50 [&amp;_svg]:pointer-events-none [&amp;_svg:not([class*='size-'])]:size-4 shrink-0 [&amp;_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50 group/toggle extend-touch-target size-8"
+                    title="Toggle theme" onclick="onThemeSwitch(event)">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                        class="size-4.5">
+                        <path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
+                        <path d="M12 12m-9 0a9 9 0 1 0 18 0a9 9 0 1 0 -18 0"></path>
+                        <path d="M12 3l0 18"></path>
+                        <path d="M12 9l4.65 -4.65"></path>
+                        <path d="M12 14.3l7.37 -7.37"></path>
+                        <path d="M12 19.6l8.85 -8.85"></path>
+                    </svg>
+                    <span class="sr-only">Toggle theme</span>
+                </button>
+            </div>
+        </div>
+    </div>
+</header>
+        <main class="flex flex-1 flex-col">
+            <div class="container-wrapper flex flex-1 flex-col px-2">
+                <div class="group/sidebar-wrapper has-data-[variant=inset]:bg-sidebar flex w-full 3xl:fixed:container 3xl:fixed:px-3 min-h-min flex-1 items-start px-0 [--sidebar-width:220px] [--top-spacing:0] lg:grid lg:grid-cols-[var(--sidebar-width)_minmax(0,1fr)] lg:[--sidebar-width:240px] lg:[--top-spacing:calc(var(--spacing)*4)]"
+                    data-slot="sidebar-wrapper"
+                    style="--sidebar-width:calc(var(--spacing) * 72);--sidebar-width-icon:3rem;">
+                    <div class="w-(--sidebar-width) flex-col text-sidebar-foreground sticky top-[calc(var(--header-height)+0.6rem)] z-30 hidden h-[calc(100svh-10rem)] overscroll-none bg-transparent [--sidebar-menu-width:--spacing(56)] lg:flex"
+                        data-slot="sidebar">
+                        <div class="h-9"></div>
+                        <div
+                            class="absolute top-8 z-10 h-8 w-(--sidebar-menu-width) shrink-0 bg-gradient-to-b from-background via-background/80 to-background/50 blur-xs">
+                        </div>
+                        <div
+                            class="absolute top-12 right-2 bottom-0 hidden h-full w-px bg-gradient-to-b from-transparent via-border to-transparent lg:flex">
+                        </div>
+                        <div class="flex min-h-0 flex-1 flex-col gap-2 overflow-auto group-data-[collapsible=icon]:overflow-hidden mx-auto no-scrollbar w-(--sidebar-menu-width) overflow-x-hidden px-2"
+                            data-sidebar="content" data-slot="sidebar-content" view-transition-name="sidebar">
+                            
+
+
+
+
+
+
+
+
+
+
+
+<div data-slot="sidebar-group" data-sidebar="group" class="relative flex w-full min-w-0 flex-col p-2 pt-6">
+    <div data-slot="sidebar-group-content" data-sidebar="group-content" class="w-full text-sm">
+        <ul data-slot="sidebar-menu" data-sidebar="menu" class="flex w-full min-w-0 flex-col gap-0.5">
+            
+            
+            
+            <li data-slot="sidebar-menu-item" data-sidebar="menu-item" class="group/menu-item relative">
+    <a data-slot="sidebar-menu-button" data-active="false" data-sidebar="menu-button"
+        data-size="default" href="../.."
+        class="peer/menu-button flex items-center gap-2 rounded-md p-2 text-left ring-sidebar-ring outline-hidden transition-[width,height,padding] group-has-data-[sidebar=menu-action]/menu-item:pr-8 group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:p-2! focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:font-medium data-[active=true]:text-sidebar-accent-foreground data-[state=open]:hover:bg-sidebar-accent data-[state=open]:hover:text-sidebar-accent-foreground [&>span:last-child]:truncate [&>svg]:size-4 [&>svg]:shrink-0 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground relative h-[30px] w-fit overflow-visible border border-transparent text-[0.8rem] font-medium after:absolute after:inset-x-0 after:-inset-y-1 after:z-0 after:rounded-md data-[active=true]:border-accent data-[active=true]:bg-accent 3xl:fixed:w-full 3xl:fixed:max-w-48">
+
+        
+        MATA
+        
+
+        
+
+        
+
+        
+    </a>
+</li>
+            
+            
+        </ul>
+    </div>
+</div>
+
+
+
+
+<div data-slot="sidebar-group" data-sidebar="group" class="relative flex w-full min-w-0 flex-col p-2">
+    <div data-slot="sidebar-group-label" data-sidebar="group-label"
+        class="flex h-8 shrink-0 items-center rounded-md px-2 text-xs ring-sidebar-ring outline-hidden transition-[margin,opacity] duration-200 ease-linear focus-visible:ring-2 [&>svg]:size-4 [&>svg]:shrink-0 group-data-[collapsible=icon]:-mt-8 group-data-[collapsible=icon]:opacity-0 font-medium text-muted-foreground">
+        Getting started</div>
+    <div data-slot="sidebar-group-content" data-sidebar="group-content" class="w-full text-sm">
+        <ul data-slot="sidebar-menu" data-sidebar="menu" class="flex w-full min-w-0 flex-col gap-0.5">
+            
+            
+            <li data-slot="sidebar-menu-item" data-sidebar="menu-item" class="group/menu-item relative">
+    <a data-slot="sidebar-menu-button" data-active="false" data-sidebar="menu-button"
+        data-size="default" href="../../guides/quickstart/"
+        class="peer/menu-button flex items-center gap-2 rounded-md p-2 text-left ring-sidebar-ring outline-hidden transition-[width,height,padding] group-has-data-[sidebar=menu-action]/menu-item:pr-8 group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:p-2! focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:font-medium data-[active=true]:text-sidebar-accent-foreground data-[state=open]:hover:bg-sidebar-accent data-[state=open]:hover:text-sidebar-accent-foreground [&>span:last-child]:truncate [&>svg]:size-4 [&>svg]:shrink-0 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground relative h-[30px] w-fit overflow-visible border border-transparent text-[0.8rem] font-medium after:absolute after:inset-x-0 after:-inset-y-1 after:z-0 after:rounded-md data-[active=true]:border-accent data-[active=true]:bg-accent 3xl:fixed:w-full 3xl:fixed:max-w-48">
+
+        
+        Quick start
+        
+
+        
+
+        
+
+        
+    </a>
+</li>
+            
+            
+            
+            <li data-slot="sidebar-menu-item" data-sidebar="menu-item" class="group/menu-item relative">
+    <a data-slot="sidebar-menu-button" data-active="false" data-sidebar="menu-button"
+        data-size="default" href="../../guides/quickstart-docker/"
+        class="peer/menu-button flex items-center gap-2 rounded-md p-2 text-left ring-sidebar-ring outline-hidden transition-[width,height,padding] group-has-data-[sidebar=menu-action]/menu-item:pr-8 group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:p-2! focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:font-medium data-[active=true]:text-sidebar-accent-foreground data-[state=open]:hover:bg-sidebar-accent data-[state=open]:hover:text-sidebar-accent-foreground [&>span:last-child]:truncate [&>svg]:size-4 [&>svg]:shrink-0 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground relative h-[30px] w-fit overflow-visible border border-transparent text-[0.8rem] font-medium after:absolute after:inset-x-0 after:-inset-y-1 after:z-0 after:rounded-md data-[active=true]:border-accent data-[active=true]:bg-accent 3xl:fixed:w-full 3xl:fixed:max-w-48">
+
+        
+        Docker quickstart
+        
+
+        
+
+        
+
+        
+    </a>
+</li>
+            
+            
+            
+            <li data-slot="sidebar-menu-item" data-sidebar="menu-item" class="group/menu-item relative">
+    <a data-slot="sidebar-menu-button" data-active="false" data-sidebar="menu-button"
+        data-size="default" href="../../guides/first-server/"
+        class="peer/menu-button flex items-center gap-2 rounded-md p-2 text-left ring-sidebar-ring outline-hidden transition-[width,height,padding] group-has-data-[sidebar=menu-action]/menu-item:pr-8 group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:p-2! focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:font-medium data-[active=true]:text-sidebar-accent-foreground data-[state=open]:hover:bg-sidebar-accent data-[state=open]:hover:text-sidebar-accent-foreground [&>span:last-child]:truncate [&>svg]:size-4 [&>svg]:shrink-0 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground relative h-[30px] w-fit overflow-visible border border-transparent text-[0.8rem] font-medium after:absolute after:inset-x-0 after:-inset-y-1 after:z-0 after:rounded-md data-[active=true]:border-accent data-[active=true]:bg-accent 3xl:fixed:w-full 3xl:fixed:max-w-48">
+
+        
+        Add your first server
+        
+
+        
+
+        
+
+        
+    </a>
+</li>
+            
+            
+        </ul>
+    </div>
+</div>
+
+
+
+<div data-slot="sidebar-group" data-sidebar="group" class="relative flex w-full min-w-0 flex-col p-2">
+    <div data-slot="sidebar-group-label" data-sidebar="group-label"
+        class="flex h-8 shrink-0 items-center rounded-md px-2 text-xs ring-sidebar-ring outline-hidden transition-[margin,opacity] duration-200 ease-linear focus-visible:ring-2 [&>svg]:size-4 [&>svg]:shrink-0 group-data-[collapsible=icon]:-mt-8 group-data-[collapsible=icon]:opacity-0 font-medium text-muted-foreground">
+        Guides</div>
+    <div data-slot="sidebar-group-content" data-sidebar="group-content" class="w-full text-sm">
+        <ul data-slot="sidebar-menu" data-sidebar="menu" class="flex w-full min-w-0 flex-col gap-0.5">
+            
+            
+            <li data-slot="sidebar-menu-item" data-sidebar="menu-item" class="group/menu-item relative">
+    <a data-slot="sidebar-menu-button" data-active="false" data-sidebar="menu-button"
+        data-size="default" href="../../guides/configuration/"
+        class="peer/menu-button flex items-center gap-2 rounded-md p-2 text-left ring-sidebar-ring outline-hidden transition-[width,height,padding] group-has-data-[sidebar=menu-action]/menu-item:pr-8 group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:p-2! focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:font-medium data-[active=true]:text-sidebar-accent-foreground data-[state=open]:hover:bg-sidebar-accent data-[state=open]:hover:text-sidebar-accent-foreground [&>span:last-child]:truncate [&>svg]:size-4 [&>svg]:shrink-0 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground relative h-[30px] w-fit overflow-visible border border-transparent text-[0.8rem] font-medium after:absolute after:inset-x-0 after:-inset-y-1 after:z-0 after:rounded-md data-[active=true]:border-accent data-[active=true]:bg-accent 3xl:fixed:w-full 3xl:fixed:max-w-48">
+
+        
+        Configuration
+        
+
+        
+
+        
+
+        
+    </a>
+</li>
+            
+            
+            
+            <li data-slot="sidebar-menu-item" data-sidebar="menu-item" class="group/menu-item relative">
+    <a data-slot="sidebar-menu-button" data-active="false" data-sidebar="menu-button"
+        data-size="default" href="../../guides/monitoring/"
+        class="peer/menu-button flex items-center gap-2 rounded-md p-2 text-left ring-sidebar-ring outline-hidden transition-[width,height,padding] group-has-data-[sidebar=menu-action]/menu-item:pr-8 group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:p-2! focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:font-medium data-[active=true]:text-sidebar-accent-foreground data-[state=open]:hover:bg-sidebar-accent data-[state=open]:hover:text-sidebar-accent-foreground [&>span:last-child]:truncate [&>svg]:size-4 [&>svg]:shrink-0 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground relative h-[30px] w-fit overflow-visible border border-transparent text-[0.8rem] font-medium after:absolute after:inset-x-0 after:-inset-y-1 after:z-0 after:rounded-md data-[active=true]:border-accent data-[active=true]:bg-accent 3xl:fixed:w-full 3xl:fixed:max-w-48">
+
+        
+        Monitoring
+        
+
+        
+
+        
+
+        
+    </a>
+</li>
+            
+            
+            
+            <li data-slot="sidebar-menu-item" data-sidebar="menu-item" class="group/menu-item relative">
+    <a data-slot="sidebar-menu-button" data-active="false" data-sidebar="menu-button"
+        data-size="default" href="../../guides/application-error-monitoring/"
+        class="peer/menu-button flex items-center gap-2 rounded-md p-2 text-left ring-sidebar-ring outline-hidden transition-[width,height,padding] group-has-data-[sidebar=menu-action]/menu-item:pr-8 group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:p-2! focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:font-medium data-[active=true]:text-sidebar-accent-foreground data-[state=open]:hover:bg-sidebar-accent data-[state=open]:hover:text-sidebar-accent-foreground [&>span:last-child]:truncate [&>svg]:size-4 [&>svg]:shrink-0 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground relative h-[30px] w-fit overflow-visible border border-transparent text-[0.8rem] font-medium after:absolute after:inset-x-0 after:-inset-y-1 after:z-0 after:rounded-md data-[active=true]:border-accent data-[active=true]:bg-accent 3xl:fixed:w-full 3xl:fixed:max-w-48">
+
+        
+        Application error monitoring
+        
+
+        
+
+        
+
+        
+    </a>
+</li>
+            
+            
+            
+            <li data-slot="sidebar-menu-item" data-sidebar="menu-item" class="group/menu-item relative">
+    <a data-slot="sidebar-menu-button" data-active="false" data-sidebar="menu-button"
+        data-size="default" href="../../guides/user-management/"
+        class="peer/menu-button flex items-center gap-2 rounded-md p-2 text-left ring-sidebar-ring outline-hidden transition-[width,height,padding] group-has-data-[sidebar=menu-action]/menu-item:pr-8 group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:p-2! focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:font-medium data-[active=true]:text-sidebar-accent-foreground data-[state=open]:hover:bg-sidebar-accent data-[state=open]:hover:text-sidebar-accent-foreground [&>span:last-child]:truncate [&>svg]:size-4 [&>svg]:shrink-0 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground relative h-[30px] w-fit overflow-visible border border-transparent text-[0.8rem] font-medium after:absolute after:inset-x-0 after:-inset-y-1 after:z-0 after:rounded-md data-[active=true]:border-accent data-[active=true]:bg-accent 3xl:fixed:w-full 3xl:fixed:max-w-48">
+
+        
+        User management CLI
+        
+
+        
+
+        
+
+        
+    </a>
+</li>
+            
+            
+            
+            <li data-slot="sidebar-menu-item" data-sidebar="menu-item" class="group/menu-item relative">
+    <a data-slot="sidebar-menu-button" data-active="false" data-sidebar="menu-button"
+        data-size="default" href="../../guides/secure-application/"
+        class="peer/menu-button flex items-center gap-2 rounded-md p-2 text-left ring-sidebar-ring outline-hidden transition-[width,height,padding] group-has-data-[sidebar=menu-action]/menu-item:pr-8 group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:p-2! focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:font-medium data-[active=true]:text-sidebar-accent-foreground data-[state=open]:hover:bg-sidebar-accent data-[state=open]:hover:text-sidebar-accent-foreground [&>span:last-child]:truncate [&>svg]:size-4 [&>svg]:shrink-0 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground relative h-[30px] w-fit overflow-visible border border-transparent text-[0.8rem] font-medium after:absolute after:inset-x-0 after:-inset-y-1 after:z-0 after:rounded-md data-[active=true]:border-accent data-[active=true]:bg-accent 3xl:fixed:w-full 3xl:fixed:max-w-48">
+
+        
+        Secure an installation
+        
+
+        
+
+        
+
+        
+    </a>
+</li>
+            
+            
+            
+            <li data-slot="sidebar-menu-item" data-sidebar="menu-item" class="group/menu-item relative">
+    <a data-slot="sidebar-menu-button" data-active="false" data-sidebar="menu-button"
+        data-size="default" href="../../examples/webserver-configs/"
+        class="peer/menu-button flex items-center gap-2 rounded-md p-2 text-left ring-sidebar-ring outline-hidden transition-[width,height,padding] group-has-data-[sidebar=menu-action]/menu-item:pr-8 group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:p-2! focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:font-medium data-[active=true]:text-sidebar-accent-foreground data-[state=open]:hover:bg-sidebar-accent data-[state=open]:hover:text-sidebar-accent-foreground [&>span:last-child]:truncate [&>svg]:size-4 [&>svg]:shrink-0 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground relative h-[30px] w-fit overflow-visible border border-transparent text-[0.8rem] font-medium after:absolute after:inset-x-0 after:-inset-y-1 after:z-0 after:rounded-md data-[active=true]:border-accent data-[active=true]:bg-accent 3xl:fixed:w-full 3xl:fixed:max-w-48">
+
+        
+        Web server examples
+        
+
+        
+
+        
+
+        
+    </a>
+</li>
+            
+            
+        </ul>
+    </div>
+</div>
+
+
+
+<div data-slot="sidebar-group" data-sidebar="group" class="relative flex w-full min-w-0 flex-col p-2">
+    <div data-slot="sidebar-group-label" data-sidebar="group-label"
+        class="flex h-8 shrink-0 items-center rounded-md px-2 text-xs ring-sidebar-ring outline-hidden transition-[margin,opacity] duration-200 ease-linear focus-visible:ring-2 [&>svg]:size-4 [&>svg]:shrink-0 group-data-[collapsible=icon]:-mt-8 group-data-[collapsible=icon]:opacity-0 font-medium text-muted-foreground">
+        Node</div>
+    <div data-slot="sidebar-group-content" data-sidebar="group-content" class="w-full text-sm">
+        <ul data-slot="sidebar-menu" data-sidebar="menu" class="flex w-full min-w-0 flex-col gap-0.5">
+            
+            
+            <li data-slot="sidebar-menu-item" data-sidebar="menu-item" class="group/menu-item relative">
+    <a data-slot="sidebar-menu-button" data-active="true" data-sidebar="menu-button"
+        data-size="default" href="./"
+        class="peer/menu-button flex items-center gap-2 rounded-md p-2 text-left ring-sidebar-ring outline-hidden transition-[width,height,padding] group-has-data-[sidebar=menu-action]/menu-item:pr-8 group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:p-2! focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:font-medium data-[active=true]:text-sidebar-accent-foreground data-[state=open]:hover:bg-sidebar-accent data-[state=open]:hover:text-sidebar-accent-foreground [&>span:last-child]:truncate [&>svg]:size-4 [&>svg]:shrink-0 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground relative h-[30px] w-fit overflow-visible border border-transparent text-[0.8rem] font-medium after:absolute after:inset-x-0 after:-inset-y-1 after:z-0 after:rounded-md data-[active=true]:border-accent data-[active=true]:bg-accent 3xl:fixed:w-full 3xl:fixed:max-w-48">
+
+        
+        Configuration
+        
+
+        
+
+        
+
+        
+    </a>
+</li>
+            
+            
+            
+            <li data-slot="sidebar-menu-item" data-sidebar="menu-item" class="group/menu-item relative">
+    <a data-slot="sidebar-menu-button" data-active="false" data-sidebar="menu-button"
+        data-size="default" href="../docker/"
+        class="peer/menu-button flex items-center gap-2 rounded-md p-2 text-left ring-sidebar-ring outline-hidden transition-[width,height,padding] group-has-data-[sidebar=menu-action]/menu-item:pr-8 group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:p-2! focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:font-medium data-[active=true]:text-sidebar-accent-foreground data-[state=open]:hover:bg-sidebar-accent data-[state=open]:hover:text-sidebar-accent-foreground [&>span:last-child]:truncate [&>svg]:size-4 [&>svg]:shrink-0 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground relative h-[30px] w-fit overflow-visible border border-transparent text-[0.8rem] font-medium after:absolute after:inset-x-0 after:-inset-y-1 after:z-0 after:rounded-md data-[active=true]:border-accent data-[active=true]:bg-accent 3xl:fixed:w-full 3xl:fixed:max-w-48">
+
+        
+        Docker
+        
+
+        
+
+        
+
+        
+    </a>
+</li>
+            
+            
+            
+            <li data-slot="sidebar-menu-item" data-sidebar="menu-item" class="group/menu-item relative">
+    <a data-slot="sidebar-menu-button" data-active="false" data-sidebar="menu-button"
+        data-size="default" href="../log-parsers/"
+        class="peer/menu-button flex items-center gap-2 rounded-md p-2 text-left ring-sidebar-ring outline-hidden transition-[width,height,padding] group-has-data-[sidebar=menu-action]/menu-item:pr-8 group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:p-2! focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:font-medium data-[active=true]:text-sidebar-accent-foreground data-[state=open]:hover:bg-sidebar-accent data-[state=open]:hover:text-sidebar-accent-foreground [&>span:last-child]:truncate [&>svg]:size-4 [&>svg]:shrink-0 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground relative h-[30px] w-fit overflow-visible border border-transparent text-[0.8rem] font-medium after:absolute after:inset-x-0 after:-inset-y-1 after:z-0 after:rounded-md data-[active=true]:border-accent data-[active=true]:bg-accent 3xl:fixed:w-full 3xl:fixed:max-w-48">
+
+        
+        Custom log parsers
+        
+
+        
+
+        
+
+        
+    </a>
+</li>
+            
+            
+            
+            <li data-slot="sidebar-menu-item" data-sidebar="menu-item" class="group/menu-item relative">
+    <a data-slot="sidebar-menu-button" data-active="false" data-sidebar="menu-button"
+        data-size="default" href="../shell-command-surface/"
+        class="peer/menu-button flex items-center gap-2 rounded-md p-2 text-left ring-sidebar-ring outline-hidden transition-[width,height,padding] group-has-data-[sidebar=menu-action]/menu-item:pr-8 group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:p-2! focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:font-medium data-[active=true]:text-sidebar-accent-foreground data-[state=open]:hover:bg-sidebar-accent data-[state=open]:hover:text-sidebar-accent-foreground [&>span:last-child]:truncate [&>svg]:size-4 [&>svg]:shrink-0 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground relative h-[30px] w-fit overflow-visible border border-transparent text-[0.8rem] font-medium after:absolute after:inset-x-0 after:-inset-y-1 after:z-0 after:rounded-md data-[active=true]:border-accent data-[active=true]:bg-accent 3xl:fixed:w-full 3xl:fixed:max-w-48">
+
+        
+        Shell command surface
+        
+
+        
+
+        
+
+        
+    </a>
+</li>
+            
+            
+        </ul>
+    </div>
+</div>
+
+
+
+<div data-slot="sidebar-group" data-sidebar="group" class="relative flex w-full min-w-0 flex-col p-2">
+    <div data-slot="sidebar-group-label" data-sidebar="group-label"
+        class="flex h-8 shrink-0 items-center rounded-md px-2 text-xs ring-sidebar-ring outline-hidden transition-[margin,opacity] duration-200 ease-linear focus-visible:ring-2 [&>svg]:size-4 [&>svg]:shrink-0 group-data-[collapsible=icon]:-mt-8 group-data-[collapsible=icon]:opacity-0 font-medium text-muted-foreground">
+        Reference</div>
+    <div data-slot="sidebar-group-content" data-sidebar="group-content" class="w-full text-sm">
+        <ul data-slot="sidebar-menu" data-sidebar="menu" class="flex w-full min-w-0 flex-col gap-0.5">
+            
+            
+            <li data-slot="sidebar-menu-item" data-sidebar="menu-item" class="group/menu-item relative">
+    <a data-slot="sidebar-menu-button" data-active="false" data-sidebar="menu-button"
+        data-size="default" href="../../reference/alarms/"
+        class="peer/menu-button flex items-center gap-2 rounded-md p-2 text-left ring-sidebar-ring outline-hidden transition-[width,height,padding] group-has-data-[sidebar=menu-action]/menu-item:pr-8 group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:p-2! focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:font-medium data-[active=true]:text-sidebar-accent-foreground data-[state=open]:hover:bg-sidebar-accent data-[state=open]:hover:text-sidebar-accent-foreground [&>span:last-child]:truncate [&>svg]:size-4 [&>svg]:shrink-0 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground relative h-[30px] w-fit overflow-visible border border-transparent text-[0.8rem] font-medium after:absolute after:inset-x-0 after:-inset-y-1 after:z-0 after:rounded-md data-[active=true]:border-accent data-[active=true]:bg-accent 3xl:fixed:w-full 3xl:fixed:max-w-48">
+
+        
+        Alarm decision and delivery flow
+        
+
+        
+
+        
+
+        
+    </a>
+</li>
+            
+            
+        </ul>
+    </div>
+</div>
+
+
+
+<div data-slot="sidebar-group" data-sidebar="group" class="relative flex w-full min-w-0 flex-col p-2">
+    <div data-slot="sidebar-group-label" data-sidebar="group-label"
+        class="flex h-8 shrink-0 items-center rounded-md px-2 text-xs ring-sidebar-ring outline-hidden transition-[margin,opacity] duration-200 ease-linear focus-visible:ring-2 [&>svg]:size-4 [&>svg]:shrink-0 group-data-[collapsible=icon]:-mt-8 group-data-[collapsible=icon]:opacity-0 font-medium text-muted-foreground">
+        Architecture</div>
+    <div data-slot="sidebar-group-content" data-sidebar="group-content" class="w-full text-sm">
+        <ul data-slot="sidebar-menu" data-sidebar="menu" class="flex w-full min-w-0 flex-col gap-0.5">
+            
+            
+            <li data-slot="sidebar-menu-item" data-sidebar="menu-item" class="group/menu-item relative">
+    <a data-slot="sidebar-menu-button" data-active="false" data-sidebar="menu-button"
+        data-size="default" href="../../architecture/overview/"
+        class="peer/menu-button flex items-center gap-2 rounded-md p-2 text-left ring-sidebar-ring outline-hidden transition-[width,height,padding] group-has-data-[sidebar=menu-action]/menu-item:pr-8 group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:p-2! focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:font-medium data-[active=true]:text-sidebar-accent-foreground data-[state=open]:hover:bg-sidebar-accent data-[state=open]:hover:text-sidebar-accent-foreground [&>span:last-child]:truncate [&>svg]:size-4 [&>svg]:shrink-0 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground relative h-[30px] w-fit overflow-visible border border-transparent text-[0.8rem] font-medium after:absolute after:inset-x-0 after:-inset-y-1 after:z-0 after:rounded-md data-[active=true]:border-accent data-[active=true]:bg-accent 3xl:fixed:w-full 3xl:fixed:max-w-48">
+
+        
+        Overview
+        
+
+        
+
+        
+
+        
+    </a>
+</li>
+            
+            
+            
+            <li data-slot="sidebar-menu-item" data-sidebar="menu-item" class="group/menu-item relative">
+    <a data-slot="sidebar-menu-button" data-active="false" data-sidebar="menu-button"
+        data-size="default" href="../../architecture/security/"
+        class="peer/menu-button flex items-center gap-2 rounded-md p-2 text-left ring-sidebar-ring outline-hidden transition-[width,height,padding] group-has-data-[sidebar=menu-action]/menu-item:pr-8 group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:p-2! focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:font-medium data-[active=true]:text-sidebar-accent-foreground data-[state=open]:hover:bg-sidebar-accent data-[state=open]:hover:text-sidebar-accent-foreground [&>span:last-child]:truncate [&>svg]:size-4 [&>svg]:shrink-0 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground relative h-[30px] w-fit overflow-visible border border-transparent text-[0.8rem] font-medium after:absolute after:inset-x-0 after:-inset-y-1 after:z-0 after:rounded-md data-[active=true]:border-accent data-[active=true]:bg-accent 3xl:fixed:w-full 3xl:fixed:max-w-48">
+
+        
+        Security
+        
+
+        
+
+        
+
+        
+    </a>
+</li>
+            
+            
+            
+            <li data-slot="sidebar-menu-item" data-sidebar="menu-item" class="group/menu-item relative">
+    <a data-slot="sidebar-menu-button" data-active="false" data-sidebar="menu-button"
+        data-size="default" href="../../architecture/server-metrics-pipeline/"
+        class="peer/menu-button flex items-center gap-2 rounded-md p-2 text-left ring-sidebar-ring outline-hidden transition-[width,height,padding] group-has-data-[sidebar=menu-action]/menu-item:pr-8 group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:p-2! focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:font-medium data-[active=true]:text-sidebar-accent-foreground data-[state=open]:hover:bg-sidebar-accent data-[state=open]:hover:text-sidebar-accent-foreground [&>span:last-child]:truncate [&>svg]:size-4 [&>svg]:shrink-0 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground relative h-[30px] w-fit overflow-visible border border-transparent text-[0.8rem] font-medium after:absolute after:inset-x-0 after:-inset-y-1 after:z-0 after:rounded-md data-[active=true]:border-accent data-[active=true]:bg-accent 3xl:fixed:w-full 3xl:fixed:max-w-48">
+
+        
+        Server metrics pipeline
+        
+
+        
+
+        
+
+        
+    </a>
+</li>
+            
+            
+            
+            <li data-slot="sidebar-menu-item" data-sidebar="menu-item" class="group/menu-item relative">
+    <a data-slot="sidebar-menu-button" data-active="false" data-sidebar="menu-button"
+        data-size="default" href="../../architecture/technology-choices/"
+        class="peer/menu-button flex items-center gap-2 rounded-md p-2 text-left ring-sidebar-ring outline-hidden transition-[width,height,padding] group-has-data-[sidebar=menu-action]/menu-item:pr-8 group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:p-2! focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:font-medium data-[active=true]:text-sidebar-accent-foreground data-[state=open]:hover:bg-sidebar-accent data-[state=open]:hover:text-sidebar-accent-foreground [&>span:last-child]:truncate [&>svg]:size-4 [&>svg]:shrink-0 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground relative h-[30px] w-fit overflow-visible border border-transparent text-[0.8rem] font-medium after:absolute after:inset-x-0 after:-inset-y-1 after:z-0 after:rounded-md data-[active=true]:border-accent data-[active=true]:bg-accent 3xl:fixed:w-full 3xl:fixed:max-w-48">
+
+        
+        Technology choices
+        
+
+        
+
+        
+
+        
+    </a>
+</li>
+            
+            
+        </ul>
+    </div>
+</div>
+
+
+
+<div data-slot="sidebar-group" data-sidebar="group" class="relative flex w-full min-w-0 flex-col p-2">
+    <div data-slot="sidebar-group-label" data-sidebar="group-label"
+        class="flex h-8 shrink-0 items-center rounded-md px-2 text-xs ring-sidebar-ring outline-hidden transition-[margin,opacity] duration-200 ease-linear focus-visible:ring-2 [&>svg]:size-4 [&>svg]:shrink-0 group-data-[collapsible=icon]:-mt-8 group-data-[collapsible=icon]:opacity-0 font-medium text-muted-foreground">
+        Development</div>
+    <div data-slot="sidebar-group-content" data-sidebar="group-content" class="w-full text-sm">
+        <ul data-slot="sidebar-menu" data-sidebar="menu" class="flex w-full min-w-0 flex-col gap-0.5">
+            
+            
+            <li data-slot="sidebar-menu-item" data-sidebar="menu-item" class="group/menu-item relative">
+    <a data-slot="sidebar-menu-button" data-active="false" data-sidebar="menu-button"
+        data-size="default" href="../../development/development-setup/"
+        class="peer/menu-button flex items-center gap-2 rounded-md p-2 text-left ring-sidebar-ring outline-hidden transition-[width,height,padding] group-has-data-[sidebar=menu-action]/menu-item:pr-8 group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:p-2! focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:font-medium data-[active=true]:text-sidebar-accent-foreground data-[state=open]:hover:bg-sidebar-accent data-[state=open]:hover:text-sidebar-accent-foreground [&>span:last-child]:truncate [&>svg]:size-4 [&>svg]:shrink-0 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground relative h-[30px] w-fit overflow-visible border border-transparent text-[0.8rem] font-medium after:absolute after:inset-x-0 after:-inset-y-1 after:z-0 after:rounded-md data-[active=true]:border-accent data-[active=true]:bg-accent 3xl:fixed:w-full 3xl:fixed:max-w-48">
+
+        
+        Development setup
+        
+
+        
+
+        
+
+        
+    </a>
+</li>
+            
+            
+            
+            <li data-slot="sidebar-menu-item" data-sidebar="menu-item" class="group/menu-item relative">
+    <a data-slot="sidebar-menu-button" data-active="false" data-sidebar="menu-button"
+        data-size="default" href="../../development/ui-styleguide/"
+        class="peer/menu-button flex items-center gap-2 rounded-md p-2 text-left ring-sidebar-ring outline-hidden transition-[width,height,padding] group-has-data-[sidebar=menu-action]/menu-item:pr-8 group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:p-2! focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:font-medium data-[active=true]:text-sidebar-accent-foreground data-[state=open]:hover:bg-sidebar-accent data-[state=open]:hover:text-sidebar-accent-foreground [&>span:last-child]:truncate [&>svg]:size-4 [&>svg]:shrink-0 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground relative h-[30px] w-fit overflow-visible border border-transparent text-[0.8rem] font-medium after:absolute after:inset-x-0 after:-inset-y-1 after:z-0 after:rounded-md data-[active=true]:border-accent data-[active=true]:bg-accent 3xl:fixed:w-full 3xl:fixed:max-w-48">
+
+        
+        UI style guide
+        
+
+        
+
+        
+
+        
+    </a>
+</li>
+            
+            
+            
+            <li data-slot="sidebar-menu-item" data-sidebar="menu-item" class="group/menu-item relative">
+    <a data-slot="sidebar-menu-button" data-active="false" data-sidebar="menu-button"
+        data-size="default" href="../../development/changelog/"
+        class="peer/menu-button flex items-center gap-2 rounded-md p-2 text-left ring-sidebar-ring outline-hidden transition-[width,height,padding] group-has-data-[sidebar=menu-action]/menu-item:pr-8 group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:p-2! focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:font-medium data-[active=true]:text-sidebar-accent-foreground data-[state=open]:hover:bg-sidebar-accent data-[state=open]:hover:text-sidebar-accent-foreground [&>span:last-child]:truncate [&>svg]:size-4 [&>svg]:shrink-0 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground relative h-[30px] w-fit overflow-visible border border-transparent text-[0.8rem] font-medium after:absolute after:inset-x-0 after:-inset-y-1 after:z-0 after:rounded-md data-[active=true]:border-accent data-[active=true]:bg-accent 3xl:fixed:w-full 3xl:fixed:max-w-48">
+
+        
+        Changelog
+        
+
+        
+
+        
+
+        
+    </a>
+</li>
+            
+            
+        </ul>
+    </div>
+</div>
+
+
+
+
+
+<div
+    class="sticky -bottom-1 z-10 h-16 shrink-0 bg-gradient-to-t from-background via-background/80 to-background/50 blur-xs">
+</div>
+
+                        </div>
+                    </div>
+                    <div class="h-full w-full">
+                        <div class="flex items-stretch text-[1.05rem] sm:text-[15px] xl:w-full" data-slot="docs">
+
+                            <div class="flex min-w-0 flex-1 flex-col">
+                                <div class="h-(--top-spacing) shrink-0"></div>
+                                
+                                
+                                <article class="w-full" view-transition-name="page">
+  <div class="flex flex-col gap-2">
+    <div class="flex flex-col gap-2">
+      <div id="page-header" class="flex items-start justify-between">
+        <h1 class="scroll-m-20 text-4xl font-semibold tracking-tight sm:text-3xl xl:text-4xl">
+          Configuration
+        </h1>
+
+        <div class="flex items-center gap-2 pt-1.5">
+          
+          <button
+    onclick="fetch(`../..`).then((r) => r.text()).then((text) => navigator.clipboard.write([new ClipboardItem({ 'text/plain': text })]))"
+    data-slot="button" class="secondary cursor-pointer">
+    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+        stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="tabler-icon tabler-icon-copy ">
+        <path
+            d="M7 7m0 2.667a2.667 2.667 0 0 1 2.667 -2.667h8.666a2.667 2.667 0 0 1 2.667 2.667v8.666a2.667 2.667 0 0 1 -2.667 2.667h-8.666a2.667 2.667 0 0 1 -2.667 -2.667z">
+        </path>
+        <path d="M4.012 16.737a2.005 2.005 0 0 1 -1.012 -1.737v-10c0 -1.1 .9 -2 2 -2h10c.75 0 1.158 .385 1.5 1"></path>
+    </svg>
+    <span class="max-md:hidden">Copy Page</span>
+</button>
+          
+          
+          <a data-slot="button" id="previous-button"
+            class="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-all disabled:pointer-events-none disabled:opacity-50 [&amp;_svg]:pointer-events-none [&amp;_svg:not([class*='size-'])]:size-4 shrink-0 [&amp;_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive bg-secondary text-secondary-foreground hover:bg-secondary/80 extend-touch-target size-8 shadow-none md:size-7"
+            href="../../examples/webserver-configs/">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+              class="tabler-icon tabler-icon-arrow-left">
+              <path d="M5 12l14 0"></path>
+              <path d="M5 12l6 6"></path>
+              <path d="M5 12l6 -6"></path>
+            </svg>
+            <span class="sr-only">Previous</span>
+          </a>
+          
+          
+          <a data-slot="button" id="next-button"
+            class="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-all disabled:pointer-events-none disabled:opacity-50 [&amp;_svg]:pointer-events-none [&amp;_svg:not([class*='size-'])]:size-4 shrink-0 [&amp;_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive bg-secondary text-secondary-foreground hover:bg-secondary/80 extend-touch-target size-8 shadow-none md:size-7"
+            href="../docker/">
+            <span class="sr-only">Next</span>
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+              class="tabler-icon tabler-icon-arrow-right">
+              <path d="M5 12l14 0"></path>
+              <path d="M13 18l6 -6"></path>
+              <path d="M13 6l6 6"></path>
+            </svg>
+          </a>
+          
+        </div>
+      </div>
+      
+    </div>
+    <div class="flex justify-end items-center">
+      
+      
+    </div>
+  </div>
+  <div class="typography w-full flex-1 *:data-[slot=alert]:first:mt-0">
+    <h1 id="configuration-reference">Configuration reference</h1>
+<p>All four files in <code>config/</code> must exist, or every endpoint returns <code>503</code> with
+<code>configuration_missing</code>. Create the missing ones from <code>config/example/</code>:</p>
+<pre class="highlight"><code class="language-bash">make bootstrap-config</code></pre>
+<div class="table-wrapper"><table>
+<thead>
+<tr>
+<th>File</th>
+<th>Contents</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a href="#configconfigenv"><code>config.env</code></a></td>
+<td>Dashboard credentials, access control, logging, rate limiting</td>
+</tr>
+<tr>
+<td><a href="#configappsjson"><code>apps.json</code></a></td>
+<td>Watched applications: logs, sessions, Composer, monitoring switches</td>
+</tr>
+<tr>
+<td><a href="#configdatabasesjson"><code>databases.json</code></a></td>
+<td>Database server login and monitored databases for <code>/databases/*</code></td>
+</tr>
+<tr>
+<td><a href="#configtransmitjson"><code>transmit.json</code></a></td>
+<td>Node limits, disk check, cron heartbeats</td>
+</tr>
+</tbody>
+</table></div>
+<p>JSON files must be strict JSON (no comments, no trailing commas).</p>
+<p><code>/health</code> reports <code>checks.config_files_present</code> and lists <code>missing_config_files</code>. If startup
+fails, every route returns <code>503</code> (<code>Retry-After: 300</code>, <code>Cache-Control: no-store</code>) with
+<code>{"status": "not_ready", "reason": "...", "missing_config_files": [...]}</code>; <code>reason</code> is
+<code>configuration_missing</code>, <code>configuration_invalid</code> or <code>initialization_failed</code>, and file names are
+basenames only.</p>
+<p>In Docker, env files are read only at container creation: run <code>make dev-recreate</code> after editing
+them. Non-Docker setups pick up changes immediately.</p>
+<h2 id="configconfigenv"><code>config/config.env</code></h2>
+<div class="table-wrapper"><table>
+<thead>
+<tr>
+<th>Key</th>
+<th>Default</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>DASHBOARD_SERVER_ID</code></td>
+<td><code>dashboard</code></td>
+<td>This node's entry key in the dashboard's <code>servers.json</code>.</td>
+</tr>
+<tr>
+<td><code>DASHBOARD_API_KEY</code></td>
+<td>empty</td>
+<td>Shared HMAC secret; the <code>api_key</code> of that entry.</td>
+</tr>
+<tr>
+<td><code>DASHBOARD_CLOCK_SKEW_WINDOW</code></td>
+<td><code>120</code></td>
+<td>Accepted request timestamp skew, seconds.</td>
+</tr>
+<tr>
+<td><code>DOMAIN</code></td>
+<td>none (required)</td>
+<td>Domain the node is served on.</td>
+</tr>
+<tr>
+<td><code>MAINTENANCE_MODE_ENABLED</code></td>
+<td><code>OFF</code></td>
+<td><code>ON</code> returns <code>503</code> with <code>Retry-After: 300</code> on every route except <code>/health</code>.</td>
+</tr>
+<tr>
+<td><code>IP_WHITELIST_ENABLED</code>, <code>ALLOWED_IPS</code></td>
+<td><code>OFF</code>, empty</td>
+<td>Restrict authenticated routes to listed IPs/CIDRs, e.g. <code>198.51.100.10,2001:db8::/32</code>.</td>
+</tr>
+<tr>
+<td><code>TRUSTED_PROXIES</code></td>
+<td>empty</td>
+<td>Client IP is <code>REMOTE_ADDR</code>; <code>X-Forwarded-For</code> is used only when <code>REMOTE_ADDR</code> is listed here. Never list untrusted proxies.</td>
+</tr>
+<tr>
+<td><code>DISPLAY_ERRORS</code>, <code>LOG_LEVEL</code></td>
+<td><code>0</code>, <code>notices</code></td>
+<td>PHP error display and level.</td>
+</tr>
+<tr>
+<td><code>MONOLOG_LEVEL</code>, <code>APP_LOG_PATH</code></td>
+<td><code>debug</code>, <code>logs/app.log</code></td>
+<td>Node application log.</td>
+</tr>
+<tr>
+<td><code>TEMP_DIR</code></td>
+<td><code>temp/</code></td>
+<td>Cache directory.</td>
+</tr>
+<tr>
+<td><code>COMPOSER_BIN</code>, <code>COMPOSER_PHP_BIN</code></td>
+<td><code>composer</code> from <code>PATH</code></td>
+<td>Node-wide defaults for Composer audits.</td>
+</tr>
+<tr>
+<td><code>RATE_LIMIT_ENABLED</code>, <code>RATE_LIMIT_STORAGE</code></td>
+<td><code>ON</code>, <code>file</code></td>
+<td>Rate limiting; storage <code>file</code> or <code>redis</code> (<code>RATE_LIMIT_REDIS_*</code>).</td>
+</tr>
+<tr>
+<td><code>RATE_LIMIT_API_MAX_REQUESTS</code>, <code>RATE_LIMIT_API_WINDOW_SECONDS</code></td>
+<td><code>200</code>, <code>60</code></td>
+<td>Limit per client IP on authenticated routes.</td>
+</tr>
+<tr>
+<td><code>RATE_LIMIT_AUTH_FAILED_MAX_REQUESTS</code>, <code>RATE_LIMIT_AUTH_FAILED_WINDOW_SECONDS</code></td>
+<td><code>10</code>, <code>300</code></td>
+<td>Limit on failed authentication attempts.</td>
+</tr>
+</tbody>
+</table></div>
+<h2 id="path-base">Path base</h2>
+<p>For <code>apps.json</code>, most app paths are resolved relative to the parent directory of this node repo, not relative to <code>config/</code>.</p>
+<p>Example: if the node is at <code>/srv/mata-node</code>, relative app paths are read from <code>/srv/...</code>.</p>
+<p>Current path handling:</p>
+<ul>
+<li><code>logs</code>, <code>sessions.path</code>, <code>readme</code>: relative paths are resolved against the parent directory. <code>logs</code> paths beginning with <code>/</code> are used as absolute paths.</li>
+<li><code>composer.json</code>, <code>composer.lock</code>, <code>composer.bin</code>: relative paths are normalized against the same parent directory; absolute paths are accepted.</li>
+<li><code>transmit.json.check_disk_space_path</code>: passed directly to PHP/disk commands. Use an absolute path.</li>
+</ul>
+<h2 id="configappsjson"><code>config/apps.json</code></h2>
+<p>Top-level structure: object map of <code>app-id</code> to app config object.</p>
+<p>When used with MATA Dashboard, <code>app-id</code> is a global application identifier across all monitored nodes. Use a server-specific suffix for deployments that must remain separate applications.</p>
+<p>Use lowercase <code>app-id</code> values. Route lookups lowercase the requested app name before matching it against the config key.</p>
+<h3 id="full-example">Full example</h3>
+<pre class="highlight"><code class="language-json">{
+  "example-app": {
+    "title": "Example Application",
+    "url": "https://example.com/app",
+    "path": "example-app",
+    "disabled": "false",
+    "env": "prod",
+    "status_endpoint": "https://example.com/app/health/",
+    "monitoring": {
+      "loganalysis": true,
+      "logsize": true,
+      "sessions": true,
+      "reachability": true,
+      "alarms": true,
+      "events": true,
+      "libraryaudit": true
+    },
+    "sessions": {
+      "type": "file",
+      "path": "example-app/temp/sessions",
+      "filename_regex": "/^sess_/"
+    },
+    "logs": [
+      {
+        "type": "php_error_log",
+        "paths": [
+          "example-app/logs/error.log"
+        ]
+      },
+      {
+        "type": "monolog",
+        "paths": [
+          "example-app/logs/app.log",
+          "example-app/logs/debug.log"
+        ]
+      },
+      {
+        "type": "json",
+        "paths": [
+          "example-app/logs/structured.log"
+        ]
+      }
+    ],
+    "description": "Example app",
+    "composer": {
+      "json": "example-app/composer.json",
+      "lock": "example-app/composer.lock",
+      "bin": "example-app/composer.phar"
+    }
+  }
+}</code></pre>
+<h3 id="minimal-example">Minimal example</h3>
+<pre class="highlight"><code class="language-json">{
+  "minimal-app": {
+    "title": "Minimal Application",
+    "url": "https://example.com/minimal",
+    "path": "minimal-app",
+    "env": "test",
+    "logs": [
+      "minimal-app/logs/error.log"
+    ]
+  }
+}</code></pre>
+<h3 id="app-fields">App fields</h3>
+<div class="table-wrapper"><table>
+<thead>
+<tr>
+<th>Key</th>
+<th>Required</th>
+<th>Default</th>
+<th>Behavior</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>title</code></td>
+<td>Yes for <code>/apps</code></td>
+<td>none</td>
+<td>Returned as app title.</td>
+</tr>
+<tr>
+<td><code>url</code></td>
+<td>Yes for <code>/apps</code></td>
+<td>none</td>
+<td>Returned as app URL.</td>
+</tr>
+<tr>
+<td><code>path</code></td>
+<td>Yes for <code>/apps</code>, <code>/readme</code>, composer auto-detect</td>
+<td>none</td>
+<td>App base path. Used for default README path and composer auto-detect.</td>
+</tr>
+<tr>
+<td><code>env</code></td>
+<td>Yes for <code>/apps</code></td>
+<td>none</td>
+<td>Static application environment. Must be exactly <code>dev</code>, <code>test</code>, <code>stg</code>, or <code>prod</code>.</td>
+</tr>
+<tr>
+<td><code>disabled</code></td>
+<td>No</td>
+<td><code>"false"</code></td>
+<td>Set to <code>"true"</code> to hide the app and make its app-specific endpoints unavailable.</td>
+</tr>
+<tr>
+<td><code>status_endpoint</code></td>
+<td>No</td>
+<td>none</td>
+<td>Complete absolute <code>http</code> or <code>https</code> URL. The dashboard calls it directly; the node never calls it.</td>
+</tr>
+<tr>
+<td><code>monitoring</code></td>
+<td>No</td>
+<td>all settings enabled</td>
+<td>JSON object of per-app monitoring switches. See monitoring settings below.</td>
+</tr>
+<tr>
+<td><code>sessions</code></td>
+<td>No</td>
+<td>unconfigured</td>
+<td>Session metadata config returned by <code>/apps</code> and <code>/{app}/sessions</code>.</td>
+</tr>
+<tr>
+<td><code>sessions.type</code></td>
+<td>No</td>
+<td><code>file</code> when <code>sessions.path</code> exists</td>
+<td>Session backend type: <code>file</code>, <code>redis</code>, or <code>none</code>.</td>
+</tr>
+<tr>
+<td><code>sessions.path</code></td>
+<td>No</td>
+<td>empty</td>
+<td>Directory scanned for file sessions. Missing/empty/non-directory returns counts <code>0</code>.</td>
+</tr>
+<tr>
+<td><code>sessions.filename_regex</code></td>
+<td>No</td>
+<td>empty</td>
+<td>File backend only. Passed to <code>preg_match()</code> for each session filename. Empty means count all files. Include regex delimiters, e.g. <code>"/^sess_/"</code>.</td>
+</tr>
+<tr>
+<td><code>sessions.dsn</code></td>
+<td>Yes for Redis unless <code>dsn_env</code> is set</td>
+<td>none</td>
+<td>Redis DSN, e.g. <code>redis://127.0.0.1:6379/0</code>.</td>
+</tr>
+<tr>
+<td><code>sessions.dsn_env</code></td>
+<td>No</td>
+<td>none</td>
+<td>Environment variable name containing the Redis DSN. Prefer this when the DSN includes credentials.</td>
+</tr>
+<tr>
+<td><code>sessions.prefix</code></td>
+<td>No</td>
+<td><code>PHPREDIS_SESSION:</code></td>
+<td>Redis session key prefix used by SCAN fallback.</td>
+</tr>
+<tr>
+<td><code>sessions.count_key</code></td>
+<td>No</td>
+<td>empty</td>
+<td>Redis key containing the current session count. When set, the node uses one <code>GET</code> and does not scan. The app/session writer must maintain this key.</td>
+</tr>
+<tr>
+<td><code>sessions.scan_count</code></td>
+<td>No</td>
+<td><code>1000</code></td>
+<td>Redis SCAN count hint used only when <code>count_key</code> is empty.</td>
+</tr>
+<tr>
+<td><code>sessions.timeout_seconds</code></td>
+<td>No</td>
+<td>client default</td>
+<td>Redis socket timeout in seconds.</td>
+</tr>
+<tr>
+<td><code>sessions.cache_ttl_seconds</code></td>
+<td>No</td>
+<td><code>60</code> for Redis SCAN</td>
+<td>Redis SCAN metadata cache TTL in seconds. <code>0</code> disables Redis session count caching. Ignored when <code>count_key</code> is set.</td>
+</tr>
+<tr>
+<td><code>logs</code></td>
+<td>Yes for clean <code>/apps</code>; optional for <code>/logs</code> and <code>/logs-status</code></td>
+<td><code>[]</code> for <code>/logs</code> and <code>/logs-status</code></td>
+<td>Log paths/groups read for recent lines and status counts. See log formats below.</td>
+</tr>
+<tr>
+<td><code>description</code></td>
+<td>No</td>
+<td>empty string</td>
+<td>Returned by <code>/apps</code>.</td>
+</tr>
+<tr>
+<td><code>readme</code></td>
+<td>No</td>
+<td><code>&lt;path&gt;/README.md</code></td>
+<td>Path used by <code>/{app}/readme</code>.</td>
+</tr>
+<tr>
+<td><code>composer</code></td>
+<td>No</td>
+<td>disabled</td>
+<td>Composer library/audit config. See composer fields below.</td>
+</tr>
+</tbody>
+</table></div>
+<h3 id="monitoring-settings">Monitoring settings</h3>
+<p><code>monitoring</code> is an optional per-app JSON object with seven independent switches. Every switch
+defaults to <code>true</code>, so an app without a <code>monitoring</code> block behaves exactly as it did before the
+block existed.</p>
+<pre class="highlight"><code class="language-json">{
+  "shop": {
+    "monitoring": {
+      "loganalysis": true,
+      "logsize": true,
+      "sessions": true,
+      "reachability": true,
+      "alarms": true,
+      "events": true,
+      "libraryaudit": true
+    }
+  }
+}</code></pre>
+<p>The block may be sparse. Only list what you switch off:</p>
+<pre class="highlight"><code class="language-json">{
+  "archived-shop": {
+    "monitoring": {
+      "loganalysis": false,
+      "sessions": false
+    }
+  }
+}</code></pre>
+<div class="table-wrapper"><table>
+<thead>
+<tr>
+<th>Setting</th>
+<th>Default</th>
+<th>Effect when <code>false</code></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>loganalysis</code></td>
+<td><code>true</code></td>
+<td>The node performs no log parsing for the app. <code>/apps</code> omits <code>status</code>; <code>/{app}/logs</code> returns <code>409</code>.</td>
+</tr>
+<tr>
+<td><code>logsize</code></td>
+<td><code>true</code></td>
+<td>The node performs no log file globbing or sizing. <code>/apps</code> omits <code>logs</code>; <code>/{app}/logs-status</code> returns <code>409</code>.</td>
+</tr>
+<tr>
+<td><code>sessions</code></td>
+<td><code>true</code></td>
+<td>The node performs no session directory scan or Redis <code>SCAN</code>. <code>/apps</code> omits <code>session</code>; <code>/{app}/sessions</code> returns <code>409</code>.</td>
+</tr>
+<tr>
+<td><code>reachability</code></td>
+<td><code>true</code></td>
+<td>No node behavior. Reported to the dashboard, which stops probing the app.</td>
+</tr>
+<tr>
+<td><code>alarms</code></td>
+<td><code>true</code></td>
+<td>No node behavior. Reported to the dashboard, which records events but never elevates them into alarms.</td>
+</tr>
+<tr>
+<td><code>events</code></td>
+<td><code>true</code></td>
+<td>No node behavior. Reported to the dashboard, which produces no events for the app.</td>
+</tr>
+<tr>
+<td><code>libraryaudit</code></td>
+<td><code>true</code></td>
+<td>No node behavior. Reported to the dashboard, which stops its scheduled Composer audit and library security events for the app. <code>/{app}/composer-audit</code> stays available. Only relevant when <code>composer</code> is enabled.</td>
+</tr>
+</tbody>
+</table></div>
+<p>The first three actually skip work on the node — that is the point of the block. The last four
+are transport-only: the node reports them and the dashboard acts on them.</p>
+<h4 id="validation">Validation</h4>
+<div class="table-wrapper"><table>
+<thead>
+<tr>
+<th>Input</th>
+<th>Result</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>monitoring</code> absent</td>
+<td>all seven settings <code>true</code></td>
+</tr>
+<tr>
+<td><code>monitoring</code> an empty object</td>
+<td>all seven settings <code>true</code></td>
+</tr>
+<tr>
+<td>a key absent</td>
+<td>that setting <code>true</code></td>
+</tr>
+<tr>
+<td>literal <code>true</code> / <code>false</code></td>
+<td>taken as-is</td>
+</tr>
+<tr>
+<td><code>"true"</code>, <code>"false"</code>, <code>"on"</code>, <code>"off"</code>, <code>""</code>, <code>1</code>, <code>0</code>, <code>1.0</code>, <code>null</code>, array, object</td>
+<td>invalid application configuration, field <code>monitoring.&lt;key&gt;</code></td>
+</tr>
+<tr>
+<td><code>monitoring</code> not a JSON object</td>
+<td>invalid application configuration, field <code>monitoring</code></td>
+</tr>
+<tr>
+<td>unknown key inside <code>monitoring</code></td>
+<td>invalid application configuration, field <code>monitoring.&lt;key&gt;</code></td>
+</tr>
+</tbody>
+</table></div>
+<p>Only literal JSON booleans are accepted. An invalid application configuration makes <code>/apps</code> and
+the app's gated detail routes fail with the generic configuration error and HTTP <code>500</code>. The
+rejected value is never returned or logged; only the field name is logged, alongside the app id.</p>
+<p>Unknown keys are rejected deliberately. A typo such as <code>"logsizes": false</code> would otherwise
+resolve silently to <code>true</code> and keep running the exact scan the operator meant to switch off.</p>
+<h4 id="removed-settings">Removed settings</h4>
+<p>The following per-app keys were removed. Leftover keys in an existing <code>apps.json</code> are ignored;
+they are neither validated nor returned by <code>/apps</code>.</p>
+<div class="table-wrapper"><table>
+<thead>
+<tr>
+<th>Removed key</th>
+<th>Removed</th>
+<th>Replacement</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>alarms_enabled</code></td>
+<td>2026-07</td>
+<td><code>monitoring.alarms</code></td>
+</tr>
+<tr>
+<td><code>ping</code></td>
+<td>2026-07-25</td>
+<td><code>monitoring.reachability</code></td>
+</tr>
+<tr>
+<td><code>error_monitoring_enabled</code></td>
+<td>2026-07-25</td>
+<td><code>monitoring.loganalysis</code></td>
+</tr>
+<tr>
+<td><code>logsize_monitoring_enabled</code></td>
+<td>2026-07-25</td>
+<td><code>monitoring.logsize</code></td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>Upgrading.</strong> Migrate disabled settings by hand, e.g. <code>"ping": "off"</code> to
+<code>"monitoring": {"reachability": false}</code>; otherwise the feature turns back on. Enabled settings
+need no migration, since every <code>monitoring</code> switch defaults to <code>true</code>.</p>
+<h3 id="app-metadata-responses">App metadata responses</h3>
+<p>A fully monitored app returns these keys, in this order:</p>
+<pre class="highlight"><code class="language-json">"example-app": {
+  "path": "example-app",
+  "title": "Example Application",
+  "url": "https://example.com/app",
+  "env": "prod",
+  "status_url": "https://example.com/app/health/",
+  "description": "Example app",
+  "composer": true,
+  "status": { "fatal": 7, "warnings": 12, "total": 4231, "fatal_cursor": "v1:98cc…9ab" },
+  "session": { "type": "file", "status": "ok", "count_last_hour": 1, "count_last_day": 2, "count_total": 2, "path": "example-app/temp/sessions", "size_kb": 12.34 },
+  "logs": { "example-app/logs/error.log": 128.5 }
+}</code></pre>
+<p>The response is shaped by the app's <code>monitoring</code> block:</p>
+<ul>
+<li><code>status</code> is present iff <code>loganalysis</code> is enabled.</li>
+<li><code>logs</code> is present iff <code>logsize</code> is enabled.</li>
+<li><code>session</code> is present iff <code>sessions</code> is enabled.</li>
+<li><code>monitoring</code> is present iff at least one setting is disabled, and then it lists <strong>only</strong> the
+  disabled settings, always in the order <code>loganalysis</code>, <code>logsize</code>, <code>sessions</code>, <code>reachability</code>,
+  <code>alarms</code>, <code>events</code>. There is never a <code>true</code> value inside it.</li>
+</ul>
+<p>An app with <code>loganalysis</code> and <code>sessions</code> switched off therefore returns:</p>
+<pre class="highlight"><code class="language-json">"archived-shop": {
+  "path": "archived-shop",
+  "title": "Archived Shop",
+  "url": "https://example.com/archived",
+  "env": "prod",
+  "status_url": null,
+  "description": "",
+  "composer": false,
+  "logs": { "archived-shop/logs/error.log": 128.5 },
+  "monitoring": { "loganalysis": false, "sessions": false }
+}</code></pre>
+<p>An omitted key means "not measured", not "measured as zero". A consumer must not read an absent
+<code>status</code> as a clean log or an absent <code>logs</code> as an empty log set.</p>
+<p><code>/{app}/sessions</code> returns the same <code>session</code> object for one app.</p>
+<h4 id="gated-detail-routes">Gated detail routes</h4>
+<p>A disabled setting also closes the matching detail route, so a scan the operator switched off
+cannot be triggered from the dashboard UI:</p>
+<div class="table-wrapper"><table>
+<thead>
+<tr>
+<th>Route</th>
+<th>Requires</th>
+<th>Refused with</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>/{app}/logs</code></td>
+<td><code>loganalysis</code></td>
+<td><code>409</code></td>
+</tr>
+<tr>
+<td><code>/{app}/logs-status</code></td>
+<td><code>logsize</code></td>
+<td><code>409</code></td>
+</tr>
+<tr>
+<td><code>/{app}/sessions</code></td>
+<td><code>sessions</code></td>
+<td><code>409</code></td>
+</tr>
+</tbody>
+</table></div>
+<p>The refusal body names the setting:</p>
+<pre class="highlight"><code class="language-json">{
+  "error": "Monitoring disabled",
+  "message": "Monitoring disabled",
+  "details": {"app": "archived-shop", "setting": "logsize"}
+}</code></pre>
+<p><code>/{app}/readme</code>, <code>/{app}/libraries</code>, and <code>/{app}/composer-audit</code> are not gated — they read no logs
+and no sessions.</p>
+<p>In <code>status</code>, <code>fatal</code>, <code>warnings</code>, and <code>total</code> are non-negative integers aggregated over all
+configured logs of the app. <code>fatal_cursor</code> is <code>null</code> exactly when <code>fatal</code> is <code>0</code>; otherwise it is
+<code>v1:</code> followed by 64 lowercase hexadecimal characters.</p>
+<p>The cursor is opaque and equality-only. It does not identify, describe, or expose an error: it
+carries no log content, no absolute path, no file identity, no offsets, and no per-entry hashes.
+Comparing two cursors for the same app answers exactly one question — whether the fatal
+observation changed. Detailed entries stay behind <code>/{app}/logs</code>; line counts, byte sizes, and
+modification times stay behind <code>/{app}/logs-status</code>. <code>/apps</code> never calls either endpoint.</p>
+<p>The cursor changes when a fatal entry is added (including a duplicate of an existing one), when a
+fatal entry's timestamp, message, stack trace, context, multiplicity, or order changes, and when
+log rotation replaces a fatal-bearing file with a new file generation. It does not change when
+warnings, notices, info entries, or unrelated lines are appended, and it is stable across node
+restarts. The node is stateless, so an in-place rewrite that reproduces exactly the same fatal
+entries at the same positions in the same file is indistinguishable from an unchanged file.</p>
+<p><code>/apps</code> also returns static <code>env</code> and <code>status_url</code>. <code>status_url</code> is the validated <code>status_endpoint</code>, or <code>null</code> when no endpoint is configured. It never returns <code>status_endpoint</code>.</p>
+<p>The dashboard, not MATA Node, makes an unauthenticated read-only <code>GET</code> to <code>status_url</code>. The endpoint must return:</p>
+<pre class="highlight"><code class="language-json">{"maintenance_mode": false}</code></pre>
+<p>Without a status endpoint, the dashboard uses the visitor <code>url</code> for its legacy availability probe and cannot determine dynamic maintenance state.</p>
+<p>Redis session config:</p>
+<pre class="highlight"><code class="language-json">"sessions": {
+  "type": "redis",
+  "dsn": "redis://127.0.0.1:6379/0",
+  "prefix": "PHPREDIS_SESSION:",
+  "count_key": "mata:sessions:example-app:count",
+  "scan_count": 1000,
+  "timeout_seconds": 1.0,
+  "cache_ttl_seconds": 60
+}</code></pre>
+<p>For low-stress Redis counting, set <code>count_key</code>. The node reads <code>count_total</code> with one <code>GET</code> and never scans. Missing <code>count_key</code> values are reported as <code>0</code>; non-numeric values return error metadata. The node never mutates this key; the app/session writer is responsible for incrementing/decrementing or otherwise maintaining a non-negative integer value.</p>
+<p>Operational rule: configure <code>count_key</code> for high-cardinality Redis session stores. Leave it empty only when SCAN fallback load is acceptable.</p>
+<p>If <code>count_key</code> is not set, Redis returns <code>count_total</code> from a full <code>SCAN MATCH &lt;prefix&gt;*</code> pass. <code>SCAN</code> count is approximate: Redis may return duplicate keys during an iteration, and <code>COUNT</code> is only a per-call hint. The value is suitable for monitoring, not billing or exact accounting.</p>
+<p>SCAN-based Redis session metadata is cached in the node cache directory for <code>cache_ttl_seconds</code> to avoid a full keyspace scan on every dashboard poll. Cache keys include the app identity and non-secret Redis identity fields (<code>host</code>, <code>port</code>, <code>database</code>, <code>prefix</code>, or sanitized DSN parts). Passwords and DSN credentials are not included. <code>count_last_hour</code>, <code>count_last_day</code>, <code>path</code>, and <code>size_kb</code> are <code>null</code>.</p>
+<p><code>dsn_env</code> is also supported to read the Redis DSN from an environment variable instead of config JSON.</p>
+<h3 id="log-formats">Log formats</h3>
+<p><code>logs</code> supports both formats. Paths beginning with <code>/</code> are absolute; all other paths are resolved against the node's parent directory.</p>
+<p>Old format: array of path strings. Parser type is auto-detected per file.</p>
+<pre class="highlight"><code class="language-json">{
+  "logs": [
+    "minimal-app/logs/error.log",
+    "minimal-app/logs/app.log"
+  ]
+}</code></pre>
+<p>A configured path (in either format) may also be a directory. For <code>/apps</code> log-size output and <code>/logs-status</code>, the node expands directory paths into the <code>*.log</code> files they contain. <code>/logs</code> parses only explicitly configured file paths and skips directories.</p>
+<p>New format: array of log groups:</p>
+<pre class="highlight"><code class="language-json">{
+  "logs": [
+    {
+      "type": "monolog",
+      "paths": [
+        "example-app/logs/app.log"
+      ]
+    },
+    {
+      "paths": [
+        "example-app/logs/auto-detect.log"
+      ]
+    }
+  ]
+}</code></pre>
+<p>Log group fields:</p>
+<div class="table-wrapper"><table>
+<thead>
+<tr>
+<th>Key</th>
+<th>Required</th>
+<th>Default</th>
+<th>Behavior</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>paths</code></td>
+<td>Yes for structured groups</td>
+<td>none</td>
+<td>Array of log file paths. Empty/missing groups are skipped.</td>
+</tr>
+<tr>
+<td><code>type</code></td>
+<td>No</td>
+<td>auto-detect</td>
+<td>Parser name. Supported values: <code>php_error_log</code>, <code>monolog</code>, <code>json</code>.</td>
+</tr>
+</tbody>
+</table></div>
+<p>If <code>type</code> is omitted, the node auto-detects the parser per file from the first 10 lines. It picks a parser when at least 50% of sampled lines match that parser. If none match, it falls back to <code>php_error_log</code>.</p>
+<p>If <code>type</code> is set to an unknown value, the node logs an error and falls back to <code>php_error_log</code>.</p>
+<p>App-level parser format settings are unsupported. Use structured log group <code>type</code> or omit <code>type</code> for auto-detection.</p>
+<p><code>/apps</code> log-size output supports old string paths and structured log group <code>paths</code>.</p>
+<h4 id="analysis-behavior">Analysis behavior</h4>
+<p>For <code>/apps</code> counts and the fatal cursor, each log file is streamed once with memory capped at one
+line (max 5 MB; longer lines are streamed through). <code>fatal</code> and <code>warnings</code> count matching lines,
+like <code>grep -c</code>; <code>total</code> counts newline-terminated lines. The cursor fingerprints the ordered fatal
+entries including multiline stack traces; JSON records are canonicalized first, so key order does
+not matter.</p>
+<p>To support another log format, add a parser class: see <a href="../log-parsers/">Custom log parsers</a>.</p>
+<h3 id="composer-fields">Composer fields</h3>
+<p>Composer config is used by:</p>
+<ul>
+<li><code>/apps/libraries</code></li>
+<li><code>/apps/composer-audit</code></li>
+<li><code>/{app}/libraries</code></li>
+</ul>
+<p>Supported forms:</p>
+<pre class="highlight"><code class="language-json">{
+  "composer": {
+    "json": "example-app/composer.json",
+    "lock": "example-app/composer.lock",
+    "bin": "example-app/composer.phar"
+  }
+}</code></pre>
+<pre class="highlight"><code class="language-json">{
+  "composer": true
+}</code></pre>
+<pre class="highlight"><code class="language-json">{
+  "composer": "on"
+}</code></pre>
+<p>With <code>composer: true</code> or a truthy string (<code>true</code>, <code>on</code>, <code>1</code>, <code>yes</code>), the node reads
+<code>&lt;path&gt;/composer.json</code> and <code>&lt;path&gt;/composer.lock</code>.</p>
+<p>Object fields (all optional):</p>
+<div class="table-wrapper"><table>
+<thead>
+<tr>
+<th>Key</th>
+<th>Default</th>
+<th>Behavior</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>composer.enabled</code></td>
+<td><code>true</code> when any other key is set</td>
+<td>Truthy value enables, falsy disables Composer for the app.</td>
+</tr>
+<tr>
+<td><code>composer.json</code></td>
+<td><code>&lt;path&gt;/composer.json</code></td>
+<td>Path to <code>composer.json</code>. Required for audit.</td>
+</tr>
+<tr>
+<td><code>composer.lock</code></td>
+<td><code>&lt;path&gt;/composer.lock</code></td>
+<td>Path to <code>composer.lock</code>. Required for libraries and audit.</td>
+</tr>
+<tr>
+<td><code>composer.bin</code></td>
+<td><code>COMPOSER_BIN</code>, else <code>composer</code> from <code>PATH</code></td>
+<td>Composer executable. If it ends in <code>.phar</code>, the command is run as <code>php &lt;bin&gt;</code>.</td>
+</tr>
+<tr>
+<td><code>composer.php_bin</code></td>
+<td><code>COMPOSER_PHP_BIN</code>, else <code>php</code></td>
+<td>PHP binary used to run a <code>.phar</code>.</td>
+</tr>
+</tbody>
+</table></div>
+<h2 id="configdatabasesjson"><code>config/databases.json</code></h2>
+<p>Lets the node watch one MariaDB, MySQL or PostgreSQL server for the <code>/databases/*</code> routes: which server,
+how to log in, and which of its databases to report on.</p>
+<pre class="highlight"><code class="language-json">{
+  "engine": "mariadb",
+  "connection": {
+    "host": "localhost",
+    "port": "3306",
+    "username": "mata_monitor",
+    "password": "secret"
+  },
+  "databases": {
+    "app_db": "Main application",
+    "analytics_db": "Reporting"
+  }
+}</code></pre>
+<p>The node logs in once with <code>connection</code>. <code>/databases/overview</code> reports server-wide numbers
+(connections, limits, uptime). <code>/databases/processes</code> lists only sessions on <code>app_db</code> and
+<code>analytics_db</code>; sessions on any other database of that server are never returned.</p>
+<p><code>{}</code> turns database monitoring off; the <code>/databases/*</code> routes then return <code>404</code>.</p>
+<div class="table-wrapper"><table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>engine</code></td>
+<td>Database type; selects the driver. <code>mariadb</code> (also for MySQL) or <code>pgsql</code></td>
+</tr>
+<tr>
+<td><code>connection</code></td>
+<td><code>host</code>, <code>port</code> (string or number), <code>username</code>, <code>password</code>; use a read-only account</td>
+</tr>
+<tr>
+<td><code>databases</code></td>
+<td>Database name =&gt; description shown in the dashboard; at least one</td>
+</tr>
+</tbody>
+</table></div>
+<p>All fields are required. Unknown keys and missing fields fail startup with
+<code>configuration_invalid</code>. Startup never connects to the database, so an outage cannot stop the
+node.</p>
+<p>The account needs no write rights. For a complete process list it needs the <code>PROCESS</code>
+privilege (<code>GRANT PROCESS ON *.* TO 'mata_monitor'@'...'</code>); without it <code>/databases/processes</code>
+reports <code>"visibility": "own_sessions"</code> and shows only the account's own sessions. A privilege
+granted only through a role is also reported as <code>own_sessions</code>.</p>
+<p>On PostgreSQL the node connects to the <code>postgres</code> database. For a complete process list and
+server-wide counts the account needs the <code>pg_read_all_stats</code> role
+(<code>GRANT pg_read_all_stats TO mata_monitor</code>) or superuser; without it <code>/databases/processes</code>
+reports <code>own_sessions</code>, and the overview's <code>connections</code> and <code>running</code> count only the account's
+own sessions. PostgreSQL has no equivalent for <code>max_used_connections</code>, <code>refused_connections</code> and
+<code>aborted_connects</code>; they are <code>null</code>.</p>
+<h2 id="configtransmitjson"><code>config/transmit.json</code></h2>
+<p>Top-level structure: one object.</p>
+<h3 id="example">Example</h3>
+<pre class="highlight"><code class="language-json">{
+  "check_disk_space_enabled": "on",
+  "check_disk_space_path": "/",
+  "errorlog_readout_limit": 200,
+  "errorlog_scan_line_limit": 20000,
+  "system_filecount_cache_max_age": 1800,
+  "cronjob_heartbeats": [
+    "logs/cron/heartbeat-daily.log"
+  ],
+  "cronjob_heartbeat_stale_seconds": 86400,
+  "cronjob_heartbeat_tail_line_limit": 50
+}</code></pre>
+<h3 id="fields">Fields</h3>
+<div class="table-wrapper"><table>
+<thead>
+<tr>
+<th>Key</th>
+<th>Required</th>
+<th>Default</th>
+<th>Units</th>
+<th>Behavior</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>check_disk_space_enabled</code></td>
+<td>No</td>
+<td>enabled</td>
+<td><code>"off"</code> disables</td>
+<td>Only the exact string <code>"off"</code> disables disk checks. Any other value, including boolean <code>false</code>, enables them.</td>
+</tr>
+<tr>
+<td><code>check_disk_space_path</code></td>
+<td>No</td>
+<td><code>/</code></td>
+<td>filesystem path</td>
+<td>Path passed to disk-space checks. Returned disk values are KiB.</td>
+</tr>
+<tr>
+<td><code>errorlog_readout_limit</code></td>
+<td>No</td>
+<td><code>50</code></td>
+<td>entries</td>
+<td>Default number of parsed log entries returned by <code>/{app}/logs</code> after filtering.</td>
+</tr>
+<tr>
+<td><code>errorlog_scan_line_limit</code></td>
+<td>No</td>
+<td><code>20000</code></td>
+<td>lines</td>
+<td>Number of raw tail lines read before parsing and filtering <code>/{app}/logs</code>.</td>
+</tr>
+<tr>
+<td><code>system_filecount_cache_max_age</code></td>
+<td>No</td>
+<td><code>1800</code></td>
+<td>seconds</td>
+<td>Used by server file-count caching. Cached value is reused while its age is less than or equal to this value; older cache is recalculated.</td>
+</tr>
+<tr>
+<td><code>cronjob_heartbeats</code></td>
+<td>No</td>
+<td>empty array</td>
+<td>paths</td>
+<td>Ordered array of heartbeat file paths relative to the node root. A single string is also accepted. <code>/server/data</code> returns summary counts; <code>/server/cronjobs</code> returns per-file metadata and tail content.</td>
+</tr>
+<tr>
+<td><code>cronjob_heartbeat_stale_seconds</code></td>
+<td>No</td>
+<td><code>86400</code></td>
+<td>seconds</td>
+<td>Existing heartbeat files older than this are marked stale. Non-numeric values use the default; numeric values are clamped to at least <code>1</code>.</td>
+</tr>
+<tr>
+<td><code>cronjob_heartbeat_tail_line_limit</code></td>
+<td>No</td>
+<td><code>50</code></td>
+<td>lines</td>
+<td>Number of heartbeat file tail lines returned in <code>/server/cronjobs</code> <code>content_tail</code>. Non-numeric values use the default; numeric values are clamped to at least <code>1</code>.</td>
+</tr>
+</tbody>
+</table></div>
+<h3 id="cronjob-heartbeat-monitoring">Cronjob heartbeat monitoring</h3>
+<p>Cronjob heartbeats are server-scoped because cron runs per host. Configure them in <code>config/transmit.json</code>.</p>
+<p><code>/server/data</code> returns compact cronjob summary data:</p>
+<pre class="highlight"><code class="language-json">"cronjobs": {
+  "total": 2,
+  "working": 1,
+  "stale": 0,
+  "missing": 1
+}</code></pre>
+<p><code>/server/cronjobs</code> returns ordered detail data:</p>
+<pre class="highlight"><code class="language-json">[
+  {
+    "index": 0,
+    "path": "logs/cron/heartbeat-daily.log",
+    "exists": true,
+    "mtime": "2026-07-07 12:00:00",
+    "age_seconds": 42,
+    "size": 1234,
+    "stale": false,
+    "content_tail": ["last line"]
+  }
+]</code></pre>
+  </div>
+  
+  <script>
+    document.querySelectorAll('article h2, article h3').forEach((header) => {
+      toc.observer.observe(header);
+    });
+  </script>
+</article>
+                                <div class="mx-auto flex flex-wrap h-16 w-full max-w-2xl items-center gap-2 px-4 md:px-0">
+    
+    <a data-slot="button"
+        class="inline-flex items-center justify-center whitespace-nowrap text-sm font-medium transition-all disabled:pointer-events-none disabled:opacity-50 [&amp;_svg]:pointer-events-none [&amp;_svg:not([class*='size-'])]:size-4 shrink-0 [&amp;_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive bg-secondary text-secondary-foreground hover:bg-secondary/80 h-8 rounded-md gap-1.5 px-3 has-[&gt;svg]:px-2.5 shadow-none"
+        href="../../examples/webserver-configs/">
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+            class="tabler-icon tabler-icon-arrow-left ">
+            <path d="M5 12l14 0"></path>
+            <path d="M5 12l6 6"></path>
+            <path d="M5 12l6 -6"></path>
+        </svg>
+        <span class="max-[500px]:hidden">Web server examples</span>
+    </a>
+    
+    
+    <a data-slot="button"
+        class="inline-flex items-center justify-center whitespace-nowrap text-sm font-medium transition-all disabled:pointer-events-none disabled:opacity-50 [&amp;_svg]:pointer-events-none [&amp;_svg:not([class*='size-'])]:size-4 shrink-0 [&amp;_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive bg-secondary text-secondary-foreground hover:bg-secondary/80 h-8 rounded-md gap-1.5 px-3 has-[&gt;svg]:px-2.5 ml-auto shadow-none"
+        href="../docker/">
+        <span class="max-[500px]:hidden">Docker</span>
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+            class="tabler-icon tabler-icon-arrow-right ">
+            <path d="M5 12l14 0"></path>
+            <path d="M13 18l6 -6"></path>
+            <path d="M13 6l6 6"></path>
+        </svg>
+    </a>
+    
+</div>
+                                
+                                
+                            </div>
+                            
+                            <dialog id="bottom-sidebar" onclick="onBottomSidebarDialogClick(event)" class="bg-transparent"
+    style="position: fixed; left: 0px; top: 0px; transform: translate(0px, 58px); min-width: max-content; --radix-popper-transform-origin: 0% 0px; will-change: transform; z-index: 50; --radix-popper-available-width: 504px; --radix-popper-available-height: 857px; --radix-popper-anchor-width: 72.94999694824219px; --radix-popper-anchor-height: 32px;">
+    <div data-side="bottom" data-align="start" data-state="open" role="dialog" data-slot="popover-content"
+        class="text-popover-foreground data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 z-50 origin-(--radix-popover-content-transform-origin) border outline-hidden bg-background/90 no-scrollbar h-(--radix-popper-available-height) w-(--radix-popper-available-width) overflow-y-auto rounded-none border-none p-0 shadow-none backdrop-blur duration-100"
+        style="--radix-popover-content-transform-origin: var(--radix-popper-transform-origin); --radix-popover-content-available-width: var(--radix-popper-available-width); --radix-popover-content-available-height: var(--radix-popper-available-height); --radix-popover-trigger-width: var(--radix-popper-anchor-width); --radix-popover-trigger-height: var(--radix-popper-anchor-height);"
+        tabindex="-1">
+        <div class="flex flex-col gap-12 overflow-auto px-6 py-6">
+            
+            
+            
+
+            
+            <div class="flex flex-col gap-4">
+                <div class="text-muted-foreground text-sm font-medium">Menu</div>
+                <div class="flex flex-col gap-3">
+                    
+                    <a class="text-2xl font-medium" href="../..">
+                        
+                        MATA
+                        
+                    </a>
+                    
+                </div>
+            </div>
+            
+
+            
+            <div class="flex flex-col gap-8">
+                
+                <div class="flex flex-col gap-4">
+                    <div class="text-muted-foreground text-sm font-medium">Getting started</div>
+                    
+                    <div class="flex flex-col gap-3">
+                        
+                        <a class="text-2xl font-medium" href="../../guides/quickstart/">
+                            
+                            Quick start
+                            
+                        </a>
+                        
+                        <a class="text-2xl font-medium" href="../../guides/quickstart-docker/">
+                            
+                            Docker quickstart
+                            
+                        </a>
+                        
+                        <a class="text-2xl font-medium" href="../../guides/first-server/">
+                            
+                            Add your first server
+                            
+                        </a>
+                        
+                    </div>
+                    
+                </div>
+                
+                <div class="flex flex-col gap-4">
+                    <div class="text-muted-foreground text-sm font-medium">Guides</div>
+                    
+                    <div class="flex flex-col gap-3">
+                        
+                        <a class="text-2xl font-medium" href="../../guides/configuration/">
+                            
+                            Configuration
+                            
+                        </a>
+                        
+                        <a class="text-2xl font-medium" href="../../guides/monitoring/">
+                            
+                            Monitoring
+                            
+                        </a>
+                        
+                        <a class="text-2xl font-medium" href="../../guides/application-error-monitoring/">
+                            
+                            Application error monitoring
+                            
+                        </a>
+                        
+                        <a class="text-2xl font-medium" href="../../guides/user-management/">
+                            
+                            User management CLI
+                            
+                        </a>
+                        
+                        <a class="text-2xl font-medium" href="../../guides/secure-application/">
+                            
+                            Secure an installation
+                            
+                        </a>
+                        
+                        <a class="text-2xl font-medium" href="../../examples/webserver-configs/">
+                            
+                            Web server examples
+                            
+                        </a>
+                        
+                    </div>
+                    
+                </div>
+                
+                <div class="flex flex-col gap-4">
+                    <div class="text-muted-foreground text-sm font-medium">Node</div>
+                    
+                    <div class="flex flex-col gap-3">
+                        
+                        <a class="text-2xl font-medium" href="./">
+                            
+                            Configuration
+                            
+                        </a>
+                        
+                        <a class="text-2xl font-medium" href="../docker/">
+                            
+                            Docker
+                            
+                        </a>
+                        
+                        <a class="text-2xl font-medium" href="../log-parsers/">
+                            
+                            Custom log parsers
+                            
+                        </a>
+                        
+                        <a class="text-2xl font-medium" href="../shell-command-surface/">
+                            
+                            Shell command surface
+                            
+                        </a>
+                        
+                    </div>
+                    
+                </div>
+                
+                <div class="flex flex-col gap-4">
+                    <div class="text-muted-foreground text-sm font-medium">Reference</div>
+                    
+                    <div class="flex flex-col gap-3">
+                        
+                        <a class="text-2xl font-medium" href="../../reference/alarms/">
+                            
+                            Alarm decision and delivery flow
+                            
+                        </a>
+                        
+                    </div>
+                    
+                </div>
+                
+                <div class="flex flex-col gap-4">
+                    <div class="text-muted-foreground text-sm font-medium">Architecture</div>
+                    
+                    <div class="flex flex-col gap-3">
+                        
+                        <a class="text-2xl font-medium" href="../../architecture/overview/">
+                            
+                            Overview
+                            
+                        </a>
+                        
+                        <a class="text-2xl font-medium" href="../../architecture/security/">
+                            
+                            Security
+                            
+                        </a>
+                        
+                        <a class="text-2xl font-medium" href="../../architecture/server-metrics-pipeline/">
+                            
+                            Server metrics pipeline
+                            
+                        </a>
+                        
+                        <a class="text-2xl font-medium" href="../../architecture/technology-choices/">
+                            
+                            Technology choices
+                            
+                        </a>
+                        
+                    </div>
+                    
+                </div>
+                
+                <div class="flex flex-col gap-4">
+                    <div class="text-muted-foreground text-sm font-medium">Development</div>
+                    
+                    <div class="flex flex-col gap-3">
+                        
+                        <a class="text-2xl font-medium" href="../../development/development-setup/">
+                            
+                            Development setup
+                            
+                        </a>
+                        
+                        <a class="text-2xl font-medium" href="../../development/ui-styleguide/">
+                            
+                            UI style guide
+                            
+                        </a>
+                        
+                        <a class="text-2xl font-medium" href="../../development/changelog/">
+                            
+                            Changelog
+                            
+                        </a>
+                        
+                    </div>
+                    
+                </div>
+                
+            </div>
+            
+            
+
+        </div>
+    </div>
+</dialog>
+                            <div
+                                class="sticky top-[calc(var(--header-height)+1px)] ml-auto hidden h-[calc(100svh-var(--header-height)-var(--footer-height))] w-72 flex-col gap-4 overflow-hidden overscroll-none pb-8 xl:flex">
+                                <div class="h-(--top-spacing) shrink-0"></div>
+                                
+                                
+                                <div id="toc" view-transition-name="toc" class="no-scrollbar overflow-y-auto px-8">
+    <div class="flex flex-col gap-2 p-4 pt-0 text-sm">
+        <p class="text-muted-foreground bg-background sticky top-0 h-6 text-xs">On This Page</p>
+        
+        
+        
+        
+        <a href="#configconfigenv"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="2" onClick="deferSetActiveTocLink('#configconfigenv');">
+            config/config.env
+        </a>
+        
+
+        
+        <a href="#path-base"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="2" onClick="deferSetActiveTocLink('#path-base');">
+            Path base
+        </a>
+        
+
+        
+        <a href="#configappsjson"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="2" onClick="deferSetActiveTocLink('#configappsjson');">
+            config/apps.json
+        </a>
+        
+        
+        <a href="#full-example"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="3" onClick="deferSetActiveTocLink('#full-example');">
+            Full example
+        </a>
+        
+        <a href="#minimal-example"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="3" onClick="deferSetActiveTocLink('#minimal-example');">
+            Minimal example
+        </a>
+        
+        <a href="#app-fields"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="3" onClick="deferSetActiveTocLink('#app-fields');">
+            App fields
+        </a>
+        
+        <a href="#monitoring-settings"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="3" onClick="deferSetActiveTocLink('#monitoring-settings');">
+            Monitoring settings
+        </a>
+        
+        <a href="#app-metadata-responses"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="3" onClick="deferSetActiveTocLink('#app-metadata-responses');">
+            App metadata responses
+        </a>
+        
+        <a href="#log-formats"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="3" onClick="deferSetActiveTocLink('#log-formats');">
+            Log formats
+        </a>
+        
+        <a href="#composer-fields"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="3" onClick="deferSetActiveTocLink('#composer-fields');">
+            Composer fields
+        </a>
+        
+        
+
+        
+        <a href="#configdatabasesjson"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="2" onClick="deferSetActiveTocLink('#configdatabasesjson');">
+            config/databases.json
+        </a>
+        
+
+        
+        <a href="#configtransmitjson"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="2" onClick="deferSetActiveTocLink('#configtransmitjson');">
+            config/transmit.json
+        </a>
+        
+        
+        <a href="#example"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="3" onClick="deferSetActiveTocLink('#example');">
+            Example
+        </a>
+        
+        <a href="#fields"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="3" onClick="deferSetActiveTocLink('#fields');">
+            Fields
+        </a>
+        
+        <a href="#cronjob-heartbeat-monitoring"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="3" onClick="deferSetActiveTocLink('#cronjob-heartbeat-monitoring');">
+            Cronjob heartbeat monitoring
+        </a>
+        
+        
+
+        
+        
+        
+        
+
+    </div>
+    <div class="h-12"></div>
+
+</div>
+                                
+                                
+                            </div>
+
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+        <footer view-transition-name="footer"
+    class="group-has-[.section-soft]/body:bg-surface/40 3xl:fixed:bg-transparent dark:bg-transparent">
+    <div class="container-wrapper px-4 xl:px-6">
+        <div class="flex h-(--footer-height) items-center justify-between">
+            <div class="text-muted-foreground w-full text-center text-xs leading-loose sm:text-sm">
+                
+                <a href="https://github.com/asiffer/mkdocs-shadcn">shadcn theme</a> provided by
+                <a href="https://github.com/asiffer">@asiffer</a>
+            </div>
+        </div>
+    </div>
+</footer>
+    </div>
+     
+
+<script src="../../search/main.js"></script>
+
+
+    
+
+    <script integrity="sha384-JLNLRFGzvOp0up707XKgSnAjjt1w5BF/+lbeLQvlf6mNwf0m89IXFdpNAk4t6Hcs"
+        src="../../js/copy-button.js"></script>
+    <script integrity="sha384-JBx6cBEiyhK1KPwZgBHiI6GDaAmvlOxMQFyWAZTEpW5Ifo5XQ2LBcJ61GVOumwF1"
+        src="../../js/sidebar.js"></script>
+    <script integrity="sha384-fNURFMRt0p/HqXnQnV4+CT9dX1GiU5F0fC3pFbg7gfoANytoUMErSW7suWSBkSuF"
+        src="../../js/slider.js"></script>
+    <script>updatePygmentsStylesheet();</script>
+    
+    
+    
+    <script type="speculationrules">
+{
+  "prerender": [
+    {
+      "where": {
+          "selector_matches": ["#next-button", "#previous-button"]
+      }
+    }
+  ]
+}
+</script>
+</body>
+
+</html>
