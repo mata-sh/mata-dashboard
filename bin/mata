@@ -3,6 +3,8 @@
 
 declare(strict_types=1);
 
+use Mata\Cli\Command\AlarmExplainCommand;
+use Mata\Cli\Command\AlarmTestCommand;
 use Mata\Cli\Command\ConfigValidateCommand;
 use Mata\Cli\Command\DbCheckCommand;
 use Mata\Cli\Command\DbMigrateCommand;
@@ -71,6 +73,8 @@ $application->addCommands([
     new DbRollbackCommand($paths, $configPath),
     new DbCheckCommand($paths, $configPath),
     new DoctorCommand($paths, $configPath),
+    new AlarmTestCommand(__FILE__),
+    new AlarmExplainCommand($configPath),
 ]);
 
 // Accept `mata config validate` as well as Symfony's `mata config:validate`.

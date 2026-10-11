@@ -148,15 +148,31 @@ Send a sample alarm through any configured channel, including `email`, without
 using the queue:
 
 ```bash
-sudo -u <php-fpm-user> php scripts/alarm_channel_test.php telegram
+sudo -u <php-fpm-user> php bin/mata alarm test telegram
 # Docker
-docker exec -u www-data mata-dashboard-web php scripts/alarm_channel_test.php telegram
+docker exec -u www-data mata-dashboard-web php bin/mata alarm test telegram
 ```
 
 Run it as the user your crons run as, so its log files stay writable for them.
+Without a channel it lists the configured ones.
 
 It exits `0` when sent, `1` when delivery fails, printing the redacted error,
-and `2` for an unknown channel, listing the configured ones.
+and `2` for an unknown channel. `scripts/alarm_channel_test.php` still works the
+same way.
+
+### Explaining decisions
+
+The evaluation cron stores a decision trace on every event it evaluates.
+`bin/mata alarm explain` shows the latest ones, so you can check a change to
+`thresholds.json` or `notification_rules.json` after the next evaluation run:
+
+```bash
+php bin/mata alarm explain prod-web-01 --limit 10
+```
+
+Each event shows the outcome, the policy gate and reason, the threshold gate,
+the trigger evidence (for example `3 events within 30 minutes`), and the ready
+and unavailable channels. `--json` returns the full stored trace.
 
 ## Example
 
