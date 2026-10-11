@@ -81,7 +81,7 @@ final readonly class CronMonitoringRuntime
 
         // Alarm limits and queue-failure throttling
         $queueFailureThrottle = new AlarmQueueFailureThrottle($paths->tempPath . '/alarm-locks', $log);
-        $alarmLimits = (new AlarmRateLimitsConfigLoader($eventManager))->load($paths->appPath . '/config');
+        $alarmLimits = (new AlarmRateLimitsConfigLoader($eventManager))->load($paths->configPath);
 
         // Direct alarm processing
         $alarmDirectProcessor = new AlarmDirectProcessor(
@@ -99,7 +99,7 @@ final readonly class CronMonitoringRuntime
             $alarmRepository,
             $idResolver,
             $log,
-            $paths->appPath . '/config/demo/events.json',
+            $paths->getConfigPath('demo/events.json'),
         ))->createEventAggregator();
         $eventManager->setEventAggregator($eventAggregator);
 
@@ -112,7 +112,7 @@ final readonly class CronMonitoringRuntime
             probes: new ProbesConfigLoader(events: $eventManager, fallbackOnFailure: true),
             notificationRules: new NotificationRulesConfigLoader(events: $eventManager, fallbackOnFailure: true),
             thresholds: new ThresholdsConfigLoader(events: $eventManager, fallbackOnFailure: true),
-        ))->load($paths->appPath . '/config', $alarmLimits);
+        ))->load($paths->configPath, $alarmLimits);
 
         $eventManager->setMonitoringConfig($monitoringConfig);
         $idResolver->refreshFromRepository($monitoringConfig->servers->values);

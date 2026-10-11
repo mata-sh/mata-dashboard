@@ -15,18 +15,18 @@ final class UsersFilePathResolver
      * Use MATA_USERS_FILE when configured; otherwise use the dashboard-wide
      * in-project path for development installations.
      */
-    public static function resolve(string $appPath): string
+    public static function resolve(PathResolver $paths): string
     {
         $configuredPath = self::configuredPath();
         if ($configuredPath === null) {
-            return $appPath . '/config/users.json';
+            return $paths->getConfigPath('users.json');
         }
 
         if (!self::isAbsolutePath($configuredPath)) {
             throw new InvalidArgumentException('MATA_USERS_FILE must be an absolute path.');
         }
 
-        $resolvedAppPath = realpath($appPath);
+        $resolvedAppPath = realpath($paths->appPath);
         $resolvedDirectory = self::nearestExistingAncestor(dirname($configuredPath));
         if ($resolvedAppPath !== false && $resolvedDirectory !== false
             && ($resolvedDirectory === $resolvedAppPath

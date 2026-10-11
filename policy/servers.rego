@@ -2,7 +2,7 @@ package config.servers
 
 import rego.v1
 
-required_fields := ["api_url", "api_key", "title"]
+required_fields := ["api_url", "title"]
 
 is_servers_config if {
     input._README
@@ -29,6 +29,12 @@ deny contains msg if {
     value := object.get(server_config, field, "")
     not is_valid_string(value)
     msg := sprintf("servers.json.example: server %q missing required field: %s", [server_name, field])
+}
+
+deny contains msg if {
+    server_entries[server_name] = server_config
+    object.get(server_config, "api_key", null) != null
+    msg := sprintf("servers.json.example: server %q must not set api_key; node keys belong in servers.secrets.json", [server_name])
 }
 
 is_valid_string(value) if {

@@ -23,7 +23,7 @@ mata-dashboard/
 
 ## Configuration Directory (`config/`)
 
-Contains all application configuration files. Examples live under `config/example/`, not as `.example` siblings.
+Instance configuration, ignored by the application repository (it can be its own repository). Templates live in `config.example/`.
 
 ### Configuration Files
 
@@ -33,6 +33,7 @@ config/
 ├── db.config.env                  # Database config
 ├── mail.config.env                # Email/SMTP settings
 ├── servers.json                   # Monitored servers definition
+├── servers.secrets.json           # Node API keys, keyed like servers.json
 ├── users.json                     # User authentication data
 ├── thresholds.json                # Alarm thresholds
 ├── ttl.json                       # Cache TTL settings
@@ -42,12 +43,10 @@ config/
 ├── notification_rules.json        # Notification routing rules
 ├── probes.json                    # Reachability probe definitions
 ├── data_retention.json            # Metrics retention policy
-├── phinx.php                      # Phinx migration config
-├── demo/                          # Demo/mock data (e.g. events.json)
-└── example/                       # *.example counterparts of the files above
+└── demo/                          # Demo/mock data (e.g. events.json)
 ```
 
-**Security Note:** Never commit actual configuration files (only `config/example/*.example` and `config/demo/`) to version control.
+**Security Note:** Never commit `*.env`, `servers.secrets.json`, or `users.json`, even when `config/` is versioned in its own repository.
 
 ## Source Code Directory (`src/`)
 
@@ -536,7 +535,7 @@ Two tiers: root `.env` for Docker/infra settings, `config/config.env` for applic
 
 ```bash
 .env                 # Docker Compose infra settings (gitignored; see .env.example)
-config/config.env    # Application settings (gitignored; see config/example/config.env.example)
+config/config.env    # Application settings (gitignored; see config.example/config.env.example)
 ```
 
 ### Production
@@ -574,7 +573,7 @@ temp/
 logs/*
 !logs/.gitkeep
 
-# Config (JSON is instance data; examples live in config/example/)
+# Config (JSON is instance data; examples live in config.example/)
 config/*.json
 config/demo/*.json
 

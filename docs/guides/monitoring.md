@@ -6,8 +6,8 @@ and deliveries up to date.
 
 ## Configure a node
 
-Add a node to `config/servers.json`. The `api_url` and `api_key` must match the
-node's public URL and `DASHBOARD_API_KEY`. See [Add your first server](first-server.md).
+Add a node to `config/servers.json` and its key to `config/servers.secrets.json`.
+The `api_url` and `api_key` must match the node's public URL and `DASHBOARD_API_KEY`. See [Add your first server](first-server.md).
 
 ## Collection jobs
 

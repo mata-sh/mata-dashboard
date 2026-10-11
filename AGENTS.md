@@ -26,7 +26,7 @@ Non-obvious facts that have already misled an agent. Verify before asserting oth
 - **Compose env:** `Makefile:22` passes `--env-file config/db.config.env --env-file .env`, so `db.config.env` *does* feed `${VAR}` interpolation; last file wins. Bare `docker compose` resolves differently than `make`.
 - **Docker auth:** `users.json` lives in the `mata_users` volume, not the repo. Empty volume = CRITICAL + 500 on every route.
 - **Container logs:** `/var/log/apache2/error.log` is a symlink to `/dev/stderr` — tailing it hangs. Truth is `logs/app.log`, `http`-owned, read via the container.
-- **Protected config files:** `config/` is owned by the web container user; edit files there through `docker exec mata-dashboard-web` (start the container first if needed), not directly from the host.
+- **Config ownership:** `config/` is instance-owned and may be its own git repo (`/config/` is ignored; templates are in `config.example/`). The dev entrypoint no longer re-owns it, but checkouts started with an older dev container keep an `http`-owned `config/`; edit those through `docker exec mata-dashboard-web` until it is chowned back once.
 - **Secret scanning:** gitleaks is not in CI; `gitleaks-action` needs a paid licence for org repos. Run `gitleaks detect` locally. After a history rewrite, regenerate `.gitleaksignore`, since its fingerprints contain commit SHAs.
 
 ## Non-Issues

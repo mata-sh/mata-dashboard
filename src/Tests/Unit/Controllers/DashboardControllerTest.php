@@ -108,6 +108,7 @@ class DashboardControllerTest extends TestCase
         $mockPaths = $this->createMock(PathResolver::class);
         $mockPaths->method('toRelativePath')->willReturnCallback(fn ($path) => ltrim(str_replace('/tmp/', '', $path), '/'));
         $mockPaths->appPath = '/tmp/test-app';
+        $mockPaths->configPath = '/tmp/test-app/config';
         $mockPaths->logsPath = '/tmp/test-app/logs';
         $this->app = $this->getMockBuilder(App::class)
             ->setConstructorArgs([$this->createStub(UserAuthenticator::class), $this->appConfig, $mockPaths, new Request()])

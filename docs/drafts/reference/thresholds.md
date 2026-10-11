@@ -57,7 +57,7 @@ config/thresholds.json
 ```bash
 # Use defaults (no file needed)
 # OR create custom configuration:
-cp config/example/thresholds.json.example config/thresholds.json
+cp config.example/thresholds.json.example config/thresholds.json
 ```
 
 ### Schema Structure

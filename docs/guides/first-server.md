@@ -39,7 +39,7 @@ DASHBOARD_API_KEY=<paste-openssl-output>
 ```
 
 `DASHBOARD_SERVER_ID` is the property name you will use in the dashboard's
-`config/servers.json`. Use the generated secret wherever this guide shows
+`config/servers.json` and `config/servers.secrets.json`. Use the generated secret wherever this guide shows
 `<paste-openssl-output>`.
 
 Configure the applications to watch in `config/apps.json`. At minimum, an app
@@ -58,14 +58,26 @@ node has not completed startup or has a configuration problem.
 
 ## 2. Add the node to the dashboard
 
-Setup creates `config/servers.json` from an ignored `_EXAMPLE` entry. Replace
-its contents with the real node identity and shared secret:
+Setup creates `config/servers.json` and `config/servers.secrets.json` from
+ignored `_EXAMPLE` entries. Replace the contents of `servers.json` with the real
+node identity:
 
 ```json
 {
   "prod-web-01": {
     "title": "Production web",
-    "api_url": "https://node.example.com/",
+    "api_url": "https://node.example.com/"
+  }
+}
+```
+
+Put the shared secret in `servers.secrets.json` under the same name. Keeping it
+out of `servers.json` lets you [version your config](version-config.md) without
+committing credentials:
+
+```json
+{
+  "prod-web-01": {
     "api_key": "<paste-openssl-output>"
   }
 }
@@ -123,7 +135,7 @@ historical charts are still empty until a metrics collection run succeeds.
 ### Authentication fails
 
 - Compare the JSON property name with `DASHBOARD_SERVER_ID` exactly.
-- Compare `api_key` with `DASHBOARD_API_KEY` exactly.
+- Compare `api_key` in `servers.secrets.json` with `DASHBOARD_API_KEY` exactly.
 - Check that the node and dashboard system clocks are synchronized.
 - Generate a new secret and replace it on both sides if in doubt.
 - Check the node and dashboard logs for the rejected request reason.
@@ -131,7 +143,7 @@ historical charts are still empty until a metrics collection run succeeds.
 ### The server is visible but has no history
 
 - Check `logs/cron/app-servers-metrics-collect.log`.
-- Verify `disabled` is not `true` and that `api_url` and `api_key` are present.
+- Verify `disabled` is not `true`, that `api_url` is present, and that `servers.secrets.json` has the server's `api_key`.
 - Run `php /var/www/html/scripts/server_metrics_diagnostic.php` in the dashboard container.
 - Confirm that the database is reachable and migrations have run.
 

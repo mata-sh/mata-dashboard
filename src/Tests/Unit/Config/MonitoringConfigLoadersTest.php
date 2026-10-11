@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Mata\Tests\Unit\Config;
 
+use ArrayObject;
 use InvalidArgumentException;
 use Mata\Config\Monitoring\Loader\DataRetentionConfigLoader;
 use Mata\Config\Monitoring\Loader\IntervalsConfigLoader;
@@ -21,6 +22,7 @@ use Mata\Config\Monitoring\Section\ChartsConfig;
 use Mata\Config\Monitoring\Section\DataRetentionConfig;
 use Mata\Config\Monitoring\Section\NotificationRulesConfig;
 use Mata\Config\Monitoring\Section\ProbesConfig;
+use Mata\Config\Monitoring\Section\ServersConfig;
 use Mata\Services\Event\Dto\EventRecordResult;
 use Mata\Services\Event\EventRecorderService;
 use Mata\Services\Navigation\MenuBuilder;
@@ -61,9 +63,9 @@ final class MonitoringConfigLoadersTest extends TestCase
             'server' => [
                 'title' => 'Server',
                 'api_url' => 'https://server.example.test/api',
-                'api_key' => 'key123',
             ],
         ], JSON_THROW_ON_ERROR));
+        file_put_contents($configPath . '/servers.secrets.json', '{"server": {"api_key": "key123"}}');
         file_put_contents($configPath . '/ttl.json', '{"apps": 1}');
         file_put_contents($configPath . '/thresholds.json', '{"server_data": {}}');
         file_put_contents($configPath . '/intervals.json', '{"events": {}}');
@@ -304,22 +306,13 @@ final class MonitoringConfigLoadersTest extends TestCase
 
     public function testLoadServersConfigExcludesDisabledServers(): void
     {
-        $path = tempnam(sys_get_temp_dir(), 'mata-servers-');
-        self::assertNotFalse($path);
-        file_put_contents($path, json_encode([
+        $result = $this->loadServersFiles([
             'disabled-server' => ['disabled' => true],
             'enabled-server' => [
                 'title' => 'Enabled Server',
                 'api_url' => 'https://enabled.example.test/api',
-                'api_key' => 'key123',
             ],
-        ], JSON_THROW_ON_ERROR));
-
-        try {
-            $result = $this->loader->loadServersConfig($path);
-        } finally {
-            unlink($path);
-        }
+        ], ['enabled-server' => ['api_key' => 'key123']]);
 
         $this->assertSame(['enabled-server'], array_keys($result->values));
     }
@@ -330,17 +323,7 @@ final class MonitoringConfigLoadersTest extends TestCase
 
         $this->eventRecorder->expects($this->never())->method('recordEvent');
 
-        $path = tempnam(sys_get_temp_dir(), 'mata-servers-');
-        self::assertNotFalse($path);
-        file_put_contents($path, json_encode([
-            'disabled-server' => ['disabled' => true],
-        ], JSON_THROW_ON_ERROR));
-
-        try {
-            $result = $this->loader->loadServersConfig($path);
-        } finally {
-            unlink($path);
-        }
+        $result = $this->loadServersFiles(['disabled-server' => ['disabled' => true]]);
 
         $this->assertSame([], $result->values);
     }
@@ -415,29 +398,93 @@ final class MonitoringConfigLoadersTest extends TestCase
             )
             ->willReturn(new EventRecordResult(1, null, null, null, null, null));
 
-        $path = tempnam(sys_get_temp_dir(), 'mata-servers-');
-        self::assertNotFalse($path);
-        file_put_contents($path, json_encode([
+        $result = $this->loadServersFiles([
             'invalid-server' => [
                 'title' => 'Invalid Server',
                 'api_url' => 'https://invalid.example.test',
-                'api_key' => 'key123',
                 'disabled' => 'true',
             ],
             'valid-server' => [
                 'title' => 'Valid Server',
                 'api_url' => 'https://valid.example.test',
-                'api_key' => 'key456',
             ],
-        ], JSON_THROW_ON_ERROR));
-
-        try {
-            $result = $this->loader->loadServersConfig($path);
-        } finally {
-            unlink($path);
-        }
+        ], [
+            'invalid-server' => ['api_key' => 'key123'],
+            'valid-server' => ['api_key' => 'key456'],
+        ]);
 
         $this->assertSame(['valid-server'], array_keys($result->values));
+    }
+
+    // ==================== servers.secrets.json ====================
+
+    public function testLoadServersConfigMergesApiKeyFromSecretsFile(): void
+    {
+        $result = $this->loadServersFiles(
+            ['web' => ['title' => 'Web', 'api_url' => 'https://web.example.test']],
+            ['web' => ['api_key' => 'secret-key']],
+        );
+
+        $this->assertSame('secret-key', $result->values['web']['api_key'] ?? null);
+    }
+
+    public function testLoadServersConfigRejectsApiKeyLeftInServersJson(): void
+    {
+        $messages = $this->captureReportedProblems();
+
+        $result = $this->loadServersFiles(
+            [
+                'inline' => ['title' => 'Inline', 'api_url' => 'https://inline.example.test', 'api_key' => 'leaked'],
+                'clean' => ['title' => 'Clean', 'api_url' => 'https://clean.example.test'],
+            ],
+            ['inline' => ['api_key' => 'moved'], 'clean' => ['api_key' => 'key']],
+        );
+
+        $this->assertSame(['clean'], array_keys($result->values));
+        $this->assertContains("Server 'inline' sets api_key in servers.json; move it to servers.secrets.json", $messages->getArrayCopy());
+        $this->assertSame([], preg_grep('/does not define/', $messages->getArrayCopy()), 'a rejected server is not an unknown one');
+    }
+
+    public function testLoadServersConfigNamesTheSecretsFileWhenAKeyIsMissing(): void
+    {
+        $messages = $this->captureReportedProblems();
+
+        $result = $this->loadServersFiles(['web' => ['title' => 'Web', 'api_url' => 'https://web.example.test']]);
+
+        $this->assertSame([], $result->values);
+        $this->assertContains("Server 'web' has no api_key in servers.secrets.json", $messages->getArrayCopy());
+    }
+
+    public function testLoadServersConfigWarnsAboutKeyForUndefinedServer(): void
+    {
+        $messages = $this->captureReportedProblems();
+
+        $result = $this->loadServersFiles(
+            ['web' => ['title' => 'Web', 'api_url' => 'https://web.example.test']],
+            ['web' => ['api_key' => 'key'], 'renamed' => ['api_key' => 'stale']],
+        );
+
+        $this->assertSame(['web'], array_keys($result->values));
+        $this->assertContains("servers.secrets.json has a key for server 'renamed', which servers.json does not define", $messages->getArrayCopy());
+    }
+
+    public function testLoadServersConfigFailsWhenSecretsFileIsMalformed(): void
+    {
+        $messages = $this->captureReportedProblems();
+        $directory = $this->createTempDirectory();
+        file_put_contents($directory . '/servers.json', '{"web": {"title": "Web", "api_url": "https://web.example.test"}}');
+        file_put_contents($directory . '/servers.secrets.json', '{"web": ');
+
+        try {
+            $this->loader->loadServersConfig($directory . '/servers.json');
+            $this->fail('Expected the servers config load to fail');
+        } catch (MonitoringConfigLoadException $exception) {
+            $this->assertStringContainsString('servers.secrets.json', $exception->getMessage());
+        } finally {
+            $this->cleanupTempFiles([$directory]);
+        }
+
+        $this->assertNotSame([], preg_grep('/^Could not load servers: Invalid JSON config at .*servers\.secrets\.json/', $messages->getArrayCopy()));
     }
 
     #[DataProvider('nonBooleanApplicationMonitoringFlagProvider')]
@@ -840,7 +887,7 @@ final class MonitoringConfigLoadersTest extends TestCase
         $result = $this->loader->validateServersConfig($config);
 
         $this->assertFalse($result['is_valid']);
-        $this->assertStringContainsString('missing required field: api_key', $result['errors'][0]);
+        $this->assertStringContainsString('has no api_key in servers.secrets.json', $result['errors'][0]);
     }
 
     public function testValidateServersConfigMultipleErrors(): void
@@ -1280,6 +1327,43 @@ final class MonitoringConfigLoadersTest extends TestCase
     {
         $this->eventRecorder = $this->createMock(EventRecorderService::class);
         $this->initializeLoaders();
+    }
+
+    /**
+     * Load servers.json, and servers.secrets.json when given, from a private directory: the
+     * loader reads the secrets file next to servers.json, so a shared temp dir could leak one in.
+     *
+     * @param array<string,mixed>      $servers
+     * @param null|array<string,mixed> $secrets
+     */
+    private function loadServersFiles(array $servers, ?array $secrets = null): ServersConfig
+    {
+        $directory = $this->createTempDirectory();
+        file_put_contents($directory . '/servers.json', json_encode($servers, JSON_THROW_ON_ERROR));
+        if ($secrets !== null) {
+            file_put_contents($directory . '/servers.secrets.json', json_encode($secrets, JSON_THROW_ON_ERROR));
+        }
+
+        try {
+            return $this->loader->loadServersConfig($directory . '/servers.json');
+        } finally {
+            $this->cleanupTempFiles([$directory]);
+        }
+    }
+
+    /** @return ArrayObject<int,string> messages of every problem reported from now on */
+    private function captureReportedProblems(): ArrayObject
+    {
+        $messages = new ArrayObject();
+        $this->eventRecorder
+            ->method('recordEvent')
+            ->willReturnCallback(static function (string $type, string $message) use ($messages): EventRecordResult {
+                $messages[] = $message;
+
+                return new EventRecordResult(1, null, null, null, null, null);
+            });
+
+        return $messages;
     }
 
     private function alarmRateLimits(): AlarmRateLimitsConfig

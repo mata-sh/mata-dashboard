@@ -1,14 +1,12 @@
 {
   "_README": {
     "description": "Rename _EXAMPLE to the node's DASHBOARD_SERVER_ID and replace every placeholder.",
-    "security_note": "Never commit config/servers.json; it contains node secrets.",
-    "api_key_generation": "openssl rand -hex 32"
+    "secrets_note": "Safe to version: node API keys go in servers.secrets.json under the same server name, never here."
   },
   "_EXAMPLE": {
     "title": "Production web",
     "url": "https://app.example.com/",
     "api_url": "https://node.example.com/",
-    "api_key": "replace-with-DASHBOARD_API_KEY",
     "error_monitoring_enabled": true,
     "logsize_monitoring_enabled": true
   },
@@ -18,7 +16,6 @@
     "env": "dev",
     "url": "http://localhost:3300/",
     "api_url": "http://localhost:3310/",
-    "api_key": "replace-with-DASHBOARD_API_KEY",
     "allow_http": "on",
     "suppress_http_warning": "on",
     "primary_color": "#17a2b8",

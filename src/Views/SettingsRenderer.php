@@ -52,8 +52,8 @@ class SettingsRenderer extends BaseRenderer
         ?AlarmRateLimitsConfig $alarmRateLimits = null,
         ?MailConfig $mailConfig = null
     ): string {
-        $configRoot = $this->app->paths->appPath . '/config';
-        $usersFilePath = UsersFilePathResolver::resolve($this->app->paths->appPath);
+        $configRoot = $this->app->paths->configPath;
+        $usersFilePath = UsersFilePathResolver::resolve($this->app->paths);
 
         return $this->twig->render('partials/containers/settings-container.html.twig', [
             'settings' => [
@@ -95,7 +95,8 @@ class SettingsRenderer extends BaseRenderer
             ['name' => 'db.config.env', 'description' => 'Database connection and TLS settings.', 'path' => $configRoot . '/db.config.env'],
             ['name' => 'mail.config.env', 'description' => 'Email and SMTP settings for notifications.', 'path' => $configRoot . '/mail.config.env'],
             ['name' => 'limits.json', 'description' => 'Alarm delivery rate limits by channel and server.', 'path' => $configRoot . '/limits.json'],
-            ['name' => 'servers.json', 'description' => 'Defines monitored servers and their API credentials.', 'path' => $configRoot . '/servers.json'],
+            ['name' => 'servers.json', 'description' => 'Defines monitored servers.', 'path' => $configRoot . '/servers.json'],
+            ['name' => 'servers.secrets.json', 'description' => 'Node API keys for the servers in servers.json.', 'path' => $configRoot . '/servers.secrets.json'],
             ['name' => 'ttl.json', 'description' => 'Controls cache lifetimes for API calls.', 'path' => $configRoot . '/ttl.json'],
             ['name' => 'thresholds.json', 'description' => 'Configures alarm thresholds and escalation rules.', 'path' => $configRoot . '/thresholds.json'],
             ['name' => 'notification_rules.json', 'description' => 'Controls notification enablement and email routing.', 'path' => $configRoot . '/notification_rules.json'],

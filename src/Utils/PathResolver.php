@@ -16,6 +16,7 @@ use RuntimeException;
  * - Logs directory path management
  * - Temporary files directory
  * - Public assets directory
+ * - Instance configuration (config/) and its templates (config.example/)
  * - Cross-platform directory separator handling
  * - Environment-aware path calculation
  */
@@ -27,6 +28,7 @@ class PathResolver
     public string $tempPath;
     public string $publicPath;
     public string $configPath;
+    public string $configExamplePath;
     public string $templatesPath;
     public string $appLogPath;
     public string $bootLogPath;
@@ -71,6 +73,7 @@ class PathResolver
         $this->tempPath = $this->appPath . DIRECTORY_SEPARATOR . 'temp';
         $this->publicPath = $this->appPath . DIRECTORY_SEPARATOR . 'public';
         $this->configPath = $this->appPath . DIRECTORY_SEPARATOR . 'config';
+        $this->configExamplePath = $this->appPath . DIRECTORY_SEPARATOR . 'config.example';
         $this->templatesPath = $this->appPath . DIRECTORY_SEPARATOR . 'templates';
     }
 

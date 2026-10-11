@@ -7,7 +7,10 @@ namespace Mata\Config\Monitoring\Section;
 use Mata\Config\Monitoring\ServerConfigState;
 use Mata\Utils\TypeConverter;
 
-/** Dashboard-owned server definitions keyed by operator-defined server name. */
+/**
+ * Dashboard-owned server definitions keyed by operator-defined server name, with each
+ * api_key already merged in from servers.secrets.json.
+ */
 final readonly class ServersConfig
 {
     /** @param array<string,mixed> $values */
@@ -73,10 +76,13 @@ final readonly class ServersConfig
         }
 
         $errors = [];
-        foreach (['api_url', 'api_key', 'title'] as $field) {
+        foreach (['api_url', 'title'] as $field) {
             if (!is_string($config[$field] ?? null) || trim($config[$field]) === '') {
                 $errors[] = "Server '{$serverName}' missing required field: {$field}";
             }
+        }
+        if (!is_string($config['api_key'] ?? null) || trim($config['api_key']) === '') {
+            $errors[] = "Server '{$serverName}' has no api_key in servers.secrets.json";
         }
         if (is_string($config['api_url'] ?? null) && trim($config['api_url']) !== '') {
             if (!filter_var($config['api_url'], FILTER_VALIDATE_URL)) {

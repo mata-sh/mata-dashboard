@@ -260,4 +260,19 @@ class PathResolverTest extends TestCase
         $this->assertStringContainsString(DIRECTORY_SEPARATOR, $pathResolver->logsPath);
         $this->assertStringContainsString(DIRECTORY_SEPARATOR, $pathResolver->tempPath);
     }
+
+    /**
+     * First boot and `make setup` copy these templates from the resolved example path; a
+     * moved or renamed template directory would leave a fresh install without config.
+     *
+     * @group pathresolver
+     */
+    public function testConfigExamplePathHoldsTheTemplatesSetupCopies(): void
+    {
+        $pathResolver = PathResolver::fromAppPath(\dirname(__DIR__, 4));
+
+        foreach (['config.env', 'db.config.env', 'mail.config.env', 'servers.json', 'servers.secrets.json'] as $file) {
+            $this->assertFileExists($pathResolver->configExamplePath . DIRECTORY_SEPARATOR . $file . '.example');
+        }
+    }
 }

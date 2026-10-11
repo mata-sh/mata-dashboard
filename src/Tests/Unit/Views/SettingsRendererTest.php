@@ -54,6 +54,7 @@ final class SettingsRendererTest extends TestCase
                     'mail.config.env',
                     'limits.json',
                     'servers.json',
+                    'servers.secrets.json',
                     'ttl.json',
                     'thresholds.json',
                     'notification_rules.json',

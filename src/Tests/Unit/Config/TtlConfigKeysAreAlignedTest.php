@@ -48,7 +48,7 @@ final class TtlConfigKeysAreAlignedTest extends TestCase
 
     public function testExampleConfigCoversEveryCacheType(): void
     {
-        $path = \dirname(__DIR__, 4) . '/config/example/ttl.json.example';
+        $path = \dirname(__DIR__, 4) . '/config.example/ttl.json.example';
         $decoded = json_decode((string) file_get_contents($path), true, 512, JSON_THROW_ON_ERROR);
 
         $this->assertIsArray($decoded);

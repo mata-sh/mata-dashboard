@@ -1,8 +1,12 @@
 # Configuration
 
 MATA reads application configuration from `config/*.env` and monitoring
-configuration from JSON files in `config/`. Files in `config/example/` provide
+configuration from JSON files in `config/`. Files in `config.example/` provide
 starting values and show the expected file shape.
+
+`config/` belongs to your installation: the application repository ignores it
+completely, so you can keep it in its own Git repository. See
+[Version your config](version-config.md).
 
 Run `make setup` first. It creates the core configuration, writes the selected
 `APP_ENV`, and installs dependencies for native setups. Docker setup also
@@ -16,6 +20,7 @@ creates `.env` for Compose.
 | `config/db.config.env` | Database connection details |
 | `config/mail.config.env` | Mailer DSN, sender, and recipients |
 | `config/servers.json` | MATA Nodes monitored by the dashboard |
+| `config/servers.secrets.json` | Node API keys for the servers in `servers.json` |
 | `config/thresholds.json` | Metric thresholds and alarm candidate windows |
 | `config/intervals.json` | Event cooldowns and delivery deduplication windows |
 | `config/ttl.json` | Cache TTLs in seconds |
@@ -64,9 +69,10 @@ When `MATA_USERS_FILE` is unset, `make users-create` creates the fallback
 `config/users.json` with restricted permissions. Do not create or edit it by
 hand.
 
-Do not commit populated configuration files. They contain credentials and are
-ignored by Git. Keep production authentication data outside the deployment and
-web root with `MATA_USERS_FILE`; see the [user management guide](user-management.md).
+Credentials live only in `config/*.env` and `config/servers.secrets.json`.
+Never commit those files, even when you version the rest of `config/`. Keep
+production authentication data outside the deployment and web root with
+`MATA_USERS_FILE`; see the [user management guide](user-management.md).
 
 ## Environment files
 
@@ -87,7 +93,7 @@ credentials and prefills the form. Both are ignored outside `demo`.
     `DB_USERNAME`, and `DB_PASSWORD`. Validation also requires `DOMAIN` and
     `SYM_MAILER_DSN`. Setup supplies placeholders; replace them before production.
 
-Use `config/example/config.env.example` for the remaining application configuration.
+Use `config.example/config.env.example` for the remaining application configuration.
 See the [quickstart](quickstart.md) for alarm driver setup, the
 [alarm reference](../reference/alarms.md) for decision behavior, and
 [Secure an installation](secure-application.md) for production configuration.
@@ -135,17 +141,34 @@ credentials. A server entry can also set dashboard monitoring configuration flag
     "title": "Production web",
     "url": "https://app.example.com/",
     "api_url": "https://node.example.com/",
-    "api_key": "a-unique-shared-secret",
     "error_monitoring_enabled": true,
     "logsize_monitoring_enabled": true
   }
 }
 ```
 
-`title`, `api_url`, and `api_key` are required. `disabled` defaults to `false`.
+Each node's API key goes in `config/servers.secrets.json` under the same server
+name, so `servers.json` holds no credentials:
+
+```json
+{
+  "prod-web-01": { "api_key": "a-unique-shared-secret" }
+}
+```
+
+`title` and `api_url` are required, and every enabled server needs its
+`api_key` in `servers.secrets.json`. `disabled` defaults to `false`.
 Set it to `true` to exclude the node from polling and alarms. The dashboard
 expects HTTPS node URLs. `allow_http` is available for local development only
 and should not be used for production monitoring.
+
+!!! warning "API keys in servers.json"
+
+    A server that still sets `api_key` in `servers.json` is rejected with a
+    `servers_config_validation_error` event. Move the key to
+    `servers.secrets.json`. A key for a server that `servers.json` does not
+    define is reported, and a malformed `servers.secrets.json` fails like a
+    malformed `servers.json`.
 
 !!! warning "Server state"
 
@@ -169,7 +192,7 @@ In `thresholds.json`, `server_data`, `app_data`, and `sql` map metrics to
 severity boundaries such as `good`, `warn`, `critical`, and `alarm`. The
 `alarms` section maps event types to event-count and time-window gates.
 `app_unreachable` also supports the consecutive-failure strategy. See
-`config/example/thresholds.json.example` for the full rule set.
+`config.example/thresholds.json.example` for the full rule set.
 
 `intervals.json` contains two different controls:
 
@@ -188,7 +211,7 @@ queued transport attempts and can schedule a retry. The full order is in the
 
 Cache values in `ttl.json` are seconds. A value of `0` bypasses cache reads;
 a negative value keeps cached entries indefinitely. See
-`config/example/ttl.json.example` for the full key list and defaults.
+`config.example/ttl.json.example` for the full key list and defaults.
 
 Retention is configured in `data_retention.json`:
 
@@ -214,12 +237,14 @@ file; see the [server metrics pipeline](../architecture/server-metrics-pipeline.
 It confirms the selected `MODE` and `ENV`, that `config/config.env`,
 `config/db.config.env`, and `config/mail.config.env` exist, that `APP_ENV`
 matches `ENV` (and `.env` for Docker), and that `config/`, `logs/`, and
-`temp/` are present. Native mode also checks for PHP, Composer
+`temp/` are present. It shows where `config/` points when it is a symlink,
+whether it is a Git repository, and whether `servers.secrets.json` exists
+next to `servers.json`. Native mode also checks for PHP, Composer
 dependencies, and whether the OPA service is running. It does not read
 JSON files or validate keys. Loaders record a warning event when a JSON
 file is invalid or a required one is missing, and fall back to built-in
 defaults; a missing optional file is not reported. Only a missing or invalid
-`servers.json` also raises an alarm.
+`servers.json` or `servers.secrets.json` also raises an alarm.
 
 ```bash
 make doctor
