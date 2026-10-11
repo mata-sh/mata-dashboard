@@ -534,6 +534,13 @@ svg {
 
 .app-container .app-env {
     width: 40px;
+    /* Flex centering plus 1px top padding optically centers the caps (no descenders). */
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    height: 24px;
+    padding: 1px 4px 0;
+    line-height: 1;
 }
 
 .app-env.dev {

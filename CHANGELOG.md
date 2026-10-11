@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - The users-file error page links to the users-file setup guide instead of a missing page
+- App environment badges (PROD, TEST, …) center their text vertically
 
 ## [0.8.0] - 2026-10-11
 
