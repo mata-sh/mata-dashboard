@@ -174,6 +174,7 @@ svg {
     display: flex;
     align-items: center;
     flex-grow: 1;
+    min-width: 0;
     cursor: pointer;
     font-size: 0.8em;
     padding: 5px 12px 5px 8px;
@@ -301,7 +302,7 @@ svg {
 /* --server-columns is a maximum: fit as many cards of at least
    --server-card-min-width as the container allows, up to that count. */
 .server-section {
-    --server-card-min-width: 480px;
+    --server-card-min-width: 560px;
     --server-gap: 12px;
     display: grid;
     gap: var(--server-gap);
@@ -337,17 +338,8 @@ svg {
     transition: background-color .12s ease;
 }
 
-.server-container .app-container + .app-container {
-    box-shadow: 0 -1px 0 var(--border-hairline);
-}
-
 .server-container .app-container:hover {
     background-color: var(--surface-hover);
-    box-shadow: none;
-}
-
-.server-container .app-container:hover + .app-container {
-    box-shadow: none;
 }
 
 @media (max-width: 645px) {
@@ -391,6 +383,11 @@ svg {
     background-color: #000;
     font-size: 0.6em;
     left: 0;
+}
+
+.server-header .server-title-text {
+    padding: 0;
+    font-size: inherit;
 }
 
 .server-stats {
@@ -802,7 +799,6 @@ svg {
 } */
 
 .app-title {
-    display: block;
     color: #efefef;
     font-weight: bold;
     font-family: 'Raleway';
@@ -811,11 +807,29 @@ svg {
     flex: fit-content;
     text-align: left;
     /* Long names truncate instead of squeezing the fixed-width columns */
+    display: flex;
+    align-items: center;
     min-width: 0;
     margin-right: 8px;
+}
+
+/* Truncate the name itself so the ellipsis follows the text, not the
+   invisible hover buttons */
+.app-title .app-name,
+.server-title .server-title-text {
+    min-width: 0;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+}
+
+.app-title .app-name {
+    text-transform: none;
+}
+
+.app-title > :not(.app-name),
+.server-title > :not(.server-title-text) {
+    flex-shrink: 0;
 }
 
 .app-container > :not(.app-title) {

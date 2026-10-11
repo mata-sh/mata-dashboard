@@ -1,7 +1,7 @@
 <div class="app-container">
   <span class="app-ping {{ app.ping }}" data-tippy-content="{{ app.ping_latency }}"></span>
   <span class="app-title">
-    <span data-tippy-content="{{ app.title_tooltip }}">{{ app.name }}</span>
+    <span class="app-name" data-tippy-content="{{ app.title_tooltip }}">{{ app.name }}</span>
     <a class="app-url-btn" href="{{ app.url }}" target="_blank" data-tippy-content="{{ app.url_tooltip }}">{{ icons.link|raw }}</a>
     {# <!--  <a class="app-refresh-btn htmx-indicator"  
            hx-get="/watch/refresh/app" 
