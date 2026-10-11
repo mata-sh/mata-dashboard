@@ -58,6 +58,27 @@ node has not completed startup or has a configuration problem.
 
 ## 2. Add the node to the dashboard
 
+`server add` writes both files, keeps the key out of `servers.json`, and tests
+the node with the same signed request the dashboard uses:
+
+```bash
+make server-add ARGS="prod-web-01 --api-url https://node.example.com/ --title 'Production web'"
+# without make: php bin/mata server add prod-web-01 --api-url https://node.example.com/
+```
+
+Without `--api-key` it generates a key and prints the `DASHBOARD_SERVER_ID` and
+`DASHBOARD_API_KEY` lines for the node's `config/config.env`. That way you can
+add the server first and configure the node afterwards. Until the node has the key, the
+test fails and the command exits `1`; check again with
+`make server-test ARGS=prod-web-01`. Pass `--api-key` (or set
+`MATA_NODE_API_KEY`) when the node already has a key.
+
+!!! info "Who runs it"
+    `server add` and `server remove` write `config/`, so they run as its owner;
+    `make` does that in Docker too. `bin/mata` refuses to run as root.
+
+### Editing the files by hand
+
 Setup creates `config/servers.json` and `config/servers.secrets.json` from
 ignored `_EXAMPLE` entries. Replace the contents of `servers.json` with the real
 node identity:
@@ -134,6 +155,8 @@ historical charts are still empty until a metrics collection run succeeds.
 
 ### Authentication fails
 
+- Run `make server-test ARGS=<name>`: it names the likely cause for 401, 403,
+  429, and 503 responses.
 - Compare the JSON property name with `DASHBOARD_SERVER_ID` exactly.
 - Compare `api_key` in `servers.secrets.json` with `DASHBOARD_API_KEY` exactly.
 - Check that the node and dashboard system clocks are synchronized.

@@ -104,6 +104,7 @@ help:
 	@echo "  $(COLOR_GREEN)make setup$(COLOR_RESET)          Guided native or Docker setup"
 	@echo "  $(COLOR_GREEN)make doctor$(COLOR_RESET)         Validate the selected installation"
 	@echo "  $(COLOR_GREEN)make config-validate$(COLOR_RESET) Validate config files (FILE=servers.json for one)"
+	@echo "  $(COLOR_GREEN)make server-add$(COLOR_RESET)     Add a node: ARGS=\"<name> --api-url <url>\" (also server-list/-test/-remove)"
 	@echo ""
 	@if [ -n "$(MODE)" ]; then \
 		echo "$(COLOR_BOLD)CURRENT INSTALLATION$(COLOR_RESET)"; \
@@ -492,8 +493,33 @@ else \
 fi
 endef
 
+# Commands that write config/ run as its owner: the web server only has group read access.
+define RUN_MATA_AS_OWNER
+$(REQUIRE_SELECTION); \
+if [ "$(MODE)" = "local" ]; then \
+	$(REQUIRE_LOCAL_PHP) \
+	php bin/mata $(1); \
+else \
+	$(REQUIRE_DOCKER_MODE); $(REQUIRE_WEB_RUNNING); \
+	$(SELECTED_COMPOSE) exec -T -u "$$(id -u):$$(id -g)" mata-web php bin/mata $(1); \
+fi
+endef
+
 config-validate:
 	@$(call RUN_MATA,config:validate $(FILE))
+
+# ARGS is passed through, e.g. make server-add ARGS="web-01 --api-url https://node.example.com/"
+server-list:
+	@$(call RUN_MATA,server:list $(ARGS))
+
+server-test:
+	@$(call RUN_MATA,server:test $(ARGS))
+
+server-add:
+	@$(call RUN_MATA_AS_OWNER,server:add $(ARGS))
+
+server-remove:
+	@$(call RUN_MATA_AS_OWNER,server:remove $(ARGS))
 
 db-migrate:
 	@$(call CONFIRM_PRODUCTION_WRITE,database migration); \
@@ -938,7 +964,7 @@ docker-help:
 	@echo "  $(COLOR_YELLOW)make docker-clean$(COLOR_RESET)   - Clean mata-dashboard Docker resources only"
 	@echo "  $(COLOR_RED)make docker-clean-all$(COLOR_RESET)  - System-wide Docker cleanup (ALL projects!)"
 
-.PHONY: help help-all setup setup-local doctor config-validate install-hooks setup-opa opa-install-service opa-start opa-stop opa-status opa-test opa-validate \
+.PHONY: help help-all setup setup-local doctor config-validate server-list server-test server-add server-remove install-hooks setup-opa opa-install-service opa-start opa-stop opa-status opa-test opa-validate \
 	test test-coverage \
 	db-migrate db-rollback db-status db-check db-hash-password db-backup db-restore db-shell \
 	users-list users-create users-unlock users-delete users-passwd \
