@@ -360,16 +360,27 @@ function updateFleetFreshness(summary) {
 // Auto-refresh reloads the card grid from the cache-backed servers route; the summary,
 // its search text and filter stay in place and recount from the new cards.
 const fleetAutoRefreshKey = 'mata-fleet-auto-refresh';
-const fleetAutoRefreshMs = 60000;
 let fleetLastRefresh = Date.now();
 let fleetRefreshing = false;
+
+// DASHBOARD_AUTO_REFRESH_SECONDS; 0 renders no toggle and never refreshes.
+function fleetAutoRefreshSeconds(summary) {
+    return Number(summary.dataset.autoRefresh) || 0;
+}
+
+function formatFleetInterval(seconds) {
+    if (seconds === 60) return 'every minute';
+    return seconds % 60 === 0 ? `every ${seconds / 60} minutes` : `every ${seconds} seconds`;
+}
 
 function setFleetAutoRefresh(summary, enabled) {
     const button = summary.querySelector('.fleet-autorefresh');
     if (!button) return;
 
     button.setAttribute('aria-pressed', String(enabled));
-    const tooltip = enabled ? 'Auto-refresh on: cards reload every minute' : 'Auto-refresh off';
+    const tooltip = enabled
+        ? `Auto-refresh on: cards reload ${formatFleetInterval(fleetAutoRefreshSeconds(summary))}`
+        : 'Auto-refresh off';
     button.dataset.tippyContent = tooltip;
     button._tippy?.setContent(tooltip);
 }
@@ -423,17 +434,18 @@ function fleetRefreshBlocked() {
         || document.activeElement?.closest('.server-section') != null;
 }
 
-// A skipped refresh catches up within one tick once the viewer is done.
+// A skipped refresh catches up within one 5-second tick once the viewer is done.
 setInterval(() => {
     const summary = document.getElementById('fleet-summary');
     if (!summary) return;
 
     updateFleetFreshness(summary);
+    const intervalMs = fleetAutoRefreshSeconds(summary) * 1000;
     const enabled = summary.querySelector('.fleet-autorefresh')?.getAttribute('aria-pressed') === 'true';
-    if (enabled && Date.now() - fleetLastRefresh >= fleetAutoRefreshMs && !fleetRefreshBlocked()) {
+    if (enabled && intervalMs > 0 && Date.now() - fleetLastRefresh >= intervalMs && !fleetRefreshBlocked()) {
         refreshFleetCards(summary);
     }
-}, 15000);
+}, 5000);
 
 document.body.addEventListener('click', (event) => {
     const button = event.target instanceof Element ? event.target.closest('.fleet-autorefresh') : null;

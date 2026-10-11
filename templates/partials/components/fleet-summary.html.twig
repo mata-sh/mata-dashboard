@@ -1,4 +1,4 @@
-<div id="fleet-summary" class="fleet-summary is-collapsed" role="toolbar" aria-label="Fleet summary">
+<div id="fleet-summary" class="fleet-summary is-collapsed" role="toolbar" aria-label="Fleet summary" data-auto-refresh="{{ layout.auto_refresh_seconds|default(0) }}">
   {% for group in summary.groups %}
     <div class="fleet-section">
       <div class="fleet-head">
@@ -43,9 +43,11 @@
     <div class="fleet-status">
       <span class="fleet-refresh">
         <span class="fleet-freshness" data-tippy-content="Age of the oldest server data on this page" hidden></span>
-        <button type="button" class="fleet-autorefresh" aria-pressed="true" aria-label="Reload the cards every minute" data-tippy-content="Auto-refresh on: cards reload every minute">
-          {{ icons.refresh|raw }}
-        </button>
+        {% if layout.auto_refresh_seconds|default(0) > 0 %}
+          <button type="button" class="fleet-autorefresh" aria-pressed="true" aria-label="Reload the cards automatically" data-tippy-content="Auto-refresh on">
+            {{ icons.refresh|raw }}
+          </button>
+        {% endif %}
       </span>
       {% if summary.cron %}
         <span class="fleet-cron fleet-cron-{{ summary.cron.level }}" data-tippy-content="{{ summary.cron.tooltip }}">

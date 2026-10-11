@@ -296,6 +296,7 @@ class DashboardController extends BaseController
                 $layoutConfig = [
                     'server_columns' => $this->appConfig->dashboard->serverColumns,
                     'container_width' => $this->appConfig->dashboard->containerWidth,
+                    'auto_refresh_seconds' => $this->appConfig->dashboard->autoRefreshSeconds,
                 ];
 
                 $html = $this->serverRenderer->renderServersContainer(

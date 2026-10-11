@@ -148,6 +148,7 @@ final class EnvConfigLoader
         return new DashboardConfig(
             serverColumns: $this->getEnvInteger('DASHBOARD_SERVER_COLUMNS', 4, minimum: 1),
             containerWidth: $this->getEnvInteger('DASHBOARD_CONTAINER_WIDTH', 2560, minimum: 320),
+            autoRefreshSeconds: $this->getEnvInteger('DASHBOARD_AUTO_REFRESH_SECONDS', 60, minimum: 0),
         );
     }
 

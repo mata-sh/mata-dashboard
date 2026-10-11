@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - `DEMO_SEED` makes the generated demo data repeatable
 - A summary bar above the server grid counts servers and apps by state and totals what needs attention; click a count to show only those, or filter cards by server or application name.
+- Server cards reload from the cache every `DASHBOARD_AUTO_REFRESH_SECONDS` (default 60, `0` turns it off); viewers can pause it in the summary bar
 
 ### Changed
 - Documentation is published at https://docs.mata.sh
