@@ -3,6 +3,14 @@
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Changed
+- Documentation is published at https://docs.mata.sh
+
+### Fixed
+- The users-file error page links to the users-file setup guide instead of a missing page
+
 ## [0.8.0] - 2026-10-11
 
 Pairs with MATA Node 0.4.0.

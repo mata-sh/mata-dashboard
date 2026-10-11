@@ -16,7 +16,7 @@ metrics in MySQL/MariaDB, evaluates alarms, and sends email. Minimal dependencie
 
 [![Screenshot][product-screenshot]][demo-url]
 
-[Try the live demo][demo-url]
+[Try the live demo][demo-url] · [Documentation][docs-url]
 
 User: **demo** | Password: **demo**
 
@@ -164,7 +164,7 @@ MATA began as minimalistic tool for monitoring PHP deployments with limited host
 
 ## Documentation
 
-Full docs in [`docs/`](docs/index.md):
+Full docs at [docs.mata.sh][docs-url] (source in [`docs/`](docs/index.md)):
 [architecture](docs/architecture/overview.md) ·
 [technology choices](docs/architecture/technology-choices.md) ·
 [configuration](docs/guides/configuration.md) ·
@@ -193,4 +193,5 @@ xarc | mata@xarc.dev
 [license-url]: https://github.com/mata-sh/mata-dashboard/blob/main/LICENSE
 [ci-url]: https://github.com/mata-sh/mata-dashboard/actions/workflows/ci.yml
 [demo-url]: https://demo.mata.sh
+[docs-url]: https://docs.mata.sh
 [empty-url]: #

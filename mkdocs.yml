@@ -1,5 +1,6 @@
 site_name: MATA Dashboard
 site_description: Lightweight PHP monitoring dashboard for servers and applications
+site_url: https://docs.mata.sh/
 repo_url: https://github.com/mata-sh/mata-dashboard
 edit_uri: edit/main/docs/
 

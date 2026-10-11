@@ -247,7 +247,7 @@ try {
                 'Check file permissions (should be 600)',
                 'Verify JSON file is valid',
             ],
-            'documentation_url' => 'https://docs.mata.sh/authentication', // TODO: Add documentation URL for authentication troubleshooting
+            'documentation_url' => 'https://docs.mata.sh/guides/user-management/#persistent-authentication-data',
         ],
     ]);
 
