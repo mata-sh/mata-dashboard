@@ -23,7 +23,21 @@ make users-create MODE=docker ENV=dev
 
 Production Docker commands use a one-off administrative container. The normal `mata-web` container keeps `config/` read-only.
 
-## User Management (PHP)
+## User Management (`bin/mata`)
+
+`bin/mata user list|create|passwd|unlock|delete` runs the same checks as the script below
+(`CLI_ALLOWED_USERS`, audit log, password policy) and also works without a terminal:
+
+```bash
+php bin/mata user create admin admin --generate-password   # prints the password once
+echo "$PASSWORD" | php bin/mata user passwd admin --password-stdin
+php bin/mata user list --json
+```
+
+Without a terminal, production changes and `delete` need `--yes` instead of the typed
+confirmation. Run it as the user that owns `users.json`, as below; `bin/mata` refuses root.
+
+## User Management (PHP script)
 
 Without Docker you can also use the PHP CLI directly:
 

@@ -264,6 +264,12 @@ whether it is a Git repository, and whether `servers.secrets.json` exists
 next to `servers.json`. Native mode also checks for PHP, Composer
 dependencies, and whether the OPA service is running.
 
+When those pass, it runs `bin/mata doctor` as the web server user: config
+validity, writable `logs/` and `temp/`, the users file and its mode, the
+secrets file mode, the database connection and pending migrations, OPA health
+(when it is the alarm driver), and whether the data-fetch cron runs.
+`php bin/mata doctor --json` gives the same checks without `make`.
+
 ```bash
 make doctor
 make db-status

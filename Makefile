@@ -291,7 +291,9 @@ doctor:
 		elif grep -q '"api_key"[[:space:]]*:' config/servers.json; then echo "$(COLOR_YELLOW)  ! config/servers.json contains api_key; servers keeping it there are rejected, move their keys to config/servers.secrets.json$(COLOR_RESET)"; fi; \
 		if [ -f config/servers.secrets.json ]; then echo "$(COLOR_GREEN)  ✓ config/servers.secrets.json$(COLOR_RESET)"; else echo "$(COLOR_RED)  ✗ config/servers.secrets.json missing$(COLOR_RESET)"; failed=1; fi; \
 	fi; \
-	exit $$failed
+	if [ "$$failed" -ne 0 ]; then exit $$failed; fi; \
+	echo "$(COLOR_BOLD)Application checks$(COLOR_RESET)"; \
+	$(call RUN_MATA,doctor)
 
 # Install Composer dependencies and git hooks
 install-hooks:
@@ -470,18 +472,6 @@ command -v php >/dev/null 2>&1 || { echo "$(COLOR_RED)❌ PHP is unavailable.$(C
 [ -f vendor/autoload.php ] || { echo "$(COLOR_RED)❌ Composer dependencies are missing.$(COLOR_RESET)"; exit 1; };
 endef
 
-define RUN_DATABASE_PHP
-$(REQUIRE_SELECTION); \
-echo "$(COLOR_BLUE)Mode: $(MODE) | Environment: $(ENV)$(COLOR_RESET)"; \
-if [ "$(MODE)" = "local" ]; then \
-	$(REQUIRE_LOCAL_PHP) \
-	APP_ENV="$(ENV)" php $(1); \
-else \
-	$(REQUIRE_DOCKER_MODE); $(REQUIRE_WEB_RUNNING); \
-	$(SELECTED_COMPOSE) exec -e APP_ENV="$(ENV)" mata-web php $(1); \
-fi
-endef
-
 # Operator CLI (bin/mata). Runs as the web server user in Docker; natively as the calling user.
 define RUN_MATA
 $(REQUIRE_SELECTION); \
@@ -528,17 +518,17 @@ server-remove:
 
 db-migrate:
 	@$(call CONFIRM_PRODUCTION_WRITE,database migration); \
-	$(call RUN_DATABASE_PHP,scripts/database/migrate.php migrate --env=$(ENV))
+	$(call RUN_MATA,db:migrate --yes)
 
 db-rollback:
 	@$(call CONFIRM_PRODUCTION_WRITE,database rollback); \
-	$(call RUN_DATABASE_PHP,scripts/database/migrate.php rollback --env=$(ENV))
+	$(call RUN_MATA,db:rollback --yes)
 
 db-status:
-	@$(call RUN_DATABASE_PHP,scripts/database/migrate.php status --env=$(ENV))
+	@$(call RUN_MATA,db:status)
 
 db-check:
-	@$(call RUN_DATABASE_PHP,scripts/database/database-integrity.php)
+	@$(call RUN_MATA,db:check)
 
 # Standalone utility: deterministic and independent of deployment mode.
 db-hash-password:
