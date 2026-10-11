@@ -46,6 +46,13 @@ make prod-start MODE=docker ENV=prod
 migrations unless `RUN_MIGRATIONS=no` is set. Put the published dashboard port
 behind an HTTPS reverse proxy. OPA and MySQL remain internal.
 
+!!! warning "Dashboard bind address"
+    The dashboard port binds to `127.0.0.1` by default, so only a proxy on the
+    same host can reach it. Set `WEB_BIND=0.0.0.0` in `.env` only when the proxy
+    runs on another host. Docker publishes ports through its own iptables rules,
+    which bypass host firewalls such as ufw or firewalld, so restrict access at
+    the network or cloud firewall instead.
+
 ## Users
 
 ```bash

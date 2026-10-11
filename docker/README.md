@@ -29,7 +29,7 @@ docker/mysql/                MySQL development initialization
 
 | Service | Host binding | Variable | Notes |
 | --- | --- | --- | --- |
-| Dashboard | `0.0.0.0:3300` | `WEB_PORT` | Published by the base Compose file |
+| Dashboard | `127.0.0.1:3300` | `WEB_BIND`, `WEB_PORT` | Published by the base Compose file |
 | OPA | `127.0.0.1:3320` | `OPA_PORT` | Development only |
 | MySQL | `127.0.0.1:3306` | `MYSQL_PORT` | Development only |
 
@@ -38,7 +38,7 @@ behind an HTTPS reverse proxy. The node has its own deployment and port.
 
 ## Configuration layers
 
-Docker reads `.env` for Compose settings such as `APP_ENV`, `WEB_PORT`,
+Docker reads `.env` for Compose settings such as `APP_ENV`, `WEB_BIND`, `WEB_PORT`,
 `MYSQL_ROOT_PASSWORD`, and `DATA_PATH`.
 
 PHP reads `config/config.env`, `config/db.config.env`, and

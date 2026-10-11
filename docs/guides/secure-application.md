@@ -58,6 +58,13 @@ secret directly. Rotate a node secret on both sides if it is exposed.
 - Keep OPA and MySQL on the internal Docker network. The development Compose
   file binds their host ports to loopback only; production does not publish them.
 
+!!! warning "Docker bypasses host firewalls"
+    Docker publishes ports through its own iptables rules, which take effect
+    before ufw or firewalld rules. The dashboard port binds to `127.0.0.1` by
+    default (`WEB_BIND` in `.env`). With `WEB_BIND=0.0.0.0`, anyone who can reach
+    the host can bypass the HTTPS proxy, so restrict that port at the network or
+    cloud firewall.
+
 ## Authentication data
 
 Set `MATA_USERS_FILE` to an absolute path outside the deployment and web root:

@@ -11,7 +11,8 @@ services:
     container_name: ${COMPOSE_PROJECT_NAME:-mata-dashboard}-web
     restart: unless-stopped
     ports:
-      - "${WEB_PORT:-3300}:80"
+      # Loopback by default: Docker's iptables rules bypass host firewalls such as ufw.
+      - "${WEB_BIND:-127.0.0.1}:${WEB_PORT:-3300}:80"
     volumes:
       - ./config:/var/www/html/config
       - ./logs:/var/www/html/logs
