@@ -4,11 +4,21 @@
 declare(strict_types=1);
 
 use Mata\Cli\Command\ConfigValidateCommand;
+use Mata\Cli\Command\DbCheckCommand;
+use Mata\Cli\Command\DbMigrateCommand;
+use Mata\Cli\Command\DbRollbackCommand;
+use Mata\Cli\Command\DbStatusCommand;
+use Mata\Cli\Command\DoctorCommand;
 use Mata\Cli\Command\ServerAddCommand;
 use Mata\Cli\Command\ServerListCommand;
 use Mata\Cli\Command\ServerRemoveCommand;
 use Mata\Cli\Command\ServerTestCommand;
 use Mata\Cli\Command\StatusCommand;
+use Mata\Cli\Command\UserCreateCommand;
+use Mata\Cli\Command\UserDeleteCommand;
+use Mata\Cli\Command\UserListCommand;
+use Mata\Cli\Command\UserPasswdCommand;
+use Mata\Cli\Command\UserUnlockCommand;
 use Mata\Config\Dto\NodeApiConfig;
 use Mata\Config\Validation\InstanceConfigValidator;
 use Mata\Services\Monitor\HttpProbeClient;
@@ -51,6 +61,16 @@ $application->addCommands([
     new ServerTestCommand($serverFiles, $connectionTester),
     new ServerRemoveCommand($serverFiles),
     new StatusCommand($paths, $configPath),
+    new UserListCommand($paths, $configPath),
+    new UserCreateCommand($paths, $configPath),
+    new UserPasswdCommand($paths, $configPath),
+    new UserUnlockCommand($paths, $configPath),
+    new UserDeleteCommand($paths, $configPath),
+    new DbStatusCommand($paths, $configPath),
+    new DbMigrateCommand($paths, $configPath),
+    new DbRollbackCommand($paths, $configPath),
+    new DbCheckCommand($paths, $configPath),
+    new DoctorCommand($paths, $configPath),
 ]);
 
 // Accept `mata config validate` as well as Symfony's `mata config:validate`.
