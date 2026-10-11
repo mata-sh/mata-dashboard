@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - A summary bar above the server grid counts servers and apps by state and totals what needs attention; click a count to show only those, or filter cards by server or application name.
 - Server cards reload from the cache every `DASHBOARD_AUTO_REFRESH_SECONDS` (default 60, `0` turns it off); viewers can pause it in the summary bar
 - In `demo`, `DEMO_LOGIN_USERNAME` and `DEMO_LOGIN_PASSWORD` show the public demo account on the login page and prefill the form
+- `make config-validate` (or `php bin/mata config validate [file] [--json] [--path DIR]`) checks every config file with the app's own loaders and exits `0` valid, `1` warnings, `2` when the app would ignore a file or drop a server. `bin/mata` is the new operator CLI; run it as the web server user, it refuses root
 - `make doctor` shows where `config/` points when it is a symlink, whether it is a Git repository, and whether `config/servers.secrets.json` exists. The new "Version your config" guide covers keeping `config/` in its own repository
 
 ### Changed

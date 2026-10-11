@@ -233,6 +233,28 @@ file; see the [server metrics pipeline](../architecture/server-metrics-pipeline.
 
 ## Validate changes
 
+`make config-validate` reads every configuration file with the same loaders
+the web app and cron use, and reports what they would warn about or ignore:
+
+```bash
+make config-validate                    # all files
+make config-validate FILE=servers.json  # one file and its companion
+php bin/mata config validate --json     # without make, machine-readable
+```
+
+It exits `0` when the configuration is valid, `1` for warnings only (a skipped
+entry, advice), and `2` for errors: a file the app would replace with built-in
+defaults, or a server it would drop. Missing optional files are not problems.
+Without the check, a broken file only shows up as a warning event while the app
+runs on defaults; only a missing or invalid `servers.json` or
+`servers.secrets.json` raises an alarm.
+
+!!! info "Run it as the web server user"
+    A file your own account can read may still be unreadable for the web server.
+    `make config-validate` runs as `www-data` in Docker. Natively, use
+    `sudo -u www-data php bin/mata config validate` (`http` on Arch, `apache`
+    on RHEL). `bin/mata` refuses to run as root.
+
 `make doctor` is an installation sanity check, not a configuration parser.
 It confirms the selected `MODE` and `ENV`, that `config/config.env`,
 `config/db.config.env`, and `config/mail.config.env` exist, that `APP_ENV`
@@ -240,11 +262,7 @@ matches `ENV` (and `.env` for Docker), and that `config/`, `logs/`, and
 `temp/` are present. It shows where `config/` points when it is a symlink,
 whether it is a Git repository, and whether `servers.secrets.json` exists
 next to `servers.json`. Native mode also checks for PHP, Composer
-dependencies, and whether the OPA service is running. It does not read
-JSON files or validate keys. Loaders record a warning event when a JSON
-file is invalid or a required one is missing, and fall back to built-in
-defaults; a missing optional file is not reported. Only a missing or invalid
-`servers.json` or `servers.secrets.json` also raises an alarm.
+dependencies, and whether the OPA service is running.
 
 ```bash
 make doctor
