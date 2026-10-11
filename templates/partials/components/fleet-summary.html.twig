@@ -41,7 +41,12 @@
   </div>
   <div class="fleet-tools">
     <div class="fleet-status">
-      <span class="fleet-freshness" data-tippy-content="Age of the oldest server data on this page" hidden></span>
+      <span class="fleet-refresh">
+        <span class="fleet-freshness" data-tippy-content="Age of the oldest server data on this page" hidden></span>
+        <button type="button" class="fleet-autorefresh" aria-pressed="true" aria-label="Reload the cards every minute" data-tippy-content="Auto-refresh on: cards reload every minute">
+          {{ icons.refresh|raw }}
+        </button>
+      </span>
       {% if summary.cron %}
         <span class="fleet-cron fleet-cron-{{ summary.cron.level }}" data-tippy-content="{{ summary.cron.tooltip }}">
           Cron <span class="fleet-mini-count">{{ summary.cron.ok }}/{{ summary.cron.total }}</span>

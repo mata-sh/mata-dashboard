@@ -18,6 +18,7 @@ use Mata\Services\Audit\AuditRowEnricher;
 use Mata\Services\Cache\ApiCacheKeyFactory;
 use Mata\Services\Cache\CacheStoreInterface;
 use Mata\Services\Cache\CacheTypeResolver;
+use Mata\Services\Collect\Demo\DemoCronCatalog;
 use Mata\Services\Collect\ServerDataCollectorInterface;
 use Mata\Services\Cron\CronHeartbeatReader;
 use Mata\Services\Cron\Dto\CronJobStatus;
@@ -253,6 +254,7 @@ class DashboardController extends BaseController
 
     /**
      * Dashboard cron jobs for the summary bar, read once per servers overview.
+     * Demo mode shows every job on schedule, since its cron may not run at all.
      *
      * @return list<CronJobStatus>
      */
@@ -260,6 +262,10 @@ class DashboardController extends BaseController
     {
         $paths = $this->app->paths;
         $reader = new CronHeartbeatReader($paths->appPath . '/cron', $paths->logsPath . '/cron');
+
+        if ($this->appConfig->environment->env === 'demo') {
+            return (new DemoCronCatalog())->statuses($reader->jobs(), time());
+        }
 
         return $reader->read(time());
     }

@@ -357,10 +357,96 @@ function updateFleetFreshness(summary) {
     freshness._tippy?.setContent(tooltip);
 }
 
+// Auto-refresh reloads the card grid from the cache-backed servers route; the summary,
+// its search text and filter stay in place and recount from the new cards.
+const fleetAutoRefreshKey = 'mata-fleet-auto-refresh';
+const fleetAutoRefreshMs = 60000;
+let fleetLastRefresh = Date.now();
+let fleetRefreshing = false;
+
+function setFleetAutoRefresh(summary, enabled) {
+    const button = summary.querySelector('.fleet-autorefresh');
+    if (!button) return;
+
+    button.setAttribute('aria-pressed', String(enabled));
+    const tooltip = enabled ? 'Auto-refresh on: cards reload every minute' : 'Auto-refresh off';
+    button.dataset.tippyContent = tooltip;
+    button._tippy?.setContent(tooltip);
+}
+
+async function refreshFleetCards(summary) {
+    const url = document.getElementById('main-section')?.getAttribute('hx-get');
+    const section = document.querySelector('.server-section');
+    if (!url || !section || fleetRefreshing) return;
+
+    fleetRefreshing = true;
+    const button = summary.querySelector('.fleet-autorefresh');
+    button?.classList.add('is-refreshing');
+    try {
+        const response = await fetch(url, { headers: { 'HX-Request': 'true' } });
+        if (!response.ok) return;
+
+        const fresh = new DOMParser().parseFromString(await response.text(), 'text/html');
+        const freshSection = fresh.querySelector('.server-section');
+        // An expired session answers with the login page; keep the current cards.
+        if (!freshSection) return;
+
+        tippy.hideAll({ duration: 0 });
+        section.replaceWith(freshSection);
+        htmx.process(freshSection);
+        initializeTooltips(freshSection);
+
+        const cron = summary.querySelector('.fleet-cron');
+        const freshCron = fresh.querySelector('.fleet-cron');
+        if (cron && freshCron) {
+            cron.replaceWith(freshCron);
+            initializeTooltips(freshCron);
+        }
+
+        recountFleetSummary(summary);
+        applyFleetFilter(summary);
+        updateFleetFreshness(summary);
+    } catch {
+        // Network hiccup; the next tick tries again.
+    } finally {
+        fleetLastRefresh = Date.now();
+        fleetRefreshing = false;
+        button?.classList.remove('is-refreshing');
+    }
+}
+
+// Wait while the viewer is busy: an open modal or tooltip, a running card request, or
+// keyboard focus inside the grid. Replacing the cards would lose focus or the request.
+function fleetRefreshBlocked() {
+    return document.hidden
+        || document.querySelector('#modal, #message-modal.is-active, [data-tippy-root], .server-section .htmx-request') !== null
+        || document.activeElement?.closest('.server-section') != null;
+}
+
+// A skipped refresh catches up within one tick once the viewer is done.
 setInterval(() => {
     const summary = document.getElementById('fleet-summary');
-    if (summary) updateFleetFreshness(summary);
-}, 30000);
+    if (!summary) return;
+
+    updateFleetFreshness(summary);
+    const enabled = summary.querySelector('.fleet-autorefresh')?.getAttribute('aria-pressed') === 'true';
+    if (enabled && Date.now() - fleetLastRefresh >= fleetAutoRefreshMs && !fleetRefreshBlocked()) {
+        refreshFleetCards(summary);
+    }
+}, 15000);
+
+document.body.addEventListener('click', (event) => {
+    const button = event.target instanceof Element ? event.target.closest('.fleet-autorefresh') : null;
+    if (!button) return;
+
+    const enabled = button.getAttribute('aria-pressed') !== 'true';
+    setFleetAutoRefresh(button.closest('.fleet-summary'), enabled);
+    try {
+        localStorage.setItem(fleetAutoRefreshKey, enabled ? '1' : '0');
+    } catch {
+        // Storage unavailable; the choice lasts until the next page load.
+    }
+});
 
 const fleetCollapsedKey = 'mata-fleet-summary-collapsed';
 
@@ -412,6 +498,15 @@ document.body.addEventListener('htmx:afterSwap', () => {
         // Storage unavailable; stay compact.
     }
     setFleetCollapsed(summary, collapsed);
+
+    let autoRefresh = true;
+    try {
+        autoRefresh = localStorage.getItem(fleetAutoRefreshKey) !== '0';
+    } catch {
+        // Storage unavailable; keep auto-refresh on.
+    }
+    setFleetAutoRefresh(summary, autoRefresh);
+    fleetLastRefresh = Date.now();
 });
 
 document.body.addEventListener('htmx:afterSettle', () => {

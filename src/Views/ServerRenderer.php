@@ -84,6 +84,7 @@ class ServerRenderer extends BaseRenderer
                 'search' => $this->tools->icon('search', 14),
                 'chevron_up' => $this->tools->icon('chevron-up', 16),
                 'chevron_down' => $this->tools->icon('chevron-down', 14),
+                'refresh' => $this->tools->icon('refresh-cw', 12),
             ],
         ]);
     }

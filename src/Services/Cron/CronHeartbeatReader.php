@@ -33,20 +33,27 @@ final class CronHeartbeatReader
     ) {}
 
     /**
-     * @return list<CronJobStatus>
+     * Job names of the entry points in cron/, sorted.
+     *
+     * @return list<string>
      */
-    public function read(int $now): array
+    public function jobs(): array
     {
         $entryPoints = glob($this->entryPointDir . '/*.php') ?: [];
         sort($entryPoints);
 
-        $statuses = [];
-        foreach ($entryPoints as $entryPoint) {
-            $job = CronJob::nameFromEntryPoint($entryPoint);
-            $statuses[] = $this->status($job, "{$this->heartbeatDir}/heartbeat-{$job}.jsonl", $now);
-        }
+        return array_map(CronJob::nameFromEntryPoint(...), $entryPoints);
+    }
 
-        return $statuses;
+    /**
+     * @return list<CronJobStatus>
+     */
+    public function read(int $now): array
+    {
+        return array_map(
+            fn (string $job): CronJobStatus => $this->status($job, "{$this->heartbeatDir}/heartbeat-{$job}.jsonl", $now),
+            $this->jobs()
+        );
     }
 
     private function status(string $job, string $heartbeatFile, int $now): CronJobStatus
