@@ -548,7 +548,16 @@ svg {
     border-left: 1px solid var(--border-default);
 }
 
-.fleet-freshness {
+/* Data age and cron health: stacked in the panel, side by side when hidden */
+.fleet-status {
+    display: flex;
+    flex-direction: column;
+    flex-shrink: 0;
+    gap: 4px;
+}
+
+.fleet-freshness,
+.fleet-cron {
     display: inline-flex;
     flex-shrink: 0;
     align-items: center;
@@ -558,12 +567,33 @@ svg {
     white-space: nowrap;
 }
 
-.fleet-freshness::before {
+.fleet-freshness::before,
+.fleet-cron::before {
     content: "";
     width: 6px;
     height: 6px;
     border-radius: 50%;
     background-color: var(--sev-low-border);
+}
+
+.fleet-cron .fleet-mini-count {
+    color: inherit;
+}
+
+.fleet-cron-warning {
+    color: var(--sev-medium-tint);
+}
+
+.fleet-cron-warning::before {
+    background-color: var(--sev-medium-border);
+}
+
+.fleet-cron-critical {
+    color: var(--sev-critical-tint);
+}
+
+.fleet-cron-critical::before {
+    background-color: var(--sev-critical-border);
 }
 
 .fleet-freshness.is-stale {
@@ -704,6 +734,7 @@ svg {
 
 /* Hidden: no panel, just the search field and the one-line summary */
 .fleet-summary.is-collapsed {
+    margin-bottom: 6px;
     padding: 0;
     background: transparent;
     border-color: transparent;
@@ -725,8 +756,10 @@ svg {
     border-left: 0;
 }
 
-/* Freshness takes the free space on the left of the hidden row */
-.fleet-summary.is-collapsed .fleet-freshness {
+/* Status takes the free space on the left of the hidden row */
+.fleet-summary.is-collapsed .fleet-status {
+    flex-direction: row;
+    gap: 18px;
     margin-right: auto;
 }
 
@@ -738,7 +771,7 @@ svg {
 
 /* Too tight next to the three sections; the hidden row keeps it */
 @media (max-width: 1440px) {
-    .fleet-summary:not(.is-collapsed) .fleet-freshness {
+    .fleet-summary:not(.is-collapsed) .fleet-status {
         display: none;
     }
 }
@@ -749,8 +782,10 @@ svg {
         flex-wrap: wrap;
     }
 
-    .fleet-summary:not(.is-collapsed) .fleet-freshness {
-        display: inline-flex;
+    .fleet-summary:not(.is-collapsed) .fleet-status {
+        display: flex;
+        flex-direction: row;
+        gap: 18px;
         margin-right: auto;
     }
 

@@ -11,14 +11,17 @@ function tooltipElements(context, selector) {
     return elements.filter((element) => !element._tippy);
 }
 
+// Tooltips with long lines grow with their content up to the wide limit.
+const wideTooltipSelector = '.app-status, .app-filesize, .fleet-cron';
+
 function initializeTooltips(context = document) {
     const standardTooltips = tooltipElements(
         context,
-        '[data-tippy-content]:not(.app-status):not(.app-filesize)'
+        `[data-tippy-content]:not(${wideTooltipSelector})`
     );
     const wideTooltips = tooltipElements(
         context,
-        '.app-status[data-tippy-content], .app-filesize[data-tippy-content]'
+        `:is(${wideTooltipSelector})[data-tippy-content]`
     );
 
     if (standardTooltips.length > 0) {

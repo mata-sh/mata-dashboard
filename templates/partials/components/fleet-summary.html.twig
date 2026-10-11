@@ -40,7 +40,14 @@
     </div>
   </div>
   <div class="fleet-tools">
-    <span class="fleet-freshness" data-tippy-content="Age of the oldest server data on this page" hidden></span>
+    <div class="fleet-status">
+      <span class="fleet-freshness" data-tippy-content="Age of the oldest server data on this page" hidden></span>
+      {% if summary.cron %}
+        <span class="fleet-cron fleet-cron-{{ summary.cron.level }}" data-tippy-content="{{ summary.cron.tooltip }}">
+          Cron <span class="fleet-mini-count">{{ summary.cron.ok }}/{{ summary.cron.total }}</span>
+        </span>
+      {% endif %}
+    </div>
     <label class="fleet-search">
       {{ icons.search|raw }}
       <input type="search" id="fleet-search" placeholder="Filter servers or apps…" aria-label="Filter servers or applications" autocomplete="off">

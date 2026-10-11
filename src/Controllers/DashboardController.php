@@ -19,6 +19,8 @@ use Mata\Services\Cache\ApiCacheKeyFactory;
 use Mata\Services\Cache\CacheStoreInterface;
 use Mata\Services\Cache\CacheTypeResolver;
 use Mata\Services\Collect\ServerDataCollectorInterface;
+use Mata\Services\Cron\CronHeartbeatReader;
+use Mata\Services\Cron\Dto\CronJobStatus;
 use Mata\Services\Event\EventManager;
 use Mata\Services\Monitor\Dto\ServerMonitoringResult;
 use Mata\Services\Monitor\Dto\ServerMonitoringServices;
@@ -250,6 +252,19 @@ class DashboardController extends BaseController
     }
 
     /**
+     * Dashboard cron jobs for the summary bar, read once per servers overview.
+     *
+     * @return list<CronJobStatus>
+     */
+    private function readCronStatuses(): array
+    {
+        $paths = $this->app->paths;
+        $reader = new CronHeartbeatReader($paths->appPath . '/cron', $paths->logsPath . '/cron');
+
+        return $reader->read(time());
+    }
+
+    /**
      * Initial loading method - rendering servers container.
      */
     public function renderServersOverview(bool $forceRefresh = false): Response
@@ -279,7 +294,8 @@ class DashboardController extends BaseController
 
                 $html = $this->serverRenderer->renderServersContainer(
                     $serversViewData,
-                    $layoutConfig
+                    $layoutConfig,
+                    $this->readCronStatuses()
                 );
 
                 return new HtmlResponse($html);

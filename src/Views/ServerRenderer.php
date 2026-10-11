@@ -7,6 +7,8 @@ namespace Mata\Views;
 use Exception;
 use Mata\Core\App;
 use Mata\Http\Routing\Endpoints;
+use Mata\Services\Cron\Dto\CronJobState;
+use Mata\Services\Cron\Dto\CronJobStatus;
 use Mata\Services\Monitor\Dto\NodeHealthState;
 use Mata\Utils\Tools;
 use Mata\Views\Support\Html;
@@ -24,7 +26,6 @@ use Twig\Environment;
  */
 class ServerRenderer extends BaseRenderer
 {
-    /** Summary bar segments per group, most severe first. */
     /**
      * Summary columns list the calm states; the problems go to "Needs attention".
      * Together they cover every state exactly once, so each total adds up.
@@ -64,10 +65,11 @@ class ServerRenderer extends BaseRenderer
      *
      * @param array<int,array<string,mixed>> $serversViewData Server view data from ServerViewBuilder
      * @param array<string,mixed>            $layoutConfig    Layout configuration (server_columns, container_width)
+     * @param list<CronJobStatus>            $cronStatuses    Dashboard cron jobs for the summary bar
      *
      * @return string Generated HTML for complete servers container
      */
-    public function renderServersContainer(array $serversViewData, array $layoutConfig): string
+    public function renderServersContainer(array $serversViewData, array $layoutConfig, array $cronStatuses = []): string
     {
         $serverCardsHtml = $this->renderServerCards($serversViewData);
 
@@ -76,7 +78,7 @@ class ServerRenderer extends BaseRenderer
                 'server_container' => $serverCardsHtml,
             ],
             'layout' => $layoutConfig,
-            'summary' => $this->buildSummaryData($serversViewData),
+            'summary' => $this->buildSummaryData($serversViewData) + ['cron' => $this->buildCronSummaryData($cronStatuses, time())],
             'icons' => [
                 'alert_triangle' => $this->tools->icon('alert-triangle', 26),
                 'search' => $this->tools->icon('search', 14),
@@ -160,6 +162,64 @@ class ServerRenderer extends BaseRenderer
         }
 
         return ['groups' => $groups, 'attention' => $attention, 'attention_level' => $attentionLevel];
+    }
+
+    /**
+     * Cron health for the summary bar: how many jobs run on time, and one tooltip line per job.
+     *
+     * @param list<CronJobStatus> $statuses
+     *
+     * @return null|array{ok:int,total:int,level:string,tooltip:string}
+     */
+    private function buildCronSummaryData(array $statuses, int $now): ?array
+    {
+        if ($statuses === []) {
+            return null;
+        }
+
+        $ok = 0;
+        $level = 'ok';
+        $lines = [];
+        foreach ($statuses as $status) {
+            $parts = ['<strong>' . Html::escapeTooltipValue($status->job) . '</strong>'];
+            if ($status->interval !== null) {
+                $parts[] = $this->formatCronInterval($status->interval);
+            }
+            $parts[] = $status->lastRun === null
+                ? 'never ran'
+                : $this->tools->formatDuration(max(0, $now - $status->lastRun)) . ' ago';
+
+            if ($status->state === CronJobState::Ok) {
+                ++$ok;
+            } elseif ($status->state === CronJobState::Overdue) {
+                $parts[] = '<strong>overdue</strong>';
+                $level = 'critical';
+            } else {
+                if ($status->state === CronJobState::Unknown) {
+                    $parts[] = 'interval not known yet';
+                }
+                $level = $level === 'critical' ? $level : 'warning';
+            }
+
+            $lines[] = implode(' · ', $parts);
+        }
+
+        return [
+            'ok' => $ok,
+            'total' => count($statuses),
+            'level' => $level,
+            'tooltip' => implode('<br>', $lines),
+        ];
+    }
+
+    private function formatCronInterval(int $seconds): string
+    {
+        return match ($seconds) {
+            60 => 'every minute',
+            3600 => 'hourly',
+            86400 => 'daily',
+            default => 'every ' . $this->tools->formatDuration($seconds),
+        };
     }
 
     private function serverSummaryState(NodeHealthState $state): string
