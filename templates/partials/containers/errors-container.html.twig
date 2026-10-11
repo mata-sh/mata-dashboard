@@ -1,4 +1,4 @@
-{% set server_columns = layout.server_columns|default(2) %}
+{% set server_columns = layout.server_columns|default(4) %}
 <div class="error-section" style="--server-columns: {{ server_columns }}">
     {{ content.error|nl2br }}
 </div>

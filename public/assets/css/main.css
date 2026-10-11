@@ -3,7 +3,7 @@ body {
 }
 
 :root {
-    --dashboard-container-width: 1344px;
+    --dashboard-container-width: 2560px;
 
     /* surfaces */
     --surface-base: #0b0d12;
@@ -67,7 +67,7 @@ body {
 }
 
 #main-section.container {
-    max-width: var(--dashboard-container-width, 1344px);
+    max-width: var(--dashboard-container-width, 2560px);
 }
 
 .process table th,
@@ -298,10 +298,14 @@ svg {
     white-space: normal;
 }
 
+/* --server-columns is a maximum: fit as many cards of at least
+   --server-card-min-width as the container allows, up to that count. */
 .server-section {
+    --server-card-min-width: 480px;
+    --server-gap: 12px;
     display: grid;
-    gap: 10px;
-    grid-template-columns: repeat(var(--server-columns, 2), minmax(0, 1fr));
+    gap: var(--server-gap);
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, max(var(--server-card-min-width), (100% - (var(--server-columns, 4) - 1) * var(--server-gap)) / var(--server-columns, 4))), 1fr));
 }
 
 .database-section {
@@ -321,12 +325,29 @@ svg {
     min-width: 0;
     box-sizing: border-box;
     background-color: #000;
+    border: 1px solid var(--border-default);
+    border-radius: 8px;
+    padding-bottom: 6px;
+    overflow: hidden;
 }
 
-@media (max-width: 1400px) {
-    .server-section {
-        grid-template-columns: 1fr;
-    }
+.server-container .app-container {
+    margin: 0 6px;
+    border-radius: 5px;
+    transition: background-color .12s ease;
+}
+
+.server-container .app-container + .app-container {
+    box-shadow: 0 -1px 0 var(--border-hairline);
+}
+
+.server-container .app-container:hover {
+    background-color: var(--surface-hover);
+    box-shadow: none;
+}
+
+.server-container .app-container:hover + .app-container {
+    box-shadow: none;
 }
 
 @media (max-width: 645px) {
@@ -789,6 +810,16 @@ svg {
     /* margin-right: 10px; */
     flex: fit-content;
     text-align: left;
+    /* Long names truncate instead of squeezing the fixed-width columns */
+    min-width: 0;
+    margin-right: 8px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.app-container > :not(.app-title) {
+    flex-shrink: 0;
 }
 
 .app-title a {

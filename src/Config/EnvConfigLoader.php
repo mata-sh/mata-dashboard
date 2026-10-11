@@ -146,8 +146,8 @@ final class EnvConfigLoader
     private function loadDashboardConfig(): DashboardConfig
     {
         return new DashboardConfig(
-            serverColumns: $this->getEnvInteger('DASHBOARD_SERVER_COLUMNS', 2, minimum: 1),
-            containerWidth: $this->getEnvInteger('DASHBOARD_CONTAINER_WIDTH', 1344, minimum: 320),
+            serverColumns: $this->getEnvInteger('DASHBOARD_SERVER_COLUMNS', 4, minimum: 1),
+            containerWidth: $this->getEnvInteger('DASHBOARD_CONTAINER_WIDTH', 2560, minimum: 320),
         );
     }
 

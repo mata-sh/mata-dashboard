@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - Documentation is published at https://docs.mata.sh
 - The demo shows a mostly healthy fleet with a single incident instead of every failure state at once, with every app reachable, and uses shorter app names so rows no longer truncate
+- The server grid adapts to the screen width: `DASHBOARD_SERVER_COLUMNS` is now a maximum (default 4) and `DASHBOARD_CONTAINER_WIDTH` defaults to 2560.
 
 ### Fixed
 - The users-file error page links to the users-file setup guide instead of a missing page

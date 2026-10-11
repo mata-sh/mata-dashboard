@@ -839,8 +839,8 @@ class ServerRenderer extends BaseRenderer
         }
 
         $layoutDefaults = [
-            'server_columns' => 2,
-            'container_width' => 1344,
+            'server_columns' => 4,
+            'container_width' => 2560,
         ];
 
         $layoutOverrides = array_filter(
