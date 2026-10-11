@@ -9,7 +9,8 @@ use Mata\Services\Monitor\Dto\EndpointProbeResult;
 use Mata\Services\Monitor\Dto\EndpointTarget;
 
 /**
- * Demo implementation of the AppReachabilityMonitor that simulates endpoint reachability.
+ * Demo implementation of the AppReachabilityMonitor: every endpoint is reachable,
+ * with a stable per-URL latency.
  */
 class MockAppReachabilityMonitor implements AppReachabilityMonitorInterface
 {
@@ -48,16 +49,13 @@ class MockAppReachabilityMonitor implements AppReachabilityMonitorInterface
     /** Produce a mock availability result. */
     private function generateMockResult(string $url): EndpointProbeResult
     {
-        $isMaintenance = mt_rand(1, 100) <= 3;
-        $isReachable = !$isMaintenance && mt_rand(1, 100) > 5;
-
         return EndpointProbeResult::fromArray([
-            'reachable' => $isReachable,
-            'httpCode' => $isMaintenance ? 503 : ($isReachable ? 200 : 0),
-            'latency_ms' => $isReachable ? mt_rand(50, 300) : 0,
-            'error' => $isReachable || $isMaintenance ? null : "Mock timeout when accessing {$url}",
+            'reachable' => true,
+            'httpCode' => 200,
+            'latency_ms' => 50 + crc32($url) % 251,
+            'error' => null,
             'url' => $url,
-            'maintenance_mode' => $isMaintenance,
+            'maintenance_mode' => false,
         ]);
     }
 }
