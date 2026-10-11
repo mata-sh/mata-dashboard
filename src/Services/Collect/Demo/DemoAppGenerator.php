@@ -10,7 +10,8 @@ namespace Mata\Services\Collect\Demo;
  * Extracted verbatim from MockServerDataCollector::generateDemoApps(): the
  * static data now lives in {@see DemoAppCatalog} and the weighting/random
  * helpers in {@see WeightedRandom}. Apps are mostly healthy; one app on the
- * {@see DemoAppCatalog::incident()} server gets fatal errors.
+ * {@see DemoAppCatalog::incident()} server gets fatal errors, and one app on the
+ * {@see DemoAppCatalog::unprobedAppServer()} server is not probed for reachability.
  */
 final class DemoAppGenerator
 {
@@ -162,6 +163,7 @@ final class DemoAppGenerator
         }
 
         $apps = $this->injectIncident($serverName, $apps, $preset);
+        $apps = $this->injectUnprobedApp($serverName, $apps);
 
         foreach ($apps as $appKey => &$app) {
             $status = is_array($app['status'] ?? null) ? $app['status'] : [];
@@ -207,6 +209,27 @@ final class DemoAppGenerator
             (int) round($status['fatal'] * ($statusWeights['fatal'] ?? 18) + $status['warnings'] * ($statusWeights['warnings'] ?? 5))
         );
         $apps[$appKey]['status'] = $status;
+
+        return $apps;
+    }
+
+    /**
+     * Turn off reachability monitoring for one app on the unprobed-app server.
+     *
+     * Picks the first app instead of a random one so the seeded sequence stays unchanged.
+     *
+     * @param array<string,mixed> $apps
+     *
+     * @return array<string,mixed>
+     */
+    private function injectUnprobedApp(string $serverName, array $apps): array
+    {
+        $appKey = array_key_first($apps);
+        if ($serverName !== $this->catalog->unprobedAppServer() || $appKey === null) {
+            return $apps;
+        }
+
+        $apps[$appKey]['monitoring'] = ['reachability' => false];
 
         return $apps;
     }

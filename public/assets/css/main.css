@@ -528,8 +528,12 @@ svg {
     background-color: orange;
 }
 
+/* Not probed (reachability off or no data): a lock shape, not another color */
 .app-ping.protected {
-    background-color: #51beff;
+    background-color: var(--text-label);
+    border-radius: 0;
+    -webkit-mask: url("../icons/lock.svg") center / contain no-repeat;
+    mask: url("../icons/lock.svg") center / contain no-repeat;
 }
 
 

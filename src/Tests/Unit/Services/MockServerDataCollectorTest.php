@@ -106,14 +106,18 @@ final class MockServerDataCollectorTest extends TestCase
         );
     }
 
-    public function testDemoHasOneIncidentAndNoBrokenStates(): void
+    public function testDemoHasOneIncidentOneUnprobedAppAndNoBrokenStates(): void
     {
         $fatalApps = [];
+        $unprobedApps = [];
         foreach (['production-web', 'database-server', 'staging-server', 'development-server', 'backup-server'] as $server) {
             $collector = $this->createCollector($server, new DemoConfig(seed: 1));
 
             foreach ($collector->getApps()['result'] as $appKey => $app) {
-                $this->assertArrayNotHasKey('monitoring', $app);
+                if (isset($app['monitoring'])) {
+                    $this->assertSame(['reachability' => false], $app['monitoring']);
+                    $unprobedApps[] = "{$server}/{$appKey}";
+                }
                 $this->assertSame('ok', $app['session']['status']);
                 if ($app['status']['fatal'] > 0) {
                     $fatalApps[] = "{$server}/{$appKey}";
@@ -125,6 +129,8 @@ final class MockServerDataCollectorTest extends TestCase
 
         $this->assertCount(1, $fatalApps);
         $this->assertStringStartsWith('production-web/', $fatalApps[0]);
+        $this->assertCount(1, $unprobedApps);
+        $this->assertStringStartsWith('database-server/', $unprobedApps[0]);
     }
 
     private function createCollector(string $server, DemoConfig $demo): MockServerDataCollector

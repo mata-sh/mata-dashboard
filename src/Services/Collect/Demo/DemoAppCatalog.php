@@ -430,6 +430,15 @@ final class DemoAppCatalog
     }
 
     /**
+     * One app on this server has reachability monitoring turned off, so the
+     * demo shows the unprobed (lock) state.
+     */
+    public function unprobedAppServer(): string
+    {
+        return 'database-server';
+    }
+
+    /**
      * @return array<string,string>
      */
     public function presetKeyMap(): array
