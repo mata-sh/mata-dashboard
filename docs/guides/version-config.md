@@ -128,8 +128,14 @@ php /path/to/mata-dashboard/bin/mata config validate --path "$(git rev-parse --s
 [ $? -lt 2 ]
 ```
 
-The hook checks the working tree, not only the staged changes. The
-[configuration guide](configuration.md#validate-changes) lists what counts as
+The hook checks the working tree, not only the staged changes.
+
+If agents edit the configuration, copy `config.example/AGENTS.md` into the
+repository. It tells them to validate after every edit, keep keys in
+`servers.secrets.json`, and use `bin/mata server add` instead of editing the
+server files by hand.
+
+The [configuration guide](configuration.md#validate-changes) lists what counts as
 an error.
 
 !!! info "Policies are part of the application"
