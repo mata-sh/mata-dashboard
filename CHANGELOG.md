@@ -6,13 +6,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
-- Webhook alarm channels (Telegram, Slack, Discord): define them in the optional `config/channels.json` (see `config/example/channels.json.example`), put each URL in `config/config.env` (e.g. `WEBHOOK_TELEGRAM_URL`), and reference the channel in `notification_rules.json`. Test with `php scripts/alarm_channel_test.php <channel>`. Emergency alarms stay email-only; mentions never notify anyone
+- Webhook alarm channels (Telegram, Slack, Discord): define them in the optional `config/channels.json` (see `config/example/channels.json.example`), put each URL in `config/config.env` (e.g. `WEBHOOK_TELEGRAM_URL`), and reference the channel in `notification_rules.json`. Test with `php scripts/alarm_channel_test.php <channel>`. Emergency alarms stay email-only.
 - `limits_unknown_channel` warning when `limits.json` names an unconfigured channel
 
 ### Changed
 - `notification_rules.json` skips unconfigured channels with a `notification_rules_unknown_channel` warning instead of discarding all rules
 - The `builtin` alarm decision driver delivers on every selected channel, not just email
-- `users.json` is validated on load: a missing required field or non-integer counter shows the authentication error page naming the entry. Unused fields are dropped on the next write
+- `users.json` is validated on load: a missing required field or non-integer counter shows the authentication error page naming the entry.
+- `users.json` requires `auth_revision` on every account, and the remember-me hash is stored as `remember_token_hash` instead of `remember_token`. Recreate accounts that lack `auth_revision` with `manage-users.php`, or add a random value (`openssl rand -hex 32`).
 
 ### Fixed
 - Alarm titles with a dotted area prefix read `Server metrics: …` instead of `Server metrics.…`
@@ -20,6 +21,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Single-app Composer audits (`/watch/audit/run/{server}/{app}`) require `POST` with a CSRF token
 - Sign-in with an unknown or locked username takes as long as a wrong password, so timing no longer reveals accounts
 - Parallel wrong passwords all count towards the lockout; concurrent changes to other accounts no longer break sign-in or `manage-users.php`
+- Reading `users.json` no longer takes a lock, so page views no longer create or chmod `users.json.lock`
 
 ## [0.8.0] - 2026-10-10
 

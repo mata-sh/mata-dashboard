@@ -88,7 +88,7 @@ class UserAuthenticatorTest extends TestCase
 
         $this->assertFalse($auth->check());
         $this->assertNull($auth->getUser());
-        $this->assertArrayNotHasKey('remember_token', $this->stored('admin'));
+        $this->assertArrayNotHasKey('remember_token_hash', $this->stored('admin'));
         $this->assertArrayNotHasKey('remember_expires', $this->stored('admin'));
     }
 
@@ -236,42 +236,12 @@ class UserAuthenticatorTest extends TestCase
         $this->assertNull($auth->getUsername());
     }
 
-    public function testAStoredUserWithoutRevisionRejectsTheSession(): void
-    {
-        $this->request()->login('admin', 'admin123');
-        UsersFileFactory::change($this->usersFile, 'admin', static function (array $user): array {
-            unset($user['auth_revision']);
-
-            return $user;
-        });
-
-        $auth = $this->request($_SESSION);
-
-        $this->assertFalse($auth->check());
-        $this->assertNull($auth->getUser());
-    }
-
-    public function testSignInBackfillsAMissingRevision(): void
-    {
-        UsersFileFactory::change($this->usersFile, 'admin', static function (array $user): array {
-            unset($user['auth_revision']);
-
-            return $user;
-        });
-
-        $auth = $this->request();
-        $this->assertTrue($auth->login('admin', 'admin123'));
-
-        $this->assertTrue($auth->check());
-        $this->assertSame($this->stored('admin')['auth_revision'], Session::get('user')['auth_revision']);
-    }
-
     public function testItStoresOnlyTheRememberTokenHash(): void
     {
         $this->assertTrue($this->request()->login('admin', 'admin123', true));
 
         $stored = $this->stored('admin');
-        $this->assertMatchesRegularExpression('/^[0-9a-f]{64}$/', $stored['remember_token']);
+        $this->assertMatchesRegularExpression('/^[0-9a-f]{64}$/', $stored['remember_token_hash']);
         $this->assertGreaterThan(time(), $stored['remember_expires']);
         $this->assertSame($stored['auth_revision'], Session::get('user')['auth_revision']);
     }
@@ -279,27 +249,14 @@ class UserAuthenticatorTest extends TestCase
     public function testItSignsInFromARememberCookieAndRotatesTheToken(): void
     {
         $cookie = $this->seedRememberToken('admin', time() + 3600);
-        $before = $this->stored('admin')['remember_token'];
+        $before = $this->stored('admin')['remember_token_hash'];
 
         $auth = $this->request(cookie: $cookie);
 
         $this->assertTrue($auth->check());
         $this->assertSame('admin', $auth->getUsername());
-        $this->assertNotSame($before, $this->stored('admin')['remember_token']);
+        $this->assertNotSame($before, $this->stored('admin')['remember_token_hash']);
         $this->assertFalse($this->request(cookie: $cookie)->check(), 'A used token must not sign in again');
-    }
-
-    public function testItBackfillsTheRevisionWhenSigningInFromARememberCookie(): void
-    {
-        $cookie = $this->seedRememberToken('admin', time() + 3600);
-        UsersFileFactory::change($this->usersFile, 'admin', static function (array $user): array {
-            unset($user['auth_revision']);
-
-            return $user;
-        });
-
-        $this->assertTrue($this->request(cookie: $cookie)->check());
-        $this->assertSame($this->stored('admin')['auth_revision'], Session::get('user')['auth_revision']);
     }
 
     public function testItIgnoresExpiredOrForgedRememberCookies(): void
@@ -317,12 +274,12 @@ class UserAuthenticatorTest extends TestCase
     {
         $this->request()->login('viewer', 'viewer123');
         $cookie = $this->seedRememberToken('admin', time() + 3600);
-        $token = $this->stored('admin')['remember_token'];
+        $token = $this->stored('admin')['remember_token_hash'];
 
         $auth = $this->request($_SESSION, $cookie);
 
         $this->assertSame('viewer', $auth->getUsername());
-        $this->assertSame($token, $this->stored('admin')['remember_token']);
+        $this->assertSame($token, $this->stored('admin')['remember_token_hash']);
     }
 
     /** @param array<string,mixed> $session */
@@ -349,7 +306,7 @@ class UserAuthenticatorTest extends TestCase
         $token = bin2hex(random_bytes(32));
         UsersFileFactory::change($this->usersFile, $username, static fn (array $user): array => [
             ...$user,
-            'remember_token' => hash('sha256', $token),
+            'remember_token_hash' => hash('sha256', $token),
             'remember_expires' => $expires,
         ]);
 

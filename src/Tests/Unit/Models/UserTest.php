@@ -20,12 +20,12 @@ class UserTest extends TestCase
             'id' => 'user_1',
             'username' => 'admin',
             'password_hash' => '$2y$12$hash',
-            'auth_revision' => 'revision',
             'role' => 'admin',
+            'auth_revision' => 'revision',
             'created_at' => '2026-01-01 00:00:00',
             'failed_attempts' => 2,
             'locked_until' => 1000,
-            'remember_token' => 'token-hash',
+            'remember_token_hash' => 'token-hash',
             'remember_expires' => 2000,
         ];
 
@@ -34,15 +34,12 @@ class UserTest extends TestCase
 
     public function testItLoadsMinimalRecordsWithDefaults(): void
     {
-        $user = User::fromArray(['id' => 'user_1', 'username' => 'admin', 'password_hash' => 'hash', 'role' => 'viewer']);
+        $record = ['id' => 'user_1', 'username' => 'admin', 'password_hash' => 'hash', 'role' => 'viewer', 'auth_revision' => 'revision'];
+        $user = User::fromArray($record);
 
-        $this->assertNull($user->authRevision);
         $this->assertSame(0, $user->failedAttempts);
         $this->assertFalse($user->isLocked(time()));
-        $this->assertSame(
-            ['id' => 'user_1', 'username' => 'admin', 'password_hash' => 'hash', 'role' => 'viewer', 'failed_attempts' => 0],
-            $user->toArray(),
-        );
+        $this->assertSame([...$record, 'failed_attempts' => 0], $user->toArray());
     }
 
     public function testCreateGeneratesIdentifiersAndARevision(): void
@@ -55,14 +52,25 @@ class UserTest extends TestCase
         $this->assertNotSame($first->authRevision, $second->authRevision);
     }
 
-    public function testLockoutEndsAtLockedUntil(): void
+    public function testFailedAttemptsLockTheAccountUntilTheLockoutEnds(): void
     {
-        $user = self::user()->withFailedAttempts(5, 1000);
+        $user = self::user()->withFailedAttempt(100, 2, 900);
+        $this->assertSame(1, $user->failedAttempts);
+        $this->assertFalse($user->isLocked(100));
 
-        $this->assertTrue($user->isLocked(999));
+        $locked = $user->withFailedAttempt(100, 2, 900);
+        $this->assertTrue($locked->isLocked(999));
+        $this->assertFalse($locked->isLocked(1000));
+        $this->assertFalse($locked->withoutLockout()->isLocked(999));
+        $this->assertSame(0, $locked->withoutLockout()->failedAttempts);
+    }
+
+    public function testAFailureAfterAnExpiredLockoutStartsAFreshCount(): void
+    {
+        $user = self::user()->withFailedAttempt(100, 1, 900)->withFailedAttempt(1000, 2, 900);
+
+        $this->assertSame(1, $user->failedAttempts);
         $this->assertFalse($user->isLocked(1000));
-        $this->assertFalse($user->withoutLockout()->isLocked(999));
-        $this->assertSame(0, $user->withoutLockout()->failedAttempts);
     }
 
     public function testRememberTokensAreStoredHashedAndExpire(): void
@@ -85,14 +93,6 @@ class UserTest extends TestCase
         $this->assertNotSame($user->authRevision, $revoked->authRevision);
         $this->assertNull($revoked->rememberTokenHash);
         $this->assertNull($revoked->rememberExpires);
-    }
-
-    public function testBackfillKeepsAnExistingRevision(): void
-    {
-        $user = self::user();
-
-        $this->assertSame($user, $user->withBackfilledAuthRevision());
-        $this->assertNotNull(User::fromArray([...$user->toArray(), 'auth_revision' => null])->withBackfilledAuthRevision()->authRevision);
     }
 
     private static function user(): User

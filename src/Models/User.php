@@ -18,7 +18,7 @@ final readonly class User
         public string $username,
         public string $passwordHash,
         public string $role,
-        public ?string $authRevision = null,
+        public string $authRevision,
         public ?string $createdAt = null,
         public int $failedAttempts = 0,
         public ?int $lockedUntil = null,
@@ -50,11 +50,11 @@ final readonly class User
             username: self::requiredString($record, 'username'),
             passwordHash: self::requiredString($record, 'password_hash'),
             role: self::requiredString($record, 'role'),
-            authRevision: self::optionalString($record, 'auth_revision'),
+            authRevision: self::requiredString($record, 'auth_revision'),
             createdAt: self::optionalString($record, 'created_at'),
             failedAttempts: self::optionalInt($record, 'failed_attempts') ?? 0,
             lockedUntil: self::optionalInt($record, 'locked_until'),
-            rememberTokenHash: self::optionalString($record, 'remember_token'),
+            rememberTokenHash: self::optionalString($record, 'remember_token_hash'),
             rememberExpires: self::optionalInt($record, 'remember_expires'),
         );
     }
@@ -66,12 +66,12 @@ final readonly class User
             'id' => $this->id,
             'username' => $this->username,
             'password_hash' => $this->passwordHash,
-            'auth_revision' => $this->authRevision,
             'role' => $this->role,
+            'auth_revision' => $this->authRevision,
             'created_at' => $this->createdAt,
             'failed_attempts' => $this->failedAttempts,
             'locked_until' => $this->lockedUntil,
-            'remember_token' => $this->rememberTokenHash,
+            'remember_token_hash' => $this->rememberTokenHash,
             'remember_expires' => $this->rememberExpires,
         ], static fn (int|string|null $value): bool => $value !== null);
     }
@@ -99,14 +99,21 @@ final readonly class User
         return $this->with(role: $role);
     }
 
-    public function withFailedAttempts(int $failedAttempts, ?int $lockedUntil): self
+    /**
+     * Count a failed sign-in and lock the account for $lockoutSeconds once $maxAttempts is reached.
+     *
+     * A failure after an expired lockout starts a fresh count, so one typo does not re-lock the account.
+     */
+    public function withFailedAttempt(int $now, int $maxAttempts, int $lockoutSeconds): self
     {
-        return $this->with(failedAttempts: $failedAttempts, lockedUntil: $lockedUntil);
+        $attempts = ($this->lockedUntil !== null && !$this->isLocked($now) ? 0 : $this->failedAttempts) + 1;
+
+        return $this->with(failedAttempts: $attempts, lockedUntil: $attempts >= $maxAttempts ? $now + $lockoutSeconds : null);
     }
 
     public function withoutLockout(): self
     {
-        return $this->withFailedAttempts(0, null);
+        return $this->with(failedAttempts: 0, lockedUntil: null);
     }
 
     /** Stores only the token's hash, so a leaked users.json cannot be replayed as a cookie. */
@@ -120,21 +127,18 @@ final readonly class User
         return $this->with(rememberTokenHash: null, rememberExpires: null);
     }
 
-    /** Accounts created before revision-based sessions get a revision on their next sign-in. */
-    public function withBackfilledAuthRevision(): self
-    {
-        return $this->authRevision === null ? $this->with(authRevision: self::newAuthRevision()) : $this;
-    }
-
     /** Invalidate every existing session and remember-me cookie for this account. */
     public function withSessionsRevoked(): self
     {
         return $this->with(authRevision: self::newAuthRevision())->withoutRememberToken();
     }
 
+    /** Copy with some constructor arguments replaced; relies on every property being promoted. */
     private function with(mixed ...$changes): self
     {
-        return new self(...[...get_object_vars($this), ...$changes]);
+        $args = array_replace(get_object_vars($this), $changes);
+
+        return new self(...$args);
     }
 
     private static function newAuthRevision(): string

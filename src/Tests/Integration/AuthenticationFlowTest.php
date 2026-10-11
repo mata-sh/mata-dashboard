@@ -334,7 +334,7 @@ class AuthenticationFlowTest extends TestCase
         $this->assertTrue($this->requestAuth($adminSession)->check(), 'An unrelated account stays authenticated');
         $resetUser = $this->storedUser('operator');
         $this->assertNotSame($oldSession['user']['auth_revision'], $resetUser['auth_revision']);
-        $this->assertArrayNotHasKey('remember_token', $resetUser);
+        $this->assertArrayNotHasKey('remember_token_hash', $resetUser);
         $this->assertArrayNotHasKey('remember_expires', $resetUser);
 
         $this->assertUnauthenticated($this->requestAuth($oldSession, $oldCookie));
@@ -352,7 +352,7 @@ class AuthenticationFlowTest extends TestCase
         $remembered = $this->requestAuth([], $freshCookie);
         $this->assertTrue($remembered->check());
         $this->assertSame($freshUser['auth_revision'], Session::get('user')['auth_revision']);
-        $this->assertNotSame($freshUser['remember_token'], $this->storedUser('operator')['remember_token']);
+        $this->assertNotSame($freshUser['remember_token_hash'], $this->storedUser('operator')['remember_token_hash']);
         $this->assertTrue($this->requestAuth($adminSession)->hasRole('admin'));
     }
 
@@ -366,7 +366,7 @@ class AuthenticationFlowTest extends TestCase
         $this->administrator()->changeRole('operator', 'viewer');
         $demoted = $this->storedUser('operator');
         $this->assertNotSame($adminOperatorSession['user']['auth_revision'], $demoted['auth_revision']);
-        $this->assertArrayNotHasKey('remember_token', $demoted);
+        $this->assertArrayNotHasKey('remember_token_hash', $demoted);
         $this->assertArrayNotHasKey('remember_expires', $demoted);
         $this->assertUnauthenticated($this->requestAuth($adminOperatorSession));
         $this->assertUnauthenticated($this->requestAuth([], $adminOperatorCookie));
@@ -429,7 +429,7 @@ class AuthenticationFlowTest extends TestCase
         $users = json_decode(file_get_contents($usersFile), true);
         foreach ($users as &$user) {
             if ($user['username'] === $username) {
-                $user['remember_token'] = hash('sha256', $token);
+                $user['remember_token_hash'] = hash('sha256', $token);
                 $user['remember_expires'] = time() + 3600;
             }
         }

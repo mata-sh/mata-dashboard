@@ -58,9 +58,7 @@ class UserAuthenticator
                     return null;
                 }
 
-                return $user
-                    ->withBackfilledAuthRevision()
-                    ->withRememberToken($rotatedToken, time() + self::REMEMBER_LIFETIME_SECONDS);
+                return $user->withRememberToken($rotatedToken, time() + self::REMEMBER_LIFETIME_SECONDS);
             });
         } catch (RuntimeException $e) {
             $this->logger->warning('Remember-me sign-in skipped', ['username' => $username, 'error' => $e->getMessage()]);
@@ -168,7 +166,7 @@ class UserAuthenticator
                 return null;
             }
 
-            $current = $current->withoutLockout()->withBackfilledAuthRevision();
+            $current = $current->withoutLockout();
             if ($rehash !== null) {
                 $current = $current->withPasswordHash($rehash);
             }
@@ -193,13 +191,10 @@ class UserAuthenticator
 
     private function recordFailedAttempt(string $username): void
     {
-        $this->users->updateUser($username, static function (User $user): User {
-            $now = time();
-            // A failure after an expired lockout starts a fresh window.
-            $attempts = ($user->lockedUntil !== null && !$user->isLocked($now) ? 0 : $user->failedAttempts) + 1;
-
-            return $user->withFailedAttempts($attempts, $attempts >= self::MAX_ATTEMPTS ? $now + self::LOCKOUT_SECONDS : null);
-        });
+        $this->users->updateUser(
+            $username,
+            static fn (User $user): User => $user->withFailedAttempt(time(), self::MAX_ATTEMPTS, self::LOCKOUT_SECONDS),
+        );
     }
 
     /** The stored account the session belongs to, if its auth revision is still current. */
@@ -213,7 +208,7 @@ class UserAuthenticator
         $user = $this->users->find($sessionUser['username']);
         $revision = $sessionUser['auth_revision'] ?? null;
 
-        return $user?->authRevision !== null && is_string($revision) && hash_equals($user->authRevision, $revision) ? $user : null;
+        return $user !== null && is_string($revision) && hash_equals($user->authRevision, $revision) ? $user : null;
     }
 
     private function startSession(string $username): void
@@ -232,7 +227,7 @@ class UserAuthenticator
             'username' => $user->username,
             'role' => $user->role,
             'id' => $user->id,
-            'auth_revision' => $user->authRevision ?? throw new RuntimeException("User has no auth revision: {$user->username}"),
+            'auth_revision' => $user->authRevision,
         ];
     }
 

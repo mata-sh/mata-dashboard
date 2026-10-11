@@ -12,7 +12,9 @@ use RuntimeException;
  * Accounts stored in users.json.
  *
  * Writes go through update(), which re-reads the file under an exclusive lock and replaces it atomically,
- * so concurrent requests never overwrite each other's changes.
+ * so concurrent requests never overwrite each other's changes. Reads take no lock: the atomic replace means
+ * a reader always sees a complete file, and any snapshot is stale once loaded anyway, so a change that
+ * depends on current state must re-check it inside update().
  */
 final class UserRepository
 {
@@ -28,18 +30,16 @@ final class UserRepository
      */
     public static function open(string $usersFile): self
     {
-        $repository = new self($usersFile);
         if (!file_exists($usersFile)) {
             throw new RuntimeException("Users file not found: {$usersFile}");
         }
+        $perms = fileperms($usersFile);
+        if ($perms !== false && ($perms & 0o077) !== 0) {
+            throw new RuntimeException("Users file has insecure permissions. Run: chmod 600 {$usersFile}");
+        }
 
-        $repository->withLock(LOCK_SH, function () use ($repository): void {
-            $perms = fileperms($repository->usersFile);
-            if ($perms !== false && ($perms & 0o077) !== 0) {
-                throw new RuntimeException("Users file has insecure permissions. Run: chmod 600 {$repository->usersFile}");
-            }
-            $repository->users = $repository->read();
-        });
+        $repository = new self($usersFile);
+        $repository->users = $repository->read();
 
         return $repository;
     }
@@ -54,9 +54,7 @@ final class UserRepository
     {
         $repository = new self($usersFile);
         if (file_exists($usersFile)) {
-            $repository->withLock(LOCK_SH, function () use ($repository): void {
-                $repository->users = $repository->read();
-            });
+            $repository->users = $repository->read();
         }
 
         return $repository;
@@ -94,7 +92,7 @@ final class UserRepository
             );
         }
 
-        return $this->withLock(LOCK_EX, function () use ($change): bool {
+        return $this->withExclusiveLock(function () use ($change): bool {
             $this->users = file_exists($this->usersFile) ? $this->read() : [];
 
             $changed = $change($this->users);
@@ -156,8 +154,12 @@ final class UserRepository
 
         $users = [];
         foreach ($records as $index => $record) {
+            if (!is_array($record)) {
+                throw new RuntimeException("Invalid users file: entry {$index}: expected an object");
+            }
+
             try {
-                $user = User::fromArray(is_array($record) ? $record : []);
+                $user = User::fromArray($record);
             } catch (InvalidArgumentException $e) {
                 throw new RuntimeException("Invalid users file: entry {$index}: {$e->getMessage()}", 0, $e);
             }
@@ -175,7 +177,7 @@ final class UserRepository
     private function write(array $users): void
     {
         $records = array_map(static fn (User $user): array => $user->toArray(), array_values($users));
-        $encoded = json_encode($records, JSON_PRETTY_PRINT | JSON_THROW_ON_ERROR);
+        $encoded = json_encode($records, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR);
 
         $directory = dirname($this->usersFile);
         $temp = tempnam($directory, basename($this->usersFile) . '.');
@@ -200,40 +202,35 @@ final class UserRepository
                 @unlink($temp);
             }
         }
-
-        if (!chmod($this->usersFile, 0600)) {
-            throw new RuntimeException("Failed to secure users file: {$this->usersFile}");
-        }
     }
 
     /**
-     * Run a callback while holding a lock on the users file's companion lock file.
+     * Run a callback while holding an exclusive lock on the users file's companion lock file.
      *
      * Locks are not reentrant: flock() on a second handle in the same process blocks.
      *
      * @template T
      *
-     * @param LOCK_EX|LOCK_SH $lockType
-     * @param callable(): T   $callback
+     * @param callable(): T $callback
      *
      * @return T
      */
-    private function withLock(int $lockType, callable $callback): mixed
+    private function withExclusiveLock(callable $callback): mixed
     {
         $lockFile = $this->usersFile . '.lock';
+        $created = !file_exists($lockFile);
         $handle = fopen($lockFile, 'c');
         if ($handle === false) {
             throw new RuntimeException("Failed to open users lock file: {$lockFile}");
         }
 
         try {
-            if (!chmod($lockFile, 0600)) {
+            // Only the owner may chmod, so an existing lock file shared with another account is left as is.
+            if ($created && !chmod($lockFile, 0600)) {
                 throw new RuntimeException("Failed to secure users lock file: {$lockFile}");
             }
-            if (!flock($handle, $lockType)) {
-                $mode = $lockType === LOCK_SH ? 'reading' : 'writing';
-
-                throw new RuntimeException("Failed to lock users file for {$mode}: {$this->usersFile}");
+            if (!flock($handle, LOCK_EX)) {
+                throw new RuntimeException("Failed to lock users file: {$this->usersFile}");
             }
 
             return $callback();

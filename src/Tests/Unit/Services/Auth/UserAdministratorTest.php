@@ -155,7 +155,7 @@ class UserAdministratorTest extends TestCase
         $this->assertTrue(password_verify('replacement', $after['password_hash']));
         $this->assertSame(0, $after['failed_attempts']);
         $this->assertArrayNotHasKey('locked_until', $after);
-        $this->assertArrayNotHasKey('remember_token', $after);
+        $this->assertArrayNotHasKey('remember_token_hash', $after);
         $this->assertNotSame($before['auth_revision'], $after['auth_revision']);
     }
 
@@ -257,7 +257,7 @@ class UserAdministratorTest extends TestCase
             ...$user,
             'failed_attempts' => 5,
             'locked_until' => time() + 900,
-            'remember_token' => hash('sha256', 'token'),
+            'remember_token_hash' => hash('sha256', 'token'),
             'remember_expires' => time() + 3600,
         ]);
     }

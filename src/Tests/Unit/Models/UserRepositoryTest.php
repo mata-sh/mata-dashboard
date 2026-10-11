@@ -92,6 +92,25 @@ class UserRepositoryTest extends TestCase
         $this->assertSame(0o600, fileperms($this->usersFile) & 0o777, 'The next write repairs the permissions');
     }
 
+    public function testOnlyWritesTakeTheLock(): void
+    {
+        $users = UserRepository::open($this->usersFile);
+        $this->assertFileDoesNotExist($this->usersFile . '.lock');
+
+        $users->updateUser('admin', static fn (User $user): User => $user->withRole('viewer'));
+        $this->assertSame(0o600, fileperms($this->usersFile . '.lock') & 0o777);
+    }
+
+    public function testItLeavesAnExistingLockFilesPermissions(): void
+    {
+        touch($this->usersFile . '.lock');
+        chmod($this->usersFile . '.lock', 0o660);
+
+        UserRepository::open($this->usersFile)->updateUser('admin', static fn (User $user): User => $user->withRole('viewer'));
+
+        $this->assertSame(0o660, fileperms($this->usersFile . '.lock') & 0o777);
+    }
+
     #[DataProvider('invalidFiles')]
     public function testItRejectsInvalidFiles(string $content, string $message): void
     {
@@ -111,8 +130,9 @@ class UserRepositoryTest extends TestCase
         return [
             'corrupt JSON' => ['{ invalid json !!!', 'Invalid JSON in users file'],
             'object' => ['{"admin": {}}', 'expected a list of users'],
-            'scalar entry' => ['[1]', 'entry 0: "id" must be a non-empty string'],
+            'scalar entry' => ['[1]', 'entry 0: expected an object'],
             'missing password hash' => [json_encode([['id' => 'u1', 'username' => 'admin', 'role' => 'admin']]), 'entry 0: "password_hash"'],
+            'missing auth revision' => [json_encode([array_diff_key($valid, ['auth_revision' => true])]), 'entry 0: "auth_revision"'],
             'string lockout' => [json_encode([[...$valid, 'locked_until' => '123']]), '"locked_until" must be an integer'],
         ];
     }

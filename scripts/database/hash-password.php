@@ -33,4 +33,4 @@ echo json_encode([
     'auth_revision' => bin2hex(random_bytes(32)),
     'role' => 'admin',
     'created_at' => date('c'),
-], JSON_PRETTY_PRINT) . "\n";
+], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES) . "\n";
