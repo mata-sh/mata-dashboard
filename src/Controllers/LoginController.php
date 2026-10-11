@@ -54,6 +54,7 @@ class LoginController
             'ui' => [
                 'main_logo' => $this->tools->icon('sea-turtle-bl', 150),
             ],
+            'demo_login' => $this->demoLogin(),
         ];
 
         echo $this->twig->render('pages/login.html.twig', $data);
@@ -99,7 +100,25 @@ class LoginController
                 'main_logo' => $this->tools->icon('sea-turtle-bl', 150),
                 'login_error_message' => $errorMessage,
             ],
+            'demo_login' => $this->demoLogin(),
         ]);
+    }
+
+    /**
+     * Public demo credentials to show and prefill, only on a demo instance with both configured.
+     *
+     * @return null|array{username: string, password: string}
+     */
+    private function demoLogin(): ?array
+    {
+        $demo = $this->app->config->demo;
+        if ($this->app->config->environment->env !== 'demo'
+            || $demo->loginUsername === null
+            || $demo->loginPassword === null) {
+            return null;
+        }
+
+        return ['username' => $demo->loginUsername, 'password' => $demo->loginPassword];
     }
 
     /**

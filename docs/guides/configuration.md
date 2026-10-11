@@ -78,6 +78,10 @@ In `demo`, nodes are simulated. Set `DEMO_SEED` to a non-negative integer to
 make the generated data repeat across requests, for example when taking
 screenshots.
 
+For a public demo, set `DEMO_LOGIN_USERNAME` and `DEMO_LOGIN_PASSWORD` to an
+account created with `make users-create`. The login page then shows these
+credentials and prefills the form. Both are ignored outside `demo`.
+
 !!! info "Required environment values"
     Configuration loading requires `DB_HOST`, `DB_PORT`, `DB_DATABASE`,
     `DB_USERNAME`, and `DB_PASSWORD`. Validation also requires `DOMAIN` and

@@ -1701,6 +1701,16 @@ svg {
     text-align: center;
 }
 
+.login-demo {
+    margin: 4px 0 8px;
+    text-align: center;
+    color: #b5b5b5;
+}
+
+.login-demo strong {
+    color: #fff;
+}
+
 .login-button {
     background-color: #31ad3f;
 }

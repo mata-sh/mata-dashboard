@@ -103,6 +103,8 @@ final class EnvConfigLoader
 
         return new DemoConfig(
             seed: $seed === null ? null : ConfigValueValidator::integerString($seed, 'env.DEMO_SEED', minimum: 0),
+            loginUsername: $this->normalizeOptionalEnvValue($this->getEnv('DEMO_LOGIN_USERNAME')),
+            loginPassword: $this->normalizeOptionalEnvValue($this->getEnv('DEMO_LOGIN_PASSWORD')),
         );
     }
 

@@ -9,6 +9,7 @@ use Mata\Config\Dto\ApplicationConfig;
 use Mata\Config\Dto\CliSecurityConfig;
 use Mata\Config\Dto\DashboardConfig;
 use Mata\Config\Dto\DatabaseConfig;
+use Mata\Config\Dto\DemoConfig;
 use Mata\Config\Dto\EnvironmentConfig;
 use Mata\Config\Dto\GeneralConfig;
 use Mata\Config\Dto\LoggingConfig;
@@ -45,6 +46,7 @@ class ApplicationConfigFactory
         ?RateLimitingConfig $rateLimiting = null,
         ?AlarmDecisionConfig $alarmDecision = null,
         ?NodeApiConfig $nodeApi = null,
+        ?DemoConfig $demo = null,
     ): ApplicationConfig {
         return new ApplicationConfig(
             environment: $environment ?? self::createEnvironmentConfig(),
@@ -59,6 +61,7 @@ class ApplicationConfigFactory
             rateLimiting: $rateLimiting ?? self::createRateLimitingConfig(),
             alarmDecision: $alarmDecision ?? self::createAlarmDecisionConfig(),
             nodeApi: $nodeApi ?? self::createNodeApiConfig(),
+            demo: $demo ?? new DemoConfig(),
         );
     }
 

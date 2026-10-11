@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Mata\Tests\Unit\Controllers;
 
+use Mata\Config\Dto\DemoConfig;
 use Mata\Controllers\LoginController;
 use Mata\Core\App;
 use Mata\Core\Session;
@@ -38,10 +39,7 @@ final class LoginControllerTest extends TestCase
         }
         $_SESSION = [];
         $this->auth = $this->createMock(UserAuthenticator::class);
-        $this->app = $this->getMockBuilder(App::class)
-            ->setConstructorArgs([$this->auth, ApplicationConfigFactory::create(), $this->createStub(PathResolver::class), new Request()])
-            ->onlyMethods(['getBaseHost', 'getFullBaseUrl', 'redirect'])
-            ->getMock();
+        $this->app = $this->appWithEnvironment('test');
         $this->tools = $this->createMock(Tools::class);
         $this->twig = $this->createMock(Environment::class);
     }
@@ -62,6 +60,25 @@ final class LoginControllerTest extends TestCase
         ob_start();
         $this->controller()->show();
         self::assertSame('<html>login form</html>', ob_get_clean());
+    }
+
+    public function testItPrefillsDemoCredentialsOnlyOnDemoInstances(): void
+    {
+        $rendered = [];
+        $this->twig->method('render')->willReturnCallback(static function (string $template, array $data) use (&$rendered): string {
+            $rendered[] = $data['demo_login'];
+
+            return '';
+        });
+
+        foreach (['demo', 'prod'] as $env) {
+            $this->app = $this->appWithEnvironment($env);
+            ob_start();
+            $this->controller()->show();
+            ob_end_clean();
+        }
+
+        self::assertSame([['username' => 'demo', 'password' => 'demo'], null], $rendered);
     }
 
     public function testItLogsInUsingNormalizedPostInputAndRegeneratesCsrf(): void
@@ -102,6 +119,19 @@ final class LoginControllerTest extends TestCase
         $this->app->expects($this->once())->method('redirect')->with('login');
 
         $this->controller()->logout();
+    }
+
+    private function appWithEnvironment(string $env): App&MockObject
+    {
+        $config = ApplicationConfigFactory::create(
+            environment: ApplicationConfigFactory::createEnvironmentConfig(env: $env),
+            demo: new DemoConfig(loginUsername: 'demo', loginPassword: 'demo'),
+        );
+
+        return $this->getMockBuilder(App::class)
+            ->setConstructorArgs([$this->auth, $config, $this->createStub(PathResolver::class), new Request()])
+            ->onlyMethods(['getBaseHost', 'getFullBaseUrl', 'redirect'])
+            ->getMock();
     }
 
     /** @param array<string,mixed> $post */
