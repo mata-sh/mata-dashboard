@@ -11,4 +11,5 @@ parameters:
         - public
         - cron
         - scripts
+        - bin/mata
     treatPhpDocTypesAsCertain: false

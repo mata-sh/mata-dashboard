@@ -103,6 +103,7 @@ help:
 	@echo "$(COLOR_BOLD)START HERE$(COLOR_RESET)"
 	@echo "  $(COLOR_GREEN)make setup$(COLOR_RESET)          Guided native or Docker setup"
 	@echo "  $(COLOR_GREEN)make doctor$(COLOR_RESET)         Validate the selected installation"
+	@echo "  $(COLOR_GREEN)make config-validate$(COLOR_RESET) Validate config files (FILE=servers.json for one)"
 	@echo ""
 	@if [ -n "$(MODE)" ]; then \
 		echo "$(COLOR_BOLD)CURRENT INSTALLATION$(COLOR_RESET)"; \
@@ -478,6 +479,21 @@ else \
 	$(SELECTED_COMPOSE) exec -e APP_ENV="$(ENV)" mata-web php $(1); \
 fi
 endef
+
+# Operator CLI (bin/mata). Runs as the web server user in Docker; natively as the calling user.
+define RUN_MATA
+$(REQUIRE_SELECTION); \
+if [ "$(MODE)" = "local" ]; then \
+	$(REQUIRE_LOCAL_PHP) \
+	php bin/mata $(1); \
+else \
+	$(REQUIRE_DOCKER_MODE); $(REQUIRE_WEB_RUNNING); \
+	$(SELECTED_COMPOSE) exec -T -u www-data mata-web php bin/mata $(1); \
+fi
+endef
+
+config-validate:
+	@$(call RUN_MATA,config:validate $(FILE))
 
 db-migrate:
 	@$(call CONFIRM_PRODUCTION_WRITE,database migration); \
@@ -922,7 +938,7 @@ docker-help:
 	@echo "  $(COLOR_YELLOW)make docker-clean$(COLOR_RESET)   - Clean mata-dashboard Docker resources only"
 	@echo "  $(COLOR_RED)make docker-clean-all$(COLOR_RESET)  - System-wide Docker cleanup (ALL projects!)"
 
-.PHONY: help help-all setup setup-local doctor install-hooks setup-opa opa-install-service opa-start opa-stop opa-status opa-test opa-validate \
+.PHONY: help help-all setup setup-local doctor config-validate install-hooks setup-opa opa-install-service opa-start opa-stop opa-status opa-test opa-validate \
 	test test-coverage \
 	db-migrate db-rollback db-status db-check db-hash-password db-backup db-restore db-shell \
 	users-list users-create users-unlock users-delete users-passwd \

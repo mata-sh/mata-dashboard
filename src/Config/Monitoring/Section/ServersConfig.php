@@ -13,6 +13,9 @@ use Mata\Utils\TypeConverter;
  */
 final readonly class ServersConfig
 {
+    /** Reported for a servers.json without servers: a valid fresh install, unlike every other validation error. */
+    public const EMPTY_ERROR = 'Server configuration is empty';
+
     /** @param array<string,mixed> $values */
     private function __construct(public array $values) {}
 
@@ -46,7 +49,7 @@ final readonly class ServersConfig
     public static function validationErrors(array $raw): array
     {
         if ($raw === []) {
-            return ['Server configuration is empty'];
+            return [self::EMPTY_ERROR];
         }
 
         $errors = [];

@@ -11,6 +11,7 @@ $finder = Finder::create()
     ->name('*.php')
     ->ignoreDotFiles(true)
     ->ignoreVCS(true)
+    ->append([__DIR__ . '/bin/mata'])
 ;
 
 return (new Config())

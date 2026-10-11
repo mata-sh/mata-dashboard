@@ -116,6 +116,22 @@ repository and how many changes are uncommitted, and whether
 `servers.secrets.json` exists. It warns when `servers.json` still contains
 `api_key`.
 
+To catch a broken file before it is committed, validate the repository in a
+pre-commit hook. `--path` points the check at any directory, so it also works
+for a checkout that is not mounted as `config/`. Save this as
+`.git/hooks/pre-commit` in the configuration repository and make it executable:
+
+```sh
+#!/bin/sh
+# Block the commit on errors (exit 2); let warnings (exit 1) through.
+php /path/to/mata-dashboard/bin/mata config validate --path "$(git rev-parse --show-toplevel)"
+[ $? -lt 2 ]
+```
+
+The hook checks the working tree, not only the staged changes. The
+[configuration guide](configuration.md#validate-changes) lists what counts as
+an error.
+
 !!! info "Policies are part of the application"
     The Rego policies in `policy/` ship with the dashboard and are not part of
     your configuration. Adjust alarm behaviour through `thresholds.json`,
