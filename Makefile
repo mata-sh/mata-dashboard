@@ -173,10 +173,10 @@ setup:
 setup-local:
 	@echo "$(COLOR_BLUE)📋 Creating config files from examples...$(COLOR_RESET)"
 	@mkdir -p config/demo temp/api-cache temp/sessions temp/templates-cache logs
-	@for file in config.env db.config.env mail.config.env servers.json ttl.json thresholds.json intervals.json data_retention.json; do \
+	@for file in config.env db.config.env mail.config.env servers.json servers.secrets.json ttl.json thresholds.json intervals.json data_retention.json; do \
 		if [ ! -f "config/$$file" ]; then \
-			cp "config/example/$${file}.example" "config/$$file"; \
-			case "$$file" in *.env|servers.json) chmod 600 "config/$$file" ;; *) chmod 644 "config/$$file" ;; esac; \
+			cp "config.example/$${file}.example" "config/$$file"; \
+			case "$$file" in *.env|servers.secrets.json) chmod 600 "config/$$file" ;; *) chmod 644 "config/$$file" ;; esac; \
 			echo "$(COLOR_GREEN)✅ Created config/$$file$(COLOR_RESET)"; \
 		else \
 			echo "$(COLOR_YELLOW)⚠️  config/$$file already exists, skipping$(COLOR_RESET)"; \
@@ -275,8 +275,19 @@ doctor:
 		else echo "$(COLOR_RED)  ✗ .env missing$(COLOR_RESET)"; failed=1; fi; \
 	fi; \
 	for dir in config logs temp; do \
-		if [ -d "$$dir" ]; then owner=$$(stat -c '%U:%G' "$$dir" 2>/dev/null || stat -f '%Su:%Sg' "$$dir" 2>/dev/null || echo unknown); echo "$(COLOR_GREEN)  ✓ $$dir ($$owner)$(COLOR_RESET)"; else echo "$(COLOR_RED)  ✗ $$dir missing$(COLOR_RESET)"; failed=1; fi; \
+		if [ -d "$$dir" ]; then owner=$$(stat -L -c '%U:%G' "$$dir" 2>/dev/null || stat -L -f '%Su:%Sg' "$$dir" 2>/dev/null || echo unknown); echo "$(COLOR_GREEN)  ✓ $$dir ($$owner)$(COLOR_RESET)"; else echo "$(COLOR_RED)  ✗ $$dir missing$(COLOR_RESET)"; failed=1; fi; \
 	done; \
+	if [ -L config ]; then echo "$(COLOR_GREEN)  ✓ config → $$(CDPATH= cd -- config && pwd -P) (symlink)$(COLOR_RESET)"; fi; \
+	if [ -e config/.git ]; then \
+		if changes=$$(git -C config status --porcelain 2>/dev/null); then \
+			echo "$(COLOR_GREEN)  ✓ config is a git repository ($$(printf '%s' "$$changes" | grep -c .) uncommitted changes)$(COLOR_RESET)"; \
+		else echo "$(COLOR_YELLOW)  ! config is a git repository that git cannot read as $$(id -un); check its owner or safe.directory$(COLOR_RESET)"; fi; \
+	fi; \
+	if [ -f config/servers.json ]; then \
+		if [ ! -r config/servers.json ]; then echo "$(COLOR_YELLOW)  ! config/servers.json is not readable by $$(id -un); API key placement not checked$(COLOR_RESET)"; \
+		elif grep -q '"api_key"[[:space:]]*:' config/servers.json; then echo "$(COLOR_YELLOW)  ! config/servers.json contains api_key; servers keeping it there are rejected, move their keys to config/servers.secrets.json$(COLOR_RESET)"; fi; \
+		if [ -f config/servers.secrets.json ]; then echo "$(COLOR_GREEN)  ✓ config/servers.secrets.json$(COLOR_RESET)"; else echo "$(COLOR_RED)  ✗ config/servers.secrets.json missing$(COLOR_RESET)"; failed=1; fi; \
+	fi; \
 	exit $$failed
 
 # Install Composer dependencies and git hooks
@@ -404,7 +415,7 @@ opa-validate:
 	fi; \
 	status=0; \
 	for pair in $(POLICY_VALIDATE_PAIRS); do \
-		file="config/example/$${pair%%:*}.json.example"; \
+		file="config.example/$${pair%%:*}.json.example"; \
 		ns="$${pair#*:}"; \
 		echo "$(COLOR_BLUE)opa: $$file ($$ns)$(COLOR_RESET)"; \
 		result=$$($$OPA eval --format raw --data policy --input "$$file" "data.$$ns.deny") || { status=1; continue; }; \
@@ -625,10 +636,10 @@ docker-init:
 		docker run --rm -v "$(CURDIR)/config:/mata/config" -v "$(CURDIR)/temp:/mata/temp" -v "$(CURDIR)/logs:/mata/logs" php:8.3-apache \
 			sh -c 'mkdir -p /mata/config/demo /mata/temp/api-cache /mata/temp/sessions /mata/temp/templates-cache /mata/logs'; \
 	fi; \
-	for file in config.env db.config.env mail.config.env servers.json ttl.json thresholds.json intervals.json data_retention.json; do \
+	for file in config.env db.config.env mail.config.env servers.json servers.secrets.json ttl.json thresholds.json intervals.json data_retention.json; do \
 		if [ ! -f "config/$$file" ]; then \
-			if cp "config/example/$${file}.example" "config/$$file" 2>/dev/null; then case "$$file" in *.env|servers.json) chmod 600 "config/$$file" ;; *) chmod 644 "config/$$file" ;; esac; \
-			else docker run --rm -v "$(CURDIR)/config:/mata/config" php:8.3-apache sh -c "cp /mata/config/example/$${file}.example /mata/config/$$file && chown $$(id -u):$$(id -g) /mata/config/$$file && case '$$file' in *.env|servers.json) chmod 600 /mata/config/$$file ;; *) chmod 644 /mata/config/$$file ;; esac"; fi; \
+			if cp "config.example/$${file}.example" "config/$$file" 2>/dev/null; then case "$$file" in *.env|servers.secrets.json) chmod 600 "config/$$file" ;; *) chmod 644 "config/$$file" ;; esac; \
+			else docker run --rm -v "$(CURDIR)/config:/mata/config" -v "$(CURDIR)/config.example:/mata/config.example:ro" php:8.3-apache sh -c "cp /mata/config.example/$${file}.example /mata/config/$$file && chown $$(id -u):$$(id -g) /mata/config/$$file && case '$$file' in *.env|servers.secrets.json) chmod 600 /mata/config/$$file ;; *) chmod 644 /mata/config/$$file ;; esac"; fi; \
 			echo "$(COLOR_GREEN)✅ Created config/$$file$(COLOR_RESET)"; \
 		fi; \
 	done; \

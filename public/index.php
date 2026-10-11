@@ -119,8 +119,8 @@ $errorAssetBaseUrl = rtrim($request->scriptDirectory(), '/') . '/assets';
 // ************************************************************************************************
 try {
     $initResult = (new EnvConfigManager(
-        configDir: $paths->appPath . '/config',
-        exampleDir: $paths->appPath . '/config/example',
+        configDir: $paths->configPath,
+        exampleDir: $paths->configExamplePath,
         requiredFiles: [
             'config.env',
             'db.config.env',
@@ -223,7 +223,7 @@ if ($appConfig->template->debugEnabled) {
 $usersFilePath = null;
 
 try {
-    $usersFilePath = UsersFilePathResolver::resolve($paths->appPath);
+    $usersFilePath = UsersFilePathResolver::resolve($paths);
     $auth = new UserAuthenticator(UserRepository::open($usersFilePath), $log, $request->isSecure());
     $auth->resumeFromRememberCookie($request->cookie(UserAuthenticator::REMEMBER_COOKIE));
 } catch (Throwable $e) {
@@ -313,7 +313,7 @@ $eventManager = new EventManager($appConfig, eventRecorder: $eventRecorder, logg
 // --- Limits & Locking ---
 $queueFailureThrottle = new AlarmQueueFailureThrottle($paths->tempPath . '/alarm-locks', $log);
 $limitsLoader = new AlarmRateLimitsConfigLoader($eventManager);
-$limitsConfig = $limitsLoader->load($paths->appPath . '/config');
+$limitsConfig = $limitsLoader->load($paths->configPath);
 
 // --- Alarm Manager ---
 $alarmDirectProcessor = new AlarmDirectProcessor($alarmCreator, $limitsConfig, $queueFailureThrottle, $log);
@@ -326,7 +326,7 @@ $dashboardEnvironmentFactory = new DashboardEnvironmentFactory(
     $alarmRepository,
     $idResolver,
     $log,
-    $paths->appPath . '/config/demo/events.json',
+    $paths->getConfigPath('demo/events.json'),
 );
 $eventAggregator = $dashboardEnvironmentFactory->createEventAggregator();
 $eventManager->setEventAggregator($eventAggregator);
@@ -380,7 +380,7 @@ $monitoringConfigLoader = new MonitoringConfigLoader(
     ),
 );
 
-$configPath = $paths->appPath . '/config';
+$configPath = $paths->configPath;
 $log->info("Loading monitoring configuration for environment: {$environment}");
 $monitoringConfig = $monitoringConfigLoader->load($configPath, $limitsConfig);
 $eventManager->setMonitoringConfig($monitoringConfig);

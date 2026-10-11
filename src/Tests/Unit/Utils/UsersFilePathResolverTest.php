@@ -6,6 +6,7 @@ namespace Mata\Tests\Unit\Utils;
 
 use InvalidArgumentException;
 use Mata\Tests\TestCase;
+use Mata\Utils\PathResolver;
 use Mata\Utils\UsersFilePathResolver;
 
 /**
@@ -46,7 +47,7 @@ class UsersFilePathResolverTest extends TestCase
     {
         $this->assertSame(
             $this->tempDir . '/app/config/users.json',
-            UsersFilePathResolver::resolve($this->tempDir . '/app')
+            UsersFilePathResolver::resolve($this->paths())
         );
     }
 
@@ -55,7 +56,7 @@ class UsersFilePathResolverTest extends TestCase
         $usersFile = $this->tempDir . '/data/users.json';
         $this->setUsersFile($usersFile);
 
-        $this->assertSame($usersFile, UsersFilePathResolver::resolve($this->tempDir . '/app'));
+        $this->assertSame($usersFile, UsersFilePathResolver::resolve($this->paths()));
     }
 
     public function testItRejectsRelativeConfiguredPath(): void
@@ -65,7 +66,7 @@ class UsersFilePathResolverTest extends TestCase
         $this->expectException(InvalidArgumentException::class);
         $this->expectExceptionMessage('must be an absolute path');
 
-        UsersFilePathResolver::resolve($this->tempDir . '/app');
+        UsersFilePathResolver::resolve($this->paths());
     }
 
     public function testItRejectsConfiguredPathInsideApplicationDirectory(): void
@@ -75,7 +76,7 @@ class UsersFilePathResolverTest extends TestCase
         $this->expectException(InvalidArgumentException::class);
         $this->expectExceptionMessage('must be outside the application directory');
 
-        UsersFilePathResolver::resolve($this->tempDir . '/app');
+        UsersFilePathResolver::resolve($this->paths());
     }
 
     public function testItRejectsPathInNonexistentDirectoryInsideApplicationDirectory(): void
@@ -85,7 +86,12 @@ class UsersFilePathResolverTest extends TestCase
         $this->expectException(InvalidArgumentException::class);
         $this->expectExceptionMessage('must be outside the application directory');
 
-        UsersFilePathResolver::resolve($this->tempDir . '/app');
+        UsersFilePathResolver::resolve($this->paths());
+    }
+
+    private function paths(): PathResolver
+    {
+        return PathResolver::fromAppPath($this->tempDir . '/app');
     }
 
     private function setUsersFile(?string $value): void

@@ -93,7 +93,7 @@ try {
 
     try {
         $usersFileMonitor = new UsersFileMonitor(
-            UsersFilePathResolver::resolve($paths->appPath),
+            UsersFilePathResolver::resolve($paths),
             $paths->tempPath . '/users-file-monitor.json',
             $eventManager,
             $log,

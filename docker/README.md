@@ -7,7 +7,7 @@ The Compose stack runs the dashboard with Apache/PHP, MySQL, and OPA:
 - `mata-opa` evaluates alarm decisions from the read-only `policy/` mount.
 
 MATA Node is a separate project. Run it on each monitored host and register it
-in the dashboard's `config/servers.json`.
+in the dashboard's `config/servers.json`, with its key in `config/servers.secrets.json`.
 
 ## Files
 
@@ -100,7 +100,7 @@ migrations unless `RUN_MIGRATIONS=no` is set.
 
 Production mounts:
 
-- `config/` read-only;
+- `config/` read-only (it may be a symlink to a separate configuration repository);
 - `logs/` writable for application and cron logs;
 - `temp/` writable for cache and runtime state;
 - a persistent MySQL data directory from `DATA_PATH`.

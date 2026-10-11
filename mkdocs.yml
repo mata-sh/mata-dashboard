@@ -32,6 +32,7 @@ nav:
 
   - Guides:
       - Configuration: guides/configuration.md
+      - Version your config: guides/version-config.md
       - Monitoring: guides/monitoring.md
       - Application error monitoring: guides/application-error-monitoring.md
       - User management CLI: guides/user-management.md

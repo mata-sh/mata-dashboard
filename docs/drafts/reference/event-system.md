@@ -393,7 +393,7 @@ Configuration file failed validation.
 {
     "config_file": "config/servers.json",
     "validation_errors": [
-        "Server 'prod-server' missing required field 'api_key'",
+        "Server 'prod-server' has no api_key in servers.secrets.json",
         "Invalid primary_color format for server 'dev-server'"
     ]
 }

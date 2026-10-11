@@ -33,8 +33,8 @@ docs/_drafts
 docs/plan
 docs/plans/
 docs/node/
-config/*.json
-config/demo/*.json
+# instance configuration (directory or symlink); templates live in config.example/
+/config
 
 # instance branding (seeded from public/assets/branding/ on first run)
 public/branding/*

@@ -39,7 +39,7 @@ Cron runs as `www-data` in Docker. Shared-hosting installations can use the
 
 `servers_metrics_collect.php` skips configuration keys beginning with `_` and
 servers with `disabled` set to `true`. Each remaining server needs `api_url`
-and `api_key` in its server configuration.
+in `servers.json` and its `api_key` in `servers.secrets.json`.
 
 Cron has a restricted environment. Container startup writes only the required
 `DB_*` values to `/etc/mata/cron.env`; each cron command sources it before PHP
@@ -171,7 +171,7 @@ Aggregation logs to `logs/cron/app-servers-metrics-aggregate.log` and writes
 
 Aggregation does not delete data. `cron/retention_cleanup.php` owns deletion.
 Settings are in the active `data_retention.json`; the example is
-[`config/example/data_retention.json.example`](https://github.com/mata-sh/mata-dashboard/blob/main/config/example/data_retention.json.example).
+[`config.example/data_retention.json.example`](https://github.com/mata-sh/mata-dashboard/blob/main/config.example/data_retention.json.example).
 
 Default retention:
 

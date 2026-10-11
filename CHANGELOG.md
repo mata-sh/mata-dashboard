@@ -9,11 +9,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `DEMO_SEED` makes the generated demo data repeatable
 - A summary bar above the server grid counts servers and apps by state and totals what needs attention; click a count to show only those, or filter cards by server or application name.
 - Server cards reload from the cache every `DASHBOARD_AUTO_REFRESH_SECONDS` (default 60, `0` turns it off); viewers can pause it in the summary bar
+- `make doctor` shows where `config/` points when it is a symlink, whether it is a Git repository, and whether `config/servers.secrets.json` exists. The new "Version your config" guide covers keeping `config/` in its own repository
 
 ### Changed
 - Documentation is published at https://docs.mata.sh
 - The demo shows a mostly healthy fleet with a single incident instead of every failure state at once, with every app reachable, and uses shorter app names so rows no longer truncate
 - The server grid adapts to the screen width: `DASHBOARD_SERVER_COLUMNS` is now a maximum (default 4) and `DASHBOARD_CONTAINER_WIDTH` defaults to 2560.
+- Node API keys move from `config/servers.json` to `config/servers.secrets.json`, keyed by the same server name, so `servers.json` holds no credentials. A server that still sets `api_key` in `servers.json` is rejected. **Action:** move every `api_key` to `config/servers.secrets.json` (see `config.example/servers.secrets.json.example`) and `chmod 600` it
+- The application repository ignores all of `config/`, so it can be its own Git repository or a symlink to one. Templates moved from `config/example/` to `config.example/`.
+- The development container no longer changes the owner or mode of `config/` on start. **Action:** if Git reports dubious ownership in `config/`, run `sudo chown -R "$(id -un)" config/` once
+
+### Removed
+- `config/phinx.php`, which `make db-migrate` never used. **Action:** run migrations with `make db-migrate`, `db-rollback`, and `db-status` (or `php scripts/database/migrate.php`) instead.
 
 ### Fixed
 - The users-file error page links to the users-file setup guide instead of a missing page

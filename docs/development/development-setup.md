@@ -35,7 +35,7 @@ make setup
 ```
 
 Choose `local` or `docker`, then `dev`, `demo`, or `prod`. Development setup
-creates missing files from `config/example/`. It does not install static default
+creates missing files from `config.example/`. It does not install static default
 credentials. Create the first user when setup offers it, or run:
 
 ```bash

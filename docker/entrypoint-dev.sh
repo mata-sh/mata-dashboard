@@ -15,15 +15,19 @@ mkdir -p \
     /var/www/html/config \
     /var/www/html/public/branding
 
-# Copy config files from examples if they don't exist
+# Copy config files from examples if they don't exist.
+# config/ belongs to the host user and may be a git repository, so files created here
+# get the directory's owner instead of root, and config/ is never re-owned below.
 echo "📋 Checking for config files..."
+config_owner=$(stat -c '%u:%g' /var/www/html/config)
 for file in config.env db.config.env mail.config.env; do
     if [ ! -f "/var/www/html/config/$file" ]; then
-        if [ -f "/var/www/html/config/example/${file}.example" ]; then
-            cp "/var/www/html/config/example/${file}.example" "/var/www/html/config/$file"
+        if [ -f "/var/www/html/config.example/${file}.example" ]; then
+            cp "/var/www/html/config.example/${file}.example" "/var/www/html/config/$file"
+            chown "$config_owner" "/var/www/html/config/$file"
             echo "✅ Created config/$file from example"
         else
-            echo "⚠️  Warning: config/example/${file}.example not found"
+            echo "⚠️  Warning: config.example/${file}.example not found"
         fi
     fi
 done
@@ -36,14 +40,15 @@ echo "📁 Fixing permissions for mounted source code..."
 # Make all files readable by www-data (keep host user as owner for editing)
 chmod -R a+rX /var/www/html
 
-# Fix ownership and permissions for writable directories
+# Fix ownership and permissions for writable directories.
+# config/ is read-only for the app (Docker keeps users.json on the mata_users volume).
 echo "📁 Setting up writable directories..."
-chown -R www-data:www-data /var/www/html/temp /var/www/html/logs /var/www/html/config /var/www/html/public/branding
+chown -R www-data:www-data /var/www/html/temp /var/www/html/logs /var/www/html/public/branding
 chmod -R 770 /var/www/html/temp /var/www/html/logs
 # Keep ignored writable roots traversable so host Git/Docker tooling can stat them.
 chmod 775 /var/www/html/temp /var/www/html/logs
 [ ! -e /var/www/html/logs/.gitkeep ] || chmod 644 /var/www/html/logs/.gitkeep
-chmod -R 755 /var/www/html/config /var/www/html/public/branding
+chmod -R 755 /var/www/html/public/branding
 
 # Secure users.json files (must be 600 for security)
 echo "🔒 Securing users.json files..."

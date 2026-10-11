@@ -4,10 +4,11 @@
 declare(strict_types=1);
 
 use Mata\Config\EnvConfigLoader;
+use Mata\Utils\PathResolver;
 
 require_once __DIR__ . '/../../vendor/autoload.php';
 
-$root = dirname(__DIR__, 2);
+$paths = PathResolver::fromAppPath(dirname(__DIR__, 2));
 $operation = $argv[1] ?? '';
 $file = $argv[2] ?? null;
 
@@ -20,7 +21,7 @@ if (!in_array($operation, ['backup', 'restore', 'shell'], true)) {
 $loader = new EnvConfigLoader();
 $config = $loader->load(
     ['config.env', 'db.config.env', 'mail.config.env'],
-    $root . '/config'
+    $paths->configPath
 );
 $db = $config->database;
 
@@ -77,9 +78,9 @@ $connectionArgs = [
 
 if ($operation === 'backup') {
     $binary = findExecutable('mysqldump');
-    $destination = $file ?: $root . '/backups/backup-' . date('Ymd-His') . '.sql';
+    $destination = $file ?: $paths->appPath . '/backups/backup-' . date('Ymd-His') . '.sql';
     if (!str_starts_with($destination, DIRECTORY_SEPARATOR)) {
-        $destination = $root . '/' . ltrim($destination, './');
+        $destination = $paths->appPath . '/' . ltrim($destination, './');
     }
 
     $directory = dirname($destination);
@@ -130,7 +131,7 @@ if ($operation === 'restore') {
 
         exit(2);
     }
-    $source = str_starts_with($file, DIRECTORY_SEPARATOR) ? $file : $root . '/' . ltrim($file, './');
+    $source = str_starts_with($file, DIRECTORY_SEPARATOR) ? $file : $paths->appPath . '/' . ltrim($file, './');
     if (!is_file($source) || !is_readable($source) || filesize($source) === 0) {
         fwrite(STDERR, "ERROR: Backup must be a non-empty readable file: {$source}\n");
 

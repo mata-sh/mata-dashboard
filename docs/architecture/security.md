@@ -7,7 +7,8 @@ commands, or change monitored systems.
 ## Node authentication
 
 Each node has one shared secret. The dashboard stores it as `api_key` in
-`config/servers.json`; the node stores it as `DASHBOARD_API_KEY`.
+`config/servers.secrets.json`, separate from the versionable `config/servers.json`;
+the node stores it as `DASHBOARD_API_KEY`.
 
 Every authenticated request carries one `X-Mata-Auth` header:
 

@@ -139,7 +139,7 @@ if ($env === 'prod' && $action !== 'list') {
 }
 
 try {
-    $usersFile = UsersFilePathResolver::resolve($paths->appPath);
+    $usersFile = UsersFilePathResolver::resolve($paths);
 } catch (InvalidArgumentException $e) {
     exit("❌ Invalid MATA_USERS_FILE: {$e->getMessage()}\n");
 }

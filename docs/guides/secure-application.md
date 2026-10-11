@@ -27,7 +27,7 @@ limits rather than the old single `RATE_LIMIT_MAX_REQUESTS` setting.
 
 Put database credentials in `config/db.config.env` and mail credentials in
 `config/mail.config.env`. Use unique values for every installation and node.
-Never put real secrets in `config/example/`, documentation, or a Docker image
+Never put real secrets in `config.example/`, documentation, or a Docker image
 layer.
 
 ## Node credentials
@@ -39,8 +39,9 @@ openssl rand -hex 32
 ```
 
 Set it as `DASHBOARD_API_KEY` on the node and as `api_key` for the matching
-property in the dashboard's `config/servers.json`. The property name must also
-match `DASHBOARD_SERVER_ID` on the node.
+property in the dashboard's `config/servers.secrets.json`. The property name must
+also match the server in `config/servers.json` and `DASHBOARD_SERVER_ID` on the
+node. Keep `servers.secrets.json` out of version control.
 
 The dashboard signs requests with `X-Mata-Auth`. It does not send the shared
 secret directly. Rotate a node secret on both sides if it is exposed.

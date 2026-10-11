@@ -55,7 +55,7 @@ class EnvConfigCreator
      *
      * @param array<string> $missingFiles List of missing config file names
      * @param string        $configDir    Target configuration directory path
-     * @param string        $exampleDir   Source template directory path (default: config/example)
+     * @param string        $exampleDir   Source template directory path
      *
      * @return array<string, bool> Map of filename => success status
      *
@@ -64,12 +64,8 @@ class EnvConfigCreator
     public function createFromTemplates(
         array $missingFiles,
         string $configDir,
-        ?string $exampleDir = null
+        string $exampleDir
     ): array {
-        if ($exampleDir === null) {
-            $exampleDir = dirname($configDir) . '/config/example';
-        }
-
         if (!is_dir($exampleDir)) {
             throw new RuntimeException("Template directory does not exist: {$exampleDir}");
         }

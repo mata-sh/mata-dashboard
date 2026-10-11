@@ -13,18 +13,11 @@ logs/
 # Composer vendor directory (installed in container)
 vendor/
 
-# Environment and configuration files (copied separately)
+# Environment and instance configuration (mounted at runtime, may be its own git repo)
 .env
 .env.*
 !.env.example
-config/config.env
-config/mail.config.env
-config/mysql.mata.env
-config/db.config.env
-config/users.json
-config/*.json
-config/*/*.json
-config/.htpasswd
+config
 
 # Git files
 .git/

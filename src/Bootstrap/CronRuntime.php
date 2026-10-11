@@ -73,7 +73,7 @@ final readonly class CronRuntime
                 'config.env',
                 'db.config.env',
                 'mail.config.env',
-            ], $paths->appPath . '/config');
+            ], $paths->configPath);
             $log = $logConfigurator->createCronLogger($appConfig->logging, $paths, $jobName);
             (new MonologErrorHandler($log))
                 ->registerExceptionHandler(callPrevious: false)
