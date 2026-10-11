@@ -189,6 +189,30 @@ class EventRepository
     }
 
     /**
+     * Most recent evaluated events with their stored alarm decision trace, newest first.
+     *
+     * @return array<int,array<string,mixed>>
+     */
+    public function getRecentAlarmDecisions(?string $server = null, int $limit = 20): array
+    {
+        $limit = max(1, $limit);
+        $serverClause = $server !== null ? 'AND s.name = ?' : '';
+
+        $sql = <<<SQL
+            SELECT e.id, e.`datetime`, e.type, e.level, e.message, e.alarm_decision, s.name AS server, a.code AS app
+            FROM events AS e
+            LEFT JOIN servers AS s ON e.server_id = s.id
+            LEFT JOIN applications AS a ON e.application_id = a.id
+            WHERE e.alarm_decision IS NOT NULL
+              {$serverClause}
+            ORDER BY e.`datetime` DESC
+            LIMIT {$limit}
+        SQL;
+
+        return $this->db->runSelect($sql, $server !== null ? [$server] : []);
+    }
+
+    /**
      * Get unevaluated events for alarm decision processing.
      *
      * @param int                       $limit       Maximum number of candidates to fetch

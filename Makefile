@@ -513,6 +513,12 @@ server-test:
 server-add:
 	@$(call RUN_MATA_AS_OWNER,server:add $(ARGS))
 
+alarm-test:
+	@$(call RUN_MATA,alarm:test $(ARGS))
+
+alarm-explain:
+	@$(call RUN_MATA,alarm:explain $(ARGS))
+
 server-remove:
 	@$(call RUN_MATA_AS_OWNER,server:remove $(ARGS))
 
@@ -959,7 +965,7 @@ docker-help:
 	@echo "  $(COLOR_YELLOW)make docker-clean$(COLOR_RESET)   - Clean mata-dashboard Docker resources only"
 	@echo "  $(COLOR_RED)make docker-clean-all$(COLOR_RESET)  - System-wide Docker cleanup (ALL projects!)"
 
-.PHONY: help help-all setup setup-local doctor config-validate fleet-status server-list server-test server-add server-remove install-hooks setup-opa opa-install-service opa-start opa-stop opa-status opa-test opa-validate \
+.PHONY: help help-all setup setup-local doctor config-validate fleet-status server-list server-test server-add server-remove alarm-test alarm-explain install-hooks setup-opa opa-install-service opa-start opa-stop opa-status opa-test opa-validate \
 	test test-coverage \
 	db-migrate db-rollback db-status db-check db-hash-password db-backup db-restore db-shell \
 	users-list users-create users-unlock users-delete users-passwd \
