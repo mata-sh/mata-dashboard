@@ -4,13 +4,13 @@ declare(strict_types=1);
 
 namespace Mata\Tests\Integration;
 
-use Mata\Models\ConfigSyncRepository;
+use Mata\Models\Sync\ConfigSyncRepository;
 use Mata\Tests\Helpers\SqliteTestDatabase;
 use Mata\Tests\TestCase;
 use PDO;
 
 /**
- * @covers \Mata\Models\ConfigSyncRepository
+ * @covers \Mata\Models\Sync\ConfigSyncRepository
  *
  * @internal
  */

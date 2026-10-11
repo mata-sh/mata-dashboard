@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Mata\Tests\Unit\Services;
 
-use Mata\Models\AppFatalStateRepository;
+use Mata\Models\Monitor\AppFatalStateRepository;
 use Mata\Services\Event\Dto\EventCommand;
 use Mata\Services\Event\EventManager;
 use Mata\Services\Identity\ServerApplicationIdResolver;

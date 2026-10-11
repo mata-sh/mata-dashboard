@@ -8,7 +8,7 @@ use DateTimeImmutable;
 use Mata\Config\Dto\MailConfig;
 use Mata\Config\Monitoring\Section\AlarmRateLimit;
 use Mata\Config\Monitoring\Section\AlarmRateLimitsConfig;
-use Mata\Models\AlarmDeliveryRepository;
+use Mata\Models\Alarm\AlarmDeliveryRepository;
 use Mata\Services\Alarm\Delivery\AlarmChannelSenderInterface;
 use Mata\Services\Alarm\Delivery\AlarmDispatcher;
 use Mata\Services\Alarm\Delivery\AlarmEmailFactory;

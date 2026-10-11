@@ -6,8 +6,8 @@ namespace Mata\Tests\Unit\Services;
 
 use DateTimeImmutable;
 use Mata\Database\DatabaseInterface;
-use Mata\Models\ConfigSyncRepository;
 use Mata\Models\ServerMetrics\ServerMetricsRepository;
+use Mata\Models\Sync\ConfigSyncRepository;
 use Mata\Services\Event\Dto\EventCommand;
 use Mata\Services\Event\EventManager;
 use Mata\Services\Identity\ServerApplicationIdResolver;

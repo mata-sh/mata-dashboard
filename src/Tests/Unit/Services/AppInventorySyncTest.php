@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Mata\Tests\Unit\Services;
 
-use Mata\Models\ConfigSyncRepository;
+use Mata\Models\Sync\ConfigSyncRepository;
 use Mata\Services\Identity\ServerApplicationIdResolver;
 use Mata\Services\Sync\AppInventorySync;
 use Mata\Tests\Helpers\SqliteTestDatabase;

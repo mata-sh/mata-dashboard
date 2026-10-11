@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Mata\Services\Event;
 
-use Mata\Models\AlarmRepository;
-use Mata\Models\EventRepository;
+use Mata\Models\Alarm\AlarmRepository;
+use Mata\Models\Event\EventRepository;
 use Mata\Services\Identity\ServerApplicationIdResolver;
 
 /**

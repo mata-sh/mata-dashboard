@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace Mata\Services\Alarm;
 
 use Mata\Database\DatabaseInterface;
-use Mata\Models\AlarmDeliveryRepository;
-use Mata\Models\AlarmRepository;
+use Mata\Models\Alarm\AlarmDeliveryRepository;
+use Mata\Models\Alarm\AlarmRepository;
 use Throwable;
 
 /** Atomically creates a logical alarm and its ready-channel deliveries. */

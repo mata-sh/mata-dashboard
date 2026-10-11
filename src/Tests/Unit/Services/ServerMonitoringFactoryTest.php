@@ -7,7 +7,7 @@ namespace Mata\Tests\Unit\Services;
 use InvalidArgumentException;
 use Mata\Config\Monitoring\Section\TtlConfig;
 use Mata\Database\DatabaseInterface;
-use Mata\Models\AppFatalStateRepository;
+use Mata\Models\Monitor\AppFatalStateRepository;
 use Mata\Services\Cache\ApiCacheKeyFactory;
 use Mata\Services\Cache\CacheStoreInterface;
 use Mata\Services\Cache\CacheTtlResolver;

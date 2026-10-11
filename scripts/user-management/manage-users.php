@@ -6,7 +6,7 @@ declare(strict_types=1);
 require_once __DIR__ . '/../../vendor/autoload.php';
 
 use Mata\Bootstrap\ScriptRuntime;
-use Mata\Models\UserRepository;
+use Mata\Models\Auth\UserRepository;
 use Mata\Services\Auth\UserAdministrator;
 use Mata\Utils\UsersFilePathResolver;
 use Monolog\Formatter\LineFormatter;

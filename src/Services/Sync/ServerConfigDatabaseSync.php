@@ -8,7 +8,7 @@ use Exception;
 use Mata\Config\Monitoring\ServerConfigState;
 use Mata\Database\DatabaseInterface;
 use Mata\Database\NullDatabase;
-use Mata\Models\ConfigSyncRepository;
+use Mata\Models\Sync\ConfigSyncRepository;
 use Mata\Services\Event\Dto\EventCommand;
 use Mata\Services\Event\EventManager;
 use Monolog\Logger;

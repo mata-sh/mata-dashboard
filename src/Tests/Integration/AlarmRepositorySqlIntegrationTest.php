@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace Mata\Tests\Integration;
 
 use DateTimeImmutable;
-use Mata\Models\AlarmDeliveryRepository;
-use Mata\Models\AlarmRepository;
+use Mata\Models\Alarm\AlarmDeliveryRepository;
+use Mata\Models\Alarm\AlarmRepository;
 use Mata\Tests\Helpers\SqliteTestDatabase;
 use Mata\Tests\TestCase;
 use stdClass;
@@ -14,8 +14,8 @@ use stdClass;
 /**
  * @internal
  *
- * @covers \Mata\Models\AlarmDeliveryRepository
- * @covers \Mata\Models\AlarmRepository
+ * @covers \Mata\Models\Alarm\AlarmDeliveryRepository
+ * @covers \Mata\Models\Alarm\AlarmRepository
  */
 final class AlarmRepositorySqlIntegrationTest extends TestCase
 {

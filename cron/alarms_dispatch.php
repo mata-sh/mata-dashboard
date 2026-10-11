@@ -6,7 +6,7 @@ declare(strict_types=1);
 use Mata\Bootstrap\AlarmChannelRuntime;
 use Mata\Bootstrap\CronRuntime;
 use Mata\Config\Monitoring\Loader\AlarmRateLimitsConfigLoader;
-use Mata\Models\AlarmDeliveryRepository;
+use Mata\Models\Alarm\AlarmDeliveryRepository;
 use Mata\Services\Alarm\Delivery\AlarmDispatcher;
 use Mata\Services\Event\EventManager;
 use Mata\Services\Event\EventRecorderService;

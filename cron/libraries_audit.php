@@ -6,7 +6,7 @@ declare(strict_types=1);
 use Mata\Bootstrap\CronMonitoringRuntime;
 use Mata\Bootstrap\CronRuntime;
 use Mata\Config\Monitoring\ServerConfigState;
-use Mata\Models\AppLibraryAuditStateRepository;
+use Mata\Models\Monitor\AppLibraryAuditStateRepository;
 use Mata\Services\Cache\ApiCacheKeyFactory;
 use Mata\Services\Cache\CacheTtlResolver;
 use Mata\Services\Cache\FileCacheStore;

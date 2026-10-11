@@ -6,9 +6,9 @@ namespace Mata\Tests\Unit\Services\Runtime;
 
 use Mata\Config\Monitoring\Section\TtlConfig;
 use Mata\Database\DatabaseInterface;
-use Mata\Models\AlarmRepository;
-use Mata\Models\AppFatalStateRepository;
-use Mata\Models\EventRepository;
+use Mata\Models\Alarm\AlarmRepository;
+use Mata\Models\Event\EventRepository;
+use Mata\Models\Monitor\AppFatalStateRepository;
 use Mata\Services\Cache\ApiCacheKeyFactory;
 use Mata\Services\Cache\CacheStoreInterface;
 use Mata\Services\Cache\CacheTtlResolver;

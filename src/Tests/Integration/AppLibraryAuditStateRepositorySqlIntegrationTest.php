@@ -4,12 +4,12 @@ declare(strict_types=1);
 
 namespace Mata\Tests\Integration;
 
-use Mata\Models\AppLibraryAuditStateRepository;
+use Mata\Models\Monitor\AppLibraryAuditStateRepository;
 use Mata\Tests\Helpers\SqliteTestDatabase;
 use Mata\Tests\TestCase;
 
 /**
- * @covers \Mata\Models\AppLibraryAuditStateRepository
+ * @covers \Mata\Models\Monitor\AppLibraryAuditStateRepository
  *
  * @internal
  */

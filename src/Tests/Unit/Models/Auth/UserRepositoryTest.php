@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace Mata\Tests\Unit\Models;
+namespace Mata\Tests\Unit\Models\Auth;
 
-use Mata\Models\User;
-use Mata\Models\UserRepository;
+use Mata\Models\Auth\User;
+use Mata\Models\Auth\UserRepository;
 use Mata\Tests\Helpers\UsersFileFactory;
 use Mata\Tests\TestCase;
 use PHPUnit\Framework\Attributes\CoversClass;

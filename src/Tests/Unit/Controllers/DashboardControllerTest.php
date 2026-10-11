@@ -18,7 +18,7 @@ use Mata\Http\Request;
 use Mata\Http\Responses\HtmlResponse;
 use Mata\Http\Responses\JsonResponse;
 use Mata\Http\Routing\Endpoints;
-use Mata\Models\AppFatalStateRepository;
+use Mata\Models\Monitor\AppFatalStateRepository;
 use Mata\Services\Auth\UserAuthenticator;
 use Mata\Services\Cache\ApiCacheKeyFactory;
 use Mata\Services\Cache\CacheStoreInterface;

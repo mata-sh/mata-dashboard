@@ -5,6 +5,7 @@ Document project-specific decisions here, not syntax already visible in nearby c
 ## Boundaries
 
 - Controllers only coordinate HTTP: business rules go in services, persistence in repositories, view data in builders, Twig in renderers. Route errors through `BaseController::executeWithErrorHandling()`.
+- `Models/<Domain>/` holds persistence for `Services/<Domain>/`: `<Noun>Repository` plus the records it returns; no loose files in `Models/`.
 - Validate route parameters in `RouterSetup`, before controller dispatch.
 - Naming: `Config` = dashboard-owned startup input (`.env` or JSON); `Settings` = per-entity monitored payload values; `Policy` = derived behavior; `Context`/`Runtime` = composed collaborators. Services are `<Domain><Role>` with an agent noun (`UserAuthenticator`).
 - Config factories own defaults and validation; loaders own I/O and fallback. Distinguish `default()` from `empty()`, and expose no constructor that bypasses config invariants.

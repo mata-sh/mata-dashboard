@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Mata\Tests\Unit\Services;
 
-use Mata\Models\ConfigSyncRepository;
+use Mata\Models\Sync\ConfigSyncRepository;
 use Mata\Services\Cache\CacheType;
 use Mata\Services\Collect\ServerDataCollectorInterface;
 use Mata\Services\Cron\ServerDataFetchRunner;

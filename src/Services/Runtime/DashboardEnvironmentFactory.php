@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Mata\Services\Runtime;
 
-use Mata\Models\AlarmRepository;
-use Mata\Models\EventRepository;
+use Mata\Models\Alarm\AlarmRepository;
+use Mata\Models\Event\EventRepository;
 use Mata\Services\Event\EventAggregatorService;
 use Mata\Services\Event\EventAggregatorServiceInterface;
 use Mata\Services\Event\MockEventAggregatorService;

@@ -4,14 +4,14 @@ declare(strict_types=1);
 
 namespace Mata\Tests\Integration;
 
-use Mata\Models\EventRepository;
+use Mata\Models\Event\EventRepository;
 use Mata\Tests\Helpers\SqliteTestDatabase;
 use Mata\Tests\TestCase;
 
 /**
  * @internal
  *
- * @covers \Mata\Models\EventRepository
+ * @covers \Mata\Models\Event\EventRepository
  */
 final class EventRepositorySqlIntegrationTest extends TestCase
 {

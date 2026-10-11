@@ -7,7 +7,7 @@ namespace Mata\Tests\Integration;
 use InvalidArgumentException;
 use Mata\Config\EnvConfigLoader;
 use Mata\Core\Session;
-use Mata\Models\UserRepository;
+use Mata\Models\Auth\UserRepository;
 use Mata\Services\Auth\UserAdministrator;
 use Mata\Services\Auth\UserAuthenticator;
 use Mata\Tests\TestCase;

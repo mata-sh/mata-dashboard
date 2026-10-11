@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace Mata\Services\Auth;
 
 use Mata\Core\Session;
-use Mata\Models\User;
-use Mata\Models\UserRepository;
+use Mata\Models\Auth\User;
+use Mata\Models\Auth\UserRepository;
 use Psr\Log\LoggerInterface;
 use RuntimeException;
 

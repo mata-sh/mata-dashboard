@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Mata\Services\Identity;
 
-use Mata\Models\ConfigSyncRepository;
+use Mata\Models\Sync\ConfigSyncRepository;
 
 /**
  * Resolves server and application identifiers from human-readable names or numeric IDs.

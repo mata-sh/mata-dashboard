@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Mata\Tests\Unit\Services\Auth;
 
 use InvalidArgumentException;
-use Mata\Models\UserRepository;
+use Mata\Models\Auth\UserRepository;
 use Mata\Services\Auth\UserAdministrator;
 use Mata\Tests\Helpers\UsersFileFactory;
 use Mata\Tests\TestCase;

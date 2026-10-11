@@ -109,18 +109,26 @@ src/Services/
 
 ### Models (`src/Models/`)
 
-Data access and database interactions.
+Data access and database interactions. Each subfolder mirrors the `src/Services/<Domain>/` that uses it.
 
 ```
 src/Models/
-├── AlarmDeliveryRepository.php    # Alarm delivery data access
-├── AlarmRepository.php            # Alarm data access
-├── AppFatalState.php              # App fatal-state row model
-├── AppFatalStateRepository.php    # App fatal-state data access
-├── ConfigSyncRepository.php       # Config sync data access
-├── EventRepository.php            # Event data access
-├── User.php                       # users.json account model
-├── UserRepository.php             # users.json access with locked, atomic writes
+├── Alarm/
+│   ├── AlarmRepository.php            # Alarm data access
+│   ├── AlarmDeliveryRepository.php    # Per-channel delivery queue
+│   └── QueuedAlarmDelivery.php        # Claimed delivery joined with its alarm and event
+├── Auth/
+│   ├── User.php                       # users.json account entity
+│   └── UserRepository.php             # users.json access with locked, atomic writes
+├── Event/
+│   └── EventRepository.php            # Event data access
+├── Monitor/
+│   ├── AppFatalState.php              # App fatal-log cursor row
+│   ├── AppFatalStateRepository.php
+│   ├── AppLibraryAuditState.php       # Last evaluated advisory IDs per app
+│   └── AppLibraryAuditStateRepository.php
+├── Sync/
+│   └── ConfigSyncRepository.php       # Config sync data access
 └── ServerMetrics/
     ├── ServerMetricsRepository.php    # Metrics data access
     ├── ServerMetricRawUpserter.php    # Upserts server_metrics_raw rows
@@ -466,7 +474,7 @@ MATA Dashboard uses PSR-4 autoloading via Composer.
 ```php
 use Mata\Controllers\DashboardController;
 use Mata\Services\Cache\MetricsCacheService;
-use Mata\Models\EventRepository;
+use Mata\Models\Event\EventRepository;
 ```
 
 ## Import Paths

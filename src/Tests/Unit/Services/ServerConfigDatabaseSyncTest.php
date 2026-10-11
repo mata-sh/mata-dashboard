@@ -6,7 +6,7 @@ namespace Mata\Tests\Unit\Services;
 
 use Mata\Database\DatabaseInterface;
 use Mata\Database\NullDatabase;
-use Mata\Models\ConfigSyncRepository;
+use Mata\Models\Sync\ConfigSyncRepository;
 use Mata\Services\Event\Dto\EventRecordResult;
 use Mata\Services\Event\EventRecorderService;
 use Mata\Services\Sync\ServerConfigDatabaseSync;

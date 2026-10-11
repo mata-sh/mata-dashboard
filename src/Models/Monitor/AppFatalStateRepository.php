@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Mata\Models;
+namespace Mata\Models\Monitor;
 
 use Mata\Database\DatabaseInterface;
 

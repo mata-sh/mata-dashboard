@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Mata\Services\Monitor;
 
-use Mata\Models\AppLibraryAuditStateRepository;
+use Mata\Models\Monitor\AppLibraryAuditStateRepository;
 use Mata\Services\Audit\Severity;
 use Mata\Services\Collect\ServerDataCollectorInterface;
 use Mata\Services\Event\Dto\EventCommand;
