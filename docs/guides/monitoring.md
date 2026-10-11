@@ -35,3 +35,25 @@ Events, logical alarms, and email deliveries are separate records. A
 notification rule can omit email without hiding a policy-evaluated logical
 alarm; direct configuration-failure alarms bypass those rules. See the
 [alarm decision and delivery flow](../reference/alarms.md).
+
+## Status from the command line
+
+`bin/mata status` reports node health and cron jobs for scripts, CI gates, and
+Nagios-style checks:
+
+```bash
+make fleet-status                 # or: php bin/mata status
+make fleet-status ARGS=--json
+```
+
+It reads only what cron already wrote (the health cache from
+`servers_data_fetch` and the cron heartbeats), so it never contacts a node and
+can run as often as needed. Exit codes: `0` ok, `1` warning (maintenance, a cron
+job that never ran), `2` critical (node unhealthy or unreachable, cron job
+overdue), `3` unknown (health missing or older than twice its TTL, so a stopped
+cron never reports ok).
+
+!!! info "Scope"
+    The status covers node health and cron. Metric thresholds, application
+    probes, and alarms are only shown in the dashboard.
+

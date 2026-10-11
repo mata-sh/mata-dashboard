@@ -8,6 +8,7 @@ use Mata\Cli\Command\ServerAddCommand;
 use Mata\Cli\Command\ServerListCommand;
 use Mata\Cli\Command\ServerRemoveCommand;
 use Mata\Cli\Command\ServerTestCommand;
+use Mata\Cli\Command\StatusCommand;
 use Mata\Config\Dto\NodeApiConfig;
 use Mata\Config\Validation\InstanceConfigValidator;
 use Mata\Services\Monitor\HttpProbeClient;
@@ -49,6 +50,7 @@ $application->addCommands([
     new ServerAddCommand($serverFiles, $connectionTester),
     new ServerTestCommand($serverFiles, $connectionTester),
     new ServerRemoveCommand($serverFiles),
+    new StatusCommand($paths, $configPath),
 ]);
 
 // Accept `mata config validate` as well as Symfony's `mata config:validate`.

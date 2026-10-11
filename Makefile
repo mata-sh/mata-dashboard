@@ -123,6 +123,7 @@ help:
 	@echo "  $(COLOR_GREEN)make db-status$(COLOR_RESET)      Show migration status"
 	@echo "  $(COLOR_GREEN)make db-backup$(COLOR_RESET)      Create a database backup"
 	@echo "  $(COLOR_GREEN)make status$(COLOR_RESET)         Show application/service status"
+	@echo "  $(COLOR_GREEN)make fleet-status$(COLOR_RESET)   Node health + cron, Nagios exit codes (ARGS=--json)"
 	@echo "  $(COLOR_GREEN)make logs$(COLOR_RESET)           Follow selected-mode logs"
 	@echo ""
 	@echo "$(COLOR_BOLD)OPA$(COLOR_RESET)"
@@ -511,6 +512,10 @@ config-validate:
 # ARGS is passed through, e.g. make server-add ARGS="web-01 --api-url https://node.example.com/"
 server-list:
 	@$(call RUN_MATA,server:list $(ARGS))
+
+# `make status` shows the services; this is the monitored fleet (bin/mata status).
+fleet-status:
+	@$(call RUN_MATA,status $(ARGS))
 
 server-test:
 	@$(call RUN_MATA,server:test $(ARGS))
@@ -964,7 +969,7 @@ docker-help:
 	@echo "  $(COLOR_YELLOW)make docker-clean$(COLOR_RESET)   - Clean mata-dashboard Docker resources only"
 	@echo "  $(COLOR_RED)make docker-clean-all$(COLOR_RESET)  - System-wide Docker cleanup (ALL projects!)"
 
-.PHONY: help help-all setup setup-local doctor config-validate server-list server-test server-add server-remove install-hooks setup-opa opa-install-service opa-start opa-stop opa-status opa-test opa-validate \
+.PHONY: help help-all setup setup-local doctor config-validate fleet-status server-list server-test server-add server-remove install-hooks setup-opa opa-install-service opa-start opa-stop opa-status opa-test opa-validate \
 	test test-coverage \
 	db-migrate db-rollback db-status db-check db-hash-password db-backup db-restore db-shell \
 	users-list users-create users-unlock users-delete users-passwd \
