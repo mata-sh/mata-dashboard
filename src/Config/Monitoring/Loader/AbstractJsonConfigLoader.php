@@ -58,6 +58,8 @@ abstract class AbstractJsonConfigLoader
     /** @return ConfigLoadResult<T> */
     final public function load(string $configRoot): ConfigLoadResult
     {
+        $this->problems = [];
+
         try {
             return $this->loadFile(rtrim($configRoot, '/') . '/' . $this->fileName());
         } catch (MonitoringConfigLoadException $exception) {
@@ -87,7 +89,7 @@ abstract class AbstractJsonConfigLoader
         } catch (InvalidArgumentException|RuntimeException $exception) {
             $this->reportLoadFailure($exception->getMessage());
 
-            throw new MonitoringConfigLoadException($exception->getMessage(), $this->takeProblems(), $exception);
+            throw new MonitoringConfigLoadException($exception->getMessage(), $this->problems, $exception);
         }
     }
 
@@ -108,7 +110,7 @@ abstract class AbstractJsonConfigLoader
     }
 
     /**
-     * Pairs the section with every problem reported so far and clears them for the next load.
+     * Pairs the section with every problem reported during this load.
      *
      * @param T $section
      *
@@ -116,16 +118,7 @@ abstract class AbstractJsonConfigLoader
      */
     private function result(object $section): ConfigLoadResult
     {
-        return new ConfigLoadResult($section, $this->takeProblems());
-    }
-
-    /** @return list<ConfigLoadProblem> */
-    private function takeProblems(): array
-    {
-        $problems = $this->problems;
-        $this->problems = [];
-
-        return $problems;
+        return new ConfigLoadResult($section, $this->problems);
     }
 
     /** @return array<string, mixed> */
