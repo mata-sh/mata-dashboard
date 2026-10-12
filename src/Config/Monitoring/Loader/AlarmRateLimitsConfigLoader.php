@@ -28,7 +28,7 @@ final class AlarmRateLimitsConfigLoader extends AbstractJsonConfigLoader
     {
         $limitsFile = rtrim($configRoot, '/') . '/limits.json';
         if (!is_file($limitsFile)) {
-            return $this->result($this->defaultConfig());
+            return $this->resultWithProblems(AlarmRateLimitsConfig::default());
         }
 
         try {
@@ -39,16 +39,13 @@ final class AlarmRateLimitsConfigLoader extends AbstractJsonConfigLoader
                 "Could not load {$limitsFile}; falling back to default limits: {$exception->getMessage()}",
             );
 
-            return $this->result($this->defaultConfig());
+            return $this->resultWithProblems(AlarmRateLimitsConfig::default());
         }
 
-        return $this->result(AlarmRateLimitsConfig::fromArray($payload, function (string $message): void {
-            $this->report('limits_config_invalid_entry', $message);
-        }));
-    }
+        // fromArray() skips invalid entries; each skip lands in this load's problems.
+        $reportInvalidEntry = fn (string $message) => $this->report('limits_config_invalid_entry', $message);
+        $config = AlarmRateLimitsConfig::fromArray($payload, $reportInvalidEntry);
 
-    private function defaultConfig(): AlarmRateLimitsConfig
-    {
-        return AlarmRateLimitsConfig::fromArray([], static function (string $message): void {});
+        return $this->resultWithProblems($config);
     }
 }

@@ -33,7 +33,7 @@ final class ProbesConfigLoader extends AbstractJsonConfigLoader
     public function loadProbesConfig(string $filePath): ConfigLoadResult
     {
         if (!is_file($filePath)) {
-            return $this->result($this->getDefaultConfig());
+            return $this->resultWithProblems($this->getDefaultConfig());
         }
 
         try {
@@ -50,7 +50,7 @@ final class ProbesConfigLoader extends AbstractJsonConfigLoader
         }
 
         try {
-            return $this->result(ProbesConfig::fromArray($config));
+            return $this->resultWithProblems(ProbesConfig::fromArray($config));
         } catch (InvalidArgumentException $exception) {
             $this->reportLoadFailure($filePath, $exception->getMessage());
 

@@ -36,7 +36,7 @@ final class NotificationRulesConfigLoader extends AbstractJsonConfigLoader
         }
 
         try {
-            return $this->result(NotificationRulesConfig::fromObject($this->readJsonObject($filePath)));
+            return $this->resultWithProblems(NotificationRulesConfig::fromObject($this->readJsonObject($filePath)));
         } catch (InvalidArgumentException|RuntimeException $exception) {
             $this->report(
                 'notification_rules_config_invalid',

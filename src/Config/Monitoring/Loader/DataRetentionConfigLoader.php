@@ -45,7 +45,7 @@ final class DataRetentionConfigLoader extends AbstractJsonConfigLoader
         }
 
         try {
-            return $this->result(DataRetentionConfig::fromArray($config));
+            return $this->resultWithProblems(DataRetentionConfig::fromArray($config));
         } catch (InvalidArgumentException $exception) {
             $this->reportLoadFailure($filePath, $exception->getMessage());
 

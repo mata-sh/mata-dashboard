@@ -37,7 +37,7 @@ final class TtlConfigLoader extends AbstractJsonConfigLoader
                 throw new RuntimeException('ttl.json invalid or empty');
             }
 
-            return $this->result(TtlConfig::fromArray($config));
+            return $this->resultWithProblems(TtlConfig::fromArray($config));
         } catch (InvalidArgumentException|RuntimeException $exception) {
             $this->reportLoadFailure($filePath, $exception->getMessage());
 

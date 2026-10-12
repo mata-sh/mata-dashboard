@@ -45,7 +45,7 @@ final class IntervalsConfigLoader extends AbstractJsonConfigLoader
         }
 
         try {
-            return $this->result(IntervalsConfig::fromArray($config));
+            return $this->resultWithProblems(IntervalsConfig::fromArray($config));
         } catch (InvalidArgumentException $exception) {
             $this->reportLoadFailure($filePath, $exception->getMessage());
 

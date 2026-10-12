@@ -19,7 +19,7 @@ final class ChannelsConfigLoader extends AbstractJsonConfigLoader
     {
         $channelsFile = rtrim($configRoot, '/') . '/channels.json';
         if (!is_file($channelsFile)) {
-            return $this->result(ChannelsConfig::empty());
+            return $this->resultWithProblems(ChannelsConfig::empty());
         }
 
         try {
@@ -30,11 +30,12 @@ final class ChannelsConfigLoader extends AbstractJsonConfigLoader
                 "Could not load {$channelsFile}; only email is available: {$exception->getMessage()}",
             );
 
-            return $this->result(ChannelsConfig::empty());
+            return $this->resultWithProblems(ChannelsConfig::empty());
         }
 
-        return $this->result(ChannelsConfig::fromArray($payload, Env::get(...), function (string $message): void {
-            $this->report('channels_config_invalid_entry', $message);
-        }));
+        $reportInvalidEntry = fn (string $message) => $this->report('channels_config_invalid_entry', $message);
+        $config = ChannelsConfig::fromArray($payload, Env::get(...), $reportInvalidEntry);
+
+        return $this->resultWithProblems($config);
     }
 }

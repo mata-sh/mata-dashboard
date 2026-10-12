@@ -11,7 +11,7 @@ use Throwable;
 
 abstract class AbstractJsonConfigLoader
 {
-    /** @var list<ConfigLoadProblem> found during the current load; result() and rejected() hand them over */
+    /** @var list<ConfigLoadProblem> found during the current load; resultWithProblems() and rejected() hand them over */
     private array $problems = [];
 
     protected function report(string $type, string $message, string $level = 'warning', bool $forceAlarm = false): void
@@ -20,13 +20,15 @@ abstract class AbstractJsonConfigLoader
     }
 
     /**
+     * Pairs the section with every problem reported so far and clears them for the next load.
+     *
      * @template T of object
      *
      * @param T $section
      *
      * @return ConfigLoadResult<T>
      */
-    protected function result(object $section): ConfigLoadResult
+    protected function resultWithProblems(object $section): ConfigLoadResult
     {
         return new ConfigLoadResult($section, $this->takeProblems());
     }
