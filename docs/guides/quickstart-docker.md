@@ -140,3 +140,8 @@ make clean MODE=docker ENV="$ENV_NAME"
 `ALLOW_DELETE="DELETE dev"` to tear down a throwaway install from a script. In production,
 MySQL uses the bind-mounted `DATA_PATH/mysql` directory; `make clean` does not
 delete that directory.
+
+To remove an install completely, run `make uninstall` (same confirmation). It
+also deletes the built image and the files the containers own, which your
+account cannot delete: `DATA_PATH/mysql`, `logs/`, and `temp/`. `config/` and
+the checkout stay; delete them yourself.

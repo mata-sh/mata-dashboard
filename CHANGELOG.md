@@ -6,6 +6,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- `make uninstall` removes a Docker install, including the database, `logs/` and `temp/` that only the containers can delete.
 - The "Install with a coding agent" guide is a runbook for agents; the docs site publishes `llms.txt`.
 - `DEMO_SEED` makes the generated demo data repeatable
 - A summary bar above the server grid counts servers and apps by state and filters the cards.
@@ -39,6 +40,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `make users-*`, `db-rollback`, `db-status`, `db-check`, `db-hash-password` and the scripts they ran; use `bin/mata user …` and `bin/mata db …`.
 
 ### Fixed
+- Production Docker: sign-in and user commands work; PHP's `open_basedir` excluded the users volume
+- Production Docker builds leave out `data/`, which made the build fail once MySQL owned it
 - When the account may not use Docker, `make` says so and names the fix instead of reporting "Docker daemon is unavailable"
 - The users-file error page links to the users-file setup guide instead of a missing page
 - App environment badges (PROD, TEST, …) center their text vertically

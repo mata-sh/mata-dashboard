@@ -86,6 +86,16 @@ if ! $(SELECTED_COMPOSE) ps --services --filter status=running | grep -qx mata-d
 fi
 endef
 
+# ALLOW_DELETE="DELETE <env>" skips the prompt, e.g. to tear down a throwaway install.
+define CONFIRM_DELETE
+confirmation="$(ALLOW_DELETE)"; \
+if [ "$$confirmation" != "DELETE $(ENV)" ]; then \
+	$(INTERACTIVE) || { echo "$(COLOR_RED)❌ No terminal to confirm; pass ALLOW_DELETE='DELETE $(ENV)'.$(COLOR_RESET)"; exit 1; }; \
+	printf "Type 'DELETE $(ENV)' to continue: "; read -r confirmation; \
+fi; \
+[ "$$confirmation" = "DELETE $(ENV)" ] || { echo "$(COLOR_YELLOW)Cancelled.$(COLOR_RESET)"; exit 1; }
+endef
+
 define CONFIRM_PRODUCTION_WRITE
 if [ "$(ENV)" = "prod" ] && [ "$(ALLOW_PRODUCTION)" != "CONFIRM_PRODUCTION" ]; then \
 	echo "$(COLOR_RED)⚠️  Production write: $(1)$(COLOR_RESET)"; \
@@ -176,6 +186,7 @@ help-all: help
 	@echo "  make dev-start | dev-stop | dev-restart | dev-recreate | dev-rebuild"
 	@echo "  make prod-start | prod-stop | prod-restart | prod-rebuild"
 	@echo "  make logs-web | logs-db | ps | shell | shell-www"
+	@echo "  make clean | uninstall          Delete the stack's data; uninstall also the database, logs, and temp files"
 	@echo ""
 	@echo "$(COLOR_BOLD)LOGS AND TESTS$(COLOR_RESET)"
 	@echo "  make logs-app | logs-php        Follow the application or PHP error log"
@@ -832,17 +843,32 @@ down:
 	@$(REQUIRE_DOCKER_MODE); $(SELECTED_COMPOSE) down
 
 # Remove the selected stack including volumes (WARNING: deletes data!).
-# ALLOW_DELETE="DELETE <env>" skips the prompt, e.g. to tear down a throwaway install.
 clean:
 	@$(REQUIRE_DOCKER_MODE); \
 	echo "$(COLOR_RED)⚠️  This deletes $(ENV) containers, volumes, and database data.$(COLOR_RESET)"; \
-	confirmation="$(ALLOW_DELETE)"; \
-	if [ "$$confirmation" != "DELETE $(ENV)" ]; then \
-		$(INTERACTIVE) || { echo "$(COLOR_RED)❌ No terminal to confirm; pass ALLOW_DELETE='DELETE $(ENV)'.$(COLOR_RESET)"; exit 1; }; \
-		printf "Type 'DELETE $(ENV)' to continue: "; read -r confirmation; \
-	fi; \
-	[ "$$confirmation" = "DELETE $(ENV)" ] || { echo "$(COLOR_YELLOW)Cancelled.$(COLOR_RESET)"; exit 1; }; \
+	$(CONFIRM_DELETE); \
 	$(SELECTED_COMPOSE) down -v; echo "$(COLOR_GREEN)✅ Cleaned $(ENV).$(COLOR_RESET)"
+
+# Remove the selected Docker install: containers, volumes, the built image, and the files the
+# containers own (the production database in DATA_PATH/mysql, logs/, temp/), which the host
+# account cannot delete itself. Leaves config/ and the checkout, both owned by that account.
+uninstall:
+	@$(REQUIRE_DOCKER_MODE); \
+	data_path=$(call GET_ENV_VALUE,.env,DATA_PATH); data_path=$${data_path:-./data}; \
+	case "$$data_path" in /*) ;; *) data_path="$(CURDIR)/$${data_path#./}" ;; esac; \
+	php_version=$(call GET_ENV_VALUE,.env,PHP_VERSION); php_version=$${php_version:-8.3}; \
+	echo "$(COLOR_RED)⚠️  This deletes the $(ENV) containers, volumes, and image, logs/ and temp/$(if $(filter prod,$(ENV)), and the database in $$data_path/mysql).$(COLOR_RESET)"; \
+	$(CONFIRM_DELETE); \
+	set -e; \
+	$(SELECTED_COMPOSE) down -v --rmi local --remove-orphans; \
+	docker network rm mata-network >/dev/null 2>&1 || true; \
+	mounts="-v $(CURDIR)/logs:/mata/logs -v $(CURDIR)/temp:/mata/temp"; \
+	if [ "$(ENV)" = prod ] && [ -d "$$data_path" ]; then mounts="$$mounts -v $$data_path:/mata/data"; fi; \
+	docker run --rm $$mounts "php:$$php_version-apache-trixie" sh -c \
+		'rm -rf /mata/data/mysql; for dir in /mata/logs /mata/temp; do find "$$dir" -mindepth 1 -delete; chown "$$0" "$$dir"; done' \
+		"$$(id -u):$$(id -g)"; \
+	echo "$(COLOR_GREEN)✅ Uninstalled $(ENV). The rest belongs to $$(id -un): config/ (settings and secrets, keep it to reinstall) and this checkout.$(COLOR_RESET)"; \
+	echo "   To delete them too: cd .. && rm -rf $(notdir $(CURDIR))"
 
 # Docker cleanup for this project only (safe - won't affect other containers)
 docker-clean:
@@ -913,7 +939,8 @@ docker-help:
 	@echo ""
 	@echo "$(COLOR_BOLD)Cleanup:$(COLOR_RESET)"
 	@echo "  $(COLOR_GREEN)make down$(COLOR_RESET)            - Stop all containers"
-	@echo "  $(COLOR_RED)make clean$(COLOR_RESET)             - Remove everything (including data!)"
+	@echo "  $(COLOR_RED)make clean$(COLOR_RESET)             - Remove containers and volumes (including data!)"
+	@echo "  $(COLOR_RED)make uninstall$(COLOR_RESET)         - Also remove the image, database, logs, and temp files"
 	@echo "  $(COLOR_YELLOW)make docker-clean$(COLOR_RESET)   - Clean mata-dashboard Docker resources only"
 	@echo "  $(COLOR_RED)make docker-clean-all$(COLOR_RESET)  - System-wide Docker cleanup (ALL projects!)"
 
@@ -925,4 +952,4 @@ docker-help:
 	prod-start prod-stop prod-restart prod-rebuild \
 	status logs logs-web logs-db logs-php logs-app ps \
 	shell shell-www \
-	down clean docker-clean docker-clean-all docker-help
+	down clean uninstall docker-clean docker-clean-all docker-help

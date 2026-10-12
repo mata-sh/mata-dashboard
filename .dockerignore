@@ -7,6 +7,9 @@ yarn-error.log*
 # Temporary files and caches
 temp/
 logs/
+
+# Production database (default DATA_PATH), owned by the mysql container
+data/
 *.log
 *.tmp
 

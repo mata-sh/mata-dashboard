@@ -95,7 +95,8 @@ the web container as that user.
 
 `make clean` removes the selected Compose-managed volumes. Production MySQL
 uses `DATA_PATH/mysql`, which is a host bind mount and is not deleted by
-`make clean`.
+`make clean`. `make uninstall` deletes it too, together with the image, `logs/`, and
+`temp/`, through a container, since the files belong to container users.
 
 ## Cron jobs
 

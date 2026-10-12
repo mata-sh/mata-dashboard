@@ -114,6 +114,8 @@ COPY --chown=root:root docker/cron/smoke-check.sh /usr/local/bin/mata-cron-smoke
 RUN chmod 0755 /usr/local/bin/mata-cron-setup /usr/local/bin/mata-cron-smoke-check \
     && crontab -u www-data /tmp/crontab \
     && rm /tmp/crontab
+# Tells bin/mata doctor that cron runs here, not from a host crontab.
+ENV MATA_CRON=container
 
 # Enable Apache modules
 RUN a2enmod rewrite headers

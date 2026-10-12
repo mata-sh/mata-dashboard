@@ -51,21 +51,25 @@ All variables are listed under [Unattended setup](quickstart-docker.md#unattende
 
 ```bash
 curl -fsS http://127.0.0.1:3300/health    # {"status":"healthy",...}
-make mata ARGS="config validate --json"
-make doctor
-make mata ARGS="status --json"
+make -s mata ARGS="config validate --json"
+make -s mata ARGS="doctor --json"
+make -s mata ARGS="status --json"
 ```
 
-Right after an install, two results are expected:
+Read the top-level `"status"` of each result (`ok`, `warning`, `error`), not the
+exit code: `make` turns every non-zero exit into `2`.
 
-- `config validate` and `make doctor` exit `1` with the warning
-  `Server configuration is empty` until the first server is added.
-- `make doctor` warns `servers-data-fetch: never` until the container's cron
-  runs that job for the first time, within five minutes. Wait and repeat it.
+Right after an install, two warnings are expected:
 
-`status` exits `0` once that first run has happened. Jobs that run daily or
-every six hours show `"state": "pending"` until their first run, which is fine.
-Any other warning or error is a real problem.
+- `config validate` and `doctor` report `servers.json` as empty until the first
+  server is added.
+- `doctor` and `status` report `servers-data-fetch` as `never` until the
+  container's cron runs it for the first time, within five minutes. Wait and
+  repeat them.
+
+After that first run, `status` is `ok`. Jobs that run daily or every six hours
+show `"state": "pending"` until their first run, which is fine. Any other
+warning or error is a real problem.
 
 ## 4. Hand over to the person
 
@@ -129,12 +133,14 @@ To change the configuration later, copy `config.example/AGENTS.md` to
 `make mata ARGS="config validate"`, check with `status`, and explain alarms
 with `alarm explain`.
 
-To remove a Docker install, stop the stack, then delete the files the
-containers own (the database in `data/`, `logs/`, `temp/`) through a container,
-since your account cannot:
+To remove a Docker install, run:
 
 ```bash
-make clean MODE=docker ENV=prod ALLOW_DELETE="DELETE prod"
-docker run --rm -v "$PWD:/mata" php:8.3-apache-trixie rm -rf /mata/data /mata/logs /mata/temp
-cd .. && rm -rf mata-dashboard
+make uninstall ALLOW_DELETE="DELETE prod"
 ```
+
+It deletes the containers, volumes, and image, and the files only the
+containers can delete: the database in `data/`, `logs/`, and `temp/`. What
+remains belongs to the account that installed MATA. `config/` holds the
+settings and secrets; ask the person before deleting it with the checkout
+(`cd .. && rm -rf mata-dashboard`).
