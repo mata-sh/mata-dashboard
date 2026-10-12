@@ -31,7 +31,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Removed
 - `config/phinx.php`, which `make db-migrate` never used. **Action:** run migrations with `make db-migrate` or `bin/mata db migrate` instead.
-- `make users-*`, `db-rollback`, `db-status`, and `db-check`, and the scripts they ran: `scripts/user-management/manage-users.php`, `scripts/database/migrate.php`, `scripts/database/database-integrity.php`, `scripts/alarm_channel_test.php`. Docker user commands no longer start a separate admin container; the web container sets up the `mata_users` volume on start. **Action:** use `bin/mata user …` and `bin/mata db …`, or `make mata ARGS="user create"` (`user list`, `db status`, …); rebuild the Docker image
+- `make users-*`, `db-rollback`, `db-status`, `db-check`, and `db-hash-password`, and the scripts they ran: `scripts/user-management/manage-users.php`, `scripts/database/hash-password.php`, `scripts/database/migrate.php`, `scripts/database/database-integrity.php`, `scripts/alarm_channel_test.php`. Docker user commands no longer start a separate admin container; the web container sets up the `mata_users` volume on start. **Action:** use `bin/mata user …` and `bin/mata db …`, or `make mata ARGS="user create"` (`user list`, `db status`, …); rebuild the Docker image
 
 ### Fixed
 - The users-file error page links to the users-file setup guide instead of a missing page

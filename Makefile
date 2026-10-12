@@ -154,7 +154,7 @@ help-all: help
 	@echo ""
 	@echo "$(COLOR_BOLD)DATABASE$(COLOR_RESET)"
 	@echo "  make db-migrate | db-shell"
-	@echo "  make db-backup [FILE=backup.sql] | db-restore FILE=backup.sql | db-hash-password"
+	@echo "  make db-backup [FILE=backup.sql] | db-restore FILE=backup.sql"
 	@echo ""
 	@echo "$(COLOR_BOLD)DOCKER LIFECYCLE$(COLOR_RESET)"
 	@echo "  make dev-start | dev-stop | dev-restart | dev-recreate | dev-rebuild"
@@ -509,11 +509,6 @@ mata:
 db-migrate:
 	@$(call CONFIRM_PRODUCTION_WRITE,database migration); \
 	$(call RUN_MATA,db:migrate --yes)
-
-# Standalone utility: deterministic and independent of deployment mode.
-db-hash-password:
-	@command -v php >/dev/null 2>&1 || { echo "$(COLOR_RED)❌ PHP is unavailable.$(COLOR_RESET)"; exit 1; }
-	@php scripts/database/hash-password.php
 
 db-backup:
 	@$(REQUIRE_SELECTION); \
@@ -893,7 +888,7 @@ docker-help:
 
 .PHONY: help help-all setup setup-local doctor mata install-hooks setup-opa opa-install-service opa-start opa-stop opa-status opa-test opa-validate \
 	test test-coverage \
-	db-migrate db-hash-password db-backup db-restore db-shell \
+	db-migrate db-backup db-restore db-shell \
 	docs-node docs-serve docs-deploy \
 	docker-init docker-setup dev-setup prod-setup prod-fix-perms wait-db dev-start dev-logs dev-stop dev-restart dev-recreate dev-rebuild \
 	prod-start prod-stop prod-restart prod-rebuild \
