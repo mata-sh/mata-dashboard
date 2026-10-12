@@ -71,7 +71,7 @@ final class ServersConfigLoader extends AbstractJsonConfigLoader
             $this->report('http_connection_allowed', $warning, 'warning');
         }
 
-        return $this->result(ServersConfig::fromArray($raw));
+        return $this->resultWithProblems(ServersConfig::fromArray($raw));
     }
 
     /**

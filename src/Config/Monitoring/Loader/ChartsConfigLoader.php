@@ -36,7 +36,7 @@ final class ChartsConfigLoader extends AbstractJsonConfigLoader
     public function loadChartsConfig(string $filePath): ConfigLoadResult
     {
         if (!is_file($filePath)) {
-            return $this->result($this->getDefaultConfig());
+            return $this->resultWithProblems($this->getDefaultConfig());
         }
 
         try {
@@ -47,12 +47,10 @@ final class ChartsConfigLoader extends AbstractJsonConfigLoader
             throw $this->rejected('charts.json invalid', $exception);
         }
 
-        return $this->result(ChartsConfig::fromArray(
-            $raw,
-            $this->metricCatalog,
-            $this->queryPolicy,
-            $this->reportInvalidEntry(...),
-        ));
+        $reportInvalidEntry = fn (string $message) => $this->report('charts_config_invalid_entry', $message);
+        $config = ChartsConfig::fromArray($raw, $this->metricCatalog, $this->queryPolicy, $reportInvalidEntry);
+
+        return $this->resultWithProblems($config);
     }
 
     public function getDefaultConfig(): ChartsConfig
@@ -71,10 +69,5 @@ final class ChartsConfigLoader extends AbstractJsonConfigLoader
             'charts_config_invalid',
             "Could not load {$filePath}; falling back to chart defaults: {$reason}",
         );
-    }
-
-    private function reportInvalidEntry(string $message): void
-    {
-        $this->report('charts_config_invalid_entry', $message);
     }
 }

@@ -34,7 +34,7 @@ final class MenuConfigLoader extends AbstractJsonConfigLoader
     public function loadMenuConfig(string $filePath): ConfigLoadResult
     {
         if (!is_file($filePath)) {
-            return $this->result($this->getDefaultConfig());
+            return $this->resultWithProblems($this->getDefaultConfig());
         }
 
         try {
@@ -45,7 +45,10 @@ final class MenuConfigLoader extends AbstractJsonConfigLoader
             throw $this->rejected('menu.json invalid', $exception);
         }
 
-        return $this->result(MenuConfig::fromArray($config, $this->validKeys, $this->reportInvalidEntry(...)));
+        $reportInvalidEntry = fn (string $message) => $this->report('menu_config_invalid_entry', $message);
+        $menu = MenuConfig::fromArray($config, $this->validKeys, $reportInvalidEntry);
+
+        return $this->resultWithProblems($menu);
     }
 
     public function getDefaultConfig(): MenuConfig
@@ -59,10 +62,5 @@ final class MenuConfigLoader extends AbstractJsonConfigLoader
             'menu_config_invalid',
             "Could not load {$filePath}; falling back to menu defaults: {$reason}",
         );
-    }
-
-    private function reportInvalidEntry(string $message): void
-    {
-        $this->report('menu_config_invalid_entry', $message);
     }
 }

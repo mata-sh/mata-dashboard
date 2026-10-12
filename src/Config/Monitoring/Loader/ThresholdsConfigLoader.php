@@ -44,9 +44,10 @@ final class ThresholdsConfigLoader extends AbstractJsonConfigLoader
             throw $this->rejected('thresholds.json invalid or empty', $exception);
         }
 
-        return $this->result(ThresholdsConfig::fromArray($thresholds, function (string $message): void {
-            $this->report('thresholds_config_validation_error', $message);
-        }));
+        $reportInvalidEntry = fn (string $message) => $this->report('thresholds_config_validation_error', $message);
+        $config = ThresholdsConfig::fromArray($thresholds, $reportInvalidEntry);
+
+        return $this->resultWithProblems($config);
     }
 
     public function getDefaultConfig(): ThresholdsConfig
