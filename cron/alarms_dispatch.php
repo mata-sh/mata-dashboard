@@ -37,13 +37,13 @@ try {
     $eventManager = new EventManager($appConfig, eventRecorder: new EventRecorderService($db), logger: $log);
     $loadedLimits = (new AlarmRateLimitsConfigLoader())->load($paths->configPath);
     $eventManager->recordConfigProblems($loadedLimits->problems);
-    $limitsConfig = $loadedLimits->section;
+    $alarmRateLimits = $loadedLimits->section;
 
     // --- Senders & Dispatchers ---
     $alarmChannels = AlarmChannelRuntime::fromRuntime($runtime, $eventManager);
-    $alarmChannels->reportUnknownLimitChannels($limitsConfig);
+    $alarmChannels->reportUnknownLimitChannels($alarmRateLimits);
     $senders = $alarmChannels->senders();
-    $dispatcher = new AlarmDispatcher($deliveryRepository, $limitsConfig, $senders, $log);
+    $dispatcher = new AlarmDispatcher($deliveryRepository, $alarmRateLimits, $senders, $log);
 
     // --- Dispatch Alarm Deliveries ---
     $dispatcher->dispatch(new DateTimeImmutable('now'), 100);

@@ -7,7 +7,7 @@ namespace Mata\Services\Event;
 use LogicException;
 use Mata\Config\Dto\ApplicationConfig;
 use Mata\Config\Monitoring\Loader\ConfigLoadProblem;
-use Mata\Config\Monitoring\MonitoringConfig;
+use Mata\Config\Monitoring\Section\IntervalsConfig;
 use Mata\Services\Alarm\AlarmDirectProcessor;
 use Mata\Services\Alarm\Dto\Alarm;
 use Mata\Services\Alarm\Dto\AlarmLevel;
@@ -91,7 +91,7 @@ class EventManager
      * Supports fluent initialization via setter methods for deferred dependency injection.
      * This allows EventManager to be created before loading monitoring configuration.
      *
-     * Use setMonitoringConfig() to configure event intervals after initialization.
+     * Use setEventIntervals() to configure event intervals after initialization.
      *
      * @param AlarmDirectProcessor                 $alarmDirectProcessor Direct alarm processor for forced alarms
      * @param ApplicationConfig                    $appConfig            Application configuration for alarm/event behavior
@@ -138,10 +138,10 @@ class EventManager
         return $this;
     }
 
-    /** Configure event cooldown intervals from loaded monitoring configuration. */
-    public function setMonitoringConfig(MonitoringConfig $monitoringConfig): self
+    /** Set the minimum minutes between repeated events, per event type. */
+    public function setEventIntervals(IntervalsConfig $intervals): self
     {
-        $this->eventIntervals = $monitoringConfig->intervals->eventMinimumMinutes;
+        $this->eventIntervals = $intervals->eventMinimumMinutes;
 
         return $this;
     }
@@ -185,7 +185,7 @@ class EventManager
     }
 
     /**
-     * Record what the config loaders found, one event per problem. Before setMonitoringConfig()
+     * Record what the config loaders found, one event per problem. Before setEventIntervals()
      * the default cooldown applies; without a database the problems are logged. The message is
      * the cooldown identity, so each distinct problem is reported once per window.
      *

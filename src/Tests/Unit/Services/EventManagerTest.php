@@ -27,7 +27,6 @@ use Mata\Services\Event\Dto\EventRecordResult;
 use Mata\Services\Event\EventAggregatorServiceInterface;
 use Mata\Services\Event\EventManager;
 use Mata\Services\Event\EventRecorderService;
-use Mata\Tests\Helpers\MonitoringConfigFactory;
 use Mata\Tests\TestCase;
 
 /**
@@ -336,9 +335,7 @@ final class EventManagerTest extends TestCase
 
         // Set monitoring configuration if intervals are provided
         if (!empty($intervalsConfig)) {
-            $manager->setMonitoringConfig(MonitoringConfigFactory::create(
-                intervals: IntervalsConfig::fromArray($intervalsConfig),
-            ));
+            $manager->setEventIntervals(IntervalsConfig::fromArray($intervalsConfig));
         }
 
         return $manager;
