@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Mata\Cli\Command;
 
 use Mata\Cli\CliOutput;
-use Mata\Services\ServerConfig\ServerConfigFileEditor;
+use Mata\Config\Monitoring\ServersConfigEditor;
 use RuntimeException;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
@@ -19,7 +19,7 @@ use Symfony\Component\Console\Question\ConfirmationQuestion;
 #[AsCommand(name: 'server:remove', description: 'Remove a server from servers.json and its key from servers.secrets.json')]
 final class ServerRemoveCommand extends Command
 {
-    public function __construct(private readonly ServerConfigFileEditor $files)
+    public function __construct(private readonly ServersConfigEditor $files)
     {
         parent::__construct();
     }

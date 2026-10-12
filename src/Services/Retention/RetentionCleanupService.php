@@ -8,6 +8,7 @@ use DateInterval;
 use DateTimeImmutable;
 use Mata\Config\Monitoring\Section\DataRetentionConfig;
 use Mata\Database\DatabaseInterface;
+use Mata\Services\Retention\Dto\RetentionCleanupResult;
 use Psr\Log\LoggerInterface;
 use Throwable;
 

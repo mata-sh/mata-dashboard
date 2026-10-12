@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace Mata\Tests\Unit\Services;
 
 use Mata\Services\Cache\ApiCacheKeyFactory;
-use Mata\Services\Cache\CacheEntry;
 use Mata\Services\Cache\CacheStoreInterface;
+use Mata\Services\Cache\Dto\CacheEntry;
 use Mata\Services\Event\EventAggregatorServiceInterface;
 use Mata\Services\Event\EventManager;
 use Mata\Services\Navigation\AlarmNotificationCenter;

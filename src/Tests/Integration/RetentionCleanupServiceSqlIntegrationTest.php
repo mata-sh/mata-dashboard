@@ -6,7 +6,7 @@ namespace Mata\Tests\Integration;
 
 use DateTimeImmutable;
 use Mata\Config\Monitoring\Section\DataRetentionConfig;
-use Mata\Services\Retention\RetentionCleanupResult;
+use Mata\Services\Retention\Dto\RetentionCleanupResult;
 use Mata\Services\Retention\RetentionCleanupService;
 use Mata\Tests\Helpers\SqliteTestDatabase;
 use Mata\Tests\TestCase;

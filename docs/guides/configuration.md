@@ -154,7 +154,9 @@ name, so `servers.json` holds no credentials:
 }
 ```
 
-`title` and `api_url` are required, and every enabled server needs its
+Server names start with a letter or digit and use only letters, digits, `.`,
+`_` and `-` (at most 64); they appear in dashboard URLs. Keys starting with `_`
+are documentation and ignored. `title` and `api_url` are required, and every enabled server needs its
 `api_key` in `servers.secrets.json`. `disabled` defaults to `false`.
 Set it to `true` to exclude the node from polling and alarms. The dashboard
 expects HTTPS node URLs. `allow_http` is available for local development only

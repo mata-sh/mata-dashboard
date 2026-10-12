@@ -10,6 +10,7 @@ use Mata\Services\Cron\CronHeartbeatReader;
 use Mata\Services\Cron\Dto\CronJobState;
 use Mata\Services\Monitor\Dto\NodeHealthResult;
 use Mata\Services\Monitor\Dto\NodeHealthState;
+use Mata\Services\Status\Dto\FleetStatus;
 
 /**
  * Fleet status for scripts and checks, read only from what cron already wrote: the node health

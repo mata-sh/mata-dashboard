@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace Mata\Services\ServerConfig;
+namespace Mata\Services\Monitor\Dto;
 
-final readonly class ServerConnectionResult
+final readonly class NodeConnectionResult
 {
     /** @param 'failed'|'ok'|'skipped' $auth */
     public function __construct(

@@ -14,7 +14,7 @@ use Mata\Services\Cache\CacheTtlResolver;
 use Mata\Services\Cache\CacheType;
 use Mata\Services\Cache\FileCacheStore;
 use Mata\Services\Cron\CronHeartbeatReader;
-use Mata\Services\Status\FleetStatus;
+use Mata\Services\Status\Dto\FleetStatus;
 use Mata\Services\Status\FleetStatusReader;
 use Mata\Services\Status\StatusLevel;
 use Mata\Utils\PathResolver;

@@ -16,6 +16,9 @@ final readonly class ServersConfig
     /** Reported for a servers.json without servers: a valid fresh install, unlike every other validation error. */
     public const EMPTY_ERROR = 'Server configuration is empty';
 
+    /** Names end up in route segments (`/refresh/server/{server}`), so they stay within RouteParameter's charset. */
+    public const NAME_PATTERN = '/^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$/';
+
     /** @param array<string,mixed> $values */
     private function __construct(public array $values) {}
 
@@ -90,6 +93,9 @@ final readonly class ServersConfig
     /** @return list<string> */
     private static function serverValidationErrors(string $serverName, mixed $config): array
     {
+        if (preg_match(self::NAME_PATTERN, $serverName) !== 1) {
+            return ["Server name '{$serverName}' is invalid: use letters, digits, '.', '_' or '-' (max 64), starting with a letter or digit"];
+        }
         if (!is_array($config)) {
             return ["Server '{$serverName}' configuration must be an array"];
         }

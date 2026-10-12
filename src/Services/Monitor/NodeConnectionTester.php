@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-namespace Mata\Services\ServerConfig;
+namespace Mata\Services\Monitor;
 
 use GuzzleHttp\Exception\ConnectException;
 use GuzzleHttp\Exception\RequestException;
 use Mata\Services\Collect\NodeApiClient;
-use Mata\Services\Monitor\HttpProbeClient;
+use Mata\Services\Monitor\Dto\NodeConnectionResult;
 use Mata\Utils\TypeConverter;
 use Psr\Log\NullLogger;
 use Throwable;
@@ -16,7 +16,7 @@ use Throwable;
  * Checks a configured server the way the dashboard talks to it: the unauthenticated /health
  * probe, then one HMAC-signed request. Nothing is cached or recorded.
  */
-final class ServerConnectionTester
+final class NodeConnectionTester
 {
     /** Cheap authenticated endpoint; any signed endpoint proves server ID and key match. */
     private const AUTH_PATH = 'server/info';
@@ -27,7 +27,7 @@ final class ServerConnectionTester
     ) {}
 
     /** @param array<string,mixed> $serverConfig servers.json entry */
-    public function test(string $name, array $serverConfig, ?string $apiKey): ServerConnectionResult
+    public function test(string $name, array $serverConfig, ?string $apiKey): NodeConnectionResult
     {
         $apiUrl = is_string($serverConfig['api_url'] ?? null) ? $serverConfig['api_url'] : '';
         $health = $this->probeClient->probeNodeHealthAsync(rtrim($apiUrl, '/') . '/health', $this->timeoutSeconds)->wait();
@@ -35,7 +35,7 @@ final class ServerConnectionTester
         $healthError = is_array($health) && is_string($health['error'] ?? null) ? $health['error'] : null;
 
         if ($apiKey === null || $apiKey === '') {
-            return new ServerConnectionResult($name, $apiUrl, $healthStatus, $healthError, 'skipped', 'No api_key in servers.secrets.json');
+            return new NodeConnectionResult($name, $apiUrl, $healthStatus, $healthError, 'skipped', 'No api_key in servers.secrets.json');
         }
 
         try {
@@ -50,16 +50,16 @@ final class ServerConnectionTester
             );
             $client->get(self::AUTH_PATH);
         } catch (ConnectException $exception) {
-            return new ServerConnectionResult($name, $apiUrl, $healthStatus, $healthError, 'failed', $exception->getMessage(), 'The node is not reachable from this host: check api_url, DNS, firewall and TLS.');
+            return new NodeConnectionResult($name, $apiUrl, $healthStatus, $healthError, 'failed', $exception->getMessage(), 'The node is not reachable from this host: check api_url, DNS, firewall and TLS.');
         } catch (RequestException $exception) {
             $code = $exception->getResponse()?->getStatusCode();
 
-            return new ServerConnectionResult($name, $apiUrl, $healthStatus, $healthError, 'failed', "HTTP {$code} from " . self::AUTH_PATH, $this->hintForStatus($name, $code));
+            return new NodeConnectionResult($name, $apiUrl, $healthStatus, $healthError, 'failed', "HTTP {$code} from " . self::AUTH_PATH, $this->hintForStatus($name, $code));
         } catch (Throwable $exception) {
-            return new ServerConnectionResult($name, $apiUrl, $healthStatus, $healthError, 'failed', $exception->getMessage());
+            return new NodeConnectionResult($name, $apiUrl, $healthStatus, $healthError, 'failed', $exception->getMessage());
         }
 
-        return new ServerConnectionResult($name, $apiUrl, $healthStatus, $healthError, 'ok');
+        return new NodeConnectionResult($name, $apiUrl, $healthStatus, $healthError, 'ok');
     }
 
     private function hintForStatus(string $name, ?int $code): ?string

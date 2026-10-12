@@ -22,10 +22,10 @@ use Mata\Cli\Command\UserListCommand;
 use Mata\Cli\Command\UserPasswdCommand;
 use Mata\Cli\Command\UserUnlockCommand;
 use Mata\Config\Dto\NodeApiConfig;
+use Mata\Config\Monitoring\ServersConfigEditor;
 use Mata\Config\Validation\InstanceConfigValidator;
 use Mata\Services\Monitor\HttpProbeClient;
-use Mata\Services\ServerConfig\ServerConfigFileEditor;
-use Mata\Services\ServerConfig\ServerConnectionTester;
+use Mata\Services\Monitor\NodeConnectionTester;
 use Mata\Utils\PathResolver;
 use Symfony\Component\Console\Application;
 use Symfony\Component\Console\Input\ArgvInput;
@@ -52,8 +52,8 @@ $paths = PathResolver::fromAppPath(dirname(__DIR__));
 // `config validate --path` reads another directory, e.g. a config repo pre-commit hook.
 $configPath = $paths->configPath;
 
-$serverFiles = new ServerConfigFileEditor($configPath);
-$connectionTester = new ServerConnectionTester(new HttpProbeClient(), NodeApiConfig::DEFAULT_TIMEOUT_SECONDS);
+$serverFiles = new ServersConfigEditor($configPath);
+$connectionTester = new NodeConnectionTester(new HttpProbeClient(), NodeApiConfig::DEFAULT_TIMEOUT_SECONDS);
 
 $application = new Application('mata', 'dashboard');
 $application->addCommands([

@@ -2,7 +2,9 @@
 
 declare(strict_types=1);
 
-namespace Mata\Services\Status;
+namespace Mata\Services\Status\Dto;
+
+use Mata\Services\Status\StatusLevel;
 
 /**
  * Explicit export shape of `bin/mata status`. Only these fields leave the process: server

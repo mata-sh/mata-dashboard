@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Mata\Services\Cache;
 
+use Mata\Services\Cache\Dto\CacheEntry;
+
 /**
  * Backend-neutral cache persistence contract.
  *

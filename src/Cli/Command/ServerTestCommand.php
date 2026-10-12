@@ -6,9 +6,9 @@ namespace Mata\Cli\Command;
 
 use Mata\Cli\CliOutput;
 use Mata\Config\Monitoring\ServerConfigState;
-use Mata\Services\ServerConfig\ServerConfigFileEditor;
-use Mata\Services\ServerConfig\ServerConnectionResult;
-use Mata\Services\ServerConfig\ServerConnectionTester;
+use Mata\Config\Monitoring\ServersConfigEditor;
+use Mata\Services\Monitor\Dto\NodeConnectionResult;
+use Mata\Services\Monitor\NodeConnectionTester;
 use RuntimeException;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
@@ -21,8 +21,8 @@ use Symfony\Component\Console\Output\OutputInterface;
 final class ServerTestCommand extends Command
 {
     public function __construct(
-        private readonly ServerConfigFileEditor $files,
-        private readonly ServerConnectionTester $tester,
+        private readonly ServersConfigEditor $files,
+        private readonly NodeConnectionTester $tester,
     ) {
         parent::__construct();
     }
@@ -71,7 +71,7 @@ final class ServerTestCommand extends Command
         if ($input->getOption('json')) {
             CliOutput::json($output, [
                 'status' => CliOutput::statusName($exitCode),
-                'servers' => array_map(static fn (ServerConnectionResult $result): array => $result->toArray(), $results),
+                'servers' => array_map(static fn (NodeConnectionResult $result): array => $result->toArray(), $results),
             ]);
 
             return $exitCode;
@@ -86,7 +86,7 @@ final class ServerTestCommand extends Command
         return $exitCode;
     }
 
-    /** @param list<ServerConnectionResult> $results */
+    /** @param list<NodeConnectionResult> $results */
     public static function exitCodeFor(array $results): int
     {
         $code = CliOutput::EXIT_OK;
@@ -102,7 +102,7 @@ final class ServerTestCommand extends Command
         return $code;
     }
 
-    public static function writeResult(OutputInterface $output, ServerConnectionResult $result): void
+    public static function writeResult(OutputInterface $output, NodeConnectionResult $result): void
     {
         $mark = $result->isOk() ? '<info>✓</info>' : ($result->auth === 'ok' ? '<comment>!</comment>' : '<error>✗</error>');
         $output->writeln("{$mark} {$result->server} ({$result->apiUrl})");

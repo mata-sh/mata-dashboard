@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Mata\Services\Retention;
+namespace Mata\Services\Retention\Dto;
 
 /**
  * Outcome of one bounded retention cleanup run.

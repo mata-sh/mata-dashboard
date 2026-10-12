@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Mata\Services\ServerConfig;
+namespace Mata\Config\Monitoring;
 
 use JsonException;
 use Mata\Config\ConfigValueValidator;
@@ -18,10 +18,8 @@ use stdClass;
  * gets 0640 and the group of servers.json. Key order and indentation are kept, so a versioned
  * config repo sees a minimal diff.
  */
-final class ServerConfigFileEditor
+final class ServersConfigEditor
 {
-    public const NAME_PATTERN = '/^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$/';
-
     /** @var list<string> */
     private array $warnings = [];
 

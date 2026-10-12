@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Mata\Services\Cache;
 
 use JsonException;
+use Mata\Services\Cache\Dto\CacheEntry;
 use Psr\Log\LoggerInterface;
 
 /**

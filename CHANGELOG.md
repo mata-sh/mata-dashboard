@@ -26,6 +26,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Node API keys move from `config/servers.json` to `config/servers.secrets.json`, keyed by the same server name, so `servers.json` holds no credentials. A server that still sets `api_key` in `servers.json` is rejected. **Action:** move every `api_key` to `config/servers.secrets.json` (see `config.example/servers.secrets.json.example`) and `chmod 600` it
 - The application repository ignores all of `config/`, so it can be its own Git repository or a symlink to one. Templates moved from `config/example/` to `config.example/`.
 - Config load events use one naming scheme: `<file>_config_invalid`
+- Server names in `servers.json` must start with a letter or digit and use only letters, digits, `.`, `_` and `-` (max 64), the same rule as `bin/mata server add`. Other names loaded but broke every per-server route; such a server is now dropped and reported. **Action:** rename any such server in `servers.json`, `servers.secrets.json` and the node's `DASHBOARD_SERVER_ID`
 - An empty `config/probes.json` (`{}`) means the built-in probe defaults, like the other optional config files, and is no longer reported as a config problem
 - The development container no longer changes the owner or mode of `config/` on start. **Action:** if Git reports dubious ownership in `config/`, run `sudo chown -R "$(id -un)" config/` once
 

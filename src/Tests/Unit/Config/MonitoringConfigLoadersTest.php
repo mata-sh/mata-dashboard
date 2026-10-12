@@ -356,6 +356,21 @@ final class MonitoringConfigLoadersTest extends TestCase
         $this->assertSame(['valid-server'], array_keys($result->section->values));
     }
 
+    /** A name outside RouteParameter's charset would load but fail every /…/{server} route. */
+    public function testLoadServersConfigExcludesServerWithNameUnusableInRoutes(): void
+    {
+        $result = $this->loadServersFiles([
+            'web 01' => ['title' => 'Web', 'api_url' => 'https://web.example.test'],
+            'db-01' => ['title' => 'DB', 'api_url' => 'https://db.example.test'],
+        ], [
+            'web 01' => ['api_key' => 'key123'],
+            'db-01' => ['api_key' => 'key456'],
+        ]);
+
+        $this->assertStringContainsString("Server name 'web 01' is invalid", $result->problems[0]->message ?? '');
+        $this->assertSame(['db-01'], array_keys($result->section->values));
+    }
+
     // ==================== servers.secrets.json ====================
 
     public function testLoadServersConfigMergesApiKeyFromSecretsFile(): void

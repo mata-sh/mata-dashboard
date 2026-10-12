@@ -6,8 +6,8 @@ namespace Mata\Cli\Command;
 
 use Mata\Cli\CliOutput;
 use Mata\Config\Monitoring\Section\ServersConfig;
-use Mata\Services\ServerConfig\ServerConfigFileEditor;
-use Mata\Services\ServerConfig\ServerConnectionTester;
+use Mata\Config\Monitoring\ServersConfigEditor;
+use Mata\Services\Monitor\NodeConnectionTester;
 use RuntimeException;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
@@ -20,8 +20,8 @@ use Symfony\Component\Console\Output\OutputInterface;
 final class ServerAddCommand extends Command
 {
     public function __construct(
-        private readonly ServerConfigFileEditor $files,
-        private readonly ServerConnectionTester $tester,
+        private readonly ServersConfigEditor $files,
+        private readonly NodeConnectionTester $tester,
     ) {
         parent::__construct();
     }
@@ -57,7 +57,7 @@ final class ServerAddCommand extends Command
         $name = (string) $input->getArgument('name');
         $apiUrl = $input->getOption('api-url');
         $json = (bool) $input->getOption('json');
-        if (preg_match(ServerConfigFileEditor::NAME_PATTERN, $name) !== 1) {
+        if (preg_match(ServersConfig::NAME_PATTERN, $name) !== 1) {
             return $this->fail($output, $json, "Invalid name '{$name}': use letters, digits, '.', '_' or '-' (max 64), starting with a letter or digit");
         }
         if (!is_string($apiUrl) || $apiUrl === '') {

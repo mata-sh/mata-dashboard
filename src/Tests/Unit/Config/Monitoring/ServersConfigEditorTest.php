@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace Mata\Tests\Unit\Services;
+namespace Mata\Tests\Unit\Config\Monitoring;
 
-use Mata\Services\ServerConfig\ServerConfigFileEditor;
+use Mata\Config\Monitoring\ServersConfigEditor;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -12,7 +12,7 @@ use PHPUnit\Framework\TestCase;
  *
  * @coversNothing
  */
-final class ServerConfigFileEditorTest extends TestCase
+final class ServersConfigEditorTest extends TestCase
 {
     private string $configPath;
 
@@ -32,7 +32,7 @@ final class ServerConfigFileEditorTest extends TestCase
     /** The web server reads the secrets through their group; losing 0640 fails the whole servers load. */
     public function testSecretsKeepTheirModeAndNewOnesAreGroupReadable(): void
     {
-        $editor = new ServerConfigFileEditor($this->configPath);
+        $editor = new ServersConfigEditor($this->configPath);
 
         $editor->add('web-01', ['title' => 'Web', 'api_url' => 'https://node.example.com/'], 'key-1');
         $this->assertSame('640', decoct(fileperms($this->configPath . '/servers.secrets.json') & 0777));
