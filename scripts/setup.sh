@@ -342,7 +342,7 @@ fi
 
 prompt_yes_no CREATE_USER "Create an initial user now? [Y/n]: " yes
 if [[ "$CREATE_USER" == yes ]]; then
-    "$MAKE_CMD" users-create MODE="$MODE" ENV="$ENV"
+    "$MAKE_CMD" mata MODE="$MODE" ENV="$ENV" ARGS="user create"
     user_state=created
 fi
 
@@ -357,7 +357,6 @@ fi
 printf '  Initial user:  %s\n\n' "$user_state"
 printf 'Useful commands:\n\n'
 printf '  make doctor\n'
-printf '  make users-create\n'
-printf '  make db-status\n'
+printf '  make mata ARGS="user create"\n'
 printf '  make opa-status\n'
 printf '  make help-all\n'

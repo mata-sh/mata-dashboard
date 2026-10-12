@@ -59,8 +59,7 @@ startup rather than silently running without the configured protection.
 Dashboard users are stored as password hashes in `MATA_USERS_FILE`, falling
 back to `config/users.json` when the variable is unset. The only supported
 management interface is
-`scripts/user-management/manage-users.php`, or the equivalent `make users-*`
-targets. User-management actions are written to the CLI-only audit log.
+`bin/mata user …` (or `make mata ARGS="user …"`). User-management actions are written to the CLI-only audit log.
 
 For production, put the users file outside the deployment and web root. Use a
 private directory owned by the PHP-FPM user with mode `0700`; the application

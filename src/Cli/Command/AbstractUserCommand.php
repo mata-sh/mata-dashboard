@@ -53,6 +53,26 @@ abstract class AbstractUserCommand extends Command
         }
     }
 
+    /**
+     * Prompts for missing arguments, so `bin/mata user create` works without any. Optional
+     * arguments are only asked for once a required one was, and keep their default on Enter.
+     */
+    protected function interact(InputInterface $input, OutputInterface $output): void
+    {
+        $prompted = false;
+        foreach ($this->getDefinition()->getArguments() as $argument) {
+            $name = $argument->getName();
+            if ($argument->isRequired() && $input->getArgument($name) === null) {
+                $input->setArgument($name, $this->askLine($input, $output, ucfirst($name) . ': '));
+                $prompted = true;
+            } elseif ($prompted && !$argument->isRequired()) {
+                $default = is_string($argument->getDefault()) ? $argument->getDefault() : '';
+                $answer = $this->askLine($input, $output, ucfirst($name) . " [{$default}]: ");
+                $input->setArgument($name, $answer !== '' ? $answer : $default);
+            }
+        }
+    }
+
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
         try {

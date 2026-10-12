@@ -103,8 +103,7 @@ help:
 	@echo "$(COLOR_BOLD)START HERE$(COLOR_RESET)"
 	@echo "  $(COLOR_GREEN)make setup$(COLOR_RESET)          Guided native or Docker setup"
 	@echo "  $(COLOR_GREEN)make doctor$(COLOR_RESET)         Validate the selected installation"
-	@echo "  $(COLOR_GREEN)make config-validate$(COLOR_RESET) Validate config files (FILE=servers.json for one)"
-	@echo "  $(COLOR_GREEN)make server-add$(COLOR_RESET)     Add a node: ARGS=\"<name> --api-url <url>\" (also server-list/-test/-remove)"
+	@echo "  $(COLOR_GREEN)make mata$(COLOR_RESET)           Run the operator CLI: ARGS=\"server add <name> --api-url <url>\""
 	@echo ""
 	@if [ -n "$(MODE)" ]; then \
 		echo "$(COLOR_BOLD)CURRENT INSTALLATION$(COLOR_RESET)"; \
@@ -116,15 +115,16 @@ help:
 		echo ""; \
 	fi
 	@echo "$(COLOR_BOLD)COMMON OPERATIONS$(COLOR_RESET)"
-	@echo "  $(COLOR_GREEN)make users-create$(COLOR_RESET)   Create a user"
-	@echo "  $(COLOR_GREEN)make users-list$(COLOR_RESET)     List users"
-	@echo "  $(COLOR_GREEN)make users-passwd$(COLOR_RESET)   Change a password"
 	@echo "  $(COLOR_GREEN)make db-migrate$(COLOR_RESET)     Run database migrations"
-	@echo "  $(COLOR_GREEN)make db-status$(COLOR_RESET)      Show migration status"
 	@echo "  $(COLOR_GREEN)make db-backup$(COLOR_RESET)      Create a database backup"
-	@echo "  $(COLOR_GREEN)make status$(COLOR_RESET)         Show application/service status"
-	@echo "  $(COLOR_GREEN)make fleet-status$(COLOR_RESET)   Node health + cron, Nagios exit codes (ARGS=--json)"
+	@echo "  $(COLOR_GREEN)make status$(COLOR_RESET)         Show container/service status (node health: make mata ARGS=status)"
 	@echo "  $(COLOR_GREEN)make logs$(COLOR_RESET)           Follow selected-mode logs"
+	@echo ""
+	@echo "$(COLOR_BOLD)OPERATOR CLI$(COLOR_RESET) (bin/mata; make mata runs it as the right user and container)"
+	@echo "  make mata ARGS=\"user create admin admin\"   users: list, create, passwd, unlock, delete"
+	@echo "  make mata ARGS=\"server add <name> ...\"     servers: list, add, test, remove"
+	@echo "  make mata ARGS=\"config validate\"           also: db status|rollback|check, alarm test|explain"
+	@echo "  make mata                                  list every command; ARGS=\"<command> --help\" for options"
 	@echo ""
 	@echo "$(COLOR_BOLD)OPA$(COLOR_RESET)"
 	@echo "  $(COLOR_GREEN)make opa-start$(COLOR_RESET)      Start OPA for the selected mode"
@@ -150,19 +150,20 @@ help-all: help
 	@echo "  make setup-opa"
 	@echo "  make opa-install-service"
 	@echo "  make docs-deploy"
-	@echo ""
-	@echo "$(COLOR_BOLD)USER MANAGEMENT$(COLOR_RESET)"
-	@echo "  make users-list | users-create | users-unlock | users-delete | users-passwd"
-	@echo "  Override selection with MODE=local|docker ENV=dev|demo|prod"
+	@echo "  Override the selection with MODE=local|docker ENV=dev|demo|prod"
 	@echo ""
 	@echo "$(COLOR_BOLD)DATABASE$(COLOR_RESET)"
-	@echo "  make db-migrate | db-rollback | db-status | db-check | db-shell"
+	@echo "  make db-migrate | db-shell"
 	@echo "  make db-backup [FILE=backup.sql] | db-restore FILE=backup.sql | db-hash-password"
 	@echo ""
 	@echo "$(COLOR_BOLD)DOCKER LIFECYCLE$(COLOR_RESET)"
 	@echo "  make dev-start | dev-stop | dev-restart | dev-recreate | dev-rebuild"
 	@echo "  make prod-start | prod-stop | prod-restart | prod-rebuild"
 	@echo "  make logs-web | logs-db | ps | shell | shell-www"
+	@echo ""
+	@echo "$(COLOR_BOLD)LOGS AND TESTS$(COLOR_RESET)"
+	@echo "  make logs-app | logs-php        Follow the application or PHP error log"
+	@echo "  make test-coverage              Run tests with coverage"
 
 # ============================================
 # Setup
@@ -472,69 +473,42 @@ command -v php >/dev/null 2>&1 || { echo "$(COLOR_RED)❌ PHP is unavailable.$(C
 [ -f vendor/autoload.php ] || { echo "$(COLOR_RED)❌ Composer dependencies are missing.$(COLOR_RESET)"; exit 1; };
 endef
 
-# Operator CLI (bin/mata). Runs as the web server user in Docker; natively as the calling user.
+# Operator CLI (bin/mata) as the account the app runs as: www-data in Docker, natively the owner
+# of logs/ (as for make logs). With as_owner=yes, as the owner of config/ instead. A terminal is
+# passed through so prompts work; pipes and scripts get none.
 define RUN_MATA
 $(REQUIRE_SELECTION); \
 if [ "$(MODE)" = "local" ]; then \
 	$(REQUIRE_LOCAL_PHP) \
-	php bin/mata $(1); \
+	dir=logs; [ "$${as_owner:-}" = yes ] && dir=config; \
+	owner=$$(stat -L -c '%U' "$$dir" 2>/dev/null || stat -L -f '%Su' "$$dir" 2>/dev/null || id -un); \
+	if [ "$$owner" = "$$(id -un)" ]; then php bin/mata $(1); \
+	else \
+		command -v sudo >/dev/null 2>&1 || { echo "$(COLOR_RED)❌ Run as $$owner, the owner of $$dir/.$(COLOR_RESET)"; exit 1; }; \
+		sudo -u "$$owner" php bin/mata $(1); \
+	fi; \
 else \
 	$(REQUIRE_DOCKER_MODE); $(REQUIRE_WEB_RUNNING); \
-	$(SELECTED_COMPOSE) exec -T -u www-data mata-web php bin/mata $(1); \
+	user=www-data; [ "$${as_owner:-}" = yes ] && user="$$(id -u):$$(id -g)"; \
+	tty=-T; [ -t 0 ] && [ -t 1 ] && tty=; \
+	$(SELECTED_COMPOSE) exec $$tty -u "$$user" mata-web php bin/mata $(1); \
 fi
 endef
 
-# Commands that write config/ run as its owner: the web server only has group read access.
-define RUN_MATA_AS_OWNER
-$(REQUIRE_SELECTION); \
-if [ "$(MODE)" = "local" ]; then \
-	$(REQUIRE_LOCAL_PHP) \
-	php bin/mata $(1); \
-else \
-	$(REQUIRE_DOCKER_MODE); $(REQUIRE_WEB_RUNNING); \
-	$(SELECTED_COMPOSE) exec -T -u "$$(id -u):$$(id -g)" mata-web php bin/mata $(1); \
-fi
-endef
+# Everything the application does is a bin/mata command; this runs one for the selected
+# installation, e.g. make mata ARGS="user create admin admin". Without ARGS it lists them.
+# server add/remove write config/, which the web server can only read: they run as its owner.
+mata:
+	@set -- $(ARGS); \
+	case "$${1:-} $${2:-}" in \
+		"server add"|"server remove"|"server:add "*|"server:remove "*) as_owner=yes ;; \
+	esac; \
+	$(call RUN_MATA,"$$@")
 
-config-validate:
-	@$(call RUN_MATA,config:validate $(FILE))
-
-# ARGS is passed through, e.g. make server-add ARGS="web-01 --api-url https://node.example.com/"
-server-list:
-	@$(call RUN_MATA,server:list $(ARGS))
-
-# `make status` shows the services; this is the monitored fleet (bin/mata status).
-fleet-status:
-	@$(call RUN_MATA,status $(ARGS))
-
-server-test:
-	@$(call RUN_MATA,server:test $(ARGS))
-
-server-add:
-	@$(call RUN_MATA_AS_OWNER,server:add $(ARGS))
-
-alarm-test:
-	@$(call RUN_MATA,alarm:test $(ARGS))
-
-alarm-explain:
-	@$(call RUN_MATA,alarm:explain $(ARGS))
-
-server-remove:
-	@$(call RUN_MATA_AS_OWNER,server:remove $(ARGS))
-
+# Kept as a target because deployments run it; the confirmation happens here, not in the container.
 db-migrate:
 	@$(call CONFIRM_PRODUCTION_WRITE,database migration); \
 	$(call RUN_MATA,db:migrate --yes)
-
-db-rollback:
-	@$(call CONFIRM_PRODUCTION_WRITE,database rollback); \
-	$(call RUN_MATA,db:rollback --yes)
-
-db-status:
-	@$(call RUN_MATA,db:status)
-
-db-check:
-	@$(call RUN_MATA,db:check)
 
 # Standalone utility: deterministic and independent of deployment mode.
 db-hash-password:
@@ -593,54 +567,6 @@ db-shell:
 		$(REQUIRE_DOCKER_MODE); $(REQUIRE_DB_RUNNING); \
 		$(SELECTED_COMPOSE) exec mata-db sh -c 'MYSQL_PWD="$$MYSQL_ROOT_PASSWORD" exec mysql -u root "$$MYSQL_DATABASE"'; \
 	fi
-
-# ============================================
-# User Management
-# ============================================
-
-# User commands follow MODE and ENV selected by make setup.
-define RUN_USER_COMMAND
-	@$(REQUIRE_SELECTION); action="$(1)"; \
-	if [ "$(MODE)" = "local" ]; then \
-		command -v php >/dev/null 2>&1 || { echo "$(COLOR_RED)❌ PHP is not available.$(COLOR_RESET)"; exit 1; }; \
-		[ -f vendor/autoload.php ] || { echo "$(COLOR_RED)❌ vendor/autoload.php is missing. Run composer install.$(COLOR_RESET)"; exit 1; }; \
-		users_file="$${MATA_USERS_FILE:-$(call GET_ENV_VALUE,config/config.env,MATA_USERS_FILE)}"; path="$$users_file"; \
-		if [ -z "$$path" ]; then path="config/$(ENV)/users.json"; [ -e "$$path" ] || path="config/$(ENV)"; [ -e "$$path" ] || path="config"; elif [ ! -e "$$path" ]; then path=$$(dirname "$$path"); fi; \
-		owner=$$(stat -c '%U' "$$path" 2>/dev/null || stat -f '%Su' "$$path" 2>/dev/null || id -un); current=$$(id -un); \
-		echo "$(COLOR_BLUE)Mode: local | Environment: $(ENV) | Operator: $$owner$(COLOR_RESET)"; \
-		if [ "$$owner" != "$$current" ]; then \
-			command -v sudo >/dev/null 2>&1 || { echo "$(COLOR_RED)❌ Run this command as $$owner.$(COLOR_RESET)"; exit 1; }; \
-			if [ -n "$$users_file" ]; then sudo -u "$$owner" env APP_ENV="$(ENV)" MATA_USERS_FILE="$$users_file" php scripts/user-management/manage-users.php "$$action" "--env=$(ENV)"; else sudo -u "$$owner" env APP_ENV="$(ENV)" php scripts/user-management/manage-users.php "$$action" "--env=$(ENV)"; fi; \
-		else \
-			if [ -n "$$users_file" ]; then APP_ENV="$(ENV)" MATA_USERS_FILE="$$users_file" php scripts/user-management/manage-users.php "$$action" "--env=$(ENV)"; else APP_ENV="$(ENV)" php scripts/user-management/manage-users.php "$$action" "--env=$(ENV)"; fi; \
-		fi; \
-	else \
-		$(REQUIRE_DOCKER_MODE); \
-		echo "$(COLOR_BLUE)Mode: docker admin | Environment: $(ENV)$(COLOR_RESET)"; \
-		: "mata_users is inherited from the mata-web service, including for compose run"; \
-		$(SELECTED_COMPOSE) run --rm --no-deps -u root \
-			-e MATA_USERS_FILE=/var/lib/mata-dashboard/users.json \
-			-v "$(CURDIR)/config:/var/www/html/config" \
-			-v "$(CURDIR)/logs:/var/www/html/logs" \
-			-v "$(CURDIR)/docker/admin-entrypoint.sh:/usr/local/bin/mata-admin:ro" \
-			--entrypoint /bin/sh mata-web /usr/local/bin/mata-admin "$$action" "$(ENV)"; \
-	fi
-endef
-
-users-list:
-	$(call RUN_USER_COMMAND,list)
-
-users-create:
-	$(call RUN_USER_COMMAND,create)
-
-users-unlock:
-	$(call RUN_USER_COMMAND,unlock)
-
-users-delete:
-	$(call RUN_USER_COMMAND,delete)
-
-users-passwd:
-	$(call RUN_USER_COMMAND,passwd)
 
 # ============================================
 # Build & Release
@@ -764,7 +690,7 @@ dev-start:
 	@PORT=$$(awk -F= '/^WEB_PORT=/{print $$2; exit}' .env); PORT=$${PORT:-3300}; \
 	echo "$(COLOR_GREEN)✅ $(ENV) environment running.$(COLOR_RESET)"; \
 	echo "$(COLOR_CYAN)Dashboard: http://localhost:$$PORT$(COLOR_RESET)"; \
-	echo "$(COLOR_YELLOW)No default login. Create one with: make users-create$(COLOR_RESET)"
+	echo "$(COLOR_YELLOW)No default login. Create one with: make mata ARGS=\"user create <name> admin\"$(COLOR_RESET)"
 
 dev-logs:
 	@$(REQUIRE_DOCKER_MODE); $(REQUIRE_DEV_ENV)
@@ -965,10 +891,9 @@ docker-help:
 	@echo "  $(COLOR_YELLOW)make docker-clean$(COLOR_RESET)   - Clean mata-dashboard Docker resources only"
 	@echo "  $(COLOR_RED)make docker-clean-all$(COLOR_RESET)  - System-wide Docker cleanup (ALL projects!)"
 
-.PHONY: help help-all setup setup-local doctor config-validate fleet-status server-list server-test server-add server-remove alarm-test alarm-explain install-hooks setup-opa opa-install-service opa-start opa-stop opa-status opa-test opa-validate \
+.PHONY: help help-all setup setup-local doctor mata install-hooks setup-opa opa-install-service opa-start opa-stop opa-status opa-test opa-validate \
 	test test-coverage \
-	db-migrate db-rollback db-status db-check db-hash-password db-backup db-restore db-shell \
-	users-list users-create users-unlock users-delete users-passwd \
+	db-migrate db-hash-password db-backup db-restore db-shell \
 	docs-node docs-serve docs-deploy \
 	docker-init docker-setup dev-setup prod-setup prod-fix-perms wait-db dev-start dev-logs dev-stop dev-restart dev-recreate dev-rebuild \
 	prod-start prod-stop prod-restart prod-rebuild \

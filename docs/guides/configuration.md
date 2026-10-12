@@ -65,7 +65,7 @@ reachability probes.
     environment files use plain base-10 syntax without whitespace, a leading `+`,
     or leading zeroes.
 
-When `MATA_USERS_FILE` is unset, `make users-create` creates the fallback
+When `MATA_USERS_FILE` is unset, `bin/mata user create` creates the fallback
 `config/users.json` with restricted permissions. Do not create or edit it by
 hand.
 
@@ -85,7 +85,7 @@ make the generated data repeat across requests, for example when taking
 screenshots.
 
 For a public demo, set `DEMO_LOGIN_USERNAME` and `DEMO_LOGIN_PASSWORD` to an
-account created with `make users-create`. The login page then shows these
+account created with `bin/mata user create`. The login page then shows these
 credentials and prefills the form. Both are ignored outside `demo`.
 
 !!! info "Required environment values"
@@ -233,13 +233,14 @@ file; see the [server metrics pipeline](../architecture/server-metrics-pipeline.
 
 ## Validate changes
 
-`make config-validate` reads every configuration file with the same loaders
+`bin/mata config validate` reads every configuration file with the same loaders
 the web app and cron use, and reports what they would warn about or ignore:
 
 ```bash
-make config-validate                    # all files
-make config-validate FILE=servers.json  # one file and its companion
-php bin/mata config validate --json     # without make, machine-readable
+php bin/mata config validate                # all files
+php bin/mata config validate servers.json   # one file and its companion
+php bin/mata config validate --json         # machine-readable
+make mata ARGS="config validate"            # as the right account, also in Docker
 ```
 
 It exits `0` when the configuration is valid, `1` for warnings only (a skipped
@@ -261,7 +262,8 @@ runs on defaults; only a missing or invalid `servers.json` or
       Run `config validate` that way too, since a file your account can read
       may still be unreadable for the web server.
 
-    `make` picks the right account in Docker. `bin/mata` refuses to run as root.
+    `make mata ARGS="…"` picks the right account, natively and in Docker.
+    `bin/mata` refuses to run as root.
 
 `make doctor` is an installation sanity check, not a configuration parser.
 It confirms the selected `MODE` and `ENV`, that `config/config.env`,
@@ -280,5 +282,4 @@ secrets file mode, the database connection and pending migrations, OPA health
 
 ```bash
 make doctor
-make db-status
 ```

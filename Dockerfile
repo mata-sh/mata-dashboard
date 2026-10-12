@@ -129,8 +129,9 @@ HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
 # Expose port 80 (HTTPS would be handled by reverse proxy)
 EXPOSE 80
 
-# Install the restricted cron environment before cron starts.
-CMD ["sh", "-c", "mata-cron-setup && cron && apache2-foreground"]
+# Own the users volume (bin/mata user commands write it as www-data), then install the
+# restricted cron environment before cron starts.
+CMD ["sh", "-c", "install -d -o www-data -g www-data -m 0700 /var/lib/mata-dashboard && mata-cron-setup && cron && apache2-foreground"]
 
 # Labels for image metadata
 LABEL maintainer="XarcDev (mata@xarc.dev | https://github.com/xarcdotdev)"

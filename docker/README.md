@@ -68,7 +68,7 @@ The dashboard is at `http://localhost:3300`, unless `WEB_PORT` was changed.
 Create a user with:
 
 ```bash
-make users-create MODE=docker ENV=dev
+make mata MODE=docker ENV=dev ARGS="user create"
 ```
 
 Direct Compose use requires the external network and configuration files:
@@ -105,14 +105,14 @@ Production mounts:
 - `temp/` writable for cache and runtime state;
 - a persistent MySQL data directory from `DATA_PATH`.
 
-Docker stores users in the persistent `mata_users` named volume. The regular web
-container does not edit that volume directly. User commands use a short-lived
-admin container:
+Docker stores users in the persistent `mata_users` named volume, owned by
+`www-data`; the container sets it up on start. `make mata` runs the user
+commands in the web container as that user:
 
 ```bash
-make users-list MODE=docker ENV=prod
-make users-create MODE=docker ENV=prod
-make users-passwd MODE=docker ENV=prod
+make mata MODE=docker ENV=prod ARGS="user list"
+make mata MODE=docker ENV=prod ARGS="user create"
+make mata MODE=docker ENV=prod ARGS="user passwd <name>"
 ```
 
 ## Cron jobs
@@ -151,7 +151,7 @@ make logs-web MODE=docker ENV="$ENV_NAME"
 make logs-db MODE=docker ENV="$ENV_NAME"
 make ps MODE=docker ENV="$ENV_NAME"
 make shell MODE=docker ENV="$ENV_NAME"
-make db-status MODE=docker ENV="$ENV_NAME"
+make mata MODE=docker ENV="$ENV_NAME" ARGS="db status"
 make db-backup MODE=docker ENV="$ENV_NAME"
 ```
 
