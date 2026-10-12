@@ -189,8 +189,9 @@ Per-application settings live in the node's `config/apps.json` under its
 ## Thresholds, intervals, and deliveries
 
 In `thresholds.json`, `server_data`, `app_data`, and `sql` map metrics to
-severity boundaries such as `good`, `warn`, `critical`, and `alarm`. The
-`alarms` section maps event types to event-count and time-window gates.
+severity boundaries such as `good`, `warn`, `critical`, and `alarm`. List
+them in ascending order: a value takes the last level it exceeds, so a metric
+whose limits do not increase is skipped. The `alarms` section maps event types to event-count and time-window gates.
 `app_unreachable` also supports the consecutive-failure strategy. See
 `config.example/thresholds.json.example` for the full rule set.
 

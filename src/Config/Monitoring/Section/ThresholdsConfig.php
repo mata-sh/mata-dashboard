@@ -120,10 +120,30 @@ final readonly class ThresholdsConfig
                 }
                 $values[(string) $level] = $value;
             }
+            // MetricThresholds::levelOf() reports the last listed level a value exceeds.
+            if (!self::isAscending($values)) {
+                $reportInvalid("{$metricPath} limits must increase in the order listed, e.g. good < warn < critical < alarm; skipping entry.");
+
+                continue;
+            }
             $validated[$metric] = $values;
         }
 
         return $validated;
+    }
+
+    /** @param array<string,float|int> $limits */
+    private static function isAscending(array $limits): bool
+    {
+        $previous = null;
+        foreach ($limits as $limit) {
+            if ($previous !== null && $limit <= $previous) {
+                return false;
+            }
+            $previous = $limit;
+        }
+
+        return true;
     }
 
     /**

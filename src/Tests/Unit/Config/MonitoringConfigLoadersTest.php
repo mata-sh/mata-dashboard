@@ -983,6 +983,24 @@ final class MonitoringConfigLoadersTest extends TestCase
         $this->assertEmpty($result['errors']);
     }
 
+    public function testThresholdsSkipMetricsWhoseLimitsAreNotAscending(): void
+    {
+        $problems = [];
+        $thresholds = ThresholdsConfig::fromArray([
+            'server_data' => [
+                'disk_space_usage_percent' => ['good' => 60, 'warn' => 90, 'critical' => 80, 'alarm' => 85],
+                'cpu_usage' => ['alarm' => 95, 'warn' => 70],
+                'ram_usage_percent' => ['warn' => 70, 'alarm' => 95],
+            ],
+        ], static function (string $message) use (&$problems): void {
+            $problems[] = $message;
+        });
+
+        $this->assertSame(['ram_usage_percent'], array_keys($thresholds->serverData));
+        $this->assertCount(2, $problems);
+        $this->assertStringContainsString('thresholds.server_data.disk_space_usage_percent limits must increase', $problems[0]);
+    }
+
     public function testDefaultThresholdsIncludeCronjobCountAndResourceUsageAlarms(): void
     {
         $thresholds = ThresholdsConfig::default()->toArray();
