@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Mata\Config\Monitoring\Loader;
 
 use InvalidArgumentException;
+use Mata\Config\Monitoring\Loader\Dto\ConfigLoadResult;
 use Mata\Config\Monitoring\Section\IntervalsConfig;
 use RuntimeException;
 
@@ -32,7 +33,7 @@ final class IntervalsConfigLoader extends AbstractJsonConfigLoader
     public function loadIntervalsConfig(string $filePath): ConfigLoadResult
     {
         try {
-            $config = $this->normalizeJson($this->readJsonObject($filePath));
+            $config = $this->readJsonArray($filePath);
         } catch (RuntimeException $exception) {
             $this->reportLoadFailure($filePath);
 
@@ -45,7 +46,7 @@ final class IntervalsConfigLoader extends AbstractJsonConfigLoader
         }
 
         try {
-            return $this->resultWithProblems(IntervalsConfig::fromArray($config));
+            return $this->result(IntervalsConfig::fromArray($config));
         } catch (InvalidArgumentException $exception) {
             $this->reportLoadFailure($filePath, $exception->getMessage());
 

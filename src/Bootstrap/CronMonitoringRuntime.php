@@ -118,12 +118,12 @@ final readonly class CronMonitoringRuntime
 
         try {
             $monitoringConfigResult = $monitoringConfigLoader->load($paths->configPath, $alarmRateLimits);
+            $eventManager->recordConfigProblems($monitoringConfigResult->problems);
         } catch (MonitoringConfigLoadException $exception) {
             $eventManager->recordConfigProblems($exception->problems);
 
             throw $exception;
         }
-        $eventManager->recordConfigProblems($monitoringConfigResult->problems);
         $monitoringConfig = $monitoringConfigResult->section;
 
         $eventManager->setEventIntervals($monitoringConfig->intervals);

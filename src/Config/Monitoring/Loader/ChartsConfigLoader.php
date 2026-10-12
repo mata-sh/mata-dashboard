@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Mata\Config\Monitoring\Loader;
 
+use Mata\Config\Monitoring\Loader\Dto\ConfigLoadResult;
 use Mata\Config\Monitoring\Section\ChartsConfig;
 use Mata\Services\ServerMetrics\MetricCatalog;
 use Mata\Services\ServerMetrics\MetricQueryPolicy;
@@ -36,11 +37,11 @@ final class ChartsConfigLoader extends AbstractJsonConfigLoader
     public function loadChartsConfig(string $filePath): ConfigLoadResult
     {
         if (!is_file($filePath)) {
-            return $this->resultWithProblems($this->getDefaultConfig());
+            return $this->result($this->getDefaultConfig());
         }
 
         try {
-            $raw = $this->normalizeJson($this->readJsonObject($filePath));
+            $raw = $this->readJsonArray($filePath);
         } catch (RuntimeException $exception) {
             $this->reportLoadFailure($filePath, $exception->getMessage());
 
@@ -50,7 +51,7 @@ final class ChartsConfigLoader extends AbstractJsonConfigLoader
         $reportInvalidEntry = fn (string $message) => $this->report('charts_config_invalid_entry', $message);
         $config = ChartsConfig::fromArray($raw, $this->metricCatalog, $this->queryPolicy, $reportInvalidEntry);
 
-        return $this->resultWithProblems($config);
+        return $this->result($config);
     }
 
     public function getDefaultConfig(): ChartsConfig

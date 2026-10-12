@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Mata\Config\Monitoring\Loader;
 
+use Mata\Config\Monitoring\Loader\Dto\ConfigLoadResult;
 use Mata\Config\Monitoring\Section\MenuConfig;
 use RuntimeException;
 
@@ -34,11 +35,11 @@ final class MenuConfigLoader extends AbstractJsonConfigLoader
     public function loadMenuConfig(string $filePath): ConfigLoadResult
     {
         if (!is_file($filePath)) {
-            return $this->resultWithProblems($this->getDefaultConfig());
+            return $this->result($this->getDefaultConfig());
         }
 
         try {
-            $config = $this->normalizeJson($this->readJsonObject($filePath));
+            $config = $this->readJsonArray($filePath);
         } catch (RuntimeException $exception) {
             $this->reportLoadFailure($filePath, $exception->getMessage());
 
@@ -48,7 +49,7 @@ final class MenuConfigLoader extends AbstractJsonConfigLoader
         $reportInvalidEntry = fn (string $message) => $this->report('menu_config_invalid_entry', $message);
         $menu = MenuConfig::fromArray($config, $this->validKeys, $reportInvalidEntry);
 
-        return $this->resultWithProblems($menu);
+        return $this->result($menu);
     }
 
     public function getDefaultConfig(): MenuConfig

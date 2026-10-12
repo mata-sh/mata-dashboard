@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Mata\Config\Monitoring\Loader;
+namespace Mata\Config\Monitoring\Loader\Dto;
 
 /**
  * A loaded config section with the problems found while loading it; a section that fell back

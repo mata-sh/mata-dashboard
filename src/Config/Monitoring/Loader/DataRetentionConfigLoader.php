@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Mata\Config\Monitoring\Loader;
 
 use InvalidArgumentException;
+use Mata\Config\Monitoring\Loader\Dto\ConfigLoadResult;
 use Mata\Config\Monitoring\Section\DataRetentionConfig;
 use RuntimeException;
 
@@ -32,7 +33,7 @@ final class DataRetentionConfigLoader extends AbstractJsonConfigLoader
     public function loadDataRetentionConfig(string $filePath): ConfigLoadResult
     {
         try {
-            $config = $this->normalizeJson($this->readJsonObject($filePath));
+            $config = $this->readJsonArray($filePath);
         } catch (RuntimeException $exception) {
             $this->reportLoadFailure($filePath);
 
@@ -45,7 +46,7 @@ final class DataRetentionConfigLoader extends AbstractJsonConfigLoader
         }
 
         try {
-            return $this->resultWithProblems(DataRetentionConfig::fromArray($config));
+            return $this->result(DataRetentionConfig::fromArray($config));
         } catch (InvalidArgumentException $exception) {
             $this->reportLoadFailure($filePath, $exception->getMessage());
 

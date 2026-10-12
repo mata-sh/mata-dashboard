@@ -6,7 +6,7 @@ namespace Mata\Services\Event;
 
 use LogicException;
 use Mata\Config\Dto\ApplicationConfig;
-use Mata\Config\Monitoring\Loader\ConfigLoadProblem;
+use Mata\Config\Monitoring\Loader\Dto\ConfigLoadProblem;
 use Mata\Config\Monitoring\Section\IntervalsConfig;
 use Mata\Services\Alarm\AlarmDirectProcessor;
 use Mata\Services\Alarm\Dto\Alarm;

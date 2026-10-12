@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Mata\Config\Monitoring\Loader;
 
 use InvalidArgumentException;
+use Mata\Config\Monitoring\Loader\Dto\ConfigLoadResult;
 use Mata\Config\Monitoring\Section\TtlConfig;
 use RuntimeException;
 
@@ -32,12 +33,12 @@ final class TtlConfigLoader extends AbstractJsonConfigLoader
     public function loadTtlConfig(string $filePath): ConfigLoadResult
     {
         try {
-            $config = $this->normalizeJson($this->readJsonObject($filePath));
+            $config = $this->readJsonArray($filePath);
             if ($config === []) {
                 throw new RuntimeException('ttl.json invalid or empty');
             }
 
-            return $this->resultWithProblems(TtlConfig::fromArray($config));
+            return $this->result(TtlConfig::fromArray($config));
         } catch (InvalidArgumentException|RuntimeException $exception) {
             $this->reportLoadFailure($filePath, $exception->getMessage());
 

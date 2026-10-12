@@ -5,16 +5,19 @@ declare(strict_types=1);
 namespace Mata\Config\Monitoring\Loader;
 
 use JsonException;
+use Mata\Config\Monitoring\Loader\Dto\ConfigLoadProblem;
+use Mata\Config\Monitoring\Loader\Dto\ConfigLoadResult;
+use Psr\Log\LogLevel;
 use RuntimeException;
 use stdClass;
 use Throwable;
 
 abstract class AbstractJsonConfigLoader
 {
-    /** @var list<ConfigLoadProblem> found during the current load; resultWithProblems() and rejected() hand them over */
+    /** @var list<ConfigLoadProblem> reported since the last result() or rejected() */
     private array $problems = [];
 
-    protected function report(string $type, string $message, string $level = 'warning', bool $forceAlarm = false): void
+    protected function report(string $type, string $message, string $level = LogLevel::WARNING, bool $forceAlarm = false): void
     {
         $this->problems[] = new ConfigLoadProblem($type, $message, $level, $forceAlarm);
     }
@@ -28,7 +31,7 @@ abstract class AbstractJsonConfigLoader
      *
      * @return ConfigLoadResult<T>
      */
-    protected function resultWithProblems(object $section): ConfigLoadResult
+    protected function result(object $section): ConfigLoadResult
     {
         return new ConfigLoadResult($section, $this->takeProblems());
     }
@@ -47,13 +50,15 @@ abstract class AbstractJsonConfigLoader
         return $problems;
     }
 
+    /** @return array<string, mixed> */
+    protected function readJsonArray(string $filePath): array
+    {
+        return $this->normalizeJson($this->readJsonObject($filePath));
+    }
+
     protected function readJsonObject(string $filePath): stdClass
     {
-        if (!is_file($filePath) || !is_readable($filePath)) {
-            throw new RuntimeException("Cannot read JSON config at {$filePath}");
-        }
-
-        $content = file_get_contents($filePath);
+        $content = is_file($filePath) && is_readable($filePath) ? file_get_contents($filePath) : false;
         if ($content === false) {
             throw new RuntimeException("Cannot read JSON config at {$filePath}");
         }
@@ -71,7 +76,12 @@ abstract class AbstractJsonConfigLoader
         return $config;
     }
 
-    protected function normalizeJson(mixed $value): mixed
+    /**
+     * Converts decoded objects to associative arrays, recursively.
+     *
+     * @return ($value is stdClass ? array<string, mixed> : mixed)
+     */
+    private function normalizeJson(mixed $value): mixed
     {
         if ($value instanceof stdClass) {
             $normalized = [];

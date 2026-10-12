@@ -4,9 +4,11 @@ declare(strict_types=1);
 
 namespace Mata\Config\Monitoring\Loader;
 
+use Mata\Config\Monitoring\Loader\Dto\ConfigLoadResult;
 use Mata\Config\Monitoring\Section\ServersConfig;
 use Mata\Config\Monitoring\ServerConfigState;
 use Mata\Utils\TypeConverter;
+use Psr\Log\LogLevel;
 use RuntimeException;
 
 /**
@@ -41,7 +43,7 @@ final class ServersConfigLoader extends AbstractJsonConfigLoader
     public function loadServersConfig(string $filePath): ConfigLoadResult
     {
         try {
-            $raw = $this->normalizeJson($this->readJsonObject($filePath));
+            $raw = $this->readJsonArray($filePath);
         } catch (RuntimeException $exception) {
             $this->reportLoadFailure($exception->getMessage());
 
@@ -65,13 +67,13 @@ final class ServersConfigLoader extends AbstractJsonConfigLoader
         );
         $validation = $this->validateServersConfig($visible);
         foreach ($validation['errors'] as $error) {
-            $this->report('servers_config_validation_error', $error, 'warning');
+            $this->report('servers_config_validation_error', $error);
         }
         foreach ($validation['warnings'] as $warning) {
-            $this->report('http_connection_allowed', $warning, 'warning');
+            $this->report('http_connection_allowed', $warning);
         }
 
-        return $this->resultWithProblems(ServersConfig::fromArray($raw));
+        return $this->result(ServersConfig::fromArray($raw));
     }
 
     /**
@@ -91,7 +93,6 @@ final class ServersConfigLoader extends AbstractJsonConfigLoader
             $this->report(
                 'servers_config_validation_error',
                 "Server '{$serverName}' sets api_key in servers.json; move it to " . self::SECRETS_FILE,
-                'warning',
             );
             unset($raw[$serverName]);
         }
@@ -113,7 +114,7 @@ final class ServersConfigLoader extends AbstractJsonConfigLoader
         }
 
         try {
-            $raw = $this->normalizeJson($this->readJsonObject($secretsPath));
+            $raw = $this->readJsonArray($secretsPath);
         } catch (RuntimeException $exception) {
             $this->reportLoadFailure($exception->getMessage());
 
@@ -128,7 +129,7 @@ final class ServersConfigLoader extends AbstractJsonConfigLoader
             }
             $error = $this->secretEntryError($serverName, $entry);
             if ($error !== null) {
-                $this->report('servers_config_validation_error', $error, 'warning');
+                $this->report('servers_config_validation_error', $error);
 
                 continue;
             }
@@ -169,7 +170,6 @@ final class ServersConfigLoader extends AbstractJsonConfigLoader
                 $this->report(
                     'servers_config_validation_error',
                     self::SECRETS_FILE . " has a key for server '{$serverName}', which servers.json does not define",
-                    'warning',
                 );
 
                 continue;
@@ -235,7 +235,7 @@ final class ServersConfigLoader extends AbstractJsonConfigLoader
             // Persisted event identifier, also used for malformed and empty files; rename only with a migration.
             type: 'servers_config_not_found',
             message: "Could not load servers: {$reason}",
-            level: 'critical',
+            level: LogLevel::CRITICAL,
             forceAlarm: true,
         );
     }
