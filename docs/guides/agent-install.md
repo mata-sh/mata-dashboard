@@ -1,8 +1,8 @@
 # Install with a coding agent
 
 This page is a runbook for coding agents such as Claude Code or Codex. A person
-can follow it too. Every command runs without prompts and reports through its
-exit code, so each step can be checked before the next.
+can follow it too. Every command runs without prompts and reports its result,
+so each step can be checked before the next.
 
 !!! info "Rules for the agent"
     - Never run `sudo`. When a step needs it, stop and give the person the exact
@@ -15,9 +15,10 @@ exit code, so each step can be checked before the next.
 
 ## 1. Choose the path
 
-Use Docker unless the person asks for a native install. Docker brings MySQL and
-OPA along, so an agent can finish it alone. A native install needs a database,
-a web server, a crontab, and sudo, which only the person can set up.
+Use the mode the person named ("with Docker", "natively"); if they named none,
+use Docker without asking. Docker brings MySQL and OPA along, so an agent can
+finish it alone. A native install needs a database, a web server, a crontab,
+and sudo, which only the person can set up.
 
 ```bash
 docker info >/dev/null && docker compose version
@@ -38,10 +39,14 @@ cd mata-dashboard
 NONINTERACTIVE=1 make setup MODE=docker ENV=prod START_SERVICES=yes ADMIN_USER=admin
 ```
 
+`curl -fsSL https://mata.sh/install.sh | sh` does the same in one step and
+ends with a summary for the person; the commands above show each step.
+
 Setup generates the database passwords, builds and starts the stack, runs the
 migrations, and creates the `admin` account. It prints that account's password
 once: pass it to the person.
-Run it again after a failure; setup keeps existing files and values.
+Run it again after a failure; setup keeps existing files, values, and the
+account.
 
 `NONINTERACTIVE=1` matters even without a visible terminal: some agents run
 commands in a pseudo-terminal, where setup would otherwise wait for answers.

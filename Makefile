@@ -24,6 +24,8 @@ NONINTERACTIVE_ON := $(filter 1 y yes true on Y YES TRUE ON,$(NONINTERACTIVE) $(
 INTERACTIVE := { [ -t 0 ] && [ -z "$(NONINTERACTIVE_ON)" ]; }
 SUDO := sudo$(if $(NONINTERACTIVE_ON), -n)
 
+comma := ,
+
 DOCKER_COMPOSE ?= docker compose
 COMPOSE_ENV_FILES = --env-file config/db.config.env --env-file .env
 DEV_COMPOSE = APP_ENV=$(ENV) $(DOCKER_COMPOSE) $(COMPOSE_ENV_FILES) -f docker-compose.yml -f docker-compose.dev.yml
@@ -857,7 +859,7 @@ uninstall:
 	data_path=$(call GET_ENV_VALUE,.env,DATA_PATH); data_path=$${data_path:-./data}; \
 	case "$$data_path" in /*) ;; *) data_path="$(CURDIR)/$${data_path#./}" ;; esac; \
 	php_version=$(call GET_ENV_VALUE,.env,PHP_VERSION); php_version=$${php_version:-8.3}; \
-	echo "$(COLOR_RED)⚠️  This deletes the $(ENV) containers, volumes, and image, logs/ and temp/$(if $(filter prod,$(ENV)), and the database in $$data_path/mysql).$(COLOR_RESET)"; \
+	echo "$(COLOR_RED)⚠️  This deletes the $(ENV) stack (containers, volumes, image), logs/$(if $(filter prod,$(ENV)),$(comma) temp/$(comma) and the database in $$data_path/mysql, and temp/).$(COLOR_RESET)"; \
 	$(CONFIRM_DELETE); \
 	set -e; \
 	$(SELECTED_COMPOSE) down -v --rmi local --remove-orphans; \
@@ -868,7 +870,7 @@ uninstall:
 		'rm -rf /mata/data/mysql; for dir in /mata/logs /mata/temp; do find "$$dir" -mindepth 1 -delete; chown "$$0" "$$dir"; done' \
 		"$$(id -u):$$(id -g)"; \
 	echo "$(COLOR_GREEN)✅ Uninstalled $(ENV). The rest belongs to $$(id -un): config/ (settings and secrets, keep it to reinstall) and this checkout.$(COLOR_RESET)"; \
-	echo "   To delete them too: cd .. && rm -rf $(notdir $(CURDIR))"
+	echo "   To delete them too: rm -rf $(CURDIR)"
 
 # Docker cleanup for this project only (safe - won't affect other containers)
 docker-clean:

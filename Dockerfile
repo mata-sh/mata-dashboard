@@ -131,9 +131,10 @@ HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
 # Expose port 80 (HTTPS would be handled by reverse proxy)
 EXPOSE 80
 
-# Own the users volume (bin/mata user commands write it as www-data), then install the
+# Own the users volume (bin/mata user commands write it as www-data), recreate logs/cron,
+# which the logs bind mount hides and every crontab line appends to, then install the
 # restricted cron environment before cron starts.
-CMD ["sh", "-c", "install -d -o www-data -g www-data -m 0700 /var/lib/mata-dashboard && mata-cron-setup && cron && apache2-foreground"]
+CMD ["sh", "-c", "install -d -o www-data -g www-data -m 0700 /var/lib/mata-dashboard && install -d -o www-data -g www-data -m 0775 /var/www/html/logs/cron && mata-cron-setup && cron && apache2-foreground"]
 
 # Labels for image metadata
 LABEL maintainer="XarcDev (mata@xarc.dev | https://github.com/xarcdotdev)"

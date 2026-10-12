@@ -6,6 +6,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- `curl -fsSL https://mata.sh/install.sh | sh` installs the newest release with Docker for production; `--native` prepares a native checkout. Each release attaches `install.sh`.
 - `make uninstall` removes a Docker install, including the database, `logs/` and `temp/` that only the containers can delete.
 - The "Install with a coding agent" guide is a runbook for agents; the docs site publishes `llms.txt`.
 - `DEMO_SEED` makes the generated demo data repeatable
@@ -41,6 +42,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - Production Docker: sign-in and user commands work; PHP's `open_basedir` excluded the users volume
+- Production Docker runs its cron jobs on a fresh install; they failed until `logs/cron` existed on the host
 - Production Docker builds leave out `data/`, which made the build fail once MySQL owned it
 - When the account may not use Docker, `make` says so and names the fix instead of reporting "Docker daemon is unavailable"
 - The users-file error page links to the users-file setup guide instead of a missing page

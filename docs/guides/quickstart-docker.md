@@ -7,6 +7,28 @@ project installed on each monitored host.
 
 Install Docker, the Docker Compose plugin, Git, and `make`.
 
+## One-command install
+
+On a server with Docker, this installs the newest release for production into
+`./mata-dashboard`:
+
+```bash
+curl -fsSL https://mata.sh/install.sh | sh
+```
+
+It runs the [unattended setup](#unattended-setup), creates the `admin` account,
+prints its password once, and ends with the address, an SSH tunnel command, and
+the next steps. It never runs `sudo`: when Docker is missing or the account may
+not use it, it stops and names the options. Running it again keeps the checkout,
+the configuration, and the account. Options follow `sh -s --`, e.g.
+`--dir /opt/mata`, `--version 0.9.0`, `--admin ops`, `--dry-run`, or `--native`
+to prepare a native install instead; `--help` lists them.
+
+!!! info "Check before running"
+    The script is `scripts/install.sh` in the repository, attached to every
+    release with its SHA-256 in `checksums.txt`. To read it first:
+    `curl -fsSLO https://mata.sh/install.sh && less install.sh && sh install.sh`.
+
 ## Development or demo
 
 ```bash

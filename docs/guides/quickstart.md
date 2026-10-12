@@ -16,6 +16,11 @@ This guide starts a native or shared-hosting dashboard. For Docker, use the
 
 ## 1. Run setup
 
+`curl -fsSL https://mata.sh/install.sh | sh -s -- --native` clones the newest
+release into `./mata-dashboard`, runs the unattended setup with production
+defaults, and prints the steps below that are left to you. It never runs
+`sudo`. The manual way:
+
 ```bash
 git clone https://github.com/mata-sh/mata-dashboard.git
 cd mata-dashboard

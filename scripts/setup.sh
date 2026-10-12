@@ -399,6 +399,12 @@ elif interactive; then
 else
     CREATE_USER=no
 fi
+# A rerun keeps the account and its password instead of failing on "User already exists".
+if [[ "$CREATE_USER" == yes && -n "$ADMIN_USER" ]] \
+    && "$MAKE_CMD" -s mata MODE="$MODE" ENV="$ENV" ARGS="user list --json" 2>/dev/null | grep -q "\"username\": \"$ADMIN_USER\""; then
+    CREATE_USER=no
+    user_state="$ADMIN_USER exists, unchanged"
+fi
 if [[ "$CREATE_USER" == yes ]]; then
     if [[ -n "$ADMIN_USER" ]] && interactive; then
         "$MAKE_CMD" mata MODE="$MODE" ENV="$ENV" ARGS="user create $ADMIN_USER admin"
