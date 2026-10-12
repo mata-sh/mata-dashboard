@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Mata\Config\Monitoring\Loader;
 
 use Mata\Config\Env;
+use Mata\Config\Monitoring\Loader\Dto\ConfigLoadResult;
 use Mata\Config\Monitoring\Section\ChannelsConfig;
 use RuntimeException;
 
@@ -19,23 +20,23 @@ final class ChannelsConfigLoader extends AbstractJsonConfigLoader
     {
         $channelsFile = rtrim($configRoot, '/') . '/channels.json';
         if (!is_file($channelsFile)) {
-            return $this->resultWithProblems(ChannelsConfig::empty());
+            return $this->result(ChannelsConfig::empty());
         }
 
         try {
-            $payload = $this->normalizeJson($this->readJsonObject($channelsFile));
+            $payload = $this->readJsonArray($channelsFile);
         } catch (RuntimeException $exception) {
             $this->report(
                 'channels_config_invalid',
                 "Could not load {$channelsFile}; only email is available: {$exception->getMessage()}",
             );
 
-            return $this->resultWithProblems(ChannelsConfig::empty());
+            return $this->result(ChannelsConfig::empty());
         }
 
         $reportInvalidEntry = fn (string $message) => $this->report('channels_config_invalid_entry', $message);
         $config = ChannelsConfig::fromArray($payload, Env::get(...), $reportInvalidEntry);
 
-        return $this->resultWithProblems($config);
+        return $this->result($config);
     }
 }

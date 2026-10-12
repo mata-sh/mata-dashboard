@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Mata\Config\Monitoring\Loader;
+namespace Mata\Config\Monitoring\Loader\Dto;
 
 use Psr\Log\LogLevel;
 

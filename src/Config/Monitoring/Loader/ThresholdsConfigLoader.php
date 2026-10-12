@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Mata\Config\Monitoring\Loader;
 
+use Mata\Config\Monitoring\Loader\Dto\ConfigLoadResult;
 use Mata\Config\Monitoring\Section\ThresholdsConfig;
 use RuntimeException;
 
@@ -31,7 +32,7 @@ final class ThresholdsConfigLoader extends AbstractJsonConfigLoader
     public function loadThresholdsConfig(string $filePath): ConfigLoadResult
     {
         try {
-            $thresholds = $this->normalizeJson($this->readJsonObject($filePath));
+            $thresholds = $this->readJsonArray($filePath);
         } catch (RuntimeException $exception) {
             $this->reportLoadFailure($filePath, $exception);
 
@@ -47,7 +48,7 @@ final class ThresholdsConfigLoader extends AbstractJsonConfigLoader
         $reportInvalidEntry = fn (string $message) => $this->report('thresholds_config_validation_error', $message);
         $config = ThresholdsConfig::fromArray($thresholds, $reportInvalidEntry);
 
-        return $this->resultWithProblems($config);
+        return $this->result($config);
     }
 
     public function getDefaultConfig(): ThresholdsConfig

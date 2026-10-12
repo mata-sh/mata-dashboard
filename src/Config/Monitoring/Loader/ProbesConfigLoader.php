@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Mata\Config\Monitoring\Loader;
 
 use InvalidArgumentException;
+use Mata\Config\Monitoring\Loader\Dto\ConfigLoadResult;
 use Mata\Config\Monitoring\Section\ProbesConfig;
 use RuntimeException;
 
@@ -33,11 +34,11 @@ final class ProbesConfigLoader extends AbstractJsonConfigLoader
     public function loadProbesConfig(string $filePath): ConfigLoadResult
     {
         if (!is_file($filePath)) {
-            return $this->resultWithProblems($this->getDefaultConfig());
+            return $this->result($this->getDefaultConfig());
         }
 
         try {
-            $config = $this->normalizeJson($this->readJsonObject($filePath));
+            $config = $this->readJsonArray($filePath);
         } catch (RuntimeException $exception) {
             $this->reportLoadFailure($filePath);
 
@@ -50,7 +51,7 @@ final class ProbesConfigLoader extends AbstractJsonConfigLoader
         }
 
         try {
-            return $this->resultWithProblems(ProbesConfig::fromArray($config));
+            return $this->result(ProbesConfig::fromArray($config));
         } catch (InvalidArgumentException $exception) {
             $this->reportLoadFailure($filePath, $exception->getMessage());
 

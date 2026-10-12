@@ -5,9 +5,9 @@ declare(strict_types=1);
 namespace Mata\Config\Monitoring;
 
 use Mata\Config\Monitoring\Loader\ChartsConfigLoader;
-use Mata\Config\Monitoring\Loader\ConfigLoadProblem;
-use Mata\Config\Monitoring\Loader\ConfigLoadResult;
 use Mata\Config\Monitoring\Loader\DataRetentionConfigLoader;
+use Mata\Config\Monitoring\Loader\Dto\ConfigLoadProblem;
+use Mata\Config\Monitoring\Loader\Dto\ConfigLoadResult;
 use Mata\Config\Monitoring\Loader\IntervalsConfigLoader;
 use Mata\Config\Monitoring\Loader\MenuConfigLoader;
 use Mata\Config\Monitoring\Loader\MonitoringConfigLoadException;

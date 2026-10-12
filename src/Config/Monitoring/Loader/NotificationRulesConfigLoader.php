@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Mata\Config\Monitoring\Loader;
 
 use InvalidArgumentException;
+use Mata\Config\Monitoring\Loader\Dto\ConfigLoadResult;
 use Mata\Config\Monitoring\Section\NotificationRulesConfig;
 use RuntimeException;
 
@@ -36,7 +37,7 @@ final class NotificationRulesConfigLoader extends AbstractJsonConfigLoader
         }
 
         try {
-            return $this->resultWithProblems(NotificationRulesConfig::fromObject($this->readJsonObject($filePath)));
+            return $this->result(NotificationRulesConfig::fromObject($this->readJsonObject($filePath)));
         } catch (InvalidArgumentException|RuntimeException $exception) {
             $this->report(
                 'notification_rules_config_invalid',
