@@ -4,16 +4,14 @@ declare(strict_types=1);
 
 namespace Mata\Config\Monitoring\Loader;
 
-use Mata\Config\Monitoring\Loader\Dto\ConfigLoadResult;
 use Mata\Config\Monitoring\Section\ServersConfig;
-use Mata\Config\Monitoring\ServerConfigState;
-use Mata\Utils\TypeConverter;
 use Psr\Log\LogLevel;
-use RuntimeException;
 
 /**
  * Loads servers.json and merges each node API key from servers.secrets.json in the same
  * directory, so servers.json can be versioned without credentials.
+ *
+ * @extends AbstractJsonConfigLoader<ServersConfig>
  */
 final class ServersConfigLoader extends AbstractJsonConfigLoader
 {
@@ -21,59 +19,57 @@ final class ServersConfigLoader extends AbstractJsonConfigLoader
 
     private const SECRET_KEYS = ['api_key'];
 
-    public function __construct(
-        private bool $fallbackOnFailure = false,
-    ) {}
-
-    /** @return ConfigLoadResult<ServersConfig> */
-    public function load(string $configRoot): ConfigLoadResult
+    /** No fallback by default: running with zero servers is never useful, so callers must opt in. */
+    public function __construct(bool $fallbackOnFailure = false)
     {
-        try {
-            return $this->loadServersConfig(rtrim($configRoot, '/') . '/servers.json');
-        } catch (MonitoringConfigLoadException $exception) {
-            if (!$this->fallbackOnFailure) {
-                throw $exception;
-            }
-
-            return new ConfigLoadResult($this->getDefaultConfig(), $exception->problems);
-        }
+        parent::__construct($fallbackOnFailure);
     }
 
-    /** @return ConfigLoadResult<ServersConfig> */
-    public function loadServersConfig(string $filePath): ConfigLoadResult
+    protected function fileName(): string
     {
-        try {
-            $raw = $this->readJsonArray($filePath);
-        } catch (RuntimeException $exception) {
-            $this->reportLoadFailure($exception->getMessage());
+        return 'servers.json';
+    }
 
-            throw $this->rejected($exception->getMessage(), $exception);
-        }
-        if ($raw === []) {
-            $reason = "servers.json at {$filePath} is empty";
-            $this->reportLoadFailure($reason);
+    protected function loadFailureType(): string
+    {
+        return 'servers_config_invalid';
+    }
 
-            throw $this->rejected($reason);
-        }
+    protected function defaultSection(): ServersConfig
+    {
+        return ServersConfig::empty();
+    }
 
+    protected function parse(array $config, string $filePath): ServersConfig
+    {
         $secretsPath = dirname($filePath) . '/' . self::SECRETS_FILE;
-        $definedServers = array_map('strval', array_keys($raw));
-        $raw = $this->mergeSecrets($this->withoutInlineApiKeys($raw), $this->loadSecrets($secretsPath), $definedServers);
+        $definedServers = array_map('strval', array_keys($config));
+        $config = $this->mergeSecrets($this->withoutInlineApiKeys($config), $this->loadSecrets($secretsPath), $definedServers);
 
         $visible = array_filter(
-            $raw,
+            $config,
             static fn ($key): bool => !str_starts_with((string) $key, '_'),
             ARRAY_FILTER_USE_KEY,
         );
-        $validation = $this->validateServersConfig($visible);
-        foreach ($validation['errors'] as $error) {
-            $this->report('servers_config_validation_error', $error);
+        foreach (ServersConfig::validationErrors($visible) as $error) {
+            $this->reportInvalidEntry($error);
         }
-        foreach ($validation['warnings'] as $warning) {
+        foreach (ServersConfig::allowedHttpWarnings($visible) as $warning) {
             $this->report('http_connection_allowed', $warning);
         }
 
-        return $this->result(ServersConfig::fromArray($raw));
+        return ServersConfig::fromArray($config);
+    }
+
+    /** Servers are the one section the app cannot run without, so a rejected file always alarms. */
+    protected function reportLoadFailure(string $reason): void
+    {
+        $this->report(
+            type: $this->loadFailureType(),
+            message: "Could not load servers: {$reason}",
+            level: LogLevel::CRITICAL,
+            forceAlarm: true,
+        );
     }
 
     /**
@@ -90,8 +86,7 @@ final class ServersConfigLoader extends AbstractJsonConfigLoader
             if (str_starts_with((string) $serverName, '_') || !is_array($config) || !array_key_exists('api_key', $config)) {
                 continue;
             }
-            $this->report(
-                'servers_config_validation_error',
+            $this->reportInvalidEntry(
                 "Server '{$serverName}' sets api_key in servers.json; move it to " . self::SECRETS_FILE,
             );
             unset($raw[$serverName]);
@@ -113,13 +108,7 @@ final class ServersConfigLoader extends AbstractJsonConfigLoader
             return [];
         }
 
-        try {
-            $raw = $this->readJsonArray($secretsPath);
-        } catch (RuntimeException $exception) {
-            $this->reportLoadFailure($exception->getMessage());
-
-            throw $this->rejected($exception->getMessage(), $exception);
-        }
+        $raw = $this->readJsonArray($secretsPath);
 
         $keys = [];
         foreach ($raw as $serverName => $entry) {
@@ -129,7 +118,7 @@ final class ServersConfigLoader extends AbstractJsonConfigLoader
             }
             $error = $this->secretEntryError($serverName, $entry);
             if ($error !== null) {
-                $this->report('servers_config_validation_error', $error);
+                $this->reportInvalidEntry($error);
 
                 continue;
             }
@@ -167,8 +156,7 @@ final class ServersConfigLoader extends AbstractJsonConfigLoader
     {
         foreach ($keys as $serverName => $apiKey) {
             if (!in_array($serverName, $definedServers, true)) {
-                $this->report(
-                    'servers_config_validation_error',
+                $this->reportInvalidEntry(
                     self::SECRETS_FILE . " has a key for server '{$serverName}', which servers.json does not define",
                 );
 
@@ -180,63 +168,5 @@ final class ServersConfigLoader extends AbstractJsonConfigLoader
         }
 
         return $raw;
-    }
-
-    public function getDefaultConfig(): ServersConfig
-    {
-        return ServersConfig::empty();
-    }
-
-    /**
-     * @param array<string,mixed> $config
-     *
-     * @return array{is_valid:bool,errors:list<string>,warnings:list<string>}
-     */
-    public function validateServersConfig(array $config): array
-    {
-        $errors = ServersConfig::validationErrors($config);
-
-        return [
-            'is_valid' => $errors === [],
-            'errors' => $errors,
-            'warnings' => $this->allowedHttpWarnings($config),
-        ];
-    }
-
-    /**
-     * @param array<string,mixed> $servers
-     *
-     * @return list<string>
-     */
-    private function allowedHttpWarnings(array $servers): array
-    {
-        $warnings = [];
-        foreach ($servers as $serverName => $config) {
-            if (
-                !is_array($config)
-                || ServerConfigState::isDisabled($config)
-                || !is_string($config['api_url'] ?? null)
-                || parse_url($config['api_url'], PHP_URL_SCHEME) !== 'http'
-                || !(TypeConverter::toBool($config['allow_http'] ?? null) ?? false)
-                || (TypeConverter::toBool($config['suppress_http_warning'] ?? null) ?? false)
-            ) {
-                continue;
-            }
-            $warnings[] = "Security warning: HTTP connection allowed for server '{$serverName}' (api_url: {$config['api_url']}). Recommendation: Use HTTPS for production environments.";
-        }
-
-        return $warnings;
-    }
-
-    /** @param string $reason names the file and the cause: unreadable, invalid JSON, or empty */
-    private function reportLoadFailure(string $reason): void
-    {
-        $this->report(
-            // Persisted event identifier, also used for malformed and empty files; rename only with a migration.
-            type: 'servers_config_not_found',
-            message: "Could not load servers: {$reason}",
-            level: LogLevel::CRITICAL,
-            forceAlarm: true,
-        );
     }
 }

@@ -101,7 +101,7 @@ final class MonitoringConfigLoaderContractTest extends TestCase
         try {
             $config = $this->loadWith($case, $contents, fallbackOnFailure: false)->section;
         } catch (MonitoringConfigLoadException) {
-            $this->assertTrue($case['hasFallbackSwitch'], "{$loader} has no fallback switch and must never throw.");
+            $this->addToAssertionCount(1);
 
             return;
         }
@@ -158,6 +158,29 @@ final class MonitoringConfigLoaderContractTest extends TestCase
         }
     }
 
+    #[DataProvider('loaders')]
+    public function testEmptyFileIsReportedOnlyWhenTheFileIsRequired(string $loader): void
+    {
+        $case = self::loaderCases()[$loader];
+
+        $loaded = $this->loadWith($case, '{}', fallbackOnFailure: true);
+
+        $this->assertEquals($case['default'](), $loaded->section);
+        if ($case['silentWhenMissing']) {
+            $this->assertSame([], $loaded->problems, "An empty optional {$case['file']} means no overrides.");
+        } else {
+            $this->assertNotEmpty($loaded->problems, "An empty required {$case['file']} must be reported.");
+        }
+    }
+
+    /** @return iterable<string,array{string}> */
+    public static function loaders(): iterable
+    {
+        foreach (array_keys(self::loaderCases()) as $loader) {
+            yield $loader => [$loader];
+        }
+    }
+
     #[DataProvider('unreadableFiles')]
     public function testUnreadableFileFallsBackToDefaults(string $loader, ?string $contents): void
     {
@@ -191,7 +214,6 @@ final class MonitoringConfigLoaderContractTest extends TestCase
      *     class: class-string<AbstractJsonConfigLoader>,
      *     file: string,
      *     silentWhenMissing: bool,
-     *     hasFallbackSwitch: bool,
      *     wrongType: string,
      *     default: Closure(): object,
      *     load: Closure(bool, string): ConfigLoadResult<object>,
@@ -204,7 +226,6 @@ final class MonitoringConfigLoaderContractTest extends TestCase
                 'class' => ServersConfigLoader::class,
                 'file' => 'servers.json',
                 'silentWhenMissing' => false,
-                'hasFallbackSwitch' => true,
                 'wrongType' => '{"s1": {"title": "S", "api_url": 123, "api_key": "k"}}',
                 'default' => static fn (): object => ServersConfig::empty(),
                 'load' => static fn (bool $fallback, string $root): ConfigLoadResult => (new ServersConfigLoader(fallbackOnFailure: $fallback))->load($root),
@@ -213,7 +234,6 @@ final class MonitoringConfigLoaderContractTest extends TestCase
                 'class' => ThresholdsConfigLoader::class,
                 'file' => 'thresholds.json',
                 'silentWhenMissing' => false,
-                'hasFallbackSwitch' => true,
                 'wrongType' => '{"alarms": {"app_unreachable": {"required_count": "abc"}}}',
                 'default' => static fn (): object => ThresholdsConfig::default(),
                 'load' => static fn (bool $fallback, string $root): ConfigLoadResult => (new ThresholdsConfigLoader(fallbackOnFailure: $fallback))->load($root),
@@ -222,7 +242,6 @@ final class MonitoringConfigLoaderContractTest extends TestCase
                 'class' => TtlConfigLoader::class,
                 'file' => 'ttl.json',
                 'silentWhenMissing' => false,
-                'hasFallbackSwitch' => true,
                 'wrongType' => '{"apps": "abc"}',
                 'default' => static fn (): object => TtlConfig::default(),
                 'load' => static fn (bool $fallback, string $root): ConfigLoadResult => (new TtlConfigLoader(fallbackOnFailure: $fallback))->load($root),
@@ -231,7 +250,6 @@ final class MonitoringConfigLoaderContractTest extends TestCase
                 'class' => IntervalsConfigLoader::class,
                 'file' => 'intervals.json',
                 'silentWhenMissing' => false,
-                'hasFallbackSwitch' => true,
                 'wrongType' => '{"events": {"min_event_interval_minutes": {"_default": "abc"}}}',
                 'default' => static fn (): object => IntervalsConfig::default(),
                 'load' => static fn (bool $fallback, string $root): ConfigLoadResult => (new IntervalsConfigLoader(fallbackOnFailure: $fallback))->load($root),
@@ -240,7 +258,6 @@ final class MonitoringConfigLoaderContractTest extends TestCase
                 'class' => DataRetentionConfigLoader::class,
                 'file' => 'data_retention.json',
                 'silentWhenMissing' => false,
-                'hasFallbackSwitch' => true,
                 'wrongType' => '{"metrics": {"raw_retention_days": "abc"}}',
                 'default' => static fn (): object => DataRetentionConfig::default(),
                 'load' => static fn (bool $fallback, string $root): ConfigLoadResult => (new DataRetentionConfigLoader(fallbackOnFailure: $fallback))->load($root),
@@ -249,7 +266,6 @@ final class MonitoringConfigLoaderContractTest extends TestCase
                 'class' => ProbesConfigLoader::class,
                 'file' => 'probes.json',
                 'silentWhenMissing' => true,
-                'hasFallbackSwitch' => true,
                 'wrongType' => '{"max_retries": "abc"}',
                 'default' => static fn (): object => ProbesConfig::default(),
                 'load' => static fn (bool $fallback, string $root): ConfigLoadResult => (new ProbesConfigLoader(fallbackOnFailure: $fallback))->load($root),
@@ -258,7 +274,6 @@ final class MonitoringConfigLoaderContractTest extends TestCase
                 'class' => NotificationRulesConfigLoader::class,
                 'file' => 'notification_rules.json',
                 'silentWhenMissing' => true,
-                'hasFallbackSwitch' => true,
                 'wrongType' => '{"defaults": {"enabled": "yes", "channels": ["email"]}}',
                 'default' => static fn (): object => NotificationRulesConfig::default(),
                 'load' => static fn (bool $fallback, string $root): ConfigLoadResult => (new NotificationRulesConfigLoader(fallbackOnFailure: $fallback))->load($root),
@@ -267,7 +282,6 @@ final class MonitoringConfigLoaderContractTest extends TestCase
                 'class' => MenuConfigLoader::class,
                 'file' => 'menu.json',
                 'silentWhenMissing' => true,
-                'hasFallbackSwitch' => true,
                 'wrongType' => '{"events": "yes"}',
                 'default' => static fn (): object => MenuConfig::empty(),
                 'load' => static fn (bool $fallback, string $root): ConfigLoadResult => (new MenuConfigLoader(validKeys: MenuBuilder::MENU_KEYS, fallbackOnFailure: $fallback))->load($root),
@@ -276,7 +290,6 @@ final class MonitoringConfigLoaderContractTest extends TestCase
                 'class' => ChartsConfigLoader::class,
                 'file' => 'charts.json',
                 'silentWhenMissing' => true,
-                'hasFallbackSwitch' => true,
                 'wrongType' => '{"dashboard": {"metrics": "abc"}}',
                 'default' => static fn (): object => ChartsConfig::empty(),
                 'load' => static fn (bool $fallback, string $root): ConfigLoadResult => (new ChartsConfigLoader(
@@ -285,25 +298,23 @@ final class MonitoringConfigLoaderContractTest extends TestCase
                     fallbackOnFailure: $fallback,
                 ))->load($root),
             ],
-            // Loaded before the aggregate (bootstrap cycle) and never throws.
+            // Loaded before the aggregate (bootstrap cycle).
             'limits' => [
                 'class' => AlarmRateLimitsConfigLoader::class,
                 'file' => 'limits.json',
                 'silentWhenMissing' => true,
-                'hasFallbackSwitch' => false,
                 'wrongType' => '{"channels": {"default": {"per_minute": "abc"}}}',
-                'default' => static fn (): object => AlarmRateLimitsConfig::fromArray([], static function (string $message): void {}),
-                'load' => static fn (bool $fallback, string $root): ConfigLoadResult => (new AlarmRateLimitsConfigLoader())->load($root),
+                'default' => static fn (): object => AlarmRateLimitsConfig::default(),
+                'load' => static fn (bool $fallback, string $root): ConfigLoadResult => (new AlarmRateLimitsConfigLoader(fallbackOnFailure: $fallback))->load($root),
             ],
-            // Optional: a missing file means email-only delivery. Never throws.
+            // Optional: a missing file means email-only delivery.
             'channels' => [
                 'class' => ChannelsConfigLoader::class,
                 'file' => 'channels.json',
                 'silentWhenMissing' => true,
-                'hasFallbackSwitch' => false,
                 'wrongType' => '{"channels": {"telegram": {"type": "webhook", "url_env": "WEBHOOK_TELEGRAM_URL", "template": "telegram", "timeout_seconds": "abc"}}}',
                 'default' => static fn (): object => ChannelsConfig::empty(),
-                'load' => static fn (bool $fallback, string $root): ConfigLoadResult => (new ChannelsConfigLoader())->load($root),
+                'load' => static fn (bool $fallback, string $root): ConfigLoadResult => (new ChannelsConfigLoader(fallbackOnFailure: $fallback))->load($root),
             ],
         ];
     }

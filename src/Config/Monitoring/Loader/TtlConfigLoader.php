@@ -4,58 +4,32 @@ declare(strict_types=1);
 
 namespace Mata\Config\Monitoring\Loader;
 
-use InvalidArgumentException;
-use Mata\Config\Monitoring\Loader\Dto\ConfigLoadResult;
 use Mata\Config\Monitoring\Section\TtlConfig;
-use RuntimeException;
 
+/**
+ * Loads ttl.json: cache TTLs in seconds, per cache type.
+ *
+ * @extends AbstractJsonConfigLoader<TtlConfig>
+ */
 final class TtlConfigLoader extends AbstractJsonConfigLoader
 {
-    public function __construct(
-        private bool $fallbackOnFailure = true,
-    ) {}
-
-    /** @return ConfigLoadResult<TtlConfig> */
-    public function load(string $configRoot): ConfigLoadResult
+    protected function fileName(): string
     {
-        try {
-            return $this->loadTtlConfig(rtrim($configRoot, '/') . '/ttl.json');
-        } catch (MonitoringConfigLoadException $exception) {
-            if (!$this->fallbackOnFailure) {
-                throw $exception;
-            }
-
-            return new ConfigLoadResult($this->getDefaultConfig(), $exception->problems);
-        }
+        return 'ttl.json';
     }
 
-    /** @return ConfigLoadResult<TtlConfig> */
-    public function loadTtlConfig(string $filePath): ConfigLoadResult
+    protected function loadFailureType(): string
     {
-        try {
-            $config = $this->readJsonArray($filePath);
-            if ($config === []) {
-                throw new RuntimeException('ttl.json invalid or empty');
-            }
-
-            return $this->result(TtlConfig::fromArray($config));
-        } catch (InvalidArgumentException|RuntimeException $exception) {
-            $this->reportLoadFailure($filePath, $exception->getMessage());
-
-            throw $this->rejected('ttl.json invalid or empty', $exception);
-        }
+        return 'ttl_config_invalid';
     }
 
-    public function getDefaultConfig(): TtlConfig
+    protected function defaultSection(): TtlConfig
     {
         return TtlConfig::default();
     }
 
-    private function reportLoadFailure(string $filePath, string $reason): void
+    protected function parse(array $config, string $filePath): TtlConfig
     {
-        $this->report(
-            'ttl_config_not_found',
-            "Could not load {$filePath} -> fallback to Default Values (reason: {$reason})",
-        );
+        return TtlConfig::fromArray($config);
     }
 }

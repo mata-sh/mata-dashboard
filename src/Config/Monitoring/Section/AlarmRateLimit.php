@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Mata\Config\Monitoring\Section;
 
-use InvalidArgumentException;
 use Mata\Config\ConfigValueValidator;
 
 /** One channel's per-minute, per-hour, and per-day alarm delivery limits. */
@@ -14,20 +13,11 @@ final readonly class AlarmRateLimit
     public const DEFAULT_PER_HOUR = 120;
     public const DEFAULT_PER_DAY = 500;
 
-    private int $perMinute;
-    private int $perHour;
-    private int $perDay;
-
-    public function __construct(int $perMinute, int $perHour, int $perDay)
-    {
-        if ($perMinute < 0 || $perHour < 0 || $perDay < 0) {
-            throw new InvalidArgumentException('Alarm limits must not be negative.');
-        }
-
-        $this->perMinute = $perMinute;
-        $this->perHour = $perHour;
-        $this->perDay = $perDay;
-    }
+    public function __construct(
+        private int $perMinute,
+        private int $perHour,
+        private int $perDay,
+    ) {}
 
     public static function default(): self
     {

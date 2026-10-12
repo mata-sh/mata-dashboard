@@ -4,49 +4,41 @@ declare(strict_types=1);
 
 namespace Mata\Config\Monitoring\Loader;
 
-use Mata\Config\Monitoring\Loader\Dto\ConfigLoadResult;
 use Mata\Config\Monitoring\Section\AlarmRateLimitsConfig;
-use RuntimeException;
 
 /**
- * Loads the optional limits.json into an AlarmRateLimitsConfig.
+ * Loads the optional limits.json: transport limits for queued alarm deliveries.
  *
  * Loaded before the aggregate because AlarmDirectProcessor needs these limits, and
  * the processor must exist before forced config alarms are recorded. The aggregate
  * receives the resulting typed section after this bootstrap step.
  *
- * A missing file silently yields built-in defaults. A malformed or unreadable file
- * warns and yields defaults; there is no failure mode that stops the boot.
+ * @extends AbstractJsonConfigLoader<AlarmRateLimitsConfig>
  */
 final class AlarmRateLimitsConfigLoader extends AbstractJsonConfigLoader
 {
-    /**
-     * Takes the configuration root, matching the sibling loaders' signature.
-     *
-     * @return ConfigLoadResult<AlarmRateLimitsConfig>
-     */
-    public function load(string $configRoot): ConfigLoadResult
+    protected function fileName(): string
     {
-        $limitsFile = rtrim($configRoot, '/') . '/limits.json';
-        if (!is_file($limitsFile)) {
-            return $this->result(AlarmRateLimitsConfig::default());
-        }
+        return 'limits.json';
+    }
 
-        try {
-            $payload = $this->readJsonArray($limitsFile);
-        } catch (RuntimeException $exception) {
-            $this->report(
-                'limits_config_invalid',
-                "Could not load {$limitsFile}; falling back to default limits: {$exception->getMessage()}",
-            );
+    protected function loadFailureType(): string
+    {
+        return 'limits_config_invalid';
+    }
 
-            return $this->result(AlarmRateLimitsConfig::default());
-        }
+    protected function isOptional(): bool
+    {
+        return true;
+    }
 
-        // fromArray() skips invalid entries; each skip lands in this load's problems.
-        $reportInvalidEntry = fn (string $message) => $this->report('limits_config_invalid_entry', $message);
-        $config = AlarmRateLimitsConfig::fromArray($payload, $reportInvalidEntry);
+    protected function defaultSection(): AlarmRateLimitsConfig
+    {
+        return AlarmRateLimitsConfig::default();
+    }
 
-        return $this->result($config);
+    protected function parse(array $config, string $filePath): AlarmRateLimitsConfig
+    {
+        return AlarmRateLimitsConfig::fromArray($config, $this->reportInvalidEntry(...));
     }
 }

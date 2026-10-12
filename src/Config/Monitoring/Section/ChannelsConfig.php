@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Mata\Config\Monitoring\Section;
 
 use InvalidArgumentException;
+use Mata\Config\ConfigValueValidator;
 
 /**
  * Alarm delivery channels from channels.json, next to the built-in email channel that
@@ -37,7 +38,7 @@ final readonly class ChannelsConfig
     public static function fromArray(array $raw, callable $env, callable $reportInvalid): self
     {
         $entries = $raw['channels'] ?? [];
-        if (!self::isObject($entries)) {
+        if (!ConfigValueValidator::isObject($entries)) {
             $reportInvalid('channels must be an object; only email is available.');
 
             return self::empty();
@@ -78,7 +79,7 @@ final readonly class ChannelsConfig
         if (preg_match(NotificationRulesConfig::CHANNEL_NAME_PATTERN, $name) !== 1 || $name === self::EMAIL) {
             throw new InvalidArgumentException("{$path}: invalid or reserved channel name.");
         }
-        if (!self::isObject($entry)) {
+        if (!ConfigValueValidator::isObject($entry)) {
             throw new InvalidArgumentException("{$path} must be an object.");
         }
         if (($entry['type'] ?? null) !== 'webhook') {
@@ -110,7 +111,7 @@ final readonly class ChannelsConfig
             throw new InvalidArgumentException("{$path}.timeout_seconds must be an integer from 1 to 30.");
         }
         $params = $entry['params'] ?? [];
-        if (!self::isObject($params) || array_filter($params, static fn (mixed $value): bool => !is_scalar($value)) !== []) {
+        if (!ConfigValueValidator::isObject($params) || array_filter($params, static fn (mixed $value): bool => !is_scalar($value)) !== []) {
             throw new InvalidArgumentException("{$path}.params must be an object of strings, numbers or booleans.");
         }
 
@@ -131,9 +132,4 @@ final readonly class ChannelsConfig
         return new WebhookChannel($name, $url, $template, $params, $timeout);
     }
 
-    /** @phpstan-assert-if-true array<string,mixed> $value */
-    private static function isObject(mixed $value): bool
-    {
-        return is_array($value) && ($value === [] || !array_is_list($value));
-    }
 }

@@ -60,6 +60,33 @@ final readonly class ServersConfig
         return $errors;
     }
 
+    /**
+     * Enabled servers that opted into plain HTTP and did not silence the reminder.
+     *
+     * @param array<string,mixed> $servers
+     *
+     * @return list<string>
+     */
+    public static function allowedHttpWarnings(array $servers): array
+    {
+        $warnings = [];
+        foreach ($servers as $serverName => $config) {
+            if (
+                !is_array($config)
+                || ServerConfigState::isDisabled($config)
+                || !is_string($config['api_url'] ?? null)
+                || parse_url($config['api_url'], PHP_URL_SCHEME) !== 'http'
+                || !(TypeConverter::toBool($config['allow_http'] ?? null) ?? false)
+                || (TypeConverter::toBool($config['suppress_http_warning'] ?? null) ?? false)
+            ) {
+                continue;
+            }
+            $warnings[] = "Security warning: HTTP connection allowed for server '{$serverName}' (api_url: {$config['api_url']}). Recommendation: Use HTTPS for production environments.";
+        }
+
+        return $warnings;
+    }
+
     /** @return list<string> */
     private static function serverValidationErrors(string $serverName, mixed $config): array
     {

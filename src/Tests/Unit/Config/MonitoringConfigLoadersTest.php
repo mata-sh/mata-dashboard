@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Mata\Tests\Unit\Config;
 
 use InvalidArgumentException;
+use Mata\Config\Monitoring\Loader\AbstractJsonConfigLoader;
 use Mata\Config\Monitoring\Loader\DataRetentionConfigLoader;
 use Mata\Config\Monitoring\Loader\Dto\ConfigLoadProblem;
 use Mata\Config\Monitoring\Loader\Dto\ConfigLoadResult;
@@ -25,10 +26,10 @@ use Mata\Config\Monitoring\Section\MenuConfig;
 use Mata\Config\Monitoring\Section\NotificationRulesConfig;
 use Mata\Config\Monitoring\Section\ProbesConfig;
 use Mata\Config\Monitoring\Section\ServersConfig;
+use Mata\Config\Monitoring\Section\ThresholdsConfig;
 use Mata\Services\Navigation\MenuBuilder;
 use Mata\Tests\TestCase;
 use PHPUnit\Framework\Attributes\DataProvider;
-use ReflectionMethod;
 
 /**
  * @internal
@@ -171,7 +172,7 @@ final class MonitoringConfigLoadersTest extends TestCase
 
     public function testLoadNotificationRulesConfigFallsBackForNonObjectJson(): void
     {
-        $this->assertDefaultNotificationRulesFallback($this->loadNotificationRulesJson('[]'));
+        $this->assertDefaultNotificationRulesFallback($this->loadNotificationRulesJson('["email"]'));
     }
 
     /** @param array<string,mixed> $rules */
@@ -187,8 +188,6 @@ final class MonitoringConfigLoadersTest extends TestCase
         yield 'unknown root key' => [['unknown' => true]];
 
         yield 'null section' => [['event_types' => null]];
-
-        yield 'list section' => [['event_types' => []]];
 
         yield 'null rule' => [['event_types' => ['fatal' => null]]];
 
@@ -213,15 +212,7 @@ final class MonitoringConfigLoadersTest extends TestCase
 
     public function testLoadTtlConfigAddsMissingCacheTtls(): void
     {
-        $path = tempnam(sys_get_temp_dir(), 'mata-ttl-');
-        self::assertNotFalse($path);
-        file_put_contents($path, json_encode(['apps' => 120], JSON_THROW_ON_ERROR));
-
-        try {
-            $ttl = $this->ttlLoader->loadTtlConfig($path)->section;
-        } finally {
-            unlink($path);
-        }
+        $ttl = $this->loadFrom($this->ttlLoader, 'ttl.json', json_encode(['apps' => 120], JSON_THROW_ON_ERROR))->section;
 
         $this->assertSame(120, $ttl->get('apps'));
         $this->assertSame(86400, $ttl->get('serverInfo'));
@@ -230,22 +221,14 @@ final class MonitoringConfigLoadersTest extends TestCase
 
     public function testLoadMenuConfigKeepsValidBooleanOverrides(): void
     {
-        $path = tempnam(sys_get_temp_dir(), 'mata-menu-');
-        self::assertNotFalse($path);
-        file_put_contents($path, json_encode(['metrics' => true, 'databases' => false], JSON_THROW_ON_ERROR));
-
-        try {
-            $menu = $this->menuLoader->loadMenuConfig($path)->section;
-        } finally {
-            unlink($path);
-        }
+        $menu = $this->loadFrom($this->menuLoader, 'menu.json', json_encode(['metrics' => true, 'databases' => false], JSON_THROW_ON_ERROR))->section;
 
         $this->assertSame(['metrics' => true, 'databases' => false], $menu->overrides);
     }
 
     public function testLoadMenuConfigReturnsNoOverridesWhenFileMissing(): void
     {
-        $loaded = $this->menuLoader->loadMenuConfig(sys_get_temp_dir() . '/mata-menu-does-not-exist.json');
+        $loaded = $this->menuLoader->load(sys_get_temp_dir() . '/mata-config-does-not-exist');
 
         $this->assertSame([], $loaded->problems);
         $this->assertSame([], $loaded->section->overrides, 'a missing optional menu.json keeps built-in defaults silently');
@@ -309,7 +292,7 @@ final class MonitoringConfigLoadersTest extends TestCase
         }
 
         try {
-            $this->loader->loadServersConfig($path);
+            $this->loader->load($directory);
             $this->fail('Expected the servers config load to fail');
         } catch (MonitoringConfigLoadException $exception) {
             $this->assertStringContainsString($cause, $exception->getMessage());
@@ -320,8 +303,8 @@ final class MonitoringConfigLoadersTest extends TestCase
             $this->cleanupTempFiles([$directory]);
         }
 
-        $this->assertStringContainsString($cause, $messages['servers_config_not_found'] ?? '');
-        $this->assertStringNotContainsString('file not found', $messages['servers_config_not_found'] ?? '');
+        $this->assertStringContainsString($cause, $messages['servers_config_invalid'] ?? '');
+        $this->assertStringNotContainsString('file not found', $messages['servers_config_invalid'] ?? '');
     }
 
     /** @return array<string,array{?string,string}> */
@@ -336,7 +319,7 @@ final class MonitoringConfigLoadersTest extends TestCase
 
     public function testValidateServersConfigRejectsNonBooleanDisabledFlag(): void
     {
-        $result = $this->loader->validateServersConfig([
+        $result = self::validateServers([
             'server' => [
                 'title' => 'Server',
                 'api_url' => 'https://api.example.test',
@@ -367,7 +350,7 @@ final class MonitoringConfigLoadersTest extends TestCase
         ]);
 
         $this->assertEquals(
-            [new ConfigLoadProblem('servers_config_validation_error', "Server 'invalid-server' disabled must be a boolean")],
+            [new ConfigLoadProblem('servers_config_invalid_entry', "Server 'invalid-server' disabled must be a boolean")],
             $result->problems,
         );
         $this->assertSame(['valid-server'], array_keys($result->section->values));
@@ -428,7 +411,7 @@ final class MonitoringConfigLoadersTest extends TestCase
         file_put_contents($directory . '/servers.secrets.json', '{"web": ');
 
         try {
-            $this->loader->loadServersConfig($directory . '/servers.json');
+            $this->loader->load($directory);
             $this->fail('Expected the servers config load to fail');
         } catch (MonitoringConfigLoadException $exception) {
             $this->assertStringContainsString('servers.secrets.json', $exception->getMessage());
@@ -443,7 +426,7 @@ final class MonitoringConfigLoadersTest extends TestCase
     #[DataProvider('nonBooleanApplicationMonitoringFlagProvider')]
     public function testValidateServersConfigRejectsNonBooleanApplicationMonitoringFlags(string $setting): void
     {
-        $result = $this->loader->validateServersConfig([
+        $result = self::validateServers([
             'server' => [
                 'title' => 'Server',
                 'api_url' => 'https://api.example.test',
@@ -474,7 +457,7 @@ final class MonitoringConfigLoadersTest extends TestCase
             ],
         ];
 
-        $result = $this->loader->validateServersConfig($config);
+        $result = self::validateServers($config);
 
         $this->assertTrue($result['is_valid']);
         $this->assertEmpty($result['errors']);
@@ -482,7 +465,7 @@ final class MonitoringConfigLoadersTest extends TestCase
 
     public function testValidateServersConfigAcceptsOptionalProdAlarmEmailEnvironment(): void
     {
-        $result = $this->loader->validateServersConfig([
+        $result = self::validateServers([
             'production-server' => [
                 'title' => 'Production Server',
                 'api_url' => 'https://api.example.test',
@@ -497,7 +480,7 @@ final class MonitoringConfigLoadersTest extends TestCase
 
     public function testValidateServersConfigAcceptsLegacyLiveAlarmEmailEnvironment(): void
     {
-        $result = $this->loader->validateServersConfig([
+        $result = self::validateServers([
             'production-server' => [
                 'title' => 'Production Server',
                 'api_url' => 'https://api.example.test',
@@ -512,7 +495,7 @@ final class MonitoringConfigLoadersTest extends TestCase
 
     public function testValidateServersConfigEnvironmentErrorListsLive(): void
     {
-        $result = $this->loader->validateServersConfig([
+        $result = self::validateServers([
             'production-server' => [
                 'title' => 'Production Server',
                 'api_url' => 'https://api.example.test',
@@ -538,7 +521,7 @@ final class MonitoringConfigLoadersTest extends TestCase
             ],
         ];
 
-        $result = $this->loader->validateServersConfig($config);
+        $result = self::validateServers($config);
 
         $this->assertFalse($result['is_valid']);
         $this->assertCount(1, $result['errors']);
@@ -557,7 +540,7 @@ final class MonitoringConfigLoadersTest extends TestCase
             ],
         ];
 
-        $result = $this->loader->validateServersConfig($config);
+        $result = self::validateServers($config);
 
         $this->assertTrue($result['is_valid']);
         $this->assertEmpty($result['errors']);
@@ -576,7 +559,7 @@ final class MonitoringConfigLoadersTest extends TestCase
             ],
         ];
 
-        $result = $this->loader->validateServersConfig($config);
+        $result = self::validateServers($config);
 
         $this->assertTrue($result['is_valid']);
         $this->assertEmpty($result['errors']);
@@ -585,7 +568,7 @@ final class MonitoringConfigLoadersTest extends TestCase
 
     public function testValidateServersConfigDoesNotWarnForDisabledHttpServer(): void
     {
-        $result = $this->loader->validateServersConfig([
+        $result = self::validateServers([
             'disabled-server' => [
                 'disabled' => true,
                 'api_url' => 'http://localhost:3310/mata-node',
@@ -609,7 +592,7 @@ final class MonitoringConfigLoadersTest extends TestCase
             ],
         ];
 
-        $result = $this->loader->validateServersConfig($config);
+        $result = self::validateServers($config);
 
         $this->assertFalse($result['is_valid']);
         $this->assertStringContainsString('must use HTTPS protocol', $result['errors'][0]);
@@ -626,7 +609,7 @@ final class MonitoringConfigLoadersTest extends TestCase
             ],
         ];
 
-        $result = $this->loader->validateServersConfig($config);
+        $result = self::validateServers($config);
 
         $this->assertFalse($result['is_valid']);
         $this->assertStringContainsString('must use HTTPS protocol', $result['errors'][0]);
@@ -644,7 +627,7 @@ final class MonitoringConfigLoadersTest extends TestCase
             ],
         ];
 
-        $result = $this->loader->validateServersConfig($config);
+        $result = self::validateServers($config);
 
         $this->assertFalse($result['is_valid']);
         $this->assertCount(1, $result['errors']);
@@ -661,7 +644,7 @@ final class MonitoringConfigLoadersTest extends TestCase
             ],
         ];
 
-        $result = $this->loader->validateServersConfig($config);
+        $result = self::validateServers($config);
 
         $this->assertFalse($result['is_valid']);
         $this->assertStringContainsString('must use HTTPS protocol (found: ftp://)', $result['errors'][0]);
@@ -677,7 +660,7 @@ final class MonitoringConfigLoadersTest extends TestCase
             ],
         ];
 
-        $result = $this->loader->validateServersConfig($config);
+        $result = self::validateServers($config);
 
         $this->assertFalse($result['is_valid']);
         $this->assertStringContainsString('missing required field: api_url', $result['errors'][0]);
@@ -696,7 +679,7 @@ final class MonitoringConfigLoadersTest extends TestCase
             ],
         ];
 
-        $result = $this->loader->validateServersConfig($config);
+        $result = self::validateServers($config);
 
         $this->assertTrue($result['is_valid']);
         $this->assertEmpty($result['errors']);
@@ -713,7 +696,7 @@ final class MonitoringConfigLoadersTest extends TestCase
             ],
         ];
 
-        $result = $this->loader->validateServersConfig($config);
+        $result = self::validateServers($config);
 
         $this->assertFalse($result['is_valid']);
         $this->assertStringContainsString('invalid primary_color format', $result['errors'][0]);
@@ -731,7 +714,7 @@ final class MonitoringConfigLoadersTest extends TestCase
             ],
         ];
 
-        $result = $this->loader->validateServersConfig($config);
+        $result = self::validateServers($config);
 
         $this->assertFalse($result['is_valid']);
         $this->assertStringContainsString('invalid primary_color format', $result['errors'][0]);
@@ -748,7 +731,7 @@ final class MonitoringConfigLoadersTest extends TestCase
             ],
         ];
 
-        $result = $this->loader->validateServersConfig($config);
+        $result = self::validateServers($config);
 
         $this->assertFalse($result['is_valid']);
         $this->assertStringContainsString('invalid primary_color format', $result['errors'][0]);
@@ -765,7 +748,7 @@ final class MonitoringConfigLoadersTest extends TestCase
             ],
         ];
 
-        $result = $this->loader->validateServersConfig($config);
+        $result = self::validateServers($config);
 
         $this->assertFalse($result['is_valid']);
         $this->assertStringContainsString('invalid primary_color format', $result['errors'][0]);
@@ -781,7 +764,7 @@ final class MonitoringConfigLoadersTest extends TestCase
             ],
         ];
 
-        $result = $this->loader->validateServersConfig($config);
+        $result = self::validateServers($config);
 
         $this->assertTrue($result['is_valid']);
         $this->assertEmpty($result['errors']);
@@ -798,7 +781,7 @@ final class MonitoringConfigLoadersTest extends TestCase
             ],
         ];
 
-        $result = $this->loader->validateServersConfig($config);
+        $result = self::validateServers($config);
 
         $this->assertFalse($result['is_valid']);
         $this->assertStringContainsString('missing required field: title', $result['errors'][0]);
@@ -813,7 +796,7 @@ final class MonitoringConfigLoadersTest extends TestCase
             ],
         ];
 
-        $result = $this->loader->validateServersConfig($config);
+        $result = self::validateServers($config);
 
         $this->assertFalse($result['is_valid']);
         $this->assertStringContainsString('has no api_key in servers.secrets.json', $result['errors'][0]);
@@ -828,7 +811,7 @@ final class MonitoringConfigLoadersTest extends TestCase
             ],
         ];
 
-        $result = $this->loader->validateServersConfig($config);
+        $result = self::validateServers($config);
 
         $this->assertFalse($result['is_valid']);
         $this->assertGreaterThanOrEqual(3, count($result['errors'])); // title, api_key, HTTP, color
@@ -852,7 +835,7 @@ final class MonitoringConfigLoadersTest extends TestCase
             ],
         ];
 
-        $result = $this->loader->validateServersConfig($config);
+        $result = self::validateServers($config);
 
         $this->assertTrue($result['is_valid']);
         $this->assertEmpty($result['errors']);
@@ -873,7 +856,7 @@ final class MonitoringConfigLoadersTest extends TestCase
             ],
         ];
 
-        $result = $this->loader->validateServersConfig($config);
+        $result = self::validateServers($config);
 
         $this->assertFalse($result['is_valid']);
         $this->assertCount(1, $result['errors']);
@@ -886,7 +869,7 @@ final class MonitoringConfigLoadersTest extends TestCase
     {
         $config = [];
 
-        $result = $this->loader->validateServersConfig($config);
+        $result = self::validateServers($config);
 
         $this->assertFalse($result['is_valid']);
         $this->assertCount(1, $result['errors']);
@@ -899,7 +882,7 @@ final class MonitoringConfigLoadersTest extends TestCase
             'server' => 'not-an-array',
         ];
 
-        $result = $this->loader->validateServersConfig($config);
+        $result = self::validateServers($config);
 
         $this->assertFalse($result['is_valid']);
         $this->assertStringContainsString('configuration must be an array', $result['errors'][0]);
@@ -916,7 +899,7 @@ final class MonitoringConfigLoadersTest extends TestCase
             ],
         ];
 
-        $result = $this->loader->validateServersConfig($config);
+        $result = self::validateServers($config);
 
         $this->assertTrue($result['is_valid']);
         $this->assertEmpty($result['errors']);
@@ -937,7 +920,7 @@ final class MonitoringConfigLoadersTest extends TestCase
                 ],
             ];
 
-            $result = $this->loader->validateServersConfig($config);
+            $result = self::validateServers($config);
 
             $this->assertTrue(
                 $result['is_valid'],
@@ -961,7 +944,7 @@ final class MonitoringConfigLoadersTest extends TestCase
                 ],
             ];
 
-            $result = $this->loader->validateServersConfig($config);
+            $result = self::validateServers($config);
 
             $this->assertTrue($result['is_valid']);
             $this->assertSame([], $result['warnings'], "Expected suppress_http_warning='{$variation}' to suppress warnings");
@@ -979,7 +962,7 @@ final class MonitoringConfigLoadersTest extends TestCase
             ],
         ];
 
-        $result = $this->loader->validateServersConfig($config);
+        $result = self::validateServers($config);
 
         $this->assertTrue($result['is_valid']);
         $this->assertEmpty($result['errors']);
@@ -987,8 +970,7 @@ final class MonitoringConfigLoadersTest extends TestCase
 
     public function testDefaultThresholdsIncludeCronjobCountAndResourceUsageAlarms(): void
     {
-        $method = new ReflectionMethod($this->thresholdsLoader, 'getDefaultConfig');
-        $thresholds = $method->invoke($this->thresholdsLoader)->toArray();
+        $thresholds = ThresholdsConfig::default()->toArray();
 
         $this->assertSame(['good' => -1, 'alarm' => 0], $thresholds['server_data']['cronjobs_failed_count']);
         $this->assertArrayNotHasKey('orders_export_stale', $thresholds['alarms']);
@@ -1016,19 +998,11 @@ final class MonitoringConfigLoadersTest extends TestCase
 
     public function testInvalidAlarmRuleUsesTheDefaultRuleWhenAvailable(): void
     {
-        $path = tempnam(sys_get_temp_dir(), 'mata-thresholds-');
-        self::assertNotFalse($path);
-        file_put_contents($path, json_encode(['alarms' => [
+        $loaded = $this->loadFrom($this->thresholdsLoader, 'thresholds.json', json_encode(['alarms' => [
             'app_unreachable' => ['strategy' => 'unknown'],
             'server_apps_transport_unreachable' => ['strategy' => 'unknown'],
             'custom_alarm' => ['strategy' => 'unknown'],
         ]], JSON_THROW_ON_ERROR));
-
-        try {
-            $loaded = $this->thresholdsLoader->loadThresholdsConfig($path);
-        } finally {
-            unlink($path);
-        }
 
         $this->assertCount(3, $loaded->problems);
         $thresholds = $loaded->section->toArray();
@@ -1043,9 +1017,7 @@ final class MonitoringConfigLoadersTest extends TestCase
 
     public function testDisabledAlarmRulesStillRequireValidConfiguration(): void
     {
-        $path = tempnam(sys_get_temp_dir(), 'mata-thresholds-');
-        self::assertNotFalse($path);
-        file_put_contents($path, json_encode(['alarms' => [
+        $loaded = $this->loadFrom($this->thresholdsLoader, 'thresholds.json', json_encode(['alarms' => [
             'app_unreachable' => [
                 'enabled' => false,
                 'strategy' => 'consecutive_failures',
@@ -1058,12 +1030,6 @@ final class MonitoringConfigLoadersTest extends TestCase
             ],
             'custom_disabled' => ['enabled' => false],
         ]], JSON_THROW_ON_ERROR));
-
-        try {
-            $loaded = $this->thresholdsLoader->loadThresholdsConfig($path);
-        } finally {
-            unlink($path);
-        }
 
         $this->assertCount(2, $loaded->problems);
         $thresholds = $loaded->section->toArray();
@@ -1078,18 +1044,10 @@ final class MonitoringConfigLoadersTest extends TestCase
 
     public function testIntervalDefaultsFillMissingConfiguredEventTypes(): void
     {
-        $path = tempnam(sys_get_temp_dir(), 'mata-intervals-');
-        self::assertNotFalse($path);
-        file_put_contents($path, json_encode([
+        $config = $this->loadFrom($this->intervalsLoader, 'intervals.json', json_encode([
             'events' => ['min_event_interval_minutes' => ['_default' => 15]],
             'alarms' => ['min_alarm_interval_minutes' => ['_default' => 30]],
-        ], JSON_THROW_ON_ERROR));
-
-        try {
-            $config = $this->intervalsLoader->loadIntervalsConfig($path)->section->toArray();
-        } finally {
-            unlink($path);
-        }
+        ], JSON_THROW_ON_ERROR))->section->toArray();
 
         $this->assertSame(15, $config['events']['min_event_interval_minutes']['_default']);
         $this->assertSame(0, $config['events']['min_event_interval_minutes']['server_apps_transport_unreachable']);
@@ -1099,15 +1057,7 @@ final class MonitoringConfigLoadersTest extends TestCase
 
     public function testDefaultFatalErrorEventIntervalIsConfigured(): void
     {
-        $path = tempnam(sys_get_temp_dir(), 'mata-intervals-');
-        self::assertNotFalse($path);
-        file_put_contents($path, '{"unused": true}');
-
-        try {
-            $config = $this->intervalsLoader->loadIntervalsConfig($path)->section->toArray();
-        } finally {
-            unlink($path);
-        }
+        $config = $this->loadFrom($this->intervalsLoader, 'intervals.json', '{"unused": true}')->section->toArray();
 
         $eventIntervals = $config['events']['min_event_interval_minutes'];
         $alarmIntervals = $config['alarms']['min_alarm_interval_minutes'];
@@ -1246,7 +1196,7 @@ final class MonitoringConfigLoadersTest extends TestCase
         }
 
         try {
-            return $this->loader->loadServersConfig($directory . '/servers.json');
+            return $this->loader->load($directory);
         } finally {
             $this->cleanupTempFiles([$directory]);
         }
@@ -1262,22 +1212,38 @@ final class MonitoringConfigLoadersTest extends TestCase
         return array_map(static fn (ConfigLoadProblem $problem): string => $problem->message, $problems);
     }
 
+    /**
+     * @param array<string,mixed> $config
+     *
+     * @return array{is_valid:bool,errors:list<string>,warnings:list<string>}
+     */
+    private static function validateServers(array $config): array
+    {
+        $errors = ServersConfig::validationErrors($config);
+
+        return ['is_valid' => $errors === [], 'errors' => $errors, 'warnings' => ServersConfig::allowedHttpWarnings($config)];
+    }
+
     private function alarmRateLimits(): AlarmRateLimitsConfig
     {
         return new AlarmRateLimitsConfig(new AlarmRateLimit(1, 1, 1), [], []);
     }
 
+    private function loadFrom(AbstractJsonConfigLoader $loader, string $fileName, string $contents): ConfigLoadResult
+    {
+        $directory = $this->createTempDirectory();
+        file_put_contents("{$directory}/{$fileName}", $contents);
+
+        try {
+            return $loader->load($directory);
+        } finally {
+            $this->cleanupTempFiles([$directory]);
+        }
+    }
+
     /** @param array<string,mixed> $config */
     private function loadDataRetentionConfig(array $config): array
     {
-        $path = tempnam(sys_get_temp_dir(), 'mata-retention-');
-        self::assertNotFalse($path);
-        file_put_contents($path, json_encode($config, JSON_THROW_ON_ERROR));
-
-        try {
-            return $this->dataRetentionLoader->loadDataRetentionConfig($path)->section->toArray();
-        } finally {
-            unlink($path);
-        }
+        return $this->loadFrom($this->dataRetentionLoader, 'data_retention.json', json_encode($config, JSON_THROW_ON_ERROR))->section->toArray();
     }
 }

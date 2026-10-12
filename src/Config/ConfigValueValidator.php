@@ -9,6 +9,26 @@ use InvalidArgumentException;
 /** Shared primitive validation for configuration factories. */
 final class ConfigValueValidator
 {
+    /**
+     * A decoded JSON object; an empty one decodes to the same [] as an empty list.
+     *
+     * @phpstan-assert-if-true array<array-key, mixed> $value
+     */
+    public static function isObject(mixed $value): bool
+    {
+        return is_array($value) && ($value === [] || !array_is_list($value));
+    }
+
+    /** @return array<array-key, mixed> */
+    public static function object(mixed $value, string $path): array
+    {
+        if (!self::isObject($value)) {
+            throw new InvalidArgumentException("{$path} must be an object.");
+        }
+
+        return $value;
+    }
+
     public static function integer(
         mixed $value,
         string $path,

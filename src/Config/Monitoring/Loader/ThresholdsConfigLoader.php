@@ -4,63 +4,32 @@ declare(strict_types=1);
 
 namespace Mata\Config\Monitoring\Loader;
 
-use Mata\Config\Monitoring\Loader\Dto\ConfigLoadResult;
 use Mata\Config\Monitoring\Section\ThresholdsConfig;
-use RuntimeException;
 
+/**
+ * Loads thresholds.json: metric thresholds and alarm candidate windows.
+ *
+ * @extends AbstractJsonConfigLoader<ThresholdsConfig>
+ */
 final class ThresholdsConfigLoader extends AbstractJsonConfigLoader
 {
-    public function __construct(
-        private bool $fallbackOnFailure = true,
-    ) {}
-
-    /** @return ConfigLoadResult<ThresholdsConfig> */
-    public function load(string $configRoot): ConfigLoadResult
+    protected function fileName(): string
     {
-        try {
-            return $this->loadThresholdsConfig(rtrim($configRoot, '/') . '/thresholds.json');
-        } catch (MonitoringConfigLoadException $exception) {
-            if (!$this->fallbackOnFailure) {
-                throw $exception;
-            }
-
-            return new ConfigLoadResult($this->getDefaultConfig(), $exception->problems);
-        }
+        return 'thresholds.json';
     }
 
-    /** @return ConfigLoadResult<ThresholdsConfig> */
-    public function loadThresholdsConfig(string $filePath): ConfigLoadResult
+    protected function loadFailureType(): string
     {
-        try {
-            $thresholds = $this->readJsonArray($filePath);
-        } catch (RuntimeException $exception) {
-            $this->reportLoadFailure($filePath, $exception);
-
-            throw $this->rejected('thresholds.json invalid or empty', $exception);
-        }
-        if ($thresholds === []) {
-            $exception = new RuntimeException('thresholds.json invalid or empty');
-            $this->reportLoadFailure($filePath, $exception);
-
-            throw $this->rejected('thresholds.json invalid or empty', $exception);
-        }
-
-        $reportInvalidEntry = fn (string $message) => $this->report('thresholds_config_validation_error', $message);
-        $config = ThresholdsConfig::fromArray($thresholds, $reportInvalidEntry);
-
-        return $this->result($config);
+        return 'thresholds_config_invalid';
     }
 
-    public function getDefaultConfig(): ThresholdsConfig
+    protected function defaultSection(): ThresholdsConfig
     {
         return ThresholdsConfig::default();
     }
 
-    private function reportLoadFailure(string $filePath, RuntimeException $exception): void
+    protected function parse(array $config, string $filePath): ThresholdsConfig
     {
-        $this->report(
-            'thresholds_config_not_found',
-            "Could not load {$filePath} -> fallback to default thresholds (reason: {$exception->getMessage()})",
-        );
+        return ThresholdsConfig::fromArray($config, $this->reportInvalidEntry(...));
     }
 }

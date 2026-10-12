@@ -5,44 +5,20 @@ declare(strict_types=1);
 namespace Mata\Config\Monitoring\Section;
 
 use InvalidArgumentException;
+use Mata\Config\ConfigValueValidator;
 
 /** Global, channel, and per-server alarm delivery limits. */
 final readonly class AlarmRateLimitsConfig
 {
-    /** @var array<string,AlarmRateLimit> */
-    private array $channelLimits;
-
-    /** @var array<string,array<string,AlarmRateLimit>> */
-    private array $serverOverrides;
-
-    private AlarmRateLimit $globalDefault;
-
     /**
      * @param array<string,AlarmRateLimit>               $channelLimits
      * @param array<string,array<string,AlarmRateLimit>> $serverOverrides
      */
-    public function __construct(AlarmRateLimit $globalDefault, array $channelLimits, array $serverOverrides)
-    {
-        foreach ($channelLimits as $channel => $limit) {
-            if (!$limit instanceof AlarmRateLimit) {
-                throw new InvalidArgumentException("limits.channels.{$channel} must be an alarm rate limit.");
-            }
-        }
-        foreach ($serverOverrides as $server => $limits) {
-            if (!is_array($limits)) {
-                throw new InvalidArgumentException("limits.overrides.{$server} must be an object.");
-            }
-            foreach ($limits as $channel => $limit) {
-                if (!$limit instanceof AlarmRateLimit) {
-                    throw new InvalidArgumentException("limits.overrides.{$server}.{$channel} must be an alarm rate limit.");
-                }
-            }
-        }
-
-        $this->globalDefault = $globalDefault;
-        $this->channelLimits = $channelLimits;
-        $this->serverOverrides = $serverOverrides;
-    }
+    public function __construct(
+        private AlarmRateLimit $globalDefault,
+        private array $channelLimits,
+        private array $serverOverrides,
+    ) {}
 
     /**
      * Invalid channel and server entries are reported and skipped independently.
@@ -53,7 +29,7 @@ final readonly class AlarmRateLimitsConfig
     public static function fromArray(array $raw, callable $reportInvalid): self
     {
         $channels = $raw['channels'] ?? [];
-        if (!is_array($channels) || ($channels !== [] && array_is_list($channels))) {
+        if (!ConfigValueValidator::isObject($channels)) {
             $reportInvalid('limits.channels must be an object; using default limits.');
             $channels = [];
         }
@@ -61,7 +37,7 @@ final readonly class AlarmRateLimitsConfig
         $globalDefault = AlarmRateLimit::default();
         if (array_key_exists('default', $channels)) {
             $default = $channels['default'];
-            if (!is_array($default) || ($default !== [] && array_is_list($default))) {
+            if (!ConfigValueValidator::isObject($default)) {
                 $reportInvalid('limits.channels.default must be an object; using default limits.');
             } else {
                 try {
@@ -78,7 +54,7 @@ final readonly class AlarmRateLimitsConfig
                 continue;
             }
             $channel = strtolower((string) $channel);
-            if (!is_array($config) || ($config !== [] && array_is_list($config))) {
+            if (!ConfigValueValidator::isObject($config)) {
                 $reportInvalid("limits.channels.{$channel} must be an object; skipping entry.");
 
                 continue;
@@ -97,20 +73,20 @@ final readonly class AlarmRateLimitsConfig
 
         $serverOverrides = [];
         $overrides = $raw['overrides'] ?? [];
-        if (!is_array($overrides) || ($overrides !== [] && array_is_list($overrides))) {
+        if (!ConfigValueValidator::isObject($overrides)) {
             $reportInvalid('limits.overrides must be an object; skipping overrides.');
             $overrides = [];
         }
         foreach ($overrides as $server => $serverConfig) {
             $server = strtolower((string) $server);
-            if (!is_array($serverConfig) || ($serverConfig !== [] && array_is_list($serverConfig))) {
+            if (!ConfigValueValidator::isObject($serverConfig)) {
                 $reportInvalid("limits.overrides.{$server} must be an object; skipping entry.");
 
                 continue;
             }
             foreach ($serverConfig as $channel => $override) {
                 $channel = strtolower((string) $channel);
-                if (!is_array($override) || ($override !== [] && array_is_list($override))) {
+                if (!ConfigValueValidator::isObject($override)) {
                     $reportInvalid("limits.overrides.{$server}.{$channel} must be an object; skipping entry.");
 
                     continue;

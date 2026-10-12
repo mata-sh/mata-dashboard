@@ -34,9 +34,8 @@ creates `.env` for Compose.
 
 `probes.json`, `notification_rules.json`, `menu.json`, `charts.json`,
 `limits.json`, and `channels.json` are not created by setup. Their loaders use
-built-in defaults when they are absent; without `channels.json`, alarms are
-delivered by email only. Copy the matching example to customize all but
-`limits.json`.
+built-in defaults when they are absent or empty (`{}`); without `channels.json`,
+alarms are delivered by email only.
 `limits.json` has no example; see the [alarm reference](../reference/alarms.md)
 for its built-in limits.
 
@@ -47,8 +46,7 @@ Metric keys are `cpu`, `ram_percent`, `ram_used`, `disk_percent`, `disk_used`,
 `file_count`, and `process_count`. Timespans accept a parseable range, `all`, or
 `max`; `granularity` can be `auto`, `raw`, `hourly`, or `daily`. `refresh` must
 be a JSON integer of at least 10 seconds. Invalid entries are ignored with a
-warning, and an invalid or empty configuration falls back to built-in chart
-defaults.
+warning, and an invalid file falls back to built-in chart defaults.
 
 !!! info "Dashboard chart scope"
 
@@ -165,7 +163,7 @@ and should not be used for production monitoring.
 !!! warning "API keys in servers.json"
 
     A server that still sets `api_key` in `servers.json` is rejected with a
-    `servers_config_validation_error` event. Move the key to
+    `servers_config_invalid_entry` event. Move the key to
     `servers.secrets.json`. A key for a server that `servers.json` does not
     define is reported, and a malformed `servers.secrets.json` fails like a
     malformed `servers.json`.
@@ -244,9 +242,9 @@ make mata ARGS="config validate"            # as the right account, also in Dock
 ```
 
 It exits `0` when the configuration is valid, `1` for warnings only (a skipped
-entry, advice), and `2` for errors: a file the app would replace with built-in
-defaults, or a server it would drop. Missing optional files are not problems.
-Without the check, a broken file only shows up as a warning event while the app
+entry, advice), and `2` for errors.
+
+Without the check, a broken file shows up as a warning event while the app
 runs on defaults; only a missing or invalid `servers.json` or
 `servers.secrets.json` raises an alarm.
 

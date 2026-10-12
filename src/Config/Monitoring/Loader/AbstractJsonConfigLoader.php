@@ -4,18 +4,103 @@ declare(strict_types=1);
 
 namespace Mata\Config\Monitoring\Loader;
 
+use InvalidArgumentException;
 use JsonException;
+use Mata\Config\ConfigValueValidator;
 use Mata\Config\Monitoring\Loader\Dto\ConfigLoadProblem;
 use Mata\Config\Monitoring\Loader\Dto\ConfigLoadResult;
 use Psr\Log\LogLevel;
 use RuntimeException;
-use stdClass;
-use Throwable;
 
+/**
+ * Loads one JSON config file into one section and owns the failure policy:
+ * - a missing optional file yields the defaults without a problem;
+ * - any other failure (unreadable, malformed, empty when required, rejected by parse()) is reported and rejects the file;
+ * - with fallbackOnFailure, load() turns that rejection into the defaults plus the problems.
+ *
+ * @template T of object
+ */
 abstract class AbstractJsonConfigLoader
 {
-    /** @var list<ConfigLoadProblem> reported since the last result() or rejected() */
+    /** @var list<ConfigLoadProblem> */
     private array $problems = [];
+
+    public function __construct(
+        private bool $fallbackOnFailure = true,
+    ) {}
+
+    abstract protected function fileName(): string;
+
+    /** Event type reported when the file is rejected; persisted, so rename only with a migration. */
+    abstract protected function loadFailureType(): string;
+
+    /** @return T */
+    abstract protected function defaultSection(): object;
+
+    /**
+     * Throw to reject the whole file; report() and carry on to skip a single invalid entry.
+     *
+     * @param array<string, mixed> $config
+     * @param string               $filePath for loaders that read a companion file next to it
+     *
+     * @return T
+     *
+     * @throws InvalidArgumentException|RuntimeException when the file must be rejected
+     */
+    abstract protected function parse(array $config, string $filePath): object;
+
+    /** Optional files are not created by setup, so their absence is normal. */
+    protected function isOptional(): bool
+    {
+        return false;
+    }
+
+    /** @return ConfigLoadResult<T> */
+    final public function load(string $configRoot): ConfigLoadResult
+    {
+        try {
+            return $this->loadFile(rtrim($configRoot, '/') . '/' . $this->fileName());
+        } catch (MonitoringConfigLoadException $exception) {
+            if (!$this->fallbackOnFailure) {
+                throw $exception;
+            }
+
+            return new ConfigLoadResult($this->defaultSection(), $exception->problems);
+        }
+    }
+
+    /** @return ConfigLoadResult<T> */
+    private function loadFile(string $filePath): ConfigLoadResult
+    {
+        if ($this->isOptional() && !file_exists($filePath)) {
+            return $this->result($this->defaultSection());
+        }
+
+        try {
+            $config = $this->readJsonArray($filePath);
+            // Required files must say something; an empty optional file means "no overrides".
+            if ($config === [] && !$this->isOptional()) {
+                throw new RuntimeException('the file is empty');
+            }
+
+            return $this->result($this->parse($config, $filePath));
+        } catch (InvalidArgumentException|RuntimeException $exception) {
+            $this->reportLoadFailure($exception->getMessage());
+
+            throw new MonitoringConfigLoadException($exception->getMessage(), $this->takeProblems(), $exception);
+        }
+    }
+
+    protected function reportLoadFailure(string $reason): void
+    {
+        $this->report($this->loadFailureType(), "Could not load {$this->fileName()}: {$reason}");
+    }
+
+    /** Reports an entry that parse() skipped while keeping the rest of the file. */
+    protected function reportInvalidEntry(string $message): void
+    {
+        $this->report($this->loadFailureType() . '_entry', $message);
+    }
 
     protected function report(string $type, string $message, string $level = LogLevel::WARNING, bool $forceAlarm = false): void
     {
@@ -25,20 +110,13 @@ abstract class AbstractJsonConfigLoader
     /**
      * Pairs the section with every problem reported so far and clears them for the next load.
      *
-     * @template T of object
-     *
      * @param T $section
      *
      * @return ConfigLoadResult<T>
      */
-    protected function result(object $section): ConfigLoadResult
+    private function result(object $section): ConfigLoadResult
     {
         return new ConfigLoadResult($section, $this->takeProblems());
-    }
-
-    protected function rejected(string $message, ?Throwable $previous = null): MonitoringConfigLoadException
-    {
-        return new MonitoringConfigLoadException($message, $this->takeProblems(), $previous);
     }
 
     /** @return list<ConfigLoadProblem> */
@@ -53,49 +131,22 @@ abstract class AbstractJsonConfigLoader
     /** @return array<string, mixed> */
     protected function readJsonArray(string $filePath): array
     {
-        return $this->normalizeJson($this->readJsonObject($filePath));
-    }
-
-    protected function readJsonObject(string $filePath): stdClass
-    {
         $content = is_file($filePath) && is_readable($filePath) ? file_get_contents($filePath) : false;
         if ($content === false) {
             throw new RuntimeException("Cannot read JSON config at {$filePath}");
         }
 
         try {
-            $config = json_decode($content, false, 512, JSON_THROW_ON_ERROR);
+            $config = json_decode($content, true, 512, JSON_THROW_ON_ERROR);
         } catch (JsonException $exception) {
             throw new RuntimeException("Invalid JSON config at {$filePath}: {$exception->getMessage()}", previous: $exception);
         }
 
-        if (!$config instanceof stdClass) {
+        // An empty object decodes to the same [] as an empty list.
+        if (!ConfigValueValidator::isObject($config)) {
             throw new RuntimeException("JSON config at {$filePath} must be an object.");
         }
 
         return $config;
-    }
-
-    /**
-     * Converts decoded objects to associative arrays, recursively.
-     *
-     * @return ($value is stdClass ? array<string, mixed> : mixed)
-     */
-    private function normalizeJson(mixed $value): mixed
-    {
-        if ($value instanceof stdClass) {
-            $normalized = [];
-            foreach (get_object_vars($value) as $key => $child) {
-                $normalized[$key] = $this->normalizeJson($child);
-            }
-
-            return $normalized;
-        }
-
-        if (is_array($value)) {
-            return array_map($this->normalizeJson(...), $value);
-        }
-
-        return $value;
     }
 }

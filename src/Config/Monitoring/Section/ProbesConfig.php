@@ -15,35 +15,12 @@ final readonly class ProbesConfig
     private const DEFAULT_BACKOFF_BASE_MS = 500;
     private const DEFAULT_BACKOFF_MAX_MS = 1500;
 
-    public int $timeoutSeconds;
-    public int $maxRetries;
-    public int $backoffBaseMs;
-    public int $backoffMaxMs;
-
     public function __construct(
-        int $timeoutSeconds,
-        int $maxRetries,
-        int $backoffBaseMs,
-        int $backoffMaxMs,
-    ) {
-        if ($timeoutSeconds < 1) {
-            throw new InvalidArgumentException('probes.timeout_seconds must be at least 1.');
-        }
-        if ($maxRetries < 0) {
-            throw new InvalidArgumentException('probes.max_retries must be at least 0.');
-        }
-        if ($backoffBaseMs < 0) {
-            throw new InvalidArgumentException('probes.backoff_base_ms must be at least 0.');
-        }
-        if ($backoffMaxMs < $backoffBaseMs) {
-            throw new InvalidArgumentException('probes.backoff_max_ms must be at least probes.backoff_base_ms.');
-        }
-
-        $this->timeoutSeconds = $timeoutSeconds;
-        $this->maxRetries = $maxRetries;
-        $this->backoffBaseMs = $backoffBaseMs;
-        $this->backoffMaxMs = $backoffMaxMs;
-    }
+        public int $timeoutSeconds,
+        public int $maxRetries,
+        public int $backoffBaseMs,
+        public int $backoffMaxMs,
+    ) {}
 
     public static function default(): self
     {
@@ -79,6 +56,9 @@ final readonly class ProbesConfig
             'probes.backoff_max_ms',
             minimum: 0,
         );
+        if ($backoffMaxMs < $backoffBaseMs) {
+            throw new InvalidArgumentException('probes.backoff_max_ms must be at least probes.backoff_base_ms.');
+        }
 
         return new self($timeoutSeconds, $maxRetries, $backoffBaseMs, $backoffMaxMs);
     }

@@ -45,23 +45,18 @@ final readonly class DataRetentionConfig
     {
         foreach (['metrics', 'events', 'alarms', 'aggregation', 'pruning', 'ingestion_health'] as $section) {
             if (array_key_exists($section, $raw)) {
-                self::requireMap($raw[$section], "data_retention.{$section}");
+                ConfigValueValidator::object($raw[$section], "data_retention.{$section}");
             }
         }
         if (is_array($raw['aggregation'] ?? null)) {
             foreach (['hourly', 'daily'] as $period) {
                 if (array_key_exists($period, $raw['aggregation'])) {
-                    self::requireMap($raw['aggregation'][$period], "data_retention.aggregation.{$period}");
+                    ConfigValueValidator::object($raw['aggregation'][$period], "data_retention.aggregation.{$period}");
                 }
             }
         }
 
         $config = array_replace_recursive(self::defaults(), $raw);
-        foreach (['metrics', 'events', 'alarms', 'aggregation', 'pruning', 'ingestion_health'] as $section) {
-            self::requireMap($config[$section] ?? null, "data_retention.{$section}");
-        }
-        self::requireMap($config['aggregation']['hourly'] ?? null, 'data_retention.aggregation.hourly');
-        self::requireMap($config['aggregation']['daily'] ?? null, 'data_retention.aggregation.daily');
 
         $metrics = [
             'raw_retention_days' => self::integer($config, ['metrics', 'raw_retention_days'], 0),
@@ -132,13 +127,6 @@ final readonly class DataRetentionConfig
                 'log_rotate_files' => 3,
             ],
         ];
-    }
-
-    private static function requireMap(mixed $value, string $path): void
-    {
-        if (!is_array($value) || ($value !== [] && array_is_list($value))) {
-            throw new InvalidArgumentException("{$path} must be an object.");
-        }
     }
 
     /** @param array<string,mixed> $config

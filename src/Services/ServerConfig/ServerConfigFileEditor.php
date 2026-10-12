@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Mata\Services\ServerConfig;
 
 use JsonException;
+use Mata\Config\ConfigValueValidator;
 use Mata\Config\Monitoring\Loader\ServersConfigLoader;
 use RuntimeException;
 use stdClass;
@@ -107,7 +108,7 @@ final class ServerConfigFileEditor
         } catch (JsonException $exception) {
             throw new RuntimeException("Invalid JSON in {$path}: {$exception->getMessage()}", previous: $exception);
         }
-        if (!is_array($data) || ($data !== [] && array_is_list($data))) {
+        if (!ConfigValueValidator::isObject($data)) {
             throw new RuntimeException("{$path} must contain a JSON object");
         }
 
