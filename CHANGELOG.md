@@ -19,6 +19,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `make doctor` shows where `config/` points when it is a symlink, whether it is a Git repository, and whether `config/servers.secrets.json` exists. The new "Version your config" guide covers keeping `config/` in its own repository
 
 ### Changed
+- `make setup` runs without prompts when there is no terminal, so scripts and coding agents can install MATA: `WEBSERVER=htaccess|apache|nginx|caddy|none` answers the native webserver question, and `ADMIN_USER=<name>` creates an admin with a generated password printed once. Without a terminal, setup no longer tries to create a user unless `ADMIN_USER` is set, and Docker setup skips the user when the stack was not started. Commands that need a typed confirmation fail at once without a terminal and name the variable to pass instead; `make clean` accepts `ALLOW_DELETE="DELETE <env>"` and exits non-zero when cancelled. `NONINTERACTIVE=1` (or `CI=true`) does the same inside a pseudo-terminal, as some agents and CI runners use; interactive setup names it before the first prompt
+- Leaving the password prompt of `bin/mata user create` or `user passwd` empty generates a password and prints it once
+- Docker setup replaces the placeholder `MYSQL_ROOT_PASSWORD` and `DB_PASSWORD` with generated values, so production starts without editing them; values you set are kept. A new `.env` is created with mode `600`
 - `make db-migrate` runs `bin/mata db migrate` as the web server user instead of `scripts/database/migrate.php` as root in the container; Phinx no longer writes a temporary config file with the database password
 - Documentation is published at https://docs.mata.sh
 - The demo shows a mostly healthy fleet with a single incident instead of every failure state at once, with every app reachable, and uses shorter app names so rows no longer truncate
@@ -35,6 +38,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `make users-*`, `db-rollback`, `db-status`, `db-check`, and `db-hash-password`, and the scripts they ran: `scripts/user-management/manage-users.php`, `scripts/database/hash-password.php`, `scripts/database/migrate.php`, `scripts/database/database-integrity.php`, `scripts/alarm_channel_test.php`. Docker user commands no longer start a separate admin container; the web container sets up the `mata_users` volume on start. **Action:** use `bin/mata user …` and `bin/mata db …`, or `make mata ARGS="user create"` (`user list`, `db status`, …); rebuild the Docker image
 
 ### Fixed
+- When the account may not use Docker, `make` says so and names the fix instead of reporting "Docker daemon is unavailable"
 - The users-file error page links to the users-file setup guide instead of a missing page
 - App environment badges (PROD, TEST, …) center their text vertically
 

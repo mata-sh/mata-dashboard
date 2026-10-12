@@ -126,7 +126,7 @@ abstract class AbstractUserCommand extends Command
     protected function readPassword(InputInterface $input, OutputInterface $output): ?array
     {
         if ($input->getOption('generate-password')) {
-            return [rtrim(strtr(base64_encode(random_bytes(18)), '+/', '-_'), '='), true];
+            return [self::generatePassword(), true];
         }
         if ($input->getOption('password-stdin')) {
             $line = fgets(STDIN);
@@ -137,10 +137,17 @@ abstract class AbstractUserCommand extends Command
             return null;
         }
         $helper = $this->getHelper('question');
-        $question = (new Question('Password: '))->setHidden(true)->setHiddenFallback(false);
-        $answer = $helper instanceof QuestionHelper ? $helper->ask($input, $output, $question) : null;
+        if (!$helper instanceof QuestionHelper) {
+            return null;
+        }
+        $answer = $helper->ask($input, $output, (new Question('Password (empty to generate): '))->setHidden(true)->setHiddenFallback(false));
 
-        return is_string($answer) ? [$answer, false] : null;
+        return is_string($answer) && $answer !== '' ? [$answer, false] : [self::generatePassword(), true];
+    }
+
+    private static function generatePassword(): string
+    {
+        return rtrim(strtr(base64_encode(random_bytes(18)), '+/', '-_'), '=');
     }
 
     protected function addPasswordOptions(): void

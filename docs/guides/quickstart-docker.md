@@ -34,12 +34,19 @@ Generate the files without starting services:
 make setup MODE=docker ENV=prod START_SERVICES=no CREATE_USER=no
 ```
 
-Replace `MYSQL_ROOT_PASSWORD` in `.env` and `DB_PASSWORD` in
-`config/db.config.env`, then start:
+Setup replaces the placeholder `MYSQL_ROOT_PASSWORD` in `.env` and
+`DB_PASSWORD` in `config/db.config.env` with generated values and keeps values
+you set. Review `DATA_PATH` and `WEB_BIND` in `.env`, then start:
 
 ```bash
 make prod-fix-perms MODE=docker ENV=prod
 make prod-start MODE=docker ENV=prod
+```
+
+To install and start in one step, without prompts:
+
+```bash
+make setup MODE=docker ENV=prod START_SERVICES=yes ADMIN_USER=admin
 ```
 
 `prod-start` rejects placeholder database passwords, waits for MySQL, and runs
@@ -52,6 +59,40 @@ behind an HTTPS reverse proxy. OPA and MySQL remain internal.
     runs on another host. Docker publishes ports through its own iptables rules,
     which bypass host firewalls such as ufw or firewalld, so restrict access at
     the network or cloud firewall instead.
+
+## Unattended setup
+
+Without a terminal, `make setup` never prompts: it uses the defaults below
+unless a variable sets the answer, so a script or coding agent can run it.
+Some agents and CI runners run commands in a pseudo-terminal, which looks like
+a person typing; `NONINTERACTIVE=1` (or `CI=true`) makes setup and every other
+`make` target behave as without a terminal anyway.
+
+```bash
+NONINTERACTIVE=1 make setup MODE=docker ENV=prod START_SERVICES=yes ADMIN_USER=admin
+```
+
+| Variable | Default without a terminal | Effect |
+| --- | --- | --- |
+| `MODE` | `local` | `docker` or `local` |
+| `ENV` | `dev` | `dev`, `demo`, or `prod` |
+| `START_SERVICES` | `yes`, `no` for `prod` | Docker: build and start the stack |
+| `RUN_MIGRATIONS` | `yes` | Docker: migrate after startup |
+| `ADMIN_USER` | none | Create this admin; without a terminal the password is generated and printed once |
+| `CREATE_USER` | `no` | `no` skips `ADMIN_USER`; `yes` without a terminal requires it |
+| `WEBSERVER` | `none` | Native: `htaccess`, `apache`, `nginx`, `caddy`, or `none` |
+| `INSTALL_OPA` | `yes` | Native: download `bin/opa` |
+| `INSTALL_OPA_SERVICE` | `no` | Native: install the systemd unit (needs sudo) |
+| `MATA_USERS_FILE`, `PHP_FPM_USER` | none, `www-data` | Native: users file path and its owner |
+| `CREATE_USERS_DIR` | `yes` | Native: create the users file directory with `sudo -n` |
+
+Docker cannot create a user when the stack is not started, so `ADMIN_USER`
+is ignored with `START_SERVICES=no`.
+
+Commands that ask for a typed confirmation fail without a terminal and name
+the variable that confirms instead: `ALLOW_PRODUCTION=CONFIRM_PRODUCTION` for
+production writes, `ALLOW_RESTORE` for `make db-restore`, and
+`ALLOW_DELETE="DELETE <env>"` for `make clean`.
 
 ## Users
 
@@ -95,6 +136,7 @@ make down MODE=docker ENV="$ENV_NAME"
 make clean MODE=docker ENV="$ENV_NAME"
 ```
 
-`make clean` removes Compose-managed volumes after confirmation. In production,
+`make clean` removes Compose-managed volumes after confirmation; pass
+`ALLOW_DELETE="DELETE dev"` to tear down a throwaway install from a script. In production,
 MySQL uses the bind-mounted `DATA_PATH/mysql` directory; `make clean` does not
 delete that directory.

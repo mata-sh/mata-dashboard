@@ -18,6 +18,12 @@ SETUP_CONFIG := .mata.mk
 MODE ?=
 ENV ?=
 
+# A pseudo-terminal (some agents, CI runners) looks like a person: NONINTERACTIVE=1 or CI=true
+# turns every prompt into its default or an error naming the variable to pass.
+NONINTERACTIVE_ON := $(filter 1 y yes true on Y YES TRUE ON,$(NONINTERACTIVE) $(CI))
+INTERACTIVE := { [ -t 0 ] && [ -z "$(NONINTERACTIVE_ON)" ]; }
+SUDO := sudo$(if $(NONINTERACTIVE_ON), -n)
+
 DOCKER_COMPOSE ?= docker compose
 COMPOSE_ENV_FILES = --env-file config/db.config.env --env-file .env
 DEV_COMPOSE = APP_ENV=$(ENV) $(DOCKER_COMPOSE) $(COMPOSE_ENV_FILES) -f docker-compose.yml -f docker-compose.dev.yml
@@ -39,7 +45,15 @@ DOCKER_DAEMON_CHECKED ?= 0
 
 define REQUIRE_DOCKER_DAEMON
 if [ "$(DOCKER_DAEMON_CHECKED)" != "1" ]; then \
-	docker info >/dev/null 2>&1 || { echo "$(COLOR_RED)❌ Docker daemon is unavailable.$(COLOR_RESET)"; exit 1; }; \
+	if ! docker_error=$$(docker info 2>&1 >/dev/null); then \
+		case "$$docker_error" in \
+			*"permission denied"*) echo "$(COLOR_RED)❌ $$(id -un) may not use Docker. Either add the account to the docker group (root-equivalent), then log in again:$(COLOR_RESET)"; \
+				echo "   sudo usermod -aG docker $$(id -un)"; \
+				echo "   or run make as root." ;; \
+			*) echo "$(COLOR_RED)❌ Docker daemon is unavailable. Start it, e.g. sudo systemctl start docker.$(COLOR_RESET)" ;; \
+		esac; \
+		exit 1; \
+	fi; \
 fi
 endef
 
@@ -75,6 +89,7 @@ endef
 define CONFIRM_PRODUCTION_WRITE
 if [ "$(ENV)" = "prod" ] && [ "$(ALLOW_PRODUCTION)" != "CONFIRM_PRODUCTION" ]; then \
 	echo "$(COLOR_RED)⚠️  Production write: $(1)$(COLOR_RESET)"; \
+	$(INTERACTIVE) || { echo "$(COLOR_RED)❌ No terminal to confirm; pass ALLOW_PRODUCTION=CONFIRM_PRODUCTION.$(COLOR_RESET)"; exit 1; }; \
 	printf "Type 'CONFIRM PRODUCTION' to continue: "; read -r confirmation; \
 	[ "$$confirmation" = "CONFIRM PRODUCTION" ] || { echo "Cancelled."; exit 1; }; \
 fi
@@ -146,6 +161,7 @@ help-all: help
 	@echo "$(COLOR_BOLD)SETUP AND UTILITIES$(COLOR_RESET)"
 	@echo "  make setup MODE=local ENV=prod"
 	@echo "  make setup MODE=docker ENV=dev"
+	@echo "  make setup MODE=docker ENV=demo ADMIN_USER=admin   (no prompts without a terminal)"
 	@echo "  make install-hooks"
 	@echo "  make setup-opa"
 	@echo "  make opa-install-service"
@@ -171,7 +187,7 @@ help-all: help
 
 # Guided setup. MODE and ENV can be supplied to skip the first prompts.
 setup:
-	@MODE="$(MODE)" ENV="$(ENV)" START_SERVICES="$(START_SERVICES)" RUN_MIGRATIONS="$(RUN_MIGRATIONS)" INSTALL_OPA="$(INSTALL_OPA)" INSTALL_OPA_SERVICE="$(INSTALL_OPA_SERVICE)" CREATE_USER="$(CREATE_USER)" MAKE_CMD="make" ./scripts/setup.sh
+	@MODE="$(MODE)" ENV="$(ENV)" START_SERVICES="$(START_SERVICES)" RUN_MIGRATIONS="$(RUN_MIGRATIONS)" INSTALL_OPA="$(INSTALL_OPA)" INSTALL_OPA_SERVICE="$(INSTALL_OPA_SERVICE)" CREATE_USER="$(CREATE_USER)" ADMIN_USER="$(ADMIN_USER)" WEBSERVER="$(WEBSERVER)" NONINTERACTIVE="$(NONINTERACTIVE)" MAKE_CMD="make" ./scripts/setup.sh
 
 # Native prerequisites and webserver configuration, called by the setup wizard.
 setup-local:
@@ -188,15 +204,18 @@ setup-local:
 	done
 	@echo ""
 	@echo "$(COLOR_CYAN)📋 Webserver Configuration$(COLOR_RESET)"
-	@echo "$(COLOR_YELLOW)Which webserver will you use?$(COLOR_RESET)"
-	@echo "  $(COLOR_GREEN)1)$(COLOR_RESET) Apache (shared hosting) - .htaccess"
-	@echo "  $(COLOR_GREEN)2)$(COLOR_RESET) Apache (VirtualHost) - apache-vhost.conf"
-	@echo "  $(COLOR_GREEN)3)$(COLOR_RESET) Nginx - nginx-site.conf"
-	@echo "  $(COLOR_GREEN)4)$(COLOR_RESET) Caddy - Caddyfile"
-	@echo "  $(COLOR_GREEN)5)$(COLOR_RESET) Skip (I'll configure manually)"
-	@printf "$(COLOR_CYAN)Select option [1-5]: $(COLOR_RESET)"; read -r webserver; \
-	case $$webserver in \
-		1) \
+	@webserver="$(WEBSERVER)"; \
+	if [ -z "$$webserver" ] && $(INTERACTIVE); then \
+		echo "$(COLOR_YELLOW)Which webserver will you use?$(COLOR_RESET)"; \
+		echo "  $(COLOR_GREEN)1)$(COLOR_RESET) Apache (shared hosting) - .htaccess"; \
+		echo "  $(COLOR_GREEN)2)$(COLOR_RESET) Apache (VirtualHost) - apache-vhost.conf"; \
+		echo "  $(COLOR_GREEN)3)$(COLOR_RESET) Nginx - nginx-site.conf"; \
+		echo "  $(COLOR_GREEN)4)$(COLOR_RESET) Caddy - Caddyfile"; \
+		echo "  $(COLOR_GREEN)5)$(COLOR_RESET) Skip (I'll configure manually)"; \
+		printf "$(COLOR_CYAN)Select option [1-5]: $(COLOR_RESET)"; read -r webserver; \
+	fi; \
+	case "$${webserver:-none}" in \
+		1|htaccess) \
 			if [ ! -f "public/.htaccess" ]; then \
 				cp docs/examples/webserver-configs/.htaccess public/.htaccess; \
 				echo "$(COLOR_GREEN)✅ Created public/.htaccess$(COLOR_RESET)"; \
@@ -205,31 +224,32 @@ setup-local:
 				echo "$(COLOR_YELLOW)⚠️  public/.htaccess already exists, skipping$(COLOR_RESET)"; \
 			fi; \
 			;; \
-		2) \
+		2|apache) \
 			echo "$(COLOR_BLUE)ℹ️  Copy example config to a new site file:$(COLOR_RESET)"; \
 			echo "$(COLOR_CYAN)   sudo cp docs/examples/webserver-configs/apache-vhost.conf /etc/apache2/sites-available/mata-dashboard.conf$(COLOR_RESET)"; \
 			echo "$(COLOR_BLUE)   Then enable and reload:$(COLOR_RESET)"; \
 			echo "$(COLOR_CYAN)   sudo a2ensite mata-dashboard && sudo systemctl reload apache2$(COLOR_RESET)"; \
 			;; \
-		3) \
+		3|nginx) \
 			echo "$(COLOR_BLUE)ℹ️  Copy example config to a new site file:$(COLOR_RESET)"; \
 			echo "$(COLOR_CYAN)   sudo cp docs/examples/webserver-configs/nginx-site.conf /etc/nginx/sites-available/mata-dashboard$(COLOR_RESET)"; \
 			echo "$(COLOR_BLUE)   Then enable and reload:$(COLOR_RESET)"; \
 			echo "$(COLOR_CYAN)   sudo ln -s /etc/nginx/sites-available/mata-dashboard /etc/nginx/sites-enabled/$(COLOR_RESET)"; \
 			echo "$(COLOR_CYAN)   sudo systemctl reload nginx$(COLOR_RESET)"; \
 			;; \
-		4) \
+		4|caddy) \
 			echo "$(COLOR_BLUE)ℹ️  Copy example config (review before overwriting existing Caddyfile):$(COLOR_RESET)"; \
 			echo "$(COLOR_CYAN)   sudo cp docs/examples/webserver-configs/Caddyfile /etc/caddy/Caddyfile$(COLOR_RESET)"; \
 			echo "$(COLOR_BLUE)   Or append to existing Caddyfile, then reload:$(COLOR_RESET)"; \
 			echo "$(COLOR_CYAN)   sudo systemctl reload caddy$(COLOR_RESET)"; \
 			echo "$(COLOR_YELLOW)   Note: Caddy will automatically obtain SSL certificates$(COLOR_RESET)"; \
 			;; \
-		5) \
+		5|none) \
 			echo "$(COLOR_YELLOW)⚠️  Skipped. See docs/examples/webserver-configs/README.md for manual setup$(COLOR_RESET)"; \
 			;; \
 		*) \
-			echo "$(COLOR_RED)❌ Invalid option. See docs/examples/webserver-configs/README.md$(COLOR_RESET)"; \
+			echo "$(COLOR_RED)❌ Invalid webserver '$$webserver': use htaccess, apache, nginx, caddy, or none.$(COLOR_RESET)"; \
+			exit 1; \
 			;; \
 	esac
 	@echo ""
@@ -473,6 +493,8 @@ command -v php >/dev/null 2>&1 || { echo "$(COLOR_RED)❌ PHP is unavailable.$(C
 [ -f vendor/autoload.php ] || { echo "$(COLOR_RED)❌ Composer dependencies are missing.$(COLOR_RESET)"; exit 1; };
 endef
 
+MATA_NO_INTERACTION := $(if $(NONINTERACTIVE_ON),--no-interaction)
+
 # Operator CLI (bin/mata) as the account the app runs as: www-data in Docker, natively the owner
 # of logs/ (as for make logs). With as_owner=yes, as the owner of config/ instead. A terminal is
 # passed through so prompts work; pipes and scripts get none.
@@ -482,16 +504,16 @@ if [ "$(MODE)" = "local" ]; then \
 	$(REQUIRE_LOCAL_PHP) \
 	dir=logs; [ "$${as_owner:-}" = yes ] && dir=config; \
 	owner=$$(stat -L -c '%U' "$$dir" 2>/dev/null || stat -L -f '%Su' "$$dir" 2>/dev/null || id -un); \
-	if [ "$$owner" = "$$(id -un)" ]; then php bin/mata $(1); \
+	if [ "$$owner" = "$$(id -un)" ]; then php bin/mata $(1) $(MATA_NO_INTERACTION); \
 	else \
 		command -v sudo >/dev/null 2>&1 || { echo "$(COLOR_RED)❌ Run as $$owner, the owner of $$dir/.$(COLOR_RESET)"; exit 1; }; \
-		sudo -u "$$owner" php bin/mata $(1); \
+		$(SUDO) -u "$$owner" php bin/mata $(1) $(MATA_NO_INTERACTION); \
 	fi; \
 else \
 	$(REQUIRE_DOCKER_MODE); $(REQUIRE_WEB_RUNNING); \
 	user=www-data; [ "$${as_owner:-}" = yes ] && user="$$(id -u):$$(id -g)"; \
-	tty=-T; [ -t 0 ] && [ -t 1 ] && tty=; \
-	$(SELECTED_COMPOSE) exec $$tty -u "$$user" mata-web php bin/mata $(1); \
+	tty=-T; $(INTERACTIVE) && [ -t 1 ] && tty=; \
+	$(SELECTED_COMPOSE) exec $$tty -u "$$user" mata-web php bin/mata $(1) $(MATA_NO_INTERACTION); \
 fi
 endef
 
@@ -543,7 +565,9 @@ db-restore:
 	fi; \
 	echo "$(COLOR_RED)⚠️  Restore mode=$(MODE), environment=$(ENV), $$target, file=$$file$(COLOR_RESET)"; \
 	if [ "$(ENV)" = "prod" ]; then expected="CONFIRM PRODUCTION RESTORE"; else expected="CONFIRM RESTORE"; fi; \
-	if [ "$(ALLOW_RESTORE)" != "$$expected" ]; then printf "Type '$$expected' to continue: "; read -r confirmation; [ "$$confirmation" = "$$expected" ] || { echo "Cancelled."; exit 1; }; fi; \
+	if [ "$(ALLOW_RESTORE)" != "$$expected" ]; then \
+		$(INTERACTIVE) || { echo "$(COLOR_RED)❌ No terminal to confirm; pass ALLOW_RESTORE='$$expected'.$(COLOR_RESET)"; exit 1; }; \
+		printf "Type '$$expected' to continue: "; read -r confirmation; [ "$$confirmation" = "$$expected" ] || { echo "Cancelled."; exit 1; }; fi; \
 	if [ "$(MODE)" = "local" ]; then \
 		APP_ENV="$(ENV)" php scripts/database/mysql-operation.php restore "$$file"; \
 	else \
@@ -611,7 +635,7 @@ docker-init:
 
 dev-setup: docker-init
 	@$(REQUIRE_DEV_ENV)
-	@if [ ! -f .env ]; then cp .env.example .env; echo "$(COLOR_GREEN)✅ Created .env$(COLOR_RESET)"; fi
+	@if [ ! -f .env ]; then cp .env.example .env; chmod 600 .env; echo "$(COLOR_GREEN)✅ Created .env$(COLOR_RESET)"; fi
 	@actual=$(call GET_ENV_VALUE,.env,APP_ENV); \
 	config_actual=$(call GET_ENV_VALUE,config/config.env,APP_ENV); \
 	[ "$$actual" = "$(ENV)" ] && [ "$$config_actual" = "$(ENV)" ] || { echo "$(COLOR_RED)❌ APP_ENV mismatch (.env=$${actual:-missing}, config=$${config_actual:-missing}, expected $(ENV)). Run make setup.$(COLOR_RESET)"; exit 1; }
@@ -808,11 +832,17 @@ down:
 	@$(REQUIRE_DOCKER_MODE); $(SELECTED_COMPOSE) down
 
 # Remove the selected stack including volumes (WARNING: deletes data!).
+# ALLOW_DELETE="DELETE <env>" skips the prompt, e.g. to tear down a throwaway install.
 clean:
 	@$(REQUIRE_DOCKER_MODE); \
 	echo "$(COLOR_RED)⚠️  This deletes $(ENV) containers, volumes, and database data.$(COLOR_RESET)"; \
-	printf "Type 'DELETE $(ENV)' to continue: "; read -r confirmation; \
-	if [ "$$confirmation" = "DELETE $(ENV)" ]; then $(SELECTED_COMPOSE) down -v; echo "$(COLOR_GREEN)✅ Cleaned $(ENV).$(COLOR_RESET)"; else echo "$(COLOR_YELLOW)Cancelled.$(COLOR_RESET)"; fi
+	confirmation="$(ALLOW_DELETE)"; \
+	if [ "$$confirmation" != "DELETE $(ENV)" ]; then \
+		$(INTERACTIVE) || { echo "$(COLOR_RED)❌ No terminal to confirm; pass ALLOW_DELETE='DELETE $(ENV)'.$(COLOR_RESET)"; exit 1; }; \
+		printf "Type 'DELETE $(ENV)' to continue: "; read -r confirmation; \
+	fi; \
+	[ "$$confirmation" = "DELETE $(ENV)" ] || { echo "$(COLOR_YELLOW)Cancelled.$(COLOR_RESET)"; exit 1; }; \
+	$(SELECTED_COMPOSE) down -v; echo "$(COLOR_GREEN)✅ Cleaned $(ENV).$(COLOR_RESET)"
 
 # Docker cleanup for this project only (safe - won't affect other containers)
 docker-clean:
@@ -831,13 +861,14 @@ docker-clean:
 # System-wide Docker cleanup (WARNING: affects ALL Docker resources)
 docker-clean-all:
 	@echo "$(COLOR_RED)⚠️  This will clean up ALL Docker resources (not just mata-dashboard)!$(COLOR_RESET)"
-	@read -p "Are you sure? [y/N]: " -n 1 -r; \
+	@$(INTERACTIVE) || { echo "$(COLOR_RED)❌ Needs a terminal to confirm.$(COLOR_RESET)"; exit 1; }; \
+	read -p "Are you sure? [y/N]: " -n 1 -r; \
 	echo; \
 	if [ "$$REPLY" = "y" ] || [ "$$REPLY" = "Y" ]; then \
 		docker system prune -a; \
 		echo "$(COLOR_GREEN)✅ System-wide cleanup complete$(COLOR_RESET)"; \
 	else \
-		echo "$(COLOR_YELLOW)Cancelled$(COLOR_RESET)"; \
+		echo "$(COLOR_YELLOW)Cancelled$(COLOR_RESET)"; exit 1; \
 	fi
 
 ## Help

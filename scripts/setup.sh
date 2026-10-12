@@ -18,12 +18,30 @@ RUN_MIGRATIONS=${RUN_MIGRATIONS:-}
 INSTALL_OPA=${INSTALL_OPA:-}
 INSTALL_OPA_SERVICE=${INSTALL_OPA_SERVICE:-}
 CREATE_USER=${CREATE_USER:-}
+ADMIN_USER=${ADMIN_USER:-}
+NONINTERACTIVE=${NONINTERACTIVE:-}
+WEBSERVER=${WEBSERVER:-}
 
 is_yes() {
     case "${1,,}" in
         y|yes|1|true|on) return 0 ;;
         *) return 1 ;;
     esac
+}
+
+# A pseudo-terminal (some agents, CI runners) looks like a person: NONINTERACTIVE=1 or CI=true says otherwise.
+interactive() {
+    [[ -t 0 ]] || return 1
+    ! is_yes "${NONINTERACTIVE:-}" && ! is_yes "${CI:-}"
+}
+
+# Without a person to type a password, sudo fails instead of waiting.
+run_sudo() {
+    if interactive; then
+        sudo "$@"
+    else
+        sudo -n "$@"
+    fi
 }
 
 prompt_yes_no() {
@@ -33,7 +51,7 @@ prompt_yes_no() {
     local value=${!variable:-}
 
     if [[ -z "$value" ]]; then
-        if [[ -t 0 ]]; then
+        if interactive; then
             read -r -p "$prompt" value
         else
             value=$default
@@ -73,7 +91,7 @@ set_env_value() {
             exit 1
         fi
         printf 'Reading %s as %s (sudo required).\n' "$file" "$owner"
-        sudo -u "$owner" awk -v key="$key" -v value="$value" '
+        run_sudo -u "$owner" awk -v key="$key" -v value="$value" '
             BEGIN { updated = 0 }
             $0 ~ "^" key "=" {
                 if (!updated) print key "=" value
@@ -112,7 +130,7 @@ set_env_value() {
             exit 1
         fi
         printf 'Updating %s as %s (sudo required).\n' "$file" "$owner"
-        sudo -u "$owner" tee "$file" < "$temporary" >/dev/null
+        run_sudo -u "$owner" tee "$file" < "$temporary" >/dev/null
     fi
     rm -f "$temporary"
 }
@@ -135,18 +153,32 @@ get_env_value() {
     ' "$file" 2>/dev/null
 }
 
+# Replaces a template placeholder with a random hex secret; a value someone set is kept.
+generate_placeholder_secret() {
+    local file=$1
+    local key=$2
+    local placeholder=$3
+
+    if [[ "$(get_env_value "$file" "$key")" != "$placeholder" ]]; then
+        return
+    fi
+    set_env_value "$file" "$key" "$(od -An -tx1 -N24 /dev/urandom | tr -d ' \n')"
+    printf 'Generated %s in %s.\n' "$key" "$file"
+}
+
 configure_users_file() {
     local users_file=${MATA_USERS_FILE:-}
+    local users_file_given=${MATA_USERS_FILE:+yes}
     local users_directory
     local php_fpm_user=${PHP_FPM_USER:-}
     local php_fpm_group
-    local create_directory
+    local create_directory=${CREATE_USERS_DIR:-}
 
     if [[ -z "$users_file" ]]; then
         users_file=$(get_env_value config/config.env MATA_USERS_FILE)
     fi
 
-    if [[ -t 0 ]]; then
+    if [[ -z "$users_file_given" ]] && interactive; then
         printf '\nAuthentication data path\n'
         printf '%s\n' 'Production requires an absolute path outside the deployment and web root.'
         printf '%s\n' 'Leave empty only for the in-project development location.'
@@ -182,7 +214,7 @@ configure_users_file() {
     fi
 
     if [[ -z "$php_fpm_user" ]]; then
-        if [[ -t 0 ]]; then
+        if interactive; then
             read -r -p 'PHP-FPM user [www-data]: ' php_fpm_user
         fi
         php_fpm_user=${php_fpm_user:-www-data}
@@ -190,7 +222,7 @@ configure_users_file() {
     php_fpm_group=${PHP_FPM_GROUP:-$(id -gn "$php_fpm_user" 2>/dev/null || printf '%s' "$php_fpm_user")}
 
     if command -v sudo >/dev/null 2>&1 \
-        && sudo install -d -o "$php_fpm_user" -g "$php_fpm_group" -m 700 "$users_directory"; then
+        && run_sudo install -d -o "$php_fpm_user" -g "$php_fpm_group" -m 700 "$users_directory"; then
         printf 'Created private authentication directory: %s\n' "$users_directory"
     else
         printf 'Could not create the directory with PHP-FPM ownership. Run:\n' >&2
@@ -200,9 +232,14 @@ configure_users_file() {
 
 printf '\nMATA Dashboard Setup\n'
 printf '====================\n\n'
+if interactive; then
+    printf 'Prompts follow. To run without them, e.g. from a script or agent:\n'
+    printf '  NONINTERACTIVE=1 make setup MODE=docker ENV=prod START_SERVICES=yes ADMIN_USER=admin\n'
+    printf 'Variables and defaults: https://docs.mata.sh/guides/quickstart-docker/#unattended-setup\n\n'
+fi
 
 if [[ -z "$MODE" ]]; then
-    if [[ -t 0 ]]; then
+    if interactive; then
         read -r -p "Is this a Docker deployment? [y/N]: " docker_answer
     else
         docker_answer=no
@@ -214,6 +251,15 @@ if [[ -z "$MODE" ]]; then
     fi
 fi
 
+if [[ -n "$ADMIN_USER" && ! "$ADMIN_USER" =~ ^[A-Za-z0-9._-]{1,64}$ ]]; then
+    printf 'ERROR: ADMIN_USER may only use letters, digits, ".", "_" and "-" (max 64).\n' >&2
+    exit 1
+fi
+if [[ -z "$ADMIN_USER" ]] && ! interactive && is_yes "${CREATE_USER:-no}"; then
+    printf 'ERROR: CREATE_USER=yes without a terminal needs ADMIN_USER=<name>.\n' >&2
+    exit 1
+fi
+
 case "$MODE" in
     local|docker) ;;
     *)
@@ -223,7 +269,7 @@ case "$MODE" in
 esac
 
 if [[ -z "$ENV" ]]; then
-    if [[ -t 0 ]]; then
+    if interactive; then
         printf '\nApplication environment:\n\n'
         printf '  1) Development\n'
         printf '  2) Demo\n'
@@ -251,7 +297,7 @@ case "$ENV" in
         ;;
 esac
 
-if [[ "$ENV" == prod && "$ENV_WAS_PROVIDED" == no && -t 0 ]]; then
+if [[ "$ENV" == prod && "$ENV_WAS_PROVIDED" == no ]] && interactive; then
     read -r -p 'Type "prod" to configure a production environment: ' production_confirmation
     if [[ "$production_confirmation" != prod ]]; then
         printf 'Production setup cancelled.\n'
@@ -265,11 +311,12 @@ printf '  Mode:         %s\n' "$MODE"
 printf '  Environment:  %s\n\n' "$ENV"
 
 if [[ "$MODE" == local ]]; then
-    "$MAKE_CMD" setup-local MODE=local ENV="$ENV"
+    "$MAKE_CMD" setup-local MODE=local ENV="$ENV" WEBSERVER="$WEBSERVER"
 else
     "$MAKE_CMD" docker-init MODE=docker ENV="$ENV"
     if [[ ! -f .env ]]; then
         cp .env.example .env
+        chmod 600 .env
         printf 'Created .env from .env.example.\n'
     fi
 fi
@@ -280,6 +327,9 @@ if [[ "$MODE" == local ]]; then
 fi
 if [[ "$MODE" == docker ]]; then
     set_env_value .env APP_ENV "$ENV"
+    # The stack creates its database with these, so no one has to choose them.
+    generate_placeholder_secret config/db.config.env DB_PASSWORD change_me
+    generate_placeholder_secret .env MYSQL_ROOT_PASSWORD change_me_in_production
     if [[ "$ENV" == dev || "$ENV" == demo ]]; then
         "$MAKE_CMD" dev-setup MODE=docker ENV="$ENV"
     fi
@@ -320,7 +370,7 @@ if [[ "$MODE" == local ]]; then
     fi
 else
     if [[ "$ENV" == prod ]]; then
-        printf 'Review .env and config/db.config.env before production startup.\n'
+        printf 'Review .env (DATA_PATH, WEB_BIND) before production startup.\n'
         prompt_yes_no START_SERVICES "Start Docker services (dashboard, database, and OPA) now? [y/N]: " no
     else
         prompt_yes_no START_SERVICES "Start Docker services (dashboard, database, and OPA) now? [Y/n]: " yes
@@ -340,9 +390,24 @@ else
     fi
 fi
 
-prompt_yes_no CREATE_USER "Create an initial user now? [Y/n]: " yes
+if [[ "$MODE" == docker && "$START_SERVICES" != yes ]]; then
+    CREATE_USER=no
+elif [[ -n "$ADMIN_USER" ]]; then
+    is_yes "${CREATE_USER:-yes}" && CREATE_USER=yes || CREATE_USER=no
+elif interactive; then
+    prompt_yes_no CREATE_USER "Create an initial user now? [Y/n]: " yes
+else
+    CREATE_USER=no
+fi
 if [[ "$CREATE_USER" == yes ]]; then
-    "$MAKE_CMD" mata MODE="$MODE" ENV="$ENV" ARGS="user create"
+    if [[ -n "$ADMIN_USER" ]] && interactive; then
+        "$MAKE_CMD" mata MODE="$MODE" ENV="$ENV" ARGS="user create $ADMIN_USER admin"
+    elif [[ -n "$ADMIN_USER" ]]; then
+        # Without a terminal there is no password prompt: generate one and print it once.
+        "$MAKE_CMD" mata MODE="$MODE" ENV="$ENV" ARGS="user create $ADMIN_USER admin --generate-password --yes"
+    else
+        "$MAKE_CMD" mata MODE="$MODE" ENV="$ENV" ARGS="user create"
+    fi
     user_state=created
 fi
 
