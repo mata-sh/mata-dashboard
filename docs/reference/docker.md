@@ -9,6 +9,10 @@ The Compose stack runs the dashboard with Apache/PHP, MySQL, and OPA:
 MATA Node is a separate project. Run it on each monitored host and register it
 in the dashboard's `config/servers.json`, with its key in `config/servers.secrets.json`.
 
+!!! info "Setup and day-to-day commands"
+    This page is a reference. To install, start, stop, or manage users, follow
+    the [Docker quickstart](../guides/quickstart-docker.md).
+
 ## Files
 
 ```text
@@ -43,33 +47,26 @@ Docker reads `.env` for Compose settings such as `APP_ENV`, `WEB_BIND`, `WEB_POR
 
 PHP reads `config/config.env`, `config/db.config.env`, and
 `config/mail.config.env`. The dashboard container also receives the database
-and mail settings through those files. `APP_ENV` in `.env` and
-`config/config.env` must match.
+and mail settings through those files.
+
+!!! warning "Matching `APP_ENV`"
+    `APP_ENV` in `.env` and `config/config.env` must match.
+
+!!! info "Compose interpolation"
+    The Makefile passes `--env-file config/db.config.env --env-file .env`, so
+    `config/db.config.env` also feeds `${VAR}` interpolation in the Compose
+    files, and `.env` wins on conflicts. Bare `docker compose` without these
+    flags resolves variables differently; pass them when calling Compose
+    directly.
 
 Monitoring JSON files in `config/` are shared by the selected environment.
 They are not selected by `APP_ENV`. The `demo` environment uses the fixed demo
 event fixture in `config/demo/events.json`.
 
-## Development
+## Development override
 
-The guided setup is the recommended path:
-
-```bash
-make setup
-```
-
-Choose Docker mode and `dev` or `demo`. Setup starts the stack by default. If
-you decline startup, run `make dev-start`. The target builds the development
-image, starts MySQL and OPA, waits for a healthy database, and runs migrations.
-The development override mounts the source tree and uses temporary MySQL
-storage.
-
-The dashboard is at `http://localhost:3300`, unless `WEB_PORT` was changed.
-Create a user with:
-
-```bash
-make mata MODE=docker ENV=dev ARGS="user create"
-```
+The development override mounts the source tree, disables OPcache, publishes
+OPA and MySQL on `127.0.0.1`, and uses temporary MySQL storage.
 
 Direct Compose use requires the external network and configuration files:
 
@@ -85,20 +82,7 @@ docker compose \
 Use the Makefile for migrations, users, and logs so the selected environment is
 checked consistently.
 
-## Production
-
-```bash
-make setup MODE=docker ENV=prod START_SERVICES=no CREATE_USER=no
-# Replace placeholder passwords in .env and config/db.config.env.
-make prod-fix-perms MODE=docker ENV=prod
-make prod-start MODE=docker ENV=prod
-```
-
-`prod-start` validates the environment
-values, starts the production image, waits for healthy MySQL, and runs
-migrations unless `RUN_MIGRATIONS=no` is set.
-
-Production mounts:
+## Production mounts
 
 - `config/` read-only (it may be a symlink to a separate configuration repository);
 - `logs/` writable for application and cron logs;
@@ -106,29 +90,20 @@ Production mounts:
 - a persistent MySQL data directory from `DATA_PATH`.
 
 Docker stores users in the persistent `mata_users` named volume, owned by
-`www-data`; the container sets it up on start. `make mata` runs the user
-commands in the web container as that user:
+`www-data`; the container sets it up on start. `make mata` runs `bin/mata` in
+the web container as that user.
 
-```bash
-make mata MODE=docker ENV=prod ARGS="user list"
-make mata MODE=docker ENV=prod ARGS="user create"
-make mata MODE=docker ENV=prod ARGS="user passwd <name>"
-```
+`make clean` removes the selected Compose-managed volumes. Production MySQL
+uses `DATA_PATH/mysql`, which is a host bind mount and is not deleted by
+`make clean`.
 
 ## Cron jobs
 
-The image installs `docker/cron/crontab` for `www-data`. The schedule is:
+The image installs `docker/cron/crontab` for `www-data`:
 
-| Schedule | Job |
-| --- | --- |
-| `*/5 * * * *` | `servers_data_fetch.php`, then `servers_metrics_collect.php` |
-| `4-59/15 * * * *` | `servers_metrics_aggregate.php` |
-| `40 */6 * * *` | `libraries_audit.php` |
-| `* * * * *` | `alarms_evaluate_critical.php` |
-| `*/5 * * * *` | `alarms_evaluate_non_critical.php` |
-| `* * * * *` | `alarms_dispatch.php` |
-| `25 2 * * *` | `retention_cleanup.php` |
-| `17 * * * *` | `rate_limit_cleanup.php` |
+```text
+--8<-- "docker/cron/crontab"
+```
 
 Inspect the installed crontab with:
 
@@ -139,34 +114,9 @@ docker compose \
 ```
 
 Application cron logs are under `logs/cron/`. The metrics ingestion report is
-`logs/health/collect_server_metrics_health.log`. Log rotation and retention
-are configured in the cron manifest and `config/data_retention.json`.
-
-## Common operations
-
-```bash
-ENV_NAME=dev # dev, demo, or prod
-make logs MODE=docker ENV="$ENV_NAME"
-make logs-web MODE=docker ENV="$ENV_NAME"
-make logs-db MODE=docker ENV="$ENV_NAME"
-make ps MODE=docker ENV="$ENV_NAME"
-make shell MODE=docker ENV="$ENV_NAME"
-make mata MODE=docker ENV="$ENV_NAME" ARGS="db status"
-make db-backup MODE=docker ENV="$ENV_NAME"
-```
-
-Use `make db-restore FILE=...` only after checking the target environment. The
-Makefile requires confirmation for restores and production database writes.
-
-Stop the selected stack with:
-
-```bash
-make down MODE=docker ENV=dev # replace dev with demo or prod
-```
-
-`make clean` removes the selected Compose-managed volumes. Production MySQL
-uses `DATA_PATH/mysql`, which is a host bind mount and is not deleted by
-`make clean`.
+`logs/health/collect_server_metrics_health.log`. The `find` lines at the end of
+the crontab delete logs and cache files older than their retention age; database
+retention is set in `config/data_retention.json`.
 
 ## Troubleshooting
 
@@ -244,6 +194,12 @@ hides startup errors; start the service in the foreground to see them:
 ```bash
 docker compose --env-file config/db.config.env --env-file .env up mata-web
 ```
+
+### Every page returns 500
+
+The users file lives in the `mata_users` volume, not the repository. An empty
+volume makes every route return the users-file error page. Create a user with
+`make mata MODE=docker ENV=<env> ARGS="user create"`.
 
 ### Bind-mount permissions fail
 
