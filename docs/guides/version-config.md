@@ -132,8 +132,8 @@ The hook checks the working tree, not only the staged changes.
 
 If agents edit the configuration, copy `config.example/AGENTS.md` into the
 repository. It tells them to validate after every edit, keep keys in
-`servers.secrets.json`, and use `bin/mata server add` instead of editing the
-server files by hand.
+`servers.secrets.json`, and add servers with `make mata ARGS="server add …"`
+instead of editing the server files by hand.
 
 The [configuration guide](configuration.md#validate-changes) lists what counts as
 an error.
