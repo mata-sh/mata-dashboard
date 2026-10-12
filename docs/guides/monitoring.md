@@ -42,8 +42,9 @@ alarm; direct configuration-failure alarms bypass those rules. See the
 Nagios-style checks:
 
 ```bash
-make fleet-status                 # or: php bin/mata status
-make fleet-status ARGS=--json
+php bin/mata status
+php bin/mata status --json
+make mata ARGS=status             # as the right account, also in Docker
 ```
 
 It reads only what cron already wrote (the health cache from

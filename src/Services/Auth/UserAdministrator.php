@@ -11,9 +11,9 @@ use Psr\Log\LoggerInterface;
 use RuntimeException;
 
 /**
- * Account management for `scripts/user-management/manage-users.php`.
+ * Account management for the `bin/mata user` commands.
  *
- * Performs no role checks: whoever can run the script can already edit users.json directly.
+ * Performs no role checks: whoever can run them can already edit users.json directly.
  * Web requests only get a UserAuthenticator.
  */
 final class UserAdministrator

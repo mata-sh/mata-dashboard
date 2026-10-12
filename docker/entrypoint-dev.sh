@@ -50,6 +50,9 @@ chmod 775 /var/www/html/temp /var/www/html/logs
 [ ! -e /var/www/html/logs/.gitkeep ] || chmod 644 /var/www/html/logs/.gitkeep
 chmod -R 755 /var/www/html/public/branding
 
+# The users volume is private to www-data, which bin/mata user commands run as.
+install -d -o www-data -g www-data -m 0700 /var/lib/mata-dashboard
+
 # Secure users.json files (must be 600 for security)
 echo "🔒 Securing users.json files..."
 find /var/www/html/config -name "users.json" -type f -exec chown www-data:www-data {} \; -exec chmod 600 {} \; 2>/dev/null || true

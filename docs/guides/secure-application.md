@@ -96,8 +96,8 @@ validation.
 
 ```bash
 make doctor MODE=docker ENV=prod
-make db-status MODE=docker ENV=prod
-make users-list MODE=docker ENV=prod
+make mata MODE=docker ENV=prod ARGS="db status"
+make mata MODE=docker ENV=prod ARGS="user list"
 ```
 
 For native installs, run the same checks with `MODE=local`. Review application,

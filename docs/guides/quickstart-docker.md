@@ -56,14 +56,14 @@ behind an HTTPS reverse proxy. OPA and MySQL remain internal.
 ## Users
 
 ```bash
-make users-list MODE=docker ENV=prod
-make users-create MODE=docker ENV=prod
-make users-passwd MODE=docker ENV=prod
+make mata MODE=docker ENV=prod ARGS="user list"
+make mata MODE=docker ENV=prod ARGS="user create"
+make mata MODE=docker ENV=prod ARGS="user passwd <name>"
 ```
 
-User data lives in the persistent `mata_users` volume. Production user commands
-use a short-lived admin container because the web container mounts `config/`
-read-only.
+User data lives in the persistent `mata_users` volume, which the web container
+owns. `make mata` runs `bin/mata` there as the web server user; see
+[User management](user-management.md).
 
 ## Operations
 
@@ -73,7 +73,7 @@ Set the target explicitly; the environment selects the Compose stack:
 ENV_NAME=dev # dev, demo, or prod
 make logs MODE=docker ENV="$ENV_NAME"
 make ps MODE=docker ENV="$ENV_NAME"
-make db-status MODE=docker ENV="$ENV_NAME"
+make mata MODE=docker ENV="$ENV_NAME" ARGS="db status"
 make db-backup MODE=docker ENV="$ENV_NAME"
 ```
 

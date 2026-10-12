@@ -19,7 +19,7 @@ use Symfony\Component\Console\Question\Question;
 use Throwable;
 
 /**
- * Database commands, ported from scripts/database/, against APP_ENV's environment.
+ * Database commands against APP_ENV's environment.
  */
 abstract class AbstractDbCommand extends Command
 {

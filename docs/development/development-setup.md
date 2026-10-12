@@ -39,7 +39,7 @@ creates missing files from `config.example/`. It does not install static default
 credentials. Create the first user when setup offers it, or run:
 
 ```bash
-make users-create
+make mata ARGS="user create"
 ```
 
 Use `MODE=... ENV=...` to override the saved selection for one command:

@@ -11,15 +11,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Server cards reload from the cache every `DASHBOARD_AUTO_REFRESH_SECONDS` (default 60, `0` turns it off); viewers can pause it in the summary bar
 - In `demo`, `DEMO_LOGIN_USERNAME` and `DEMO_LOGIN_PASSWORD` show the public demo account on the login page and prefill the form
 - `config.example/AGENTS.md`: rules for coding agents that edit a config repository (validate after edits, keys only in `servers.secrets.json`, add servers with `bin/mata server add`)
-- `bin/mata alarm test [channel]` replaces `scripts/alarm_channel_test.php` (still available), and `bin/mata alarm explain [server]` shows the stored decision trace of recent events: outcome, policy and threshold gates, trigger evidence, channels
+- `bin/mata alarm test [channel]` replaces `scripts/alarm_channel_test.php`, and `bin/mata alarm explain [server]` shows the stored decision trace of recent events: outcome, policy and threshold gates, trigger evidence, channels
 - `bin/mata user list|create|passwd|unlock|delete`, `db status|migrate|rollback|check`, and `doctor`, all with `--json`. User commands accept `--password-stdin` or `--generate-password`; without a terminal, production changes need `--yes`. `make doctor` now also runs the application checks (database, migrations, OPA, users file, cron)
-- `bin/mata status [--json]` (`make fleet-status`) reports node health and cron jobs from the cron-warmed cache with Nagios exit codes (0 ok, 1 warning, 2 critical, 3 unknown); a stopped cron reports unknown, never ok
-- `bin/mata server add|list|test|remove` (and `make server-*`) manage `servers.json` and `servers.secrets.json`: `add` generates the node key, prints the node's `config.env` lines, and tests `/health` plus a signed request; `test` explains 401/403/429/503 responses
-- `make config-validate` (or `php bin/mata config validate [file] [--json] [--path DIR]`) checks every config file with the app's own loaders and exits `0` valid, `1` warnings, `2` when the app would ignore a file or drop a server. `bin/mata` is the new operator CLI; run it as the web server user, it refuses root
+- `bin/mata status [--json]` reports node health and cron jobs from the cron-warmed cache with Nagios exit codes (0 ok, 1 warning, 2 critical, 3 unknown); a stopped cron reports unknown, never ok
+- `bin/mata server add|list|test|remove` manage `servers.json` and `servers.secrets.json`: `add` generates the node key, prints the node's `config.env` lines, and tests `/health` plus a signed request; `test` explains 401/403/429/503 responses
+- `bin/mata config validate [file] [--json] [--path DIR]` checks every config file with the app's own loaders and exits `0` valid, `1` warnings, `2` when the app would ignore a file or drop a server. `bin/mata` is the new operator CLI for everything the application does; run it as the web server user, it refuses root. `make mata ARGS="…"` runs it as the right account, natively and in Docker; without `ARGS` it lists the commands
 - `make doctor` shows where `config/` points when it is a symlink, whether it is a Git repository, and whether `config/servers.secrets.json` exists. The new "Version your config" guide covers keeping `config/` in its own repository
 
 ### Changed
-- `make db-migrate`, `db-rollback`, `db-status`, and `db-check` run `bin/mata db …` as the web server user instead of `scripts/database/*.php` as root in the container; Phinx no longer writes a temporary config file with the database password
+- `make db-migrate` runs `bin/mata db migrate` as the web server user instead of `scripts/database/migrate.php` as root in the container; Phinx no longer writes a temporary config file with the database password
 - Documentation is published at https://docs.mata.sh
 - The demo shows a mostly healthy fleet with a single incident instead of every failure state at once, with every app reachable, and uses shorter app names so rows no longer truncate
 - The server grid adapts to the screen width: `DASHBOARD_SERVER_COLUMNS` is now a maximum (default 4) and `DASHBOARD_CONTAINER_WIDTH` defaults to 2560.
@@ -28,7 +28,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - The development container no longer changes the owner or mode of `config/` on start. **Action:** if Git reports dubious ownership in `config/`, run `sudo chown -R "$(id -un)" config/` once
 
 ### Removed
-- `config/phinx.php`, which `make db-migrate` never used. **Action:** run migrations with `make db-migrate`, `db-rollback`, and `db-status` (or `php scripts/database/migrate.php`) instead.
+- `config/phinx.php`, which `make db-migrate` never used. **Action:** run migrations with `make db-migrate` or `bin/mata db migrate` instead.
+- `make users-*`, `db-rollback`, `db-status`, and `db-check`, and the scripts they ran: `scripts/user-management/manage-users.php`, `scripts/database/migrate.php`, `scripts/database/database-integrity.php`, `scripts/alarm_channel_test.php`. Docker user commands no longer start a separate admin container; the web container sets up the `mata_users` volume on start. **Action:** use `bin/mata user …` and `bin/mata db …`, or `make mata ARGS="user create"` (`user list`, `db status`, …); rebuild the Docker image
 
 ### Fixed
 - The users-file error page links to the users-file setup guide instead of a missing page

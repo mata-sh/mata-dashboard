@@ -388,12 +388,8 @@ scripts/
 ├── server_metrics_diagnostic.php   # Ad-hoc metrics diagnostics
 ├── setup.sh                        # Environment setup
 ├── database/
-│   ├── migrate.php              # Run Phinx migrations
-│   ├── database-integrity.php   # Integrity check
 │   ├── hash-password.php        # Generate password hashes
 │   └── mysql-operation.php      # DB maintenance ops
-├── user-management/
-│   └── manage-users.php         # Create/update/remove users
 ├── systemd/                     # Unit/timer files (critical-alarm eval, OPA)
 └── docs/
 ```
@@ -429,7 +425,7 @@ docs/
 
 - **Utility scripts** (`scripts/`): kebab-case
   - `hash-password.php`
-  - `manage-users.php`
+  - `mysql-operation.php`
 
 ### Configuration Files
 

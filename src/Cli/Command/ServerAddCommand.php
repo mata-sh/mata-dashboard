@@ -47,7 +47,7 @@ final class ServerAddCommand extends Command
                 (expected until the node has the key), 2 nothing written.
 
                 Run as the owner of config/, not the web server user: in Docker
-                `docker compose exec -u "$(id -u):$(id -g)" mata-web php bin/mata server add …`, or `make server-add`.
+                `docker compose exec -u "$(id -u):$(id -g)" mata-web php bin/mata server add …`, or `make mata ARGS="server add …"`.
                 The printed key is a secret: it is shown once and stored only in servers.secrets.json.
                 HELP);
     }

@@ -10,7 +10,7 @@ make setup
 
 Choose native or Docker mode and a `dev`, `demo`, or `prod` environment. Setup
 creates the core configuration; create a development user with
-`make users-create` if setup did not create one.
+`make mata ARGS="user create"` if setup did not create one.
 
 ## Checks
 

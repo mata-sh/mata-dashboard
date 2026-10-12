@@ -95,14 +95,13 @@ node never calls back.
 If you declined the user prompt during setup, create one now:
 
 ```bash
-make users-create
+make mata ARGS="user create"
 ```
 
 Open the dashboard, sign in, and run:
 
 ```bash
 make doctor
-make db-status
 ```
 
 A node may appear before historical chart rows exist. Wait for a successful

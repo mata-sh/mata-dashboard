@@ -157,8 +157,7 @@ Run it as the user your crons run as, so its log files stay writable for them.
 Without a channel it lists the configured ones.
 
 It exits `0` when sent, `1` when delivery fails, printing the redacted error,
-and `2` for an unknown channel. `scripts/alarm_channel_test.php` still works the
-same way.
+and `2` for an unknown channel.
 
 ### Explaining decisions
 
