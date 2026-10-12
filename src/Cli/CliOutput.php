@@ -23,6 +23,19 @@ final class CliOutput
         ));
     }
 
+    /**
+     * Appended when logs/ or temp/ is not writable: commands other than `config validate` and
+     * `server *` write there, which only the web server user may.
+     */
+    public static function withWebUserHint(string $message): string
+    {
+        if (!str_contains($message, 'Directory is not writable')) {
+            return $message;
+        }
+
+        return $message . '. Run as the web server user: sudo -u www-data php bin/mata … (http on Arch, apache on RHEL; make does this in Docker)';
+    }
+
     public static function statusName(int $exitCode): string
     {
         return match ($exitCode) {

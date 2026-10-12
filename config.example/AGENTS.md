@@ -5,8 +5,8 @@ This directory configures one MATA Dashboard instance. Copy this file into the i
 
 ## Rules
 
-- **Validate after every edit:** `php bin/mata config validate` (from the dashboard checkout; set
-  `MATA_CONFIG_PATH` or `--path` for a checkout elsewhere). Exit 2 means the app would ignore a file
+- **Validate after every edit:** `php bin/mata config validate` (from the dashboard checkout; `--path`
+  validates a checkout that is not the instance's `config/`). Exit 2 means the app would ignore a file
   or drop a server; do not commit that.
 - **Secrets never go in `servers.json`.** Node API keys live only in `servers.secrets.json`, keyed by
   the server name. A server with `api_key` in `servers.json` is rejected.

@@ -74,8 +74,9 @@ test fails and the command exits `1`; check again with
 `MATA_NODE_API_KEY`) when the node already has a key.
 
 !!! info "Who runs it"
-    `server add` and `server remove` write `config/`, so they run as its owner;
-    `make` does that in Docker too. `bin/mata` refuses to run as root.
+    `server add` and `server remove` write `config/`, so run them as its owner
+    (your SSH account), not as the web server user; `make` does that in Docker
+    too. See [which account runs `bin/mata`](configuration.md#validate-changes).
 
 ### Editing the files by hand
 

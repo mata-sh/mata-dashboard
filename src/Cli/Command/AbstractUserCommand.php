@@ -60,7 +60,7 @@ abstract class AbstractUserCommand extends Command
             $this->paths->applyConfig($config);
             $usersFile = UsersFilePathResolver::resolve($this->paths);
         } catch (Throwable $exception) {
-            return $this->fail($input, $output, "Cannot load the config: {$exception->getMessage()}");
+            return $this->fail($input, $output, CliOutput::withWebUserHint("Cannot load the config: {$exception->getMessage()}"));
         }
 
         $user = function_exists('posix_getpwuid') ? posix_getpwuid(posix_geteuid()) : false;
