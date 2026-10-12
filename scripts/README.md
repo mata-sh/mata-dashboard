@@ -5,41 +5,17 @@ Application operations (users, servers, config, migrations, status) are
 logs, and backups, and `make mata ARGS="…"` runs `bin/mata` as the right account.
 Run `make help` for the mode-aware command list.
 
-## Layout
-
 ```text
 scripts/
-├── database/           # backups, restore, database shell, password hashing
-├── docs/               # documentation tooling
-├── systemd/            # native service units
-├── cron_database_probe.php
-├── server_metrics_diagnostic.php
-└── setup.sh            # guided setup
+├── database/
+│   ├── hash-password.php          # prompts for a password, prints its hash (make db-hash-password)
+│   └── mysql-operation.php        # backup, restore, shell (make db-backup|db-restore|db-shell)
+├── docs/
+│   └── sync-node-docs.sh          # copies mata-node pages into docs/node/ (make docs-serve|docs-deploy)
+├── systemd/                       # native service units; opa.service is installed by make opa-install-service
+├── cron_database_probe.php        # database readiness probe used by the Docker cron smoke check
+├── server_metrics_diagnostic.php  # metrics row counts per server
+└── setup.sh                       # guided setup (make setup)
 ```
 
-## Common commands
-
-```bash
-make setup
-make status
-make logs
-make mata ARGS="user list"
-make test
-make docs-serve
-```
-
-Use `MODE=local|docker ENV=dev|demo|prod` to override the selection saved by
-`make setup`.
-
-## Direct scripts
-
-These examples are for a native checkout with PHP, Composer dependencies, and
-configuration available on the host. In Docker, run them inside `mata-web`.
-
-Run scripts from the project root:
-
-```bash
-php scripts/database/hash-password.php "mypassword"
-php scripts/server_metrics_diagnostic.php
-```
-
+Run scripts from the project root. In Docker, run them inside `mata-web`.

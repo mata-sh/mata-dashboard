@@ -33,7 +33,7 @@ test` runs PHPUnit only.
 available on the host.
 
 Documentation preview requires MkDocs and the shadcn theme. See
-[development setup](docs/development/development-setup.md).
+[documentation](docs/development/documentation.md).
 
 ## Changes
 

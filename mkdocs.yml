@@ -58,6 +58,7 @@ nav:
 
   - Development:
       - Development setup: development/development-setup.md
+      - Documentation: development/documentation.md
       - UI style guide: development/ui-styleguide.md
       - Changelog: development/changelog.md
 
