@@ -49,7 +49,7 @@ abstract class AbstractDbCommand extends Command
         try {
             $this->config = (new EnvConfigLoader())->load(InstanceConfigValidator::ENV_FILES, $this->configPath);
         } catch (Throwable $exception) {
-            return $this->fail($input, $output, "Cannot load the config: {$exception->getMessage()}");
+            return $this->fail($input, $output, CliOutput::withWebUserHint("Cannot load the config: {$exception->getMessage()}"));
         }
 
         $env = $this->config->environment->env;

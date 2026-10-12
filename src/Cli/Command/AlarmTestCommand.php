@@ -34,7 +34,7 @@ final class AlarmTestCommand extends Command
         $this
             ->addArgument('channel', InputArgument::OPTIONAL, 'email or a channel from channels.json; omit to list them')
             ->addOption('json', null, InputOption::VALUE_NONE, 'Print as JSON')
-            ->setHelp('Exit codes: 0 sent (or channels listed), 1 delivery failed, 2 unknown channel. Uses config/, not MATA_CONFIG_PATH.');
+            ->setHelp('Exit codes: 0 sent (or channels listed), 1 delivery failed, 2 unknown channel.');
     }
 
     protected function execute(InputInterface $input, OutputInterface $output): int

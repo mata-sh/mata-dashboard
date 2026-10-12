@@ -249,11 +249,19 @@ Without the check, a broken file only shows up as a warning event while the app
 runs on defaults; only a missing or invalid `servers.json` or
 `servers.secrets.json` raises an alarm.
 
-!!! info "Run it as the web server user"
-    A file your own account can read may still be unreadable for the web server.
-    `make config-validate` runs as `www-data` in Docker. Natively, use
-    `sudo -u www-data php bin/mata config validate` (`http` on Arch, `apache`
-    on RHEL). `bin/mata` refuses to run as root.
+!!! info "Which account runs `bin/mata`"
+    Every file has one writer. Your account (the one that runs Git) owns
+    `config/`, and the web server reads it through its group. The web server
+    owns `logs/`, `temp/`, and the users file, which it writes on every login.
+
+    - `server add` and `server remove` write `config/`: run them as your account.
+    - Every other command writes logs or the cache, or reads what the web
+      server reads: run it as the web server user,
+      `sudo -u www-data php bin/mata …` (`http` on Arch, `apache` on RHEL).
+      Run `config validate` that way too, since a file your account can read
+      may still be unreadable for the web server.
+
+    `make` picks the right account in Docker. `bin/mata` refuses to run as root.
 
 `make doctor` is an installation sanity check, not a configuration parser.
 It confirms the selected `MODE` and `ENV`, that `config/config.env`,

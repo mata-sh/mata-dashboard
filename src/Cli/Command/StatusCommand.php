@@ -58,14 +58,14 @@ final class StatusCommand extends Command
             // LOG_PATH and TEMP_DIR move the heartbeat and cache directories.
             $this->paths->applyConfig((new EnvConfigLoader())->load(InstanceConfigValidator::ENV_FILES, $this->configPath));
         } catch (Throwable $exception) {
-            $output->writeln("<error>Cannot load the env config: {$exception->getMessage()}</error>");
+            $output->writeln('<error>' . CliOutput::withWebUserHint("Cannot load the env config: {$exception->getMessage()}") . '</error>');
 
             return StatusLevel::Unknown->value;
         }
 
-        $events = new ConfigProblemCollector();
-        $servers = (new ServersConfigLoader($events, fallbackOnFailure: true))->load($this->configPath)->values;
-        $ttl = new CacheTtlResolver((new TtlConfigLoader($events, fallbackOnFailure: true))->load($this->configPath));
+        $problems = new ConfigProblemCollector();
+        $servers = (new ServersConfigLoader($problems, fallbackOnFailure: true))->load($this->configPath)->values;
+        $ttl = new CacheTtlResolver((new TtlConfigLoader($problems, fallbackOnFailure: true))->load($this->configPath));
 
         $status = (new FleetStatusReader(
             new FileCacheStore(new NullLogger(), $this->paths->tempPath . '/api-cache'),
@@ -73,7 +73,7 @@ final class StatusCommand extends Command
             new CronHeartbeatReader($this->paths->appPath . '/cron', $this->paths->logsPath . '/cron'),
             $ttl->get(CacheType::Health),
         ))->read($servers, time());
-        $configProblems = count($events->take());
+        $configProblems = count($problems->take());
 
         if ($input->getOption('json')) {
             CliOutput::json($output, $status->toArray() + ['config_problems' => $configProblems]);
