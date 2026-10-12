@@ -8,7 +8,6 @@ use Mata\Cli\CliOutput;
 use Mata\Config\EnvConfigLoader;
 use Mata\Config\Monitoring\Loader\ServersConfigLoader;
 use Mata\Config\Monitoring\Loader\TtlConfigLoader;
-use Mata\Config\Validation\ConfigProblemCollector;
 use Mata\Config\Validation\InstanceConfigValidator;
 use Mata\Services\Cache\ApiCacheKeyFactory;
 use Mata\Services\Cache\CacheTtlResolver;
@@ -63,17 +62,16 @@ final class StatusCommand extends Command
             return StatusLevel::Unknown->value;
         }
 
-        $problems = new ConfigProblemCollector();
-        $servers = (new ServersConfigLoader($problems, fallbackOnFailure: true))->load($this->configPath)->values;
-        $ttl = new CacheTtlResolver((new TtlConfigLoader($problems, fallbackOnFailure: true))->load($this->configPath));
+        $servers = (new ServersConfigLoader(fallbackOnFailure: true))->load($this->configPath);
+        $ttl = (new TtlConfigLoader(fallbackOnFailure: true))->load($this->configPath);
 
         $status = (new FleetStatusReader(
             new FileCacheStore(new NullLogger(), $this->paths->tempPath . '/api-cache'),
             new ApiCacheKeyFactory(),
             new CronHeartbeatReader($this->paths->appPath . '/cron', $this->paths->logsPath . '/cron'),
-            $ttl->get(CacheType::Health),
-        ))->read($servers, time());
-        $configProblems = count($problems->take());
+            (new CacheTtlResolver($ttl->section))->get(CacheType::Health),
+        ))->read($servers->section->values, time());
+        $configProblems = count($servers->problems) + count($ttl->problems);
 
         if ($input->getOption('json')) {
             CliOutput::json($output, $status->toArray() + ['config_problems' => $configProblems]);

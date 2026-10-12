@@ -6,18 +6,17 @@ namespace Mata\Config\Monitoring\Loader;
 
 use InvalidArgumentException;
 use Mata\Config\Monitoring\Section\ProbesConfig;
-use Mata\Services\Event\EventManager;
 use RuntimeException;
 
 /** Loads optional node probe overrides; a missing probes.json means built-in defaults. */
 final class ProbesConfigLoader extends AbstractJsonConfigLoader
 {
     public function __construct(
-        private EventManager $events,
         private bool $fallbackOnFailure = true,
     ) {}
 
-    public function load(string $configRoot): ProbesConfig
+    /** @return ConfigLoadResult<ProbesConfig> */
+    public function load(string $configRoot): ConfigLoadResult
     {
         try {
             return $this->loadProbesConfig(rtrim($configRoot, '/') . '/probes.json');
@@ -26,14 +25,15 @@ final class ProbesConfigLoader extends AbstractJsonConfigLoader
                 throw $exception;
             }
 
-            return $this->getDefaultConfig();
+            return new ConfigLoadResult($this->getDefaultConfig(), $exception->problems);
         }
     }
 
-    public function loadProbesConfig(string $filePath): ProbesConfig
+    /** @return ConfigLoadResult<ProbesConfig> */
+    public function loadProbesConfig(string $filePath): ConfigLoadResult
     {
         if (!is_file($filePath)) {
-            return $this->getDefaultConfig();
+            return $this->result($this->getDefaultConfig());
         }
 
         try {
@@ -41,20 +41,20 @@ final class ProbesConfigLoader extends AbstractJsonConfigLoader
         } catch (RuntimeException $exception) {
             $this->reportLoadFailure($filePath);
 
-            throw new MonitoringConfigLoadException('probes.json invalid or empty', previous: $exception);
+            throw $this->rejected('probes.json invalid or empty', $exception);
         }
         if ($config === []) {
             $this->reportLoadFailure($filePath);
 
-            throw new MonitoringConfigLoadException('probes.json invalid or empty');
+            throw $this->rejected('probes.json invalid or empty');
         }
 
         try {
-            return ProbesConfig::fromArray($config);
+            return $this->result(ProbesConfig::fromArray($config));
         } catch (InvalidArgumentException $exception) {
             $this->reportLoadFailure($filePath, $exception->getMessage());
 
-            throw new MonitoringConfigLoadException('probes.json invalid or empty', previous: $exception);
+            throw $this->rejected('probes.json invalid or empty', $exception);
         }
     }
 
@@ -69,6 +69,6 @@ final class ProbesConfigLoader extends AbstractJsonConfigLoader
         if ($reason !== null) {
             $message .= " (reason: {$reason})";
         }
-        $this->reportProblem($this->events, 'probes_config_not_found', $message);
+        $this->report('probes_config_not_found', $message);
     }
 }

@@ -6,8 +6,6 @@ namespace Mata\Tests\Unit\Config;
 
 use Mata\Config\Monitoring\Loader\ChartsConfigLoader;
 use Mata\Config\Monitoring\Section\ChartsConfig;
-use Mata\Services\Event\Dto\EventRecordResult;
-use Mata\Services\Event\EventRecorderService;
 use Mata\Services\ServerMetrics\MetricCatalog;
 use Mata\Services\ServerMetrics\MetricQueryPolicy;
 use Mata\Tests\TestCase;
@@ -27,9 +25,7 @@ final class ChartsConfigLoaderTest extends TestCase
     {
         parent::setUp();
         $this->configRoot = $this->createTempDirectory();
-        $eventRecorder = $this->createStub(EventRecorderService::class);
-        $eventRecorder->method('recordEvent')->willReturn(new EventRecordResult(1, null, null, null, null, null));
-        $this->loader = $this->createLoader($eventRecorder);
+        $this->loader = new ChartsConfigLoader(metricCatalog: new MetricCatalog(), queryPolicy: new MetricQueryPolicy());
     }
 
     protected function tearDown(): void
@@ -40,22 +36,19 @@ final class ChartsConfigLoaderTest extends TestCase
 
     public function testMissingFileUsesEmptyConfigWithoutWarning(): void
     {
-        $eventRecorder = $this->createMock(EventRecorderService::class);
-        $eventRecorder->expects($this->never())->method('recordEvent');
+        $loaded = $this->loader->load($this->configRoot);
 
-        $this->assertEquals(ChartsConfig::empty(), $this->createLoader($eventRecorder)->load($this->configRoot));
+        $this->assertSame([], $loaded->problems);
+        $this->assertEquals(ChartsConfig::empty(), $loaded->section);
     }
 
     public function testMalformedFileWarnsAndFallsBackToEmptyConfig(): void
     {
         file_put_contents($this->configRoot . '/charts.json', '{');
-        $eventRecorder = $this->createMock(EventRecorderService::class);
-        $eventRecorder
-            ->expects($this->once())
-            ->method('recordEvent')
-            ->willReturn(new EventRecordResult(1, null, null, null, null, null));
+        $loaded = $this->loader->load($this->configRoot);
 
-        $this->assertEquals(ChartsConfig::empty(), $this->createLoader($eventRecorder)->load($this->configRoot));
+        $this->assertCount(1, $loaded->problems);
+        $this->assertEquals(ChartsConfig::empty(), $loaded->section);
     }
 
     public function testUnknownMetricsAndInvalidTimespansWarnAndAreDropped(): void
@@ -72,13 +65,10 @@ final class ChartsConfigLoaderTest extends TestCase
                 ],
             ],
         ], JSON_THROW_ON_ERROR));
-        $eventRecorder = $this->createMock(EventRecorderService::class);
-        $eventRecorder
-            ->expects($this->exactly(2))
-            ->method('recordEvent')
-            ->willReturn(new EventRecordResult(1, null, null, null, null, null));
+        $loaded = $this->loader->load($this->configRoot);
+        $config = $loaded->section;
 
-        $config = $this->createLoader($eventRecorder)->load($this->configRoot);
+        $this->assertCount(2, $loaded->problems);
 
         $this->assertSame([
             'cpu' => ['key' => 'cpu', 'label' => 'Processor'],
@@ -103,7 +93,7 @@ final class ChartsConfigLoaderTest extends TestCase
             ],
         ], JSON_THROW_ON_ERROR));
 
-        $config = $this->loader->load($this->configRoot);
+        $config = $this->loader->load($this->configRoot)->section;
 
         $this->assertSame(['cpu', 'disk_used'], array_keys($config->dashboard?->metrics ?? []));
         $this->assertSame(['6h', '24h'], array_keys($config->dashboard?->timespans ?? []));
@@ -116,15 +106,10 @@ final class ChartsConfigLoaderTest extends TestCase
         file_put_contents($this->configRoot . '/charts.json', json_encode([
             'dashboard' => ['timespans' => ['custom' => $entry]],
         ], JSON_THROW_ON_ERROR));
-        $eventRecorder = $this->createMock(EventRecorderService::class);
-        $eventRecorder
-            ->expects($this->once())
-            ->method('recordEvent')
-            ->willReturn(new EventRecordResult(1, null, null, null, null, null));
+        $loaded = $this->loader->load($this->configRoot);
 
-        $config = $this->createLoader($eventRecorder)->load($this->configRoot);
-
-        $this->assertSame(['24h', '7d'], array_keys($config->dashboard?->timespans ?? []));
+        $this->assertCount(1, $loaded->problems);
+        $this->assertSame(['24h', '7d'], array_keys($loaded->section->dashboard?->timespans ?? []));
     }
 
     /** @return iterable<string,array{array<string,mixed>}> */
@@ -162,7 +147,7 @@ final class ChartsConfigLoaderTest extends TestCase
             ],
         ], JSON_THROW_ON_ERROR));
 
-        $config = $this->loader->load($this->configRoot);
+        $config = $this->loader->load($this->configRoot)->section;
 
         $this->assertSame('day', $config->dashboard?->defaultTimespan);
         $this->assertSame([
@@ -181,14 +166,5 @@ final class ChartsConfigLoaderTest extends TestCase
                 'refresh' => 60,
             ],
         ], $config->dashboard?->timespans);
-    }
-
-    private function createLoader(EventRecorderService $eventRecorder): ChartsConfigLoader
-    {
-        return new ChartsConfigLoader(
-            events: $this->eventManagerFor($eventRecorder),
-            metricCatalog: new MetricCatalog(),
-            queryPolicy: new MetricQueryPolicy(),
-        );
     }
 }

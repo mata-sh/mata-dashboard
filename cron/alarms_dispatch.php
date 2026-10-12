@@ -35,8 +35,9 @@ try {
 
     // --- Alarm Limits ---
     $eventManager = new EventManager($appConfig, eventRecorder: new EventRecorderService($db), logger: $log);
-    $limitsLoader = new AlarmRateLimitsConfigLoader($eventManager);
-    $limitsConfig = $limitsLoader->load($paths->configPath);
+    $loadedLimits = (new AlarmRateLimitsConfigLoader())->load($paths->configPath);
+    $eventManager->recordConfigProblems($loadedLimits->problems);
+    $limitsConfig = $loadedLimits->section;
 
     // --- Senders & Dispatchers ---
     $alarmChannels = AlarmChannelRuntime::fromRuntime($runtime, $eventManager);

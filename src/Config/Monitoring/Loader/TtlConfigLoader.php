@@ -6,17 +6,16 @@ namespace Mata\Config\Monitoring\Loader;
 
 use InvalidArgumentException;
 use Mata\Config\Monitoring\Section\TtlConfig;
-use Mata\Services\Event\EventManager;
 use RuntimeException;
 
 final class TtlConfigLoader extends AbstractJsonConfigLoader
 {
     public function __construct(
-        private EventManager $events,
         private bool $fallbackOnFailure = true,
     ) {}
 
-    public function load(string $configRoot): TtlConfig
+    /** @return ConfigLoadResult<TtlConfig> */
+    public function load(string $configRoot): ConfigLoadResult
     {
         try {
             return $this->loadTtlConfig(rtrim($configRoot, '/') . '/ttl.json');
@@ -25,11 +24,12 @@ final class TtlConfigLoader extends AbstractJsonConfigLoader
                 throw $exception;
             }
 
-            return $this->getDefaultConfig();
+            return new ConfigLoadResult($this->getDefaultConfig(), $exception->problems);
         }
     }
 
-    public function loadTtlConfig(string $filePath): TtlConfig
+    /** @return ConfigLoadResult<TtlConfig> */
+    public function loadTtlConfig(string $filePath): ConfigLoadResult
     {
         try {
             $config = $this->normalizeJson($this->readJsonObject($filePath));
@@ -37,11 +37,11 @@ final class TtlConfigLoader extends AbstractJsonConfigLoader
                 throw new RuntimeException('ttl.json invalid or empty');
             }
 
-            return TtlConfig::fromArray($config);
+            return $this->result(TtlConfig::fromArray($config));
         } catch (InvalidArgumentException|RuntimeException $exception) {
             $this->reportLoadFailure($filePath, $exception->getMessage());
 
-            throw new MonitoringConfigLoadException('ttl.json invalid or empty', previous: $exception);
+            throw $this->rejected('ttl.json invalid or empty', $exception);
         }
     }
 
@@ -52,8 +52,7 @@ final class TtlConfigLoader extends AbstractJsonConfigLoader
 
     private function reportLoadFailure(string $filePath, string $reason): void
     {
-        $this->reportProblem(
-            $this->events,
+        $this->report(
             'ttl_config_not_found',
             "Could not load {$filePath} -> fallback to Default Values (reason: {$reason})",
         );

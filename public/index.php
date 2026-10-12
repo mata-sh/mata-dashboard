@@ -304,7 +304,6 @@ $idResolver = new ServerApplicationIdResolver($configSyncRepository);
 $appInventorySync = new AppInventorySync($configSyncRepository, $idResolver, $log);
 
 // --- Event Manager ---
-// Early initialization for config loaders.
 // Event aggregator and monitoring config are attached once they exist.
 $eventRepository = new EventRepository($db);
 $eventRecorder = new EventRecorderService($db, $idResolver);
@@ -312,8 +311,9 @@ $eventManager = new EventManager($appConfig, eventRecorder: $eventRecorder, logg
 
 // --- Limits & Locking ---
 $queueFailureThrottle = new AlarmQueueFailureThrottle($paths->tempPath . '/alarm-locks', $log);
-$limitsLoader = new AlarmRateLimitsConfigLoader($eventManager);
-$limitsConfig = $limitsLoader->load($paths->configPath);
+$loadedLimits = (new AlarmRateLimitsConfigLoader())->load($paths->configPath);
+$eventManager->recordConfigProblems($loadedLimits->problems);
+$limitsConfig = $loadedLimits->section;
 
 // --- Alarm Manager ---
 $alarmDirectProcessor = new AlarmDirectProcessor($alarmCreator, $limitsConfig, $queueFailureThrottle, $log);
@@ -339,41 +339,18 @@ $metricQueryPolicy = new MetricQueryPolicy();
 $metricsRequestValidator = new MetricsRequestValidator($metricCatalog, $metricQueryPolicy);
 
 $monitoringConfigLoader = new MonitoringConfigLoader(
-    servers: new ServersConfigLoader(
-        events: $eventManager,
-        fallbackOnFailure: true,
-    ),
-    ttl: new TtlConfigLoader(
-        events: $eventManager,
-        fallbackOnFailure: true,
-    ),
-    dataRetention: new DataRetentionConfigLoader(
-        events: $eventManager,
-        fallbackOnFailure: true,
-    ),
-    intervals: new IntervalsConfigLoader(
-        events: $eventManager,
-        fallbackOnFailure: true,
-    ),
-    probes: new ProbesConfigLoader(
-        events: $eventManager,
-        fallbackOnFailure: true,
-    ),
-    notificationRules: new NotificationRulesConfigLoader(
-        events: $eventManager,
-        fallbackOnFailure: true,
-    ),
-    thresholds: new ThresholdsConfigLoader(
-        events: $eventManager,
-        fallbackOnFailure: true,
-    ),
+    servers: new ServersConfigLoader(fallbackOnFailure: true),
+    ttl: new TtlConfigLoader(fallbackOnFailure: true),
+    dataRetention: new DataRetentionConfigLoader(fallbackOnFailure: true),
+    intervals: new IntervalsConfigLoader(fallbackOnFailure: true),
+    probes: new ProbesConfigLoader(fallbackOnFailure: true),
+    notificationRules: new NotificationRulesConfigLoader(fallbackOnFailure: true),
+    thresholds: new ThresholdsConfigLoader(fallbackOnFailure: true),
     menu: new MenuConfigLoader(
-        events: $eventManager,
         validKeys: MenuBuilder::MENU_KEYS,
         fallbackOnFailure: true,
     ),
     charts: new ChartsConfigLoader(
-        events: $eventManager,
         metricCatalog: $metricCatalog,
         queryPolicy: $metricQueryPolicy,
         fallbackOnFailure: true,
@@ -382,7 +359,9 @@ $monitoringConfigLoader = new MonitoringConfigLoader(
 
 $configPath = $paths->configPath;
 $log->info("Loading monitoring configuration for environment: {$environment}");
-$monitoringConfig = $monitoringConfigLoader->load($configPath, $limitsConfig);
+$loadedMonitoringConfig = $monitoringConfigLoader->load($configPath, $limitsConfig);
+$eventManager->recordConfigProblems($loadedMonitoringConfig->problems);
+$monitoringConfig = $loadedMonitoringConfig->section;
 $eventManager->setMonitoringConfig($monitoringConfig);
 
 // Persist servers.json before server IDs are resolved from the database. Web only: cron reads what this wrote.

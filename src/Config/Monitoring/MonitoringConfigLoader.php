@@ -5,9 +5,12 @@ declare(strict_types=1);
 namespace Mata\Config\Monitoring;
 
 use Mata\Config\Monitoring\Loader\ChartsConfigLoader;
+use Mata\Config\Monitoring\Loader\ConfigLoadProblem;
+use Mata\Config\Monitoring\Loader\ConfigLoadResult;
 use Mata\Config\Monitoring\Loader\DataRetentionConfigLoader;
 use Mata\Config\Monitoring\Loader\IntervalsConfigLoader;
 use Mata\Config\Monitoring\Loader\MenuConfigLoader;
+use Mata\Config\Monitoring\Loader\MonitoringConfigLoadException;
 use Mata\Config\Monitoring\Loader\NotificationRulesConfigLoader;
 use Mata\Config\Monitoring\Loader\ProbesConfigLoader;
 use Mata\Config\Monitoring\Loader\ServersConfigLoader;
@@ -37,22 +40,51 @@ final readonly class MonitoringConfigLoader
     ) {}
 
     /**
-     * Alarm rate limits arrive pre-built: AlarmDirectProcessor needs them, and the servers
-     * loader needs that processor, so limits load before this aggregate.
+     * Alarm rate limits arrive pre-built: AlarmDirectProcessor needs them before the problems
+     * found here are recorded, since a broken servers config forces an alarm.
+     *
+     * @return ConfigLoadResult<MonitoringConfig> with the problems of every section
+     *
+     * @throws MonitoringConfigLoadException carrying the problems found so far, when a loader without fallback rejects its file
      */
-    public function load(string $configRoot, AlarmRateLimitsConfig $alarmRateLimits): MonitoringConfig
+    public function load(string $configRoot, AlarmRateLimitsConfig $alarmRateLimits): ConfigLoadResult
     {
-        return new MonitoringConfig(
-            servers: $this->servers->load($configRoot),
-            ttl: $this->ttl->load($configRoot),
-            dataRetention: $this->dataRetention->load($configRoot),
-            intervals: $this->intervals->load($configRoot),
-            probes: $this->probes->load($configRoot),
-            notificationRules: $this->notificationRules->load($configRoot),
-            thresholds: $this->thresholds->load($configRoot),
-            menu: $this->menu?->load($configRoot) ?? MenuConfig::empty(),
-            alarmRateLimits: $alarmRateLimits,
-            charts: $this->charts?->load($configRoot) ?? ChartsConfig::empty(),
-        );
+        $problems = [];
+
+        try {
+            $config = new MonitoringConfig(
+                servers: self::section($this->servers->load($configRoot), $problems),
+                ttl: self::section($this->ttl->load($configRoot), $problems),
+                dataRetention: self::section($this->dataRetention->load($configRoot), $problems),
+                intervals: self::section($this->intervals->load($configRoot), $problems),
+                probes: self::section($this->probes->load($configRoot), $problems),
+                notificationRules: self::section($this->notificationRules->load($configRoot), $problems),
+                thresholds: self::section($this->thresholds->load($configRoot), $problems),
+                menu: $this->menu === null ? MenuConfig::empty() : self::section($this->menu->load($configRoot), $problems),
+                alarmRateLimits: $alarmRateLimits,
+                charts: $this->charts === null ? ChartsConfig::empty() : self::section($this->charts->load($configRoot), $problems),
+            );
+        } catch (MonitoringConfigLoadException $exception) {
+            throw $exception->after($problems);
+        }
+
+        return new ConfigLoadResult($config, $problems);
+    }
+
+    /**
+     * @template T of object
+     *
+     * @param ConfigLoadResult<T>     $loaded
+     * @param list<ConfigLoadProblem> $problems
+     *
+     * @param-out list<ConfigLoadProblem> $problems
+     *
+     * @return T
+     */
+    private static function section(ConfigLoadResult $loaded, array &$problems): object
+    {
+        $problems = [...$problems, ...$loaded->problems];
+
+        return $loaded->section;
     }
 }
