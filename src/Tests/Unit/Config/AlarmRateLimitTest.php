@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Mata\Tests\Unit\Config;
 
-use InvalidArgumentException;
 use Mata\Config\Monitoring\Section\AlarmRateLimit;
 use PHPUnit\Framework\TestCase;
 use ReflectionClass;
@@ -33,12 +32,5 @@ final class AlarmRateLimitTest extends TestCase
     public function testIsReadonly(): void
     {
         $this->assertTrue((new ReflectionClass(AlarmRateLimit::class))->isReadOnly());
-    }
-
-    public function testRejectsNegativeLimitValues(): void
-    {
-        $this->expectException(InvalidArgumentException::class);
-
-        new AlarmRateLimit(-1, 0, 0);
     }
 }

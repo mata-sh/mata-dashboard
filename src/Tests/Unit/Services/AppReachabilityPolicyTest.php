@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Mata\Tests\Unit\Services;
 
-use InvalidArgumentException;
 use Mata\Config\Monitoring\Section\ProbesConfig;
 use Mata\Config\Monitoring\Section\ThresholdsConfig;
 use Mata\Services\Monitor\Dto\AppReachabilityPolicy;
@@ -50,11 +49,19 @@ final class AppReachabilityPolicyTest extends TestCase
         $this->assertSame(900, $policy->unreachableWindowSeconds);
     }
 
-    public function testInvalidUnreachableWindowCannotEnterPolicy(): void
+    public function testInvalidUnreachableWindowFallsBackToTheDefaultWindow(): void
     {
-        $this->expectException(InvalidArgumentException::class);
-        $this->expectExceptionMessage('thresholds.alarms.app_unreachable.window_minutes must be at least 1.');
+        $reported = [];
+        $thresholds = ThresholdsConfig::fromArray(
+            ['alarms' => ['app_unreachable' => ['window_minutes' => 0]]],
+            static function (string $message) use (&$reported): void {
+                $reported[] = $message;
+            },
+        );
 
-        new ThresholdsConfig(serverData: [], appData: [], alarmRules: ['app_unreachable' => ['window_minutes' => 0]]);
+        $policy = AppReachabilityPolicy::fromMonitoringConfig(MonitoringConfigFactory::create(thresholds: $thresholds));
+
+        $this->assertSame(600, $policy->unreachableWindowSeconds);
+        $this->assertStringContainsString('thresholds.alarms.app_unreachable.window_minutes must be at least 1.', $reported[0] ?? '');
     }
 }

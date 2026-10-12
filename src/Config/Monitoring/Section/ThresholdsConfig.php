@@ -19,16 +19,7 @@ final readonly class ThresholdsConfig
         public array $serverData,
         public array $appData,
         public array $alarmRules,
-    ) {
-        $reject = static function (string $message): void {
-            throw new InvalidArgumentException($message);
-        };
-        self::thresholdMap($serverData, 'thresholds.server_data', $reject);
-        self::thresholdMap($appData, 'thresholds.app_data', $reject);
-        foreach ($alarmRules as $type => $rule) {
-            self::validateAlarmRule($rule, 'thresholds.alarms.' . (string) $type);
-        }
-    }
+    ) {}
 
     public static function empty(): self
     {
@@ -104,7 +95,7 @@ final readonly class ThresholdsConfig
      */
     private static function thresholdMap(mixed $raw, string $path, callable $reportInvalid): array
     {
-        if (!is_array($raw) || ($raw !== [] && array_is_list($raw))) {
+        if (!ConfigValueValidator::isObject($raw)) {
             $reportInvalid("{$path} must be an object; ignoring section.");
 
             return [];
@@ -114,7 +105,7 @@ final readonly class ThresholdsConfig
         foreach ($raw as $metric => $thresholds) {
             $metric = (string) $metric;
             $metricPath = "{$path}.{$metric}";
-            if (!is_array($thresholds) || ($thresholds !== [] && array_is_list($thresholds))) {
+            if (!ConfigValueValidator::isObject($thresholds)) {
                 $reportInvalid("{$metricPath} must be an object; skipping entry.");
 
                 continue;
@@ -143,7 +134,7 @@ final readonly class ThresholdsConfig
      */
     private static function alarmRuleMap(mixed $raw, array $defaults, callable $reportInvalid): array
     {
-        if (!is_array($raw) || ($raw !== [] && array_is_list($raw))) {
+        if (!ConfigValueValidator::isObject($raw)) {
             $reportInvalid('thresholds.alarms must be an object; ignoring section.');
 
             return [];
@@ -169,7 +160,7 @@ final readonly class ThresholdsConfig
     /** @return array<string,mixed> */
     private static function validateAlarmRule(mixed $rule, string $path): array
     {
-        if (!is_array($rule) || ($rule !== [] && array_is_list($rule))) {
+        if (!ConfigValueValidator::isObject($rule)) {
             throw new InvalidArgumentException("{$path} must be an object");
         }
         if (array_key_exists('enabled', $rule) && !is_bool($rule['enabled'])) {

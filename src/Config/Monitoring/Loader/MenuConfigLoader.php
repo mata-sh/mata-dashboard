@@ -4,64 +4,45 @@ declare(strict_types=1);
 
 namespace Mata\Config\Monitoring\Loader;
 
-use Mata\Config\Monitoring\Loader\Dto\ConfigLoadResult;
 use Mata\Config\Monitoring\Section\MenuConfig;
-use RuntimeException;
 
-/** Loads optional dashboard top-menu visibility overrides. */
+/**
+ * Loads the optional menu.json: dashboard top-menu visibility overrides.
+ *
+ * @extends AbstractJsonConfigLoader<MenuConfig>
+ */
 final class MenuConfigLoader extends AbstractJsonConfigLoader
 {
     /** @param list<string> $validKeys */
     public function __construct(
         private array $validKeys,
-        private bool $fallbackOnFailure = true,
-    ) {}
-
-    /** @return ConfigLoadResult<MenuConfig> */
-    public function load(string $configRoot): ConfigLoadResult
-    {
-        try {
-            return $this->loadMenuConfig(rtrim($configRoot, '/') . '/menu.json');
-        } catch (MonitoringConfigLoadException $exception) {
-            if (!$this->fallbackOnFailure) {
-                throw $exception;
-            }
-
-            return new ConfigLoadResult($this->getDefaultConfig(), $exception->problems);
-        }
+        bool $fallbackOnFailure = true,
+    ) {
+        parent::__construct($fallbackOnFailure);
     }
 
-    /** @return ConfigLoadResult<MenuConfig> */
-    public function loadMenuConfig(string $filePath): ConfigLoadResult
+    protected function fileName(): string
     {
-        if (!is_file($filePath)) {
-            return $this->result($this->getDefaultConfig());
-        }
-
-        try {
-            $config = $this->readJsonArray($filePath);
-        } catch (RuntimeException $exception) {
-            $this->reportLoadFailure($filePath, $exception->getMessage());
-
-            throw $this->rejected('menu.json invalid', $exception);
-        }
-
-        $reportInvalidEntry = fn (string $message) => $this->report('menu_config_invalid_entry', $message);
-        $menu = MenuConfig::fromArray($config, $this->validKeys, $reportInvalidEntry);
-
-        return $this->result($menu);
+        return 'menu.json';
     }
 
-    public function getDefaultConfig(): MenuConfig
+    protected function loadFailureType(): string
+    {
+        return 'menu_config_invalid';
+    }
+
+    protected function isOptional(): bool
+    {
+        return true;
+    }
+
+    protected function defaultSection(): MenuConfig
     {
         return MenuConfig::empty();
     }
 
-    private function reportLoadFailure(string $filePath, string $reason): void
+    protected function parse(array $config, string $filePath): MenuConfig
     {
-        $this->report(
-            'menu_config_invalid',
-            "Could not load {$filePath}; falling back to menu defaults: {$reason}",
-        );
+        return MenuConfig::fromArray($config, $this->validKeys, $this->reportInvalidEntry(...));
     }
 }

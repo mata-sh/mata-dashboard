@@ -4,57 +4,37 @@ declare(strict_types=1);
 
 namespace Mata\Config\Monitoring\Loader;
 
-use InvalidArgumentException;
-use Mata\Config\Monitoring\Loader\Dto\ConfigLoadResult;
 use Mata\Config\Monitoring\Section\NotificationRulesConfig;
-use RuntimeException;
 
+/**
+ * Loads the optional notification_rules.json: alarm delivery channel selection rules.
+ *
+ * @extends AbstractJsonConfigLoader<NotificationRulesConfig>
+ */
 final class NotificationRulesConfigLoader extends AbstractJsonConfigLoader
 {
-    public function __construct(
-        private bool $fallbackOnFailure = true,
-    ) {}
-
-    /** @return ConfigLoadResult<NotificationRulesConfig> */
-    public function load(string $configRoot): ConfigLoadResult
+    protected function fileName(): string
     {
-        try {
-            return $this->loadNotificationRulesConfig(rtrim($configRoot, '/') . '/notification_rules.json');
-        } catch (MonitoringConfigLoadException $exception) {
-            if (!$this->fallbackOnFailure) {
-                throw $exception;
-            }
-
-            return new ConfigLoadResult($this->getDefaultConfig(), $exception->problems);
-        }
+        return 'notification_rules.json';
     }
 
-    /** @return ConfigLoadResult<NotificationRulesConfig> */
-    public function loadNotificationRulesConfig(string $filePath): ConfigLoadResult
+    protected function loadFailureType(): string
     {
-        if (!file_exists($filePath)) {
-            return $this->fail("notification_rules.json file not found at {$filePath}");
-        }
-
-        try {
-            return $this->result(NotificationRulesConfig::fromObject($this->readJsonObject($filePath)));
-        } catch (InvalidArgumentException|RuntimeException $exception) {
-            $this->report(
-                'notification_rules_config_invalid',
-                "Could not load {$filePath}; falling back to defaults: {$exception->getMessage()}",
-            );
-
-            throw $this->rejected('notification rules invalid', $exception);
-        }
+        return 'notification_rules_config_invalid';
     }
 
-    public function getDefaultConfig(): NotificationRulesConfig
+    protected function isOptional(): bool
+    {
+        return true;
+    }
+
+    protected function defaultSection(): NotificationRulesConfig
     {
         return NotificationRulesConfig::default();
     }
 
-    private function fail(string $message): never
+    protected function parse(array $config, string $filePath): NotificationRulesConfig
     {
-        throw $this->rejected($message);
+        return NotificationRulesConfig::fromArray($config);
     }
 }

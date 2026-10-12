@@ -4,72 +4,37 @@ declare(strict_types=1);
 
 namespace Mata\Config\Monitoring\Loader;
 
-use InvalidArgumentException;
-use Mata\Config\Monitoring\Loader\Dto\ConfigLoadResult;
 use Mata\Config\Monitoring\Section\ProbesConfig;
-use RuntimeException;
 
-/** Loads optional node probe overrides; a missing probes.json means built-in defaults. */
+/**
+ * Loads the optional probes.json: node probe timeout and retry overrides.
+ *
+ * @extends AbstractJsonConfigLoader<ProbesConfig>
+ */
 final class ProbesConfigLoader extends AbstractJsonConfigLoader
 {
-    public function __construct(
-        private bool $fallbackOnFailure = true,
-    ) {}
-
-    /** @return ConfigLoadResult<ProbesConfig> */
-    public function load(string $configRoot): ConfigLoadResult
+    protected function fileName(): string
     {
-        try {
-            return $this->loadProbesConfig(rtrim($configRoot, '/') . '/probes.json');
-        } catch (MonitoringConfigLoadException $exception) {
-            if (!$this->fallbackOnFailure) {
-                throw $exception;
-            }
-
-            return new ConfigLoadResult($this->getDefaultConfig(), $exception->problems);
-        }
+        return 'probes.json';
     }
 
-    /** @return ConfigLoadResult<ProbesConfig> */
-    public function loadProbesConfig(string $filePath): ConfigLoadResult
+    protected function loadFailureType(): string
     {
-        if (!is_file($filePath)) {
-            return $this->result($this->getDefaultConfig());
-        }
-
-        try {
-            $config = $this->readJsonArray($filePath);
-        } catch (RuntimeException $exception) {
-            $this->reportLoadFailure($filePath);
-
-            throw $this->rejected('probes.json invalid or empty', $exception);
-        }
-        if ($config === []) {
-            $this->reportLoadFailure($filePath);
-
-            throw $this->rejected('probes.json invalid or empty');
-        }
-
-        try {
-            return $this->result(ProbesConfig::fromArray($config));
-        } catch (InvalidArgumentException $exception) {
-            $this->reportLoadFailure($filePath, $exception->getMessage());
-
-            throw $this->rejected('probes.json invalid or empty', $exception);
-        }
+        return 'probes_config_invalid';
     }
 
-    public function getDefaultConfig(): ProbesConfig
+    protected function isOptional(): bool
+    {
+        return true;
+    }
+
+    protected function defaultSection(): ProbesConfig
     {
         return ProbesConfig::default();
     }
 
-    private function reportLoadFailure(string $filePath, ?string $reason = null): void
+    protected function parse(array $config, string $filePath): ProbesConfig
     {
-        $message = "Could not load {$filePath} -> fallback to Default Values";
-        if ($reason !== null) {
-            $message .= " (reason: {$reason})";
-        }
-        $this->report('probes_config_not_found', $message);
+        return ProbesConfig::fromArray($config);
     }
 }

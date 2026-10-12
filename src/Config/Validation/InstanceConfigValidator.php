@@ -37,11 +37,10 @@ final class InstanceConfigValidator
     public const ENV_FILES = ['config.env', 'db.config.env', 'mail.config.env'];
 
     /**
-     * Reported types that mean the app ignores a whole file or a server, reported as errors:
-     * the channels and limits loaders ignore their file without throwing, and every servers
-     * validation problem drops that server (or its key). Other loaders throw instead.
+     * Reported types that are errors although the file loads: every invalid servers entry drops
+     * that server (or its key). A file the app would ignore is rejected, which is always an error.
      */
-    private const ERROR_TYPES = ['channels_config_invalid', 'limits_config_invalid', 'servers_config_validation_error'];
+    private const ERROR_TYPES = ['servers_config_invalid_entry'];
 
     /** @var list<ConfigProblem> */
     private array $problems = [];
@@ -147,8 +146,8 @@ final class InstanceConfigValidator
             ['files' => ['thresholds.json'], 'load' => (new ThresholdsConfigLoader(fallbackOnFailure: false))->load(...)],
             ['files' => ['menu.json'], 'load' => (new MenuConfigLoader(MenuBuilder::MENU_KEYS, fallbackOnFailure: false))->load(...)],
             ['files' => ['charts.json'], 'load' => (new ChartsConfigLoader($metricCatalog, new MetricQueryPolicy(), fallbackOnFailure: false))->load(...)],
-            ['files' => ['channels.json'], 'load' => (new ChannelsConfigLoader())->load(...)],
-            ['files' => ['limits.json'], 'load' => (new AlarmRateLimitsConfigLoader())->load(...)],
+            ['files' => ['channels.json'], 'load' => (new ChannelsConfigLoader(fallbackOnFailure: false))->load(...)],
+            ['files' => ['limits.json'], 'load' => (new AlarmRateLimitsConfigLoader(fallbackOnFailure: false))->load(...)],
         ];
     }
 

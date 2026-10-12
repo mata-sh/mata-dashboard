@@ -105,7 +105,7 @@ final class MonitoringConfigLoaderTest extends TestCase
             $this->loader(serversFallback: false)->load($this->configRoot, AlarmRateLimitsConfig::default());
             $this->fail('A missing servers.json must stop a loader without fallback.');
         } catch (MonitoringConfigLoadException $exception) {
-            $this->assertSame('servers_config_not_found', $exception->problems[0]->type ?? null);
+            $this->assertSame('servers_config_invalid', $exception->problems[0]->type ?? null);
             $this->assertTrue($exception->problems[0]->forceAlarm);
         }
     }

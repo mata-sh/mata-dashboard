@@ -50,7 +50,7 @@ enum CacheType: string
      * The keys that may appear in config/ttl.json.
      *
      * This is the source of truth for policy/ttl.rego and
-     * TtlConfigLoader::getDefaultConfig(); None is excluded because configuring a TTL
+     * TtlConfig::default(); None is excluded because configuring a TTL
      * for it would be meaningless.
      *
      * @return list<string>

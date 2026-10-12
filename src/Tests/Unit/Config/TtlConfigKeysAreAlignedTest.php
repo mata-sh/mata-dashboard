@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Mata\Tests\Unit\Config;
 
-use Mata\Config\Monitoring\Loader\TtlConfigLoader;
+use Mata\Config\Monitoring\Section\TtlConfig;
 use Mata\Services\Cache\CacheType;
 use Mata\Tests\TestCase;
 
@@ -36,7 +36,7 @@ final class TtlConfigKeysAreAlignedTest extends TestCase
 
     public function testDefaultConfigCoversEveryCacheType(): void
     {
-        $defaults = (new TtlConfigLoader())->getDefaultConfig()->values;
+        $defaults = TtlConfig::default()->values;
 
         $this->assertSame(
             $this->sorted(CacheType::ttlConfigKeys()),

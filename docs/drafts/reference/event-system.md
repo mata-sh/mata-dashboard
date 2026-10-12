@@ -367,12 +367,12 @@ Application log file exceeded size threshold.
 
 ### Configuration Events
 
-#### `servers_config_not_found`
+#### `servers_config_invalid`
 servers.json configuration file missing, unreadable, malformed, or empty.
 
 **Severity:** Critical
 
-**Event Type:** `servers_config_not_found`
+**Event Type:** `servers_config_invalid`
 
 **Details:** the message names the cause, for example:
 ```json

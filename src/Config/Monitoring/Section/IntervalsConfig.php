@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Mata\Config\Monitoring\Section;
 
-use InvalidArgumentException;
 use Mata\Config\ConfigValueValidator;
 
 /** Event and alarm cooldowns keyed by operator-defined event type. */
@@ -31,30 +30,22 @@ final readonly class IntervalsConfig
             if (!array_key_exists($section, $raw)) {
                 continue;
             }
-            self::requireMap($raw[$section], "intervals.{$section}");
+            $sectionConfig = ConfigValueValidator::object($raw[$section], "intervals.{$section}");
             $map = $section === 'events' ? 'min_event_interval_minutes' : 'min_alarm_interval_minutes';
-            if (is_array($raw[$section]) && array_key_exists($map, $raw[$section])) {
-                self::requireMap($raw[$section][$map], "intervals.{$section}.{$map}");
+            if (array_key_exists($map, $sectionConfig)) {
+                ConfigValueValidator::object($sectionConfig[$map], "intervals.{$section}.{$map}");
             }
         }
 
         $config = array_replace_recursive(self::defaults(), $raw);
-        $events = $config['events'] ?? null;
-        $alarms = $config['alarms'] ?? null;
-        if (!is_array($events)) {
-            throw new InvalidArgumentException('intervals.events must be an object.');
-        }
-        if (!is_array($alarms)) {
-            throw new InvalidArgumentException('intervals.alarms must be an object.');
-        }
 
         return new self(
             eventMinimumMinutes: self::intervalMap(
-                $events['min_event_interval_minutes'] ?? null,
+                $config['events']['min_event_interval_minutes'],
                 'intervals.events.min_event_interval_minutes',
             ),
             alarmMinimumMinutes: self::intervalMap(
-                $alarms['min_alarm_interval_minutes'] ?? null,
+                $config['alarms']['min_alarm_interval_minutes'],
                 'intervals.alarms.min_alarm_interval_minutes',
             ),
         );
@@ -113,20 +104,13 @@ final readonly class IntervalsConfig
         ];
     }
 
-    private static function requireMap(mixed $value, string $path): void
+    /**
+     * @param array<array-key,mixed> $raw
+     *
+     * @return array<string,int>
+     */
+    private static function intervalMap(array $raw, string $path): array
     {
-        if (!is_array($value) || ($value !== [] && array_is_list($value))) {
-            throw new InvalidArgumentException("{$path} must be an object.");
-        }
-    }
-
-    /** @return array<string,int> */
-    private static function intervalMap(mixed $raw, string $path): array
-    {
-        if (!is_array($raw) || ($raw !== [] && array_is_list($raw))) {
-            throw new InvalidArgumentException("{$path} must be an object.");
-        }
-
         $intervals = [];
         foreach ($raw as $type => $minutes) {
             $type = (string) $type;

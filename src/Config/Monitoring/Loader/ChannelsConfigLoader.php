@@ -5,38 +5,38 @@ declare(strict_types=1);
 namespace Mata\Config\Monitoring\Loader;
 
 use Mata\Config\Env;
-use Mata\Config\Monitoring\Loader\Dto\ConfigLoadResult;
 use Mata\Config\Monitoring\Section\ChannelsConfig;
-use RuntimeException;
 
 /**
- * Loads the optional channels.json. A missing file means email-only delivery; a malformed
- * or unreadable file warns and yields no webhook channels. It never stops the boot.
+ * Loads the optional channels.json: alarm channels besides email.
+ * Without it, alarms are delivered by email only.
+ *
+ * @extends AbstractJsonConfigLoader<ChannelsConfig>
  */
 final class ChannelsConfigLoader extends AbstractJsonConfigLoader
 {
-    /** @return ConfigLoadResult<ChannelsConfig> */
-    public function load(string $configRoot): ConfigLoadResult
+    protected function fileName(): string
     {
-        $channelsFile = rtrim($configRoot, '/') . '/channels.json';
-        if (!is_file($channelsFile)) {
-            return $this->result(ChannelsConfig::empty());
-        }
+        return 'channels.json';
+    }
 
-        try {
-            $payload = $this->readJsonArray($channelsFile);
-        } catch (RuntimeException $exception) {
-            $this->report(
-                'channels_config_invalid',
-                "Could not load {$channelsFile}; only email is available: {$exception->getMessage()}",
-            );
+    protected function loadFailureType(): string
+    {
+        return 'channels_config_invalid';
+    }
 
-            return $this->result(ChannelsConfig::empty());
-        }
+    protected function isOptional(): bool
+    {
+        return true;
+    }
 
-        $reportInvalidEntry = fn (string $message) => $this->report('channels_config_invalid_entry', $message);
-        $config = ChannelsConfig::fromArray($payload, Env::get(...), $reportInvalidEntry);
+    protected function defaultSection(): ChannelsConfig
+    {
+        return ChannelsConfig::empty();
+    }
 
-        return $this->result($config);
+    protected function parse(array $config, string $filePath): ChannelsConfig
+    {
+        return ChannelsConfig::fromArray($config, Env::get(...), $this->reportInvalidEntry(...));
     }
 }

@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Mata\Config\Monitoring\Section;
 
 use InvalidArgumentException;
-use stdClass;
+use Mata\Config\ConfigValueValidator;
 
 /** Notification routing rules, cascading defaults to event type to application override. */
 final readonly class NotificationRulesConfig
@@ -28,46 +28,20 @@ final readonly class NotificationRulesConfig
         public array $defaults,
         public array $eventTypes,
         public array $applicationOverrides,
-    ) {
-        self::validateNormalizedRule($defaults, 'notification_rules.defaults', requireComplete: true);
-        foreach ($eventTypes as $eventType => $rule) {
-            self::assertNonEmptyName((string) $eventType, 'notification_rules.event_types key');
-            self::validateNormalizedRule($rule, "notification_rules.event_types.{$eventType}");
-        }
-        foreach ($applicationOverrides as $appCode => $rules) {
-            self::assertNonEmptyName((string) $appCode, 'notification_rules.application_overrides key');
-            if (!is_array($rules)) {
-                throw new InvalidArgumentException("notification_rules.application_overrides.{$appCode} must be an object.");
-            }
-            foreach ($rules as $eventType => $rule) {
-                self::assertNonEmptyName((string) $eventType, "notification_rules.application_overrides.{$appCode} key");
-                self::validateNormalizedRule(
-                    $rule,
-                    "notification_rules.application_overrides.{$appCode}.{$eventType}",
-                );
-            }
-        }
-    }
+    ) {}
 
-    public static function fromObject(stdClass $rules): self
+    /** @param array<string,mixed> $data */
+    public static function fromArray(array $data): self
     {
-        $data = get_object_vars($rules);
         self::rejectUnknownKeys($data, ['defaults', 'event_types', 'application_overrides'], 'notification rules');
 
-        $defaults = self::DEFAULT_RULE;
-        if (array_key_exists('defaults', $data)) {
-            $defaults = array_replace($defaults, self::validateRule($data['defaults'], 'defaults'));
-        }
+        // `+=` fills only absent keys, so an explicit null still fails validation.
+        $data += ['defaults' => [], 'event_types' => [], 'application_overrides' => []];
 
         return new self(
-            defaults: $defaults,
-            eventTypes: self::validateEventTypes(
-                array_key_exists('event_types', $data) ? $data['event_types'] : new stdClass(),
-                'event_types',
-            ),
-            applicationOverrides: self::validateApplicationOverrides(
-                array_key_exists('application_overrides', $data) ? $data['application_overrides'] : new stdClass(),
-            ),
+            defaults: array_replace(self::DEFAULT_RULE, self::validateRule($data['defaults'], 'defaults')),
+            eventTypes: self::validateRules($data['event_types'], 'event_types'),
+            applicationOverrides: self::validateApplicationOverrides($data['application_overrides']),
         );
     }
 
@@ -96,33 +70,29 @@ final readonly class NotificationRulesConfig
         return array_values(array_unique($channels));
     }
 
-    /** @return array<string,array{enabled?:bool,channels?:list<string>}> */
-    private static function validateEventTypes(mixed $eventTypes, string $path): array
+    /** @return array<string,array{enabled?:bool,channels?:list<string>}> event type => rule */
+    private static function validateRules(mixed $rules, string $path): array
     {
-        if (!$eventTypes instanceof stdClass) {
-            throw new InvalidArgumentException("{$path} must be a JSON object.");
-        }
+        self::assertJsonObject($rules, $path);
 
         $validated = [];
-        foreach (get_object_vars($eventTypes) as $eventType => $rule) {
-            self::assertNonEmptyName((string) $eventType, "{$path} key");
+        foreach ($rules as $eventType => $rule) {
+            self::assertNonEmptyKey($eventType, $path);
             $validated[(string) $eventType] = self::validateRule($rule, "{$path}.{$eventType}");
         }
 
         return $validated;
     }
 
-    /** @return array<string,array<string,array{enabled?:bool,channels?:list<string>}>> */
-    private static function validateApplicationOverrides(mixed $applicationOverrides): array
+    /** @return array<string,array<string,array{enabled?:bool,channels?:list<string>}>> application => rules */
+    private static function validateApplicationOverrides(mixed $overrides): array
     {
-        if (!$applicationOverrides instanceof stdClass) {
-            throw new InvalidArgumentException('application_overrides must be a JSON object.');
-        }
+        self::assertJsonObject($overrides, 'application_overrides');
 
         $validated = [];
-        foreach (get_object_vars($applicationOverrides) as $appCode => $eventTypes) {
-            self::assertNonEmptyName((string) $appCode, 'application_overrides key');
-            $validated[(string) $appCode] = self::validateEventTypes($eventTypes, "application_overrides.{$appCode}");
+        foreach ($overrides as $application => $rules) {
+            self::assertNonEmptyKey($application, 'application_overrides');
+            $validated[(string) $application] = self::validateRules($rules, "application_overrides.{$application}");
         }
 
         return $validated;
@@ -131,21 +101,17 @@ final readonly class NotificationRulesConfig
     /** @return array{enabled?:bool,channels?:list<string>} */
     private static function validateRule(mixed $rule, string $path): array
     {
-        if (!$rule instanceof stdClass) {
-            throw new InvalidArgumentException("{$path} must be a JSON object.");
-        }
-
-        $data = get_object_vars($rule);
-        self::rejectUnknownKeys($data, ['enabled', 'channels'], $path);
+        self::assertJsonObject($rule, $path);
+        self::rejectUnknownKeys($rule, ['enabled', 'channels'], $path);
         $validated = [];
-        if (array_key_exists('enabled', $data)) {
-            if (!is_bool($data['enabled'])) {
+        if (array_key_exists('enabled', $rule)) {
+            if (!is_bool($rule['enabled'])) {
                 throw new InvalidArgumentException("{$path}.enabled must be a boolean.");
             }
-            $validated['enabled'] = $data['enabled'];
+            $validated['enabled'] = $rule['enabled'];
         }
-        if (array_key_exists('channels', $data)) {
-            $validated['channels'] = self::validateChannels($data['channels'], "{$path}.channels");
+        if (array_key_exists('channels', $rule)) {
+            $validated['channels'] = self::validateChannels($rule['channels'], "{$path}.channels");
         }
 
         return $validated;
@@ -174,6 +140,25 @@ final readonly class NotificationRulesConfig
     }
 
     /**
+     * A decoded JSON object; an empty one decodes to the same [] as an empty list.
+     *
+     * @phpstan-assert array<array-key, mixed> $value
+     */
+    private static function assertJsonObject(mixed $value, string $path): void
+    {
+        if (!ConfigValueValidator::isObject($value)) {
+            throw new InvalidArgumentException("{$path} must be a JSON object.");
+        }
+    }
+
+    private static function assertNonEmptyKey(int|string $key, string $path): void
+    {
+        if (trim((string) $key) === '') {
+            throw new InvalidArgumentException("{$path} key must not be empty.");
+        }
+    }
+
+    /**
      * @param array<string,mixed> $data
      * @param list<string>        $allowed
      */
@@ -182,44 +167,6 @@ final readonly class NotificationRulesConfig
         $unknown = array_values(array_diff(array_keys($data), $allowed));
         if ($unknown !== []) {
             throw new InvalidArgumentException("{$path} contains unknown key {$unknown[0]}.");
-        }
-    }
-
-    private static function validateNormalizedRule(mixed $rule, string $path, bool $requireComplete = false): void
-    {
-        if (!is_array($rule)) {
-            throw new InvalidArgumentException("{$path} must be an object.");
-        }
-        self::rejectUnknownKeys($rule, ['enabled', 'channels'], $path);
-        if ($requireComplete && (!array_key_exists('enabled', $rule) || !array_key_exists('channels', $rule))) {
-            throw new InvalidArgumentException("{$path} must define enabled and channels.");
-        }
-        if (array_key_exists('enabled', $rule) && !is_bool($rule['enabled'])) {
-            throw new InvalidArgumentException("{$path}.enabled must be a boolean.");
-        }
-        if (!array_key_exists('channels', $rule)) {
-            return;
-        }
-        if (!is_array($rule['channels']) || !array_is_list($rule['channels'])) {
-            throw new InvalidArgumentException("{$path}.channels must be a list.");
-        }
-        foreach ($rule['channels'] as $channel) {
-            if (!is_string($channel)
-                || trim($channel) !== $channel
-                || strtolower($channel) !== $channel
-                || preg_match(self::CHANNEL_NAME_PATTERN, $channel) !== 1) {
-                throw new InvalidArgumentException("{$path}.channels contains an invalid channel.");
-            }
-        }
-        if (count(array_unique($rule['channels'])) !== count($rule['channels'])) {
-            throw new InvalidArgumentException("{$path}.channels must not contain duplicates.");
-        }
-    }
-
-    private static function assertNonEmptyName(string $name, string $path): void
-    {
-        if (trim($name) === '') {
-            throw new InvalidArgumentException("{$path} must not be empty.");
         }
     }
 }
