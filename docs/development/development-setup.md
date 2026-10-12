@@ -19,12 +19,7 @@ the selected mode and environment in the ignored `.mata.mk` file.
     Docker development needs Docker, Docker Compose, Git, and `make`. The
     Docker stack supplies PHP, MySQL, and OPA.
 
-Documentation work also needs Python and pipx:
-
-```bash
-pipx install mkdocs
-pipx inject mkdocs mkdocs-shadcn
-```
+Documentation work also needs MkDocs; see [Documentation](documentation.md).
 
 ## Dashboard setup
 
@@ -99,17 +94,6 @@ Rebuild Bulma after Sass changes with `npm install` and `npm run build-bulma`.
 !!! info "Frontend assets"
     Frontend CI runs `npm audit` and builds `src/main.scss` directly with Sass
     into `public/assets/css/bulma.css`. There is no PostCSS step.
-
-## Documentation
-
-Edit Markdown under `docs/`. Preview it with:
-
-```bash
-make docs-serve
-```
-
-The site is built with MkDocs. `site/` is generated and ignored. GitHub Pages
-builds it from `docs/` when documentation or `mkdocs.yml` changes.
 
 ## Code layout
 
