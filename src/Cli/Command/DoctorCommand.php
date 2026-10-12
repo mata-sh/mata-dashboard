@@ -31,6 +31,9 @@ use Throwable;
 #[AsCommand(name: 'doctor', description: 'Check the installation from the application\'s side')]
 final class DoctorCommand extends Command
 {
+    /** Only the Docker image ships this script, and it runs cron in the web container itself. */
+    private const DOCKER_CRON_SETUP = '/usr/local/bin/mata-cron-setup';
+
     /** @var list<array{check:string,level:string,message:string,hint:?string}> */
     private array $checks = [];
 
@@ -198,9 +201,15 @@ final class DoctorCommand extends Command
             $level = match ($job->state) {
                 CronJobState::Ok, CronJobState::Unknown => 'ok',
                 CronJobState::Overdue => 'error',
-                CronJobState::Never => 'error',
+                // Right after an install the first run is minutes away.
+                CronJobState::Never, CronJobState::Pending => 'warning',
             };
-            $this->add('cron', $level, "servers-data-fetch: {$job->state->value}", $level === 'ok' ? null : 'Install the crontab (cron/crontab.shared-hosting.template); bin/mata status shows every job');
+            $hint = match (true) {
+                $level === 'ok' => null,
+                is_file(self::DOCKER_CRON_SETUP) => 'Cron in the web container runs it every 5 minutes; if it never does, check the container log (make logs)',
+                default => 'Install the crontab (cron/crontab.shared-hosting.template); bin/mata status shows every job',
+            };
+            $this->add('cron', $level, "servers-data-fetch: {$job->state->value}", $hint);
         }
     }
 

@@ -14,6 +14,6 @@ jobs:
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with: { python-version: '3.x' }
       - run: pipx install mkdocs
-      - run: pipx inject mkdocs mkdocs-shadcn
+      - run: pipx inject mkdocs mkdocs-shadcn mkdocs-llmstxt
       - run: scripts/docs/sync-node-docs.sh
       - run: mkdocs gh-deploy --force

@@ -50,9 +50,14 @@ make mata ARGS=status             # as the right account, also in Docker
 It reads only what cron already wrote (the health cache from
 `servers_data_fetch` and the cron heartbeats), so it never contacts a node and
 can run as often as needed. Exit codes: `0` ok, `1` warning (maintenance, a cron
-job that never ran), `2` critical (node unhealthy or unreachable, cron job
+job that has not run a day after cron started), `2` critical (node unhealthy or unreachable, cron job
 overdue), `3` unknown (health missing or older than twice its TTL, so a stopped
 cron never reports ok).
+
+Right after an install, jobs that run daily or every six hours have not run
+yet. During cron's first day they are `pending` and count as ok; `status`
+names how many are still waiting. A job still missing after that is missing
+from the crontab and reported as `never`.
 
 !!! info "Scope"
     The status covers node health and cron. Metric thresholds, application

@@ -5,12 +5,12 @@ under `docs/`, configured in `mkdocs.yml`. `site/` is generated and ignored.
 
 ## Local preview
 
-Install MkDocs and the theme with pipx, then serve the site at
+Install MkDocs, the theme, and the plugin with pipx, then serve the site at
 `http://localhost:3330`:
 
 ```bash
 pipx install mkdocs
-pipx inject mkdocs mkdocs-shadcn
+pipx inject mkdocs mkdocs-shadcn mkdocs-llmstxt
 make docs-serve
 ```
 

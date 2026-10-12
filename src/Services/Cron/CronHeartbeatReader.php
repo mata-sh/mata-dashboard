@@ -27,6 +27,9 @@ final class CronHeartbeatReader
     /** Cron starts jobs on the minute; allow for that and a slow run. */
     private const OVERDUE_GRACE_SECONDS = 60;
 
+    /** Every job runs at least daily; one that has not run within a day after cron started is missing. */
+    private const PENDING_SECONDS = 86_400 + 3_600;
+
     public function __construct(
         private readonly string $entryPointDir,
         private readonly string $heartbeatDir,
@@ -50,18 +53,26 @@ final class CronHeartbeatReader
      */
     public function read(int $now): array
     {
+        $files = [];
+        foreach ($this->jobs() as $job) {
+            $files[$job] = "{$this->heartbeatDir}/heartbeat-{$job}.jsonl";
+        }
+        $cronStarted = $this->cronStarted($files);
+
         return array_map(
-            fn (string $job): CronJobStatus => $this->status($job, "{$this->heartbeatDir}/heartbeat-{$job}.jsonl", $now),
-            $this->jobs()
+            fn (string $job): CronJobStatus => $this->status($job, $files[$job], $now, $cronStarted),
+            array_keys($files)
         );
     }
 
-    private function status(string $job, string $heartbeatFile, int $now): CronJobStatus
+    private function status(string $job, string $heartbeatFile, int $now, ?int $cronStarted): CronJobStatus
     {
         // The file's mtime is the last heartbeat; unlike "ts" it does not depend on PHP's timezone.
         $lastRun = is_readable($heartbeatFile) ? filemtime($heartbeatFile) : false;
         if ($lastRun === false) {
-            return new CronJobStatus($job, CronJobState::Never);
+            $pending = $cronStarted !== null && $now - $cronStarted < self::PENDING_SECONDS;
+
+            return new CronJobStatus($job, $pending ? CronJobState::Pending : CronJobState::Never);
         }
 
         $interval = $this->inferInterval($this->tailTimestamps($heartbeatFile));
@@ -72,6 +83,30 @@ final class CronHeartbeatReader
         };
 
         return new CronJobStatus($job, $state, $lastRun, $interval);
+    }
+
+    /**
+     * First heartbeat of any job, from the start of each file; null when no job has run.
+     *
+     * @param array<string,string> $heartbeatFiles
+     */
+    private function cronStarted(array $heartbeatFiles): ?int
+    {
+        $first = null;
+        foreach ($heartbeatFiles as $file) {
+            $handle = is_readable($file) ? fopen($file, 'rb') : false;
+            if ($handle === false) {
+                continue;
+            }
+            $head = (string) fread($handle, 1024);
+            fclose($handle);
+            $timestamp = preg_match('/"ts":\s*"([^"]+)"/', $head, $match) === 1 ? strtotime($match[1]) : false;
+            if ($timestamp !== false) {
+                $first = $first === null ? $timestamp : min($first, $timestamp);
+            }
+        }
+
+        return $first;
     }
 
     /**

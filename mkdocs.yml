@@ -29,6 +29,7 @@ nav:
       - Quick start: guides/quickstart.md
       - Docker quickstart: guides/quickstart-docker.md
       - Add your first server: guides/first-server.md
+      - Install with a coding agent: guides/agent-install.md
 
   - Guides:
       - Configuration: guides/configuration.md
@@ -75,3 +76,31 @@ markdown_extensions:
   - admonition
   - toc:
       permalink: false
+
+plugins:
+  - search
+  # Publishes /llms.txt, /llms-full.txt and a Markdown copy of each listed page for agents.
+  - llmstxt:
+      full_output: llms-full.txt
+      markdown_description: >
+        MATA is a self-hosted PHP dashboard that monitors servers and applications through
+        MATA Node agents. Coding agents installing it start with the agent runbook; every
+        operator command (bin/mata) prints JSON with --json and reports through its exit code.
+      sections:
+        Getting started:
+          - guides/agent-install.md: Runbook for coding agents, non-interactive install and checks
+          - guides/quickstart-docker.md: Docker install, unattended setup variables
+          - guides/quickstart.md: Native install
+          - guides/first-server.md: Connect a MATA Node
+        Guides:
+          - guides/configuration.md
+          - guides/version-config.md
+          - guides/monitoring.md
+          - guides/application-error-monitoring.md
+          - guides/user-management.md
+          - guides/secure-application.md
+        Reference:
+          - reference/*.md
+          - node/*.md
+        Optional:
+          - architecture/*.md

@@ -6,6 +6,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- The "Install with a coding agent" guide is a runbook for agents; the docs site publishes `llms.txt`.
 - `DEMO_SEED` makes the generated demo data repeatable
 - A summary bar above the server grid counts servers and apps by state and filters the cards.
 - Server cards reload from the cache every `DASHBOARD_AUTO_REFRESH_SECONDS` (default 60).

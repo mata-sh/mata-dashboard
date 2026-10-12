@@ -14,6 +14,7 @@ use Mata\Services\Cache\CacheTtlResolver;
 use Mata\Services\Cache\CacheType;
 use Mata\Services\Cache\FileCacheStore;
 use Mata\Services\Cron\CronHeartbeatReader;
+use Mata\Services\Cron\Dto\CronJobState;
 use Mata\Services\Status\Dto\FleetStatus;
 use Mata\Services\Status\FleetStatusReader;
 use Mata\Services\Status\StatusLevel;
@@ -44,8 +45,8 @@ final class StatusCommand extends Command
                 Reads node health cached by cron/servers_data_fetch.php and the cron heartbeats. Nothing is
                 fetched, recorded or cached, so monitoring systems can call it as often as they like.
 
-                Exit codes (Nagios-style): 0 ok, 1 warning (maintenance, a cron job that never ran),
-                2 critical (node unhealthy or unreachable, cron overdue), 3 unknown (no or stale cached
+                Exit codes (Nagios-style): 0 ok, 1 warning (maintenance, a cron job that has not run a day
+                after cron started; before that it is "pending" and ok), 2 critical (node unhealthy or unreachable, cron overdue), 3 unknown (no or stale cached
                 health: servers_data_fetch is not running). The worst level wins; critical outranks unknown.
                 Covers node health and cron only; metric thresholds and alarms are in the dashboard.
                 HELP);
@@ -102,6 +103,10 @@ final class StatusCommand extends Command
         $output->writeln('Cron');
         foreach ($status->cron as $job) {
             $output->writeln("  {$tag($job['level'])} {$job['job']}: {$job['state']}");
+        }
+        $pending = count(array_filter($status->cron, static fn (array $job): bool => $job['state'] === CronJobState::Pending->value));
+        if ($pending > 0) {
+            $output->writeln("{$pending} job(s) have not run yet; cron started less than a day ago, so their first run may still be ahead");
         }
         if ($configProblems > 0) {
             $output->writeln("<comment>{$configProblems} config problem(s); run bin/mata config validate</comment>");

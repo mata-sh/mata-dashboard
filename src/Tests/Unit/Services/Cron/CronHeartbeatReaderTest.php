@@ -73,8 +73,28 @@ final class CronHeartbeatReaderTest extends TestCase
             static fn (CronJobStatus $status): string => $status->job,
             $statuses
         ));
-        $this->assertSame(CronJobState::Never, $statuses[0]->state);
+        $this->assertSame(CronJobState::Pending, $statuses[0]->state);
         $this->assertSame(CronJobState::Unknown, $statuses[1]->state);
+    }
+
+    public function testJobsNeverRanWhileNoJobHasRun(): void
+    {
+        touch("{$this->directory}/cron/retention_cleanup.php");
+
+        $this->assertSame(CronJobState::Never, $this->reader()->read(self::NOW)[0]->state);
+    }
+
+    public function testJobStillMissingADayAfterCronStartedIsNotInTheCrontab(): void
+    {
+        // e.g. an upgrade added libraries_audit and the native crontab was not extended.
+        touch("{$this->directory}/cron/libraries_audit.php");
+        $this->writeHeartbeats('alarms-dispatch', [self::NOW - 90_000, self::NOW - 60]);
+        touch("{$this->directory}/cron/alarms_dispatch.php");
+
+        $statuses = $this->reader()->read(self::NOW);
+
+        $this->assertSame('libraries-audit', $statuses[1]->job);
+        $this->assertSame(CronJobState::Never, $statuses[1]->state);
     }
 
     /**

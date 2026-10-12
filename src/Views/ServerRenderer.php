@@ -192,6 +192,9 @@ class ServerRenderer extends BaseRenderer
 
             if ($status->state === CronJobState::Ok) {
                 ++$ok;
+            } elseif ($status->state === CronJobState::Pending) {
+                $parts[] = 'first run pending';
+                ++$ok;
             } elseif ($status->state === CronJobState::Overdue) {
                 $parts[] = '<strong>overdue</strong>';
                 $level = 'critical';
