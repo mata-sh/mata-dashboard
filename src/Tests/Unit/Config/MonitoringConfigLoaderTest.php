@@ -18,8 +18,6 @@ use Mata\Config\Monitoring\MonitoringConfig;
 use Mata\Config\Monitoring\MonitoringConfigLoader;
 use Mata\Config\Monitoring\Section\AlarmRateLimit;
 use Mata\Config\Monitoring\Section\AlarmRateLimitsConfig;
-use Mata\Services\Event\Dto\EventRecordResult;
-use Mata\Services\Event\EventRecorderService;
 use Mata\Services\ServerMetrics\MetricCatalog;
 use Mata\Services\ServerMetrics\MetricQueryPolicy;
 use Mata\Tests\TestCase;
@@ -32,15 +30,12 @@ use Mata\Tests\TestCase;
 final class MonitoringConfigLoaderTest extends TestCase
 {
     private string $configRoot;
-    private EventRecorderService $eventRecorder;
 
     protected function setUp(): void
     {
         parent::setUp();
         $this->configRoot = sys_get_temp_dir() . '/mata-monitoring-' . bin2hex(random_bytes(6));
         mkdir($this->configRoot);
-        $this->eventRecorder = $this->createStub(EventRecorderService::class);
-        $this->eventRecorder->method('recordEvent')->willReturn(new EventRecordResult(1, null, null, null, null, null));
     }
 
     protected function tearDown(): void
@@ -70,7 +65,7 @@ final class MonitoringConfigLoaderTest extends TestCase
         }
 
         $limits = new AlarmRateLimitsConfig(new AlarmRateLimit(1, 2, 3), [], []);
-        $config = $this->loader(serversFallback: false)->load($this->configRoot, $limits);
+        $config = $this->loader(serversFallback: false)->load($this->configRoot, $limits)->section;
 
         $this->assertInstanceOf(MonitoringConfig::class, $config);
         $this->assertSame([], $config->servers->values);
@@ -95,12 +90,24 @@ final class MonitoringConfigLoaderTest extends TestCase
 
     public function testWebStyleServerLoaderFallsBackButCronStyleThrows(): void
     {
-        $web = new ServersConfigLoader($this->eventManagerFor($this->eventRecorder), fallbackOnFailure: true);
-        $this->assertSame([], $web->load($this->configRoot)->values);
+        $web = new ServersConfigLoader(fallbackOnFailure: true);
+        $this->assertSame([], $web->load($this->configRoot)->section->values);
 
-        $cron = new ServersConfigLoader($this->eventManagerFor($this->eventRecorder), fallbackOnFailure: false);
+        $cron = new ServersConfigLoader(fallbackOnFailure: false);
         $this->expectException(MonitoringConfigLoadException::class);
         $cron->load($this->configRoot);
+    }
+
+    /** Cron records the problems of a rejected load before it stops; the servers alarm must survive the throw. */
+    public function testRejectedLoadCarriesTheForcedServersAlarm(): void
+    {
+        try {
+            $this->loader(serversFallback: false)->load($this->configRoot, AlarmRateLimitsConfig::default());
+            $this->fail('A missing servers.json must stop a loader without fallback.');
+        } catch (MonitoringConfigLoadException $exception) {
+            $this->assertSame('servers_config_not_found', $exception->problems[0]->type ?? null);
+            $this->assertTrue($exception->problems[0]->forceAlarm);
+        }
     }
 
     public function testAggregateWithoutMenuLoaderDoesNotReadMenuConfig(): void
@@ -119,35 +126,24 @@ final class MonitoringConfigLoaderTest extends TestCase
         }
         file_put_contents($this->configRoot . '/menu.json', '{');
 
-        $eventRecorder = $this->createMock(EventRecorderService::class);
-        $eventRecorder->expects($this->never())->method('recordEvent');
-        $config = $this->loader(
-            serversFallback: false,
-            eventRecorder: $eventRecorder,
-            loadMenu: false,
-        )->load($this->configRoot, AlarmRateLimitsConfig::default());
+        $loaded = $this->loader(serversFallback: false, loadMenu: false)->load($this->configRoot, AlarmRateLimitsConfig::default());
 
-        $this->assertSame([], $config->menu->overrides);
+        $this->assertSame([], $loaded->problems);
+        $this->assertSame([], $loaded->section->menu->overrides);
     }
 
-    private function loader(
-        bool $serversFallback,
-        ?EventRecorderService $eventRecorder = null,
-        bool $loadMenu = true,
-    ): MonitoringConfigLoader {
-        $eventRecorder ??= $this->eventRecorder;
-
+    private function loader(bool $serversFallback, bool $loadMenu = true): MonitoringConfigLoader
+    {
         return new MonitoringConfigLoader(
-            servers: new ServersConfigLoader($this->eventManagerFor($eventRecorder), fallbackOnFailure: $serversFallback),
-            ttl: new TtlConfigLoader($this->eventManagerFor($eventRecorder)),
-            dataRetention: new DataRetentionConfigLoader($this->eventManagerFor($eventRecorder)),
-            intervals: new IntervalsConfigLoader($this->eventManagerFor($eventRecorder)),
-            probes: new ProbesConfigLoader($this->eventManagerFor($eventRecorder)),
-            notificationRules: new NotificationRulesConfigLoader($this->eventManagerFor($eventRecorder)),
-            thresholds: new ThresholdsConfigLoader($this->eventManagerFor($eventRecorder)),
-            menu: $loadMenu ? new MenuConfigLoader($this->eventManagerFor($eventRecorder), ['metrics']) : null,
+            servers: new ServersConfigLoader(fallbackOnFailure: $serversFallback),
+            ttl: new TtlConfigLoader(),
+            dataRetention: new DataRetentionConfigLoader(),
+            intervals: new IntervalsConfigLoader(),
+            probes: new ProbesConfigLoader(),
+            notificationRules: new NotificationRulesConfigLoader(),
+            thresholds: new ThresholdsConfigLoader(),
+            menu: $loadMenu ? new MenuConfigLoader(['metrics']) : null,
             charts: new ChartsConfigLoader(
-                events: $this->eventManagerFor($eventRecorder),
                 metricCatalog: new MetricCatalog(),
                 queryPolicy: new MetricQueryPolicy(),
             ),

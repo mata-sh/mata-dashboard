@@ -5,32 +5,44 @@ declare(strict_types=1);
 namespace Mata\Config\Monitoring\Loader;
 
 use JsonException;
-use Mata\Services\Event\Dto\EventCommand;
-use Mata\Services\Event\EventManager;
 use RuntimeException;
 use stdClass;
+use Throwable;
 
 abstract class AbstractJsonConfigLoader
 {
+    /** @var list<ConfigLoadProblem> found during the current load; result() and rejected() hand them over */
+    private array $problems = [];
+
+    protected function report(string $type, string $message, string $level = 'warning', bool $forceAlarm = false): void
+    {
+        $this->problems[] = new ConfigLoadProblem($type, $message, $level, $forceAlarm);
+    }
+
     /**
-     * Report a config problem through EventManager, which works before monitoring config is
-     * loaded: it uses its default cooldown and logs the problem when no database is available.
-     * The message is the cooldown identity, so each distinct problem is reported once per window.
+     * @template T of object
+     *
+     * @param T $section
+     *
+     * @return ConfigLoadResult<T>
      */
-    protected function reportProblem(
-        EventManager $events,
-        string $type,
-        string $message,
-        string $level = 'warning',
-        bool $forceAlarm = false,
-    ): void {
-        $events->handle(new EventCommand(
-            type: $type,
-            message: $message,
-            level: $level,
-            forceAlarm: $forceAlarm,
-            context: ['detail' => $message],
-        ));
+    protected function result(object $section): ConfigLoadResult
+    {
+        return new ConfigLoadResult($section, $this->takeProblems());
+    }
+
+    protected function rejected(string $message, ?Throwable $previous = null): MonitoringConfigLoadException
+    {
+        return new MonitoringConfigLoadException($message, $this->takeProblems(), $previous);
+    }
+
+    /** @return list<ConfigLoadProblem> */
+    private function takeProblems(): array
+    {
+        $problems = $this->problems;
+        $this->problems = [];
+
+        return $problems;
     }
 
     protected function readJsonObject(string $filePath): stdClass

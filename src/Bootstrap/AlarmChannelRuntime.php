@@ -41,10 +41,12 @@ final readonly class AlarmChannelRuntime
         private LoggerInterface $log,
     ) {}
 
-    /** Load channels.json; problems are reported through the event manager. */
+    /** Load channels.json and record its problems as events. */
     public static function fromRuntime(CronRuntime $runtime, EventManager $events): self
     {
-        $channels = (new ChannelsConfigLoader($events))->load($runtime->paths->configPath);
+        $loaded = (new ChannelsConfigLoader())->load($runtime->paths->configPath);
+        $events->recordConfigProblems($loaded->problems);
+        $channels = $loaded->section;
 
         return new self(
             channels: $channels,

@@ -6,7 +6,6 @@ namespace Mata\Tests\Unit\Config;
 
 use Mata\Config\Monitoring\Loader\TtlConfigLoader;
 use Mata\Services\Cache\CacheType;
-use Mata\Services\Event\EventRecorderService;
 use Mata\Tests\TestCase;
 
 /**
@@ -37,7 +36,7 @@ final class TtlConfigKeysAreAlignedTest extends TestCase
 
     public function testDefaultConfigCoversEveryCacheType(): void
     {
-        $defaults = (new TtlConfigLoader($this->eventManagerFor($this->createStub(EventRecorderService::class))))->getDefaultConfig()->values;
+        $defaults = (new TtlConfigLoader())->getDefaultConfig()->values;
 
         $this->assertSame(
             $this->sorted(CacheType::ttlConfigKeys()),

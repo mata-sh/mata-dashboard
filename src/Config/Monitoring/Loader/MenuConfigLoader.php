@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Mata\Config\Monitoring\Loader;
 
 use Mata\Config\Monitoring\Section\MenuConfig;
-use Mata\Services\Event\EventManager;
 use RuntimeException;
 
 /** Loads optional dashboard top-menu visibility overrides. */
@@ -13,12 +12,12 @@ final class MenuConfigLoader extends AbstractJsonConfigLoader
 {
     /** @param list<string> $validKeys */
     public function __construct(
-        private EventManager $events,
         private array $validKeys,
         private bool $fallbackOnFailure = true,
     ) {}
 
-    public function load(string $configRoot): MenuConfig
+    /** @return ConfigLoadResult<MenuConfig> */
+    public function load(string $configRoot): ConfigLoadResult
     {
         try {
             return $this->loadMenuConfig(rtrim($configRoot, '/') . '/menu.json');
@@ -27,14 +26,15 @@ final class MenuConfigLoader extends AbstractJsonConfigLoader
                 throw $exception;
             }
 
-            return $this->getDefaultConfig();
+            return new ConfigLoadResult($this->getDefaultConfig(), $exception->problems);
         }
     }
 
-    public function loadMenuConfig(string $filePath): MenuConfig
+    /** @return ConfigLoadResult<MenuConfig> */
+    public function loadMenuConfig(string $filePath): ConfigLoadResult
     {
         if (!is_file($filePath)) {
-            return $this->getDefaultConfig();
+            return $this->result($this->getDefaultConfig());
         }
 
         try {
@@ -42,10 +42,10 @@ final class MenuConfigLoader extends AbstractJsonConfigLoader
         } catch (RuntimeException $exception) {
             $this->reportLoadFailure($filePath, $exception->getMessage());
 
-            throw new MonitoringConfigLoadException('menu.json invalid', previous: $exception);
+            throw $this->rejected('menu.json invalid', $exception);
         }
 
-        return MenuConfig::fromArray($config, $this->validKeys, $this->reportInvalidEntry(...));
+        return $this->result(MenuConfig::fromArray($config, $this->validKeys, $this->reportInvalidEntry(...)));
     }
 
     public function getDefaultConfig(): MenuConfig
@@ -55,8 +55,7 @@ final class MenuConfigLoader extends AbstractJsonConfigLoader
 
     private function reportLoadFailure(string $filePath, string $reason): void
     {
-        $this->reportProblem(
-            $this->events,
+        $this->report(
             'menu_config_invalid',
             "Could not load {$filePath}; falling back to menu defaults: {$reason}",
         );
@@ -64,6 +63,6 @@ final class MenuConfigLoader extends AbstractJsonConfigLoader
 
     private function reportInvalidEntry(string $message): void
     {
-        $this->reportProblem($this->events, 'menu_config_invalid_entry', $message);
+        $this->report('menu_config_invalid_entry', $message);
     }
 }

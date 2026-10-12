@@ -6,6 +6,7 @@ namespace Mata\Services\Event;
 
 use LogicException;
 use Mata\Config\Dto\ApplicationConfig;
+use Mata\Config\Monitoring\Loader\ConfigLoadProblem;
 use Mata\Config\Monitoring\MonitoringConfig;
 use Mata\Services\Alarm\AlarmDirectProcessor;
 use Mata\Services\Alarm\Dto\Alarm;
@@ -262,6 +263,26 @@ class EventManager
         }
 
         return !$this->recorder->hasActiveCooldown($cooldownHash);
+    }
+
+    /**
+     * Record what the config loaders found, one event per problem. Before setMonitoringConfig()
+     * the default cooldown applies; without a database the problems are logged. The message is
+     * the cooldown identity, so each distinct problem is reported once per window.
+     *
+     * @param list<ConfigLoadProblem> $problems
+     */
+    public function recordConfigProblems(array $problems): void
+    {
+        foreach ($problems as $problem) {
+            $this->handle(new EventCommand(
+                type: $problem->type,
+                message: $problem->message,
+                level: $problem->level,
+                forceAlarm: $problem->forceAlarm,
+                context: ['detail' => $problem->message],
+            ));
+        }
     }
 
     /**

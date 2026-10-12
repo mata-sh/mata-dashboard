@@ -5,8 +5,6 @@ declare(strict_types=1);
 namespace Mata\Tests\Unit\Config;
 
 use Mata\Config\Monitoring\Loader\AlarmRateLimitsConfigLoader;
-use Mata\Services\Event\Dto\EventRecordResult;
-use Mata\Services\Event\EventRecorderService;
 use Mata\Tests\TestCase;
 
 /**
@@ -29,7 +27,7 @@ final class AlarmRateLimitsConfigLoaderTest extends TestCase
         ], JSON_THROW_ON_ERROR));
 
         try {
-            $config = (new AlarmRateLimitsConfigLoader($this->eventManagerFor($this->createStub(EventRecorderService::class))))->load($configRoot);
+            $config = (new AlarmRateLimitsConfigLoader())->load($configRoot)->section;
         } finally {
             $this->cleanupTempFiles([$configRoot]);
         }
@@ -41,34 +39,31 @@ final class AlarmRateLimitsConfigLoaderTest extends TestCase
 
     public function testMalformedFileWarnsAndFallsBackToDefaults(): void
     {
-        $eventRecorder = $this->createMock(EventRecorderService::class);
-        $eventRecorder->expects($this->once())
-            ->method('recordEvent')
-            ->with('limits_config_invalid', $this->anything(), $this->anything(), 'warning')
-            ->willReturn(new EventRecordResult(1, null, null, null, null, null));
         $configRoot = $this->writeLimitsJson('{');
 
         try {
-            $config = (new AlarmRateLimitsConfigLoader($this->eventManagerFor($eventRecorder)))->load($configRoot);
+            $loaded = (new AlarmRateLimitsConfigLoader())->load($configRoot);
         } finally {
             $this->cleanupTempFiles([$configRoot]);
         }
 
-        $this->assertSame(['per_minute' => 20, 'per_hour' => 120, 'per_day' => 500], $config->resolve('', 'email')->toArray());
+        $this->assertSame(['limits_config_invalid'], array_map(static fn ($problem): string => $problem->type, $loaded->problems));
+        $this->assertSame('warning', $loaded->problems[0]->level);
+        $this->assertSame(['per_minute' => 20, 'per_hour' => 120, 'per_day' => 500], $loaded->section->resolve('', 'email')->toArray());
     }
 
     public function testMissingFileSilentlyFallsBackToDefaults(): void
     {
-        $eventRecorder = $this->createMock(EventRecorderService::class);
-        $eventRecorder->expects($this->never())->method('recordEvent');
         $configRoot = $this->createTempDirectory();
 
         try {
-            $config = (new AlarmRateLimitsConfigLoader($this->eventManagerFor($eventRecorder)))->load($configRoot);
+            $loaded = (new AlarmRateLimitsConfigLoader())->load($configRoot);
         } finally {
             $this->cleanupTempFiles([$configRoot]);
         }
 
+        $this->assertSame([], $loaded->problems);
+        $config = $loaded->section;
         $this->assertSame(['per_minute' => 20, 'per_hour' => 120, 'per_day' => 500], $config->resolve('', 'email')->toArray());
     }
 

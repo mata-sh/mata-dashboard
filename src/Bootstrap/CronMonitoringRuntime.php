@@ -7,6 +7,7 @@ namespace Mata\Bootstrap;
 use Mata\Config\Monitoring\Loader\AlarmRateLimitsConfigLoader;
 use Mata\Config\Monitoring\Loader\DataRetentionConfigLoader;
 use Mata\Config\Monitoring\Loader\IntervalsConfigLoader;
+use Mata\Config\Monitoring\Loader\MonitoringConfigLoadException;
 use Mata\Config\Monitoring\Loader\NotificationRulesConfigLoader;
 use Mata\Config\Monitoring\Loader\ProbesConfigLoader;
 use Mata\Config\Monitoring\Loader\ServersConfigLoader;
@@ -73,7 +74,6 @@ final readonly class CronMonitoringRuntime
         $fatalStateRepository = new AppFatalStateRepository($db);
         $eventRepository = new EventRepository($db);
 
-        // Early initialization for config loaders.
         // Event aggregator and monitoring config are attached once they exist.
         $idResolver = new ServerApplicationIdResolver($configSyncRepository);
         $eventRecorder = new EventRecorderService($db, $idResolver);
@@ -81,7 +81,9 @@ final readonly class CronMonitoringRuntime
 
         // Alarm limits and queue-failure throttling
         $queueFailureThrottle = new AlarmQueueFailureThrottle($paths->tempPath . '/alarm-locks', $log);
-        $alarmLimits = (new AlarmRateLimitsConfigLoader($eventManager))->load($paths->configPath);
+        $loadedLimits = (new AlarmRateLimitsConfigLoader())->load($paths->configPath);
+        $eventManager->recordConfigProblems($loadedLimits->problems);
+        $alarmLimits = $loadedLimits->section;
 
         // Direct alarm processing
         $alarmDirectProcessor = new AlarmDirectProcessor(
@@ -103,16 +105,26 @@ final readonly class CronMonitoringRuntime
         ))->createEventAggregator();
         $eventManager->setEventAggregator($eventAggregator);
 
-        // Monitoring configuration
-        $monitoringConfig = (new MonitoringConfigLoader(
-            servers: new ServersConfigLoader(events: $eventManager, fallbackOnFailure: false),
-            ttl: new TtlConfigLoader(events: $eventManager, fallbackOnFailure: true),
-            dataRetention: new DataRetentionConfigLoader(events: $eventManager, fallbackOnFailure: true),
-            intervals: new IntervalsConfigLoader(events: $eventManager, fallbackOnFailure: true),
-            probes: new ProbesConfigLoader(events: $eventManager, fallbackOnFailure: true),
-            notificationRules: new NotificationRulesConfigLoader(events: $eventManager, fallbackOnFailure: true),
-            thresholds: new ThresholdsConfigLoader(events: $eventManager, fallbackOnFailure: true),
-        ))->load($paths->configPath, $alarmLimits);
+        // Monitoring configuration. Cron stops on a broken servers config, after recording its alarm.
+        $monitoringConfigLoader = new MonitoringConfigLoader(
+            servers: new ServersConfigLoader(fallbackOnFailure: false),
+            ttl: new TtlConfigLoader(fallbackOnFailure: true),
+            dataRetention: new DataRetentionConfigLoader(fallbackOnFailure: true),
+            intervals: new IntervalsConfigLoader(fallbackOnFailure: true),
+            probes: new ProbesConfigLoader(fallbackOnFailure: true),
+            notificationRules: new NotificationRulesConfigLoader(fallbackOnFailure: true),
+            thresholds: new ThresholdsConfigLoader(fallbackOnFailure: true),
+        );
+
+        try {
+            $loadedMonitoringConfig = $monitoringConfigLoader->load($paths->configPath, $alarmLimits);
+        } catch (MonitoringConfigLoadException $exception) {
+            $eventManager->recordConfigProblems($exception->problems);
+
+            throw $exception;
+        }
+        $eventManager->recordConfigProblems($loadedMonitoringConfig->problems);
+        $monitoringConfig = $loadedMonitoringConfig->section;
 
         $eventManager->setMonitoringConfig($monitoringConfig);
         $idResolver->refreshFromRepository($monitoringConfig->servers->values);

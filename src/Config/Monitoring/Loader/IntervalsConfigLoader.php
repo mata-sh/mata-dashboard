@@ -6,17 +6,16 @@ namespace Mata\Config\Monitoring\Loader;
 
 use InvalidArgumentException;
 use Mata\Config\Monitoring\Section\IntervalsConfig;
-use Mata\Services\Event\EventManager;
 use RuntimeException;
 
 final class IntervalsConfigLoader extends AbstractJsonConfigLoader
 {
     public function __construct(
-        private EventManager $events,
         private bool $fallbackOnFailure = true,
     ) {}
 
-    public function load(string $configRoot): IntervalsConfig
+    /** @return ConfigLoadResult<IntervalsConfig> */
+    public function load(string $configRoot): ConfigLoadResult
     {
         try {
             return $this->loadIntervalsConfig(rtrim($configRoot, '/') . '/intervals.json');
@@ -25,31 +24,32 @@ final class IntervalsConfigLoader extends AbstractJsonConfigLoader
                 throw $exception;
             }
 
-            return $this->getDefaultConfig();
+            return new ConfigLoadResult($this->getDefaultConfig(), $exception->problems);
         }
     }
 
-    public function loadIntervalsConfig(string $filePath): IntervalsConfig
+    /** @return ConfigLoadResult<IntervalsConfig> */
+    public function loadIntervalsConfig(string $filePath): ConfigLoadResult
     {
         try {
             $config = $this->normalizeJson($this->readJsonObject($filePath));
         } catch (RuntimeException $exception) {
             $this->reportLoadFailure($filePath);
 
-            throw new MonitoringConfigLoadException('intervals.json invalid or empty', previous: $exception);
+            throw $this->rejected('intervals.json invalid or empty', $exception);
         }
         if ($config === []) {
             $this->reportLoadFailure($filePath);
 
-            throw new MonitoringConfigLoadException('intervals.json invalid or empty');
+            throw $this->rejected('intervals.json invalid or empty');
         }
 
         try {
-            return IntervalsConfig::fromArray($config);
+            return $this->result(IntervalsConfig::fromArray($config));
         } catch (InvalidArgumentException $exception) {
             $this->reportLoadFailure($filePath, $exception->getMessage());
 
-            throw new MonitoringConfigLoadException('intervals.json invalid or empty', previous: $exception);
+            throw $this->rejected('intervals.json invalid or empty', $exception);
         }
     }
 
@@ -64,6 +64,6 @@ final class IntervalsConfigLoader extends AbstractJsonConfigLoader
         if ($reason !== null) {
             $message .= " (reason: {$reason})";
         }
-        $this->reportProblem($this->events, 'intervals_config_not_found', $message);
+        $this->report('intervals_config_not_found', $message);
     }
 }

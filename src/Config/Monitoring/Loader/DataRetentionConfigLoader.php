@@ -6,17 +6,16 @@ namespace Mata\Config\Monitoring\Loader;
 
 use InvalidArgumentException;
 use Mata\Config\Monitoring\Section\DataRetentionConfig;
-use Mata\Services\Event\EventManager;
 use RuntimeException;
 
 final class DataRetentionConfigLoader extends AbstractJsonConfigLoader
 {
     public function __construct(
-        private EventManager $events,
         private bool $fallbackOnFailure = true,
     ) {}
 
-    public function load(string $configRoot): DataRetentionConfig
+    /** @return ConfigLoadResult<DataRetentionConfig> */
+    public function load(string $configRoot): ConfigLoadResult
     {
         try {
             return $this->loadDataRetentionConfig(rtrim($configRoot, '/') . '/data_retention.json');
@@ -25,31 +24,32 @@ final class DataRetentionConfigLoader extends AbstractJsonConfigLoader
                 throw $exception;
             }
 
-            return $this->getDefaultConfig();
+            return new ConfigLoadResult($this->getDefaultConfig(), $exception->problems);
         }
     }
 
-    public function loadDataRetentionConfig(string $filePath): DataRetentionConfig
+    /** @return ConfigLoadResult<DataRetentionConfig> */
+    public function loadDataRetentionConfig(string $filePath): ConfigLoadResult
     {
         try {
             $config = $this->normalizeJson($this->readJsonObject($filePath));
         } catch (RuntimeException $exception) {
             $this->reportLoadFailure($filePath);
 
-            throw new MonitoringConfigLoadException('data_retention.json invalid or empty', previous: $exception);
+            throw $this->rejected('data_retention.json invalid or empty', $exception);
         }
         if ($config === []) {
             $this->reportLoadFailure($filePath);
 
-            throw new MonitoringConfigLoadException('data_retention.json invalid or empty');
+            throw $this->rejected('data_retention.json invalid or empty');
         }
 
         try {
-            return DataRetentionConfig::fromArray($config);
+            return $this->result(DataRetentionConfig::fromArray($config));
         } catch (InvalidArgumentException $exception) {
             $this->reportLoadFailure($filePath, $exception->getMessage());
 
-            throw new MonitoringConfigLoadException('data_retention.json invalid or empty', previous: $exception);
+            throw $this->rejected('data_retention.json invalid or empty', $exception);
         }
     }
 
@@ -64,6 +64,6 @@ final class DataRetentionConfigLoader extends AbstractJsonConfigLoader
         if ($reason !== null) {
             $message .= " (reason: {$reason})";
         }
-        $this->reportProblem($this->events, 'data_retention_config_not_found', $message);
+        $this->report('data_retention_config_not_found', $message);
     }
 }

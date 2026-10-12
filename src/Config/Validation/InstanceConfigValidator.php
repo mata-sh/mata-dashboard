@@ -9,6 +9,8 @@ use Mata\Config\EnvConfigLoader;
 use Mata\Config\Monitoring\Loader\AlarmRateLimitsConfigLoader;
 use Mata\Config\Monitoring\Loader\ChannelsConfigLoader;
 use Mata\Config\Monitoring\Loader\ChartsConfigLoader;
+use Mata\Config\Monitoring\Loader\ConfigLoadProblem;
+use Mata\Config\Monitoring\Loader\ConfigLoadResult;
 use Mata\Config\Monitoring\Loader\DataRetentionConfigLoader;
 use Mata\Config\Monitoring\Loader\IntervalsConfigLoader;
 use Mata\Config\Monitoring\Loader\MenuConfigLoader;
@@ -19,7 +21,6 @@ use Mata\Config\Monitoring\Loader\ServersConfigLoader;
 use Mata\Config\Monitoring\Loader\ThresholdsConfigLoader;
 use Mata\Config\Monitoring\Loader\TtlConfigLoader;
 use Mata\Config\Monitoring\Section\ServersConfig;
-use Mata\Services\Event\Dto\EventCommand;
 use Mata\Services\Navigation\MenuBuilder;
 use Mata\Services\ServerMetrics\MetricCatalog;
 use Mata\Services\ServerMetrics\MetricQueryPolicy;
@@ -53,9 +54,7 @@ final class InstanceConfigValidator
     {
         $this->problems = [];
         $configPath = rtrim($configPath, '/');
-        $collector = new ConfigProblemCollector();
-
-        $jsonChecks = $this->jsonChecks($collector);
+        $jsonChecks = $this->jsonChecks();
 
         $files = [];
         foreach ([self::ENV_FILES, ...array_column($jsonChecks, 'files')] as $checkFiles) {
@@ -75,7 +74,7 @@ final class InstanceConfigValidator
         }
         foreach ($jsonChecks as $check) {
             if ($onlyFile === null || in_array($onlyFile, $check['files'], true)) {
-                $this->runJsonCheck($collector, $configPath, $check['files'], $check['load']);
+                $this->runJsonCheck($configPath, $check['files'], $check['load']);
             }
         }
 
@@ -85,7 +84,7 @@ final class InstanceConfigValidator
     /** @return list<string> every file name `validate()` accepts as $onlyFile */
     public function knownFiles(): array
     {
-        return [...self::ENV_FILES, ...array_merge(...array_column($this->jsonChecks(new ConfigProblemCollector()), 'files'))];
+        return [...self::ENV_FILES, ...array_merge(...array_column($this->jsonChecks(), 'files'))];
     }
 
     /** @return list<ConfigProblem> */
@@ -132,53 +131,49 @@ final class InstanceConfigValidator
      * Loaders that support it run without fallback, so a file the app would replace with
      * defaults throws instead of passing quietly.
      *
-     * @return list<array{files:list<string>,load:Closure(string):mixed}>
+     * @return list<array{files:list<string>,load:Closure(string):ConfigLoadResult<object>}>
      */
-    private function jsonChecks(ConfigProblemCollector $events): array
+    private function jsonChecks(): array
     {
         $metricCatalog = new MetricCatalog();
 
         return [
-            ['files' => ['servers.json', ServersConfigLoader::SECRETS_FILE], 'load' => (new ServersConfigLoader($events, fallbackOnFailure: false))->load(...)],
-            ['files' => ['ttl.json'], 'load' => (new TtlConfigLoader($events, fallbackOnFailure: false))->load(...)],
-            ['files' => ['data_retention.json'], 'load' => (new DataRetentionConfigLoader($events, fallbackOnFailure: false))->load(...)],
-            ['files' => ['intervals.json'], 'load' => (new IntervalsConfigLoader($events, fallbackOnFailure: false))->load(...)],
-            ['files' => ['probes.json'], 'load' => (new ProbesConfigLoader($events, fallbackOnFailure: false))->load(...)],
-            ['files' => ['notification_rules.json'], 'load' => (new NotificationRulesConfigLoader($events, fallbackOnFailure: false))->load(...)],
-            ['files' => ['thresholds.json'], 'load' => (new ThresholdsConfigLoader($events, fallbackOnFailure: false))->load(...)],
-            ['files' => ['menu.json'], 'load' => (new MenuConfigLoader($events, MenuBuilder::MENU_KEYS, fallbackOnFailure: false))->load(...)],
-            ['files' => ['charts.json'], 'load' => (new ChartsConfigLoader($events, $metricCatalog, new MetricQueryPolicy(), fallbackOnFailure: false))->load(...)],
-            ['files' => ['channels.json'], 'load' => (new ChannelsConfigLoader($events))->load(...)],
-            ['files' => ['limits.json'], 'load' => (new AlarmRateLimitsConfigLoader($events))->load(...)],
+            ['files' => ['servers.json', ServersConfigLoader::SECRETS_FILE], 'load' => (new ServersConfigLoader(fallbackOnFailure: false))->load(...)],
+            ['files' => ['ttl.json'], 'load' => (new TtlConfigLoader(fallbackOnFailure: false))->load(...)],
+            ['files' => ['data_retention.json'], 'load' => (new DataRetentionConfigLoader(fallbackOnFailure: false))->load(...)],
+            ['files' => ['intervals.json'], 'load' => (new IntervalsConfigLoader(fallbackOnFailure: false))->load(...)],
+            ['files' => ['probes.json'], 'load' => (new ProbesConfigLoader(fallbackOnFailure: false))->load(...)],
+            ['files' => ['notification_rules.json'], 'load' => (new NotificationRulesConfigLoader(fallbackOnFailure: false))->load(...)],
+            ['files' => ['thresholds.json'], 'load' => (new ThresholdsConfigLoader(fallbackOnFailure: false))->load(...)],
+            ['files' => ['menu.json'], 'load' => (new MenuConfigLoader(MenuBuilder::MENU_KEYS, fallbackOnFailure: false))->load(...)],
+            ['files' => ['charts.json'], 'load' => (new ChartsConfigLoader($metricCatalog, new MetricQueryPolicy(), fallbackOnFailure: false))->load(...)],
+            ['files' => ['channels.json'], 'load' => (new ChannelsConfigLoader())->load(...)],
+            ['files' => ['limits.json'], 'load' => (new AlarmRateLimitsConfigLoader())->load(...)],
         ];
     }
 
     /**
-     * @param list<string>           $files the file the loader reads first, then any companions
-     * @param Closure(string): mixed $load
+     * @param list<string>                              $files the file the loader reads first, then any companions
+     * @param Closure(string): ConfigLoadResult<object> $load
      */
-    private function runJsonCheck(ConfigProblemCollector $collector, string $configPath, array $files, Closure $load): void
+    private function runJsonCheck(string $configPath, array $files, Closure $load): void
     {
-        $rejected = false;
-
         try {
-            $load($configPath);
-        } catch (MonitoringConfigLoadException) {
+            $problems = $load($configPath)->problems;
+            $rejected = false;
+        } catch (MonitoringConfigLoadException $exception) {
+            $problems = $exception->problems ?: [new ConfigLoadProblem('config_file_rejected', "{$files[0]} was rejected; the app would use defaults", LogLevel::ERROR)];
             $rejected = true;
         }
 
-        $events = $collector->take();
-        if ($rejected && $events === []) {
-            $events[] = new EventCommand('config_file_rejected', "{$files[0]} was rejected; the app would use defaults", LogLevel::ERROR);
-        }
-        foreach ($events as $event) {
+        foreach ($problems as $reported) {
             $problem = new ConfigProblem(
-                $this->fileFor($event->message, $files),
-                in_array($event->level, [LogLevel::CRITICAL, LogLevel::ERROR], true) ? ConfigProblem::ERROR : ConfigProblem::WARNING,
-                $event->type,
-                $event->message,
+                $this->fileFor($reported->message, $files),
+                in_array($reported->level, [LogLevel::CRITICAL, LogLevel::ERROR], true) ? ConfigProblem::ERROR : ConfigProblem::WARNING,
+                $reported->type,
+                $reported->message,
             );
-            $isError = $rejected || (in_array($event->type, self::ERROR_TYPES, true) && $event->message !== ServersConfig::EMPTY_ERROR);
+            $isError = $rejected || (in_array($reported->type, self::ERROR_TYPES, true) && $reported->message !== ServersConfig::EMPTY_ERROR);
             $this->problems[] = $isError ? $problem->asError() : $problem;
         }
     }
