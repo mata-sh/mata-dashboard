@@ -20,6 +20,7 @@ use Mata\Services\Monitor\AppReachabilityMonitor;
 use Mata\Services\Monitor\Dto\AppReachabilityPolicy;
 use Mata\Services\Monitor\HttpProbeClient;
 use Mata\Services\Monitor\LogSizeEvaluator;
+use Mata\Services\Monitor\MetricThresholds;
 use Mata\Services\Monitor\MockAppErrorMonitor;
 use Mata\Services\Monitor\MockAppReachabilityMonitor;
 use Mata\Services\Monitor\MockNodeHealthMonitor;
@@ -119,7 +120,7 @@ final class ServerMonitoringFactoryTest extends TestCase
             AppReachabilityPolicy::fromMonitoringConfig(MonitoringConfigFactory::create()),
             new ServerApplicationIdResolver(),
             new AppFatalStateRepository($this->createStub(DatabaseInterface::class)),
-            new LogSizeEvaluator(new Tools('/tmp'), $this->createStub(EventManager::class)),
+            new LogSizeEvaluator(new Tools('/tmp'), new MetricThresholds([], [])),
         );
     }
 }

@@ -11,7 +11,6 @@ use InvalidArgumentException;
 use Mata\Services\Cache\CacheType;
 use Mata\Services\Cache\CacheTypeResolver;
 use Mata\Services\Collect\ServerDataCollectorInterface;
-use Mata\Services\Event\EventManager;
 use Mata\Services\Monitor\AppReachabilityMonitorInterface;
 use Mata\Services\Monitor\Dto\AppFatalErrorPolicy;
 use Mata\Services\Monitor\Dto\AppMonitoringSettings;
@@ -21,6 +20,7 @@ use Mata\Services\Monitor\Dto\NodeHealthResult;
 use Mata\Services\Monitor\Dto\NodeHealthState;
 use Mata\Services\Monitor\Dto\ServerMonitoringServices;
 use Mata\Services\Monitor\LogSizeEvaluator;
+use Mata\Services\Monitor\MetricThresholds;
 use Mata\Services\Monitor\NodeHealthMonitorInterface;
 use Mata\Services\Monitor\ServerMonitor;
 use Mata\Services\Sync\AppInventorySync;
@@ -43,7 +43,7 @@ class ServerViewBuilder
 {
     private ServerMonitor $serverMonitor;
     private LogSizeEvaluator $logSizeEvaluator;
-    private EventManager $eventManager;
+    private MetricThresholds $thresholds;
     private Logger $logger;
     private CacheTypeResolver $cacheTypeResolver;
     private ?AppInventorySync $appInventorySync;
@@ -52,7 +52,7 @@ class ServerViewBuilder
     public function __construct(
         ServerMonitor $serverMonitor,
         LogSizeEvaluator $logSizeEvaluator,
-        EventManager $eventManager,
+        MetricThresholds $thresholds,
         Logger $logger,
         CacheTypeResolver $cacheTypeResolver,
         ?AppInventorySync $appInventorySync = null,
@@ -60,7 +60,7 @@ class ServerViewBuilder
     ) {
         $this->serverMonitor = $serverMonitor;
         $this->logSizeEvaluator = $logSizeEvaluator;
-        $this->eventManager = $eventManager;
+        $this->thresholds = $thresholds;
         $this->logger = $logger;
         $this->cacheTypeResolver = $cacheTypeResolver;
         $this->appInventorySync = $appInventorySync;
@@ -583,8 +583,8 @@ class ServerViewBuilder
                 $tooltipParts[] = sprintf('<strong>Size:</strong> %s KB', (string) $session['size_kb']);
             }
 
-            $level = $this->eventManager->getAppDataThresholdLevel($lastHour, 'session_count');
-            $limit = $this->eventManager->getAppDataThreshold('session_count', $level);
+            $level = $this->thresholds->appLevel($lastHour, 'session_count');
+            $limit = $this->thresholds->appLimit('session_count', $level);
             if ($level !== '' && $level !== 'good' && $limit !== null) {
                 $tooltipParts[] = sprintf(
                     '<strong>%s:</strong> more than %s sessions in the last hour',

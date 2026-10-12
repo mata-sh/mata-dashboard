@@ -7,8 +7,8 @@ namespace Mata\Tests\Unit\Security;
 use Mata\Core\App;
 use Mata\Http\Routing\Endpoints;
 use Mata\Services\Cache\CacheTypeResolver;
-use Mata\Services\Event\EventManager;
 use Mata\Services\Monitor\LogSizeEvaluator;
+use Mata\Services\Monitor\MetricThresholds;
 use Mata\Services\Monitor\ServerMonitor;
 use Mata\Services\View\ServerViewBuilder;
 use Mata\Tests\TestCase;
@@ -29,13 +29,12 @@ class TooltipEscapingTest extends TestCase
 {
     public function testSessionTooltipEscapesRemotePathButKeepsGeneratedHtml(): void
     {
-        $eventManager = $this->createStub(EventManager::class);
-        $eventManager->method('getAppDataThresholdLevel')->willReturn('good');
+        $thresholds = new MetricThresholds([], ['session_count' => ['good' => 0]]);
 
         $builder = new ServerViewBuilder(
             $this->createStub(ServerMonitor::class),
-            new LogSizeEvaluator(new Tools('/tmp'), $eventManager),
-            $eventManager,
+            new LogSizeEvaluator(new Tools('/tmp'), $thresholds),
+            $thresholds,
             $this->createStub(Logger::class),
             new CacheTypeResolver()
         );
@@ -61,11 +60,11 @@ class TooltipEscapingTest extends TestCase
 
     public function testSessionErrorTooltipEscapesRemoteErrorMessage(): void
     {
-        $eventManager = $this->createStub(EventManager::class);
+        $thresholds = new MetricThresholds([], []);
         $builder = new ServerViewBuilder(
             $this->createStub(ServerMonitor::class),
-            new LogSizeEvaluator(new Tools('/tmp'), $eventManager),
-            $eventManager,
+            new LogSizeEvaluator(new Tools('/tmp'), $thresholds),
+            $thresholds,
             $this->createStub(Logger::class),
             new CacheTypeResolver()
         );

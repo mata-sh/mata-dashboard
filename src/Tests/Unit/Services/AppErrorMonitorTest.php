@@ -12,6 +12,7 @@ use Mata\Services\Monitor\AppErrorMonitor;
 use Mata\Services\Monitor\Dto\AppFatalErrorPolicy;
 use Mata\Services\Monitor\Dto\AppLogSizePolicy;
 use Mata\Services\Monitor\LogSizeEvaluator;
+use Mata\Services\Monitor\MetricThresholds;
 use Mata\Tests\Helpers\SqliteTestDatabase;
 use Mata\Tests\TestCase;
 use Mata\Utils\Tools;
@@ -90,8 +91,6 @@ final class AppErrorMonitorTest extends TestCase
 
     public function testRecordsOversizedLogWithExistingEventContract(): void
     {
-        $this->events->expects($this->once())->method('getServerDataThresholdLevel')
-            ->with(60000, 'log_filesize_kb')->willReturn('alarm');
         $this->events->expects($this->once())->method('handle')
             ->with($this->callback(static fn (EventCommand $event): bool => $event->type === 'logfile_too_large'
                 && $event->message === 'Log too large (60000 KB) - logs/error.log : shop on Server: srv'
@@ -134,7 +133,6 @@ final class AppErrorMonitorTest extends TestCase
 
     public function testServerConfigIndependentlyDisablesFatalAndLogSizeMonitoring(): void
     {
-        $this->events->expects($this->once())->method('getServerDataThresholdLevel')->willReturn('alarm');
         $this->events->expects($this->once())->method('handle')->willReturn(['eventRecorded' => true, 'eventId' => 1]);
         $fatalDisabled = $this->app(3, self::cursor('a'));
         $fatalDisabled['monitoring'] = ['logsize' => true];
@@ -197,7 +195,6 @@ final class AppErrorMonitorTest extends TestCase
     public function testDisabledAlarmsStampAlarmsSuppressedOnBothEventTypes(): void
     {
         $contexts = [];
-        $this->events->method('getServerDataThresholdLevel')->willReturn('alarm');
         $this->events->expects($this->exactly(2))->method('handle')
             ->willReturnCallback(static function (EventCommand $event) use (&$contexts): array {
                 $contexts[$event->type] = $event->context;
@@ -256,7 +253,7 @@ final class AppErrorMonitorTest extends TestCase
             $this->states,
             AppFatalErrorPolicy::fromServerConfig($serverConfig),
             AppLogSizePolicy::fromServerConfig($serverConfig),
-            new LogSizeEvaluator($tools, $this->events),
+            new LogSizeEvaluator($tools, new MetricThresholds(['log_filesize_kb' => ['alarm' => 50000]], [])),
             new NullLogger(),
             new NumberFormatter(),
         );

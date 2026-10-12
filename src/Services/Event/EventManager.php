@@ -25,7 +25,6 @@ use Psr\Log\NullLogger;
  * ## Architecture & Usage Patterns
  *
  * EventManager provides:
- * - Event threshold evaluation (server metrics, app metrics)
  * - Event creation with cooldown deduplication via handle()
  * - Read access to stored events via the public aggregator property
  *
@@ -35,9 +34,6 @@ use Psr\Log\NullLogger;
  * ```php
  * // Business logic + orchestrated write
  * $eventManager->handle(new EventCommand(type: $type, message: $message, context: $context, level: $level));
- *
- * // Threshold evaluation
- * $level = $eventManager->getServerDataThresholdLevel($value, 'cpu_usage');
  *
  * // Read operations via public property
  * $events = $eventManager->aggregator->getLatestEvents();
@@ -54,7 +50,7 @@ use Psr\Log\NullLogger;
  * ```
  *
  * ### Component Responsibilities:
- * - **EventManager** (this): Event business logic, threshold evaluation, event cooldown management
+ * - **EventManager** (this): Event business logic, event cooldown management
  * - **AlarmThresholdCooldownService**: Alarm threshold checks, cooldown management, channel filtering
  * - **EventRecorderService**: Low-level event/alarm persistence and cooldown tracking
  * - **EventAggregatorService**: Event/alarm querying, reporting, cleanup operations
@@ -71,12 +67,6 @@ class EventManager
      * Prevents spam for event types without specific configuration.
      */
     private const DEFAULT_EVENT_INTERVAL_MINUTES = 30;
-
-    /** @var array<string,array<string,float|int>> Server metric thresholds */
-    private array $serverDataThresholds = [];
-
-    /** @var array<string,array<string,float|int>> Application metric thresholds */
-    private array $appDataThresholds = [];
 
     /** @var array<string,int> Event type to interval minutes mapping */
     private array $eventIntervals = [];
@@ -101,7 +91,7 @@ class EventManager
      * Supports fluent initialization via setter methods for deferred dependency injection.
      * This allows EventManager to be created before loading monitoring configuration.
      *
-     * Use setMonitoringConfig() to configure thresholds and intervals after initialization.
+     * Use setMonitoringConfig() to configure event intervals after initialization.
      *
      * @param AlarmDirectProcessor                 $alarmDirectProcessor Direct alarm processor for forced alarms
      * @param ApplicationConfig                    $appConfig            Application configuration for alarm/event behavior
@@ -148,83 +138,12 @@ class EventManager
         return $this;
     }
 
-    /** Configure event thresholds and intervals from loaded monitoring configuration. */
+    /** Configure event cooldown intervals from loaded monitoring configuration. */
     public function setMonitoringConfig(MonitoringConfig $monitoringConfig): self
     {
-        $this->serverDataThresholds = $monitoringConfig->thresholds->serverData;
-        $this->appDataThresholds = $monitoringConfig->thresholds->appData;
         $this->eventIntervals = $monitoringConfig->intervals->eventMinimumMinutes;
 
         return $this;
-    }
-
-    /**
-     * Get threshold level for server metric value.
-     *
-     * Evaluates a server metric against configured thresholds to determine severity level.
-     * Returns the highest threshold level that the value exceeds.
-     *
-     * @param int    $value Current metric value to evaluate
-     * @param string $name  Metric name (cpu_usage, disk_space_usage_percent, total_system_filecount, etc.)
-     *
-     * @return string Threshold level ('info', 'warning', 'error', 'alarm') or empty string if no threshold exceeded
-     */
-    public function getServerDataThresholdLevel(int $value, string $name): string
-    {
-        $result = '';
-        $thresholds = $this->serverDataThresholds[$name] ?? [];
-        foreach ($thresholds as $level => $limit) {
-            if ($value > $limit) {
-                $result = $level;
-            }
-        }
-
-        return $result;
-    }
-
-    /**
-     * Get a numeric threshold limit for a server metric and level.
-     *
-     * @return null|float|int Null when the metric level is not configured
-     */
-    public function getServerDataThresholdLimit(string $name, string $level = 'alarm'): float|int|null
-    {
-        return $this->serverDataThresholds[$name][$level] ?? null;
-    }
-
-    /**
-     * Get threshold level for app/application metric value.
-     *
-     * Evaluates a application metric against configured thresholds to determine severity level.
-     * Returns the highest threshold level that the value exceeds.
-     *
-     * @param int    $value Current metric value to evaluate
-     * @param string $name  Metric name (session_count, log_filesize_kb, error_count, etc.)
-     *
-     * @return string Threshold level ('info', 'warning', 'error', 'alarm') or empty string if no threshold exceeded
-     */
-    public function getAppDataThresholdLevel(int $value, string $name): string
-    {
-        $result = '';
-        $thresholds = $this->appDataThresholds[$name] ?? [];
-        foreach ($thresholds as $level => $limit) {
-            if ($value > $limit) {
-                $result = $level;
-            }
-        }
-
-        return $result;
-    }
-
-    /**
-     * Get the configured limit of one threshold level for an app metric.
-     *
-     * @param string $name  Metric name (session_count, log_filesize_kb, error_count, etc.)
-     * @param string $level Threshold level as returned by getAppDataThresholdLevel()
-     */
-    public function getAppDataThreshold(string $name, string $level): float|int|null
-    {
-        return $this->appDataThresholds[$name][$level] ?? null;
     }
 
     /**

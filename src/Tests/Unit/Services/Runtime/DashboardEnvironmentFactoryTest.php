@@ -21,6 +21,7 @@ use Mata\Services\Identity\ServerApplicationIdResolver;
 use Mata\Services\Monitor\Dto\AppReachabilityPolicy;
 use Mata\Services\Monitor\HttpProbeClient;
 use Mata\Services\Monitor\LogSizeEvaluator;
+use Mata\Services\Monitor\MetricThresholds;
 use Mata\Services\Monitor\ServerMonitoringFactory;
 use Mata\Services\Runtime\DashboardEnvironmentFactory;
 use Mata\Tests\Helpers\MonitoringConfigFactory;
@@ -81,7 +82,7 @@ final class DashboardEnvironmentFactoryTest extends TestCase
             AppReachabilityPolicy::fromMonitoringConfig(MonitoringConfigFactory::create()),
             new ServerApplicationIdResolver(),
             new AppFatalStateRepository($this->createStub(DatabaseInterface::class)),
-            new LogSizeEvaluator(new Tools('/tmp'), $this->createStub(EventManager::class)),
+            new LogSizeEvaluator(new Tools('/tmp'), new MetricThresholds([], [])),
         );
     }
 }

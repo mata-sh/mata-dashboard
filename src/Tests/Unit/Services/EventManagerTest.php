@@ -19,7 +19,6 @@ use Mata\Config\Dto\PhpConfig;
 use Mata\Config\Dto\RateLimitingConfig;
 use Mata\Config\Dto\TemplateConfig;
 use Mata\Config\Monitoring\Section\IntervalsConfig;
-use Mata\Config\Monitoring\Section\ThresholdsConfig;
 use Mata\Services\Alarm\AlarmDirectProcessor;
 use Mata\Services\Event\Dto\EventCommand;
 use Mata\Services\Event\Dto\EventContext;
@@ -313,21 +312,6 @@ final class EventManagerTest extends TestCase
             '{"actual_value":92,"additional_data":{"total":100},"metric":"disk_space_usage_percent","threshold":90}',
             $contexts[1]
         );
-    }
-
-    public function testGetServerDataThresholdLimitReturnsConfiguredLimit(): void
-    {
-        $manager = $this->createManager();
-        $manager->setMonitoringConfig(MonitoringConfigFactory::create(
-            thresholds: new ThresholdsConfig(
-                serverData: ['disk_space_usage_percent' => ['alarm' => 90]],
-                appData: [],
-                alarmRules: [],
-            ),
-        ));
-
-        $this->assertSame(90, $manager->getServerDataThresholdLimit('disk_space_usage_percent'));
-        $this->assertNull($manager->getServerDataThresholdLimit('missing'));
     }
 
     private function useMockEventRecorder(): void
