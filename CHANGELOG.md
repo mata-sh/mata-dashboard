@@ -10,7 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - A summary bar above the server grid counts servers and apps by state and totals what needs attention; click a count to show only those, or filter cards by server or application name.
 - Server cards reload from the cache every `DASHBOARD_AUTO_REFRESH_SECONDS` (default 60, `0` turns it off); viewers can pause it in the summary bar
 - In `demo`, `DEMO_LOGIN_USERNAME` and `DEMO_LOGIN_PASSWORD` show the public demo account on the login page and prefill the form
-- `config.example/AGENTS.md`: rules for coding agents that edit a config repository (validate after edits, keys only in `servers.secrets.json`, add servers with `bin/mata server add`)
+- `config.example/AGENTS.md`: rules for coding agents that edit a config repository (validate after edits, keys only in `servers.secrets.json`, add servers with `make mata ARGS="server add …"`)
 - `bin/mata alarm test [channel]` replaces `scripts/alarm_channel_test.php`, and `bin/mata alarm explain [server]` shows the stored decision trace of recent events: outcome, policy and threshold gates, trigger evidence, channels
 - `bin/mata user list|create|passwd|unlock|delete`, `db status|migrate|rollback|check`, and `doctor`, all with `--json`. User commands accept `--password-stdin` or `--generate-password`; without a terminal, production changes need `--yes`. `make doctor` now also runs the application checks (database, migrations, OPA, users file, cron)
 - `bin/mata status [--json]` reports node health and cron jobs from the cron-warmed cache with Nagios exit codes (0 ok, 1 warning, 2 critical, 3 unknown); a stopped cron reports unknown, never ok
