@@ -9,7 +9,6 @@ use Mata\Models\Sync\ConfigSyncRepository;
 use Mata\Services\Cache\CacheType;
 use Mata\Services\Cache\CacheTypeResolver;
 use Mata\Services\Collect\ServerDataCollectorInterface;
-use Mata\Services\Event\EventManager;
 use Mata\Services\Identity\ServerApplicationIdResolver;
 use Mata\Services\Monitor\AppErrorMonitorInterface;
 use Mata\Services\Monitor\AppReachabilityMonitorInterface;
@@ -20,6 +19,7 @@ use Mata\Services\Monitor\Dto\NodeHealthResult;
 use Mata\Services\Monitor\Dto\NodeHealthState;
 use Mata\Services\Monitor\Dto\ServerMonitoringServices;
 use Mata\Services\Monitor\LogSizeEvaluator;
+use Mata\Services\Monitor\MetricThresholds;
 use Mata\Services\Monitor\NodeHealthMonitorInterface;
 use Mata\Services\Monitor\ServerMonitor;
 use Mata\Services\Sync\AppInventorySync;
@@ -68,7 +68,7 @@ final class ServerViewBuilderTest extends TestCase
         $builder = new ServerViewBuilder(
             $serverMonitor,
             $this->logSizeEvaluator(),
-            $this->createStub(EventManager::class),
+            new MetricThresholds([], []),
             new Logger('test'),
             new CacheTypeResolver(),
         );
@@ -89,7 +89,7 @@ final class ServerViewBuilderTest extends TestCase
         $builder = new ServerViewBuilder(
             $this->createStub(ServerMonitor::class),
             $this->logSizeEvaluator(),
-            $this->createStub(EventManager::class),
+            new MetricThresholds([], []),
             new Logger('test'),
             new CacheTypeResolver(),
         );
@@ -119,16 +119,11 @@ final class ServerViewBuilderTest extends TestCase
                 return $kilobytes . ' KB';
             }
         };
-        $events = $this->createMock(EventManager::class);
-        $events->expects($this->once())
-            ->method('getServerDataThresholdLevel')
-            ->with(15000, 'log_filesize_kb')
-            ->willReturn('alarm');
-        $events->expects($this->never())->method('handle');
+        $thresholds = new MetricThresholds(['log_filesize_kb' => ['warning' => 5000, 'alarm' => 10000]], []);
         $builder = new ServerViewBuilder(
             $this->createStub(ServerMonitor::class),
-            new LogSizeEvaluator($tools, $events),
-            $events,
+            new LogSizeEvaluator($tools, $thresholds),
+            $thresholds,
             new Logger('test'),
             new CacheTypeResolver(),
         );
@@ -175,12 +170,12 @@ final class ServerViewBuilderTest extends TestCase
 
     public function testEmitsDisabledLogSizePlaceholderWithoutEvaluating(): void
     {
-        $events = $this->createMock(EventManager::class);
-        $events->expects($this->never())->method('getServerDataThresholdLevel');
+        // Any size would be an alarm, so the empty level shows the evaluator was skipped.
+        $thresholds = new MetricThresholds(['log_filesize_kb' => ['alarm' => -1]], []);
         $builder = new ServerViewBuilder(
             $this->createStub(ServerMonitor::class),
-            new LogSizeEvaluator(new Tools('/tmp'), $events),
-            $events,
+            new LogSizeEvaluator(new Tools('/tmp'), $thresholds),
+            $thresholds,
             new Logger('test'),
             new CacheTypeResolver(),
         );
@@ -276,7 +271,7 @@ final class ServerViewBuilderTest extends TestCase
         $builder = new ServerViewBuilder(
             $this->createStub(ServerMonitor::class),
             $this->logSizeEvaluator(),
-            $this->createStub(EventManager::class),
+            new MetricThresholds([], []),
             new Logger('test'),
             new CacheTypeResolver(),
         );
@@ -307,7 +302,7 @@ final class ServerViewBuilderTest extends TestCase
         $builder = new ServerViewBuilder(
             $this->createStub(ServerMonitor::class),
             $this->logSizeEvaluator(),
-            $this->createStub(EventManager::class),
+            new MetricThresholds([], []),
             new Logger('test'),
             new CacheTypeResolver(),
         );
@@ -375,7 +370,7 @@ final class ServerViewBuilderTest extends TestCase
         $builder = new ServerViewBuilder(
             $serverMonitor,
             $this->logSizeEvaluator(),
-            $this->createStub(EventManager::class),
+            new MetricThresholds([], []),
             new Logger('test'),
             new CacheTypeResolver(),
             $sync,
@@ -408,7 +403,7 @@ final class ServerViewBuilderTest extends TestCase
         $builder = new ServerViewBuilder(
             $this->createStub(ServerMonitor::class),
             $this->logSizeEvaluator(),
-            $this->createStub(EventManager::class),
+            new MetricThresholds([], []),
             new Logger('test'),
             new CacheTypeResolver(),
             $sync,
@@ -430,7 +425,7 @@ final class ServerViewBuilderTest extends TestCase
         $builder = new ServerViewBuilder(
             $this->createStub(ServerMonitor::class),
             $this->logSizeEvaluator(),
-            $this->createStub(EventManager::class),
+            new MetricThresholds([], []),
             new Logger('test'),
             new CacheTypeResolver(),
         );
@@ -446,7 +441,7 @@ final class ServerViewBuilderTest extends TestCase
         return new ServerViewBuilder(
             $this->createStub(ServerMonitor::class),
             $this->logSizeEvaluator(),
-            $this->createStub(EventManager::class),
+            new MetricThresholds([], []),
             new Logger('test'),
             new CacheTypeResolver(),
         );
@@ -454,10 +449,7 @@ final class ServerViewBuilderTest extends TestCase
 
     private function logSizeEvaluator(): LogSizeEvaluator
     {
-        $events = $this->createStub(EventManager::class);
-        $events->method('getServerDataThresholdLevel')->willReturn('good');
-
-        return new LogSizeEvaluator(new Tools('/tmp'), $events);
+        return new LogSizeEvaluator(new Tools('/tmp'), new MetricThresholds(['log_filesize_kb' => ['good' => -1]], []));
     }
 
     /** @return array<string,mixed> */

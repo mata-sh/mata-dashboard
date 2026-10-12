@@ -14,6 +14,7 @@ use Mata\Services\Cache\FileCacheStore;
 use Mata\Services\Collect\NodeApiClient;
 use Mata\Services\Collect\NodeResponseNormalizer;
 use Mata\Services\Collect\ServerDataCollector;
+use Mata\Services\Monitor\MetricThresholds;
 use Mata\Services\Monitor\ServerMetricsHealthMonitor;
 use Mata\Services\Monitor\ServerMonitor;
 use Mata\Utils\TypeConverter;
@@ -51,7 +52,7 @@ try {
     $ttlResolver = new CacheTtlResolver($monitoringConfig->ttl);
     $responseNormalizer = new NodeResponseNormalizer($log);
     $repository = new ServerMetricsRepository($db, $idResolver, $configSyncRepository);
-    $serverMonitor = new ServerMonitor($log, $eventManager);
+    $serverMonitor = new ServerMonitor($log, $eventManager, MetricThresholds::fromConfig($monitoringConfig->thresholds));
 
     $ingestionHealth = $dataRetentionConfig->ingestionHealth;
     $stallThresholdMinutes = $ingestionHealth['stall_minutes'];

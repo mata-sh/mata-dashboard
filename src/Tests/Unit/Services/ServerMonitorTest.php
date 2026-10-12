@@ -10,8 +10,8 @@ use Mata\Services\Cache\CacheType;
 use Mata\Services\Collect\ServerDataCollectorInterface;
 use Mata\Services\Event\Dto\EventCommand;
 use Mata\Services\Event\EventManager;
+use Mata\Services\Monitor\MetricThresholds;
 use Mata\Services\Monitor\ServerMonitor;
-use Mata\Tests\Helpers\MonitoringConfigFactory;
 use Mata\Tests\TestCase;
 use Monolog\Handler\NullHandler;
 use Monolog\Logger;
@@ -34,10 +34,19 @@ final class ServerMonitorTest extends TestCase
         $this->eventManager = $this->createStub(EventManager::class);
         $logger = new Logger('test');
         $logger->pushHandler(new NullHandler());
-        $this->monitor = new ServerMonitor(
-            $logger,
-            $this->eventManager,
-        );
+        $this->monitor = new ServerMonitor($logger, $this->eventManager, self::thresholds());
+    }
+
+    /** Limits the inputs below cross deliberately; thresholds.json defaults have no RAM limit. */
+    private static function thresholds(): MetricThresholds
+    {
+        return new MetricThresholds([
+            'cpu_usage' => ['warning' => 70, 'alarm' => 95],
+            'ram_usage_percent' => ['warning' => 70, 'alarm' => 90],
+            'total_system_filecount' => ['alarm' => 900000],
+            'disk_space_usage_percent' => ['alarm' => 90],
+            'cronjobs_failed_count' => ['good' => -1, 'alarm' => 0],
+        ], []);
     }
 
     private function useMockEventManager(): void
@@ -45,7 +54,7 @@ final class ServerMonitorTest extends TestCase
         $this->eventManager = $this->createMock(EventManager::class);
         $logger = new Logger('test');
         $logger->pushHandler(new NullHandler());
-        $this->monitor = new ServerMonitor($logger, $this->eventManager);
+        $this->monitor = new ServerMonitor($logger, $this->eventManager, self::thresholds());
     }
 
     public function testCollectServerHealthDataReturnsStructuredPayload(): void
@@ -70,11 +79,6 @@ final class ServerMonitorTest extends TestCase
 
         $this->useMockEventManager();
 
-        $this->eventManager
-            ->expects($this->exactly(4))
-            ->method('getServerDataThresholdLevel')
-            ->willReturn('')
-        ;
 
         $this->eventManager
             ->expects($this->never())
@@ -106,11 +110,6 @@ final class ServerMonitorTest extends TestCase
 
         $this->useMockEventManager();
 
-        $this->eventManager
-            ->expects($this->exactly(4))
-            ->method('getServerDataThresholdLevel')
-            ->willReturnOnConsecutiveCalls('', '', 'alarm', '')
-        ;
 
         $this->eventManager
             ->expects($this->once())
@@ -146,18 +145,7 @@ final class ServerMonitorTest extends TestCase
 
         $this->useMockEventManager();
 
-        $this->eventManager
-            ->expects($this->exactly(4))
-            ->method('getServerDataThresholdLevel')
-            ->willReturnOnConsecutiveCalls('', '', '', 'alarm')
-        ;
 
-        $this->eventManager
-            ->expects($this->once())
-            ->method('getServerDataThresholdLimit')
-            ->with('disk_space_usage_percent')
-            ->willReturn(90)
-        ;
 
         $this->eventManager
             ->expects($this->once())
@@ -191,11 +179,6 @@ final class ServerMonitorTest extends TestCase
         ]);
 
         $this->useMockEventManager();
-        $this->eventManager
-            ->expects($this->exactly(5))
-            ->method('getServerDataThresholdLevel')
-            ->willReturnOnConsecutiveCalls('', '', '', '', 'good')
-        ;
         $this->eventManager->expects($this->never())->method('handle');
 
         $payload = $this->monitor->collectServerHealthData($collector, 'cron-server');
@@ -217,17 +200,6 @@ final class ServerMonitorTest extends TestCase
         ]);
 
         $this->useMockEventManager();
-        $this->eventManager
-            ->expects($this->exactly(5))
-            ->method('getServerDataThresholdLevel')
-            ->willReturnOnConsecutiveCalls('', '', '', '', 'alarm')
-        ;
-        $this->eventManager
-            ->expects($this->once())
-            ->method('getServerDataThresholdLimit')
-            ->with('cronjobs_failed_count')
-            ->willReturn(0)
-        ;
         $this->eventManager
             ->expects($this->once())
             ->method('handle')
@@ -262,11 +234,6 @@ final class ServerMonitorTest extends TestCase
         ]);
 
         $this->useMockEventManager();
-        $this->eventManager
-            ->expects($this->exactly(4))
-            ->method('getServerDataThresholdLevel')
-            ->willReturnOnConsecutiveCalls('alarm', 'alarm', '', '')
-        ;
 
         $events = [];
         $this->eventManager
@@ -302,11 +269,6 @@ final class ServerMonitorTest extends TestCase
         ]);
 
         $this->useMockEventManager();
-        $this->eventManager
-            ->expects($this->exactly(4))
-            ->method('getServerDataThresholdLevel')
-            ->willReturnOnConsecutiveCalls('warning', 'critical', '', '')
-        ;
         $this->eventManager->expects($this->never())->method('handle');
 
         $this->monitor->collectServerHealthData($collector, 'usage-server');
@@ -334,14 +296,13 @@ final class ServerMonitorTest extends TestCase
 
         $events = [];
         $eventManager = $this->createPartialMock(EventManager::class, ['handle']);
-        $eventManager->setMonitoringConfig(MonitoringConfigFactory::create(thresholds: ThresholdsConfig::default()));
         $eventManager->expects($this->exactly(count($expectedEvents)))->method('handle')->willReturnCallback(static function (EventCommand $event) use (&$events): array {
             $events[] = $event->type;
 
             return ['eventRecorded' => true, 'eventId' => 1];
         });
 
-        (new ServerMonitor(new Logger('test', [new NullHandler()]), $eventManager))->evaluateDatabaseOverview($collector, 'db-server');
+        (new ServerMonitor(new Logger('test', [new NullHandler()]), $eventManager, MetricThresholds::fromConfig(ThresholdsConfig::default())))->evaluateDatabaseOverview($collector, 'db-server');
 
         $this->assertSame($expectedEvents, $events);
     }

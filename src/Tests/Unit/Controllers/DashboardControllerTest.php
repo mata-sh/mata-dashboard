@@ -31,6 +31,7 @@ use Mata\Services\Monitor\Dto\AppReachabilityPolicy;
 use Mata\Services\Monitor\Dto\ServerMonitoringResult;
 use Mata\Services\Monitor\HttpProbeClient;
 use Mata\Services\Monitor\LogSizeEvaluator;
+use Mata\Services\Monitor\MetricThresholds;
 use Mata\Services\Monitor\ServerMonitoringFactory;
 use Mata\Services\Navigation\MenuBuilder;
 use Mata\Services\Notification\SystemNotificationManager;
@@ -876,7 +877,7 @@ class DashboardControllerTest extends TestCase
             AppReachabilityPolicy::fromMonitoringConfig($monitoringConfig),
             new ServerApplicationIdResolver(),
             new AppFatalStateRepository($this->createStub(DatabaseInterface::class)),
-            new LogSizeEvaluator($this->tools, $this->eventManager),
+            new LogSizeEvaluator($this->tools, MetricThresholds::fromConfig($monitoringConfig->thresholds)),
         );
         $monitoringResult ??= $factory->createDemoAll($monitoringConfig->servers->values);
 

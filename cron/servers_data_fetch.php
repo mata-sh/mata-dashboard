@@ -14,6 +14,7 @@ use Mata\Services\Cron\ServerDataFetchStats;
 use Mata\Services\Monitor\Dto\AppReachabilityPolicy;
 use Mata\Services\Monitor\HttpProbeClient;
 use Mata\Services\Monitor\LogSizeEvaluator;
+use Mata\Services\Monitor\MetricThresholds;
 use Mata\Services\Monitor\ServerMonitoringFactory;
 use Mata\Services\Monitor\UsersFileMonitor;
 use Mata\Services\Sync\AppInventorySync;
@@ -47,7 +48,7 @@ try {
     $appInventorySync = new AppInventorySync($configSyncRepository, $idResolver, $log);
     $cacheStore = new FileCacheStore($log, $paths->tempPath . '/api-cache');
     $ttlResolver = new CacheTtlResolver($monitoringConfig->ttl);
-    $eventMonitor = new LogSizeEvaluator($tools, $eventManager);
+    $eventMonitor = new LogSizeEvaluator($tools, MetricThresholds::fromConfig($monitoringConfig->thresholds));
     $serverMonitoringFactory = new ServerMonitoringFactory(
         $log,
         $cacheStore,

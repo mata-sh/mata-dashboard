@@ -25,13 +25,16 @@ class ServerMonitor
 {
     private Logger $logger;
     private EventManager $eventManager;
+    private MetricThresholds $thresholds;
 
     public function __construct(
         Logger $logger,
         EventManager $eventManager,
+        MetricThresholds $thresholds,
     ) {
         $this->logger = $logger;
         $this->eventManager = $eventManager;
+        $this->thresholds = $thresholds;
     }
 
     /**
@@ -77,11 +80,11 @@ class ServerMonitor
             ? ((int) ($serverData['ram_used'] ?? 0) / $ramCapacity * 100)
             : 0;
 
-        $cpuUsageLevel = $this->eventManager->getServerDataThresholdLevel(
+        $cpuUsageLevel = $this->thresholds->serverLevel(
             (int) ($serverData['cpu_usage'] ?? 0),
             'cpu_usage'
         );
-        $ramUsageLevel = $this->eventManager->getServerDataThresholdLevel(
+        $ramUsageLevel = $this->thresholds->serverLevel(
             (int) $ramUsagePercent,
             'ram_usage_percent'
         );
@@ -90,7 +93,7 @@ class ServerMonitor
         $this->evaluateRamUsageAlarm((int) $ramUsagePercent, $ramUsageLevel, $server);
 
         // Evaluate file count thresholds
-        $filecountLevel = $this->eventManager->getServerDataThresholdLevel(
+        $filecountLevel = $this->thresholds->serverLevel(
             (int) $serverData['total_system_filecount'],
             'total_system_filecount'
         );
@@ -98,7 +101,7 @@ class ServerMonitor
         $this->evaluateFilecountAlarm($serverData, $filecountLevel, $server);
 
         // Evaluate disk usage thresholds
-        $diskUsageLevel = $this->eventManager->getServerDataThresholdLevel(
+        $diskUsageLevel = $this->thresholds->serverLevel(
             (int) $diskSpaceUsed,
             'disk_space_usage_percent'
         );
@@ -157,7 +160,7 @@ class ServerMonitor
         $connections = (int) $status['connections'];
         $maxConnections = (int) $status['max_connections'];
         $percent = (int) ($connections / $maxConnections * 100);
-        if ($this->eventManager->getServerDataThresholdLevel($percent, 'database_connections_percent') !== 'alarm') {
+        if ($this->thresholds->serverLevel($percent, 'database_connections_percent') !== 'alarm') {
             return;
         }
 
@@ -169,7 +172,7 @@ class ServerMonitor
             metric: new EventMetric(
                 'database_connections_percent',
                 $percent,
-                $this->eventManager->getServerDataThresholdLimit('database_connections_percent'),
+                $this->thresholds->serverLimit('database_connections_percent'),
                 ['connections' => $connections, 'max_connections' => $maxConnections]
             )
         ));
@@ -221,7 +224,7 @@ class ServerMonitor
         }
 
         $failed = $total - $working;
-        $level = $this->eventManager->getServerDataThresholdLevel($failed, 'cronjobs_failed_count');
+        $level = $this->thresholds->serverLevel($failed, 'cronjobs_failed_count');
         $this->evaluateCronjobAlarm($failed, $total, $stale, $missing, $level, $server);
 
         $tooltip = "<strong>Working:</strong> {$working}";
@@ -297,7 +300,7 @@ class ServerMonitor
             metric: new EventMetric(
                 'cronjobs_failed_count',
                 $failed,
-                $this->eventManager->getServerDataThresholdLimit('cronjobs_failed_count'),
+                $this->thresholds->serverLimit('cronjobs_failed_count'),
                 ['total' => $total, 'stale' => $stale, 'missing' => $missing]
             )
         ));
@@ -346,7 +349,7 @@ class ServerMonitor
             metric: new EventMetric(
                 'disk_space_usage_percent',
                 round($diskSpaceUsed, 2),
-                $this->eventManager->getServerDataThresholdLimit('disk_space_usage_percent')
+                $this->thresholds->serverLimit('disk_space_usage_percent')
             )
         ));
     }

@@ -56,6 +56,7 @@ use Mata\Services\Identity\ServerApplicationIdResolver;
 use Mata\Services\Monitor\Dto\AppReachabilityPolicy;
 use Mata\Services\Monitor\HttpProbeClient;
 use Mata\Services\Monitor\LogSizeEvaluator;
+use Mata\Services\Monitor\MetricThresholds;
 use Mata\Services\Monitor\ServerMonitoringFactory;
 use Mata\Services\Navigation\MenuBuilder;
 use Mata\Services\Notification\SystemNotificationManager;
@@ -311,7 +312,8 @@ $eventManager = new EventManager($appConfig, eventRecorder: $eventRecorder, logg
 
 // --- Limits & Locking ---
 $queueFailureThrottle = new AlarmQueueFailureThrottle($paths->tempPath . '/alarm-locks', $log);
-$loadedLimits = (new AlarmRateLimitsConfigLoader())->load($paths->configPath);
+$limitsConfigLoader = new AlarmRateLimitsConfigLoader();
+$loadedLimits = $limitsConfigLoader->load($paths->configPath);
 $eventManager->recordConfigProblems($loadedLimits->problems);
 $limitsConfig = $loadedLimits->section;
 
@@ -395,7 +397,7 @@ $serverMonitoringFactory = new ServerMonitoringFactory(
     $monitoringPolicy,
     $idResolver,
     $fatalStateRepository,
-    new LogSizeEvaluator($tools, $eventManager),
+    new LogSizeEvaluator($tools, MetricThresholds::fromConfig($monitoringConfig->thresholds)),
     $appConfig->demo,
 );
 

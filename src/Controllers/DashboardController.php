@@ -26,6 +26,7 @@ use Mata\Services\Event\EventManager;
 use Mata\Services\Monitor\Dto\ServerMonitoringResult;
 use Mata\Services\Monitor\Dto\ServerMonitoringServices;
 use Mata\Services\Monitor\LogSizeEvaluator;
+use Mata\Services\Monitor\MetricThresholds;
 use Mata\Services\Monitor\ServerMonitor;
 use Mata\Services\Navigation\AlarmNotificationCenter;
 use Mata\Services\Navigation\MenuBuilder;
@@ -152,12 +153,13 @@ class DashboardController extends BaseController
         $this->librariesViewBuilder = new LibrariesViewBuilder($logger, $auditRowEnricher);
 
         // Initialize Monitoring service classes
-        $this->serverMonitor = new ServerMonitor($logger, $eventManager);
+        $thresholds = MetricThresholds::fromConfig($monitoringConfig->thresholds);
+        $this->serverMonitor = new ServerMonitor($logger, $eventManager, $thresholds);
         $cacheTypeResolver = new CacheTypeResolver();
         $this->serverViewBuilder = new ServerViewBuilder(
             $this->serverMonitor,
-            new LogSizeEvaluator($tools, $eventManager),
-            $eventManager,
+            new LogSizeEvaluator($tools, $thresholds),
+            $thresholds,
             $logger,
             $cacheTypeResolver,
             $appInventorySync

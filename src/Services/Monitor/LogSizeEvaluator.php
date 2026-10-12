@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Mata\Services\Monitor;
 
-use Mata\Services\Event\EventManager;
 use Mata\Services\Monitor\Dto\LogSizeEvaluation;
 use Mata\Utils\Tools;
 
@@ -12,7 +11,7 @@ final class LogSizeEvaluator
 {
     public function __construct(
         private Tools $tools,
-        private EventManager $eventManager,
+        private MetricThresholds $thresholds,
     ) {}
 
     /** @param array<string,int> $logs */
@@ -34,7 +33,7 @@ final class LogSizeEvaluator
             maxSize: $maxSize,
             maxSizeFormatted: $this->tools->formatKilobytes($maxSize),
             maxPath: $maxPath,
-            level: $this->eventManager->getServerDataThresholdLevel($maxSize, 'log_filesize_kb'),
+            level: $this->thresholds->serverLevel($maxSize, 'log_filesize_kb'),
             firstLog: $firstLog,
             files: $logs,
         );
