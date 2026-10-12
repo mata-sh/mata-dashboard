@@ -78,7 +78,9 @@ make db-backup MODE=docker ENV="$ENV_NAME"
 ```
 
 Cron logs are under `logs/cron/`. Metrics ingestion health is in
-`logs/health/collect_server_metrics_health.log`.
+`logs/health/collect_server_metrics_health.log`. Ports, mounts, the cron
+schedule, and troubleshooting are in the [Docker deployment](../reference/docker.md)
+reference.
 
 ## Add a node
 

@@ -48,6 +48,7 @@ nav:
 
   - Reference:
       - Alarm decision and delivery flow: reference/alarms.md
+      - Docker deployment: reference/docker.md
 
   - Architecture:
       - Overview: architecture/overview.md

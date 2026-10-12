@@ -2,7 +2,7 @@ name: Deploy Docs
 on:
   push:
     branches: [ main ]
-    paths: [ 'mkdocs.yml', 'docs/**', 'scripts/docs/**' ]
+    paths: [ 'mkdocs.yml', 'docs/**', 'scripts/docs/**', 'docker/cron/crontab' ]
   workflow_dispatch:
 jobs:
   build-deploy:
