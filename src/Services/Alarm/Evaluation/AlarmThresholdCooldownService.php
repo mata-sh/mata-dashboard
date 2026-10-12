@@ -5,7 +5,8 @@ declare(strict_types=1);
 namespace Mata\Services\Alarm\Evaluation;
 
 use Mata\Config\Dto\ApplicationConfig;
-use Mata\Config\Monitoring\MonitoringConfig;
+use Mata\Config\Monitoring\Section\IntervalsConfig;
+use Mata\Config\Monitoring\Section\ThresholdsConfig;
 use Mata\Services\Alarm\Evaluation\Dto\AlarmRule;
 use Mata\Services\Alarm\Evaluation\Dto\AlarmThresholdEvaluation;
 use Mata\Services\Event\CooldownHashFactory;
@@ -79,17 +80,23 @@ class AlarmThresholdCooldownService
         $this->cooldownHashFactory = $cooldownHashFactory ?? new CooldownHashFactory();
     }
 
-    /** Configure alarm thresholds and intervals from loaded monitoring configuration. */
-    public function setMonitoringConfig(MonitoringConfig $monitoringConfig): self
+    /** Set the alarm rules from thresholds.json, per event type. */
+    public function setAlarmRules(ThresholdsConfig $thresholds): self
     {
-        $rules = $monitoringConfig->thresholds->alarmRules;
         $this->alarmRules = [];
-        foreach ($rules as $type => $rule) {
+        foreach ($thresholds->alarmRules as $type => $rule) {
             $this->alarmRules[(string) $type] = is_array($rule)
                 ? AlarmRule::fromArray($rule)
                 : AlarmRule::invalid();
         }
-        $this->alarmIntervals = $monitoringConfig->intervals->alarmMinimumMinutes;
+
+        return $this;
+    }
+
+    /** Set the minimum minutes between repeated alarms, per event type. */
+    public function setAlarmIntervals(IntervalsConfig $intervals): self
+    {
+        $this->alarmIntervals = $intervals->alarmMinimumMinutes;
 
         return $this;
     }

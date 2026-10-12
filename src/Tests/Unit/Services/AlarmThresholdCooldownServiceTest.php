@@ -23,7 +23,6 @@ use Mata\Services\Alarm\Evaluation\AlarmThresholdCooldownService;
 use Mata\Services\Event\Dto\EventContext;
 use Mata\Services\Event\EventAggregatorServiceInterface;
 use Mata\Services\Event\EventRecorderService;
-use Mata\Tests\Helpers\MonitoringConfigFactory;
 use Mata\Tests\TestCase;
 
 /**
@@ -75,11 +74,11 @@ final class AlarmThresholdCooldownServiceTest extends TestCase
             $this->createStub(EventAggregatorServiceInterface::class),
             $this->createStub(EventRecorderService::class),
             $this->config(),
-        ))->setMonitoringConfig(MonitoringConfigFactory::create(thresholds: new ThresholdsConfig(
+        ))->setAlarmRules(new ThresholdsConfig(
             serverData: [],
             appData: [],
             alarmRules: ['app_unreachable' => ['strategy' => 'consecutive_failures', 'required_count' => 2, 'window_minutes' => 10]],
-        )));
+        ));
         $first = EventContext::fromArray(['identifier' => 'one', 'additional_data' => [
             'consecutive_failures' => 1, 'first_failure_at' => gmdate(DATE_ATOM),
         ]]);
@@ -102,11 +101,11 @@ final class AlarmThresholdCooldownServiceTest extends TestCase
             $this->createStub(EventAggregatorServiceInterface::class),
             $this->createStub(EventRecorderService::class),
             $this->config(),
-        ))->setMonitoringConfig(MonitoringConfigFactory::create(thresholds: new ThresholdsConfig(
+        ))->setAlarmRules(new ThresholdsConfig(
             serverData: [],
             appData: [],
             alarmRules: ['app_unreachable' => ['enabled' => false]],
-        )));
+        ));
 
         $evaluation = $service->evaluateAlarmForEvent('app_unreachable', 'server', 'app');
 

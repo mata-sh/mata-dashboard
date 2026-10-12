@@ -315,10 +315,10 @@ $queueFailureThrottle = new AlarmQueueFailureThrottle($paths->tempPath . '/alarm
 $limitsConfigLoader = new AlarmRateLimitsConfigLoader();
 $loadedLimits = $limitsConfigLoader->load($paths->configPath);
 $eventManager->recordConfigProblems($loadedLimits->problems);
-$limitsConfig = $loadedLimits->section;
+$alarmRateLimits = $loadedLimits->section;
 
 // --- Alarm Manager ---
-$alarmDirectProcessor = new AlarmDirectProcessor($alarmCreator, $limitsConfig, $queueFailureThrottle, $log);
+$alarmDirectProcessor = new AlarmDirectProcessor($alarmCreator, $alarmRateLimits, $queueFailureThrottle, $log);
 $eventManager->setAlarmDirectProcessor($alarmDirectProcessor);
 
 // --- Event Aggregation ---
@@ -348,10 +348,7 @@ $monitoringConfigLoader = new MonitoringConfigLoader(
     probes: new ProbesConfigLoader(fallbackOnFailure: true),
     notificationRules: new NotificationRulesConfigLoader(fallbackOnFailure: true),
     thresholds: new ThresholdsConfigLoader(fallbackOnFailure: true),
-    menu: new MenuConfigLoader(
-        validKeys: MenuBuilder::MENU_KEYS,
-        fallbackOnFailure: true,
-    ),
+    menu: new MenuConfigLoader(validKeys: MenuBuilder::MENU_KEYS, fallbackOnFailure: true),
     charts: new ChartsConfigLoader(
         metricCatalog: $metricCatalog,
         queryPolicy: $metricQueryPolicy,
@@ -359,16 +356,16 @@ $monitoringConfigLoader = new MonitoringConfigLoader(
     ),
 );
 
-$configPath = $paths->configPath;
+// load() returns the config plus occured problems.
 $log->info("Loading monitoring configuration for environment: {$environment}");
-$loadedMonitoringConfig = $monitoringConfigLoader->load($configPath, $limitsConfig);
-$eventManager->recordConfigProblems($loadedMonitoringConfig->problems);
-$monitoringConfig = $loadedMonitoringConfig->section;
-$eventManager->setMonitoringConfig($monitoringConfig);
+$monitoringConfigResult = $monitoringConfigLoader->load($paths->configPath, $alarmRateLimits);
+$eventManager->recordConfigProblems($monitoringConfigResult->problems);
+$monitoringConfig = $monitoringConfigResult->section;
+$eventManager->setEventIntervals($monitoringConfig->intervals);
 
 // Persist servers.json before server IDs are resolved from the database. Web only: cron reads what this wrote.
 $serverConfigSync = new ServerConfigDatabaseSync($db, $log, $eventManager, $configSyncRepository);
-$serverConfigSync->syncIfNeeded($configPath . '/servers.json', $monitoringConfig->servers->values);
+$serverConfigSync->syncIfNeeded($paths->configPath . '/servers.json', $monitoringConfig->servers->values);
 $idResolver->refreshFromRepository($monitoringConfig->servers->values);
 
 $serversConfig = $monitoringConfig->servers->values;

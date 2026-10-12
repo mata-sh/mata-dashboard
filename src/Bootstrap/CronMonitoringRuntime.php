@@ -83,12 +83,12 @@ final readonly class CronMonitoringRuntime
         $queueFailureThrottle = new AlarmQueueFailureThrottle($paths->tempPath . '/alarm-locks', $log);
         $loadedLimits = (new AlarmRateLimitsConfigLoader())->load($paths->configPath);
         $eventManager->recordConfigProblems($loadedLimits->problems);
-        $alarmLimits = $loadedLimits->section;
+        $alarmRateLimits = $loadedLimits->section;
 
         // Direct alarm processing
         $alarmDirectProcessor = new AlarmDirectProcessor(
             $alarmCreator,
-            $alarmLimits,
+            $alarmRateLimits,
             $queueFailureThrottle,
             $log,
         );
@@ -117,21 +117,23 @@ final readonly class CronMonitoringRuntime
         );
 
         try {
-            $loadedMonitoringConfig = $monitoringConfigLoader->load($paths->configPath, $alarmLimits);
+            $monitoringConfigResult = $monitoringConfigLoader->load($paths->configPath, $alarmRateLimits);
         } catch (MonitoringConfigLoadException $exception) {
             $eventManager->recordConfigProblems($exception->problems);
 
             throw $exception;
         }
-        $eventManager->recordConfigProblems($loadedMonitoringConfig->problems);
-        $monitoringConfig = $loadedMonitoringConfig->section;
+        $eventManager->recordConfigProblems($monitoringConfigResult->problems);
+        $monitoringConfig = $monitoringConfigResult->section;
 
-        $eventManager->setMonitoringConfig($monitoringConfig);
+        $eventManager->setEventIntervals($monitoringConfig->intervals);
         $idResolver->refreshFromRepository($monitoringConfig->servers->values);
 
         // Alarm evaluation
         $alarmEvaluator = new AlarmThresholdCooldownService($eventAggregator, $eventRecorder, $appConfig);
-        $alarmEvaluator->setMonitoringConfig($monitoringConfig);
+        $alarmEvaluator
+            ->setAlarmRules($monitoringConfig->thresholds)
+            ->setAlarmIntervals($monitoringConfig->intervals);
 
         return new self(
             alarmRepository: $alarmRepository,
@@ -141,7 +143,7 @@ final readonly class CronMonitoringRuntime
             fatalStateRepository: $fatalStateRepository,
             eventRepository: $eventRepository,
             queueFailureThrottle: $queueFailureThrottle,
-            alarmRateLimits: $alarmLimits,
+            alarmRateLimits: $alarmRateLimits,
             alarmDirectProcessor: $alarmDirectProcessor,
             alarmEvaluator: $alarmEvaluator,
             idResolver: $idResolver,
