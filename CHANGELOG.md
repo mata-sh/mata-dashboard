@@ -7,35 +7,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - `DEMO_SEED` makes the generated demo data repeatable
-- A summary bar above the server grid counts servers and apps by state and totals what needs attention; click a count to show only those, or filter cards by server or application name.
-- Server cards reload from the cache every `DASHBOARD_AUTO_REFRESH_SECONDS` (default 60, `0` turns it off); viewers can pause it in the summary bar
-- In `demo`, `DEMO_LOGIN_USERNAME` and `DEMO_LOGIN_PASSWORD` show the public demo account on the login page and prefill the form
-- `config.example/AGENTS.md`: rules for coding agents that edit a config repository (validate after edits, keys only in `servers.secrets.json`, add servers with `make mata ARGS="server add …"`)
-- `bin/mata alarm test [channel]` replaces `scripts/alarm_channel_test.php`, and `bin/mata alarm explain [server]` shows the stored decision trace of recent events: outcome, policy and threshold gates, trigger evidence, channels
-- `bin/mata user list|create|passwd|unlock|delete`, `db status|migrate|rollback|check`, and `doctor`, all with `--json`. User commands accept `--password-stdin` or `--generate-password`; without a terminal, production changes need `--yes`. `make doctor` now also runs the application checks (database, migrations, OPA, users file, cron)
-- `bin/mata status [--json]` reports node health and cron jobs from the cron-warmed cache with Nagios exit codes (0 ok, 1 warning, 2 critical, 3 unknown); a stopped cron reports unknown, never ok
-- `bin/mata server add|list|test|remove` manage `servers.json` and `servers.secrets.json`: `add` generates the node key, prints the node's `config.env` lines, and tests `/health` plus a signed request; `test` explains 401/403/429/503 responses
-- `bin/mata config validate [file] [--json] [--path DIR]` checks every config file with the app's own loaders and exits `0` valid, `1` warnings, `2` when the app would ignore a file or drop a server. `bin/mata` is the new operator CLI for everything the application does; run it as the web server user, it refuses root. `make mata ARGS="…"` runs it as the right account, natively and in Docker; without `ARGS` it lists the commands
-- `make doctor` shows where `config/` points when it is a symlink, whether it is a Git repository, and whether `config/servers.secrets.json` exists. The new "Version your config" guide covers keeping `config/` in its own repository
+- A summary bar above the server grid counts servers and apps by state and filters the cards.
+- Server cards reload from the cache every `DASHBOARD_AUTO_REFRESH_SECONDS` (default 60).
+- In `demo`, `DEMO_LOGIN_USERNAME` and `DEMO_LOGIN_PASSWORD` prefill the login form.
+- `config.example/AGENTS.md` gives coding agents rules for editing a config repository.
+- `bin/mata alarm test [channel]` replaces `scripts/alarm_channel_test.php`; `bin/mata alarm explain [server]` shows recent alarm decisions.
+- `bin/mata user …`, `db …` and `doctor` commands, all with `--json`.
+- `bin/mata status` reports node health and cron jobs with Nagios exit codes.
+- `bin/mata server add|list|test|remove` manage `servers.json` and `servers.secrets.json`.
+- `bin/mata config validate` checks every config file with the app's own loaders.
+- `bin/mata` is the new operator CLI; `make mata ARGS="…"` runs it as the web server user.
+- `make doctor` shows where `config/` points and whether it is a Git repository.
 
 ### Changed
-- `make setup` runs without prompts when there is no terminal, so scripts and coding agents can install MATA: `WEBSERVER=htaccess|apache|nginx|caddy|none` answers the native webserver question, and `ADMIN_USER=<name>` creates an admin with a generated password printed once. Without a terminal, setup no longer tries to create a user unless `ADMIN_USER` is set, and Docker setup skips the user when the stack was not started. Commands that need a typed confirmation fail at once without a terminal and name the variable to pass instead; `make clean` accepts `ALLOW_DELETE="DELETE <env>"` and exits non-zero when cancelled. `NONINTERACTIVE=1` (or `CI=true`) does the same inside a pseudo-terminal, as some agents and CI runners use; interactive setup names it before the first prompt
-- Leaving the password prompt of `bin/mata user create` or `user passwd` empty generates a password and prints it once
-- Docker setup replaces the placeholder `MYSQL_ROOT_PASSWORD` and `DB_PASSWORD` with generated values, so production starts without editing them; values you set are kept. A new `.env` is created with mode `600`
-- `make db-migrate` runs `bin/mata db migrate` as the web server user instead of `scripts/database/migrate.php` as root in the container; Phinx no longer writes a temporary config file with the database password
+- `make setup` runs without prompts when there is no terminal, so scripts and coding agents can install MATA.
+- Docker setup replaces the placeholder `MYSQL_ROOT_PASSWORD` and `DB_PASSWORD` with generated values.
+- `make db-migrate` runs `bin/mata db migrate` as the web server user.
 - Documentation is published at https://docs.mata.sh
-- The demo shows a mostly healthy fleet with a single incident instead of every failure state at once, with every app reachable, and uses shorter app names so rows no longer truncate
-- The server grid adapts to the screen width: `DASHBOARD_SERVER_COLUMNS` is now a maximum (default 4) and `DASHBOARD_CONTAINER_WIDTH` defaults to 2560.
-- Node API keys move from `config/servers.json` to `config/servers.secrets.json`, keyed by the same server name, so `servers.json` holds no credentials. A server that still sets `api_key` in `servers.json` is rejected. **Action:** move every `api_key` to `config/servers.secrets.json` (see `config.example/servers.secrets.json.example`) and `chmod 600` it
-- The application repository ignores all of `config/`, so it can be its own Git repository or a symlink to one. Templates moved from `config/example/` to `config.example/`.
+- The demo shows a mostly healthy fleet with a single incident instead of every failure state at once.
+- The server grid adapts to the screen width: `DASHBOARD_SERVER_COLUMNS` is now a maximum (default 4).
+- Node API keys move from `config/servers.json` to `config/servers.secrets.json`.
+- The application repository ignores all of `config/`; templates moved to `config.example/`.
 - Config load events use one naming scheme: `<file>_config_invalid`
-- Server names in `servers.json` must start with a letter or digit and use only letters, digits, `.`, `_` and `-` (max 64), the same rule as `bin/mata server add`. Other names loaded but broke every per-server route; such a server is now dropped and reported. **Action:** rename any such server in `servers.json`, `servers.secrets.json` and the node's `DASHBOARD_SERVER_ID`
-- An empty `config/probes.json` (`{}`) means the built-in probe defaults, like the other optional config files, and is no longer reported as a config problem
-- The development container no longer changes the owner or mode of `config/` on start. **Action:** if Git reports dubious ownership in `config/`, run `sudo chown -R "$(id -un)" config/` once
+- Server names in `servers.json` follow the `bin/mata server add` rule; other servers are dropped and reported.
+- An empty `config/probes.json` means the built-in probe defaults.
+- The development container no longer changes the owner or mode of `config/` on start.
 
 ### Removed
-- `config/phinx.php`, which `make db-migrate` never used. **Action:** run migrations with `make db-migrate` or `bin/mata db migrate` instead.
-- `make users-*`, `db-rollback`, `db-status`, `db-check`, and `db-hash-password`, and the scripts they ran: `scripts/user-management/manage-users.php`, `scripts/database/hash-password.php`, `scripts/database/migrate.php`, `scripts/database/database-integrity.php`, `scripts/alarm_channel_test.php`. Docker user commands no longer start a separate admin container; the web container sets up the `mata_users` volume on start. **Action:** use `bin/mata user …` and `bin/mata db …`, or `make mata ARGS="user create"` (`user list`, `db status`, …); rebuild the Docker image
+- `config/phinx.php`, which `make db-migrate` never used.
+- `make users-*`, `db-rollback`, `db-status`, `db-check`, `db-hash-password` and the scripts they ran; use `bin/mata user …` and `bin/mata db …`.
 
 ### Fixed
 - When the account may not use Docker, `make` says so and names the fix instead of reporting "Docker daemon is unavailable"
