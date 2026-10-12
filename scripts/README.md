@@ -8,7 +8,6 @@ Run `make help` for the mode-aware command list.
 ```text
 scripts/
 ├── database/
-│   ├── hash-password.php          # prompts for a password, prints its hash (make db-hash-password)
 │   └── mysql-operation.php        # backup, restore, shell (make db-backup|db-restore|db-shell)
 ├── docs/
 │   └── sync-node-docs.sh          # copies mata-node pages into docs/node/ (make docs-serve|docs-deploy)

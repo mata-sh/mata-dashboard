@@ -388,7 +388,6 @@ scripts/
 ├── server_metrics_diagnostic.php   # Ad-hoc metrics diagnostics
 ├── setup.sh                        # Environment setup
 ├── database/
-│   ├── hash-password.php        # Generate password hashes
 │   └── mysql-operation.php      # DB maintenance ops
 ├── systemd/                     # Unit/timer files (critical-alarm eval, OPA)
 └── docs/
@@ -424,7 +423,6 @@ docs/
   - `alarms_evaluate_critical.php`
 
 - **Utility scripts** (`scripts/`): kebab-case
-  - `hash-password.php`
   - `mysql-operation.php`
 
 ### Configuration Files
