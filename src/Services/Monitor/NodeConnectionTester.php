@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Mata\Services\Monitor;
 
-use GuzzleHttp\Exception\ConnectException;
-use GuzzleHttp\Exception\RequestException;
+use GuzzleHttp\Exception\BadResponseException;
+use GuzzleHttp\Exception\TransferException;
 use Mata\Services\Collect\NodeApiClient;
 use Mata\Services\Monitor\Dto\NodeConnectionResult;
 use Mata\Services\Monitor\Dto\NodeHealthResult;
@@ -54,12 +54,13 @@ final class NodeConnectionTester
                 suppressHttpWarning: true,
             );
             $client->get(self::AUTH_PATH);
-        } catch (ConnectException $exception) {
-            return new NodeConnectionResult($name, $apiUrl, $healthStatus, $healthError, 'failed', $exception->getMessage(), 'The node is not reachable from this host: check api_url, DNS, firewall and TLS.');
-        } catch (RequestException $exception) {
-            $code = $exception->getResponse()?->getStatusCode();
+        } catch (BadResponseException $exception) {
+            $code = $exception->getResponse()->getStatusCode();
 
             return new NodeConnectionResult($name, $apiUrl, $healthStatus, $healthError, 'failed', "HTTP {$code} from " . self::AUTH_PATH, $this->hintForStatus($name, $code));
+        } catch (TransferException $exception) {
+            // Covers ConnectException and response-less RequestException (e.g. certificate verification failures).
+            return new NodeConnectionResult($name, $apiUrl, $healthStatus, $healthError, 'failed', $exception->getMessage(), 'The node is not reachable from this host: check api_url, DNS, firewall and TLS.');
         } catch (Throwable $exception) {
             return new NodeConnectionResult($name, $apiUrl, $healthStatus, $healthError, 'failed', $exception->getMessage());
         }
@@ -67,7 +68,7 @@ final class NodeConnectionTester
         return new NodeConnectionResult($name, $apiUrl, $healthStatus, $healthError, 'ok');
     }
 
-    private function hintForStatus(string $name, ?int $code): ?string
+    private function hintForStatus(string $name, int $code): ?string
     {
         return match ($code) {
             401 => "The node rejected the signature: its DASHBOARD_SERVER_ID must be '{$name}' and its DASHBOARD_API_KEY must equal this server's api_key. Clocks must agree within the node's token window.",
