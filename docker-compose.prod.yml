@@ -10,6 +10,7 @@ services:
       args:
         PHP_VERSION: ${PHP_VERSION:-8.3}
         COMPOSER_VERSION: ${COMPOSER_VERSION:-2}
+        MATA_VERSION: ${MATA_VERSION:-}
     restart: always
 
     # Only mount persistent directories, not source code

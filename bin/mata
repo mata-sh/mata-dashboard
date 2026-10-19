@@ -29,6 +29,7 @@ use Mata\Config\Monitoring\ServersConfigEditor;
 use Mata\Config\Validation\InstanceConfigValidator;
 use Mata\Services\Monitor\HttpProbeClient;
 use Mata\Services\Monitor\NodeConnectionTester;
+use Mata\Utils\AppVersion;
 use Mata\Utils\PathResolver;
 use Symfony\Component\Console\Input\ArgvInput;
 
@@ -57,7 +58,7 @@ $cli = new CliConfig($paths);
 $serverFiles = new ServersConfigEditor($configPath);
 $connectionTester = new NodeConnectionTester(new HttpProbeClient(), NodeApiConfig::DEFAULT_TIMEOUT_SECONDS);
 
-$application = new CliApplication('mata', 'dashboard');
+$application = new CliApplication('mata dashboard', static fn (): ?string => AppVersion::detect($paths->appPath));
 $application->addCommands([
     new ConfigValidateCommand(new InstanceConfigValidator(), $configPath),
     new ServerListCommand($serverFiles),

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Mata\Cli;
 
+use Closure;
 use Mata\Services\Status\StatusLevel;
 use Symfony\Component\Console\Application;
 use Symfony\Component\Console\Command\Command;
@@ -20,6 +21,24 @@ use Throwable;
  */
 final class CliApplication extends Application
 {
+    private ?string $resolvedVersion = null;
+
+    /**
+     * Detecting the version can shell out to git, so it waits until --version or list shows it.
+     *
+     * @param Closure(): ?string $detectVersion
+     */
+    public function __construct(string $name, private readonly Closure $detectVersion)
+    {
+        parent::__construct($name);
+    }
+
+    public function getVersion(): string
+    {
+        // UNKNOWN is Symfony's "no version": the header then shows only the name.
+        return $this->resolvedVersion ??= ($this->detectVersion)() ?? 'UNKNOWN';
+    }
+
     public function doRun(InputInterface $input, OutputInterface $output): int
     {
         try {

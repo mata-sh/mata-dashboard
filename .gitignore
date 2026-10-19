@@ -18,6 +18,8 @@
 public/.htaccess
 cron/logrotate.shared-hosting.conf
 /git-history.html
+# stamped by Docker builds; checkouts read git tags
+/VERSION
 
 # folder
 .git/

@@ -49,6 +49,10 @@ COPY . .
 # Run post-install scripts if needed
 RUN composer dump-autoload --optimize --no-dev
 
+# The context has no .git, so make passes scripts/version.sh for bin/mata --version.
+ARG MATA_VERSION=
+RUN printf '%s\n' "$MATA_VERSION" > VERSION
+
 # ============================================================
 # Stage 2: Production Runtime - Clean, minimal image
 FROM php:${PHP_VERSION}-apache-trixie AS production
@@ -139,3 +143,5 @@ CMD ["sh", "-c", "install -d -o www-data -g www-data -m 0700 /var/lib/mata-dashb
 # Labels for image metadata
 LABEL maintainer="XarcDev (mata@xarc.dev | https://github.com/xarcdotdev)"
 LABEL description="MATA Dashboard - Application with Apache"
+ARG MATA_VERSION=
+LABEL org.opencontainers.image.version="${MATA_VERSION}"

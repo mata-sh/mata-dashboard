@@ -18,6 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `bin/mata metrics status` replaces `scripts/server_metrics_diagnostic.php`.
 - `bin/mata user …`, `db …` and `doctor` commands, all with `--json`.
 - `bin/mata status` reports node health and cron jobs with Nagios exit codes.
+- `bin/mata --version` shows the installed release, taken from git tags; Docker images built with `make` include it, also as the `org.opencontainers.image.version` label.
 - `bin/mata server add|list|test|remove` manage `servers.json` and `servers.secrets.json`.
 - `bin/mata config validate` checks every config file with the app's own loaders.
 - `bin/mata` is the new operator CLI; `make mata ARGS="…"` runs it as the web server user.

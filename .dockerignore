@@ -27,6 +27,9 @@ config
 .gitignore
 .gitmodules
 
+# Stamped from the MATA_VERSION build arg only
+VERSION
+
 # Apache .htaccess (not needed in Docker, uses vhost config)
 .htaccess
 public/.htaccess

@@ -27,9 +27,11 @@ SUDO := sudo$(if $(NONINTERACTIVE_ON), -n)
 comma := ,
 
 DOCKER_COMPOSE ?= docker compose
+# Stamped into prod images, whose build context has no .git.
+MATA_VERSION ?= $(shell sh scripts/version.sh)
 COMPOSE_ENV_FILES = --env-file config/db.config.env --env-file .env
 DEV_COMPOSE = APP_ENV=$(ENV) $(DOCKER_COMPOSE) $(COMPOSE_ENV_FILES) -f docker-compose.yml -f docker-compose.dev.yml
-PROD_COMPOSE = APP_ENV=$(ENV) $(DOCKER_COMPOSE) $(COMPOSE_ENV_FILES) -f docker-compose.yml -f docker-compose.prod.yml
+PROD_COMPOSE = APP_ENV=$(ENV) MATA_VERSION=$(MATA_VERSION) $(DOCKER_COMPOSE) $(COMPOSE_ENV_FILES) -f docker-compose.yml -f docker-compose.prod.yml
 SELECTED_COMPOSE = $(if $(filter prod,$(ENV)),$(PROD_COMPOSE),$(DEV_COMPOSE))
 
 # Reusable operational checks. MODE is selected, never auto-detected.
