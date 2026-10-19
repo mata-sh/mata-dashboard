@@ -131,5 +131,4 @@ final readonly class ChannelsConfig
 
         return new WebhookChannel($name, $url, $template, $params, $timeout);
     }
-
 }

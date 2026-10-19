@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Mata\Config\Monitoring\Section;
 
-use InvalidArgumentException;
 use Mata\Config\ConfigValueValidator;
 
 /** Retention, aggregation, pruning, and ingestion-health configuration. */
