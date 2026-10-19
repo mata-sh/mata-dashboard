@@ -526,11 +526,9 @@ if [ "$(MODE)" = "local" ]; then \
 else \
 	$(REQUIRE_DOCKER_MODE); $(REQUIRE_WEB_RUNNING); \
 	tty=-T; $(INTERACTIVE) && [ -t 1 ] && tty=; \
-	if [ "$${as_owner:-}" = yes ]; then \
-		$(SELECTED_COMPOSE) -f docker-compose.config-write.yml run --rm --no-deps $$tty -u "$$(id -u):$$(id -g)" mata-web php bin/mata $(1) $(MATA_NO_INTERACTION); \
-	else \
-		$(SELECTED_COMPOSE) exec $$tty -u www-data mata-web php bin/mata $(1) $(MATA_NO_INTERACTION); \
-	fi; \
+	how="exec -u www-data"; \
+	[ "$${as_owner:-}" = yes ] && how="-f docker-compose.config-write.yml run --rm --no-deps -u $$(id -u):$$(id -g)"; \
+	$(SELECTED_COMPOSE) $$how $$tty mata-web php bin/mata $(1) $(MATA_NO_INTERACTION); \
 fi
 endef
 
