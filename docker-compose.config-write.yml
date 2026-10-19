@@ -1,0 +1,7 @@
+# Writable config/ for one-off admin containers only: make mata runs `server add` and
+# `server remove` with `compose run --rm` and this file on top. The web container keeps the
+# read-only mount of docker-compose.prod.yml; `run -v` cannot override it, an extra file can.
+services:
+  mata-web:
+    volumes:
+      - ./config:/var/www/html/config

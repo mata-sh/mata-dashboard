@@ -509,8 +509,9 @@ endef
 MATA_NO_INTERACTION := $(if $(NONINTERACTIVE_ON),--no-interaction)
 
 # Operator CLI (bin/mata) as the account the app runs as: www-data in Docker, natively the owner
-# of logs/ (as for make logs). With as_owner=yes, as the owner of config/ instead. A terminal is
-# passed through so prompts work; pipes and scripts get none.
+# of logs/ (as for make logs). With as_owner=yes, as the owner of config/ instead; in Docker that
+# is a one-off container with config/ writable, since production mounts it read-only into the
+# web container. A terminal is passed through so prompts work; pipes and scripts get none.
 define RUN_MATA
 $(REQUIRE_SELECTION); \
 if [ "$(MODE)" = "local" ]; then \
@@ -524,15 +525,19 @@ if [ "$(MODE)" = "local" ]; then \
 	fi; \
 else \
 	$(REQUIRE_DOCKER_MODE); $(REQUIRE_WEB_RUNNING); \
-	user=www-data; [ "$${as_owner:-}" = yes ] && user="$$(id -u):$$(id -g)"; \
 	tty=-T; $(INTERACTIVE) && [ -t 1 ] && tty=; \
-	$(SELECTED_COMPOSE) exec $$tty -u "$$user" mata-web php bin/mata $(1) $(MATA_NO_INTERACTION); \
+	if [ "$${as_owner:-}" = yes ]; then \
+		$(SELECTED_COMPOSE) -f docker-compose.config-write.yml run --rm --no-deps $$tty -u "$$(id -u):$$(id -g)" mata-web php bin/mata $(1) $(MATA_NO_INTERACTION); \
+	else \
+		$(SELECTED_COMPOSE) exec $$tty -u www-data mata-web php bin/mata $(1) $(MATA_NO_INTERACTION); \
+	fi; \
 fi
 endef
 
 # Everything the application does is a bin/mata command; this runs one for the selected
 # installation, e.g. make mata ARGS="user create admin admin". Without ARGS it lists them.
-# server add/remove write config/, which the web server can only read: they run as its owner.
+# server add/remove write config/, which the web server can only read: they run as its owner,
+# in Docker in a one-off container (about a second longer; every other command uses exec).
 mata:
 	@set -- $(ARGS); \
 	case "$${1:-} $${2:-}" in \

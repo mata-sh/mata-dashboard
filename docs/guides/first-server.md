@@ -75,7 +75,10 @@ test fails and the command exits `1`; check again with
 
 !!! info "Who runs it"
     `server add` and `server remove` write `config/`, so run them as its owner
-    (your SSH account), not as the web server user; `make mata` does that. See [which account runs `bin/mata`](configuration.md#validate-changes).
+    (your SSH account), not as the web server user; `make mata` does that. In
+    Docker, production mounts `config/` read-only into the web container, so
+    `make mata` runs these two in a short-lived container with `config/`
+    writable instead. See [which account runs `bin/mata`](configuration.md#validate-changes).
 
 ### Editing the files by hand
 

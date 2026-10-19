@@ -16,17 +16,18 @@ in the dashboard's `config/servers.json`, with its key in `config/servers.secret
 ## Files
 
 ```text
-.env.example                 Docker and Compose settings
-config/*.env                 Application and database settings
-Dockerfile                   Production image
-Dockerfile.dev               Development image
-docker-compose.yml           Shared services
-docker-compose.dev.yml       Development override
-docker-compose.prod.yml      Production override
-docker/cron/crontab          Container crontab
-docker/apache/               Apache configuration
-docker/php/                  PHP configuration
-docker/mysql/                MySQL development initialization
+.env.example                     Docker and Compose settings
+config/*.env                     Application and database settings
+Dockerfile                       Production image
+Dockerfile.dev                   Development image
+docker-compose.yml               Shared services
+docker-compose.dev.yml           Development override
+docker-compose.prod.yml          Production override
+docker-compose.config-write.yml  Writable config/ for make mata server add/remove
+docker/cron/crontab              Container crontab
+docker/apache/                   Apache configuration
+docker/php/                      PHP configuration
+docker/mysql/                    MySQL development initialization
 ```
 
 ## Ports
