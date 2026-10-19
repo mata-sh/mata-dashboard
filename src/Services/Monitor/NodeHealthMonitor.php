@@ -88,9 +88,8 @@ class NodeHealthMonitor implements NodeHealthMonitorInterface
     private function probeHealthWithRetries(string $healthEndpointUrl, int $attempt): PromiseInterface
     {
         return $this->probeClient->probeNodeHealthAsync($healthEndpointUrl, $this->probePolicy->timeoutSeconds)->then(
-            function (array $health) use ($healthEndpointUrl, $attempt): NodeHealthResult|PromiseInterface {
-                $result = NodeHealthResult::fromArray($health);
-                $result = $result->withAttempts($attempt);
+            function (NodeHealthResult $health) use ($healthEndpointUrl, $attempt): NodeHealthResult|PromiseInterface {
+                $result = $health->withAttempts($attempt);
                 if ($attempt > $this->probePolicy->maxRetries || !$this->shouldRetry($result)) {
                     return $result;
                 }

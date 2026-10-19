@@ -8,9 +8,11 @@ use GuzzleHttp\Exception\ConnectException;
 use GuzzleHttp\Exception\RequestException;
 use Mata\Services\Collect\NodeApiClient;
 use Mata\Services\Monitor\Dto\NodeConnectionResult;
+use Mata\Services\Monitor\Dto\NodeHealthResult;
 use Mata\Utils\TypeConverter;
 use Psr\Log\NullLogger;
 use Throwable;
+use UnexpectedValueException;
 
 /**
  * Checks a configured server the way the dashboard talks to it: the unauthenticated /health
@@ -29,10 +31,13 @@ final class NodeConnectionTester
     /** @param array<string,mixed> $serverConfig servers.json entry */
     public function test(string $name, array $serverConfig, ?string $apiKey): NodeConnectionResult
     {
-        $apiUrl = is_string($serverConfig['api_url'] ?? null) ? $serverConfig['api_url'] : '';
+        $apiUrl = TypeConverter::toString($serverConfig['api_url'] ?? null) ?? '';
         $health = $this->probeClient->probeNodeHealthAsync(rtrim($apiUrl, '/') . '/health', $this->timeoutSeconds)->wait();
-        $healthStatus = is_array($health) && is_string($health['status'] ?? null) ? $health['status'] : 'unreachable';
-        $healthError = is_array($health) && is_string($health['error'] ?? null) ? $health['error'] : null;
+        if (!$health instanceof NodeHealthResult) {
+            throw new UnexpectedValueException('Node health probe returned an invalid result.');
+        }
+        $healthStatus = $health->status->value;
+        $healthError = $health->error;
 
         if ($apiKey === null || $apiKey === '') {
             return new NodeConnectionResult($name, $apiUrl, $healthStatus, $healthError, 'skipped', 'No api_key in servers.secrets.json');

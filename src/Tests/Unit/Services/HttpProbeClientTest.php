@@ -11,6 +11,7 @@ use GuzzleHttp\HandlerStack;
 use GuzzleHttp\Middleware;
 use GuzzleHttp\Psr7\Request;
 use GuzzleHttp\Psr7\Response;
+use Mata\Services\Monitor\Dto\NodeHealthState;
 use Mata\Services\Monitor\HttpProbeClient;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
@@ -161,9 +162,9 @@ final class HttpProbeClientTest extends TestCase
 
         $result = $probe->probeNodeHealthAsync('https://node.example.test/api/health', 3)->wait();
 
-        $this->assertSame('unreachable', $result['status']);
-        $this->assertSame('Health response is too large', $result['error']);
-        $this->assertIsInt($result['latency_ms']);
+        $this->assertSame(NodeHealthState::Unreachable, $result->status);
+        $this->assertSame('Health response is too large', $result->error);
+        $this->assertIsInt($result->latencyMs);
     }
 
     public function testHealthNormalizesHealthyUnhealthyAndMalformedResponses(): void
@@ -178,11 +179,11 @@ final class HttpProbeClientTest extends TestCase
         $unhealthy = $probe->probeNodeHealthAsync('https://node-b.example.test/api/health', 3)->wait();
         $malformed = $probe->probeNodeHealthAsync('https://node-c.example.test/api/health', 3)->wait();
 
-        $this->assertSame('healthy', $healthy['status']);
-        $this->assertSame('unhealthy', $unhealthy['status']);
-        $this->assertSame(503, $unhealthy['httpCode']);
-        $this->assertSame('unreachable', $malformed['status']);
-        $this->assertSame(200, $malformed['httpCode']);
+        $this->assertSame(NodeHealthState::Healthy, $healthy->status);
+        $this->assertSame(NodeHealthState::Unhealthy, $unhealthy->status);
+        $this->assertSame(503, $unhealthy->httpCode);
+        $this->assertSame(NodeHealthState::Unreachable, $malformed->status);
+        $this->assertSame(200, $malformed->httpCode);
     }
 
     /**

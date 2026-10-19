@@ -10,6 +10,7 @@ use GuzzleHttp\Exception\ConnectException;
 use GuzzleHttp\Exception\RequestException;
 use GuzzleHttp\Promise\PromiseInterface;
 use GuzzleHttp\Promise\Utils;
+use Mata\Services\Monitor\Dto\NodeHealthResult;
 use Psr\Http\Message\ResponseInterface;
 use RuntimeException;
 use Throwable;
@@ -78,7 +79,7 @@ class HttpProbeClient
         );
     }
 
-    /** Probe a node health endpoint and normalize its health payload. */
+    /** Probe a node health endpoint; the promise resolves to a NodeHealthResult and never rejects. */
     public function probeNodeHealthAsync(string $url, int $timeout): PromiseInterface
     {
         $startedAt = microtime(true);
@@ -89,8 +90,8 @@ class HttpProbeClient
             'http_errors' => false,
             'headers' => ['Accept' => 'application/json'],
         ])->then(
-            fn (ResponseInterface $response): array => $this->healthFromResponse($startedAt, $response, $timeout),
-            fn (mixed $reason): array => $this->healthFromFailure($reason, $timeout),
+            fn (ResponseInterface $response): NodeHealthResult => NodeHealthResult::fromArray($this->healthFromResponse($startedAt, $response, $timeout)),
+            fn (mixed $reason): NodeHealthResult => NodeHealthResult::fromArray($this->healthFromFailure($reason, $timeout)),
         );
     }
 
