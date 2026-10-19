@@ -59,7 +59,7 @@ final readonly class CronRuntime
         ini_set('display_errors', 0);
         ini_set('display_startup_errors', 0);
         ini_set('log_errors', 1);
-        ini_set('error_log', $paths->logsPath . '/cron/php-error.log');
+        ini_set('error_log', $paths->cronLogsPath . '/php-error.log');
 
         $tools = new Tools($paths->appPath);
         $jobName = CronJob::nameFromEntryPoint($entryPointFile);
@@ -69,11 +69,12 @@ final readonly class CronRuntime
 
         try {
             $configLoader = new EnvConfigLoader();
-            $appConfig = $configLoader->load([
-                'config.env',
-                'db.config.env',
-                'mail.config.env',
-            ], $paths->configPath);
+            $appConfig = $configLoader->load(EnvConfigLoader::INSTANCE_FILES, $paths->configPath);
+            $paths = $paths->withOverrides($appConfig->logging->path, $appConfig->environment->tempDir);
+            $paths->ensureLogsDirectory();
+            $paths->ensureTempDirectory();
+            $paths->ensureCronLogsDirectory();
+            ini_set('error_log', $paths->cronLogsPath . '/php-error.log');
             $log = $logConfigurator->createCronLogger($appConfig->logging, $paths, $jobName);
             (new MonologErrorHandler($log))
                 ->registerExceptionHandler(callPrevious: false)
@@ -103,7 +104,7 @@ final readonly class CronRuntime
             logger: $log,
             jobName: $jobName,
             lockDir: $paths->tempPath . '/',
-            heartbeatFile: "{$paths->logsPath}/cron/heartbeat-{$jobName}.jsonl",
+            heartbeatFile: "{$paths->cronLogsPath}/heartbeat-{$jobName}.jsonl",
         );
 
         return new self(

@@ -37,6 +37,9 @@ use Mata\Http\Security\IpRangeMatcher;
  */
 final class EnvConfigLoader
 {
+    /** The env files of an instance in config/; the first file that sets a variable wins. */
+    public const INSTANCE_FILES = ['config.env', 'db.config.env', 'mail.config.env'];
+
     /**
      * Load and parse configuration from multiple .env files.
      *
@@ -48,7 +51,7 @@ final class EnvConfigLoader
     public function load(array $envFiles, string $configPath): ApplicationConfig
     {
         foreach ($envFiles as $file) {
-            $fullPath = $configPath . DIRECTORY_SEPARATOR . $file;
+            $fullPath = $configPath . '/' . $file;
             if (file_exists($fullPath)) {
                 Dotenv::createImmutable($configPath, $file)->load();
             }

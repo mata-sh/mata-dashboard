@@ -108,7 +108,7 @@ final class SettingsRendererTest extends TestCase
         $mail = $this->createMailConfig("smtp://dev@xarc.dev:{$password}@mail.example.com:587");
 
         $method = new ReflectionMethod(SettingsRenderer::class, 'summarizeMailConfig');
-        $summary = $method->invoke($this->createRenderer('/tmp/mata-mail'), $mail);
+        $summary = $method->invoke($this->createRenderer(sys_get_temp_dir()), $mail);
 
         $this->assertTrue($summary['configured']);
         $this->assertSame('smtp', $summary['transport']['scheme']);
@@ -125,7 +125,7 @@ final class SettingsRendererTest extends TestCase
         $mail = $this->createMailConfig("sendgrid+api://{$apiKey}@default");
 
         $method = new ReflectionMethod(SettingsRenderer::class, 'summarizeMailConfig');
-        $summary = $method->invoke($this->createRenderer('/tmp/mata-mail'), $mail);
+        $summary = $method->invoke($this->createRenderer(sys_get_temp_dir()), $mail);
 
         $this->assertFalse($summary['transport']['has_password']);
         $this->assertSame('mnop', substr($summary['transport']['username'], -4));
@@ -135,7 +135,7 @@ final class SettingsRendererTest extends TestCase
     public function testReportsMissingMailTransport(): void
     {
         $method = new ReflectionMethod(SettingsRenderer::class, 'summarizeMailConfig');
-        $summary = $method->invoke($this->createRenderer('/tmp/mata-mail'), $this->createMailConfig(null));
+        $summary = $method->invoke($this->createRenderer(sys_get_temp_dir()), $this->createMailConfig(null));
 
         $this->assertTrue($summary['configured']);
         $this->assertFalse($summary['transport']['configured']);
@@ -144,7 +144,7 @@ final class SettingsRendererTest extends TestCase
     public function testFlattensIntervalsIncludingDisabledCooldowns(): void
     {
         $method = new ReflectionMethod(SettingsRenderer::class, 'summarizeIntervalsConfig');
-        $summary = $method->invoke($this->createRenderer('/tmp/mata-intervals'), [
+        $summary = $method->invoke($this->createRenderer(sys_get_temp_dir()), [
             'events' => ['min_event_interval_minutes' => ['_default' => 60, 'app_unreachable' => 0]],
             'alarms' => ['min_alarm_interval_minutes' => ['_default' => 1440]],
             'bogus' => 'not-an-array',
@@ -162,7 +162,7 @@ final class SettingsRendererTest extends TestCase
     public function testFormatsProbeValuesByUnitSuffix(): void
     {
         $method = new ReflectionMethod(SettingsRenderer::class, 'summarizeProbesConfig');
-        $summary = $method->invoke($this->createRenderer('/tmp/mata-probes'), [
+        $summary = $method->invoke($this->createRenderer(sys_get_temp_dir()), [
             'timeout_seconds' => 5,
             'backoff_base_ms' => 500,
             'max_retries' => 1,
@@ -185,7 +185,7 @@ final class SettingsRendererTest extends TestCase
         );
 
         $method = new ReflectionMethod(SettingsRenderer::class, 'summarizeAlarmLimits');
-        $summary = $method->invoke($this->createRenderer('/tmp/mata-limits'), $limits);
+        $summary = $method->invoke($this->createRenderer(sys_get_temp_dir()), $limits);
 
         $this->assertSame(['per_minute' => 20, 'per_hour' => 120, 'per_day' => 500], $summary['default']);
         $this->assertSame(['email', 'webhook'], array_column($summary['channels'], 'channel'));
@@ -196,7 +196,7 @@ final class SettingsRendererTest extends TestCase
     public function testSummarizesAbsentAlarmLimits(): void
     {
         $method = new ReflectionMethod(SettingsRenderer::class, 'summarizeAlarmLimits');
-        $summary = $method->invoke($this->createRenderer('/tmp/mata-limits'), null);
+        $summary = $method->invoke($this->createRenderer(sys_get_temp_dir()), null);
 
         $this->assertNull($summary['default']);
         $this->assertSame([], $summary['channels']);
@@ -219,11 +219,7 @@ final class SettingsRendererTest extends TestCase
 
     private function createRenderer(string $appPath): SettingsRenderer
     {
-        $paths = $this->createStub(PathResolver::class);
-        $paths->appPath = $appPath;
-        $paths->method('toRelativePath')->willReturnCallback(
-            static fn (string $path): string => str_replace($appPath . '/', '', $path)
-        );
+        $paths = PathResolver::fromAppPath($appPath);
 
         $app = new App($this->createStub(UserAuthenticator::class), ApplicationConfigFactory::create(), $paths, new Request());
 

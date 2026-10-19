@@ -24,8 +24,8 @@ final class FileStateStore
 
     public function __construct(string $directory, string $fileName, LoggerInterface $logger)
     {
-        $this->directory = rtrim($directory, DIRECTORY_SEPARATOR);
-        $this->filePath = $this->directory . DIRECTORY_SEPARATOR . $fileName;
+        $this->directory = rtrim($directory, '/');
+        $this->filePath = $this->directory . '/' . $fileName;
         $this->logger = $logger;
     }
 

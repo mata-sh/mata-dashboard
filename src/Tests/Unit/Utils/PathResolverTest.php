@@ -74,11 +74,11 @@ class PathResolverTest extends TestCase
         $this->assertEquals($expectedRootPath, $pathResolver->rootPath);
 
         // logsPath should be appPath/logs
-        $expectedLogsPath = $expectedAppPath . DIRECTORY_SEPARATOR . 'logs';
+        $expectedLogsPath = $expectedAppPath . '/logs';
         $this->assertEquals($expectedLogsPath, $pathResolver->logsPath);
 
         // tempPath should be appPath/temp
-        $expectedTempPath = $expectedAppPath . DIRECTORY_SEPARATOR . 'temp';
+        $expectedTempPath = $expectedAppPath . '/temp';
         $this->assertEquals($expectedTempPath, $pathResolver->tempPath);
     }
 
@@ -163,22 +163,6 @@ class PathResolverTest extends TestCase
      * @group pathresolver
      * @group path-normalization
      */
-    public function testItNormalizesPathSeparators(): void
-    {
-        $pathResolver = PathResolver::fromEntryPoint($this->testEntryFile);
-
-        // Test with Windows-style backslashes
-        $windowsPath = $pathResolver->appPath . '\config\database\mysql.env';
-        $relativePath = $pathResolver->toRelativePath($windowsPath);
-
-        // Should normalize to Unix separators
-        $this->assertEquals('config/database/mysql.env', $relativePath);
-    }
-
-    /**
-     * @group pathresolver
-     * @group path-normalization
-     */
     public function testItHandlesTrailingSlashesInAppPath(): void
     {
         $pathResolver = PathResolver::fromEntryPoint($this->testEntryFile);
@@ -249,16 +233,55 @@ class PathResolverTest extends TestCase
     }
 
     /**
+     * Web runs from public/ and cron from the crontab's working directory; a relative TEMP_DIR
+     * or LOG_PATH resolved against the cwd would split caches, locks and heartbeats between them.
+     *
      * @group pathresolver
-     * @group initialization
      */
-    public function testItUsesCorrectDirectorySeparator(): void
+    public function testOverridesResolveRelativeToTheAppPath(): void
     {
-        $pathResolver = PathResolver::fromEntryPoint($this->testEntryFile);
+        $base = PathResolver::fromEntryPoint($this->testEntryFile);
 
-        // Paths should use the system's directory separator
-        $this->assertStringContainsString(DIRECTORY_SEPARATOR, $pathResolver->logsPath);
-        $this->assertStringContainsString(DIRECTORY_SEPARATOR, $pathResolver->tempPath);
+        $paths = $base->withOverrides(' var/log/mata.log ', 'var/tmp');
+
+        $this->assertSame($base->appPath . '/var/log/mata.log', $paths->appLogPath);
+        $this->assertSame($base->appPath . '/var/log', $paths->logsPath);
+        $this->assertSame($base->appPath . '/var/tmp', $paths->tempPath);
+        $this->assertSame($base->bootLogPath, $paths->bootLogPath);
+
+        $absolute = $base->withOverrides('/srv/mata/app.log', '');
+
+        $this->assertSame('/srv/mata', $absolute->logsPath);
+        $this->assertSame($base->tempPath, $absolute->tempPath);
+    }
+
+    /**
+     * @group pathresolver
+     */
+    public function testEnsureDirectoriesCreateMissingOverrides(): void
+    {
+        $paths = PathResolver::fromEntryPoint($this->testEntryFile)->withOverrides('var/log/app.log', 'var/tmp');
+
+        $paths->ensureLogsDirectory();
+        $paths->ensureTempDirectory();
+
+        $this->assertDirectoryExists($paths->logsPath);
+        $this->assertDirectoryExists($paths->tempPath);
+    }
+
+    /**
+     * Without it, heartbeats are lost and the dashboard reports every cron job as not running.
+     *
+     * @group pathresolver
+     */
+    public function testEnsureCronLogsDirectoryCreatesItUnderTheOverriddenLogsPath(): void
+    {
+        $paths = PathResolver::fromEntryPoint($this->testEntryFile)->withOverrides('var/log/app.log', 'var/tmp');
+
+        $paths->ensureCronLogsDirectory();
+
+        $this->assertSame($paths->appPath . '/var/log/cron', $paths->cronLogsPath);
+        $this->assertDirectoryExists($paths->cronLogsPath);
     }
 
     /**
@@ -272,7 +295,7 @@ class PathResolverTest extends TestCase
         $pathResolver = PathResolver::fromAppPath(\dirname(__DIR__, 4));
 
         foreach (['config.env', 'db.config.env', 'mail.config.env', 'servers.json', 'servers.secrets.json'] as $file) {
-            $this->assertFileExists($pathResolver->configExamplePath . DIRECTORY_SEPARATOR . $file . '.example');
+            $this->assertFileExists($pathResolver->configExamplePath . '/' . $file . '.example');
         }
     }
 }

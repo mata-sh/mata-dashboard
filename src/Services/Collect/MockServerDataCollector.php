@@ -587,7 +587,7 @@ class MockServerDataCollector implements ServerDataCollectorInterface
             return $this->projectReadme === '' ? null : $this->projectReadme;
         }
 
-        $readmePath = dirname(__DIR__, 3) . DIRECTORY_SEPARATOR . 'README.md';
+        $readmePath = dirname(__DIR__, 3) . '/README.md';
         if (!is_readable($readmePath)) {
             $this->logger->warning('Demo README not available', ['path' => $readmePath]);
             $this->projectReadme = '';

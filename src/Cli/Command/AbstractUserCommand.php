@@ -78,7 +78,7 @@ abstract class AbstractUserCommand extends Command
     {
         try {
             $config = $this->cli->load();
-            $usersFile = UsersFilePathResolver::resolve($this->cli->paths);
+            $usersFile = UsersFilePathResolver::resolve($this->cli->paths());
         } catch (Throwable $exception) {
             return CliOutput::fail($input, $output, CliOutput::withWebUserHint("Cannot load the config: {$exception->getMessage()}"));
         }
@@ -98,7 +98,7 @@ abstract class AbstractUserCommand extends Command
         }
 
         $this->audit = new Logger('user-management-cli');
-        $handler = new StreamHandler($this->cli->paths->logsPath . '/user-management-audit.log', Level::Info);
+        $handler = new StreamHandler($this->cli->paths()->logsPath . '/user-management-audit.log', Level::Info);
         $handler->setFormatter(new LineFormatter("[%datetime%] %level_name%: %message% %context%\n", 'Y-m-d H:i:s', true, true));
         $this->audit->pushHandler($handler);
         $this->audit->pushProcessor($this->addAuditContext(...));

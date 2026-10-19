@@ -6,6 +6,7 @@ use Bramus\Router\Router;
 use Mata\Bootstrap\BrandingResolver;
 use Mata\Bootstrap\DatabaseBootstrap;
 use Mata\Config\EnvConfigFatalException;
+use Mata\Config\EnvConfigLoader;
 use Mata\Config\EnvConfigManager;
 use Mata\Config\LogConfigurator;
 use Mata\Config\Monitoring\Loader\AlarmRateLimitsConfigLoader;
@@ -122,11 +123,7 @@ try {
     $initResult = (new EnvConfigManager(
         configDir: $paths->configPath,
         exampleDir: $paths->configExamplePath,
-        requiredFiles: [
-            'config.env',
-            'db.config.env',
-            'mail.config.env',
-        ],
+        requiredFiles: EnvConfigLoader::INSTANCE_FILES,
         logger: $log
     ))->initialize();
 
@@ -170,7 +167,9 @@ SecurityHeaders::apply(
 // Setting Environment & configurable Paths
 // ************************************************************************************************
 $environment = $appConfig->environment->env;
-$paths->applyConfig($appConfig);
+$paths = $paths->withOverrides($appConfig->logging->path, $appConfig->environment->tempDir);
+$paths->ensureLogsDirectory();
+$paths->ensureTempDirectory();
 
 // ************************************************************************************************
 // Configure Monolog

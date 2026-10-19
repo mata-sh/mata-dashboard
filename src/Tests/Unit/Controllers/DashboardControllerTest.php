@@ -105,14 +105,9 @@ class DashboardControllerTest extends TestCase
             dashboard: ApplicationConfigFactory::createDashboardConfig(serverColumns: 3, containerWidth: 1344),
         );
 
-        // Mock PathResolver for App
-        $mockPaths = $this->createMock(PathResolver::class);
-        $mockPaths->method('toRelativePath')->willReturnCallback(fn ($path) => ltrim(str_replace('/tmp/', '', $path), '/'));
-        $mockPaths->appPath = '/tmp/test-app';
-        $mockPaths->configPath = '/tmp/test-app/config';
-        $mockPaths->logsPath = '/tmp/test-app/logs';
+        $paths = PathResolver::fromAppPath(sys_get_temp_dir());
         $this->app = $this->getMockBuilder(App::class)
-            ->setConstructorArgs([$this->createStub(UserAuthenticator::class), $this->appConfig, $mockPaths, new Request()])
+            ->setConstructorArgs([$this->createStub(UserAuthenticator::class), $this->appConfig, $paths, new Request()])
             ->onlyMethods(['getBaseHost', 'getFullBaseUrl'])
             ->getMock()
         ;

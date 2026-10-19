@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Mata\Utils;
 
 use InvalidArgumentException;
-use Mata\Config\Dto\ApplicationConfig;
 use RuntimeException;
 
 /**
@@ -22,16 +21,17 @@ use RuntimeException;
  */
 class PathResolver
 {
-    public string $appPath;
-    public string $rootPath;
-    public string $logsPath;
-    public string $tempPath;
-    public string $publicPath;
-    public string $configPath;
-    public string $configExamplePath;
-    public string $templatesPath;
-    public string $appLogPath;
-    public string $bootLogPath;
+    public readonly string $appPath;
+    public readonly string $rootPath;
+    public readonly string $logsPath;
+    public readonly string $cronLogsPath;
+    public readonly string $tempPath;
+    public readonly string $publicPath;
+    public readonly string $configPath;
+    public readonly string $configExamplePath;
+    public readonly string $templatesPath;
+    public readonly string $appLogPath;
+    public readonly string $bootLogPath;
 
     public static function fromEntryPoint(string $file): self
     {
@@ -59,42 +59,68 @@ class PathResolver
         return new self($realPath);
     }
 
-    private function __construct(string $appPath)
+    private function __construct(string $appPath, string $logPath = '', string $tempDir = '', ?string $bootLogPath = null)
     {
         $this->appPath = $appPath;
         $rootPath = dirname($this->appPath);
         if ($rootPath === '.' || $rootPath === '') {
             throw new RuntimeException('Cannot resolve root path from: ' . $this->appPath);
         }
+
         $this->rootPath = $rootPath;
-        $this->logsPath = $this->appPath . DIRECTORY_SEPARATOR . 'logs';
-        $this->appLogPath = $this->logsPath . DIRECTORY_SEPARATOR . 'app.log';
-        $this->bootLogPath = $this->resolveBootLogPath();
-        $this->tempPath = $this->appPath . DIRECTORY_SEPARATOR . 'temp';
-        $this->publicPath = $this->appPath . DIRECTORY_SEPARATOR . 'public';
-        $this->configPath = $this->appPath . DIRECTORY_SEPARATOR . 'config';
-        $this->configExamplePath = $this->appPath . DIRECTORY_SEPARATOR . 'config.example';
-        $this->templatesPath = $this->appPath . DIRECTORY_SEPARATOR . 'templates';
+        $this->appLogPath = $logPath !== ''
+            ? $this->resolvePath($logPath)
+            : $this->appPath . '/logs/app.log';
+        $this->logsPath = dirname($this->appLogPath);
+        $this->cronLogsPath = $this->logsPath . '/cron';
+        $this->bootLogPath = $bootLogPath ?? $this->resolveBootLogPath();
+        $this->tempPath = $tempDir !== ''
+            ? $this->resolvePath($tempDir)
+            : $this->appPath . '/temp';
+        $this->publicPath = $this->appPath . '/public';
+        $this->configPath = $this->appPath . '/config';
+        $this->configExamplePath = $this->appPath . '/config.example';
+        $this->templatesPath = $this->appPath . '/templates';
     }
 
     /**
-     * Apply config overrides for log/temp paths.
+     * Apply LOG_PATH and TEMP_DIR; every entry point must, or their caches and locks diverge.
+     * Relative values resolve against the app path, empty ones keep the defaults.
      */
-    public function applyConfig(ApplicationConfig $config): void
+    public function withOverrides(string $logPath, string $tempDir): self
     {
-        $logPath = trim($config->logging->path);
-        if ($logPath !== '') {
-            $this->appLogPath = $this->resolvePath($logPath);
-            $this->logsPath = dirname($this->appLogPath);
-        }
+        return new self($this->appPath, trim($logPath), trim($tempDir), $this->bootLogPath);
+    }
 
-        $tempDir = trim($config->environment->tempDir);
-        if ($tempDir !== '') {
-            $this->tempPath = $this->resolvePath($tempDir);
-        }
-
+    /**
+     * Create the logs directory if missing; every entry point must, since all of them log.
+     *
+     * @throws RuntimeException if it cannot be created or is not writable
+     */
+    public function ensureLogsDirectory(): void
+    {
         $this->ensureDirectory($this->logsPath);
+    }
+
+    /**
+     * Create the temp directory if missing; every entry point must, since all of them cache or lock there.
+     *
+     * @throws RuntimeException if it cannot be created or is not writable
+     */
+    public function ensureTempDirectory(): void
+    {
         $this->ensureDirectory($this->tempPath);
+    }
+
+    /**
+     * Create the cron logs directory if missing; heartbeats and PHP's error_log do not create it.
+     * Only cron jobs call this, so the web and CLI never need write access to it.
+     *
+     * @throws RuntimeException if it cannot be created or is not writable
+     */
+    public function ensureCronLogsDirectory(): void
+    {
+        $this->ensureDirectory($this->cronLogsPath);
     }
 
     /**
@@ -104,10 +130,9 @@ class PathResolver
      */
     private function ensureDirectory(string $path): void
     {
-        if (!is_dir($path)) {
-            if (!mkdir($path, 0775, true)) {
-                throw new RuntimeException("Failed to create directory: {$path}");
-            }
+        // Concurrent cron jobs may create the directory between the check and mkdir().
+        if (!is_dir($path) && !mkdir($path, 0775, true) && !is_dir($path)) {
+            throw new RuntimeException("Failed to create directory: {$path}");
         }
 
         if (!is_writable($path)) {
@@ -124,26 +149,11 @@ class PathResolver
             return $this->appPath;
         }
 
-        if ($this->isAbsolutePath($path)) {
+        if (str_starts_with($path, '/')) {
             return $path;
         }
 
-        return $this->appPath . DIRECTORY_SEPARATOR . $path;
-    }
-
-    private function isAbsolutePath(string $path): bool
-    {
-        if ($path === '') {
-            return false;
-        }
-
-        // Unix-style absolute path
-        if ($path[0] === DIRECTORY_SEPARATOR) {
-            return true;
-        }
-
-        // Windows drive letter paths like C:\ or C:/
-        return (bool) preg_match('/^[A-Za-z]:[\\\\\/]/', $path);
+        return $this->appPath . '/' . $path;
     }
 
     private function resolveBootLogPath(): string
@@ -157,14 +167,14 @@ class PathResolver
             }
         }
 
-        $bootPath = $this->logsPath . DIRECTORY_SEPARATOR . 'boot.log';
+        $bootPath = $this->logsPath . '/boot.log';
         $bootDir = dirname($bootPath);
 
         if (is_dir($bootDir) && is_writable($bootDir)) {
             return $bootPath;
         }
 
-        return sys_get_temp_dir() . 'mata-boot.log';
+        return sys_get_temp_dir() . '/mata-boot.log';
     }
 
     private function getSystemEnv(string $key): ?string
@@ -190,28 +200,20 @@ class PathResolver
             return $this->configPath;
         }
 
-        return $this->configPath . DIRECTORY_SEPARATOR . $filename;
+        return $this->configPath . '/' . $filename;
     }
 
     /**
-     * Convert absolute paths to project-relative representation.
-     *
-     * Normalizes path separators and converts absolute paths to relative
-     * paths from the application root directory.
-     *
-     * @param string $absolutePath Absolute file system path
-     *
-     * @return string Relative path from app root
+     * Convert an absolute path to one relative to the app root; paths outside it lose their leading slash.
      */
     public function toRelativePath(string $absolutePath): string
     {
-        $normalizedPath = str_replace('\\', '/', $absolutePath);
-        $normalizedAppPath = rtrim(str_replace('\\', '/', $this->appPath), '/') . '/';
+        $appPrefix = rtrim($this->appPath, '/') . '/';
 
-        if (str_starts_with($normalizedPath, $normalizedAppPath)) {
-            return ltrim(substr($normalizedPath, strlen($normalizedAppPath)), '/');
+        if (str_starts_with($absolutePath, $appPrefix)) {
+            return ltrim(substr($absolutePath, strlen($appPrefix)), '/');
         }
 
-        return ltrim($normalizedPath, '/');
+        return ltrim($absolutePath, '/');
     }
 }

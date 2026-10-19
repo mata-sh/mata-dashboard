@@ -21,7 +21,7 @@ final class AlarmQueueFailureThrottle
 
     public function __construct(string $baseDirectory, ?LoggerInterface $logger = null)
     {
-        $this->baseDirectory = rtrim($baseDirectory, DIRECTORY_SEPARATOR);
+        $this->baseDirectory = rtrim($baseDirectory, '/');
         $this->logger = $logger ?? new NullLogger();
     }
 
@@ -129,8 +129,8 @@ final class AlarmQueueFailureThrottle
         $channelSlug = $this->slugify($channel ?: 'unknown-channel');
 
         return $this->baseDirectory
-            . DIRECTORY_SEPARATOR . $serverSlug
-            . DIRECTORY_SEPARATOR . $channelSlug . '.lock';
+            . '/' . $serverSlug
+            . '/' . $channelSlug . '.lock';
     }
 
     private function slugify(string $value): string

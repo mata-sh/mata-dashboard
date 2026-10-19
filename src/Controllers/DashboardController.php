@@ -263,7 +263,7 @@ class DashboardController extends BaseController
     private function readCronStatuses(): array
     {
         $paths = $this->app->paths;
-        $reader = new CronHeartbeatReader($paths->appPath . '/cron', $paths->logsPath . '/cron');
+        $reader = new CronHeartbeatReader($paths->appPath . '/cron', $paths->cronLogsPath);
 
         if ($this->appConfig->environment->env === 'demo') {
             return (new DemoCronCatalog())->statuses($reader->jobs(), time());

@@ -66,7 +66,7 @@ abstract class AbstractDbCommand extends Command
     protected function migrations(InputInterface $input, OutputInterface $output): MigrationRunner
     {
         return new MigrationRunner(
-            $this->cli->paths->appPath . '/migrations',
+            $this->cli->paths()->appPath . '/migrations',
             $this->config->database,
             $this->config->environment->env,
             $input->getOption('json') ? null : $output,

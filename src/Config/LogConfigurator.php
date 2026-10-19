@@ -80,7 +80,7 @@ final class LogConfigurator
 
     private function cronLogPath(PathResolver $paths, string $jobName): string
     {
-        return $paths->logsPath . DIRECTORY_SEPARATOR . 'cron' . DIRECTORY_SEPARATOR . "app-{$jobName}.log";
+        return $paths->cronLogsPath . "/app-{$jobName}.log";
     }
 
     private function createFormatter(): LineFormatter

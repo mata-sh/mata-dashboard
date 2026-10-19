@@ -22,7 +22,7 @@ final class UsersFilePathResolver
             return $paths->getConfigPath('users.json');
         }
 
-        if (!self::isAbsolutePath($configuredPath)) {
+        if (!str_starts_with($configuredPath, '/')) {
             throw new InvalidArgumentException('MATA_USERS_FILE must be an absolute path.');
         }
 
@@ -30,7 +30,7 @@ final class UsersFilePathResolver
         $resolvedDirectory = self::nearestExistingAncestor(dirname($configuredPath));
         if ($resolvedAppPath !== false && $resolvedDirectory !== false
             && ($resolvedDirectory === $resolvedAppPath
-                || str_starts_with($resolvedDirectory, rtrim($resolvedAppPath, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR))) {
+                || str_starts_with($resolvedDirectory, rtrim($resolvedAppPath, '/') . '/'))) {
             throw new InvalidArgumentException('MATA_USERS_FILE must be outside the application directory.');
         }
 
@@ -60,11 +60,5 @@ final class UsersFilePathResolver
         $path = trim($path);
 
         return $path === '' ? null : $path;
-    }
-
-    private static function isAbsolutePath(string $path): bool
-    {
-        return str_starts_with($path, DIRECTORY_SEPARATOR)
-            || preg_match('/^[A-Za-z]:[\\\\\/]/', $path) === 1;
     }
 }

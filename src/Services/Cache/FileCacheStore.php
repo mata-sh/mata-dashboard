@@ -187,12 +187,12 @@ final class FileCacheStore implements CacheStoreInterface
         $host = $this->extractHost($parts['api_base']);
         $method = $this->sanitizeSegment(strtoupper($parts['method']), 'UNKNOWN_METHOD');
         $pathSegments = $this->sanitizePath($parts['path']);
-        $directory = rtrim($this->cacheDir, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR
-            . $this->sanitizeSegment($host, 'unknown_host') . DIRECTORY_SEPARATOR . $method;
+        $directory = rtrim($this->cacheDir, '/') . '/'
+            . $this->sanitizeSegment($host, 'unknown_host') . '/' . $method;
         $filename = array_pop($pathSegments);
 
         foreach ($pathSegments as $segment) {
-            $directory .= DIRECTORY_SEPARATOR . $segment;
+            $directory .= '/' . $segment;
         }
 
         if (!$this->isWithinCacheDirectory($directory)) {
@@ -209,7 +209,7 @@ final class FileCacheStore implements CacheStoreInterface
             }
         }
 
-        return $directory . DIRECTORY_SEPARATOR . $filename . '.json';
+        return $directory . '/' . $filename . '.json';
     }
 
     /**
@@ -252,7 +252,7 @@ final class FileCacheStore implements CacheStoreInterface
         $root = rtrim($this->cacheDir ?? '', '/');
 
         return $directory === $root
-            || str_starts_with($directory, $root . DIRECTORY_SEPARATOR);
+            || str_starts_with($directory, $root . '/');
     }
 
     private function logFailure(string $operation, string $key, string $error): void

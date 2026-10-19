@@ -40,7 +40,7 @@ final class SystemNotificationManager
         $this->logger = $logger;
 
         $baseDirectory = $paths !== null ? $paths->tempPath : sys_get_temp_dir();
-        $offlineDirectory = rtrim($baseDirectory, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . self::OFFLINE_NOTICE_SUBDIR;
+        $offlineDirectory = rtrim($baseDirectory, '/') . '/' . self::OFFLINE_NOTICE_SUBDIR;
         $this->offlineNoticeStore = new FileStateStore($offlineDirectory, self::OFFLINE_NOTICE_FILENAME, $logger);
     }
 

@@ -32,11 +32,7 @@ final readonly class ScriptRuntime
         error_reporting(E_ALL);
 
         $configLoader = new EnvConfigLoader();
-        $appConfig = $configLoader->load([
-            'config.env',
-            'db.config.env',
-            'mail.config.env',
-        ], $paths->configPath);
+        $appConfig = $configLoader->load(EnvConfigLoader::INSTANCE_FILES, $paths->configPath);
 
         $validationResult = $configLoader->validateConfig($appConfig);
         if (!$validationResult['is_valid']) {

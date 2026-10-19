@@ -38,17 +38,15 @@ class SystemNotificationManagerTest extends TestCase
         $this->testTempDir = $this->createTempDirectory();
         $this->tempPaths[] = $this->testTempDir;
 
-        $mockPaths = $this->createStub(PathResolver::class);
-        $mockPaths->tempPath = $this->testTempDir;
+        $paths = PathResolver::fromAppPath($this->testTempDir)->withOverrides('', $this->testTempDir);
 
-        $this->notificationManager = new SystemNotificationManager($this->mockDb, $this->logger, $mockPaths);
+        $this->notificationManager = new SystemNotificationManager($this->mockDb, $this->logger, $paths);
     }
 
     private function useMockDatabase(): void
     {
         $this->mockDb = $this->createMock(DatabaseInterface::class);
-        $paths = $this->createStub(PathResolver::class);
-        $paths->tempPath = $this->testTempDir;
+        $paths = PathResolver::fromAppPath($this->testTempDir)->withOverrides('', $this->testTempDir);
         $this->notificationManager = new SystemNotificationManager($this->mockDb, $this->logger, $paths);
     }
 
@@ -603,10 +601,9 @@ class SystemNotificationManagerTest extends TestCase
     public function testItShowsOfflineNoticeWhenUsingNullDatabase(): void
     {
         $nullDb = new NullDatabase($this->logger);
-        $mockPaths = $this->createStub(PathResolver::class);
-        $mockPaths->tempPath = $this->testTempDir;
+        $paths = PathResolver::fromAppPath($this->testTempDir)->withOverrides('', $this->testTempDir);
 
-        $manager = new SystemNotificationManager($nullDb, $this->logger, $mockPaths);
+        $manager = new SystemNotificationManager($nullDb, $this->logger, $paths);
 
         $notifications = $manager->getActiveNotifications();
 
@@ -624,10 +621,9 @@ class SystemNotificationManagerTest extends TestCase
     public function testItAcknowledgesOfflineNoticeSnooze(): void
     {
         $nullDb = new NullDatabase($this->logger);
-        $mockPaths = $this->createStub(PathResolver::class);
-        $mockPaths->tempPath = $this->testTempDir;
+        $paths = PathResolver::fromAppPath($this->testTempDir)->withOverrides('', $this->testTempDir);
 
-        $manager = new SystemNotificationManager($nullDb, $this->logger, $mockPaths);
+        $manager = new SystemNotificationManager($nullDb, $this->logger, $paths);
 
         $result = $manager->acknowledgeOfflineNotice('snooze');
         $this->assertTrue($result);
@@ -646,10 +642,9 @@ class SystemNotificationManagerTest extends TestCase
     public function testItAcknowledgesOfflineNoticeNever(): void
     {
         $nullDb = new NullDatabase($this->logger);
-        $mockPaths = $this->createStub(PathResolver::class);
-        $mockPaths->tempPath = $this->testTempDir;
+        $paths = PathResolver::fromAppPath($this->testTempDir)->withOverrides('', $this->testTempDir);
 
-        $manager = new SystemNotificationManager($nullDb, $this->logger, $mockPaths);
+        $manager = new SystemNotificationManager($nullDb, $this->logger, $paths);
 
         $result = $manager->acknowledgeOfflineNotice('never');
         $this->assertTrue($result);
@@ -668,10 +663,9 @@ class SystemNotificationManagerTest extends TestCase
     public function testItResetsOfflineNoticeState(): void
     {
         $nullDb = new NullDatabase($this->logger);
-        $mockPaths = $this->createStub(PathResolver::class);
-        $mockPaths->tempPath = $this->testTempDir;
+        $paths = PathResolver::fromAppPath($this->testTempDir)->withOverrides('', $this->testTempDir);
 
-        $manager = new SystemNotificationManager($nullDb, $this->logger, $mockPaths);
+        $manager = new SystemNotificationManager($nullDb, $this->logger, $paths);
 
         // First dismiss it
         $manager->acknowledgeOfflineNotice('never');
@@ -694,10 +688,9 @@ class SystemNotificationManagerTest extends TestCase
     public function testItHandlesInvalidAcknowledgmentAction(): void
     {
         $nullDb = new NullDatabase($this->logger);
-        $mockPaths = $this->createStub(PathResolver::class);
-        $mockPaths->tempPath = $this->testTempDir;
+        $paths = PathResolver::fromAppPath($this->testTempDir)->withOverrides('', $this->testTempDir);
 
-        $manager = new SystemNotificationManager($nullDb, $this->logger, $mockPaths);
+        $manager = new SystemNotificationManager($nullDb, $this->logger, $paths);
 
         $result = $manager->acknowledgeOfflineNotice('invalid_action');
         $this->assertFalse($result);

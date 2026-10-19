@@ -97,7 +97,7 @@ final class DoctorCommand extends Command
 
     private function checkDirectories(): void
     {
-        foreach (['logs' => $this->cli->paths->logsPath, 'temp' => $this->cli->paths->tempPath, 'cache' => $this->cli->paths->tempPath . '/api-cache'] as $name => $dir) {
+        foreach (['logs' => $this->cli->paths()->logsPath, 'temp' => $this->cli->paths()->tempPath, 'cache' => $this->cli->paths()->tempPath . '/api-cache'] as $name => $dir) {
             $ok = is_dir($dir) && is_writable($dir);
             $this->add("dir:{$name}", $ok ? StatusLevel::Ok : StatusLevel::Error, $dir . ($ok ? ' writable' : ' missing or not writable by ' . $this->currentUser()), $ok ? null : 'Give the web server user write access');
         }
@@ -106,7 +106,7 @@ final class DoctorCommand extends Command
     private function checkUsersFile(): void
     {
         try {
-            $file = UsersFilePathResolver::resolve($this->cli->paths);
+            $file = UsersFilePathResolver::resolve($this->cli->paths());
         } catch (Throwable $exception) {
             $this->add('users', StatusLevel::Error, $exception->getMessage(), null);
 
@@ -147,7 +147,7 @@ final class DoctorCommand extends Command
     {
         try {
             new PdoDatabase($config->database);
-            $pending = (new MigrationRunner($this->cli->paths->appPath . '/migrations', $config->database, $config->environment->env))->pending();
+            $pending = (new MigrationRunner($this->cli->paths()->appPath . '/migrations', $config->database, $config->environment->env))->pending();
         } catch (Throwable $exception) {
             $this->add('database', StatusLevel::Error, $exception->getMessage(), 'Check db.config.env and that the database is running');
 
@@ -176,7 +176,7 @@ final class DoctorCommand extends Command
 
     private function checkCron(): void
     {
-        $reader = new CronHeartbeatReader($this->cli->paths->appPath . '/cron', $this->cli->paths->logsPath . '/cron');
+        $reader = new CronHeartbeatReader($this->cli->paths()->appPath . '/cron', $this->cli->paths()->cronLogsPath);
         foreach ($reader->read(time()) as $job) {
             if ($job->job !== 'servers-data-fetch') {
                 continue;

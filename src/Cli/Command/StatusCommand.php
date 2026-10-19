@@ -64,9 +64,9 @@ final class StatusCommand extends Command
         $ttl = (new TtlConfigLoader(fallbackOnFailure: true))->load($this->cli->configPath);
 
         $status = (new FleetStatusReader(
-            new FileCacheStore(new NullLogger(), $this->cli->paths->tempPath . '/api-cache'),
+            new FileCacheStore(new NullLogger(), $this->cli->paths()->tempPath . '/api-cache'),
             new ApiCacheKeyFactory(),
-            new CronHeartbeatReader($this->cli->paths->appPath . '/cron', $this->cli->paths->logsPath . '/cron'),
+            new CronHeartbeatReader($this->cli->paths()->appPath . '/cron', $this->cli->paths()->cronLogsPath),
             (new CacheTtlResolver($ttl->section))->get(CacheType::Health),
         ))->read($servers->section->values, time(), [...$servers->problems, ...$ttl->problems]);
 
