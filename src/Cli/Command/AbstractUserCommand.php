@@ -12,6 +12,7 @@ use Mata\Services\Status\StatusLevel;
 use Mata\Utils\UsersFilePathResolver;
 use Monolog\Formatter\LineFormatter;
 use Monolog\Handler\StreamHandler;
+use Monolog\Level;
 use Monolog\Logger;
 use Monolog\LogRecord;
 use Psr\Log\LoggerInterface;
@@ -97,7 +98,7 @@ abstract class AbstractUserCommand extends Command
         }
 
         $this->audit = new Logger('user-management-cli');
-        $handler = new StreamHandler($this->cli->paths->logsPath . '/user-management-audit.log', Logger::INFO);
+        $handler = new StreamHandler($this->cli->paths->logsPath . '/user-management-audit.log', Level::Info);
         $handler->setFormatter(new LineFormatter("[%datetime%] %level_name%: %message% %context%\n", 'Y-m-d H:i:s', true, true));
         $this->audit->pushHandler($handler);
         $this->audit->pushProcessor($this->addAuditContext(...));

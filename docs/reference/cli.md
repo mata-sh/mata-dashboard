@@ -31,7 +31,7 @@ a missing argument, also exit `2`.
 | `server add` | added and the node accepted the key | added, but the test failed or was skipped | nothing written |
 | `server test` | all healthy and authenticated | authenticated, but not healthy | unreachable or key rejected |
 | `server remove` | removed | — | not found or cancelled |
-| `status` | all ok | maintenance, a cron job not run yet | node unhealthy or unreachable, cron overdue |
+| `status` | all ok | maintenance, a cron job not run yet, a config problem | node unhealthy or unreachable, cron overdue |
 | `doctor` | all checks pass | warnings | a check failed |
 | `db status` | up to date | migrations pending | database unreachable |
 | `db migrate`, `db rollback`, `db check` | done or passed | — | failed |
@@ -40,7 +40,8 @@ a missing argument, also exit `2`.
 | `alarm explain` | listed | — | failed |
 
 `status` exits `3` when cached node health is missing or stale, so a stopped
-cron never reports `ok`. See [Monitoring](../guides/monitoring.md#status-from-the-command-line).
+cron never reports `ok`, and when `servers.json` cannot be loaded, so an empty
+fleet is never reported as `ok` either. See [Monitoring](../guides/monitoring.md#status-from-the-command-line).
 
 ## JSON output
 

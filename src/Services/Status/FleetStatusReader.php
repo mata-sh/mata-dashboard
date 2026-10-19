@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Mata\Services\Status;
 
+use Mata\Config\Monitoring\Loader\Dto\ConfigLoadProblem;
 use Mata\Services\Cache\ApiCacheKeyFactory;
 use Mata\Services\Cache\CacheStoreInterface;
 use Mata\Services\Cron\CronHeartbeatReader;
@@ -30,8 +31,11 @@ final class FleetStatusReader
         private int $healthTtlSeconds,
     ) {}
 
-    /** @param array<string,mixed> $servers enabled servers from ServersConfig, keyed by name */
-    public function read(array $servers, int $now): FleetStatus
+    /**
+     * @param array<string,mixed>     $servers        enabled servers from ServersConfig, keyed by name
+     * @param list<ConfigLoadProblem> $configProblems found while loading them; they count towards the level
+     */
+    public function read(array $servers, int $now, array $configProblems = []): FleetStatus
     {
         $serverRows = [];
         foreach ($servers as $name => $config) {
@@ -53,7 +57,7 @@ final class FleetStatusReader
             ];
         }
 
-        return new FleetStatus($serverRows, $cronRows, $now);
+        return new FleetStatus($serverRows, $cronRows, $now, $configProblems);
     }
 
     /**

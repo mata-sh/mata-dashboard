@@ -43,8 +43,10 @@ final class StatusCommand extends Command
                 fetched, recorded or cached, so monitoring systems can call it as often as they like.
 
                 Exit codes (Nagios-style): 0 ok, 1 warning (maintenance, a cron job that has not run a day
-                after cron started; before that it is "pending" and ok), 2 error (Nagios CRITICAL: node unhealthy or unreachable, cron overdue), 3 unknown (no or stale cached
-                health: servers_data_fetch is not running). The worst level wins; error outranks unknown.
+                after cron started; before that it is "pending" and ok, a config problem such as a dropped
+                server), 2 error (Nagios CRITICAL: node unhealthy or unreachable, cron overdue), 3 unknown
+                (no or stale cached health: servers_data_fetch is not running; servers.json rejected).
+                The worst level wins; error outranks unknown.
                 Covers node health and cron only; metric thresholds and alarms are in the dashboard.
                 HELP);
     }
@@ -66,19 +68,18 @@ final class StatusCommand extends Command
             new ApiCacheKeyFactory(),
             new CronHeartbeatReader($this->cli->paths->appPath . '/cron', $this->cli->paths->logsPath . '/cron'),
             (new CacheTtlResolver($ttl->section))->get(CacheType::Health),
-        ))->read($servers->section->values, time());
-        $configProblems = count($servers->problems) + count($ttl->problems);
+        ))->read($servers->section->values, time(), [...$servers->problems, ...$ttl->problems]);
 
         if ($input->getOption('json')) {
-            CliOutput::json($output, $status->toArray() + ['config_problems' => $configProblems]);
+            CliOutput::json($output, $status->toArray());
         } else {
-            $this->writeHuman($output, $status, $configProblems);
+            $this->writeHuman($output, $status);
         }
 
         return $status->level()->value;
     }
 
-    private function writeHuman(OutputInterface $output, FleetStatus $status, int $configProblems): void
+    private function writeHuman(OutputInterface $output, FleetStatus $status): void
     {
         $output->writeln('Servers');
         foreach ($status->servers as $server) {
@@ -96,6 +97,7 @@ final class StatusCommand extends Command
         if ($pending > 0) {
             $output->writeln("{$pending} job(s) have not run yet; cron started less than a day ago, so their first run may still be ahead");
         }
+        $configProblems = count($status->configProblems);
         if ($configProblems > 0) {
             $output->writeln("<comment>{$configProblems} config problem(s); run bin/mata config validate</comment>");
         }
