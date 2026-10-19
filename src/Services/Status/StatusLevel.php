@@ -4,22 +4,38 @@ declare(strict_types=1);
 
 namespace Mata\Services\Status;
 
-/** Nagios-style levels; the value is the exit code. */
+/**
+ * Outcome of every bin/mata command and check; the value is the exit code (Nagios-style, so
+ * Error is CRITICAL) and label() the `status` of its --json output.
+ */
 enum StatusLevel: int
 {
     case Ok = 0;
     case Warning = 1;
-    case Critical = 2;
+    case Error = 2;
     case Unknown = 3;
 
-    /** Severity for the fleet rollup: critical, then unknown (data missing), then warning. */
+    /** @param iterable<self> $levels */
+    public static function worst(iterable $levels): self
+    {
+        $worst = self::Ok;
+        foreach ($levels as $level) {
+            if ($level->severity() > $worst->severity()) {
+                $worst = $level;
+            }
+        }
+
+        return $worst;
+    }
+
+    /** Severity for rollups: error, then unknown (data missing), then warning. */
     public function severity(): int
     {
         return match ($this) {
             self::Ok => 0,
             self::Warning => 1,
             self::Unknown => 2,
-            self::Critical => 3,
+            self::Error => 3,
         };
     }
 

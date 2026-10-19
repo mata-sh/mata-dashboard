@@ -4,11 +4,10 @@ declare(strict_types=1);
 
 namespace Mata\Cli\Command;
 
+use Mata\Cli\CliConfig;
 use Mata\Cli\CliOutput;
-use Mata\Config\EnvConfigLoader;
 use Mata\Config\Monitoring\Loader\ServersConfigLoader;
 use Mata\Config\Monitoring\Loader\TtlConfigLoader;
-use Mata\Config\Validation\InstanceConfigValidator;
 use Mata\Services\Cache\ApiCacheKeyFactory;
 use Mata\Services\Cache\CacheTtlResolver;
 use Mata\Services\Cache\CacheType;
@@ -18,7 +17,6 @@ use Mata\Services\Cron\Dto\CronJobState;
 use Mata\Services\Status\Dto\FleetStatus;
 use Mata\Services\Status\FleetStatusReader;
 use Mata\Services\Status\StatusLevel;
-use Mata\Utils\PathResolver;
 use Psr\Log\NullLogger;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
@@ -31,8 +29,7 @@ use Throwable;
 final class StatusCommand extends Command
 {
     public function __construct(
-        private readonly PathResolver $paths,
-        private readonly string $configPath,
+        private readonly CliConfig $cli,
     ) {
         parent::__construct();
     }
@@ -46,8 +43,8 @@ final class StatusCommand extends Command
                 fetched, recorded or cached, so monitoring systems can call it as often as they like.
 
                 Exit codes (Nagios-style): 0 ok, 1 warning (maintenance, a cron job that has not run a day
-                after cron started; before that it is "pending" and ok), 2 critical (node unhealthy or unreachable, cron overdue), 3 unknown (no or stale cached
-                health: servers_data_fetch is not running). The worst level wins; critical outranks unknown.
+                after cron started; before that it is "pending" and ok), 2 error (Nagios CRITICAL: node unhealthy or unreachable, cron overdue), 3 unknown (no or stale cached
+                health: servers_data_fetch is not running). The worst level wins; error outranks unknown.
                 Covers node health and cron only; metric thresholds and alarms are in the dashboard.
                 HELP);
     }
@@ -56,20 +53,18 @@ final class StatusCommand extends Command
     {
         try {
             // LOG_PATH and TEMP_DIR move the heartbeat and cache directories.
-            $this->paths->applyConfig((new EnvConfigLoader())->load(InstanceConfigValidator::ENV_FILES, $this->configPath));
+            $this->cli->load();
         } catch (Throwable $exception) {
-            $output->writeln('<error>' . CliOutput::withWebUserHint("Cannot load the env config: {$exception->getMessage()}") . '</error>');
-
-            return StatusLevel::Unknown->value;
+            return CliOutput::fail($input, $output, CliOutput::withWebUserHint("Cannot load the config: {$exception->getMessage()}"), StatusLevel::Unknown);
         }
 
-        $servers = (new ServersConfigLoader(fallbackOnFailure: true))->load($this->configPath);
-        $ttl = (new TtlConfigLoader(fallbackOnFailure: true))->load($this->configPath);
+        $servers = (new ServersConfigLoader(fallbackOnFailure: true))->load($this->cli->configPath);
+        $ttl = (new TtlConfigLoader(fallbackOnFailure: true))->load($this->cli->configPath);
 
         $status = (new FleetStatusReader(
-            new FileCacheStore(new NullLogger(), $this->paths->tempPath . '/api-cache'),
+            new FileCacheStore(new NullLogger(), $this->cli->paths->tempPath . '/api-cache'),
             new ApiCacheKeyFactory(),
-            new CronHeartbeatReader($this->paths->appPath . '/cron', $this->paths->logsPath . '/cron'),
+            new CronHeartbeatReader($this->cli->paths->appPath . '/cron', $this->cli->paths->logsPath . '/cron'),
             (new CacheTtlResolver($ttl->section))->get(CacheType::Health),
         ))->read($servers->section->values, time());
         $configProblems = count($servers->problems) + count($ttl->problems);
@@ -85,24 +80,17 @@ final class StatusCommand extends Command
 
     private function writeHuman(OutputInterface $output, FleetStatus $status, int $configProblems): void
     {
-        $tag = static fn (StatusLevel $level): string => match ($level) {
-            StatusLevel::Ok => '<info>ok</info>',
-            StatusLevel::Warning => '<comment>warning</comment>',
-            StatusLevel::Critical => '<error>critical</error>',
-            StatusLevel::Unknown => '<comment>unknown</comment>',
-        };
-
         $output->writeln('Servers');
         foreach ($status->servers as $server) {
             $age = $server['age_seconds'] !== null ? " ({$server['age_seconds']}s ago)" : '';
-            $output->writeln("  {$tag($server['level'])} {$server['name']}: {$server['health']}{$age}" . ($server['error'] !== null ? " — {$server['error']}" : ''));
+            $output->writeln('  ' . CliOutput::label($server['level']) . " {$server['name']}: {$server['health']}{$age}" . ($server['error'] !== null ? " — {$server['error']}" : ''));
         }
         if ($status->servers === []) {
             $output->writeln('  none configured');
         }
         $output->writeln('Cron');
         foreach ($status->cron as $job) {
-            $output->writeln("  {$tag($job['level'])} {$job['job']}: {$job['state']}");
+            $output->writeln('  ' . CliOutput::label($job['level']) . " {$job['job']}: {$job['state']}");
         }
         $pending = count(array_filter($status->cron, static fn (array $job): bool => $job['state'] === CronJobState::Pending->value));
         if ($pending > 0) {
@@ -111,6 +99,6 @@ final class StatusCommand extends Command
         if ($configProblems > 0) {
             $output->writeln("<comment>{$configProblems} config problem(s); run bin/mata config validate</comment>");
         }
-        $output->writeln('Overall: ' . $tag($status->level()));
+        $output->writeln('Overall: ' . CliOutput::label($status->level()));
     }
 }

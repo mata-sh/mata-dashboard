@@ -24,14 +24,7 @@ final readonly class FleetStatus
 
     public function level(): StatusLevel
     {
-        $worst = StatusLevel::Ok;
-        foreach ([...$this->servers, ...$this->cron] as $row) {
-            if ($row['level']->severity() > $worst->severity()) {
-                $worst = $row['level'];
-            }
-        }
-
-        return $worst;
+        return StatusLevel::worst(array_column([...$this->servers, ...$this->cron], 'level'));
     }
 
     /** @return array<string,mixed> */

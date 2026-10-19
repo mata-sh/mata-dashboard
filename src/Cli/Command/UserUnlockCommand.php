@@ -28,7 +28,7 @@ final class UserUnlockCommand extends AbstractUserCommand
     {
         $username = (string) $input->getArgument('username');
         $users->unlockUser($username);
-        $this->audit->info('User unlocked successfully', ['operator' => $this->operator, 'target_user' => $username, 'environment' => $this->env]);
+        $this->audit->info('User unlocked successfully', ['target_user' => $username]);
 
         return $this->succeed($input, $output, "User unlocked: {$username}", ['username' => $username]);
     }

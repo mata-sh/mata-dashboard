@@ -32,18 +32,10 @@ final class UserCreateCommand extends AbstractUserCommand
     {
         $username = (string) $input->getArgument('username');
         $role = (string) $input->getArgument('role');
-        $password = $this->readPassword($input, $output);
-        if ($password === null) {
-            return $this->fail($input, $output, 'No password: pass --password-stdin or --generate-password without a terminal.');
-        }
-        [$secret, $generated] = $password;
-        $policyError = $this->passwordPolicyError($secret);
-        if ($policyError !== null) {
-            return $this->fail($input, $output, $policyError);
-        }
+        [$secret, $generated] = $this->newPassword($input, $output);
 
         $users->createUser($username, $secret, $role);
-        $this->audit->info('User created successfully', ['operator' => $this->operator, 'target_user' => $username, 'role' => $role, 'environment' => $this->env]);
+        $this->audit->info('User created successfully', ['target_user' => $username, 'role' => $role]);
 
         $message = "User created: {$username} ({$role})" . ($generated ? "\nPassword (shown once): {$secret}" : '');
 

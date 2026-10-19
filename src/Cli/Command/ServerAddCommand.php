@@ -8,6 +8,7 @@ use Mata\Cli\CliOutput;
 use Mata\Config\Monitoring\Section\ServersConfig;
 use Mata\Config\Monitoring\ServersConfigEditor;
 use Mata\Services\Monitor\NodeConnectionTester;
+use Mata\Services\Status\StatusLevel;
 use RuntimeException;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
@@ -58,10 +59,10 @@ final class ServerAddCommand extends Command
         $apiUrl = $input->getOption('api-url');
         $json = (bool) $input->getOption('json');
         if (preg_match(ServersConfig::NAME_PATTERN, $name) !== 1) {
-            return $this->fail($output, $json, "Invalid name '{$name}': use letters, digits, '.', '_' or '-' (max 64), starting with a letter or digit");
+            return CliOutput::fail($input, $output, "Invalid name '{$name}': use letters, digits, '.', '_' or '-' (max 64), starting with a letter or digit");
         }
         if (!is_string($apiUrl) || $apiUrl === '') {
-            return $this->fail($output, $json, '--api-url is required');
+            return CliOutput::fail($input, $output, '--api-url is required');
         }
 
         $entry = ['title' => is_string($input->getOption('title')) ? $input->getOption('title') : $name];
@@ -76,40 +77,39 @@ final class ServerAddCommand extends Command
             $entry['allow_http'] = true;
         }
 
-        $givenKey = $input->getOption('api-key');
-        $envKey = getenv('MATA_NODE_API_KEY');
-        $apiKey = is_string($givenKey) && $givenKey !== '' ? $givenKey : (is_string($envKey) && $envKey !== '' ? $envKey : bin2hex(random_bytes(32)));
-        $generated = !(is_string($givenKey) && $givenKey !== '') && !(is_string($envKey) && $envKey !== '');
+        $apiKey = self::nonEmpty($input->getOption('api-key')) ?? self::nonEmpty(getenv('MATA_NODE_API_KEY'));
+        $generated = $apiKey === null;
+        $apiKey ??= bin2hex(random_bytes(32));
 
         $errors = ServersConfig::validationErrors([$name => $entry + ['api_key' => $apiKey]]);
         if ($errors !== []) {
-            return $this->fail($output, $json, implode("\n", $errors));
+            return CliOutput::fail($input, $output, implode("\n", $errors));
         }
 
         $nodeLines = "DASHBOARD_SERVER_ID={$name}\nDASHBOARD_API_KEY={$apiKey}";
         if ($input->getOption('dry-run')) {
             if ($json) {
-                CliOutput::json($output, ['status' => 'dry_run', 'server' => $name, 'servers_json_entry' => $entry, 'node_env' => ['DASHBOARD_SERVER_ID' => $name, 'DASHBOARD_API_KEY' => $apiKey]]);
+                CliOutput::json($output, ['status' => 'ok', 'dry_run' => true, 'server' => $name, 'servers_json_entry' => $entry, 'node_env' => ['DASHBOARD_SERVER_ID' => $name, 'DASHBOARD_API_KEY' => $apiKey]]);
             } else {
                 $output->writeln("Would add to servers.json:\n" . json_encode([$name => $entry], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
                 $output->writeln("Would store the key in servers.secrets.json. Node config.env:\n{$nodeLines}");
             }
 
-            return CliOutput::EXIT_OK;
+            return StatusLevel::Ok->value;
         }
 
         try {
             $this->files->add($name, $entry, $apiKey);
         } catch (RuntimeException $exception) {
-            return $this->fail($output, $json, $exception->getMessage());
+            return CliOutput::fail($input, $output, $exception->getMessage());
         }
 
         $result = $input->getOption('no-test') ? null : $this->tester->test($name, $entry, $apiKey);
-        $exitCode = $result !== null && $result->isOk() ? CliOutput::EXIT_OK : CliOutput::EXIT_WARNING;
+        $level = $result?->isOk() ? StatusLevel::Ok : StatusLevel::Warning;
 
         if ($json) {
             CliOutput::json($output, [
-                'status' => CliOutput::statusName($exitCode),
+                'status' => $level->label(),
                 'server' => $name,
                 'api_key_generated' => $generated,
                 'node_env' => ['DASHBOARD_SERVER_ID' => $name, 'DASHBOARD_API_KEY' => $apiKey],
@@ -117,7 +117,7 @@ final class ServerAddCommand extends Command
                 'test' => $result?->toArray(),
             ]);
 
-            return $exitCode;
+            return $level->value;
         }
 
         $output->writeln("<info>Added '{$name}'</info> to servers.json; key stored in servers.secrets.json.");
@@ -134,17 +134,11 @@ final class ServerAddCommand extends Command
             }
         }
 
-        return $exitCode;
+        return $level->value;
     }
 
-    private function fail(OutputInterface $output, bool $json, string $message): int
+    private static function nonEmpty(mixed $value): ?string
     {
-        if ($json) {
-            CliOutput::json($output, ['status' => 'error', 'error' => $message]);
-        } else {
-            $output->writeln("<error>{$message}</error>");
-        }
-
-        return CliOutput::EXIT_ERROR;
+        return is_string($value) && $value !== '' ? $value : null;
     }
 }

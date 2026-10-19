@@ -3,6 +3,8 @@
 
 declare(strict_types=1);
 
+use Mata\Cli\CliApplication;
+use Mata\Cli\CliConfig;
 use Mata\Cli\Command\AlarmExplainCommand;
 use Mata\Cli\Command\AlarmTestCommand;
 use Mata\Cli\Command\ConfigValidateCommand;
@@ -27,7 +29,6 @@ use Mata\Config\Validation\InstanceConfigValidator;
 use Mata\Services\Monitor\HttpProbeClient;
 use Mata\Services\Monitor\NodeConnectionTester;
 use Mata\Utils\PathResolver;
-use Symfony\Component\Console\Application;
 use Symfony\Component\Console\Input\ArgvInput;
 
 require_once __DIR__ . '/../vendor/autoload.php';
@@ -51,30 +52,31 @@ $paths = PathResolver::fromAppPath(dirname(__DIR__));
 // Like the app, every command uses config/; point it elsewhere with a symlink. Only
 // `config validate --path` reads another directory, e.g. a config repo pre-commit hook.
 $configPath = $paths->configPath;
+$cli = new CliConfig($paths, $configPath);
 
 $serverFiles = new ServersConfigEditor($configPath);
 $connectionTester = new NodeConnectionTester(new HttpProbeClient(), NodeApiConfig::DEFAULT_TIMEOUT_SECONDS);
 
-$application = new Application('mata', 'dashboard');
+$application = new CliApplication('mata', 'dashboard');
 $application->addCommands([
     new ConfigValidateCommand(new InstanceConfigValidator(), $configPath),
     new ServerListCommand($serverFiles),
     new ServerAddCommand($serverFiles, $connectionTester),
     new ServerTestCommand($serverFiles, $connectionTester),
     new ServerRemoveCommand($serverFiles),
-    new StatusCommand($paths, $configPath),
-    new UserListCommand($paths, $configPath),
-    new UserCreateCommand($paths, $configPath),
-    new UserPasswdCommand($paths, $configPath),
-    new UserUnlockCommand($paths, $configPath),
-    new UserDeleteCommand($paths, $configPath),
-    new DbStatusCommand($paths, $configPath),
-    new DbMigrateCommand($paths, $configPath),
-    new DbRollbackCommand($paths, $configPath),
-    new DbCheckCommand($paths, $configPath),
-    new DoctorCommand($paths, $configPath),
+    new StatusCommand($cli),
+    new UserListCommand($cli),
+    new UserCreateCommand($cli),
+    new UserPasswdCommand($cli),
+    new UserUnlockCommand($cli),
+    new UserDeleteCommand($cli),
+    new DbStatusCommand($cli),
+    new DbMigrateCommand($cli),
+    new DbRollbackCommand($cli),
+    new DbCheckCommand($cli),
+    new DoctorCommand($cli),
     new AlarmTestCommand(__FILE__),
-    new AlarmExplainCommand($configPath),
+    new AlarmExplainCommand($cli),
 ]);
 
 // Accept `mata config validate` as well as Symfony's `mata config:validate`.

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Mata\Cli\Command;
 
 use Mata\Cli\CliOutput;
+use Mata\Services\Status\StatusLevel;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
@@ -29,8 +30,10 @@ final class DbRollbackCommand extends AbstractDbCommand
 
         if ($input->getOption('json')) {
             CliOutput::json($output, ['status' => 'ok']);
+        } else {
+            $output->writeln('<info>Rolled back the last migration.</info>');
         }
 
-        return CliOutput::EXIT_OK;
+        return StatusLevel::Ok->value;
     }
 }

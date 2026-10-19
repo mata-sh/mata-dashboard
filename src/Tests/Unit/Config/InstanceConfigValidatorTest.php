@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace Mata\Tests\Unit\Config;
 
 use Mata\Config\Validation\ConfigProblem;
-use Mata\Config\Validation\ConfigValidationReport;
 use Mata\Config\Validation\InstanceConfigValidator;
+use Mata\Services\Status\StatusLevel;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -61,7 +61,7 @@ final class InstanceConfigValidatorTest extends TestCase
 
         $report = (new InstanceConfigValidator())->validate($this->configPath);
 
-        $this->assertSame(ConfigValidationReport::EXIT_ERROR, $report->exitCode());
+        $this->assertSame(StatusLevel::Error, $report->level());
         $this->assertSame(ConfigProblem::ERROR, $report->fileStatus('ttl.json'));
         $this->assertSame(ConfigProblem::ERROR, $report->fileStatus('servers.json'));
         $this->assertSame('ok', $report->fileStatus('servers.secrets.json'));

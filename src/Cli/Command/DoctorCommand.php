@@ -5,17 +5,16 @@ declare(strict_types=1);
 namespace Mata\Cli\Command;
 
 use GuzzleHttp\Client;
+use Mata\Cli\CliConfig;
 use Mata\Cli\CliOutput;
 use Mata\Config\Dto\ApplicationConfig;
-use Mata\Config\EnvConfigLoader;
 use Mata\Config\Monitoring\Loader\ServersConfigLoader;
-use Mata\Config\Validation\ConfigValidationReport;
 use Mata\Config\Validation\InstanceConfigValidator;
 use Mata\Database\MigrationRunner;
 use Mata\Database\PdoDatabase;
 use Mata\Services\Cron\CronHeartbeatReader;
 use Mata\Services\Cron\Dto\CronJobState;
-use Mata\Utils\PathResolver;
+use Mata\Services\Status\StatusLevel;
 use Mata\Utils\UsersFilePathResolver;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
@@ -31,12 +30,11 @@ use Throwable;
 #[AsCommand(name: 'doctor', description: 'Check the installation from the application\'s side')]
 final class DoctorCommand extends Command
 {
-    /** @var list<array{check:string,level:string,message:string,hint:?string}> */
+    /** @var list<array{check:string,level:StatusLevel,message:string,hint:?string}> */
     private array $checks = [];
 
     public function __construct(
-        private readonly PathResolver $paths,
-        private readonly string $configPath,
+        private readonly CliConfig $cli,
     ) {
         parent::__construct();
     }
@@ -61,99 +59,87 @@ final class DoctorCommand extends Command
             $this->checkCron();
         }
 
-        $exitCode = CliOutput::EXIT_OK;
-        foreach ($this->checks as $check) {
-            $exitCode = max($exitCode, $check['level'] === 'error' ? CliOutput::EXIT_ERROR : ($check['level'] === 'warning' ? CliOutput::EXIT_WARNING : CliOutput::EXIT_OK));
-        }
+        $level = StatusLevel::worst(array_column($this->checks, 'level'));
 
         if ($input->getOption('json')) {
-            CliOutput::json($output, ['status' => CliOutput::statusName($exitCode), 'checks' => $this->checks]);
+            $checks = array_map(static fn (array $check): array => ['level' => $check['level']->label()] + $check, $this->checks);
+            CliOutput::json($output, ['status' => $level->label(), 'checks' => $checks]);
 
-            return $exitCode;
+            return $level->value;
         }
         foreach ($this->checks as $check) {
-            $mark = match ($check['level']) {
-                'ok' => '<info>✓</info>',
-                'warning' => '<comment>!</comment>',
-                default => '<error>✗</error>',
-            };
-            $output->writeln("  {$mark} {$check['check']}: {$check['message']}");
+            $output->writeln('  ' . CliOutput::mark($check['level']) . " {$check['check']}: {$check['message']}");
             if ($check['hint'] !== null) {
                 $output->writeln("      <comment>{$check['hint']}</comment>");
             }
         }
 
-        return $exitCode;
+        return $level->value;
     }
 
     private function checkConfig(): ?ApplicationConfig
     {
-        $report = (new InstanceConfigValidator())->validate($this->configPath);
-        $level = match ($report->exitCode()) {
-            ConfigValidationReport::EXIT_ERROR => 'error',
-            ConfigValidationReport::EXIT_WARNING => 'warning',
-            default => 'ok',
-        };
-        $this->add('config', $level, count($report->problems) . ' problem(s) in ' . $report->configPath, $level === 'ok' ? null : 'bin/mata config validate');
+        $report = (new InstanceConfigValidator())->validate($this->cli->configPath);
+        $level = $report->level();
+        $this->add('config', $level, count($report->problems) . ' problem(s) in ' . $report->configPath, $level === StatusLevel::Ok ? null : 'bin/mata config validate');
 
         try {
-            $config = (new EnvConfigLoader())->load(InstanceConfigValidator::ENV_FILES, $this->configPath);
-            $this->paths->applyConfig($config);
+            $config = $this->cli->load();
         } catch (Throwable $exception) {
-            $this->add('environment', 'error', $exception->getMessage(), 'Fix the env files or the ownership of logs/ and temp/; the remaining checks need them.');
+            $this->add('environment', StatusLevel::Error, $exception->getMessage(), 'Fix the env files or the ownership of logs/ and temp/; the remaining checks need them.');
 
             return null;
         }
-        $this->add('environment', 'ok', "APP_ENV={$config->environment->env}", null);
+        $this->add('environment', StatusLevel::Ok, "APP_ENV={$config->environment->env}", null);
 
         return $config;
     }
 
     private function checkDirectories(): void
     {
-        foreach (['logs' => $this->paths->logsPath, 'temp' => $this->paths->tempPath, 'cache' => $this->paths->tempPath . '/api-cache'] as $name => $dir) {
+        foreach (['logs' => $this->cli->paths->logsPath, 'temp' => $this->cli->paths->tempPath, 'cache' => $this->cli->paths->tempPath . '/api-cache'] as $name => $dir) {
             $ok = is_dir($dir) && is_writable($dir);
-            $this->add("dir:{$name}", $ok ? 'ok' : 'error', $dir . ($ok ? ' writable' : ' missing or not writable by ' . $this->currentUser()), $ok ? null : 'Give the web server user write access');
+            $this->add("dir:{$name}", $ok ? StatusLevel::Ok : StatusLevel::Error, $dir . ($ok ? ' writable' : ' missing or not writable by ' . $this->currentUser()), $ok ? null : 'Give the web server user write access');
         }
     }
 
     private function checkUsersFile(): void
     {
         try {
-            $file = UsersFilePathResolver::resolve($this->paths);
+            $file = UsersFilePathResolver::resolve($this->cli->paths);
         } catch (Throwable $exception) {
-            $this->add('users', 'error', $exception->getMessage(), null);
+            $this->add('users', StatusLevel::Error, $exception->getMessage(), null);
 
             return;
         }
         if (!is_file($file)) {
-            $this->add('users', 'error', "{$file} missing; every route fails until it exists", 'bin/mata user create <name> admin --generate-password');
+            $this->add('users', StatusLevel::Error, "{$file} missing; every route fails until it exists", 'bin/mata user create <name> admin --generate-password');
 
             return;
         }
         $mode = fileperms($file) & 0o777;
         if (!is_readable($file) || !is_writable($file)) {
-            $this->add('users', 'error', "{$file} not readable and writable by " . $this->currentUser(), null);
+            $this->add('users', StatusLevel::Error, "{$file} not readable and writable by " . $this->currentUser(), null);
         } elseif (($mode & 0o077) !== 0) {
-            $this->add('users', 'error', sprintf('%s has mode %o; logins fail until it is private', $file, $mode), "chmod 600 {$file}");
+            $this->add('users', StatusLevel::Error, sprintf('%s has mode %o; logins fail until it is private', $file, $mode), "chmod 600 {$file}");
         } else {
-            $this->add('users', 'ok', $file, null);
+            $this->add('users', StatusLevel::Ok, $file, null);
         }
     }
 
     private function checkSecretsFile(): void
     {
-        $file = rtrim($this->configPath, '/') . '/' . ServersConfigLoader::SECRETS_FILE;
+        $file = rtrim($this->cli->configPath, '/') . '/' . ServersConfigLoader::SECRETS_FILE;
         if (!is_file($file)) {
-            $this->add('secrets', 'warning', "{$file} missing; servers have no keys", 'bin/mata server add creates it');
+            $this->add('secrets', StatusLevel::Warning, "{$file} missing; servers have no keys", 'bin/mata server add creates it');
 
             return;
         }
         $mode = fileperms($file) & 0o777;
         if (($mode & 0o007) !== 0) {
-            $this->add('secrets', 'warning', sprintf('%s has mode %o; other users can read node keys', $file, $mode), "chmod 640 {$file} (group: the web server's)");
+            $this->add('secrets', StatusLevel::Warning, sprintf('%s has mode %o; other users can read node keys', $file, $mode), "chmod 640 {$file} (group: the web server's)");
         } else {
-            $this->add('secrets', 'ok', sprintf('%s mode %o', $file, $mode), null);
+            $this->add('secrets', StatusLevel::Ok, sprintf('%s mode %o', $file, $mode), null);
         }
     }
 
@@ -161,20 +147,20 @@ final class DoctorCommand extends Command
     {
         try {
             new PdoDatabase($config->database);
-            $pending = (new MigrationRunner($this->paths->appPath . '/migrations', $config->database, $config->environment->env))->pending();
+            $pending = (new MigrationRunner($this->cli->paths->appPath . '/migrations', $config->database, $config->environment->env))->pending();
         } catch (Throwable $exception) {
-            $this->add('database', 'error', $exception->getMessage(), 'Check db.config.env and that the database is running');
+            $this->add('database', StatusLevel::Error, $exception->getMessage(), 'Check db.config.env and that the database is running');
 
             return;
         }
-        $this->add('database', 'ok', "connected to {$config->database->host}", null);
-        $this->add('migrations', $pending === [] ? 'ok' : 'warning', $pending === [] ? 'up to date' : count($pending) . ' pending', $pending === [] ? null : 'bin/mata db migrate');
+        $this->add('database', StatusLevel::Ok, "connected to {$config->database->host}", null);
+        $this->add('migrations', $pending === [] ? StatusLevel::Ok : StatusLevel::Warning, $pending === [] ? 'up to date' : count($pending) . ' pending', $pending === [] ? null : 'bin/mata db migrate');
     }
 
     private function checkOpa(ApplicationConfig $config): void
     {
         if ($config->alarmDecision->driver !== 'opa') {
-            $this->add('opa', 'ok', "not used (ALARM_DECISION_DRIVER={$config->alarmDecision->driver})", null);
+            $this->add('opa', StatusLevel::Ok, "not used (ALARM_DECISION_DRIVER={$config->alarmDecision->driver})", null);
 
             return;
         }
@@ -185,24 +171,24 @@ final class DoctorCommand extends Command
         } catch (Throwable $exception) {
             $code = null;
         }
-        $this->add('opa', $code === 200 ? 'ok' : 'error', $code === 200 ? "{$url} healthy" : "{$url} not reachable; alarms are not evaluated", $code === 200 ? null : 'make opa-start, or set ALARM_DECISION_DRIVER=builtin');
+        $this->add('opa', $code === 200 ? StatusLevel::Ok : StatusLevel::Error, $code === 200 ? "{$url} healthy" : "{$url} not reachable; alarms are not evaluated", $code === 200 ? null : 'make opa-start, or set ALARM_DECISION_DRIVER=builtin');
     }
 
     private function checkCron(): void
     {
-        $reader = new CronHeartbeatReader($this->paths->appPath . '/cron', $this->paths->logsPath . '/cron');
+        $reader = new CronHeartbeatReader($this->cli->paths->appPath . '/cron', $this->cli->paths->logsPath . '/cron');
         foreach ($reader->read(time()) as $job) {
             if ($job->job !== 'servers-data-fetch') {
                 continue;
             }
             $level = match ($job->state) {
-                CronJobState::Ok, CronJobState::Unknown => 'ok',
-                CronJobState::Overdue => 'error',
+                CronJobState::Ok, CronJobState::Unknown => StatusLevel::Ok,
+                CronJobState::Overdue => StatusLevel::Error,
                 // Right after an install the first run is minutes away.
-                CronJobState::Never, CronJobState::Pending => 'warning',
+                CronJobState::Never, CronJobState::Pending => StatusLevel::Warning,
             };
             $hint = match (true) {
-                $level === 'ok' => null,
+                $level === StatusLevel::Ok => null,
                 // The Docker image sets it: cron runs in the web container, not from a host crontab.
                 getenv('MATA_CRON') === 'container' => 'Cron in the web container runs it every 5 minutes; if it never does, check the container log (make logs)',
                 default => 'Install the crontab (cron/crontab.shared-hosting.template); bin/mata status shows every job',
@@ -211,15 +197,13 @@ final class DoctorCommand extends Command
         }
     }
 
-    private function add(string $check, string $level, string $message, ?string $hint): void
+    private function add(string $check, StatusLevel $level, string $message, ?string $hint): void
     {
         $this->checks[] = ['check' => $check, 'level' => $level, 'message' => $message, 'hint' => $hint];
     }
 
     private function currentUser(): string
     {
-        $user = function_exists('posix_getpwuid') ? posix_getpwuid(posix_geteuid()) : false;
-
-        return is_array($user) ? $user['name'] : 'the current user';
+        return CliOutput::currentUser() ?? 'the current user';
     }
 }

@@ -28,18 +28,10 @@ final class UserPasswdCommand extends AbstractUserCommand
     protected function handle(UserAdministrator $users, InputInterface $input, OutputInterface $output): int
     {
         $username = (string) $input->getArgument('username');
-        $password = $this->readPassword($input, $output);
-        if ($password === null) {
-            return $this->fail($input, $output, 'No password: pass --password-stdin or --generate-password without a terminal.');
-        }
-        [$secret, $generated] = $password;
-        $policyError = $this->passwordPolicyError($secret);
-        if ($policyError !== null) {
-            return $this->fail($input, $output, $policyError);
-        }
+        [$secret, $generated] = $this->newPassword($input, $output);
 
         $users->changePassword($username, $secret);
-        $this->audit->warning('Password changed', ['operator' => $this->operator, 'target_user' => $username, 'environment' => $this->env]);
+        $this->audit->warning('Password changed', ['target_user' => $username]);
 
         $message = "Password changed for {$username}" . ($generated ? "\nPassword (shown once): {$secret}" : '');
 

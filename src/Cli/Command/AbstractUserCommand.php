@@ -4,17 +4,18 @@ declare(strict_types=1);
 
 namespace Mata\Cli\Command;
 
+use Mata\Cli\CliConfig;
 use Mata\Cli\CliOutput;
-use Mata\Config\EnvConfigLoader;
-use Mata\Config\Validation\InstanceConfigValidator;
 use Mata\Models\Auth\UserRepository;
 use Mata\Services\Auth\UserAdministrator;
-use Mata\Utils\PathResolver;
+use Mata\Services\Status\StatusLevel;
 use Mata\Utils\UsersFilePathResolver;
 use Monolog\Formatter\LineFormatter;
 use Monolog\Handler\StreamHandler;
 use Monolog\Logger;
+use Monolog\LogRecord;
 use Psr\Log\LoggerInterface;
+use RuntimeException;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Helper\QuestionHelper;
 use Symfony\Component\Console\Input\InputInterface;
@@ -35,8 +36,7 @@ abstract class AbstractUserCommand extends Command
     protected string $env = 'dev';
 
     public function __construct(
-        private readonly PathResolver $paths,
-        private readonly string $configPath,
+        private readonly CliConfig $cli,
     ) {
         parent::__construct();
     }
@@ -76,73 +76,75 @@ abstract class AbstractUserCommand extends Command
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
         try {
-            $config = (new EnvConfigLoader())->load(InstanceConfigValidator::ENV_FILES, $this->configPath);
-            $this->paths->applyConfig($config);
-            $usersFile = UsersFilePathResolver::resolve($this->paths);
+            $config = $this->cli->load();
+            $usersFile = UsersFilePathResolver::resolve($this->cli->paths);
         } catch (Throwable $exception) {
-            return $this->fail($input, $output, CliOutput::withWebUserHint("Cannot load the config: {$exception->getMessage()}"));
+            return CliOutput::fail($input, $output, CliOutput::withWebUserHint("Cannot load the config: {$exception->getMessage()}"));
         }
 
-        $user = function_exists('posix_getpwuid') ? posix_getpwuid(posix_geteuid()) : false;
-        $this->operator = is_array($user) ? $user['name'] : (string) getenv('USER');
+        $this->operator = CliOutput::currentUser() ?? (string) getenv('USER');
         $this->env = $config->environment->env;
 
         $security = $config->cliSecurity;
         if ($security->strictUserCheck && !in_array($this->operator, $security->allowedUsers, true)) {
-            return $this->fail($input, $output, "User '{$this->operator}' is not in CLI_ALLOWED_USERS (" . implode(', ', $security->allowedUsers) . ')');
+            return CliOutput::fail($input, $output, "User '{$this->operator}' is not in CLI_ALLOWED_USERS (" . implode(', ', $security->allowedUsers) . ')');
         }
-        if ($this->writes() && $this->env === 'prod' && !$input->getOption('yes')) {
-            if (!$input->isInteractive()) {
-                return $this->fail($input, $output, 'Production user changes need --yes without a terminal.');
-            }
-            $answer = $this->askLine($input, $output, "Modifying PRODUCTION users. Type 'CONFIRM PRODUCTION' to continue: ");
-            if ($answer !== 'CONFIRM PRODUCTION') {
-                return $this->fail($input, $output, 'Cancelled.');
+        if ($this->writes() && $this->env === 'prod') {
+            $refused = CliOutput::confirmProduction($input, $output, 'PRODUCTION users');
+            if ($refused !== null) {
+                return $refused;
             }
         }
 
         $this->audit = new Logger('user-management-cli');
-        $handler = new StreamHandler($this->paths->logsPath . '/user-management-audit.log', Logger::INFO);
+        $handler = new StreamHandler($this->cli->paths->logsPath . '/user-management-audit.log', Logger::INFO);
         $handler->setFormatter(new LineFormatter("[%datetime%] %level_name%: %message% %context%\n", 'Y-m-d H:i:s', true, true));
         $this->audit->pushHandler($handler);
-        $this->audit->info('User management command started', ['operator' => $this->operator, 'environment' => $this->env, 'command' => $this->getName(), 'hostname' => gethostname()]);
+        $this->audit->pushProcessor($this->addAuditContext(...));
+        $this->audit->info('User management command started', ['hostname' => gethostname()]);
 
         try {
             $users = new UserAdministrator(UserRepository::openForAdministration($usersFile), $this->audit);
 
             return $this->handle($users, $input, $output);
         } catch (Throwable $exception) {
-            $this->audit->error('User management command failed', ['operator' => $this->operator, 'command' => $this->getName(), 'error' => $exception->getMessage()]);
+            $this->audit->error('User management command failed', ['error' => $exception->getMessage()]);
 
-            return $this->fail($input, $output, $exception->getMessage());
+            return CliOutput::fail($input, $output, $exception->getMessage());
         }
     }
 
     /**
-     * Password from --password-stdin, --generate-password, or a hidden prompt; null when none is possible.
+     * Password from --generate-password, --password-stdin, or a hidden prompt, checked against
+     * the policy. Throws when there is none or it is rejected; execute() reports that.
      *
-     * @return null|array{0:string,1:bool} password and whether it was generated
+     * @return array{0:string,1:bool} password and whether it was generated
      */
-    protected function readPassword(InputInterface $input, OutputInterface $output): ?array
+    protected function newPassword(InputInterface $input, OutputInterface $output): array
     {
         if ($input->getOption('generate-password')) {
             return [self::generatePassword(), true];
         }
+        $password = null;
         if ($input->getOption('password-stdin')) {
             $line = fgets(STDIN);
+            $password = $line === false ? null : rtrim($line, "\r\n");
+        } elseif ($input->isInteractive()) {
+            $answer = (new QuestionHelper())->ask($input, $output, (new Question('Password (empty to generate): '))->setHidden(true)->setHiddenFallback(false));
+            if (!is_string($answer) || $answer === '') {
+                return [self::generatePassword(), true];
+            }
+            $password = $answer;
+        }
+        if ($password === null) {
+            throw new RuntimeException('No password: pass --password-stdin or --generate-password without a terminal.');
+        }
+        $policyError = $this->passwordPolicyError($password);
+        if ($policyError !== null) {
+            throw new RuntimeException($policyError);
+        }
 
-            return $line === false ? null : [rtrim($line, "\r\n"), false];
-        }
-        if (!$input->isInteractive()) {
-            return null;
-        }
-        $helper = $this->getHelper('question');
-        if (!$helper instanceof QuestionHelper) {
-            return null;
-        }
-        $answer = $helper->ask($input, $output, (new Question('Password (empty to generate): '))->setHidden(true)->setHiddenFallback(false));
-
-        return is_string($answer) && $answer !== '' ? [$answer, false] : [self::generatePassword(), true];
+        return [$password, false];
     }
 
     private static function generatePassword(): string
@@ -158,7 +160,7 @@ abstract class AbstractUserCommand extends Command
     }
 
     /** bcrypt ignores everything after 72 bytes; demo accounts publish their credentials by design. */
-    protected function passwordPolicyError(string $password): ?string
+    private function passwordPolicyError(string $password): ?string
     {
         if ($this->env === 'demo') {
             return null;
@@ -182,18 +184,19 @@ abstract class AbstractUserCommand extends Command
             $output->writeln("<info>{$message}</info>");
         }
 
-        return CliOutput::EXIT_OK;
+        return StatusLevel::Ok->value;
     }
 
-    protected function fail(InputInterface $input, OutputInterface $output, string $message): int
+    /** Every audit entry records who ran which command against which environment. */
+    private function addAuditContext(LogRecord $record): LogRecord
     {
-        if ($input->getOption('json')) {
-            CliOutput::json($output, ['status' => 'error', 'error' => $message]);
-        } else {
-            $output->writeln("<error>{$message}</error>");
-        }
+        $context = $record->context + [
+            'operator' => $this->operator,
+            'environment' => $this->env,
+            'command' => $this->getName(),
+        ];
 
-        return CliOutput::EXIT_ERROR;
+        return $record->with(context: $context);
     }
 
     private function askLine(InputInterface $input, OutputInterface $output, string $prompt): string

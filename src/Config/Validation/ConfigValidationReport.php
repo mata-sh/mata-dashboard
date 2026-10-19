@@ -4,13 +4,11 @@ declare(strict_types=1);
 
 namespace Mata\Config\Validation;
 
+use Mata\Services\Status\StatusLevel;
+
 /** Result of validating an instance config directory. */
 final readonly class ConfigValidationReport
 {
-    public const EXIT_OK = 0;
-    public const EXIT_WARNING = 1;
-    public const EXIT_ERROR = 2;
-
     /**
      * @param array<string,bool>  $files    checked file name => whether it exists
      * @param list<ConfigProblem> $problems
@@ -21,17 +19,10 @@ final readonly class ConfigValidationReport
         public array $problems,
     ) {}
 
-    public function exitCode(): int
+    /** Error when the app would ignore a whole file or drop a server; warning for skipped entries and advice. */
+    public function level(): StatusLevel
     {
-        $code = self::EXIT_OK;
-        foreach ($this->problems as $problem) {
-            if ($problem->level === ConfigProblem::ERROR) {
-                return self::EXIT_ERROR;
-            }
-            $code = self::EXIT_WARNING;
-        }
-
-        return $code;
+        return StatusLevel::worst(array_map(static fn (ConfigProblem $problem): StatusLevel => $problem->statusLevel(), $this->problems));
     }
 
     /** ok, warning, or error for one file; missing when it does not exist and nothing was reported. */
@@ -61,11 +52,7 @@ final readonly class ConfigValidationReport
 
         return [
             'schema_version' => 1,
-            'status' => match ($this->exitCode()) {
-                self::EXIT_ERROR => 'error',
-                self::EXIT_WARNING => 'warning',
-                default => 'ok',
-            },
+            'status' => $this->level()->label(),
             'config_path' => $this->configPath,
             'files' => $files,
             'problems' => array_map(static fn (ConfigProblem $problem): array => $problem->toArray(), $this->problems),

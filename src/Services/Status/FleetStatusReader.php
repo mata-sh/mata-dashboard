@@ -44,7 +44,7 @@ final class FleetStatusReader
                 'job' => $job->job,
                 'state' => $job->state->value,
                 'level' => match ($job->state) {
-                    CronJobState::Overdue => StatusLevel::Critical,
+                    CronJobState::Overdue => StatusLevel::Error,
                     CronJobState::Never => StatusLevel::Warning,
                     default => StatusLevel::Ok,
                 },
@@ -77,7 +77,7 @@ final class FleetStatusReader
             NodeHealthState::Healthy => StatusLevel::Ok,
             NodeHealthState::Maintenance => StatusLevel::Warning,
             NodeHealthState::Unknown => StatusLevel::Unknown,
-            default => StatusLevel::Critical,
+            default => StatusLevel::Error,
         };
 
         return [

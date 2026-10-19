@@ -8,6 +8,7 @@ use Mata\Cli\CliOutput;
 use Mata\Config\Monitoring\Section\ServersConfig;
 use Mata\Config\Monitoring\ServerConfigState;
 use Mata\Config\Monitoring\ServersConfigEditor;
+use Mata\Services\Status\StatusLevel;
 use RuntimeException;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
@@ -32,22 +33,13 @@ final class ServerListCommand extends Command
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
         try {
-            $servers = $this->files->readServers();
-            $secrets = $this->files->readSecrets();
+            $entries = $this->files->entries();
         } catch (RuntimeException $exception) {
-            $output->writeln("<error>{$exception->getMessage()}</error>");
-
-            return CliOutput::EXIT_ERROR;
+            return CliOutput::fail($input, $output, $exception->getMessage());
         }
 
         $rows = [];
-        foreach ($servers as $name => $entry) {
-            $name = (string) $name;
-            if (str_starts_with($name, '_')) {
-                continue;
-            }
-            $secret = $secrets[$name] ?? null;
-            $apiKey = is_array($secret) && is_string($secret['api_key'] ?? null) ? $secret['api_key'] : null;
+        foreach ($entries as $name => ['entry' => $entry, 'apiKey' => $apiKey]) {
             $merged = is_array($entry) ? $entry + ['api_key' => $apiKey] : $entry;
             $rows[] = [
                 'name' => $name,
@@ -58,17 +50,17 @@ final class ServerListCommand extends Command
                 'problems' => ServersConfig::validationErrors([$name => $merged]),
             ];
         }
-        $exitCode = array_filter($rows, static fn (array $row): bool => $row['problems'] !== []) === [] ? CliOutput::EXIT_OK : CliOutput::EXIT_ERROR;
+        $level = array_filter($rows, static fn (array $row): bool => $row['problems'] !== []) === [] ? StatusLevel::Ok : StatusLevel::Error;
 
         if ($input->getOption('json')) {
-            CliOutput::json($output, ['status' => CliOutput::statusName($exitCode), 'servers' => $rows]);
+            CliOutput::json($output, ['status' => $level->label(), 'servers' => $rows]);
 
-            return $exitCode;
+            return $level->value;
         }
         if ($rows === []) {
             $output->writeln('No servers configured. Add one with: bin/mata server add <name> --api-url <url>');
 
-            return $exitCode;
+            return $level->value;
         }
 
         $table = new Table($output);
@@ -84,6 +76,6 @@ final class ServerListCommand extends Command
         }
         $table->render();
 
-        return $exitCode;
+        return $level->value;
     }
 }

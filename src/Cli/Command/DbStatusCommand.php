@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Mata\Cli\Command;
 
 use Mata\Cli\CliOutput;
+use Mata\Services\Status\StatusLevel;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
@@ -27,15 +28,15 @@ final class DbStatusCommand extends AbstractDbCommand
     {
         $migrations = $this->migrations($input, $output);
         $pending = $migrations->pending();
-        $exitCode = $pending === [] ? CliOutput::EXIT_OK : CliOutput::EXIT_WARNING;
+        $level = $pending === [] ? StatusLevel::Ok : StatusLevel::Warning;
 
         if ($input->getOption('json')) {
-            CliOutput::json($output, ['status' => CliOutput::statusName($exitCode), 'environment' => $this->config->environment->env, 'pending' => $pending]);
+            CliOutput::json($output, ['status' => $level->label(), 'environment' => $this->config->environment->env, 'pending' => $pending]);
         } else {
             $migrations->printStatus();
             $output->writeln($pending === [] ? '<info>Up to date.</info>' : '<comment>' . count($pending) . ' pending; run bin/mata db migrate</comment>');
         }
 
-        return $exitCode;
+        return $level->value;
     }
 }

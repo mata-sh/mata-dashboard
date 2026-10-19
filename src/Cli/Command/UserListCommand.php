@@ -6,6 +6,7 @@ namespace Mata\Cli\Command;
 
 use Mata\Cli\CliOutput;
 use Mata\Services\Auth\UserAdministrator;
+use Mata\Services\Status\StatusLevel;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
@@ -25,12 +26,12 @@ final class UserListCommand extends AbstractUserCommand
         foreach ($users->listUsers() as $user) {
             $rows[] = ['username' => $user->username, 'role' => $user->role, 'locked' => $user->isLocked($now), 'created_at' => $user->createdAt];
         }
-        $this->audit->info('Users list accessed', ['operator' => $this->operator, 'environment' => $this->env, 'user_count' => count($rows)]);
+        $this->audit->info('Users list accessed', ['user_count' => count($rows)]);
 
         if ($input->getOption('json')) {
             CliOutput::json($output, ['status' => 'ok', 'users' => $rows]);
 
-            return CliOutput::EXIT_OK;
+            return StatusLevel::Ok->value;
         }
         if ($rows === []) {
             $output->writeln('No users. Create one with: bin/mata user create <username> <role>');
@@ -39,6 +40,6 @@ final class UserListCommand extends AbstractUserCommand
             $output->writeln("  {$row['username']} ({$row['role']})" . ($row['locked'] ? ' <comment>[locked]</comment>' : ''));
         }
 
-        return CliOutput::EXIT_OK;
+        return StatusLevel::Ok->value;
     }
 }

@@ -7,6 +7,7 @@ namespace Mata\Cli\Command;
 use Mata\Cli\CliOutput;
 use Mata\Database\DatabaseIntegrityChecker;
 use Mata\Database\PdoDatabase;
+use Mata\Services\Status\StatusLevel;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
@@ -22,19 +23,19 @@ final class DbCheckCommand extends AbstractDbCommand
     protected function handle(InputInterface $input, OutputInterface $output): int
     {
         $result = (new DatabaseIntegrityChecker(new PdoDatabase($this->config->database)))->run();
-        $exitCode = $result['status'] === 'ok' ? CliOutput::EXIT_OK : CliOutput::EXIT_ERROR;
+        $level = $result['status'] === 'ok' ? StatusLevel::Ok : StatusLevel::Error;
 
         if ($input->getOption('json')) {
-            CliOutput::json($output, ['status' => CliOutput::statusName($exitCode), 'checks' => $result['checks']]);
+            CliOutput::json($output, ['status' => $level->label(), 'checks' => $result['checks']]);
 
-            return $exitCode;
+            return $level->value;
         }
         foreach ($result['checks'] as $check) {
             $details = ($check['details'] ?? '') !== '' ? " ({$check['details']})" : '';
-            $output->writeln(($check['status'] === 'ok' ? '  <info>✓</info> ' : '  <error>✗</error> ') . $check['label'] . $details);
+            $output->writeln('  ' . CliOutput::mark($check['status'] === 'ok' ? StatusLevel::Ok : StatusLevel::Error) . " {$check['label']}{$details}");
         }
-        $output->writeln($exitCode === CliOutput::EXIT_OK ? '<info>Integrity checks passed.</info>' : '<error>Integrity checks failed.</error>');
+        $output->writeln($level === StatusLevel::Ok ? '<info>Integrity checks passed.</info>' : '<error>Integrity checks failed.</error>');
 
-        return $exitCode;
+        return $level->value;
     }
 }

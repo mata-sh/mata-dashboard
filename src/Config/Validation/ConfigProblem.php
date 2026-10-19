@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Mata\Config\Validation;
 
+use Mata\Services\Status\StatusLevel;
+
 /** One problem found in an instance config file, as reported by its loader. */
 final readonly class ConfigProblem
 {
@@ -17,6 +19,11 @@ final readonly class ConfigProblem
         public string $type,
         public string $message,
     ) {}
+
+    public function statusLevel(): StatusLevel
+    {
+        return $this->level === self::ERROR ? StatusLevel::Error : StatusLevel::Warning;
+    }
 
     public function asError(): self
     {

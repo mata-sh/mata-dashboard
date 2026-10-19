@@ -9,6 +9,7 @@ use Mata\Config\Monitoring\ServerConfigState;
 use Mata\Config\Monitoring\ServersConfigEditor;
 use Mata\Services\Monitor\Dto\NodeConnectionResult;
 use Mata\Services\Monitor\NodeConnectionTester;
+use Mata\Services\Status\StatusLevel;
 use RuntimeException;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
@@ -40,41 +41,30 @@ final class ServerTestCommand extends Command
         $only = $input->getArgument('name');
 
         try {
-            $servers = $this->files->readServers();
-            $secrets = $this->files->readSecrets();
+            $entries = $this->files->entries();
         } catch (RuntimeException $exception) {
-            $output->writeln("<error>{$exception->getMessage()}</error>");
-
-            return CliOutput::EXIT_ERROR;
+            return CliOutput::fail($input, $output, $exception->getMessage());
         }
-        if (is_string($only) && !is_array($servers[$only] ?? null)) {
-            $output->writeln("<error>Server '{$only}' is not in servers.json</error>");
-
-            return CliOutput::EXIT_ERROR;
+        if (is_string($only) && !is_array($entries[$only]['entry'] ?? null)) {
+            return CliOutput::fail($input, $output, "Server '{$only}' is not in servers.json");
         }
 
         $results = [];
-        foreach ($servers as $name => $entry) {
-            $name = (string) $name;
-            if (!is_array($entry) || str_starts_with($name, '_') || (is_string($only) && $only !== $name)) {
+        foreach ($entries as $name => ['entry' => $entry, 'apiKey' => $apiKey]) {
+            if (!is_array($entry) || (is_string($only) && $only !== $name) || ($only === null && ServerConfigState::isDisabled($entry))) {
                 continue;
             }
-            if ($only === null && ServerConfigState::isDisabled($entry)) {
-                continue;
-            }
-            $secret = $secrets[$name] ?? null;
-            $apiKey = is_array($secret) && is_string($secret['api_key'] ?? null) ? $secret['api_key'] : null;
             $results[] = $this->tester->test($name, $entry, $apiKey);
         }
 
-        $exitCode = self::exitCodeFor($results);
+        $level = StatusLevel::worst(array_map(static fn (NodeConnectionResult $result): StatusLevel => $result->level(), $results));
         if ($input->getOption('json')) {
             CliOutput::json($output, [
-                'status' => CliOutput::statusName($exitCode),
+                'status' => $level->label(),
                 'servers' => array_map(static fn (NodeConnectionResult $result): array => $result->toArray(), $results),
             ]);
 
-            return $exitCode;
+            return $level->value;
         }
         foreach ($results as $result) {
             self::writeResult($output, $result);
@@ -83,29 +73,12 @@ final class ServerTestCommand extends Command
             $output->writeln('No enabled servers to test.');
         }
 
-        return $exitCode;
-    }
-
-    /** @param list<NodeConnectionResult> $results */
-    public static function exitCodeFor(array $results): int
-    {
-        $code = CliOutput::EXIT_OK;
-        foreach ($results as $result) {
-            if ($result->auth !== 'ok') {
-                return CliOutput::EXIT_ERROR;
-            }
-            if ($result->health !== 'healthy') {
-                $code = CliOutput::EXIT_WARNING;
-            }
-        }
-
-        return $code;
+        return $level->value;
     }
 
     public static function writeResult(OutputInterface $output, NodeConnectionResult $result): void
     {
-        $mark = $result->isOk() ? '<info>✓</info>' : ($result->auth === 'ok' ? '<comment>!</comment>' : '<error>✗</error>');
-        $output->writeln("{$mark} {$result->server} ({$result->apiUrl})");
+        $output->writeln(CliOutput::mark($result->level()) . " {$result->server} ({$result->apiUrl})");
         $health = $result->health . ($result->healthError !== null ? ": {$result->healthError}" : '');
         $output->writeln("    health: {$health}");
         $output->writeln("    auth:   {$result->auth}" . ($result->authError !== null ? ": {$result->authError}" : ''));

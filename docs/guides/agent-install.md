@@ -62,7 +62,9 @@ make -s mata ARGS="status --json"
 ```
 
 Read the top-level `"status"` of each result (`ok`, `warning`, `error`), not the
-exit code: `make` turns every non-zero exit into `2`.
+exit code: `make` turns every non-zero exit into `2`. The
+[Operator CLI](../reference/cli.md#exit-codes) reference lists what each level
+means per command.
 
 Right after an install, two warnings are expected:
 

@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Mata\Services\Monitor\Dto;
 
+use Mata\Services\Status\StatusLevel;
+
 final readonly class NodeConnectionResult
 {
     /** @param 'failed'|'ok'|'skipped' $auth */
@@ -17,9 +19,19 @@ final readonly class NodeConnectionResult
         public ?string $hint = null,
     ) {}
 
+    /** A rejected or untested key is an error; an authenticated node that is not healthy a warning. */
+    public function level(): StatusLevel
+    {
+        return match (true) {
+            $this->auth !== 'ok' => StatusLevel::Error,
+            $this->health !== 'healthy' => StatusLevel::Warning,
+            default => StatusLevel::Ok,
+        };
+    }
+
     public function isOk(): bool
     {
-        return $this->health === 'healthy' && $this->auth === 'ok';
+        return $this->level() === StatusLevel::Ok;
     }
 
     /** @return array<string,mixed> */

@@ -4,9 +4,11 @@ declare(strict_types=1);
 
 namespace Mata\Cli\Command;
 
+use Mata\Cli\CliOutput;
 use Mata\Config\Validation\ConfigProblem;
 use Mata\Config\Validation\ConfigValidationReport;
 use Mata\Config\Validation\InstanceConfigValidator;
+use Mata\Services\Status\StatusLevel;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputArgument;
@@ -47,52 +49,46 @@ final class ConfigValidateCommand extends Command
         $file = $input->getArgument('file');
         $path = $input->getOption('path');
         if ((!is_string($file) && $file !== null) || !is_string($path)) {
-            return self::INVALID;
+            return StatusLevel::Error->value;
         }
         if ($file !== null && !in_array($file, $this->validator->knownFiles(), true)) {
-            $output->writeln("<error>Unknown config file '{$file}'. Known: " . implode(', ', $this->validator->knownFiles()) . '</error>');
-
-            return self::INVALID;
+            return CliOutput::fail($input, $output, "Unknown config file '{$file}'. Known: " . implode(', ', $this->validator->knownFiles()));
         }
         if (!is_dir($path)) {
-            $output->writeln("<error>Config directory {$path} does not exist</error>");
-
-            return ConfigValidationReport::EXIT_ERROR;
+            return CliOutput::fail($input, $output, "Config directory {$path} does not exist");
         }
 
         $report = $this->validator->validate($path, $file);
 
         if ($input->getOption('json')) {
-            $output->writeln(json_encode($report->toArray(), JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR));
+            CliOutput::json($output, $report->toArray());
         } else {
             $this->writeHuman($report, $output);
         }
 
-        return $report->exitCode();
+        return $report->level()->value;
     }
 
     private function writeHuman(ConfigValidationReport $report, OutputInterface $output): void
     {
         $output->writeln("Config: {$report->configPath}");
         foreach (array_keys($report->files) as $file) {
-            $line = match ($report->fileStatus($file)) {
-                'ok' => "  <info>✓</info> {$file}",
+            $output->writeln(match ($report->fileStatus($file)) {
+                'ok' => '  ' . CliOutput::mark(StatusLevel::Ok) . " {$file}",
                 'missing' => "  <comment>-</comment> {$file} <comment>(not present)</comment>",
-                ConfigProblem::WARNING => "  <comment>!</comment> {$file}",
-                default => "  <error>✗</error> {$file}",
-            };
-            $output->writeln($line);
+                ConfigProblem::WARNING => '  ' . CliOutput::mark(StatusLevel::Warning) . " {$file}",
+                default => '  ' . CliOutput::mark(StatusLevel::Error) . " {$file}",
+            });
             foreach ($report->problems as $problem) {
                 if ($problem->file === $file) {
-                    $tag = $problem->level === ConfigProblem::ERROR ? 'error' : 'comment';
-                    $output->writeln("      <{$tag}>{$problem->level}</{$tag}> {$problem->message}");
+                    $output->writeln('      ' . CliOutput::label($problem->statusLevel()) . " {$problem->message}");
                 }
             }
         }
 
-        $output->writeln(match ($report->exitCode()) {
-            ConfigValidationReport::EXIT_ERROR => '<error>Invalid: the app would ignore the files or servers marked ✗.</error>',
-            ConfigValidationReport::EXIT_WARNING => '<comment>Valid with warnings.</comment>',
+        $output->writeln(match ($report->level()) {
+            StatusLevel::Error => '<error>Invalid: the app would ignore the files or servers marked ✗.</error>',
+            StatusLevel::Warning => '<comment>Valid with warnings.</comment>',
             default => '<info>Valid.</info>',
         });
     }

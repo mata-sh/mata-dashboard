@@ -6,6 +6,7 @@ namespace Mata\Cli\Command;
 
 use Mata\Cli\CliOutput;
 use Mata\Config\Monitoring\ServersConfigEditor;
+use Mata\Services\Status\StatusLevel;
 use RuntimeException;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
@@ -40,32 +41,30 @@ final class ServerRemoveCommand extends Command
 
         if (!$input->getOption('yes')) {
             if (!$input->isInteractive()) {
-                $output->writeln('<error>Pass --yes to remove without a terminal.</error>');
-
-                return CliOutput::EXIT_ERROR;
+                return CliOutput::fail($input, $output, 'Pass --yes to remove without a terminal.');
             }
             $helper = $this->getHelper('question');
             if (!$helper instanceof QuestionHelper
                 || !$helper->ask($input, $output, new ConfirmationQuestion("Remove server '{$name}' and its key? [y/N] ", false))) {
-                return CliOutput::EXIT_ERROR;
+                return CliOutput::fail($input, $output, 'Cancelled.');
             }
         }
 
         try {
             $found = $this->files->remove($name);
         } catch (RuntimeException $exception) {
-            $output->writeln("<error>{$exception->getMessage()}</error>");
-
-            return CliOutput::EXIT_ERROR;
+            return CliOutput::fail($input, $output, $exception->getMessage());
         }
-        $exitCode = $found ? CliOutput::EXIT_OK : CliOutput::EXIT_ERROR;
+        if (!$found) {
+            return CliOutput::fail($input, $output, "Server '{$name}' not found.", payload: ['server' => $name, 'removed' => false]);
+        }
 
         if ($json) {
-            CliOutput::json($output, ['status' => CliOutput::statusName($exitCode), 'server' => $name, 'removed' => $found]);
+            CliOutput::json($output, ['status' => 'ok', 'server' => $name, 'removed' => true]);
         } else {
-            $output->writeln($found ? "<info>Removed '{$name}'.</info> Stored history stays in the database." : "<error>Server '{$name}' not found.</error>");
+            $output->writeln("<info>Removed '{$name}'.</info> Stored history stays in the database.");
         }
 
-        return $exitCode;
+        return StatusLevel::Ok->value;
     }
 }

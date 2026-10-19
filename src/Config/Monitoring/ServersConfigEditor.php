@@ -57,6 +57,28 @@ final class ServersConfigEditor
         return is_file($this->secretsPath()) ? $this->read($this->secretsPath()) : [];
     }
 
+    /**
+     * Servers in servers.json without the `_` documentation keys, each with its key from
+     * servers.secrets.json (null when missing). Entries stay raw: server list reports invalid ones.
+     *
+     * @return array<string,array{entry:mixed,apiKey:?string}>
+     */
+    public function entries(): array
+    {
+        $secrets = $this->readSecrets();
+        $entries = [];
+        foreach ($this->readServers() as $name => $entry) {
+            $name = (string) $name;
+            if (str_starts_with($name, '_')) {
+                continue;
+            }
+            $secret = $secrets[$name] ?? null;
+            $entries[$name] = ['entry' => $entry, 'apiKey' => is_array($secret) && is_string($secret['api_key'] ?? null) ? $secret['api_key'] : null];
+        }
+
+        return $entries;
+    }
+
     /** @param array<string,mixed> $entry */
     public function add(string $name, array $entry, string $apiKey): void
     {

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Mata\Cli\Command;
 
+use Mata\Cli\CliOutput;
 use Mata\Services\Auth\UserAdministrator;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Helper\QuestionHelper;
@@ -33,18 +34,18 @@ final class UserDeleteCommand extends AbstractUserCommand
         if (!$input->getOption('yes') && $this->env !== 'prod') {
             // In prod the typed confirmation already ran.
             if (!$input->isInteractive()) {
-                return $this->fail($input, $output, 'Pass --yes to delete without a terminal.');
+                return CliOutput::fail($input, $output, 'Pass --yes to delete without a terminal.');
             }
             $helper = $this->getHelper('question');
             $confirmed = $helper instanceof QuestionHelper
                 && $helper->ask($input, $output, new ConfirmationQuestion("Delete user '{$username}'? [y/N] ", false));
             if (!$confirmed) {
-                return $this->fail($input, $output, 'Cancelled.');
+                return CliOutput::fail($input, $output, 'Cancelled.');
             }
         }
 
         $users->deleteUser($username);
-        $this->audit->warning('User deleted', ['operator' => $this->operator, 'target_user' => $username, 'environment' => $this->env]);
+        $this->audit->warning('User deleted', ['target_user' => $username]);
 
         return $this->succeed($input, $output, "User deleted: {$username}", ['username' => $username]);
     }

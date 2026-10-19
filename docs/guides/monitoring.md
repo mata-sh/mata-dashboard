@@ -50,9 +50,10 @@ make mata ARGS=status             # as the right account, also in Docker
 It reads only what cron already wrote (the health cache from
 `servers_data_fetch` and the cron heartbeats), so it never contacts a node and
 can run as often as needed. Exit codes: `0` ok, `1` warning (maintenance, a cron
-job that has not run a day after cron started), `2` critical (node unhealthy or unreachable, cron job
-overdue), `3` unknown (health missing or older than twice its TTL, so a stopped
-cron never reports ok).
+job that has not run a day after cron started), `2` error (Nagios CRITICAL: node unhealthy or unreachable,
+cron job overdue), `3` unknown (health missing or older than twice its TTL, so a
+stopped cron never reports ok). The `--json` `status` uses the same names as every
+other [`bin/mata` command](../reference/cli.md#exit-codes).
 
 Right after an install, jobs that run daily or every six hours have not run
 yet. During cron's first day they are `pending` and count as ok; `status`

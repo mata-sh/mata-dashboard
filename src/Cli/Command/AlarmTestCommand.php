@@ -13,6 +13,7 @@ use Mata\Services\Alarm\Dto\Alarm;
 use Mata\Services\Alarm\Dto\AlarmLevel;
 use Mata\Services\Event\EventManager;
 use Mata\Services\Event\EventRecorderService;
+use Mata\Services\Status\StatusLevel;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputArgument;
@@ -34,7 +35,7 @@ final class AlarmTestCommand extends Command
         $this
             ->addArgument('channel', InputArgument::OPTIONAL, 'email or a channel from channels.json; omit to list them')
             ->addOption('json', null, InputOption::VALUE_NONE, 'Print as JSON')
-            ->setHelp('Exit codes: 0 sent (or channels listed), 1 delivery failed, 2 unknown channel.');
+            ->setHelp('Exit codes: 0 sent (or channels listed), 2 delivery failed or unknown channel.');
     }
 
     protected function execute(InputInterface $input, OutputInterface $output): int
@@ -47,15 +48,15 @@ final class AlarmTestCommand extends Command
         $channel = strtolower(trim((string) $input->getArgument('channel')));
         if (!isset($senders[$channel])) {
             $known = array_keys($senders);
-            $exitCode = $channel === '' ? CliOutput::EXIT_OK : CliOutput::EXIT_ERROR;
+            $level = $channel === '' ? StatusLevel::Ok : StatusLevel::Error;
             if ($json) {
-                CliOutput::json($output, ['status' => CliOutput::statusName($exitCode), 'channels' => $known] + ($channel === '' ? [] : ['error' => "Unknown channel '{$channel}'"]));
+                CliOutput::json($output, ['status' => $level->label(), 'channels' => $known] + ($channel === '' ? [] : ['error' => "Unknown channel '{$channel}'"]));
             } else {
                 $output->writeln(($channel === '' ? '' : "<error>Unknown channel '{$channel}'.</error> ") . 'Configured channels: ' . implode(', ', $known));
                 $output->writeln('Channels missing here are disabled or invalid in channels.json; see bin/mata config validate channels.json');
             }
 
-            return $exitCode;
+            return $level->value;
         }
 
         $now = new DateTimeImmutable('now');
@@ -76,15 +77,12 @@ final class AlarmTestCommand extends Command
         try {
             $senders[$channel]->send($view);
         } catch (Throwable $exception) {
-            $json ? CliOutput::json($output, ['status' => 'error', 'channel' => $channel, 'error' => $exception->getMessage()])
-                : $output->writeln("<error>{$channel}: {$exception->getMessage()}</error>");
-
-            return CliOutput::EXIT_WARNING;
+            return CliOutput::fail($input, $output, "{$channel}: {$exception->getMessage()}", payload: ['channel' => $channel]);
         }
 
         $json ? CliOutput::json($output, ['status' => 'ok', 'channel' => $channel])
             : $output->writeln("<info>Sent a test alarm through {$channel}.</info>");
 
-        return CliOutput::EXIT_OK;
+        return StatusLevel::Ok->value;
     }
 }

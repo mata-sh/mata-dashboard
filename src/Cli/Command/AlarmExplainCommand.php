@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace Mata\Cli\Command;
 
+use Mata\Cli\CliConfig;
 use Mata\Cli\CliOutput;
-use Mata\Config\EnvConfigLoader;
-use Mata\Config\Validation\InstanceConfigValidator;
 use Mata\Database\PdoDatabase;
 use Mata\Models\Event\EventRepository;
+use Mata\Services\Status\StatusLevel;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputArgument;
@@ -24,7 +24,7 @@ use Throwable;
 #[AsCommand(name: 'alarm:explain', description: 'Explain the alarm decisions for recent events')]
 final class AlarmExplainCommand extends Command
 {
-    public function __construct(private readonly string $configPath)
+    public function __construct(private readonly CliConfig $cli)
     {
         parent::__construct();
     }
@@ -44,12 +44,10 @@ final class AlarmExplainCommand extends Command
         $limit = (int) $input->getOption('limit');
 
         try {
-            $config = (new EnvConfigLoader())->load(InstanceConfigValidator::ENV_FILES, $this->configPath);
+            $config = $this->cli->load();
             $rows = (new EventRepository(new PdoDatabase($config->database)))->getRecentAlarmDecisions(is_string($server) ? $server : null, $limit);
         } catch (Throwable $exception) {
-            $output->writeln("<error>{$exception->getMessage()}</error>");
-
-            return CliOutput::EXIT_ERROR;
+            return CliOutput::fail($input, $output, CliOutput::withWebUserHint($exception->getMessage()));
         }
 
         $decisions = [];
@@ -70,7 +68,7 @@ final class AlarmExplainCommand extends Command
         if ($input->getOption('json')) {
             CliOutput::json($output, ['status' => 'ok', 'events' => $decisions]);
 
-            return CliOutput::EXIT_OK;
+            return StatusLevel::Ok->value;
         }
         if ($decisions === []) {
             $output->writeln('No evaluated events' . (is_string($server) ? " for '{$server}'" : '') . '.');
@@ -88,7 +86,7 @@ final class AlarmExplainCommand extends Command
             $output->writeln("    evidence: {$evidence} | channels: " . ($channels === '' ? '-' : $channels) . ($unavailable !== [] ? ' | unavailable: ' . implode(', ', $unavailable) : ''));
         }
 
-        return CliOutput::EXIT_OK;
+        return StatusLevel::Ok->value;
     }
 
     private static function text(mixed $value): string
