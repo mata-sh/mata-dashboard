@@ -29,12 +29,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Documentation is published at https://docs.mata.sh
 - The demo shows a mostly healthy fleet with a single incident instead of every failure state at once.
 - The server grid adapts to the screen width: `DASHBOARD_SERVER_COLUMNS` is now a maximum (default 4).
-- Node API keys move from `config/servers.json` to `config/servers.secrets.json`.
+- Node API keys move from `config/servers.json` to `config/servers.secrets.json`. **Action:** move each `api_key` there; the file needs mode 0640 and the web server's group.
 - The application repository ignores all of `config/`; templates moved to `config.example/`.
 - Config load events use one naming scheme: `<file>_config_invalid`
-- Server names in `servers.json` follow the `bin/mata server add` rule; other servers are dropped and reported.
+- Server names in `servers.json` follow the `bin/mata server add` rule; other servers are dropped and reported. **Action:** rename them in both server files and the node's `DASHBOARD_SERVER_ID`.
 - An empty `config/probes.json` means the built-in probe defaults.
-- The development container no longer changes the owner or mode of `config/` on start.
+- The development container no longer changes the owner or mode of `config/` on start. **Action:** if Git reports dubious ownership, run `sudo chown -R "$(id -un)" config/` once.
+- A `thresholds.json` metric whose limits decrease in the listed order is skipped and reported. **Action:** run `bin/mata config validate`.
 
 ### Removed
 - `config/phinx.php`, which `make db-migrate` never used.

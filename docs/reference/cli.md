@@ -28,9 +28,9 @@ a missing argument, also exit `2`.
 |---------|-----|-----|-----|
 | `config validate` | valid | warnings only | the app would ignore a file or drop a server |
 | `server list` | every server valid | — | a server has problems |
-| `server add` | added and the node accepted the key | added, but the test failed or was skipped | nothing written |
+| `server add` | added and the node accepted the key | added, but the test failed or was skipped, or a file warning | nothing written |
 | `server test` | all healthy and authenticated | authenticated, but not healthy | unreachable or key rejected |
-| `server remove` | removed | — | not found or cancelled |
+| `server remove` | removed | removed, with a file warning | not found or cancelled |
 | `status` | all ok | maintenance, a cron job not run yet, a config problem | node unhealthy or unreachable, cron overdue |
 | `doctor` | all checks pass | warnings | a check failed |
 | `db status` | up to date | migrations pending | database unreachable |
