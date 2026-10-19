@@ -59,12 +59,17 @@ final class ServerRemoveCommand extends Command
             return CliOutput::fail($input, $output, "Server '{$name}' not found.", payload: ['server' => $name, 'removed' => false]);
         }
 
+        $warnings = $this->files->warnings();
+        $level = $warnings === [] ? StatusLevel::Ok : StatusLevel::Warning;
         if ($json) {
-            CliOutput::json($output, ['status' => 'ok', 'server' => $name, 'removed' => true]);
+            CliOutput::json($output, ['status' => $level->label(), 'server' => $name, 'removed' => true, 'warnings' => $warnings]);
         } else {
             $output->writeln("<info>Removed '{$name}'.</info> Stored history stays in the database.");
+            foreach ($warnings as $warning) {
+                $output->writeln("<comment>{$warning}</comment>");
+            }
         }
 
-        return StatusLevel::Ok->value;
+        return $level->value;
     }
 }

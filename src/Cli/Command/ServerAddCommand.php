@@ -105,7 +105,7 @@ final class ServerAddCommand extends Command
         }
 
         $result = $input->getOption('no-test') ? null : $this->tester->test($name, $entry, $apiKey);
-        $level = $result?->isOk() ? StatusLevel::Ok : StatusLevel::Warning;
+        $level = $result?->isOk() && $this->files->warnings() === [] ? StatusLevel::Ok : StatusLevel::Warning;
 
         if ($json) {
             CliOutput::json($output, [

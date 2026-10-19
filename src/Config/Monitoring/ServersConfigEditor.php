@@ -13,10 +13,12 @@ use stdClass;
 /**
  * Edits servers.json and servers.secrets.json for the operator CLI.
  *
- * Files are rewritten in place, so owner, group and mode survive: the web server reads them
- * through their group (secrets 0640), and a replaced file would lose that. A new secrets file
- * gets 0640 and the group of servers.json. Key order and indentation are kept, so a versioned
- * config repo sees a minimal diff.
+ * An edit locks the config directory for its whole read-modify-write, so concurrent edits queue
+ * instead of losing one another's server. Each file is written to a temp file and renamed over
+ * the old one, so the app never reads a half-written file; the temp file first gets the old
+ * file's mode and group, through which the web server reads it (secrets 0640). A new secrets
+ * file gets 0640 and the group of servers.json. Key order and indentation are kept, so a
+ * versioned config repo sees a minimal diff.
  */
 final class ServersConfigEditor
 {
@@ -82,37 +84,69 @@ final class ServersConfigEditor
     /** @param array<string,mixed> $entry */
     public function add(string $name, array $entry, string $apiKey): void
     {
-        $this->warnings = [];
-        $servers = is_file($this->serversPath()) ? $this->readServers() : [];
-        $secrets = $this->readSecrets();
-        if (array_key_exists($name, $servers)) {
-            throw new RuntimeException("Server '{$name}' already exists in servers.json");
-        }
-        $servers[$name] = $entry;
-        $secrets[$name] = ['api_key' => $apiKey];
+        $this->locked(function () use ($name, $entry, $apiKey): void {
+            $servers = is_file($this->serversPath()) ? $this->readServers() : [];
+            $secrets = $this->readSecrets();
+            if (array_key_exists($name, $servers)) {
+                throw new RuntimeException("Server '{$name}' already exists in servers.json");
+            }
+            $servers[$name] = $entry;
+            $secrets[$name] = ['api_key' => $apiKey];
 
-        // Secrets first: a server without its key is dropped, a key without its server only warns.
-        $this->write($this->secretsPath(), $secrets, newFileMode: 0640);
-        $this->write($this->serversPath(), $servers, newFileMode: 0644);
+            // Secrets first: a server without its key is dropped, a key without its server only warns.
+            $this->replace([
+                $this->secretsPath() => [$secrets, 0640],
+                $this->serversPath() => [$servers, 0644],
+            ]);
+        });
     }
 
     /** @return bool whether the server existed in either file */
     public function remove(string $name): bool
     {
-        $servers = is_file($this->serversPath()) ? $this->readServers() : [];
-        $secrets = $this->readSecrets();
+        return $this->locked(function () use ($name): bool {
+            $servers = is_file($this->serversPath()) ? $this->readServers() : [];
+            $secrets = $this->readSecrets();
+            // Server first, for the same reason as in add().
+            $changes = [];
+            if (array_key_exists($name, $servers)) {
+                unset($servers[$name]);
+                $changes[$this->serversPath()] = [$servers, 0644];
+            }
+            if (array_key_exists($name, $secrets)) {
+                unset($secrets[$name]);
+                $changes[$this->secretsPath()] = [$secrets, 0640];
+            }
+            $this->replace($changes);
+
+            return $changes !== [];
+        });
+    }
+
+    /**
+     * Runs $edit holding an exclusive lock on the config directory. The directory, not a file:
+     * replace() swaps the files, and a lock on a replaced file guards nothing.
+     *
+     * @template T
+     *
+     * @param callable(): T $edit
+     *
+     * @return T
+     */
+    private function locked(callable $edit): mixed
+    {
         $this->warnings = [];
-        $found = array_key_exists($name, $servers) || array_key_exists($name, $secrets);
-        if (array_key_exists($name, $servers)) {
-            unset($servers[$name]);
-            $this->write($this->serversPath(), $servers, newFileMode: 0644);
-        }
-        if (array_key_exists($name, $secrets)) {
-            unset($secrets[$name]);
-            $this->write($this->secretsPath(), $secrets, newFileMode: 0640);
+        $handle = @fopen($this->configPath, 'r');
+        if ($handle === false || !flock($handle, LOCK_EX)) {
+            throw new RuntimeException("Cannot lock {$this->configPath}");
         }
 
-        return $found;
+        try {
+            return $edit();
+        } finally {
+            flock($handle, LOCK_UN);
+            fclose($handle);
+        }
     }
 
     /** @return array<string,mixed> */
@@ -135,8 +169,41 @@ final class ServersConfigEditor
         return $data;
     }
 
-    /** @param array<string,mixed> $data */
-    private function write(string $path, array $data, int $newFileMode): void
+    /**
+     * Writes every file to a temp file next to it, then renames them over the originals in
+     * order. A failure while writing changes nothing; a failed rename names what was replaced.
+     *
+     * @param array<string,array{0:array<string,mixed>,1:int}> $changes path => [data, mode of a new file]
+     */
+    private function replace(array $changes): void
+    {
+        $staged = [];
+
+        try {
+            foreach ($changes as $path => [$data, $newFileMode]) {
+                $staged[$path] = $this->stage($path, $data, $newFileMode);
+            }
+            $replaced = [];
+            foreach ($staged as $path => $temp) {
+                if (!@rename($temp, $path)) {
+                    throw new RuntimeException("Cannot replace {$path}" . ($replaced === [] ? '' : '; already replaced: ' . implode(', ', $replaced)));
+                }
+                unset($staged[$path]);
+                $replaced[] = $path;
+            }
+        } finally {
+            foreach ($staged as $temp) {
+                @unlink($temp);
+            }
+        }
+    }
+
+    /**
+     * @param array<string,mixed> $data
+     *
+     * @return string the temp file, with the mode and group $path has or should get
+     */
+    private function stage(string $path, array $data, int $newFileMode): string
     {
         $exists = is_file($path);
         $indent = $exists ? $this->detectIndent((string) file_get_contents($path)) : 2;
@@ -145,42 +212,34 @@ final class ServersConfigEditor
             $json = (string) preg_replace_callback('/^( {4})+/m', static fn (array $m): string => str_repeat(' ', intdiv(strlen($m[0]), 4) * $indent), $json);
         }
 
-        if (!$exists) {
-            $this->createFile($path, $newFileMode);
-        }
-        $handle = fopen($path, 'c');
-        if ($handle === false || !flock($handle, LOCK_EX)) {
-            throw new RuntimeException("Cannot write {$path}");
-        }
-
-        try {
-            if (!ftruncate($handle, 0) || fwrite($handle, $json . "\n") === false) {
-                throw new RuntimeException("Cannot write {$path}");
-            }
-            fflush($handle);
-        } finally {
-            flock($handle, LOCK_UN);
-            fclose($handle);
-        }
-    }
-
-    private function createFile(string $path, int $mode): void
-    {
+        // Hidden, so a config repo's `git status` during the edit stays quiet.
+        $temp = dirname($path) . '/.' . basename($path) . '.' . bin2hex(random_bytes(4)) . '.tmp';
         $umask = umask(0077);
 
         try {
-            if (file_put_contents($path, '') === false) {
-                throw new RuntimeException("Cannot create {$path}");
-            }
+            $written = file_put_contents($temp, $json . "\n", LOCK_EX);
         } finally {
             umask($umask);
         }
-        chmod($path, $mode);
-        // Same group as servers.json, through which the web server reads the config.
-        $group = is_file($this->serversPath()) ? filegroup($this->serversPath()) : false;
-        if ($group !== false && !@chgrp($path, $group)) {
-            $this->warnings[] = "Could not give {$path} the group of servers.json; make it readable by the web server's group (0640), or the servers load fails";
+        if ($written === false) {
+            @unlink($temp);
+
+            throw new RuntimeException("Cannot write {$temp}");
         }
+
+        $mode = $exists ? fileperms($path) & 0777 : $newFileMode;
+        // Same group as before; a new file takes the group of servers.json, through which the web server reads the config.
+        $groupSource = $exists ? $path : $this->serversPath();
+        $group = is_file($groupSource) ? filegroup($groupSource) : false;
+        chmod($temp, $mode);
+        if ($group !== false && $group !== filegroup($temp) && !@chgrp($temp, $group)) {
+            $this->warnings[] = "Could not give {$path} its group ({$group}); make it readable by the web server's group (0640), or the servers load fails";
+        }
+        if ($exists && fileowner($path) !== fileowner($temp)) {
+            $this->warnings[] = "{$path} now belongs to the account that ran this command instead of its previous owner";
+        }
+
+        return $temp;
     }
 
     private function detectIndent(string $json): int

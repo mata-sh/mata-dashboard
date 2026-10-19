@@ -120,9 +120,10 @@ final readonly class ThresholdsConfig
                 }
                 $values[(string) $level] = $value;
             }
-            // MetricThresholds::levelOf() reports the last listed level a value exceeds.
+            // MetricThresholds::levelOf() reports the last listed level a value exceeds, so equal
+            // limits are harmless (the later level wins) but a decreasing one hides a level.
             if (!self::isAscending($values)) {
-                $reportInvalid("{$metricPath} limits must increase in the order listed, e.g. good < warn < critical < alarm; skipping entry.");
+                $reportInvalid("{$metricPath} limits must increase or stay equal in the order listed, e.g. good <= warn <= critical <= alarm; skipping entry.");
 
                 continue;
             }
@@ -137,7 +138,7 @@ final readonly class ThresholdsConfig
     {
         $previous = null;
         foreach ($limits as $limit) {
-            if ($previous !== null && $limit <= $previous) {
+            if ($previous !== null && $limit < $previous) {
                 return false;
             }
             $previous = $limit;
