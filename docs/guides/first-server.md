@@ -170,7 +170,7 @@ historical charts are still empty until a metrics collection run succeeds.
 
 - Check `logs/cron/app-servers-metrics-collect.log`.
 - Verify `disabled` is not `true`, that `api_url` is present, and that `servers.secrets.json` has the server's `api_key`.
-- Run `php /var/www/html/scripts/server_metrics_diagnostic.php` in the dashboard container.
+- Run `bin/mata metrics status`; a stale `raw` tier means collection stopped.
 - Confirm that the database is reachable and migrations have run.
 
 ### Application fields are missing

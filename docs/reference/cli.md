@@ -35,6 +35,7 @@ a missing argument, also exit `2`.
 | `doctor` | all checks pass | warnings | a check failed |
 | `db status` | up to date | migrations pending | database unreachable |
 | `db migrate`, `db rollback`, `db check` | done or passed | — | failed |
+| `metrics status` | listed | — | database unreachable |
 | `user …` | done | — | failed or refused |
 | `alarm test` | sent, or channels listed | — | delivery failed or unknown channel |
 | `alarm explain` | listed | — | failed |

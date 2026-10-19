@@ -13,7 +13,6 @@ scripts/
 │   └── sync-node-docs.sh          # copies mata-node pages into docs/node/ (make docs-serve|docs-deploy)
 ├── systemd/                       # native service units; opa.service is installed by make opa-install-service
 ├── cron_database_probe.php        # database readiness probe used by the Docker cron smoke check
-├── server_metrics_diagnostic.php  # metrics row counts per server
 └── setup.sh                       # guided setup (make setup)
 ```
 

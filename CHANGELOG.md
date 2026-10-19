@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - In `demo`, `DEMO_LOGIN_USERNAME` and `DEMO_LOGIN_PASSWORD` prefill the login form.
 - `config.example/AGENTS.md` gives coding agents rules for editing a config repository.
 - `bin/mata alarm test [channel]` replaces `scripts/alarm_channel_test.php`; `bin/mata alarm explain [server]` shows recent alarm decisions.
+- `bin/mata metrics status` replaces `scripts/server_metrics_diagnostic.php`.
 - `bin/mata user …`, `db …` and `doctor` commands, all with `--json`.
 - `bin/mata status` reports node health and cron jobs with Nagios exit codes.
 - `bin/mata server add|list|test|remove` manage `servers.json` and `servers.secrets.json`.

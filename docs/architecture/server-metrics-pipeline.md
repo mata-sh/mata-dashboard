@@ -253,13 +253,11 @@ have a separate existing modal.
 
 ## Operations and diagnosis
 
-Run these inside the web container:
-
 ```bash
 # Row count and latest timestamp for each tier
-php /var/www/html/scripts/server_metrics_diagnostic.php
+make mata ARGS="metrics status"
 
-# Verify cron-user config and database bootstrap
+# Verify cron-user config and database bootstrap, inside the web container
 mata-cron-smoke-check
 ```
 

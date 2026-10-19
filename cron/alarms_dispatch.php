@@ -41,7 +41,7 @@ try {
 
     // --- Senders & Dispatchers ---
     $alarmChannels = AlarmChannelRuntime::fromRuntime($runtime, $eventManager);
-    $alarmChannels->reportUnknownLimitChannels($alarmRateLimits);
+    $alarmChannels->reportUnknownLimitChannels($alarmRateLimits, $eventManager);
     $senders = $alarmChannels->senders();
     $dispatcher = new AlarmDispatcher($deliveryRepository, $alarmRateLimits, $senders, $log);
 

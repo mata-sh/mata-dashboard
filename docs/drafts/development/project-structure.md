@@ -385,7 +385,6 @@ Utility and maintenance scripts.
 scripts/
 ├── bootstrap.php                   # Script bootstrap
 ├── cron_database_probe.php         # DB reachability probe for cron
-├── server_metrics_diagnostic.php   # Ad-hoc metrics diagnostics
 ├── setup.sh                        # Environment setup
 ├── database/
 │   └── mysql-operation.php      # DB maintenance ops

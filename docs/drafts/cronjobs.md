@@ -34,7 +34,7 @@ on its own through the same cache. `servers_metrics_aggregate.php` is offset to
 Inspect retention tiers and latest UTC timestamps:
 
 ```bash
-docker exec <web-container> php /var/www/html/scripts/server_metrics_diagnostic.php
+make mata ARGS="metrics status"
 ```
 
 

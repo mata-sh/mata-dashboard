@@ -13,6 +13,7 @@ use Mata\Cli\Command\DbMigrateCommand;
 use Mata\Cli\Command\DbRollbackCommand;
 use Mata\Cli\Command\DbStatusCommand;
 use Mata\Cli\Command\DoctorCommand;
+use Mata\Cli\Command\MetricsStatusCommand;
 use Mata\Cli\Command\ServerAddCommand;
 use Mata\Cli\Command\ServerListCommand;
 use Mata\Cli\Command\ServerRemoveCommand;
@@ -73,8 +74,9 @@ $application->addCommands([
     new DbMigrateCommand($cli),
     new DbRollbackCommand($cli),
     new DbCheckCommand($cli),
+    new MetricsStatusCommand($cli),
     new DoctorCommand($cli),
-    new AlarmTestCommand(__FILE__),
+    new AlarmTestCommand($cli),
     new AlarmExplainCommand($cli),
 ]);
 

@@ -157,7 +157,7 @@ tail -f logs/health/collect_server_metrics_health.log
 
 Then verify the node URL, shared credentials, database migrations, and the
 server's active flag. Use
-`php /var/www/html/scripts/server_metrics_diagnostic.php` inside `mata-web` for row counts.
+`make mata ARGS="metrics status"` for row counts.
 
 ### Code changes are not visible
 

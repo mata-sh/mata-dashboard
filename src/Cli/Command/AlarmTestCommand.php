@@ -6,13 +6,13 @@ namespace Mata\Cli\Command;
 
 use DateTimeImmutable;
 use Mata\Bootstrap\AlarmChannelRuntime;
-use Mata\Bootstrap\CronRuntime;
+use Mata\Cli\CliConfig;
 use Mata\Cli\CliOutput;
+use Mata\Config\LogConfigurator;
+use Mata\Config\Monitoring\Loader\ChannelsConfigLoader;
 use Mata\Services\Alarm\Delivery\Dto\AlarmDeliveryView;
 use Mata\Services\Alarm\Dto\Alarm;
 use Mata\Services\Alarm\Dto\AlarmLevel;
-use Mata\Services\Event\EventManager;
-use Mata\Services\Event\EventRecorderService;
 use Mata\Services\Status\StatusLevel;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
@@ -20,12 +20,14 @@ use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
+use Symfony\Component\Mailer\Mailer;
+use Symfony\Component\Mailer\Transport;
 use Throwable;
 
 #[AsCommand(name: 'alarm:test', description: 'Send a sample alarm through one delivery channel, bypassing the queue')]
 final class AlarmTestCommand extends Command
 {
-    public function __construct(private readonly string $entryPoint)
+    public function __construct(private readonly CliConfig $cli)
     {
         parent::__construct();
     }
@@ -40,9 +42,17 @@ final class AlarmTestCommand extends Command
 
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
-        $runtime = CronRuntime::boot($this->entryPoint);
-        $events = new EventManager($runtime->appConfig, eventRecorder: new EventRecorderService($runtime->db), logger: $runtime->log);
-        $senders = AlarmChannelRuntime::fromRuntime($runtime, $events)->senders();
+        $config = $this->cli->load();
+        $paths = $this->cli->paths();
+        // Load problems are left to `config validate`; the cron jobs record them as events.
+        $channels = (new ChannelsConfigLoader())->load($paths->configPath)->section;
+        $senders = (new AlarmChannelRuntime(
+            channels: $channels,
+            paths: $paths,
+            appConfig: $config,
+            mailer: new Mailer(Transport::fromDsn($config->mail->dsn)),
+            log: (new LogConfigurator())->createConfiguredLogger($config->logging, $paths, 'alarm-test'),
+        ))->senders();
 
         $channel = strtolower(trim((string) $input->getArgument('channel')));
         if (!isset($senders[$channel])) {
@@ -62,7 +72,7 @@ final class AlarmTestCommand extends Command
         $view = new AlarmDeliveryView(
             alarm: new Alarm(
                 type: 'alarm_channel_test',
-                message: "Test alarm from {$runtime->appConfig->general->appName}. If you can read this, the {$channel} channel works.",
+                message: "Test alarm from {$config->general->appName}. If you can read this, the {$channel} channel works.",
                 level: AlarmLevel::Info,
                 server: gethostname() ?: null,
                 channels: [$channel],

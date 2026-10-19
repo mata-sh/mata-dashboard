@@ -26,15 +26,14 @@ use Throwable;
 use Twig\Loader\FilesystemLoader;
 
 /**
- * Alarm delivery channels for a cron job or script: the channels from channels.json and their senders.
+ * Alarm delivery channels: the channels from channels.json and their senders.
  *
- * Builds on the shared infrastructure initialized by {@see CronRuntime}.
+ * Cron jobs build it from {@see CronRuntime}; `bin/mata alarm test` from the parts.
  */
 final readonly class AlarmChannelRuntime
 {
     public function __construct(
         public ChannelsConfig $channels,
-        private EventManager $events,
         private PathResolver $paths,
         private ApplicationConfig $appConfig,
         private MailerInterface $mailer,
@@ -50,7 +49,6 @@ final readonly class AlarmChannelRuntime
 
         return new self(
             channels: $channels,
-            events: $events,
             paths: $runtime->paths,
             appConfig: $runtime->appConfig,
             mailer: $runtime->mailer,
@@ -62,13 +60,13 @@ final readonly class AlarmChannelRuntime
      * Warns about notification rules that route to a channel channels.json does not define.
      * The evaluators skip those deliveries; events dedupe the warning per cooldown window.
      */
-    public function reportUnknownRuleChannels(NotificationRulesConfig $rules): void
+    public function reportUnknownRuleChannels(NotificationRulesConfig $rules, EventManager $events): void
     {
         $configured = $this->channels->names();
         foreach (array_diff($rules->channels(), $configured) as $channel) {
             $message = "notification_rules.json routes alarms to channel {$channel}, which is not configured; "
                 . 'its deliveries are skipped. Configured channels: ' . implode(', ', $configured) . '.';
-            $this->events->handle(new EventCommand(
+            $events->handle(new EventCommand(
                 type: 'notification_rules_unknown_channel',
                 message: $message,
                 level: 'warning',
@@ -81,7 +79,7 @@ final readonly class AlarmChannelRuntime
      * Warns about limits.json entries for a channel channels.json does not define, such as a typo,
      * since no delivery ever uses them.
      */
-    public function reportUnknownLimitChannels(AlarmRateLimitsConfig $limits): void
+    public function reportUnknownLimitChannels(AlarmRateLimitsConfig $limits, EventManager $events): void
     {
         $limited = array_keys($limits->getChannelLimits());
         foreach ($limits->getServerOverrides() as $overrides) {
@@ -92,7 +90,7 @@ final readonly class AlarmChannelRuntime
         foreach (array_unique(array_diff($limited, $configured)) as $channel) {
             $message = "limits.json sets limits for channel {$channel}, which is not configured; they are never applied. "
                 . 'Configured channels: ' . implode(', ', $configured) . '.';
-            $this->events->handle(new EventCommand(
+            $events->handle(new EventCommand(
                 type: 'limits_unknown_channel',
                 message: $message,
                 level: 'warning',

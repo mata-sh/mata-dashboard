@@ -53,7 +53,7 @@ try {
     );
 
     $alarmChannels = AlarmChannelRuntime::fromRuntime($runtime, $eventManager);
-    $alarmChannels->reportUnknownRuleChannels($notificationRules);
+    $alarmChannels->reportUnknownRuleChannels($notificationRules, $eventManager);
     $stats = [
         'considered' => 0,
         'enqueued' => 0,

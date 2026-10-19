@@ -30,7 +30,7 @@ final class AlarmChannelRuntimeTest extends TestCase
     {
         [$events, $recorded] = $this->events();
 
-        $this->runtime(ChannelsConfig::empty(), $events)->reportUnknownRuleChannels(NotificationRulesConfig::default());
+        $this->runtime(ChannelsConfig::empty())->reportUnknownRuleChannels(NotificationRulesConfig::default(), $events);
 
         $this->assertSame([], $recorded->messages);
     }
@@ -45,7 +45,7 @@ final class AlarmChannelRuntimeTest extends TestCase
             ['shop' => ['fatal_errors_occurring' => ['channels' => ['telgram']]]],
         );
 
-        $this->runtime($channels, $events)->reportUnknownRuleChannels($rules);
+        $this->runtime($channels)->reportUnknownRuleChannels($rules, $events);
 
         $this->assertSame([
             'notification_rules.json routes alarms to channel telgram, which is not configured; its deliveries are skipped. Configured channels: email, telegram.',
@@ -63,7 +63,7 @@ final class AlarmChannelRuntimeTest extends TestCase
             static function (string $message): void {},
         );
 
-        $this->runtime($this->telegramChannels(), $events)->reportUnknownLimitChannels($limits);
+        $this->runtime($this->telegramChannels())->reportUnknownLimitChannels($limits, $events);
 
         $this->assertSame([
             'limits.json sets limits for channel telgram, which is not configured; they are never applied. Configured channels: email, telegram.',
@@ -78,8 +78,7 @@ final class AlarmChannelRuntimeTest extends TestCase
         file_put_contents($appPath . '/config/servers.json', '{}');
 
         try {
-            [$events] = $this->events();
-            $senders = $this->runtime($this->telegramChannels(), $events, PathResolver::fromAppPath($appPath))->senders();
+            $senders = $this->runtime($this->telegramChannels(), PathResolver::fromAppPath($appPath))->senders();
 
             $this->assertSame(['email', 'telegram'], array_keys($senders));
             $this->assertInstanceOf(AlarmEmailSender::class, $senders['email']);
@@ -89,11 +88,10 @@ final class AlarmChannelRuntimeTest extends TestCase
         }
     }
 
-    private function runtime(ChannelsConfig $channels, EventManager $events, ?PathResolver $paths = null): AlarmChannelRuntime
+    private function runtime(ChannelsConfig $channels, ?PathResolver $paths = null): AlarmChannelRuntime
     {
         return new AlarmChannelRuntime(
             $channels,
-            $events,
             $paths ?? PathResolver::fromAppPath(dirname(__DIR__, 4)),
             ApplicationConfigFactory::create(),
             $this->createStub(MailerInterface::class),
