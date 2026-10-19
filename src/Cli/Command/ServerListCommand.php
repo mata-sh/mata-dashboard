@@ -7,7 +7,7 @@ namespace Mata\Cli\Command;
 use Mata\Cli\CliOutput;
 use Mata\Config\Monitoring\Section\ServersConfig;
 use Mata\Config\Monitoring\ServerConfigState;
-use Mata\Config\Monitoring\ServersConfigEditor;
+use Mata\Config\Monitoring\ServersConfigFiles;
 use Mata\Services\Status\StatusLevel;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
@@ -19,7 +19,7 @@ use Symfony\Component\Console\Output\OutputInterface;
 #[AsCommand(name: 'server:list', description: 'List the servers in servers.json and whether each has a key')]
 final class ServerListCommand extends Command
 {
-    public function __construct(private readonly ServersConfigEditor $files)
+    public function __construct(private readonly ServersConfigFiles $files)
     {
         parent::__construct();
     }

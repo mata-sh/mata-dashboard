@@ -6,7 +6,7 @@ namespace Mata\Cli\Command;
 
 use Mata\Cli\CliOutput;
 use Mata\Config\Monitoring\ServerConfigState;
-use Mata\Config\Monitoring\ServersConfigEditor;
+use Mata\Config\Monitoring\ServersConfigFiles;
 use Mata\Services\Monitor\Dto\NodeConnectionResult;
 use Mata\Services\Monitor\NodeConnectionTester;
 use Mata\Services\Status\StatusLevel;
@@ -21,7 +21,7 @@ use Symfony\Component\Console\Output\OutputInterface;
 final class ServerTestCommand extends Command
 {
     public function __construct(
-        private readonly ServersConfigEditor $files,
+        private readonly ServersConfigFiles $files,
         private readonly NodeConnectionTester $tester,
     ) {
         parent::__construct();

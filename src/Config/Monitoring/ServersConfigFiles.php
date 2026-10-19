@@ -11,16 +11,18 @@ use RuntimeException;
 use stdClass;
 
 /**
- * Edits servers.json and servers.secrets.json for the operator CLI.
+ * Reads and edits servers.json and servers.secrets.json for the operator CLI. entries() is the
+ * raw view; ServersConfigLoader is the validated one the app uses.
  *
- * An edit locks the config directory for its whole read-modify-write, so concurrent edits queue
- * instead of losing one another's server. Each file is written to a temp file and renamed over
- * the old one, so the app never reads a half-written file; the temp file first gets the old
- * file's mode and group, through which the web server reads it (secrets 0640). A new secrets
- * file gets 0640 and the group of servers.json. Key order and indentation are kept, so a
- * versioned config repo sees a minimal diff.
+ * Every read and edit locks the config directory, so concurrent edits queue instead of losing
+ * one another's server, and a read never sees one file before an edit and the other after it.
+ * Each file is written to a temp file and renamed over the old one, so the app never reads a
+ * half-written file; the temp file first gets the old file's mode and group, through which the
+ * web server reads it (secrets 0640). A new secrets file gets 0640 and the group of
+ * servers.json. Key order and indentation are kept, so a versioned config repo sees a minimal
+ * diff.
  */
-final class ServersConfigEditor
+final class ServersConfigFiles
 {
     /** @var list<string> */
     private array $warnings = [];
@@ -37,28 +39,6 @@ final class ServersConfigEditor
         return $this->warnings;
     }
 
-    private function serversPath(): string
-    {
-        return rtrim($this->configPath, '/') . '/servers.json';
-    }
-
-    private function secretsPath(): string
-    {
-        return rtrim($this->configPath, '/') . '/' . ServersConfigLoader::SECRETS_FILE;
-    }
-
-    /** @return array<string,mixed> servers.json, including `_`-prefixed documentation keys */
-    public function readServers(): array
-    {
-        return $this->read($this->serversPath());
-    }
-
-    /** @return array<string,mixed> */
-    public function readSecrets(): array
-    {
-        return is_file($this->secretsPath()) ? $this->read($this->secretsPath()) : [];
-    }
-
     /**
      * Servers in servers.json without the `_` documentation keys, each with its key from
      * servers.secrets.json (null when missing). Entries stay raw: server list reports invalid ones.
@@ -67,9 +47,12 @@ final class ServersConfigEditor
      */
     public function entries(): array
     {
-        $secrets = $this->readSecrets();
+        [$servers, $secrets] = $this->locked(LOCK_SH, fn (): array => [
+            $this->read($this->serversPath()),
+            $this->read($this->secretsPath(), optional: true),
+        ]);
         $entries = [];
-        foreach ($this->readServers() as $name => $entry) {
+        foreach ($servers as $name => $entry) {
             $name = (string) $name;
             if (str_starts_with($name, '_')) {
                 continue;
@@ -84,9 +67,9 @@ final class ServersConfigEditor
     /** @param array<string,mixed> $entry */
     public function add(string $name, array $entry, string $apiKey): void
     {
-        $this->locked(function () use ($name, $entry, $apiKey): void {
-            $servers = is_file($this->serversPath()) ? $this->readServers() : [];
-            $secrets = $this->readSecrets();
+        $this->locked(LOCK_EX, function () use ($name, $entry, $apiKey): void {
+            $servers = $this->read($this->serversPath(), optional: true);
+            $secrets = $this->read($this->secretsPath(), optional: true);
             if (array_key_exists($name, $servers)) {
                 throw new RuntimeException("Server '{$name}' already exists in servers.json");
             }
@@ -104,9 +87,9 @@ final class ServersConfigEditor
     /** @return bool whether the server existed in either file */
     public function remove(string $name): bool
     {
-        return $this->locked(function () use ($name): bool {
-            $servers = is_file($this->serversPath()) ? $this->readServers() : [];
-            $secrets = $this->readSecrets();
+        return $this->locked(LOCK_EX, function () use ($name): bool {
+            $servers = $this->read($this->serversPath(), optional: true);
+            $secrets = $this->read($this->secretsPath(), optional: true);
             // Server first, for the same reason as in add().
             $changes = [];
             if (array_key_exists($name, $servers)) {
@@ -123,35 +106,53 @@ final class ServersConfigEditor
         });
     }
 
+    private function serversPath(): string
+    {
+        return rtrim($this->configPath, '/') . '/' . ServersConfigLoader::SERVERS_FILE;
+    }
+
+    private function secretsPath(): string
+    {
+        return rtrim($this->configPath, '/') . '/' . ServersConfigLoader::SECRETS_FILE;
+    }
+
     /**
-     * Runs $edit holding an exclusive lock on the config directory. The directory, not a file:
-     * replace() swaps the files, and a lock on a replaced file guards nothing.
+     * Runs $work holding a lock on the config directory: LOCK_SH to read, LOCK_EX to edit. The
+     * directory, not a file: replace() swaps the files, and a lock on a replaced file guards nothing.
      *
      * @template T
      *
-     * @param callable(): T $edit
+     * @param LOCK_EX|LOCK_SH $operation
+     * @param callable(): T   $work
      *
      * @return T
      */
-    private function locked(callable $edit): mixed
+    private function locked(int $operation, callable $work): mixed
     {
-        $this->warnings = [];
         $handle = @fopen($this->configPath, 'r');
-        if ($handle === false || !flock($handle, LOCK_EX)) {
+        if ($handle === false || !flock($handle, $operation)) {
             throw new RuntimeException("Cannot lock {$this->configPath}");
         }
 
         try {
-            return $edit();
+            return $work();
         } finally {
             flock($handle, LOCK_UN);
             fclose($handle);
         }
     }
 
-    /** @return array<string,mixed> */
-    private function read(string $path): array
+    /**
+     * A missing servers.json is an error when listing but empty when editing, so add() can create
+     * it; servers.secrets.json is always optional.
+     *
+     * @return array<string,mixed> the file's JSON object, including `_`-prefixed documentation keys
+     */
+    private function read(string $path, bool $optional = false): array
     {
+        if ($optional && !is_file($path)) {
+            return [];
+        }
         $content = is_readable($path) ? file_get_contents($path) : false;
         if ($content === false) {
             throw new RuntimeException("Cannot read {$path}");
@@ -177,6 +178,7 @@ final class ServersConfigEditor
      */
     private function replace(array $changes): void
     {
+        $this->warnings = [];
         $staged = [];
 
         try {

@@ -15,6 +15,8 @@ use Psr\Log\LogLevel;
  */
 final class ServersConfigLoader extends AbstractJsonConfigLoader
 {
+    public const SERVERS_FILE = 'servers.json';
+
     public const SECRETS_FILE = 'servers.secrets.json';
 
     private const SECRET_KEYS = ['api_key'];
@@ -27,7 +29,7 @@ final class ServersConfigLoader extends AbstractJsonConfigLoader
 
     protected function fileName(): string
     {
-        return 'servers.json';
+        return self::SERVERS_FILE;
     }
 
     protected function loadFailureType(): string
