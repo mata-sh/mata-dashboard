@@ -9,7 +9,6 @@ use Mata\Config\Monitoring\Section\ServersConfig;
 use Mata\Config\Monitoring\ServerConfigState;
 use Mata\Config\Monitoring\ServersConfigEditor;
 use Mata\Services\Status\StatusLevel;
-use RuntimeException;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Helper\Table;
@@ -32,11 +31,7 @@ final class ServerListCommand extends Command
 
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
-        try {
-            $entries = $this->files->entries();
-        } catch (RuntimeException $exception) {
-            return CliOutput::fail($input, $output, $exception->getMessage());
-        }
+        $entries = $this->files->entries();
 
         $rows = [];
         foreach ($entries as $name => ['entry' => $entry, 'apiKey' => $apiKey]) {

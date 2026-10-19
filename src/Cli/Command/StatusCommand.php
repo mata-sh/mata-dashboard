@@ -57,7 +57,7 @@ final class StatusCommand extends Command
             // LOG_PATH and TEMP_DIR move the heartbeat and cache directories.
             $this->cli->load();
         } catch (Throwable $exception) {
-            return CliOutput::fail($input, $output, CliOutput::withWebUserHint("Cannot load the config: {$exception->getMessage()}"), StatusLevel::Unknown);
+            return CliOutput::fail($input, $output, $exception->getMessage(), StatusLevel::Unknown);
         }
 
         $servers = (new ServersConfigLoader(fallbackOnFailure: true))->load($this->cli->configPath);

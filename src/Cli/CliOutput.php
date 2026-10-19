@@ -9,6 +9,7 @@ use Symfony\Component\Console\Formatter\OutputFormatter;
 use Symfony\Component\Console\Helper\QuestionHelper;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
+use Symfony\Component\Console\Question\ConfirmationQuestion;
 use Symfony\Component\Console\Question\Question;
 
 /**
@@ -45,6 +46,39 @@ final class CliOutput
         }
 
         return $level->value;
+    }
+
+    /**
+     * Reports success as `{"status":"ok",…}` with --json, else as an info line.
+     *
+     * @param array<string,mixed> $payload fields for the JSON document
+     */
+    public static function ok(InputInterface $input, OutputInterface $output, string $message, array $payload = []): int
+    {
+        if ($input->getOption('json')) {
+            self::json($output, ['status' => StatusLevel::Ok->label()] + $payload);
+        } else {
+            $output->writeln("<info>{$message}</info>");
+        }
+
+        return StatusLevel::Ok->value;
+    }
+
+    /**
+     * y/N question, skipped with --yes; without a terminal --yes is required. Null when
+     * confirmed, else the exit code of the reported refusal.
+     */
+    public static function confirm(InputInterface $input, OutputInterface $output, string $question): ?int
+    {
+        if ($input->getOption('yes')) {
+            return null;
+        }
+        if (!$input->isInteractive()) {
+            return self::fail($input, $output, 'Pass --yes to confirm without a terminal.');
+        }
+        $confirmed = (new QuestionHelper())->ask($input, $output, new ConfirmationQuestion("{$question} [y/N] ", false));
+
+        return $confirmed === true ? null : self::fail($input, $output, 'Cancelled.');
     }
 
     /**
@@ -94,18 +128,5 @@ final class CliOutput
         $user = function_exists('posix_getpwuid') ? posix_getpwuid(posix_geteuid()) : false;
 
         return is_array($user) ? $user['name'] : null;
-    }
-
-    /**
-     * Appended when logs/ or temp/ is not writable: commands other than `config validate` and
-     * `server *` write there, which only the web server user may.
-     */
-    public static function withWebUserHint(string $message): string
-    {
-        if (!str_contains($message, 'Directory is not writable')) {
-            return $message;
-        }
-
-        return $message . '. Run as the web server user: sudo -u www-data php bin/mata … (http on Arch, apache on RHEL; make does this in Docker)';
     }
 }

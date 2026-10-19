@@ -12,7 +12,6 @@ use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
-use Throwable;
 
 /**
  * Database commands against APP_ENV's environment.
@@ -41,25 +40,15 @@ abstract class AbstractDbCommand extends Command
 
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
-        try {
-            $this->config = $this->cli->load();
-        } catch (Throwable $exception) {
-            return CliOutput::fail($input, $output, CliOutput::withWebUserHint("Cannot load the config: {$exception->getMessage()}"));
-        }
-
-        $env = $this->config->environment->env;
-        if ($this->writes() && $env === 'prod') {
+        $this->config = $this->cli->load();
+        if ($this->writes() && $this->config->environment->env === 'prod') {
             $refused = CliOutput::confirmProduction($input, $output, 'the PRODUCTION database', ' Back up first: make db-backup');
             if ($refused !== null) {
                 return $refused;
             }
         }
 
-        try {
-            return $this->handle($input, $output);
-        } catch (Throwable $exception) {
-            return CliOutput::fail($input, $output, $exception->getMessage());
-        }
+        return $this->handle($input, $output);
     }
 
     /** Phinx output goes to $output for humans and is dropped for --json. */

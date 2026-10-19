@@ -15,7 +15,6 @@ use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
-use Throwable;
 
 /**
  * Shows why recent events did or did not become alarms, from the decision trace the alarm
@@ -43,12 +42,8 @@ final class AlarmExplainCommand extends Command
         $server = $input->getArgument('server');
         $limit = (int) $input->getOption('limit');
 
-        try {
-            $config = $this->cli->load();
-            $rows = (new EventRepository(new PdoDatabase($config->database)))->getRecentAlarmDecisions(is_string($server) ? $server : null, $limit);
-        } catch (Throwable $exception) {
-            return CliOutput::fail($input, $output, CliOutput::withWebUserHint($exception->getMessage()));
-        }
+        $events = new EventRepository(new PdoDatabase($this->cli->load()->database));
+        $rows = $events->getRecentAlarmDecisions(is_string($server) ? $server : null, $limit);
 
         $decisions = [];
         foreach ($rows as $row) {
@@ -74,19 +69,42 @@ final class AlarmExplainCommand extends Command
             $output->writeln('No evaluated events' . (is_string($server) ? " for '{$server}'" : '') . '.');
         }
         foreach ($decisions as $event) {
-            $d = $event['decision'] ?? [];
-            $where = trim(($event['server'] ?? '-') . ($event['app'] !== null ? "/{$event['app']}" : ''));
+            $where = ($event['server'] ?? '-') . ($event['app'] !== null ? "/{$event['app']}" : '');
             $output->writeln("<info>{$event['datetime']}</info> {$event['level']} {$event['type']} ({$where})");
-            $output->writeln('    outcome: ' . self::text($d['outcome'] ?? null)
-                . ' | policy: ' . self::text($d['policy_gate'] ?? null) . ' (' . self::text($d['policy_reason'] ?? null) . ')'
-                . ' | threshold: ' . self::text($d['threshold_gate'] ?? null));
-            $evidence = is_array($d['trigger_evidence'] ?? null) ? self::text($d['trigger_evidence']['label'] ?? null) : '-';
-            $channels = is_array($d['ready_channels'] ?? null) ? implode(', ', array_map(self::text(...), $d['ready_channels'])) : '-';
-            $unavailable = is_array($d['unavailable_channels'] ?? null) ? array_map(static fn (mixed $c): string => is_array($c) ? self::text($c['channel'] ?? null) . ': ' . self::text($c['reason'] ?? null) : self::text($c), $d['unavailable_channels']) : [];
-            $output->writeln("    evidence: {$evidence} | channels: " . ($channels === '' ? '-' : $channels) . ($unavailable !== [] ? ' | unavailable: ' . implode(', ', $unavailable) : ''));
+            foreach (self::describe($event['decision'] ?? []) as $line) {
+                $output->writeln("    {$line}");
+            }
         }
 
         return StatusLevel::Ok->value;
+    }
+
+    /**
+     * The stored trace as two lines: the gates the event passed, then evidence and channels.
+     * alarm_decision is stored JSON, so every field is read as optional.
+     *
+     * @param array<mixed> $trace
+     *
+     * @return array{string,string}
+     */
+    private static function describe(array $trace): array
+    {
+        $gates = 'outcome: ' . self::text($trace['outcome'] ?? null)
+            . ' | policy: ' . self::text($trace['policy_gate'] ?? null) . ' (' . self::text($trace['policy_reason'] ?? null) . ')'
+            . ' | threshold: ' . self::text($trace['threshold_gate'] ?? null);
+
+        $evidence = is_array($trace['trigger_evidence'] ?? null) ? self::text($trace['trigger_evidence']['label'] ?? null) : '-';
+        $ready = is_array($trace['ready_channels'] ?? null) ? array_map(self::text(...), $trace['ready_channels']) : [];
+        $unavailable = [];
+        foreach (is_array($trace['unavailable_channels'] ?? null) ? $trace['unavailable_channels'] : [] as $channel) {
+            $unavailable[] = is_array($channel)
+                ? self::text($channel['channel'] ?? null) . ': ' . self::text($channel['reason'] ?? null)
+                : self::text($channel);
+        }
+        $delivery = "evidence: {$evidence} | channels: " . ($ready === [] ? '-' : implode(', ', $ready))
+            . ($unavailable === [] ? '' : ' | unavailable: ' . implode(', ', $unavailable));
+
+        return [$gates, $delivery];
     }
 
     private static function text(mixed $value): string

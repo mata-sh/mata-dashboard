@@ -8,7 +8,6 @@ use Mata\Cli\CliConfig;
 use Mata\Cli\CliOutput;
 use Mata\Models\Auth\UserRepository;
 use Mata\Services\Auth\UserAdministrator;
-use Mata\Services\Status\StatusLevel;
 use Mata\Utils\UsersFilePathResolver;
 use Monolog\Formatter\LineFormatter;
 use Monolog\Handler\StreamHandler;
@@ -76,13 +75,8 @@ abstract class AbstractUserCommand extends Command
 
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
-        try {
-            $config = $this->cli->load();
-            $usersFile = UsersFilePathResolver::resolve($this->cli->paths());
-        } catch (Throwable $exception) {
-            return CliOutput::fail($input, $output, CliOutput::withWebUserHint("Cannot load the config: {$exception->getMessage()}"));
-        }
-
+        $config = $this->cli->load();
+        $usersFile = UsersFilePathResolver::resolve($this->cli->paths());
         $this->operator = CliOutput::currentUser() ?? (string) getenv('USER');
         $this->env = $config->environment->env;
 
@@ -176,18 +170,6 @@ abstract class AbstractUserCommand extends Command
         return null;
     }
 
-    /** @param array<string,mixed> $payload */
-    protected function succeed(InputInterface $input, OutputInterface $output, string $message, array $payload = []): int
-    {
-        if ($input->getOption('json')) {
-            CliOutput::json($output, ['status' => 'ok'] + $payload);
-        } else {
-            $output->writeln("<info>{$message}</info>");
-        }
-
-        return StatusLevel::Ok->value;
-    }
-
     /** Every audit entry records who ran which command against which environment. */
     private function addAuditContext(LogRecord $record): LogRecord
     {
@@ -202,8 +184,7 @@ abstract class AbstractUserCommand extends Command
 
     private function askLine(InputInterface $input, OutputInterface $output, string $prompt): string
     {
-        $helper = $this->getHelper('question');
-        $answer = $helper instanceof QuestionHelper ? $helper->ask($input, $output, new Question($prompt)) : null;
+        $answer = (new QuestionHelper())->ask($input, $output, new Question($prompt));
 
         return is_string($answer) ? trim($answer) : '';
     }

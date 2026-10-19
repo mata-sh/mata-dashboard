@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Mata\Cli\Command;
 
+use Mata\Cli\CliOutput;
 use Mata\Services\Auth\UserAdministrator;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Input\InputArgument;
@@ -39,6 +40,6 @@ final class UserCreateCommand extends AbstractUserCommand
 
         $message = "User created: {$username} ({$role})" . ($generated ? "\nPassword (shown once): {$secret}" : '');
 
-        return $this->succeed($input, $output, $message, ['username' => $username, 'role' => $role] + ($generated ? ['password' => $secret] : []));
+        return CliOutput::ok($input, $output, $message, ['username' => $username, 'role' => $role] + ($generated ? ['password' => $secret] : []));
     }
 }

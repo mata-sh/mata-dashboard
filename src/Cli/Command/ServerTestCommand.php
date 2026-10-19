@@ -10,7 +10,6 @@ use Mata\Config\Monitoring\ServersConfigEditor;
 use Mata\Services\Monitor\Dto\NodeConnectionResult;
 use Mata\Services\Monitor\NodeConnectionTester;
 use Mata\Services\Status\StatusLevel;
-use RuntimeException;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputArgument;
@@ -40,11 +39,7 @@ final class ServerTestCommand extends Command
     {
         $only = $input->getArgument('name');
 
-        try {
-            $entries = $this->files->entries();
-        } catch (RuntimeException $exception) {
-            return CliOutput::fail($input, $output, $exception->getMessage());
-        }
+        $entries = $this->files->entries();
         if (is_string($only) && !is_array($entries[$only]['entry'] ?? null)) {
             return CliOutput::fail($input, $output, "Server '{$only}' is not in servers.json");
         }

@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Mata\Cli\Command;
 
 use Mata\Cli\CliOutput;
-use Mata\Config\Validation\ConfigProblem;
 use Mata\Config\Validation\ConfigValidationReport;
 use Mata\Config\Validation\InstanceConfigValidator;
 use Mata\Services\Status\StatusLevel;
@@ -73,15 +72,13 @@ final class ConfigValidateCommand extends Command
     {
         $output->writeln("Config: {$report->configPath}");
         foreach (array_keys($report->files) as $file) {
-            $output->writeln(match ($report->fileStatus($file)) {
-                'ok' => '  ' . CliOutput::mark(StatusLevel::Ok) . " {$file}",
-                'missing' => "  <comment>-</comment> {$file} <comment>(not present)</comment>",
-                ConfigProblem::WARNING => '  ' . CliOutput::mark(StatusLevel::Warning) . " {$file}",
-                default => '  ' . CliOutput::mark(StatusLevel::Error) . " {$file}",
-            });
+            $status = $report->fileStatus($file);
+            $output->writeln($status === null
+                ? "  <comment>-</comment> {$file} <comment>(not present)</comment>"
+                : '  ' . CliOutput::mark($status) . " {$file}");
             foreach ($report->problems as $problem) {
                 if ($problem->file === $file) {
-                    $output->writeln('      ' . CliOutput::label($problem->statusLevel()) . " {$problem->message}");
+                    $output->writeln('      ' . CliOutput::label($problem->level) . " {$problem->message}");
                 }
             }
         }

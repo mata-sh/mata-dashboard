@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Mata\Cli\Command;
 
+use Mata\Cli\CliOutput;
 use Mata\Services\Auth\UserAdministrator;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Input\InputArgument;
@@ -30,6 +31,6 @@ final class UserUnlockCommand extends AbstractUserCommand
         $users->unlockUser($username);
         $this->audit->info('User unlocked successfully', ['target_user' => $username]);
 
-        return $this->succeed($input, $output, "User unlocked: {$username}", ['username' => $username]);
+        return CliOutput::ok($input, $output, "User unlocked: {$username}", ['username' => $username]);
     }
 }

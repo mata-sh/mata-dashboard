@@ -9,25 +9,17 @@ use Mata\Services\Status\StatusLevel;
 /** One problem found in an instance config file, as reported by its loader. */
 final readonly class ConfigProblem
 {
-    public const ERROR = 'error';
-    public const WARNING = 'warning';
-
-    /** @param self::ERROR|self::WARNING $level */
+    /** @param StatusLevel::Error|StatusLevel::Warning $level */
     public function __construct(
         public string $file,
-        public string $level,
+        public StatusLevel $level,
         public string $type,
         public string $message,
     ) {}
 
-    public function statusLevel(): StatusLevel
-    {
-        return $this->level === self::ERROR ? StatusLevel::Error : StatusLevel::Warning;
-    }
-
     public function asError(): self
     {
-        return new self($this->file, self::ERROR, $this->type, $this->message);
+        return new self($this->file, StatusLevel::Error, $this->type, $this->message);
     }
 
     /** @return array{file:string,level:string,type:string,message:string} */
@@ -35,7 +27,7 @@ final readonly class ConfigProblem
     {
         return [
             'file' => $this->file,
-            'level' => $this->level,
+            'level' => $this->level->label(),
             'type' => $this->type,
             'message' => $this->message,
         ];

@@ -43,13 +43,12 @@ final class AlarmTestCommand extends Command
         $runtime = CronRuntime::boot($this->entryPoint);
         $events = new EventManager($runtime->appConfig, eventRecorder: new EventRecorderService($runtime->db), logger: $runtime->log);
         $senders = AlarmChannelRuntime::fromRuntime($runtime, $events)->senders();
-        $json = (bool) $input->getOption('json');
 
         $channel = strtolower(trim((string) $input->getArgument('channel')));
         if (!isset($senders[$channel])) {
             $known = array_keys($senders);
             $level = $channel === '' ? StatusLevel::Ok : StatusLevel::Error;
-            if ($json) {
+            if ($input->getOption('json')) {
                 CliOutput::json($output, ['status' => $level->label(), 'channels' => $known] + ($channel === '' ? [] : ['error' => "Unknown channel '{$channel}'"]));
             } else {
                 $output->writeln(($channel === '' ? '' : "<error>Unknown channel '{$channel}'.</error> ") . 'Configured channels: ' . implode(', ', $known));
@@ -80,9 +79,6 @@ final class AlarmTestCommand extends Command
             return CliOutput::fail($input, $output, "{$channel}: {$exception->getMessage()}", payload: ['channel' => $channel]);
         }
 
-        $json ? CliOutput::json($output, ['status' => 'ok', 'channel' => $channel])
-            : $output->writeln("<info>Sent a test alarm through {$channel}.</info>");
-
-        return StatusLevel::Ok->value;
+        return CliOutput::ok($input, $output, "Sent a test alarm through {$channel}.", ['channel' => $channel]);
     }
 }

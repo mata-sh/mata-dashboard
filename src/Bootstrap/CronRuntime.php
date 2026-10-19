@@ -70,10 +70,12 @@ final readonly class CronRuntime
         try {
             $configLoader = new EnvConfigLoader();
             $appConfig = $configLoader->load(EnvConfigLoader::INSTANCE_FILES, $paths->configPath);
+
             $paths = $paths->withOverrides($appConfig->logging->path, $appConfig->environment->tempDir);
             $paths->ensureLogsDirectory();
             $paths->ensureTempDirectory();
             $paths->ensureCronLogsDirectory();
+
             ini_set('error_log', $paths->cronLogsPath . '/php-error.log');
             $log = $logConfigurator->createCronLogger($appConfig->logging, $paths, $jobName);
             (new MonologErrorHandler($log))

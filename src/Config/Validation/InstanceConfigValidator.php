@@ -24,6 +24,7 @@ use Mata\Config\Monitoring\Section\ServersConfig;
 use Mata\Services\Navigation\MenuBuilder;
 use Mata\Services\ServerMetrics\MetricCatalog;
 use Mata\Services\ServerMetrics\MetricQueryPolicy;
+use Mata\Services\Status\StatusLevel;
 use Psr\Log\LogLevel;
 use Throwable;
 
@@ -34,16 +35,11 @@ use Throwable;
  */
 final class InstanceConfigValidator
 {
-    public const ENV_FILES = ['config.env', 'db.config.env', 'mail.config.env'];
-
     /**
      * Reported types that are errors although the file loads: every invalid servers entry drops
      * that server (or its key). A file the app would ignore is rejected, which is always an error.
      */
     private const ERROR_TYPES = ['servers_config_invalid_entry'];
-
-    /** @var list<ConfigProblem> */
-    private array $problems = [];
 
     /**
      * @param ?string $onlyFile validate only the files loaded together with this one: the three env
@@ -51,12 +47,11 @@ final class InstanceConfigValidator
      */
     public function validate(string $configPath, ?string $onlyFile = null): ConfigValidationReport
     {
-        $this->problems = [];
         $configPath = rtrim($configPath, '/');
         $jsonChecks = $this->jsonChecks();
 
         $files = [];
-        foreach ([self::ENV_FILES, ...array_column($jsonChecks, 'files')] as $checkFiles) {
+        foreach ([EnvConfigLoader::INSTANCE_FILES, ...array_column($jsonChecks, 'files')] as $checkFiles) {
             if ($onlyFile !== null && !in_array($onlyFile, $checkFiles, true)) {
                 continue;
             }
@@ -66,48 +61,47 @@ final class InstanceConfigValidator
         }
 
         // Env files always load: the JSON loaders read their variables (channels.json *_env keys).
-        foreach ($this->validateEnv($configPath) as $problem) {
-            if (array_key_exists($problem->file, $files)) {
-                $this->problems[] = $problem;
-            }
-        }
+        $problems = array_values(array_filter(
+            $this->validateEnv($configPath),
+            static fn (ConfigProblem $problem): bool => array_key_exists($problem->file, $files),
+        ));
         foreach ($jsonChecks as $check) {
             if ($onlyFile === null || in_array($onlyFile, $check['files'], true)) {
-                $this->runJsonCheck($configPath, $check['files'], $check['load']);
+                $problems = [...$problems, ...$this->validateJson($configPath, $check['files'], $check['load'])];
             }
         }
 
-        return new ConfigValidationReport($configPath, $files, $this->problems);
+        return new ConfigValidationReport($configPath, $files, $problems);
     }
 
     /** @return list<string> every file name `validate()` accepts as $onlyFile */
     public function knownFiles(): array
     {
-        return [...self::ENV_FILES, ...array_merge(...array_column($this->jsonChecks(), 'files'))];
+        return [...EnvConfigLoader::INSTANCE_FILES, ...array_merge(...array_column($this->jsonChecks(), 'files'))];
     }
 
     /** @return list<ConfigProblem> */
     private function validateEnv(string $configPath): array
     {
         $problems = [];
-        foreach (self::ENV_FILES as $file) {
+        foreach (EnvConfigLoader::INSTANCE_FILES as $file) {
             if (!is_file($configPath . '/' . $file)) {
-                $problems[] = new ConfigProblem($file, ConfigProblem::ERROR, 'config.file.missing', "{$file} is missing; copy it from config.example/{$file}.example");
+                $problems[] = new ConfigProblem($file, StatusLevel::Error, 'config.file.missing', "{$file} is missing; copy it from config.example/{$file}.example");
             }
         }
 
         $loader = new EnvConfigLoader();
 
         try {
-            $result = $loader->validateConfig($loader->load(self::ENV_FILES, $configPath));
+            $result = $loader->validateConfig($loader->load(EnvConfigLoader::INSTANCE_FILES, $configPath));
         } catch (Throwable $exception) {
             // Dotenv parse errors and out-of-range values; neither names its file.
-            $problems[] = new ConfigProblem('config.env', ConfigProblem::ERROR, 'config.env.invalid', $exception->getMessage());
+            $problems[] = new ConfigProblem('config.env', StatusLevel::Error, 'config.env.invalid', $exception->getMessage());
 
             return $problems;
         }
 
-        foreach ([ConfigProblem::ERROR => $result['critical_errors'], ConfigProblem::WARNING => $result['warnings']] as $level => $entries) {
+        foreach ([[StatusLevel::Error, $result['critical_errors']], [StatusLevel::Warning, $result['warnings']]] as [$level, $entries]) {
             foreach ($entries as $entry) {
                 $problems[] = new ConfigProblem($this->envFileFor($entry['identifier']), $level, $entry['identifier'], $entry['message']);
             }
@@ -154,8 +148,10 @@ final class InstanceConfigValidator
     /**
      * @param list<string>                              $files the file the loader reads first, then any companions
      * @param Closure(string): ConfigLoadResult<object> $load
+     *
+     * @return list<ConfigProblem>
      */
-    private function runJsonCheck(string $configPath, array $files, Closure $load): void
+    private function validateJson(string $configPath, array $files, Closure $load): array
     {
         try {
             $problems = $load($configPath)->problems;
@@ -165,16 +161,19 @@ final class InstanceConfigValidator
             $rejected = true;
         }
 
+        $result = [];
         foreach ($problems as $reported) {
             $problem = new ConfigProblem(
                 $this->fileFor($reported->message, $files),
-                in_array($reported->level, [LogLevel::CRITICAL, LogLevel::ERROR], true) ? ConfigProblem::ERROR : ConfigProblem::WARNING,
+                in_array($reported->level, [LogLevel::CRITICAL, LogLevel::ERROR], true) ? StatusLevel::Error : StatusLevel::Warning,
                 $reported->type,
                 $reported->message,
             );
             $isError = $rejected || (in_array($reported->type, self::ERROR_TYPES, true) && $reported->message !== ServersConfig::EMPTY_ERROR);
-            $this->problems[] = $isError ? $problem->asError() : $problem;
+            $result[] = $isError ? $problem->asError() : $problem;
         }
+
+        return $result;
     }
 
     /**

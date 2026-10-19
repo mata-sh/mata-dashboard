@@ -48,7 +48,7 @@ final class InstanceConfigValidatorTest extends TestCase
     {
         $report = (new InstanceConfigValidator())->validate($this->configPath);
 
-        $errors = array_filter($report->problems, static fn (ConfigProblem $problem): bool => $problem->level === ConfigProblem::ERROR);
+        $errors = array_filter($report->problems, static fn (ConfigProblem $problem): bool => $problem->level === StatusLevel::Error);
         $this->assertSame([], array_map(static fn (ConfigProblem $problem): string => "{$problem->file}: {$problem->message}", array_values($errors)));
     }
 
@@ -62,8 +62,8 @@ final class InstanceConfigValidatorTest extends TestCase
         $report = (new InstanceConfigValidator())->validate($this->configPath);
 
         $this->assertSame(StatusLevel::Error, $report->level());
-        $this->assertSame(ConfigProblem::ERROR, $report->fileStatus('ttl.json'));
-        $this->assertSame(ConfigProblem::ERROR, $report->fileStatus('servers.json'));
-        $this->assertSame('ok', $report->fileStatus('servers.secrets.json'));
+        $this->assertSame(StatusLevel::Error, $report->fileStatus('ttl.json'));
+        $this->assertSame(StatusLevel::Error, $report->fileStatus('servers.json'));
+        $this->assertSame(StatusLevel::Ok, $report->fileStatus('servers.secrets.json'));
     }
 }

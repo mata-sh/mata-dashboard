@@ -9,7 +9,6 @@ use Mata\Config\Monitoring\Section\ServersConfig;
 use Mata\Config\Monitoring\ServersConfigEditor;
 use Mata\Services\Monitor\NodeConnectionTester;
 use Mata\Services\Status\StatusLevel;
-use RuntimeException;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputArgument;
@@ -98,11 +97,7 @@ final class ServerAddCommand extends Command
             return StatusLevel::Ok->value;
         }
 
-        try {
-            $this->files->add($name, $entry, $apiKey);
-        } catch (RuntimeException $exception) {
-            return CliOutput::fail($input, $output, $exception->getMessage());
-        }
+        $this->files->add($name, $entry, $apiKey);
 
         $result = $input->getOption('no-test') ? null : $this->tester->test($name, $entry, $apiKey);
         $level = $result?->isOk() && $this->files->warnings() === [] ? StatusLevel::Ok : StatusLevel::Warning;

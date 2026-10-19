@@ -37,12 +37,12 @@ final class ServersConfigEditor
         return $this->warnings;
     }
 
-    public function serversPath(): string
+    private function serversPath(): string
     {
         return rtrim($this->configPath, '/') . '/servers.json';
     }
 
-    public function secretsPath(): string
+    private function secretsPath(): string
     {
         return rtrim($this->configPath, '/') . '/' . ServersConfigLoader::SECRETS_FILE;
     }

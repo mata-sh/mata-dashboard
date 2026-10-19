@@ -98,8 +98,11 @@ final class DoctorCommand extends Command
     private function checkDirectories(): void
     {
         foreach (['logs' => $this->cli->paths()->logsPath, 'temp' => $this->cli->paths()->tempPath, 'cache' => $this->cli->paths()->tempPath . '/api-cache'] as $name => $dir) {
-            $ok = is_dir($dir) && is_writable($dir);
-            $this->add("dir:{$name}", $ok ? StatusLevel::Ok : StatusLevel::Error, $dir . ($ok ? ' writable' : ' missing or not writable by ' . $this->currentUser()), $ok ? null : 'Give the web server user write access');
+            if (is_dir($dir) && is_writable($dir)) {
+                $this->add("dir:{$name}", StatusLevel::Ok, "{$dir} writable", null);
+            } else {
+                $this->add("dir:{$name}", StatusLevel::Error, "{$dir} missing or not writable by {$this->currentUser()}", 'Give the web server user write access');
+            }
         }
     }
 
@@ -154,7 +157,11 @@ final class DoctorCommand extends Command
             return;
         }
         $this->add('database', StatusLevel::Ok, "connected to {$config->database->host}", null);
-        $this->add('migrations', $pending === [] ? StatusLevel::Ok : StatusLevel::Warning, $pending === [] ? 'up to date' : count($pending) . ' pending', $pending === [] ? null : 'bin/mata db migrate');
+        if ($pending === []) {
+            $this->add('migrations', StatusLevel::Ok, 'up to date', null);
+        } else {
+            $this->add('migrations', StatusLevel::Warning, count($pending) . ' pending', 'bin/mata db migrate');
+        }
     }
 
     private function checkOpa(ApplicationConfig $config): void
@@ -168,10 +175,14 @@ final class DoctorCommand extends Command
 
         try {
             $code = (new Client(['timeout' => 3, 'http_errors' => false]))->get($url)->getStatusCode();
-        } catch (Throwable $exception) {
+        } catch (Throwable) {
             $code = null;
         }
-        $this->add('opa', $code === 200 ? StatusLevel::Ok : StatusLevel::Error, $code === 200 ? "{$url} healthy" : "{$url} not reachable; alarms are not evaluated", $code === 200 ? null : 'make opa-start, or set ALARM_DECISION_DRIVER=builtin');
+        if ($code === 200) {
+            $this->add('opa', StatusLevel::Ok, "{$url} healthy", null);
+        } else {
+            $this->add('opa', StatusLevel::Error, "{$url} not reachable; alarms are not evaluated", 'make opa-start, or set ALARM_DECISION_DRIVER=builtin');
+        }
     }
 
     private function checkCron(): void

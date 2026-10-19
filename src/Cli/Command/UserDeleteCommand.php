@@ -7,11 +7,9 @@ namespace Mata\Cli\Command;
 use Mata\Cli\CliOutput;
 use Mata\Services\Auth\UserAdministrator;
 use Symfony\Component\Console\Attribute\AsCommand;
-use Symfony\Component\Console\Helper\QuestionHelper;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
-use Symfony\Component\Console\Question\ConfirmationQuestion;
 
 #[AsCommand(name: 'user:delete', description: 'Delete a dashboard user')]
 final class UserDeleteCommand extends AbstractUserCommand
@@ -31,22 +29,15 @@ final class UserDeleteCommand extends AbstractUserCommand
     protected function handle(UserAdministrator $users, InputInterface $input, OutputInterface $output): int
     {
         $username = (string) $input->getArgument('username');
-        if (!$input->getOption('yes') && $this->env !== 'prod') {
-            // In prod the typed confirmation already ran.
-            if (!$input->isInteractive()) {
-                return CliOutput::fail($input, $output, 'Pass --yes to delete without a terminal.');
-            }
-            $helper = $this->getHelper('question');
-            $confirmed = $helper instanceof QuestionHelper
-                && $helper->ask($input, $output, new ConfirmationQuestion("Delete user '{$username}'? [y/N] ", false));
-            if (!$confirmed) {
-                return CliOutput::fail($input, $output, 'Cancelled.');
-            }
+        // In prod the typed confirmation already ran.
+        $refused = $this->env === 'prod' ? null : CliOutput::confirm($input, $output, "Delete user '{$username}'?");
+        if ($refused !== null) {
+            return $refused;
         }
 
         $users->deleteUser($username);
         $this->audit->warning('User deleted', ['target_user' => $username]);
 
-        return $this->succeed($input, $output, "User deleted: {$username}", ['username' => $username]);
+        return CliOutput::ok($input, $output, "User deleted: {$username}", ['username' => $username]);
     }
 }

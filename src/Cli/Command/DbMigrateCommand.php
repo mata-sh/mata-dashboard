@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Mata\Cli\Command;
 
 use Mata\Cli\CliOutput;
-use Mata\Services\Status\StatusLevel;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
@@ -24,12 +23,6 @@ final class DbMigrateCommand extends AbstractDbCommand
         $pending = $migrations->pending();
         $migrations->migrate();
 
-        if ($input->getOption('json')) {
-            CliOutput::json($output, ['status' => 'ok', 'applied' => $pending]);
-        } else {
-            $output->writeln('<info>Applied ' . count($pending) . ' migration(s).</info>');
-        }
-
-        return StatusLevel::Ok->value;
+        return CliOutput::ok($input, $output, 'Applied ' . count($pending) . ' migration(s).', ['applied' => $pending]);
     }
 }
