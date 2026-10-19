@@ -44,7 +44,7 @@ final readonly class AlarmChannelRuntime
      * Load channels.json and record its problems as events.
      * Without $events the problems are dropped; `bin/mata config validate` reports them.
      */
-    public static function load(
+    public static function build(
         PathResolver $paths,
         ApplicationConfig $appConfig,
         LoggerInterface $log,

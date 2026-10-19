@@ -15,10 +15,10 @@ require_once __DIR__ . '/../vendor/autoload.php';
 $runtime = CronRuntime::boot(__FILE__);
 $runtime->requireDatabase();
 $monitoringRuntime = MonitoringRuntime::build(
-    db: $runtime->db,
-    log: $runtime->log,
     paths: $runtime->paths,
     appConfig: $runtime->appConfig,
+    log: $runtime->log,
+    db: $runtime->db,
 );
 
 $log = $runtime->log;

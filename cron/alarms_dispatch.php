@@ -40,7 +40,7 @@ try {
     $alarmRateLimits = $loadedLimits->section;
 
     // --- Senders & Dispatchers ---
-    $alarmChannels = AlarmChannelRuntime::load(
+    $alarmChannels = AlarmChannelRuntime::build(
         paths: $paths,
         appConfig: $appConfig,
         log: $log,

@@ -62,10 +62,10 @@ final readonly class MonitoringRuntime
     ) {}
 
     public static function build(
-        DatabaseInterface $db,
-        LoggerInterface $log,
         PathResolver $paths,
         ApplicationConfig $appConfig,
+        LoggerInterface $log,
+        DatabaseInterface $db,
     ): self {
         // Repositories
         $alarmRepository = new AlarmRepository($db);

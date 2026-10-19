@@ -41,7 +41,7 @@ final class AlarmTestCommand extends Command
     {
         $config = $this->cli->load();
         $paths = $this->cli->paths();
-        $senders = AlarmChannelRuntime::load(
+        $senders = AlarmChannelRuntime::build(
             paths: $paths,
             appConfig: $config,
             log: (new LogConfigurator())->createConfiguredLogger($config->logging, $paths, 'alarm-test'),
