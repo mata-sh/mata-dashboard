@@ -17,16 +17,13 @@ use Mata\Utils\PathResolver;
 use Mata\Utils\Tools;
 use Monolog\ErrorHandler as MonologErrorHandler;
 use Monolog\Logger;
-use Symfony\Component\Mailer\Mailer;
-use Symfony\Component\Mailer\MailerInterface;
-use Symfony\Component\Mailer\Transport;
 use Throwable;
 
 /**
  * Initializes and stores the shared runtime dependencies for a cron job.
  *
- * Jobs that process monitoring events or alarms use {@see CronMonitoringRuntime}
- * for their additional services.
+ * Jobs that process monitoring events or alarms build {@see MonitoringRuntime}
+ * from these parts.
  */
 final readonly class CronRuntime
 {
@@ -41,7 +38,6 @@ final readonly class CronRuntime
         public array $validationWarnings,
         public DatabaseInterface $db,
         public Tools $tools,
-        public MailerInterface $mailer,
     ) {}
 
     /**
@@ -101,7 +97,6 @@ final readonly class CronRuntime
         }
 
         $db = self::connect($appConfig, $log);
-        $mailer = new Mailer(Transport::fromDsn($appConfig->mail->dsn));
         $cron = new CronJob(
             logger: $log,
             jobName: $jobName,
@@ -117,7 +112,6 @@ final readonly class CronRuntime
             validationWarnings: $validationResult['warnings'],
             db: $db,
             tools: $tools,
-            mailer: $mailer,
         );
     }
 

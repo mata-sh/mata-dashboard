@@ -44,7 +44,7 @@ final class MonitoringLoaderParityTest extends TestCase
         $this->assertEqualsCanonicalizing(
             $expected,
             $this->namedArguments($this->cronBootstrapPath()),
-            'CronMonitoringRuntime::fromRuntime() drifted from public/index.php. '
+            'MonitoringRuntime::build() drifted from public/index.php. '
             . 'Wire the loader there too, or add it to self::CRON_OMITS.',
         );
     }
@@ -65,7 +65,7 @@ final class MonitoringLoaderParityTest extends TestCase
             $this->assertContains(
                 $name,
                 $optional,
-                "MonitoringConfigLoader::\${$name} is required but CronMonitoringRuntime omits it - cron would fatal.",
+                "MonitoringConfigLoader::\${$name} is required but MonitoringRuntime omits it - cron would fatal.",
             );
         }
     }
@@ -128,7 +128,7 @@ final class MonitoringLoaderParityTest extends TestCase
 
     private function cronBootstrapPath(): string
     {
-        return dirname(__DIR__, 4) . '/src/Bootstrap/CronMonitoringRuntime.php';
+        return dirname(__DIR__, 4) . '/src/Bootstrap/MonitoringRuntime.php';
     }
 
     /** @return list<string> */

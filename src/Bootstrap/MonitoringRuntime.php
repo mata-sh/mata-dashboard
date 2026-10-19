@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Mata\Bootstrap;
 
+use Mata\Config\Dto\ApplicationConfig;
 use Mata\Config\Monitoring\Loader\AlarmRateLimitsConfigLoader;
 use Mata\Config\Monitoring\Loader\DataRetentionConfigLoader;
 use Mata\Config\Monitoring\Loader\IntervalsConfigLoader;
@@ -16,6 +17,7 @@ use Mata\Config\Monitoring\Loader\TtlConfigLoader;
 use Mata\Config\Monitoring\MonitoringConfig;
 use Mata\Config\Monitoring\MonitoringConfigLoader;
 use Mata\Config\Monitoring\Section\AlarmRateLimitsConfig;
+use Mata\Database\DatabaseInterface;
 use Mata\Models\Alarm\AlarmDeliveryRepository;
 use Mata\Models\Alarm\AlarmRepository;
 use Mata\Models\Event\EventRepository;
@@ -30,15 +32,16 @@ use Mata\Services\Event\EventManager;
 use Mata\Services\Event\EventRecorderService;
 use Mata\Services\Identity\ServerApplicationIdResolver;
 use Mata\Services\Runtime\DashboardEnvironmentFactory;
+use Mata\Utils\PathResolver;
+use Psr\Log\LoggerInterface;
 
 /**
- * Monitoring configuration and event/alarm services for a cron job.
+ * Monitoring configuration and event/alarm services outside the web dashboard.
  *
- * Builds on the shared infrastructure initialized by {@see CronRuntime}.
  * Omits web-only menu and chart configuration and server config sync.
- * Disables server fallback so cron fails rather than processing no servers.
+ * Disables server fallback so callers fail rather than processing no servers.
  */
-final readonly class CronMonitoringRuntime
+final readonly class MonitoringRuntime
 {
     public function __construct(
         public AlarmRepository $alarmRepository,
@@ -58,14 +61,12 @@ final readonly class CronMonitoringRuntime
         public MonitoringConfig $monitoringConfig,
     ) {}
 
-    /** Create the monitoring runtime from an initialized cron runtime. */
-    public static function fromRuntime(CronRuntime $runtime): self
-    {
-        $db = $runtime->db;
-        $log = $runtime->log;
-        $paths = $runtime->paths;
-        $appConfig = $runtime->appConfig;
-
+    public static function build(
+        DatabaseInterface $db,
+        LoggerInterface $log,
+        PathResolver $paths,
+        ApplicationConfig $appConfig,
+    ): self {
         // Repositories
         $alarmRepository = new AlarmRepository($db);
         $deliveryRepository = new AlarmDeliveryRepository($db);
@@ -105,7 +106,7 @@ final readonly class CronMonitoringRuntime
         ))->createEventAggregator();
         $eventManager->setEventAggregator($eventAggregator);
 
-        // Monitoring configuration. Cron stops on a broken servers config, after recording its alarm.
+        // Monitoring configuration. Stops on a broken servers config, after recording its alarm.
         $monitoringConfigLoader = new MonitoringConfigLoader(
             servers: new ServersConfigLoader(fallbackOnFailure: false),
             ttl: new TtlConfigLoader(fallbackOnFailure: true),

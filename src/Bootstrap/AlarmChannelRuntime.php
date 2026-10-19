@@ -21,14 +21,14 @@ use Mata\Services\Event\EventManager;
 use Mata\Utils\PathResolver;
 use Psr\Log\LoggerInterface;
 use RuntimeException;
+use Symfony\Component\Mailer\Mailer;
 use Symfony\Component\Mailer\MailerInterface;
+use Symfony\Component\Mailer\Transport;
 use Throwable;
 use Twig\Loader\FilesystemLoader;
 
 /**
  * Alarm delivery channels: the channels from channels.json and their senders.
- *
- * Cron jobs build it from {@see CronRuntime}; `bin/mata alarm test` from the parts.
  */
 final readonly class AlarmChannelRuntime
 {
@@ -40,19 +40,25 @@ final readonly class AlarmChannelRuntime
         private LoggerInterface $log,
     ) {}
 
-    /** Load channels.json and record its problems as events. */
-    public static function fromRuntime(CronRuntime $runtime, EventManager $events): self
-    {
-        $loaded = (new ChannelsConfigLoader())->load($runtime->paths->configPath);
-        $events->recordConfigProblems($loaded->problems);
-        $channels = $loaded->section;
+    /**
+     * Load channels.json and record its problems as events.
+     * Without $events the problems are dropped; `bin/mata config validate` reports them.
+     */
+    public static function load(
+        PathResolver $paths,
+        ApplicationConfig $appConfig,
+        LoggerInterface $log,
+        ?EventManager $events = null,
+    ): self {
+        $loaded = (new ChannelsConfigLoader())->load($paths->configPath);
+        $events?->recordConfigProblems($loaded->problems);
 
         return new self(
-            channels: $channels,
-            paths: $runtime->paths,
-            appConfig: $runtime->appConfig,
-            mailer: $runtime->mailer,
-            log: $runtime->log,
+            channels: $loaded->section,
+            paths: $paths,
+            appConfig: $appConfig,
+            mailer: new Mailer(Transport::fromDsn($appConfig->mail->dsn)),
+            log: $log,
         );
     }
 

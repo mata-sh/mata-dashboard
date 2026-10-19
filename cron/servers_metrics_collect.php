@@ -3,8 +3,8 @@
 
 declare(strict_types=1);
 
-use Mata\Bootstrap\CronMonitoringRuntime;
 use Mata\Bootstrap\CronRuntime;
+use Mata\Bootstrap\MonitoringRuntime;
 use Mata\Config\Monitoring\ServerConfigState;
 use Mata\Models\ServerMetrics\Dto\ServerMetricRawSnapshot;
 use Mata\Models\ServerMetrics\ServerMetricsRepository;
@@ -23,7 +23,12 @@ require_once __DIR__ . '/../vendor/autoload.php';
 
 $runtime = CronRuntime::boot(__FILE__);
 $runtime->requireDatabase();
-$monitoringRuntime = CronMonitoringRuntime::fromRuntime($runtime);
+$monitoringRuntime = MonitoringRuntime::build(
+    db: $runtime->db,
+    log: $runtime->log,
+    paths: $runtime->paths,
+    appConfig: $runtime->appConfig,
+);
 
 $paths = $runtime->paths;
 $log = $runtime->log;
@@ -42,7 +47,7 @@ $cron->startTimer();
 $cron->log('Started');
 
 try {
-    // Monitoring services come from CronMonitoringRuntime::fromRuntime()
+    // Monitoring services come from MonitoringRuntime::build()
     $dataRetentionConfig = $monitoringConfig->dataRetention;
 
     // Share the dashboard/servers_data_fetch cache so a server/data payload warmed

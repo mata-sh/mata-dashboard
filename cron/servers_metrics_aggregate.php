@@ -3,8 +3,8 @@
 
 declare(strict_types=1);
 
-use Mata\Bootstrap\CronMonitoringRuntime;
 use Mata\Bootstrap\CronRuntime;
+use Mata\Bootstrap\MonitoringRuntime;
 use Mata\Config\Monitoring\ServerConfigState;
 use Mata\Models\ServerMetrics\ServerMetricsRepository;
 use Mata\Services\ServerMetrics\AggregationWindowPlanner;
@@ -14,7 +14,12 @@ require_once __DIR__ . '/../vendor/autoload.php';
 
 $runtime = CronRuntime::boot(__FILE__);
 $runtime->requireDatabase();
-$monitoringRuntime = CronMonitoringRuntime::fromRuntime($runtime);
+$monitoringRuntime = MonitoringRuntime::build(
+    db: $runtime->db,
+    log: $runtime->log,
+    paths: $runtime->paths,
+    appConfig: $runtime->appConfig,
+);
 
 $log = $runtime->log;
 $cron = $runtime->cron;

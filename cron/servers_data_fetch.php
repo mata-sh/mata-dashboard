@@ -3,8 +3,8 @@
 
 declare(strict_types=1);
 
-use Mata\Bootstrap\CronMonitoringRuntime;
 use Mata\Bootstrap\CronRuntime;
+use Mata\Bootstrap\MonitoringRuntime;
 use Mata\Services\Cache\ApiCacheKeyFactory;
 use Mata\Services\Cache\CacheTtlResolver;
 use Mata\Services\Cache\FileCacheStore;
@@ -24,7 +24,12 @@ require_once __DIR__ . '/../vendor/autoload.php';
 
 $runtime = CronRuntime::boot(__FILE__);
 $runtime->requireDatabase();
-$monitoringRuntime = CronMonitoringRuntime::fromRuntime($runtime);
+$monitoringRuntime = MonitoringRuntime::build(
+    db: $runtime->db,
+    log: $runtime->log,
+    paths: $runtime->paths,
+    appConfig: $runtime->appConfig,
+);
 
 $paths = $runtime->paths;
 $log = $runtime->log;

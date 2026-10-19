@@ -9,7 +9,6 @@ use Mata\Bootstrap\AlarmChannelRuntime;
 use Mata\Cli\CliConfig;
 use Mata\Cli\CliOutput;
 use Mata\Config\LogConfigurator;
-use Mata\Config\Monitoring\Loader\ChannelsConfigLoader;
 use Mata\Services\Alarm\Delivery\Dto\AlarmDeliveryView;
 use Mata\Services\Alarm\Dto\Alarm;
 use Mata\Services\Alarm\Dto\AlarmLevel;
@@ -20,8 +19,6 @@ use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
-use Symfony\Component\Mailer\Mailer;
-use Symfony\Component\Mailer\Transport;
 use Throwable;
 
 #[AsCommand(name: 'alarm:test', description: 'Send a sample alarm through one delivery channel, bypassing the queue')]
@@ -44,15 +41,11 @@ final class AlarmTestCommand extends Command
     {
         $config = $this->cli->load();
         $paths = $this->cli->paths();
-        // Load problems are left to `config validate`; the cron jobs record them as events.
-        $channels = (new ChannelsConfigLoader())->load($paths->configPath)->section;
-        $senders = (new AlarmChannelRuntime(
-            channels: $channels,
+        $senders = AlarmChannelRuntime::load(
             paths: $paths,
             appConfig: $config,
-            mailer: new Mailer(Transport::fromDsn($config->mail->dsn)),
             log: (new LogConfigurator())->createConfiguredLogger($config->logging, $paths, 'alarm-test'),
-        ))->senders();
+        )->senders();
 
         $channel = strtolower(trim((string) $input->getArgument('channel')));
         if (!isset($senders[$channel])) {

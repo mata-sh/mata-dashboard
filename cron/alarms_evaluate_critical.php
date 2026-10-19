@@ -4,8 +4,8 @@
 declare(strict_types=1);
 
 use Mata\Bootstrap\AlarmChannelRuntime;
-use Mata\Bootstrap\CronMonitoringRuntime;
 use Mata\Bootstrap\CronRuntime;
+use Mata\Bootstrap\MonitoringRuntime;
 use Mata\Services\Alarm\Evaluation\AlarmDecisionServiceFactory;
 use Mata\Services\Alarm\Evaluation\AlarmEvaluationException;
 use Mata\Services\Alarm\Evaluation\AlarmEvaluationProcessor;
@@ -15,7 +15,12 @@ require_once __DIR__ . '/../vendor/autoload.php';
 
 $runtime = CronRuntime::boot(__FILE__);
 $runtime->requireDatabase();
-$monitoringRuntime = CronMonitoringRuntime::fromRuntime($runtime);
+$monitoringRuntime = MonitoringRuntime::build(
+    db: $runtime->db,
+    log: $runtime->log,
+    paths: $runtime->paths,
+    appConfig: $runtime->appConfig,
+);
 
 $log = $runtime->log;
 $cron = $runtime->cron;
@@ -52,7 +57,12 @@ try {
         $log,
     );
 
-    $alarmChannels = AlarmChannelRuntime::fromRuntime($runtime, $eventManager);
+    $alarmChannels = AlarmChannelRuntime::load(
+        paths: $runtime->paths,
+        appConfig: $runtime->appConfig,
+        log: $runtime->log,
+        events: $eventManager,
+    );
     $alarmChannels->reportUnknownRuleChannels($notificationRules, $eventManager);
     $stats = [
         'considered' => 0,

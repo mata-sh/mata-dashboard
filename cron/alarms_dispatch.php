@@ -40,7 +40,12 @@ try {
     $alarmRateLimits = $loadedLimits->section;
 
     // --- Senders & Dispatchers ---
-    $alarmChannels = AlarmChannelRuntime::fromRuntime($runtime, $eventManager);
+    $alarmChannels = AlarmChannelRuntime::load(
+        paths: $paths,
+        appConfig: $appConfig,
+        log: $log,
+        events: $eventManager,
+    );
     $alarmChannels->reportUnknownLimitChannels($alarmRateLimits, $eventManager);
     $senders = $alarmChannels->senders();
     $dispatcher = new AlarmDispatcher($deliveryRepository, $alarmRateLimits, $senders, $log);
