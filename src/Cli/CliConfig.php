@@ -20,9 +20,8 @@ final class CliConfig
 
     private ?ApplicationConfig $config = null;
 
-    public function __construct(
-        private PathResolver $paths,
-    ) {
+    public function __construct(private PathResolver $paths)
+    {
         $this->configPath = $paths->configPath;
     }
 
@@ -58,7 +57,7 @@ final class CliConfig
         } catch (RuntimeException $exception) {
             throw new RuntimeException(
                 "Cannot load the config: {$exception->getMessage()}. Run as the web server user: "
-                . 'sudo -u www-data php bin/mata … (http on Arch, apache on RHEL; make does this in Docker)',
+                    . 'sudo -u www-data php bin/mata … (http on Arch, apache on RHEL; make does this in Docker)',
                 previous: $exception,
             );
         }

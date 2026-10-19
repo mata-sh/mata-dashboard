@@ -81,13 +81,15 @@ $application->addCommands([
     new AlarmExplainCommand($cli),
 ]);
 
+// The CLI SAPI fills argv with strings; filtering only narrows the type for PHPStan.
+$argv = array_values(array_filter($_SERVER['argv'] ?? [], 'is_string'));
+
 // Accept `mata config validate` as well as Symfony's `mata config:validate`.
-$argv = $_SERVER['argv'] ?? [];
-if (is_array($argv) && isset($argv[1], $argv[2]) && is_string($argv[1]) && is_string($argv[2]) && $application->has("{$argv[1]}:{$argv[2]}")) {
+if (isset($argv[1], $argv[2]) && $application->has("{$argv[1]}:{$argv[2]}")) {
     array_splice($argv, 1, 2, ["{$argv[1]}:{$argv[2]}"]);
 }
 
-$input = new ArgvInput(array_values(array_filter($argv, 'is_string')));
+$input = new ArgvInput($argv);
 // Never prompt when an agent or script drives the CLI; commands then need --yes.
 if (!stream_isatty(STDIN)) {
     $input->setInteractive(false);
