@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Mata\Config\Monitoring\Loader\Dto;
 
+use Mata\Config\ConfigSource;
 use Psr\Log\LogLevel;
 
 /**
@@ -13,11 +14,15 @@ use Psr\Log\LogLevel;
  */
 final readonly class ConfigLoadProblem
 {
-    /** @param bool $forceAlarm alarm regardless of thresholds; only a servers config the app cannot load does */
+    /**
+     * @param bool               $forceAlarm alarm regardless of thresholds; only a servers config the app cannot load does
+     * @param list<ConfigSource> $sources
+     */
     public function __construct(
         public string $type,
         public string $message,
         public string $level = LogLevel::WARNING,
         public bool $forceAlarm = false,
+        public array $sources = [],
     ) {}
 }

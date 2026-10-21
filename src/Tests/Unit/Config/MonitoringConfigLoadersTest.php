@@ -5,11 +5,14 @@ declare(strict_types=1);
 namespace Mata\Tests\Unit\Config;
 
 use InvalidArgumentException;
+use JsonException;
+use Mata\Config\ConfigSource;
 use Mata\Config\Monitoring\Loader\AbstractJsonConfigLoader;
 use Mata\Config\Monitoring\Loader\DataRetentionConfigLoader;
 use Mata\Config\Monitoring\Loader\Dto\ConfigLoadProblem;
 use Mata\Config\Monitoring\Loader\Dto\ConfigLoadResult;
 use Mata\Config\Monitoring\Loader\IntervalsConfigLoader;
+use Mata\Config\Monitoring\Loader\JsonConfigReadException;
 use Mata\Config\Monitoring\Loader\MenuConfigLoader;
 use Mata\Config\Monitoring\Loader\MonitoringConfigLoadException;
 use Mata\Config\Monitoring\Loader\NotificationRulesConfigLoader;
@@ -350,7 +353,7 @@ final class MonitoringConfigLoadersTest extends TestCase
         ]);
 
         $this->assertEquals(
-            [new ConfigLoadProblem('servers_config_invalid_entry', "Server 'invalid-server' disabled must be a boolean")],
+            [new ConfigLoadProblem('servers_config_invalid_entry', "Server 'invalid-server' disabled must be a boolean", sources: [ConfigSource::file('servers.json')])],
             $result->problems,
         );
         $this->assertSame(['valid-server'], array_keys($result->section->values));
@@ -369,6 +372,100 @@ final class MonitoringConfigLoadersTest extends TestCase
 
         $this->assertStringContainsString("Server name 'web 01' is invalid", $result->problems[0]->message ?? '');
         $this->assertSame(['db-01'], array_keys($result->section->values));
+    }
+
+    #[DataProvider('serverReadFailures')]
+    public function testServerReadFailuresRetainSourcesAndAlarmPolicy(string $file, string $contents, bool $fallback): void
+    {
+        $root = $this->createTempDirectory();
+        $directory = $root . '/servers.secrets.json';
+        mkdir($directory);
+        file_put_contents($directory . '/servers.json', '{"web": {"disabled": true}}');
+        file_put_contents($directory . '/' . $file, $contents);
+
+        try {
+            try {
+                $loaded = (new ServersConfigLoader($fallback))->load($directory);
+                $this->assertTrue($fallback, 'Strict rejection must throw');
+                $this->assertSame([], $loaded->section->values);
+                $problems = $loaded->problems;
+            } catch (MonitoringConfigLoadException $exception) {
+                $this->assertFalse($fallback);
+                $previous = $exception->getPrevious();
+                $this->assertInstanceOf(JsonConfigReadException::class, $previous);
+                $this->assertSame($file, $previous->fileName);
+                if ($contents === '{') {
+                    $this->assertInstanceOf(JsonException::class, $previous->getPrevious());
+                }
+                $problems = $exception->problems;
+            }
+            $this->assertCount(1, $problems);
+            $this->assertEquals([ConfigSource::file($file)], $problems[0]->sources);
+            $this->assertSame('critical', $problems[0]->level);
+            $this->assertTrue($problems[0]->forceAlarm);
+            $this->assertSame('servers_config_invalid', $problems[0]->type);
+        } finally {
+            $this->cleanupTempFiles([$root]);
+        }
+    }
+
+    /** @return iterable<string,array{string,string,bool}> */
+    public static function serverReadFailures(): iterable
+    {
+        foreach (['servers.json', 'servers.secrets.json'] as $file) {
+            foreach (['{', '[1]'] as $contents) {
+                foreach ([true, false] as $fallback) {
+                    yield $file . $contents . (int) $fallback => [$file, $contents, $fallback];
+                }
+            }
+        }
+    }
+
+    public function testMergedServerDiagnosticsAttributeKeysSeparatelyFromPrimaryFields(): void
+    {
+        $loaded = $this->loadServersFiles(['web' => ['api_url' => 'broken', 'primary_color' => 'bad', 'env' => 'bad']]);
+
+        $this->assertSame([
+            "Server 'web' missing required field: title",
+            "Server 'web' has no api_key in servers.secrets.json",
+            "Server 'web' has invalid API URL format",
+            "Server 'web' has invalid primary_color format (should be #RRGGBB)",
+            "Server 'web' env must be one of: prod, live, test, dev, staging",
+        ], self::messages($loaded->problems));
+        $this->assertSame(
+            ['servers.json', 'servers.secrets.json', 'servers.json', 'servers.json', 'servers.json'],
+            array_map(static fn (ConfigLoadProblem $problem): ?string => $problem->sources[0]->file, $loaded->problems)
+        );
+    }
+
+    #[DataProvider('invalidSecretEntries')]
+    public function testInvalidSecretEntriesHaveCompanionSources(mixed $entry): void
+    {
+        $loaded = $this->loadServersFiles(['web' => ['disabled' => true]], ['web' => $entry]);
+
+        $this->assertCount(1, $loaded->problems);
+        $this->assertEquals([ConfigSource::file('servers.secrets.json')], $loaded->problems[0]->sources);
+    }
+
+    /** @return iterable<string,array{mixed}> */
+    public static function invalidSecretEntries(): iterable
+    {
+        yield 'not an object' => ['bad'];
+
+        yield 'unknown field' => [['api_key' => 'key', 'other' => true]];
+
+        yield 'empty key' => [['api_key' => ' ']];
+    }
+
+    public function testCommentOnlyServersRetainEmptyWarning(): void
+    {
+        $loaded = $this->loadServersFiles(['_comment' => 'No servers yet']);
+
+        $this->assertCount(1, $loaded->problems);
+        $this->assertSame(ServersConfig::EMPTY_ERROR, $loaded->problems[0]->message);
+        $this->assertSame('warning', $loaded->problems[0]->level);
+        $this->assertFalse($loaded->problems[0]->forceAlarm);
+        $this->assertEquals([ConfigSource::file('servers.json')], $loaded->problems[0]->sources);
     }
 
     // ==================== servers.secrets.json ====================
@@ -396,6 +493,7 @@ final class MonitoringConfigLoadersTest extends TestCase
         $messages = self::messages($result->problems);
         $this->assertSame(['clean'], array_keys($result->section->values));
         $this->assertContains("Server 'inline' sets api_key in servers.json; move it to servers.secrets.json", $messages);
+        $this->assertEquals([ConfigSource::file('servers.json')], $result->problems[0]->sources);
         $this->assertSame([], preg_grep('/does not define/', $messages), 'a rejected server is not an unknown one');
     }
 
@@ -416,6 +514,7 @@ final class MonitoringConfigLoadersTest extends TestCase
 
         $this->assertSame(['web'], array_keys($result->section->values));
         $this->assertContains("servers.secrets.json has a key for server 'renamed', which servers.json does not define", self::messages($result->problems));
+        $this->assertEquals([ConfigSource::file('servers.secrets.json')], $result->problems[0]->sources);
     }
 
     public function testLoadServersConfigFailsWhenSecretsFileIsMalformed(): void

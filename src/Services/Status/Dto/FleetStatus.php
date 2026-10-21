@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Mata\Services\Status\Dto;
 
+use JsonSerializable;
 use Mata\Config\Monitoring\Loader\Dto\ConfigLoadProblem;
 use Mata\Services\Status\StatusLevel;
 use Psr\Log\LogLevel;
@@ -12,7 +13,7 @@ use Psr\Log\LogLevel;
  * Explicit export shape of `bin/mata status`. Only these fields leave the process: server
  * config (and its api_key) is never copied in.
  */
-final readonly class FleetStatus
+final readonly class FleetStatus implements JsonSerializable
 {
     /**
      * @param list<array{name:string,title:string,health:string,level:StatusLevel,checked_at:?int,age_seconds:?int,error:?string}> $servers
@@ -44,7 +45,7 @@ final readonly class FleetStatus
     }
 
     /** @return array<string,mixed> */
-    public function toArray(): array
+    public function jsonSerialize(): array
     {
         $export = static fn (array $row): array => ['level' => $row['level']->label()] + $row;
 

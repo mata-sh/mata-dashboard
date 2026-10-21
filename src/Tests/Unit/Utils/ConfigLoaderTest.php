@@ -107,7 +107,8 @@ class EnvConfigLoaderTest extends TestCase
 
         $this->assertFalse($result['is_valid']);
         $this->assertContains([
-            'identifier' => 'config.trusted_proxy.invalid',
+            'type' => 'config.trusted_proxy.invalid',
+            'variables' => ['TRUSTED_PROXIES'],
             'message' => 'TRUSTED_PROXIES contains an invalid IP address or CIDR range: 192.0.2.1/99',
         ], $result['critical_errors']);
     }
@@ -171,7 +172,8 @@ class EnvConfigLoaderTest extends TestCase
 
         $this->assertFalse($result['is_valid']);
         $this->assertContains([
-            'identifier' => 'config.mail.dsn.missing',
+            'type' => 'config.mail.dsn.missing',
+            'variables' => ['SYM_MAILER_DSN'],
             'message' => 'Mail DSN is required but missing from configuration',
         ], $result['critical_errors']);
     }

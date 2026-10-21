@@ -13,9 +13,11 @@ use Mata\Config\Monitoring\Section\ThresholdsConfig;
  */
 final class ThresholdsConfigLoader extends AbstractJsonConfigLoader
 {
+    public const THRESHOLDS_FILE = 'thresholds.json';
+
     protected function fileName(): string
     {
-        return 'thresholds.json';
+        return self::THRESHOLDS_FILE;
     }
 
     protected function loadFailureType(): string

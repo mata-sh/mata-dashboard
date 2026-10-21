@@ -13,9 +13,11 @@ use Mata\Config\Monitoring\Section\TtlConfig;
  */
 final class TtlConfigLoader extends AbstractJsonConfigLoader
 {
+    public const TTL_FILE = 'ttl.json';
+
     protected function fileName(): string
     {
-        return 'ttl.json';
+        return self::TTL_FILE;
     }
 
     protected function loadFailureType(): string

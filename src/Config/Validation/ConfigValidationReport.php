@@ -4,10 +4,11 @@ declare(strict_types=1);
 
 namespace Mata\Config\Validation;
 
+use JsonSerializable;
 use Mata\Services\Status\StatusLevel;
 
 /** Result of validating an instance config directory. */
-final readonly class ConfigValidationReport
+final readonly class ConfigValidationReport implements JsonSerializable
 {
     /**
      * @param array<string,bool>  $files    checked file name => whether it exists
@@ -28,7 +29,7 @@ final readonly class ConfigValidationReport
     /** The worst level reported for one file; null when it does not exist and nothing was reported. */
     public function fileStatus(string $file): ?StatusLevel
     {
-        $problems = array_filter($this->problems, static fn (ConfigProblem $problem): bool => $problem->file === $file);
+        $problems = array_filter($this->problems, static fn (ConfigProblem $problem): bool => in_array($file, $problem->files(), true));
         if ($problems === [] && !($this->files[$file] ?? false)) {
             return null;
         }
@@ -36,8 +37,8 @@ final readonly class ConfigValidationReport
         return self::worst($problems);
     }
 
-    /** @return array<string,mixed> */
-    public function toArray(): array
+    /** @return array{status: string, config_path: string, files: list<array{file: string, status: string}>, problems: list<ConfigProblem>} */
+    public function jsonSerialize(): array
     {
         $files = [];
         foreach (array_keys($this->files) as $file) {
@@ -48,7 +49,7 @@ final readonly class ConfigValidationReport
             'status' => $this->level()->label(),
             'config_path' => $this->configPath,
             'files' => $files,
-            'problems' => array_map(static fn (ConfigProblem $problem): array => $problem->toArray(), $this->problems),
+            'problems' => $this->problems,
         ];
     }
 

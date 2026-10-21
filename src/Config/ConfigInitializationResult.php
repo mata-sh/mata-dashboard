@@ -16,8 +16,8 @@ use Mata\Config\Dto\ApplicationConfig;
 final class ConfigInitializationResult
 {
     /**
-     * @param ApplicationConfig                                      $config   Loaded and validated application configuration
-     * @param array<int, array{identifier: string, message: string}> $warnings Non-critical validation warnings
+     * @param ApplicationConfig                                $config   Loaded and validated application configuration
+     * @param array<int, array{type: string, message: string}> $warnings Non-critical validation warnings
      */
     public function __construct(
         public readonly ApplicationConfig $config,

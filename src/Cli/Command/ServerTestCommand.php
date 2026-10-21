@@ -56,7 +56,7 @@ final class ServerTestCommand extends Command
         if ($input->getOption('json')) {
             CliOutput::json($output, [
                 'status' => $level->label(),
-                'servers' => array_map(static fn (NodeConnectionResult $result): array => $result->toArray(), $results),
+                'servers' => $results,
             ]);
 
             return $level->value;

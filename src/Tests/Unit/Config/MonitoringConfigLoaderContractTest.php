@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Mata\Tests\Unit\Config;
 
 use Closure;
+use Mata\Config\ConfigSource;
 use Mata\Config\Monitoring\Loader\AbstractJsonConfigLoader;
 use Mata\Config\Monitoring\Loader\AlarmRateLimitsConfigLoader;
 use Mata\Config\Monitoring\Loader\ChannelsConfigLoader;
@@ -100,8 +101,10 @@ final class MonitoringConfigLoaderContractTest extends TestCase
 
         try {
             $config = $this->loadWith($case, $contents, fallbackOnFailure: false)->section;
-        } catch (MonitoringConfigLoadException) {
-            $this->addToAssertionCount(1);
+        } catch (MonitoringConfigLoadException $exception) {
+            foreach ($exception->problems as $problem) {
+                $this->assertEquals([ConfigSource::file($case['file'])], $problem->sources);
+            }
 
             return;
         }
@@ -122,6 +125,9 @@ final class MonitoringConfigLoaderContractTest extends TestCase
             return;
         }
         $this->assertNotEmpty($problems, "{$loader} accepted bad input without reporting it.");
+        foreach ($problems as $problem) {
+            $this->assertEquals([ConfigSource::file($case['file'])], $problem->sources);
+        }
     }
 
     #[DataProvider('badInputs')]

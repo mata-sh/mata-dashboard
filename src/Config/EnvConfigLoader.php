@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Mata\Config;
 
 use Dotenv\Dotenv;
+use Dotenv\Exception\ExceptionInterface;
 use InvalidArgumentException;
 use Mata\Config\Dto\AlarmDecisionConfig;
 use Mata\Config\Dto\ApplicationConfig;
@@ -40,6 +41,23 @@ final class EnvConfigLoader
     /** The env files of an instance in config/; the first file that sets a variable wins. */
     public const INSTANCE_FILES = ['config.env', 'db.config.env', 'mail.config.env'];
 
+    /** @var array<string,string> env file that set each variable in the last load, e.g. ['DOMAIN' => 'config.env'] */
+    private array $fileOf = [];
+
+    /**
+     * Resolve the application-visible input, not Dotenv's repository (which also reads $_SERVER).
+     * Use the same loader that loaded the DTO, before changing the environment.
+     */
+    public function sourceOf(string $variable): ConfigSource
+    {
+        if (!array_key_exists($variable, $_ENV)) {
+            return getenv($variable) === false ? ConfigSource::missing($variable) : ConfigSource::process($variable);
+        }
+        $file = $this->fileOf[$variable] ?? null;
+
+        return $file === null ? ConfigSource::process($variable) : ConfigSource::file($file, $variable);
+    }
+
     /**
      * Load and parse configuration from multiple .env files.
      *
@@ -47,13 +65,27 @@ final class EnvConfigLoader
      * @param string            $configPath Directory path containing configuration files
      *
      * @return ApplicationConfig Type-safe application configuration DTO
+     *
+     * @throws EnvConfigException If an env file cannot be parsed or a variable is missing or invalid
      */
     public function load(array $envFiles, string $configPath): ApplicationConfig
     {
+        $this->fileOf = [];
+
         foreach ($envFiles as $file) {
-            $fullPath = $configPath . '/' . $file;
-            if (file_exists($fullPath)) {
-                Dotenv::createImmutable($configPath, $file)->load();
+            if (file_exists($configPath . '/' . $file)) {
+                try {
+                    $assignments = Dotenv::createImmutable($configPath, $file)->load();
+                } catch (ExceptionInterface $exception) {
+                    throw new EnvConfigException($exception->getMessage(), ConfigSource::file($file), $exception);
+                }
+                foreach ($assignments as $variable => $value) {
+                    if ($value === null) {
+                        unset($this->fileOf[$variable]);
+                    } else {
+                        $this->fileOf[$variable] = $file;
+                    }
+                }
             }
         }
 
@@ -104,8 +136,14 @@ final class EnvConfigLoader
     {
         $seed = $this->normalizeOptionalEnvValue($this->getEnv('DEMO_SEED'));
 
+        try {
+            $parsedSeed = $seed === null ? null : ConfigValueValidator::integerString($seed, 'env.DEMO_SEED', minimum: 0);
+        } catch (InvalidArgumentException $exception) {
+            throw new EnvConfigException($exception->getMessage(), $this->sourceOf('DEMO_SEED'), $exception);
+        }
+
         return new DemoConfig(
-            seed: $seed === null ? null : ConfigValueValidator::integerString($seed, 'env.DEMO_SEED', minimum: 0),
+            seed: $parsedSeed,
             loginUsername: $this->normalizeOptionalEnvValue($this->getEnv('DEMO_LOGIN_USERNAME')),
             loginPassword: $this->normalizeOptionalEnvValue($this->getEnv('DEMO_LOGIN_PASSWORD')),
         );
@@ -239,12 +277,16 @@ final class EnvConfigLoader
         ?int $minimum = null,
         ?int $maximum = null,
     ): int {
-        return ConfigValueValidator::integerString(
-            $this->readRawEnv($key) ?? (string) $default,
-            "env.{$key}",
-            $minimum,
-            $maximum,
-        );
+        try {
+            return ConfigValueValidator::integerString(
+                $this->readRawEnv($key) ?? (string) $default,
+                "env.{$key}",
+                $minimum,
+                $maximum,
+            );
+        } catch (InvalidArgumentException $exception) {
+            throw new EnvConfigException($exception->getMessage(), $this->sourceOf($key), $exception);
+        }
     }
 
     private function getEnvDecimal(
@@ -253,12 +295,16 @@ final class EnvConfigLoader
         ?float $minimum = null,
         ?float $maximum = null,
     ): float {
-        return ConfigValueValidator::decimalString(
-            $this->readRawEnv($key) ?? (string) $default,
-            "env.{$key}",
-            $minimum,
-            $maximum,
-        );
+        try {
+            return ConfigValueValidator::decimalString(
+                $this->readRawEnv($key) ?? (string) $default,
+                "env.{$key}",
+                $minimum,
+                $maximum,
+            );
+        } catch (InvalidArgumentException $exception) {
+            throw new EnvConfigException($exception->getMessage(), $this->sourceOf($key), $exception);
+        }
     }
 
     private function readRawEnv(string $key): mixed
@@ -321,13 +367,13 @@ final class EnvConfigLoader
     /**
      * Get required environment variable or throw exception.
      *
-     * @throws InvalidArgumentException If environment variable is missing
+     * @throws EnvConfigException If environment variable is missing
      */
     private function requireEnv(string $key): string
     {
         $value = $this->readEnv($key);
         if ($value === null || $value === '') {
-            throw new InvalidArgumentException("Required environment variable {$key} is missing");
+            throw new EnvConfigException("Required environment variable {$key} is missing", $this->sourceOf($key));
         }
 
         return $value;
@@ -338,7 +384,11 @@ final class EnvConfigLoader
      *
      * @param ApplicationConfig $config Loaded configuration DTO
      *
-     * @return array<string,mixed> Validation results with critical_errors, warnings, and is_valid
+     * @return array{
+     *     critical_errors: list<array{type: string, variables: list<string>, message: string}>,
+     *     warnings: list<array{type: string, variables: list<string>, message: string}>,
+     *     is_valid: bool,
+     * }
      */
     public function validateConfig(ApplicationConfig $config): array
     {
@@ -348,7 +398,8 @@ final class EnvConfigLoader
         // Critical validation - DOMAIN
         if (empty($config->environment->domain)) {
             $criticalErrors[] = [
-                'identifier' => 'config.domain.missing',
+                'type' => 'config.domain.missing',
+                'variables' => ['DOMAIN'],
                 'message' => 'DOMAIN is required but missing from configuration',
             ];
         }
@@ -356,7 +407,8 @@ final class EnvConfigLoader
         foreach ($config->general->trustedProxies as $trustedProxy) {
             if (!IpRangeMatcher::isValidRange($trustedProxy)) {
                 $criticalErrors[] = [
-                    'identifier' => 'config.trusted_proxy.invalid',
+                    'type' => 'config.trusted_proxy.invalid',
+                    'variables' => ['TRUSTED_PROXIES'],
                     'message' => "TRUSTED_PROXIES contains an invalid IP address or CIDR range: {$trustedProxy}",
                 ];
             }
@@ -382,7 +434,8 @@ final class EnvConfigLoader
 
         if (!empty($missingDbFields)) {
             $warnings[] = [
-                'identifier' => 'config.database.missing',
+                'type' => 'config.database.missing',
+                'variables' => array_map(static fn (string $field): string => 'DB_' . strtoupper($field), $missingDbFields),
                 'message' => 'Database configuration incomplete - missing: ' . implode(', ', $missingDbFields),
             ];
         }
@@ -390,14 +443,16 @@ final class EnvConfigLoader
         // Logging configuration warnings
         if (empty($config->logging->path)) {
             $warnings[] = [
-                'identifier' => 'config.logging.file.missing',
+                'type' => 'config.logging.file.missing',
+                'variables' => ['APP_LOG_PATH'],
                 'message' => 'Log file path not configured - logs may not be written to file',
             ];
         }
 
         if (empty($config->logging->level)) {
             $warnings[] = [
-                'identifier' => 'config.logging.level.missing',
+                'type' => 'config.logging.level.missing',
+                'variables' => ['MONOLOG_LEVEL'],
                 'message' => 'Monolog level not configured - default log level may be used',
             ];
         }
@@ -405,13 +460,15 @@ final class EnvConfigLoader
         // The mailer is initialized during application bootstrap.
         if (empty($config->mail->dsn)) {
             $criticalErrors[] = [
-                'identifier' => 'config.mail.dsn.missing',
+                'type' => 'config.mail.dsn.missing',
+                'variables' => ['SYM_MAILER_DSN'],
                 'message' => 'Mail DSN is required but missing from configuration',
             ];
         }
         if (empty($config->mail->fromEmail)) {
             $warnings[] = [
-                'identifier' => 'config.mail.from_email.missing',
+                'type' => 'config.mail.from_email.missing',
+                'variables' => ['SYM_FROM_EMAIL'],
                 'message' => 'Mail from_email not configured - emails may not send properly',
             ];
         }

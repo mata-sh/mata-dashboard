@@ -6,6 +6,7 @@ namespace Mata\Config\Monitoring\Loader;
 
 use InvalidArgumentException;
 use JsonException;
+use Mata\Config\ConfigSource;
 use Mata\Config\ConfigValueValidator;
 use Mata\Config\Monitoring\Loader\Dto\ConfigLoadProblem;
 use Mata\Config\Monitoring\Loader\Dto\ConfigLoadResult;
@@ -87,26 +88,31 @@ abstract class AbstractJsonConfigLoader
 
             return $this->result($this->parse($config, $filePath));
         } catch (InvalidArgumentException|RuntimeException $exception) {
-            $this->reportLoadFailure($exception->getMessage());
+            $this->reportLoadFailure(
+                $exception->getMessage(),
+                $exception instanceof JsonConfigReadException ? $exception->fileName : null,
+            );
 
             throw new MonitoringConfigLoadException($exception->getMessage(), $this->problems, $exception);
         }
     }
 
-    protected function reportLoadFailure(string $reason): void
+    protected function reportLoadFailure(string $reason, ?string $sourceFile = null): void
     {
-        $this->report($this->loadFailureType(), "Could not load {$this->fileName()}: {$reason}");
+        $this->report($this->loadFailureType(), "Could not load {$this->fileName()}: {$reason}", sourceFile: $sourceFile);
     }
 
     /** Reports an entry that parse() skipped while keeping the rest of the file. */
-    protected function reportInvalidEntry(string $message): void
+    protected function reportInvalidEntry(string $message, ?string $sourceFile = null): void
     {
-        $this->report($this->loadFailureType() . '_entry', $message);
+        $this->report($this->loadFailureType() . '_entry', $message, sourceFile: $sourceFile);
     }
 
-    protected function report(string $type, string $message, string $level = LogLevel::WARNING, bool $forceAlarm = false): void
+    protected function report(string $type, string $message, string $level = LogLevel::WARNING, bool $forceAlarm = false, ?string $sourceFile = null): void
     {
-        $this->problems[] = new ConfigLoadProblem($type, $message, $level, $forceAlarm);
+        $this->problems[] = new ConfigLoadProblem($type, $message, $level, $forceAlarm, [
+            ConfigSource::file($sourceFile ?? $this->fileName()),
+        ]);
     }
 
     /**
@@ -126,18 +132,18 @@ abstract class AbstractJsonConfigLoader
     {
         $content = is_file($filePath) && is_readable($filePath) ? file_get_contents($filePath) : false;
         if ($content === false) {
-            throw new RuntimeException("Cannot read JSON config at {$filePath}");
+            throw new JsonConfigReadException("Cannot read JSON config at {$filePath}", basename($filePath));
         }
 
         try {
             $config = json_decode($content, true, 512, JSON_THROW_ON_ERROR);
         } catch (JsonException $exception) {
-            throw new RuntimeException("Invalid JSON config at {$filePath}: {$exception->getMessage()}", previous: $exception);
+            throw new JsonConfigReadException("Invalid JSON config at {$filePath}: {$exception->getMessage()}", basename($filePath), previous: $exception);
         }
 
         // An empty object decodes to the same [] as an empty list.
         if (!ConfigValueValidator::isObject($config)) {
-            throw new RuntimeException("JSON config at {$filePath} must be an object.");
+            throw new JsonConfigReadException("JSON config at {$filePath} must be an object.", basename($filePath));
         }
 
         return $config;

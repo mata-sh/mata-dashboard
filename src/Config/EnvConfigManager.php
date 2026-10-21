@@ -196,7 +196,7 @@ final class EnvConfigManager
         // Log critical errors
         if (!$validationResult['is_valid']) {
             foreach ($validationResult['critical_errors'] as $error) {
-                $this->logger->critical("[{$error['identifier']}] {$error['message']}");
+                $this->logger->critical("[{$error['type']}] {$error['message']}");
             }
 
             throw  EnvConfigFatalException::validationFailed($validationResult['critical_errors']);
@@ -204,7 +204,7 @@ final class EnvConfigManager
 
         // Log warnings (non-critical)
         foreach ($validationResult['warnings'] ?? [] as $warning) {
-            $this->logger->warning("[{$warning['identifier']}] {$warning['message']}");
+            $this->logger->warning("[{$warning['type']}] {$warning['message']}");
         }
 
         return $validationResult;

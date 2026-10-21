@@ -245,7 +245,51 @@ make mata ARGS="config validate"            # as the right account, also in Dock
 ```
 
 It exits `0` when the configuration is valid, `1` for warnings only (a skipped
-entry, advice), and `2` for errors.
+entry, advice), and `2` for errors, including invalid or missing environment values.
+The human report lists file statuses, then prints each diagnostic once with all
+known sources. `process:VARIABLE` identifies a process environment value;
+`missing:VARIABLE` identifies an unset input. Problems without a known source are `unattributed`.
+Source labels never include configuration values.
+
+The JSON report adds a `sources` list to each problem:
+
+```json
+{
+  "files": ["mail.config.env"],
+  "level": "error",
+  "type": "config.env.invalid",
+  "message": "env.DASHBOARD_SERVER_COLUMNS must be >= 1",
+  "sources": [
+    {"kind": "file", "file": "mail.config.env", "variable": "DASHBOARD_SERVER_COLUMNS"}
+  ]
+}
+```
+
+A problem's `type` is a dotted notification identifier (`config.env.invalid`) for
+environment files and a snake_case event type (`servers_config_invalid_entry`) for JSON files.
+
+Each source has `kind` (`file`, `process`, or `missing`), a nullable `file` name
+(relative to the config directory), and a nullable `variable` name. JSON-file diagnostics have no variable name.
+A missing file still has a known `file` source; `missing` denotes an unset variable.
+An empty `sources` list means the loader could not identify the source.
+
+!!! info "Problems can span files"
+
+    A problem's top-level `files` lists each distinct file among its sources:
+    empty for process-only, missing-variable, or unattributed problems, and
+    several entries when a problem spans files. Each listed file receives the
+    problem's severity in the file summary.
+
+!!! info "File selection validates a group"
+
+    The optional file argument is positional, not a `--file` option. Selecting
+    any of `config.env`, `db.config.env`, or `mail.config.env` validates their
+    merged configuration, including process, missing, and multi-source inputs.
+    Selecting either server JSON file checks both `servers.json` and
+    `servers.secrets.json`. Other JSON selections check only that file.
+    JSON-only checks still load the environment for dependencies such as webhook
+    URLs, but omit standalone environment diagnostics. Run without a file
+    argument to check the whole installation.
 
 Without the check, a broken file shows up as a warning event while the app
 runs on defaults; only a missing or invalid `servers.json` or

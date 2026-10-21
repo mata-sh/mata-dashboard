@@ -50,7 +50,7 @@
       <ul class="error-list">
         {% for item in error.context.validation_errors %}
           <li>
-            <strong>[{{ item.identifier }}]</strong> {{ item.message }}
+            <strong>[{{ item.type }}]</strong> {{ item.message }}
           </li>
         {% endfor %}
       </ul>

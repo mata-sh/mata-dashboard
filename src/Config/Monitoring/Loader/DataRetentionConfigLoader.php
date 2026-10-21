@@ -13,9 +13,11 @@ use Mata\Config\Monitoring\Section\DataRetentionConfig;
  */
 final class DataRetentionConfigLoader extends AbstractJsonConfigLoader
 {
+    public const DATA_RETENTION_FILE = 'data_retention.json';
+
     protected function fileName(): string
     {
-        return 'data_retention.json';
+        return self::DATA_RETENTION_FILE;
     }
 
     protected function loadFailureType(): string

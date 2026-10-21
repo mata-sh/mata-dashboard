@@ -595,14 +595,14 @@ final class SystemNotificationManager
     /**
      * Clean up resolved config warnings by comparing current warnings with database.
      *
-     * @param array<array<string,string>> $currentWarnings Current validation warnings with identifier and message
+     * @param array<int, array{type: string, message: string}> $currentWarnings current validation warnings; each type is a notification identifier
      *
      * @return bool True on success, false on failure
      */
     public function cleanupResolvedConfigWarnings(array $currentWarnings): bool
     {
         try {
-            $activeIdentifiers = array_column($currentWarnings, 'identifier');
+            $activeIdentifiers = array_column($currentWarnings, 'type');
             $existingConfigWarnings = $this->getConfigWarningIdentifiers();
 
             $resolvedIssues = array_diff($existingConfigWarnings, $activeIdentifiers);

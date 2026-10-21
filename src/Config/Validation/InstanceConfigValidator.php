@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace Mata\Config\Validation;
 
 use Closure;
+use Mata\Config\ConfigSource;
+use Mata\Config\EnvConfigException;
 use Mata\Config\EnvConfigLoader;
 use Mata\Config\Monitoring\Loader\AlarmRateLimitsConfigLoader;
 use Mata\Config\Monitoring\Loader\ChannelsConfigLoader;
@@ -26,7 +28,6 @@ use Mata\Services\ServerMetrics\MetricCatalog;
 use Mata\Services\ServerMetrics\MetricQueryPolicy;
 use Mata\Services\Status\StatusLevel;
 use Psr\Log\LogLevel;
-use Throwable;
 
 /**
  * Validates an instance config directory with the same loaders the web app and cron use, so
@@ -61,10 +62,8 @@ final class InstanceConfigValidator
         }
 
         // Env files always load: the JSON loaders read their variables (channels.json *_env keys).
-        $problems = array_values(array_filter(
-            $this->validateEnv($configPath),
-            static fn (ConfigProblem $problem): bool => array_key_exists($problem->file, $files),
-        ));
+        $envProblems = $this->validateEnv($configPath);
+        $problems = $onlyFile === null || in_array($onlyFile, EnvConfigLoader::INSTANCE_FILES, true) ? $envProblems : [];
         foreach ($jsonChecks as $check) {
             if ($onlyFile === null || in_array($onlyFile, $check['files'], true)) {
                 $problems = [...$problems, ...$this->validateJson($configPath, $check['files'], $check['load'])];
@@ -86,7 +85,12 @@ final class InstanceConfigValidator
         $problems = [];
         foreach (EnvConfigLoader::INSTANCE_FILES as $file) {
             if (!is_file($configPath . '/' . $file)) {
-                $problems[] = new ConfigProblem($file, StatusLevel::Error, 'config.file.missing', "{$file} is missing; copy it from config.example/{$file}.example");
+                $problems[] = new ConfigProblem(
+                    level: StatusLevel::Error,
+                    type: 'config.file.missing',
+                    message: "{$file} is missing; copy it from config.example/{$file}.example",
+                    sources: [ConfigSource::file($file)],
+                );
             }
         }
 
@@ -94,30 +98,29 @@ final class InstanceConfigValidator
 
         try {
             $result = $loader->validateConfig($loader->load(EnvConfigLoader::INSTANCE_FILES, $configPath));
-        } catch (Throwable $exception) {
-            // Dotenv parse errors and out-of-range values; neither names its file.
-            $problems[] = new ConfigProblem('config.env', StatusLevel::Error, 'config.env.invalid', $exception->getMessage());
+        } catch (EnvConfigException $exception) {
+            $problems[] = new ConfigProblem(
+                level: StatusLevel::Error,
+                type: 'config.env.invalid',
+                message: $exception->getMessage(),
+                sources: [$exception->source],
+            );
 
             return $problems;
         }
 
         foreach ([[StatusLevel::Error, $result['critical_errors']], [StatusLevel::Warning, $result['warnings']]] as [$level, $entries]) {
             foreach ($entries as $entry) {
-                $problems[] = new ConfigProblem($this->envFileFor($entry['identifier']), $level, $entry['identifier'], $entry['message']);
+                $problems[] = new ConfigProblem(
+                    level: $level,
+                    type: $entry['type'],
+                    message: $entry['message'],
+                    sources: array_map($loader->sourceOf(...), $entry['variables']),
+                );
             }
         }
 
         return $problems;
-    }
-
-    /** Best guess at the env file a validateConfig() identifier belongs to; any file may set any variable. */
-    private function envFileFor(string $identifier): string
-    {
-        return match (true) {
-            str_starts_with($identifier, 'config.mail.') => 'mail.config.env',
-            str_starts_with($identifier, 'config.database.') => 'db.config.env',
-            default => 'config.env',
-        };
     }
 
     /**
@@ -128,20 +131,18 @@ final class InstanceConfigValidator
      */
     private function jsonChecks(): array
     {
-        $metricCatalog = new MetricCatalog();
-
         return [
-            ['files' => ['servers.json', ServersConfigLoader::SECRETS_FILE], 'load' => (new ServersConfigLoader(fallbackOnFailure: false))->load(...)],
-            ['files' => ['ttl.json'], 'load' => (new TtlConfigLoader(fallbackOnFailure: false))->load(...)],
-            ['files' => ['data_retention.json'], 'load' => (new DataRetentionConfigLoader(fallbackOnFailure: false))->load(...)],
-            ['files' => ['intervals.json'], 'load' => (new IntervalsConfigLoader(fallbackOnFailure: false))->load(...)],
-            ['files' => ['probes.json'], 'load' => (new ProbesConfigLoader(fallbackOnFailure: false))->load(...)],
-            ['files' => ['notification_rules.json'], 'load' => (new NotificationRulesConfigLoader(fallbackOnFailure: false))->load(...)],
-            ['files' => ['thresholds.json'], 'load' => (new ThresholdsConfigLoader(fallbackOnFailure: false))->load(...)],
-            ['files' => ['menu.json'], 'load' => (new MenuConfigLoader(MenuBuilder::MENU_KEYS, fallbackOnFailure: false))->load(...)],
-            ['files' => ['charts.json'], 'load' => (new ChartsConfigLoader($metricCatalog, new MetricQueryPolicy(), fallbackOnFailure: false))->load(...)],
-            ['files' => ['channels.json'], 'load' => (new ChannelsConfigLoader(fallbackOnFailure: false))->load(...)],
-            ['files' => ['limits.json'], 'load' => (new AlarmRateLimitsConfigLoader(fallbackOnFailure: false))->load(...)],
+            ['files' => [ServersConfigLoader::SERVERS_FILE, ServersConfigLoader::SECRETS_FILE], 'load' => (new ServersConfigLoader(fallbackOnFailure: false))->load(...)],
+            ['files' => [TtlConfigLoader::TTL_FILE], 'load' => (new TtlConfigLoader(fallbackOnFailure: false))->load(...)],
+            ['files' => [DataRetentionConfigLoader::DATA_RETENTION_FILE], 'load' => (new DataRetentionConfigLoader(fallbackOnFailure: false))->load(...)],
+            ['files' => [IntervalsConfigLoader::INTERVALS_FILE], 'load' => (new IntervalsConfigLoader(fallbackOnFailure: false))->load(...)],
+            ['files' => [ProbesConfigLoader::PROBES_FILE], 'load' => (new ProbesConfigLoader(fallbackOnFailure: false))->load(...)],
+            ['files' => [NotificationRulesConfigLoader::NOTIFICATION_RULES_FILE], 'load' => (new NotificationRulesConfigLoader(fallbackOnFailure: false))->load(...)],
+            ['files' => [ThresholdsConfigLoader::THRESHOLDS_FILE], 'load' => (new ThresholdsConfigLoader(fallbackOnFailure: false))->load(...)],
+            ['files' => [MenuConfigLoader::MENU_FILE], 'load' => (new MenuConfigLoader(MenuBuilder::MENU_KEYS, fallbackOnFailure: false))->load(...)],
+            ['files' => [ChartsConfigLoader::CHARTS_FILE], 'load' => (new ChartsConfigLoader(new MetricCatalog(), new MetricQueryPolicy(), fallbackOnFailure: false))->load(...)],
+            ['files' => [ChannelsConfigLoader::CHANNELS_FILE], 'load' => (new ChannelsConfigLoader(fallbackOnFailure: false))->load(...)],
+            ['files' => [AlarmRateLimitsConfigLoader::LIMITS_FILE], 'load' => (new AlarmRateLimitsConfigLoader(fallbackOnFailure: false))->load(...)],
         ];
     }
 
@@ -154,42 +155,44 @@ final class InstanceConfigValidator
     private function validateJson(string $configPath, array $files, Closure $load): array
     {
         try {
-            $problems = $load($configPath)->problems;
+            $loadProblems = $load($configPath)->problems;
             $rejected = false;
         } catch (MonitoringConfigLoadException $exception) {
-            $problems = $exception->problems ?: [new ConfigLoadProblem('config_file_rejected', "{$files[0]} was rejected; the app would use defaults", LogLevel::ERROR)];
+            // Guard only: loaders report the rejection before throwing, so the list is never empty.
+            $loadProblems = $exception->problems ?: [new ConfigLoadProblem(
+                'config_file_rejected',
+                "{$files[0]} was rejected; the app would use defaults",
+                LogLevel::ERROR,
+                sources: [ConfigSource::file($files[0])],
+            )];
             $rejected = true;
         }
 
-        $result = [];
-        foreach ($problems as $reported) {
-            $problem = new ConfigProblem(
-                $this->fileFor($reported->message, $files),
-                in_array($reported->level, [LogLevel::CRITICAL, LogLevel::ERROR], true) ? StatusLevel::Error : StatusLevel::Warning,
-                $reported->type,
-                $reported->message,
+        $problems = [];
+        foreach ($loadProblems as $loadProblem) {
+            $problems[] = new ConfigProblem(
+                level: $this->levelFor($loadProblem, $rejected),
+                type: $loadProblem->type,
+                message: $loadProblem->message,
+                sources: $loadProblem->sources,
             );
-            $isError = $rejected || (in_array($reported->type, self::ERROR_TYPES, true) && $reported->message !== ServersConfig::EMPTY_ERROR);
-            $result[] = $isError ? $problem->asError() : $problem;
         }
 
-        return $result;
+        return $problems;
     }
 
     /**
-     * Problems inside a companion file (servers.secrets.json) start with its name or quote its
-     * path; a message that merely points to it ("move it to servers.secrets.json") does not.
+     * Rejected configs are errors. Invalid server entries are promoted except the empty-server message;
+     * remaining problems follow their log level: ERROR/CRITICAL are errors, all others warnings.
      *
-     * @param list<string> $files
+     * @return StatusLevel::Error|StatusLevel::Warning
      */
-    private function fileFor(string $message, array $files): string
+    private function levelFor(ConfigLoadProblem $loadProblem, bool $rejected): StatusLevel
     {
-        foreach (array_slice($files, 1) as $companion) {
-            if (str_starts_with($message, $companion) || str_contains($message, '/' . $companion)) {
-                return $companion;
-            }
+        if ($rejected || (in_array($loadProblem->type, self::ERROR_TYPES, true) && $loadProblem->message !== ServersConfig::EMPTY_ERROR)) {
+            return StatusLevel::Error;
         }
 
-        return $files[0];
+        return in_array($loadProblem->level, [LogLevel::CRITICAL, LogLevel::ERROR], true) ? StatusLevel::Error : StatusLevel::Warning;
     }
 }

@@ -15,6 +15,8 @@ use Mata\Services\ServerMetrics\MetricQueryPolicy;
  */
 final class ChartsConfigLoader extends AbstractJsonConfigLoader
 {
+    public const CHARTS_FILE = 'charts.json';
+
     public function __construct(
         private MetricCatalog $metricCatalog,
         private MetricQueryPolicy $queryPolicy,
@@ -25,7 +27,7 @@ final class ChartsConfigLoader extends AbstractJsonConfigLoader
 
     protected function fileName(): string
     {
-        return 'charts.json';
+        return self::CHARTS_FILE;
     }
 
     protected function loadFailureType(): string

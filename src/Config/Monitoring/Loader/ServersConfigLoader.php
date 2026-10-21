@@ -53,8 +53,11 @@ final class ServersConfigLoader extends AbstractJsonConfigLoader
             static fn ($key): bool => !str_starts_with((string) $key, '_'),
             ARRAY_FILTER_USE_KEY,
         );
-        foreach (ServersConfig::validationErrors($visible) as $error) {
-            $this->reportInvalidEntry($error);
+        foreach (ServersConfig::validationProblems($visible) as $problem) {
+            $this->reportInvalidEntry(
+                $problem['message'],
+                $problem['field'] === 'api_key' ? self::SECRETS_FILE : self::SERVERS_FILE,
+            );
         }
         foreach (ServersConfig::allowedHttpWarnings($visible) as $warning) {
             $this->report('http_connection_allowed', $warning);
@@ -64,13 +67,14 @@ final class ServersConfigLoader extends AbstractJsonConfigLoader
     }
 
     /** Servers are the one section the app cannot run without, so a rejected file always alarms. */
-    protected function reportLoadFailure(string $reason): void
+    protected function reportLoadFailure(string $reason, ?string $sourceFile = null): void
     {
         $this->report(
             type: $this->loadFailureType(),
             message: "Could not load servers: {$reason}",
             level: LogLevel::CRITICAL,
             forceAlarm: true,
+            sourceFile: $sourceFile,
         );
     }
 
@@ -90,6 +94,7 @@ final class ServersConfigLoader extends AbstractJsonConfigLoader
             }
             $this->reportInvalidEntry(
                 "Server '{$serverName}' sets api_key in servers.json; move it to " . self::SECRETS_FILE,
+                self::SERVERS_FILE,
             );
             unset($raw[$serverName]);
         }
@@ -120,7 +125,7 @@ final class ServersConfigLoader extends AbstractJsonConfigLoader
             }
             $error = $this->secretEntryError($serverName, $entry);
             if ($error !== null) {
-                $this->reportInvalidEntry($error);
+                $this->reportInvalidEntry($error, self::SECRETS_FILE);
 
                 continue;
             }
@@ -160,6 +165,7 @@ final class ServersConfigLoader extends AbstractJsonConfigLoader
             if (!in_array($serverName, $definedServers, true)) {
                 $this->reportInvalidEntry(
                     self::SECRETS_FILE . " has a key for server '{$serverName}', which servers.json does not define",
+                    self::SECRETS_FILE,
                 );
 
                 continue;

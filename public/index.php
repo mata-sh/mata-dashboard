@@ -273,7 +273,7 @@ $db = (new DatabaseBootstrap($appConfig->database, $log))->initialize();
 $notificationManager = new SystemNotificationManager($db, $log, $paths);
 
 foreach ($validationWarnings as $warning) {
-    $notificationManager->addConfigWarning($warning['identifier'], $warning['message']);
+    $notificationManager->addConfigWarning($warning['type'], $warning['message']);
 }
 
 // ************************************************************************************************

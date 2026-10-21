@@ -13,6 +13,8 @@ use Mata\Config\Monitoring\Section\MenuConfig;
  */
 final class MenuConfigLoader extends AbstractJsonConfigLoader
 {
+    public const MENU_FILE = 'menu.json';
+
     /** @param list<string> $validKeys */
     public function __construct(
         private array $validKeys,
@@ -23,7 +25,7 @@ final class MenuConfigLoader extends AbstractJsonConfigLoader
 
     protected function fileName(): string
     {
-        return 'menu.json';
+        return self::MENU_FILE;
     }
 
     protected function loadFailureType(): string

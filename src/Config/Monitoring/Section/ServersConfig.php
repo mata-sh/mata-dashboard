@@ -51,8 +51,20 @@ final readonly class ServersConfig
      */
     public static function validationErrors(array $raw): array
     {
+        return array_column(self::validationProblems($raw), 'message');
+    }
+
+    /**
+     * Field metadata distinguishes merged API keys from primary server definitions.
+     *
+     * @param array<string,mixed> $raw
+     *
+     * @return list<array{field: ?string, message: string}>
+     */
+    public static function validationProblems(array $raw): array
+    {
         if ($raw === []) {
-            return [self::EMPTY_ERROR];
+            return [['field' => null, 'message' => self::EMPTY_ERROR]];
         }
 
         $errors = [];
@@ -90,21 +102,21 @@ final readonly class ServersConfig
         return $warnings;
     }
 
-    /** @return list<string> */
+    /** @return list<array{field: ?string, message: string}> */
     private static function serverValidationErrors(string $serverName, mixed $config): array
     {
         if (preg_match(self::NAME_PATTERN, $serverName) !== 1) {
-            return ["Server name '{$serverName}' is invalid: use letters, digits, '.', '_' or '-' (max 64), starting with a letter or digit"];
+            return [['field' => null, 'message' => "Server name '{$serverName}' is invalid: use letters, digits, '.', '_' or '-' (max 64), starting with a letter or digit"]];
         }
         if (!is_array($config)) {
-            return ["Server '{$serverName}' configuration must be an array"];
+            return [['field' => null, 'message' => "Server '{$serverName}' configuration must be an array"]];
         }
         if (array_key_exists('disabled', $config) && !is_bool($config['disabled'])) {
-            return ["Server '{$serverName}' disabled must be a boolean"];
+            return [['field' => 'disabled', 'message' => "Server '{$serverName}' disabled must be a boolean"]];
         }
         foreach (['error_monitoring_enabled', 'logsize_monitoring_enabled'] as $key) {
             if (array_key_exists($key, $config) && !is_bool($config[$key])) {
-                return ["Server '{$serverName}' {$key} must be a boolean"];
+                return [['field' => $key, 'message' => "Server '{$serverName}' {$key} must be a boolean"]];
             }
         }
         if (ServerConfigState::isDisabled($config)) {
@@ -114,29 +126,29 @@ final readonly class ServersConfig
         $errors = [];
         foreach (['api_url', 'title'] as $field) {
             if (!is_string($config[$field] ?? null) || trim($config[$field]) === '') {
-                $errors[] = "Server '{$serverName}' missing required field: {$field}";
+                $errors[] = ['field' => $field, 'message' => "Server '{$serverName}' missing required field: {$field}"];
             }
         }
         if (!is_string($config['api_key'] ?? null) || trim($config['api_key']) === '') {
-            $errors[] = "Server '{$serverName}' has no api_key in servers.secrets.json";
+            $errors[] = ['field' => 'api_key', 'message' => "Server '{$serverName}' has no api_key in servers.secrets.json"];
         }
         if (is_string($config['api_url'] ?? null) && trim($config['api_url']) !== '') {
             if (!filter_var($config['api_url'], FILTER_VALIDATE_URL)) {
-                $errors[] = "Server '{$serverName}' has invalid API URL format";
+                $errors[] = ['field' => 'api_url', 'message' => "Server '{$serverName}' has invalid API URL format"];
             } else {
                 $scheme = parse_url($config['api_url'], PHP_URL_SCHEME);
                 if ($scheme !== 'https' && $scheme !== 'http') {
-                    $errors[] = "Server '{$serverName}' API URL must use HTTPS protocol (found: {$scheme}://)";
+                    $errors[] = ['field' => 'api_url', 'message' => "Server '{$serverName}' API URL must use HTTPS protocol (found: {$scheme}://)"];
                 } elseif ($scheme === 'http' && !(TypeConverter::toBool($config['allow_http'] ?? null) ?? false)) {
-                    $errors[] = "Server '{$serverName}' API URL must use HTTPS protocol (found: http://). To allow HTTP connections, set 'allow_http': \"on\" in configuration.";
+                    $errors[] = ['field' => 'api_url', 'message' => "Server '{$serverName}' API URL must use HTTPS protocol (found: http://). To allow HTTP connections, set 'allow_http': \"on\" in configuration."];
                 }
             }
         }
         if (isset($config['primary_color']) && (!is_string($config['primary_color']) || !preg_match('/^#[0-9a-fA-F]{6}$/', $config['primary_color']))) {
-            $errors[] = "Server '{$serverName}' has invalid primary_color format (should be #RRGGBB)";
+            $errors[] = ['field' => 'primary_color', 'message' => "Server '{$serverName}' has invalid primary_color format (should be #RRGGBB)"];
         }
         if (isset($config['env']) && (!is_string($config['env']) || !in_array(strtolower(trim($config['env'])), ['prod', 'live', 'test', 'dev', 'staging'], true))) {
-            $errors[] = "Server '{$serverName}' env must be one of: prod, live, test, dev, staging";
+            $errors[] = ['field' => 'env', 'message' => "Server '{$serverName}' env must be one of: prod, live, test, dev, staging"];
         }
 
         return $errors;

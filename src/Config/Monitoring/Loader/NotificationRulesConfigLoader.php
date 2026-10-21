@@ -13,9 +13,11 @@ use Mata\Config\Monitoring\Section\NotificationRulesConfig;
  */
 final class NotificationRulesConfigLoader extends AbstractJsonConfigLoader
 {
+    public const NOTIFICATION_RULES_FILE = 'notification_rules.json';
+
     protected function fileName(): string
     {
-        return 'notification_rules.json';
+        return self::NOTIFICATION_RULES_FILE;
     }
 
     protected function loadFailureType(): string

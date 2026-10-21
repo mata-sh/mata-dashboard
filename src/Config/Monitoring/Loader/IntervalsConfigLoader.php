@@ -13,9 +13,11 @@ use Mata\Config\Monitoring\Section\IntervalsConfig;
  */
 final class IntervalsConfigLoader extends AbstractJsonConfigLoader
 {
+    public const INTERVALS_FILE = 'intervals.json';
+
     protected function fileName(): string
     {
-        return 'intervals.json';
+        return self::INTERVALS_FILE;
     }
 
     protected function loadFailureType(): string

@@ -13,9 +13,11 @@ use Mata\Config\Monitoring\Section\ProbesConfig;
  */
 final class ProbesConfigLoader extends AbstractJsonConfigLoader
 {
+    public const PROBES_FILE = 'probes.json';
+
     protected function fileName(): string
     {
-        return 'probes.json';
+        return self::PROBES_FILE;
     }
 
     protected function loadFailureType(): string

@@ -15,9 +15,11 @@ use Mata\Config\Monitoring\Section\ChannelsConfig;
  */
 final class ChannelsConfigLoader extends AbstractJsonConfigLoader
 {
+    public const CHANNELS_FILE = 'channels.json';
+
     protected function fileName(): string
     {
-        return 'channels.json';
+        return self::CHANNELS_FILE;
     }
 
     protected function loadFailureType(): string

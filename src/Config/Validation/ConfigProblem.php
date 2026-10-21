@@ -4,32 +4,65 @@ declare(strict_types=1);
 
 namespace Mata\Config\Validation;
 
+use JsonSerializable;
+use Mata\Config\ConfigSource;
 use Mata\Services\Status\StatusLevel;
 
-/** One problem found in an instance config file, as reported by its loader. */
-final readonly class ConfigProblem
+/** One configuration problem, with the sources its loader reported. */
+final readonly class ConfigProblem implements JsonSerializable
 {
-    /** @param StatusLevel::Error|StatusLevel::Warning $level */
+    /**
+     * @param StatusLevel::Error|StatusLevel::Warning $level
+     * @param list<ConfigSource>                      $sources
+     */
     public function __construct(
-        public string $file,
         public StatusLevel $level,
         public string $type,
         public string $message,
+        public array $sources = [],
     ) {}
 
-    public function asError(): self
+    /** @return list<string> distinct files behind this problem; process and missing sources have none */
+    public function files(): array
     {
-        return new self($this->file, StatusLevel::Error, $this->type, $this->message);
+        $files = [];
+        foreach ($this->sources as $source) {
+            if ($source->file !== null && !in_array($source->file, $files, true)) {
+                $files[] = $source->file;
+            }
+        }
+
+        return $files;
     }
 
-    /** @return array{file:string,level:string,type:string,message:string} */
-    public function toArray(): array
+    /** @return list<string> e.g. `config.env:DOMAIN`, `servers.json` */
+    public function sourceLabels(): array
+    {
+        $labels = [];
+        foreach ($this->sources as $source) {
+            $labels[] = $source->label();
+        }
+
+        return $labels;
+    }
+
+    /**
+     * @return array{
+     *     files: list<string>,
+     *     level: string,
+     *     type: string,
+     *     message: string,
+     *     sources: list<ConfigSource>,
+     * }
+     */
+    public function jsonSerialize(): array
     {
         return [
-            'file' => $this->file,
+            'files' => $this->files(),
             'level' => $this->level->label(),
             'type' => $this->type,
             'message' => $this->message,
+            'sources' => $this->sources,
         ];
     }
 }

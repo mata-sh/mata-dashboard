@@ -4,9 +4,10 @@ declare(strict_types=1);
 
 namespace Mata\Services\Monitor\Dto;
 
+use JsonSerializable;
 use Mata\Services\Status\StatusLevel;
 
-final readonly class NodeConnectionResult
+final readonly class NodeConnectionResult implements JsonSerializable
 {
     /** @param 'failed'|'ok'|'skipped' $auth */
     public function __construct(
@@ -35,7 +36,7 @@ final readonly class NodeConnectionResult
     }
 
     /** @return array<string,mixed> */
-    public function toArray(): array
+    public function jsonSerialize(): array
     {
         return [
             'server' => $this->server,

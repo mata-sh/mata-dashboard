@@ -145,8 +145,8 @@ final class EnvConfigFatalException extends RuntimeException
     /**
      * Create exception when config validation failed with critical errors.
      *
-     * @param array<int, array{identifier: string, message: string}> $errors           Critical validation errors
-     * @param null|string                                            $documentationUrl URL to validation documentation
+     * @param array<int, array{type: string, message: string}> $errors           Critical validation errors
+     * @param null|string                                      $documentationUrl URL to validation documentation
      */
     public static function validationFailed(array $errors, ?string $documentationUrl = null): self
     {

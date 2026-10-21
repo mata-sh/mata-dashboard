@@ -44,6 +44,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `make users-*`, `db-rollback`, `db-status`, `db-check`, `db-hash-password` and the scripts they ran; use `bin/mata user …` and `bin/mata db …`.
 
 ### Fixed
+- `config validate` reports actual file, process, and missing-input sources once per problem; each JSON problem lists every implicated file in `files`.
 - Cron jobs honour `LOG_PATH` and `TEMP_DIR`; they wrote caches, locks and heartbeats to the default `logs/` and `temp/`, so the dashboard showed stale data and cron jobs as not running
 - Production Docker: sign-in and user commands work; PHP's `open_basedir` excluded the users volume
 - Production Docker runs its cron jobs on a fresh install; they failed until `logs/cron` existed on the host

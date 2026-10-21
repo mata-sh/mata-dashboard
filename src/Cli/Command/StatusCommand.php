@@ -71,7 +71,7 @@ final class StatusCommand extends Command
         ))->read($servers->section->values, time(), [...$servers->problems, ...$ttl->problems]);
 
         if ($input->getOption('json')) {
-            CliOutput::json($output, $status->toArray());
+            CliOutput::json($output, $status->jsonSerialize());
         } else {
             $this->writeHuman($output, $status);
         }

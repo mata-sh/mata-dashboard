@@ -28,7 +28,7 @@ use Throwable;
 final readonly class CronRuntime
 {
     /**
-     * @param array<int,array{identifier:string,message:string}> $validationWarnings
+     * @param array<int,array{type:string,message:string}> $validationWarnings
      */
     public function __construct(
         public PathResolver $paths,
@@ -82,7 +82,7 @@ final readonly class CronRuntime
             $validationResult = $configLoader->validateConfig($appConfig);
             if (!$validationResult['is_valid']) {
                 foreach ($validationResult['critical_errors'] as $error) {
-                    $log->critical("[{$error['identifier']}] {$error['message']}");
+                    $log->critical("[{$error['type']}] {$error['message']}");
                 }
 
                 fwrite(STDERR, "Critical configuration errors!\n");

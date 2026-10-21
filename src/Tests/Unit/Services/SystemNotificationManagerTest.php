@@ -566,8 +566,8 @@ class SystemNotificationManagerTest extends TestCase
     public function testItCleansUpResolvedConfigWarnings(): void
     {
         $currentWarnings = [
-            ['identifier' => 'config.issue1', 'message' => 'Issue 1'],
-            ['identifier' => 'config.issue2', 'message' => 'Issue 2'],
+            ['type' => 'config.issue1', 'message' => 'Issue 1'],
+            ['type' => 'config.issue2', 'message' => 'Issue 2'],
         ];
 
         $existingIdentifiers = [

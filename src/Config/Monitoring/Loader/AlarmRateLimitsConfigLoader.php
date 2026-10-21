@@ -17,9 +17,11 @@ use Mata\Config\Monitoring\Section\AlarmRateLimitsConfig;
  */
 final class AlarmRateLimitsConfigLoader extends AbstractJsonConfigLoader
 {
+    public const LIMITS_FILE = 'limits.json';
+
     protected function fileName(): string
     {
-        return 'limits.json';
+        return self::LIMITS_FILE;
     }
 
     protected function loadFailureType(): string

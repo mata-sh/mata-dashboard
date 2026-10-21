@@ -109,7 +109,7 @@ final class ServerAddCommand extends Command
                 'api_key_generated' => $generated,
                 'node_env' => ['DASHBOARD_SERVER_ID' => $name, 'DASHBOARD_API_KEY' => $apiKey],
                 'warnings' => $this->files->warnings(),
-                'test' => $result?->toArray(),
+                'test' => $result,
             ]);
 
             return $level->value;
