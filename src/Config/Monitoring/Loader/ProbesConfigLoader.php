@@ -20,7 +20,7 @@ final class ProbesConfigLoader extends AbstractJsonConfigLoader
         return self::PROBES_FILE;
     }
 
-    protected function loadFailureType(): string
+    protected function problemType(): string
     {
         return 'probes_config_invalid';
     }

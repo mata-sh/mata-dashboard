@@ -20,7 +20,7 @@ final class NotificationRulesConfigLoader extends AbstractJsonConfigLoader
         return self::NOTIFICATION_RULES_FILE;
     }
 
-    protected function loadFailureType(): string
+    protected function problemType(): string
     {
         return 'notification_rules_config_invalid';
     }

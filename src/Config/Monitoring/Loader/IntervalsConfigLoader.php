@@ -20,7 +20,7 @@ final class IntervalsConfigLoader extends AbstractJsonConfigLoader
         return self::INTERVALS_FILE;
     }
 
-    protected function loadFailureType(): string
+    protected function problemType(): string
     {
         return 'intervals_config_invalid';
     }

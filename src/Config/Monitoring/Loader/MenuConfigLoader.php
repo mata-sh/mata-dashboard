@@ -28,7 +28,7 @@ final class MenuConfigLoader extends AbstractJsonConfigLoader
         return self::MENU_FILE;
     }
 
-    protected function loadFailureType(): string
+    protected function problemType(): string
     {
         return 'menu_config_invalid';
     }

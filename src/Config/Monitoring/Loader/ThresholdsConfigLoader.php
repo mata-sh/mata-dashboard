@@ -20,7 +20,7 @@ final class ThresholdsConfigLoader extends AbstractJsonConfigLoader
         return self::THRESHOLDS_FILE;
     }
 
-    protected function loadFailureType(): string
+    protected function problemType(): string
     {
         return 'thresholds_config_invalid';
     }

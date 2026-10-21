@@ -30,7 +30,7 @@ final class ChartsConfigLoader extends AbstractJsonConfigLoader
         return self::CHARTS_FILE;
     }
 
-    protected function loadFailureType(): string
+    protected function problemType(): string
     {
         return 'charts_config_invalid';
     }

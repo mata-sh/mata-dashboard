@@ -20,7 +20,7 @@ final class TtlConfigLoader extends AbstractJsonConfigLoader
         return self::TTL_FILE;
     }
 
-    protected function loadFailureType(): string
+    protected function problemType(): string
     {
         return 'ttl_config_invalid';
     }

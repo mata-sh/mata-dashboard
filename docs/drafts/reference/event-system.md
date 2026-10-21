@@ -377,7 +377,7 @@ servers.json configuration file missing, unreadable, malformed, or empty.
 **Details:** the message names the cause, for example:
 ```json
 {
-    "detail": "Could not load servers: Invalid JSON config at /var/www/mata/config/servers.json: Syntax error"
+    "detail": "Could not load servers.json: servers.json is not valid JSON (Syntax error)"
 }
 ```
 

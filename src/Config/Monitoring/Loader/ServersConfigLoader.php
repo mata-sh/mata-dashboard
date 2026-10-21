@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Mata\Config\Monitoring\Loader;
 
 use Mata\Config\Monitoring\Section\ServersConfig;
-use Psr\Log\LogLevel;
 
 /**
  * Loads servers.json and merges each node API key from servers.secrets.json in the same
@@ -32,7 +31,7 @@ final class ServersConfigLoader extends AbstractJsonConfigLoader
         return self::SERVERS_FILE;
     }
 
-    protected function loadFailureType(): string
+    protected function problemType(): string
     {
         return 'servers_config_invalid';
     }
@@ -66,16 +65,10 @@ final class ServersConfigLoader extends AbstractJsonConfigLoader
         return ServersConfig::fromArray($config);
     }
 
-    /** Servers are the one section the app cannot run without, so a rejected file always alarms. */
-    protected function reportLoadFailure(string $reason, ?string $sourceFile = null): void
+    /** Servers are the one section the app cannot run without. */
+    protected function isRequiredToRun(): bool
     {
-        $this->report(
-            type: $this->loadFailureType(),
-            message: "Could not load servers: {$reason}",
-            level: LogLevel::CRITICAL,
-            forceAlarm: true,
-            sourceFile: $sourceFile,
-        );
+        return true;
     }
 
     /**

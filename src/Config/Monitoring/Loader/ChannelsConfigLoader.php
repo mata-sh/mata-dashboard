@@ -22,7 +22,7 @@ final class ChannelsConfigLoader extends AbstractJsonConfigLoader
         return self::CHANNELS_FILE;
     }
 
-    protected function loadFailureType(): string
+    protected function problemType(): string
     {
         return 'channels_config_invalid';
     }

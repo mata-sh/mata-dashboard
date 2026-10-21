@@ -24,7 +24,7 @@ final class AlarmRateLimitsConfigLoader extends AbstractJsonConfigLoader
         return self::LIMITS_FILE;
     }
 
-    protected function loadFailureType(): string
+    protected function problemType(): string
     {
         return 'limits_config_invalid';
     }

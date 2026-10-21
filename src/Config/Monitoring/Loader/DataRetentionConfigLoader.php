@@ -20,7 +20,7 @@ final class DataRetentionConfigLoader extends AbstractJsonConfigLoader
         return self::DATA_RETENTION_FILE;
     }
 
-    protected function loadFailureType(): string
+    protected function problemType(): string
     {
         return 'data_retention_config_invalid';
     }

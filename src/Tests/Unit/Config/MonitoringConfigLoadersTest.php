@@ -314,8 +314,8 @@ final class MonitoringConfigLoadersTest extends TestCase
     public static function unloadableServersFileProvider(): array
     {
         return [
-            'missing' => [null, 'Cannot read JSON config at'],
-            'malformed' => ['{"server": ', 'Invalid JSON config at'],
+            'missing' => [null, 'cannot read servers.json'],
+            'malformed' => ['{"server": ', 'servers.json is not valid JSON'],
             'empty' => ['{}', 'is empty'],
         ];
     }
@@ -534,7 +534,7 @@ final class MonitoringConfigLoadersTest extends TestCase
             $this->cleanupTempFiles([$directory]);
         }
 
-        $this->assertNotSame([], preg_grep('/^Could not load servers: Invalid JSON config at .*servers\.secrets\.json/', $messages));
+        $this->assertNotSame([], preg_grep('/^Could not load servers\.json: servers\.secrets\.json is not valid JSON/', $messages));
     }
 
     #[DataProvider('nonBooleanApplicationMonitoringFlagProvider')]
