@@ -52,7 +52,7 @@ try {
 
     // Audits go through the shared api-cache: the node only runs `composer audit` when an
     // app's cached audit is older than the audit TTL, and manual dashboard runs count too.
-    $cacheStore = new FileCacheStore($log, $paths->tempPath . '/api-cache');
+    $cacheStore = new FileCacheStore($log, $paths->apiCachePath);
     $cacheKeyFactory = new ApiCacheKeyFactory();
     $ttlResolver = new CacheTtlResolver($monitoringConfig->ttl);
     $responseNormalizer = new NodeResponseNormalizer($log);

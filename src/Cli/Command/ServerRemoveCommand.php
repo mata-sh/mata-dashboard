@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Mata\Cli\Command;
 
 use Mata\Cli\CliOutput;
-use Mata\Config\Monitoring\ServersConfigFiles;
+use Mata\Config\Monitoring\ServersConfigEditor;
 use Mata\Services\Status\StatusLevel;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
@@ -17,7 +17,7 @@ use Symfony\Component\Console\Output\OutputInterface;
 #[AsCommand(name: 'server:remove', description: 'Remove a server from servers.json and its key from servers.secrets.json')]
 final class ServerRemoveCommand extends Command
 {
-    public function __construct(private readonly ServersConfigFiles $files)
+    public function __construct(private readonly ServersConfigEditor $editor)
     {
         parent::__construct();
     }
@@ -41,11 +41,11 @@ final class ServerRemoveCommand extends Command
             return $refused;
         }
 
-        if (!$this->files->remove($name)) {
+        if (!$this->editor->remove($name)) {
             return CliOutput::fail($input, $output, "Server '{$name}' not found.", payload: ['server' => $name, 'removed' => false]);
         }
 
-        $warnings = $this->files->warnings();
+        $warnings = $this->editor->warnings();
         $level = $warnings === [] ? StatusLevel::Ok : StatusLevel::Warning;
         if ($json) {
             CliOutput::json($output, ['status' => $level->label(), 'server' => $name, 'removed' => true, 'warnings' => $warnings]);

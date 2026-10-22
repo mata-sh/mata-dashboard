@@ -52,7 +52,7 @@ try {
 
     // Share the dashboard/servers_data_fetch cache so a server/data payload warmed
     // within its TTL is reused instead of re-fetched from the node
-    $cacheStore = new FileCacheStore($log, $paths->tempPath . '/api-cache');
+    $cacheStore = new FileCacheStore($log, $paths->apiCachePath);
     $cacheKeyFactory = new ApiCacheKeyFactory();
     $ttlResolver = new CacheTtlResolver($monitoringConfig->ttl);
     $responseNormalizer = new NodeResponseNormalizer($log);

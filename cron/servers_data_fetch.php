@@ -51,7 +51,7 @@ $cron->log('Started');
 
 try {
     $appInventorySync = new AppInventorySync($configSyncRepository, $idResolver, $log);
-    $cacheStore = new FileCacheStore($log, $paths->tempPath . '/api-cache');
+    $cacheStore = new FileCacheStore($log, $paths->apiCachePath);
     $ttlResolver = new CacheTtlResolver($monitoringConfig->ttl);
     $eventMonitor = new LogSizeEvaluator($tools, MetricThresholds::fromConfig($monitoringConfig->thresholds));
     $serverMonitoringFactory = new ServerMonitoringFactory(

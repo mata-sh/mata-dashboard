@@ -213,7 +213,7 @@ final class EnvConfigLoader
     private function loadLoggingConfig(): LoggingConfig
     {
         return new LoggingConfig(
-            path: $this->getEnv('APP_LOG_PATH', 'logs/app.log'),
+            filePath: $this->getEnv('APP_LOG_PATH', 'logs/app.log'),
             level: $this->getEnv('MONOLOG_LEVEL', 'debug'),
         );
     }
@@ -441,7 +441,7 @@ final class EnvConfigLoader
         }
 
         // Logging configuration warnings
-        if (empty($config->logging->path)) {
+        if (empty($config->logging->filePath)) {
             $warnings[] = [
                 'type' => 'config.logging.file.missing',
                 'variables' => ['APP_LOG_PATH'],

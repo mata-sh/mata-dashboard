@@ -6,7 +6,7 @@ namespace Mata\Cli\Command;
 
 use Mata\Cli\CliOutput;
 use Mata\Config\Monitoring\Section\ServersConfig;
-use Mata\Config\Monitoring\ServersConfigFiles;
+use Mata\Config\Monitoring\ServersConfigEditor;
 use Mata\Services\Monitor\NodeConnectionTester;
 use Mata\Services\Status\StatusLevel;
 use Symfony\Component\Console\Attribute\AsCommand;
@@ -20,7 +20,7 @@ use Symfony\Component\Console\Output\OutputInterface;
 final class ServerAddCommand extends Command
 {
     public function __construct(
-        private readonly ServersConfigFiles $files,
+        private readonly ServersConfigEditor $editor,
         private readonly NodeConnectionTester $tester,
     ) {
         parent::__construct();
@@ -97,10 +97,10 @@ final class ServerAddCommand extends Command
             return StatusLevel::Ok->value;
         }
 
-        $this->files->add($name, $entry, $apiKey);
+        $this->editor->add($name, $entry, $apiKey);
 
         $result = $input->getOption('no-test') ? null : $this->tester->test($name, $entry, $apiKey);
-        $level = $result?->isOk() && $this->files->warnings() === [] ? StatusLevel::Ok : StatusLevel::Warning;
+        $level = $result?->isOk() && $this->editor->warnings() === [] ? StatusLevel::Ok : StatusLevel::Warning;
 
         if ($json) {
             CliOutput::json($output, [
@@ -108,7 +108,7 @@ final class ServerAddCommand extends Command
                 'server' => $name,
                 'api_key_generated' => $generated,
                 'node_env' => ['DASHBOARD_SERVER_ID' => $name, 'DASHBOARD_API_KEY' => $apiKey],
-                'warnings' => $this->files->warnings(),
+                'warnings' => $this->editor->warnings(),
                 'test' => $result,
             ]);
 
@@ -116,7 +116,7 @@ final class ServerAddCommand extends Command
         }
 
         $output->writeln("<info>Added '{$name}'</info> to servers.json; key stored in servers.secrets.json.");
-        foreach ($this->files->warnings() as $warning) {
+        foreach ($this->editor->warnings() as $warning) {
             $output->writeln("<comment>{$warning}</comment>");
         }
         if ($generated) {

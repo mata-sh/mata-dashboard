@@ -6,6 +6,7 @@ namespace Mata\Services\Cron;
 
 use Mata\Services\Cron\Dto\CronJobState;
 use Mata\Services\Cron\Dto\CronJobStatus;
+use Mata\Utils\PathResolver;
 
 /**
  * Tells whether each job in cron/ still runs, from its heartbeat file.

@@ -25,7 +25,7 @@ use Mata\Cli\Command\UserListCommand;
 use Mata\Cli\Command\UserPasswdCommand;
 use Mata\Cli\Command\UserUnlockCommand;
 use Mata\Config\Dto\NodeApiConfig;
-use Mata\Config\Monitoring\ServersConfigFiles;
+use Mata\Config\Monitoring\ServersConfigEditor;
 use Mata\Config\Validation\InstanceConfigValidator;
 use Mata\Services\Monitor\HttpProbeClient;
 use Mata\Services\Monitor\NodeConnectionTester;
@@ -52,19 +52,18 @@ if (function_exists('posix_geteuid') && posix_geteuid() === 0 && getenv('MATA_AL
 // Like the app, every command uses config/; point it elsewhere with a symlink. Only
 // `config validate --path` reads another directory, e.g. a config repo pre-commit hook.
 $paths = PathResolver::fromAppPath(dirname(__DIR__));
-$configPath = $paths->configPath;
 $cli = new CliConfig($paths);
 
-$serverFiles = new ServersConfigFiles($configPath);
+$serversEditor = new ServersConfigEditor($cli->configPath);
 $connectionTester = new NodeConnectionTester(new HttpProbeClient(), NodeApiConfig::DEFAULT_TIMEOUT_SECONDS);
 
 $application = new CliApplication('mata dashboard', static fn (): ?string => AppVersion::detect($paths->appPath));
 $application->addCommands([
-    new ConfigValidateCommand(new InstanceConfigValidator(), $configPath),
-    new ServerListCommand($serverFiles),
-    new ServerAddCommand($serverFiles, $connectionTester),
-    new ServerTestCommand($serverFiles, $connectionTester),
-    new ServerRemoveCommand($serverFiles),
+    new ConfigValidateCommand(new InstanceConfigValidator(), $cli->configPath),
+    new ServerListCommand($serversEditor),
+    new ServerAddCommand($serversEditor, $connectionTester),
+    new ServerTestCommand($serversEditor, $connectionTester),
+    new ServerRemoveCommand($serversEditor),
     new StatusCommand($cli),
     new UserListCommand($cli),
     new UserCreateCommand($cli),

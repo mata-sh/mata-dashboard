@@ -54,7 +54,7 @@ final class StatusCommand extends Command
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
         try {
-            // LOG_PATH and TEMP_DIR move the heartbeat and cache directories.
+            // APP_LOG_PATH and TEMP_DIR move the heartbeat and cache directories.
             $this->cli->load();
         } catch (Throwable $exception) {
             return CliOutput::fail($input, $output, $exception->getMessage(), StatusLevel::Unknown);
@@ -64,9 +64,9 @@ final class StatusCommand extends Command
         $ttl = (new TtlConfigLoader(fallbackOnFailure: true))->load($this->cli->configPath);
 
         $status = (new FleetStatusReader(
-            new FileCacheStore(new NullLogger(), $this->cli->paths()->tempPath . '/api-cache'),
+            new FileCacheStore(new NullLogger(), $this->cli->paths()->apiCachePath),
             new ApiCacheKeyFactory(),
-            new CronHeartbeatReader($this->cli->paths()->appPath . '/cron', $this->cli->paths()->cronLogsPath),
+            CronHeartbeatReader::fromPaths($this->cli->paths()),
             (new CacheTtlResolver($ttl->section))->get(CacheType::Health),
         ))->read($servers->section->values, time(), [...$servers->problems, ...$ttl->problems]);
 

@@ -67,7 +67,10 @@ final readonly class CronRuntime
             $configLoader = new EnvConfigLoader();
             $appConfig = $configLoader->load(EnvConfigLoader::INSTANCE_FILES, $paths->configPath);
 
-            $paths = $paths->withOverrides($appConfig->logging->path, $appConfig->environment->tempDir);
+            $paths = $paths->withOverrides(
+                logFile: $appConfig->logging->filePath,
+                tempDir: $appConfig->environment->tempDir,
+            );
             $paths->ensureLogsDirectory();
             $paths->ensureTempDirectory();
             $paths->ensureCronLogsDirectory();
@@ -101,7 +104,7 @@ final readonly class CronRuntime
             logger: $log,
             jobName: $jobName,
             lockDir: $paths->tempPath . '/',
-            heartbeatFile: "{$paths->cronLogsPath}/heartbeat-{$jobName}.jsonl",
+            heartbeatFile: CronJob::heartbeatFile($paths->cronLogsPath, $jobName),
         );
 
         return new self(

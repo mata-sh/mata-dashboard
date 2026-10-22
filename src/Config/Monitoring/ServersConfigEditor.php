@@ -22,7 +22,7 @@ use stdClass;
  * servers.json. Key order and indentation are kept, so a versioned config repo sees a minimal
  * diff.
  */
-final class ServersConfigFiles
+final class ServersConfigEditor
 {
     /** @var list<string> */
     private array $warnings = [];

@@ -7,6 +7,7 @@ namespace Mata\Bootstrap;
 use GuzzleHttp\Client;
 use Mata\Config\Dto\ApplicationConfig;
 use Mata\Config\Monitoring\Loader\ChannelsConfigLoader;
+use Mata\Config\Monitoring\Loader\ServersConfigLoader;
 use Mata\Config\Monitoring\Section\AlarmRateLimitsConfig;
 use Mata\Config\Monitoring\Section\ChannelsConfig;
 use Mata\Config\Monitoring\Section\NotificationRulesConfig;
@@ -140,7 +141,7 @@ final readonly class AlarmChannelRuntime
     private function serverPresentationConfig(): array
     {
         try {
-            $contents = file_get_contents($this->paths->configPath . '/servers.json');
+            $contents = file_get_contents($this->paths->getConfigPath(ServersConfigLoader::SERVERS_FILE));
             $servers = is_string($contents) ? json_decode($contents, true, flags: JSON_THROW_ON_ERROR) : [];
             if (!is_array($servers)) {
                 throw new RuntimeException('Server configuration must contain a JSON object.');

@@ -6,7 +6,7 @@ namespace Mata\Cli\Command;
 
 use Mata\Cli\CliOutput;
 use Mata\Config\Monitoring\ServerConfigState;
-use Mata\Config\Monitoring\ServersConfigFiles;
+use Mata\Config\Monitoring\ServersConfigEditor;
 use Mata\Services\Monitor\Dto\NodeConnectionResult;
 use Mata\Services\Monitor\NodeConnectionTester;
 use Mata\Services\Status\StatusLevel;
@@ -21,7 +21,7 @@ use Symfony\Component\Console\Output\OutputInterface;
 final class ServerTestCommand extends Command
 {
     public function __construct(
-        private readonly ServersConfigFiles $files,
+        private readonly ServersConfigEditor $editor,
         private readonly NodeConnectionTester $tester,
     ) {
         parent::__construct();
@@ -39,7 +39,7 @@ final class ServerTestCommand extends Command
     {
         $only = $input->getArgument('name');
 
-        $entries = $this->files->entries();
+        $entries = $this->editor->entries();
         if (is_string($only) && !is_array($entries[$only]['entry'] ?? null)) {
             return CliOutput::fail($input, $output, "Server '{$only}' is not in servers.json");
         }

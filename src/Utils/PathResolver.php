@@ -26,6 +26,7 @@ class PathResolver
     public readonly string $logsPath;
     public readonly string $cronLogsPath;
     public readonly string $tempPath;
+    public readonly string $apiCachePath;
     public readonly string $publicPath;
     public readonly string $configPath;
     public readonly string $configExamplePath;
@@ -59,7 +60,7 @@ class PathResolver
         return new self($realPath);
     }
 
-    private function __construct(string $appPath, string $logPath = '', string $tempDir = '', ?string $bootLogPath = null)
+    private function __construct(string $appPath, string $logFile = '', string $tempDir = '', ?string $bootLogPath = null)
     {
         $this->appPath = $appPath;
         $rootPath = dirname($this->appPath);
@@ -68,8 +69,8 @@ class PathResolver
         }
 
         $this->rootPath = $rootPath;
-        $this->appLogPath = $logPath !== ''
-            ? $this->resolvePath($logPath)
+        $this->appLogPath = $logFile !== ''
+            ? $this->resolvePath($logFile)
             : $this->appPath . '/logs/app.log';
         $this->logsPath = dirname($this->appLogPath);
         $this->cronLogsPath = $this->logsPath . '/cron';
@@ -77,6 +78,7 @@ class PathResolver
         $this->tempPath = $tempDir !== ''
             ? $this->resolvePath($tempDir)
             : $this->appPath . '/temp';
+        $this->apiCachePath = $this->tempPath . '/api-cache';
         $this->publicPath = $this->appPath . '/public';
         $this->configPath = $this->appPath . '/config';
         $this->configExamplePath = $this->appPath . '/config.example';
@@ -84,12 +86,12 @@ class PathResolver
     }
 
     /**
-     * Apply LOG_PATH and TEMP_DIR; every entry point must, or their caches and locks diverge.
+     * Apply APP_LOG_PATH and TEMP_DIR; every entry point must, or their caches and locks diverge.
      * Relative values resolve against the app path, empty ones keep the defaults.
      */
-    public function withOverrides(string $logPath, string $tempDir): self
+    public function withOverrides(string $logFile, string $tempDir): self
     {
-        return new self($this->appPath, trim($logPath), trim($tempDir), $this->bootLogPath);
+        return new self($this->appPath, trim($logFile), trim($tempDir), $this->bootLogPath);
     }
 
     /**

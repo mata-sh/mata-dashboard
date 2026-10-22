@@ -12,7 +12,7 @@ namespace Mata\Config\Dto;
 final class LoggingConfig
 {
     public function __construct(
-        public readonly string $path,
+        public readonly string $filePath,
         public readonly string $level,
     ) {}
 }

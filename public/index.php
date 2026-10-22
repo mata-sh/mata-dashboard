@@ -167,7 +167,10 @@ SecurityHeaders::apply(
 // Setting Environment & configurable Paths
 // ************************************************************************************************
 $environment = $appConfig->environment->env;
-$paths = $paths->withOverrides($appConfig->logging->path, $appConfig->environment->tempDir);
+$paths = $paths->withOverrides(
+    logFile: $appConfig->logging->filePath,
+    tempDir: $appConfig->environment->tempDir,
+);
 $paths->ensureLogsDirectory();
 $paths->ensureTempDirectory();
 
@@ -372,7 +375,7 @@ $serversConfig = $monitoringConfig->servers->values;
 // ************************************************************************************************
 // Cache & Endpoints
 // ************************************************************************************************
-$cacheStore = new FileCacheStore($log, $paths->tempPath . '/api-cache');
+$cacheStore = new FileCacheStore($log, $paths->apiCachePath);
 $cacheKeyFactory = new ApiCacheKeyFactory();
 $ttlResolver = new CacheTtlResolver($monitoringConfig->ttl);
 $endpoints = new Endpoints();

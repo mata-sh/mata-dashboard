@@ -12,20 +12,24 @@ use Throwable;
 
 /**
  * The instance config as bin/mata commands see it: config/ and the env files loaded from it,
- * with LOG_PATH and TEMP_DIR applied to the paths as the app does.
+ * with APP_LOG_PATH and TEMP_DIR applied to the paths as the app does.
  */
 final class CliConfig
 {
     public readonly string $configPath;
 
+    /** Replaced by load() with APP_LOG_PATH and TEMP_DIR applied. */
+    private PathResolver $paths;
+
     private ?ApplicationConfig $config = null;
 
-    public function __construct(private PathResolver $paths)
+    public function __construct(PathResolver $paths)
     {
+        $this->paths = $paths;
         $this->configPath = $paths->configPath;
     }
 
-    /** Carries LOG_PATH and TEMP_DIR only after load() succeeded; the defaults before that. */
+    /** Carries APP_LOG_PATH and TEMP_DIR only after load() succeeded; the defaults before that. */
     public function paths(): PathResolver
     {
         return $this->paths;
@@ -49,7 +53,10 @@ final class CliConfig
             throw new RuntimeException("Cannot load the config: {$exception->getMessage()}", previous: $exception);
         }
 
-        $paths = $this->paths->withOverrides($config->logging->path, $config->environment->tempDir);
+        $paths = $this->paths->withOverrides(
+            logFile: $config->logging->filePath,
+            tempDir: $config->environment->tempDir,
+        );
 
         try {
             $paths->ensureLogsDirectory();
