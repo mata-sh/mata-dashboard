@@ -16,9 +16,10 @@ The `api_url` and `api_key` must match the node's public URL and `DASHBOARD_API_
 - `servers_metrics_collect.php` stores raw CPU, RAM, disk, file, and process
   snapshots.
 - `servers_metrics_aggregate.php` stores hourly and daily summaries.
+- `libraries_audit.php` records new Composer security advisories.
 - The alarm evaluation jobs apply thresholds and the configured OPA or built-in
   decision driver.
-- `alarms_dispatch.php` sends due email delivery records.
+- `alarms_dispatch.php` sends due deliveries by email and webhook.
 
 See the [server metrics pipeline](../architecture/server-metrics-pipeline.md) for
 schedules, tables, retention, and diagnostics.
@@ -31,9 +32,9 @@ server-scoped configuration flags. See [Application error monitoring](applicatio
 
 ## Alarm delivery
 
-Events, logical alarms, and email deliveries are separate records. A
-notification rule can omit email without hiding a policy-evaluated logical
-alarm; direct configuration-failure alarms bypass those rules. See the
+Events, logical alarms, and deliveries are separate records. A notification
+rule can select no channel without hiding a policy-evaluated logical alarm;
+direct configuration-failure alarms bypass those rules. See the
 [alarm decision and delivery flow](../reference/alarms.md).
 
 ## Status from the command line
@@ -49,17 +50,13 @@ make mata ARGS=status             # as the right account, also in Docker
 
 It reads only what cron already wrote (the health cache from
 `servers_data_fetch` and the cron heartbeats), so it never contacts a node and
-can run as often as needed. Exit codes: `0` ok, `1` warning (maintenance, a cron
-job that has not run a day after cron started, a config problem such as a dropped
-server), `2` error (Nagios CRITICAL: node unhealthy or unreachable, cron job
-overdue), `3` unknown (health missing or older than twice its TTL, so a stopped
-cron never reports ok, or `servers.json` rejected). The `--json` `status` uses the same names as every
-other [`bin/mata` command](../reference/cli.md#exit-codes).
+can run as often as needed. The exit codes follow Nagios and are listed in the
+[Operator CLI](../reference/cli.md#exit-codes) reference.
 
 Right after an install, jobs that run daily or every six hours have not run
-yet. During cron's first day they are `pending` and count as ok; `status`
-names how many are still waiting. A job still missing after that is missing
-from the crontab and reported as `never`.
+yet. During cron's first day they are `pending` and count as ok. A job that
+still has not run after that is missing from the crontab and reported as
+`never`.
 
 !!! info "Scope"
     The status covers node health and cron. Metric thresholds, application

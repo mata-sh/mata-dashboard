@@ -61,12 +61,13 @@ single-dashboard installation.
 
 ## Policy and alarms
 
-The default driver sends alarm candidates assembled by PHP to OPA. Alarm
-thresholds and routing live in Rego so they can be changed and tested without
-redeploying the application, and so the decision logic is inspectable on its
-own. PHP owns event counts, delivery deduplication, queue persistence, and
-retries, because those depend on the database. Rego policies live in `policy/`
-and can be tested with `make opa-test`.
+The default driver sends alarm candidates assembled by PHP to OPA. The Rego
+policy decides whether a candidate becomes an alarm, which of its channels
+deliver, and its priority. It is stateless, so the decision logic can be read
+and tested on its own. PHP owns thresholds, event counts, delivery
+deduplication, queue persistence, and retries, because those depend on
+configuration and the database. Rego policies live in `policy/` and are tested
+with `make opa-test`.
 
 Hosts that cannot run OPA can use a deliberately limited built-in driver. Direct
 configuration-failure alarms bypass both drivers. See the
@@ -98,5 +99,4 @@ node count: `servers_data_fetch.php` and `servers_metrics_collect.php` run
 chained in a single five-minute cron slot and iterate nodes sequentially, so
 responsive nodes cost little while a node that times out consumes its full API
 timeout plus health-probe retries. A lock file prevents overlapping runs, so an
-overrun skips a cycle instead of stacking. The code and configuration examples
-should be treated as the authority over broad capacity estimates.
+overrun skips a cycle instead of stacking.

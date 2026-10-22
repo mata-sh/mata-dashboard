@@ -12,7 +12,8 @@ Monitoring for environments where a full observability stack is impractical:
 shared hosting, small VPS boxes, legacy servers. Anywhere you can run PHP 8.3.
 
 One dashboard polls one or more read-only nodes over HTTPS, stores events and
-metrics in MySQL/MariaDB, evaluates alarms, and sends email. Minimal dependencies, no Node runtime, no JavaScript framework. 
+metrics in MySQL/MariaDB, evaluates alarms, and sends them by email or webhook.
+Minimal dependencies, no Node runtime, no JavaScript framework.
 
 [![Screenshot][product-screenshot]][demo-url]
 
@@ -24,7 +25,7 @@ User: **demo** | Password: **demo**
 
 ## How it works
 
-- The central dashboard collects data and evaluates/delivers alarms. 
+- The central dashboard collects data and evaluates/delivers alarms.
 - Nodes are stateless and offer read-only endpoints.
 
 ```mermaid
@@ -45,14 +46,14 @@ flowchart LR
 
     Jobs --> Dispatch[Alarm dispatch]
     DB -->|due deliveries| Dispatch
-    Dispatch --> Email[Email]
+    Dispatch --> Channels[Email / webhooks]
     Dispatch -->|status and retries| DB
 ```
 
 The dashboard serves the UI and pulls node data on demand. Cron does the
 scheduled work: collect snapshots, persist events and metrics, evaluate alarms,
-dispatch due deliveries, clean up retained data. The dashboard still renders
-monitors functionality of applications when the database is down; everything else needs it.
+dispatch due deliveries, clean up retained data. The dashboard still shows live
+application status when the database is down; everything else needs it.
 
 [MATA Node](https://github.com/mata-sh/mata-node) is a separate application,
 installed on each monitored host.
@@ -69,7 +70,7 @@ installed on each monitored host.
   still works when the database does not.
 - **Policy as code.** Alarm decisions are Rego policies in `policy/`, unit-tested
   with OPA in CI; the same policies validate the shipped config examples.
-- **Configurable retention** for events and logs.
+- **Configurable retention** for metrics, events, and alarms.
 
 [`SECURITY.md`](SECURITY.md) covers vulnerability reporting and supported
 versions. See [Secure an installation](docs/guides/secure-application.md) for
@@ -81,7 +82,7 @@ Collected from nodes:
 
 - CPU, RAM, disk
 - Top process snapshot
-- HTTP status, and latency
+- HTTP status and latency
 - Recent log lines
 - Session counts
 - Composer package inventory (names and versions)
@@ -146,7 +147,7 @@ installs the same manifest as the `www-data` crontab.
 
 ## Scope
 
-MATA began as minimalistic tool for monitoring PHP deployments with limited hosting access.
+MATA began as a minimalistic tool for monitoring PHP deployments with limited hosting access.
 
 **Ideal for**
 

@@ -101,9 +101,9 @@ to `www-data`, and uses `0750` for directories and `0640` for files.
 
 !!! warning "Dubious ownership"
     Git refuses to work in a repository owned by another user and reports
-    `detected dubious ownership`. Development containers before this release
-    handed `config/` to `www-data` on every start. Give it back to your account
-    once with `sudo chown -R "$(id -un)" config/`.
+    `detected dubious ownership`. Older development containers handed
+    `config/` to `www-data` on every start. Give it back to your account once
+    with `sudo chown -R "$(id -un)" config/`.
 
 ## Check the setup
 

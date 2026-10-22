@@ -1,6 +1,7 @@
-# User Management CLI
+# User management CLI
 
 Manage dashboard users with `bin/mata user`. This is the only supported way to create, update, and delete users.
+`make setup` offers to create the first one; there are no static default credentials.
 
 ```bash
 php bin/mata user list                                     # --json for scripts
@@ -12,7 +13,8 @@ php bin/mata user delete admin
 ```
 
 `php bin/mata user <command> --help` lists the options. Production changes ask for a typed
-confirmation; without a terminal they need `--yes` instead.
+confirmation; without a terminal they need `--yes` instead. Every change is written to
+`logs/user-management-audit.log`.
 
 ## Which account runs it
 
@@ -47,13 +49,10 @@ Existing passwords keep working.
 `create` accepts usernames of 1 to 64 letters, digits, dots, underscores or hyphens, and the
 roles `viewer` and `admin`. Existing accounts with other usernames keep working.
 
-## Initial User
-
-`make setup` offers to create the initial user. Setup does not install static default credentials.
-
 ## Persistent authentication data
 
-Set `MATA_USERS_FILE` to an absolute path outside the deployed application and web root:
+Set `MATA_USERS_FILE` to an absolute path outside the deployed application and web root. The
+CLI and the web application read the same file; `APP_ENV` does not select a different one.
 
 ```dotenv
 MATA_USERS_FILE=/var/lib/mata-dashboard/users.json
@@ -76,17 +75,3 @@ The file and lock file are owned by PHP-FPM and use mode `0600`. Deployments mus
 Docker always uses `/var/lib/mata-dashboard/users.json` on its `mata_users` named volume, regardless of `MATA_USERS_FILE` in `config.env`.
 
 If `MATA_USERS_FILE` is empty, MATA uses `config/users.json`. This is intended for development only.
-
-!!! warning
-    After upgrading to revision-based sessions, existing users must sign in with their password once. No manual `users.json` migration is required.
-
-## Environments
-
-`bin/mata user` uses the same `MATA_USERS_FILE` as the web application. Without it, it uses the shared `config/users.json`; `APP_ENV` does not select a separate user file.
-
-Production writes require explicit confirmation.
-
-## Files and Logs
-
-- Users: `MATA_USERS_FILE`, or the development fallback `config/users.json`
-- Audit log: `logs/user-management-audit.log`

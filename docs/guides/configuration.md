@@ -188,12 +188,13 @@ Per-application settings live in the node's `config/apps.json` under its
 
 ## Thresholds, intervals, and deliveries
 
-In `thresholds.json`, `server_data`, `app_data`, and `sql` map metrics to
-severity boundaries such as `good`, `warn`, `critical`, and `alarm`. List
-them in ascending order: a value takes the last level it exceeds, so a metric
-whose limits do not increase is skipped. The `alarms` section maps event types to event-count and time-window gates.
-`app_unreachable` also supports the consecutive-failure strategy. See
-`config.example/thresholds.json.example` for the full rule set.
+In `thresholds.json`, `server_data` and `app_data` map metrics to severity
+boundaries such as `good`, `warn`, `critical`, and `alarm`. List them in
+ascending order: a value takes the last level it exceeds, so a metric whose
+limits do not increase is skipped. The `alarms` section maps event types to
+event-count and time-window gates; `app_unreachable` also supports the
+consecutive-failure strategy. See `config.example/thresholds.json.example` for
+the full rule set.
 
 `intervals.json` contains two different controls:
 
@@ -245,55 +246,30 @@ make mata ARGS="config validate"            # as the right account, also in Dock
 ```
 
 It exits `0` when the configuration is valid, `1` for warnings only (a skipped
-entry, advice), and `2` for errors, including invalid or missing environment values.
-The human report lists file statuses, then prints each diagnostic once with all
-known sources. `process:VARIABLE` identifies a process environment value;
-`missing:VARIABLE` identifies an unset input. Problems without a known source are `unattributed`.
-Source labels never include configuration values.
+entry, advice), and `2` for errors, including invalid or missing environment
+values. Without the check, a broken file only shows up as a warning event while
+the app runs on defaults; only a missing or invalid `servers.json` or
+`servers.secrets.json` raises an alarm.
 
-The JSON report adds a `sources` list to each problem:
+A file argument validates everything loaded with it: any of the three `.env`
+files checks their merged environment, and either server file checks both.
+
+Each problem names its sources without their values: a file and variable
+(`config.env:DOMAIN`), a process environment value (`process:DOMAIN`), or an
+unset variable (`missing:DOMAIN`). The JSON report lists them under `sources`,
+and the files involved under `files`:
 
 ```json
 {
-  "files": ["mail.config.env"],
+  "files": ["config.env"],
   "level": "error",
   "type": "config.env.invalid",
   "message": "env.DASHBOARD_SERVER_COLUMNS must be >= 1",
   "sources": [
-    {"kind": "file", "file": "mail.config.env", "variable": "DASHBOARD_SERVER_COLUMNS"}
+    {"kind": "file", "file": "config.env", "variable": "DASHBOARD_SERVER_COLUMNS"}
   ]
 }
 ```
-
-A problem's `type` is a dotted notification identifier (`config.env.invalid`) for
-environment files and a snake_case event type (`servers_config_invalid_entry`) for JSON files.
-
-Each source has `kind` (`file`, `process`, or `missing`), a nullable `file` name
-(relative to the config directory), and a nullable `variable` name. JSON-file diagnostics have no variable name.
-A missing file still has a known `file` source; `missing` denotes an unset variable.
-An empty `sources` list means the loader could not identify the source.
-
-!!! info "Problems can span files"
-
-    A problem's top-level `files` lists each distinct file among its sources:
-    empty for process-only, missing-variable, or unattributed problems, and
-    several entries when a problem spans files. Each listed file receives the
-    problem's severity in the file summary.
-
-!!! info "File selection validates a group"
-
-    The optional file argument is positional, not a `--file` option. Selecting
-    any of `config.env`, `db.config.env`, or `mail.config.env` validates their
-    merged configuration, including process, missing, and multi-source inputs.
-    Selecting either server JSON file checks both `servers.json` and
-    `servers.secrets.json`. Other JSON selections check only that file.
-    JSON-only checks still load the environment for dependencies such as webhook
-    URLs, but omit standalone environment diagnostics. Run without a file
-    argument to check the whole installation.
-
-Without the check, a broken file shows up as a warning event while the app
-runs on defaults; only a missing or invalid `servers.json` or
-`servers.secrets.json` raises an alarm.
 
 !!! info "Which account runs `bin/mata`"
     Every file has one writer. Your account (the one that runs Git) owns
@@ -310,21 +286,11 @@ runs on defaults; only a missing or invalid `servers.json` or
     `make mata ARGS="…"` picks the right account, natively and in Docker.
     `bin/mata` refuses to run as root.
 
-`make doctor` is an installation sanity check, not a configuration parser.
-It confirms the selected `MODE` and `ENV`, that `config/config.env`,
-`config/db.config.env`, and `config/mail.config.env` exist, that `APP_ENV`
-matches `ENV` (and `.env` for Docker), and that `config/`, `logs/`, and
-`temp/` are present. It shows where `config/` points when it is a symlink,
-whether it is a Git repository, and whether `servers.secrets.json` exists
-next to `servers.json`. Native mode also checks for PHP, Composer
-dependencies, and whether the OPA service is running.
-
-When those pass, it runs `bin/mata doctor` as the web server user: config
-validity, writable `logs/` and `temp/`, the users file and its mode, the
-secrets file mode, the database connection and pending migrations, OPA health
-(when it is the alarm driver), and whether the data-fetch cron runs.
-`php bin/mata doctor --json` gives the same checks without `make`.
-
-```bash
-make doctor
-```
+`make doctor` first checks the installation: the selected `MODE` and `ENV`, the
+three `.env` files and a matching `APP_ENV` (also in `.env` for Docker),
+`config/`, `logs/`, `temp/`, and `servers.secrets.json`. It shows where a
+symlinked `config/` points and whether it is a Git repository; natively, it
+also checks PHP, Composer dependencies, and the OPA service. It then runs
+`bin/mata doctor` as the web server user: config validity, writable `logs/` and
+`temp/`, the users and secrets file modes, the database and pending migrations,
+OPA health when it is the driver, and whether the data-fetch cron runs.

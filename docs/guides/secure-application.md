@@ -21,9 +21,10 @@ RATE_LIMIT_STORAGE=file
 CLI_STRICT_USER_CHECK=ON
 ```
 
-Set `CLI_ALLOWED_USERS` to the operating-system users allowed to manage
-accounts. Use the exact route-group settings for login, dashboard, and API rate
-limits rather than the old single `RATE_LIMIT_MAX_REQUESTS` setting.
+With `CLI_STRICT_USER_CHECK=ON`, only the operating-system users in
+`CLI_ALLOWED_USERS` may run `bin/mata user` commands. Login, dashboard, and API
+routes have separate limits, `RATE_LIMIT_<GROUP>_MAX_REQUESTS` and
+`RATE_LIMIT_<GROUP>_WINDOW_SECONDS`.
 
 Put database credentials in `config/db.config.env` and mail credentials in
 `config/mail.config.env`. Use unique values for every installation and node.
@@ -32,19 +33,13 @@ layer.
 
 ## Node credentials
 
-Generate a unique secret for each node:
+Use a unique secret for each node; `bin/mata server add` generates one. It
+lives in `config/servers.secrets.json` on the dashboard and as
+`DASHBOARD_API_KEY` on the node. Keep `servers.secrets.json` out of version
+control.
 
-```bash
-openssl rand -hex 32
-```
-
-Set it as `DASHBOARD_API_KEY` on the node and as `api_key` for the matching
-property in the dashboard's `config/servers.secrets.json`. The property name must
-also match the server in `config/servers.json` and `DASHBOARD_SERVER_ID` on the
-node. Keep `servers.secrets.json` out of version control.
-
-The dashboard signs requests with `X-Mata-Auth`. It does not send the shared
-secret directly. Rotate a node secret on both sides if it is exposed.
+The dashboard signs requests with `X-Mata-Auth` and never sends the secret
+itself. Rotate a node secret on both sides if it is exposed.
 
 ## Network controls
 

@@ -1,4 +1,4 @@
-# Server Metrics Pipeline
+# Server metrics pipeline
 
 This is the implementation reference for historical server metrics: CPU, RAM,
 disk, files, and process counts. All historical timestamps and aggregation
@@ -32,7 +32,7 @@ Cron runs as `www-data` in Docker. Shared-hosting installations can use the
 
 | When | Program | Purpose | Writes |
 | --- | --- | --- | --- |
-| Every 5 min | `cron/servers_data_fetch.php` | Dashboard/node collector setup | not the historical tables |
+| Every 5 min | `cron/servers_data_fetch.php` | Warm the node cache that collection reads, chained before it | not the historical tables |
 | Every 5 min | `cron/servers_metrics_collect.php` | Fetch one snapshot per server not marked `disabled` | `server_metrics_raw` |
 | Every 15 min | `cron/servers_metrics_aggregate.php` | Repair bounded completed hourly and daily windows | `server_metrics_hourly`, `server_metrics_daily` |
 | Daily, 02:25 | `cron/retention_cleanup.php` | Delete old rows according to retention settings | deletes from all metric tiers |
@@ -215,12 +215,11 @@ Supported API metric keys:
 | --- | --- | --- |
 | `cpu` | `cpu_usage` / `cpu_avg` | `%` |
 | `ram_percent` | `ram_usage_percent` / `ram_percent_avg` | `%` |
-| `ram_used` | `ram_used` / `ram_used_avg` | kilobytes |
+| `ram_used` | `ram_used` / `ram_used_avg` | KiB |
 | `disk_percent` | `disk_usage_percent` / `disk_percent_avg` | `%` |
-| `disk_used` | `disk_used` / `disk_used_avg` | kilobytes |
+| `disk_used` | `disk_used` / `disk_used_avg` | KiB |
 | `file_count` | `total_file_count` / `file_count_avg` | count |
 | `process_count` | `process_count` / `process_count_avg` | count |
-| `ram_used`, `disk_used` | raw value / matching `*_avg` | KiB |
 
 ### Shared server-card modal
 
@@ -248,8 +247,7 @@ The modal uses a fixed tier mapping:
 | 7 days | `server_metrics_hourly` |
 | 30 days | `server_metrics_daily` |
 
-Process count deliberately remains a non-interactive card statistic. Cronjobs
-have a separate existing modal.
+Process count deliberately remains a non-interactive card statistic.
 
 ## Operations and diagnosis
 

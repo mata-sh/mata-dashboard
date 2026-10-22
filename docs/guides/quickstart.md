@@ -73,8 +73,9 @@ ALARM_DECISION_DRIVER=builtin
 ```
 
 !!! warning "The built-in driver is intentionally limited"
-    It allows critical events and `fatal_errors_occurring`, using email only,
-    and denies every other candidate. Use the OPA driver wherever it can run.
+    It allows critical events and `fatal_errors_occurring` on the channels
+    their notification rule selects, and denies every other candidate. Use the
+    OPA driver wherever it can run.
 
 Configure `config/mail.config.env` before enabling alarm email.
 

@@ -1,4 +1,4 @@
-# UI Styleguide
+# UI style guide
 
 How the MATA dashboard should look and feel, and the reusable building blocks to
 get there. Applies to everything rendered in the browser: Twig templates,

@@ -56,6 +56,7 @@ The important jobs are:
 - `servers_data_fetch.php` fetches node application data and records events.
 - `servers_metrics_collect.php` writes raw historical server snapshots.
 - `servers_metrics_aggregate.php` writes hourly and daily metric rows.
+- `libraries_audit.php` records new Composer security advisories.
 - `alarms_evaluate_critical.php` and `alarms_evaluate_non_critical.php` create logical alarms.
 - `alarms_dispatch.php` sends due delivery records.
 - `retention_cleanup.php` removes expired database rows and reconciles config-warning notifications.
@@ -85,7 +86,7 @@ MATA keeps three concepts separate:
 
 - An **event** is a recorded fact.
 - A **logical alarm** is a stored alarm associated with an event.
-- A **delivery** is a queued email attempt.
+- A **delivery** is one queued attempt on one channel, by email or webhook.
 
 The normal path applies thresholds, notification rules, and OPA or the built-in
 decision driver. Direct configuration-failure alarms bypass notification rules

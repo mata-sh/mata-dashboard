@@ -47,8 +47,7 @@ Docker reads `.env` for Compose settings such as `APP_ENV`, `WEB_BIND`, `WEB_POR
 `MYSQL_ROOT_PASSWORD`, and `DATA_PATH`.
 
 PHP reads `config/config.env`, `config/db.config.env`, and
-`config/mail.config.env`. The dashboard container also receives the database
-and mail settings through those files.
+`config/mail.config.env`.
 
 !!! warning "Matching `APP_ENV`"
     `APP_ENV` in `.env` and `config/config.env` must match.
@@ -93,6 +92,8 @@ checked consistently.
 Docker stores users in the persistent `mata_users` named volume, owned by
 `www-data`; the container sets it up on start. `make mata` runs `bin/mata` in
 the web container as that user.
+
+Back up the MySQL data (`make db-backup`) and the `mata_users` volume.
 
 `make clean` removes the selected Compose-managed volumes. Production MySQL
 uses `DATA_PATH/mysql`, which is a host bind mount and is not deleted by
@@ -155,9 +156,9 @@ make logs-web MODE=docker ENV="$ENV_NAME"
 tail -f logs/health/collect_server_metrics_health.log
 ```
 
-Then verify the node URL, shared credentials, database migrations, and the
-server's active flag. Use
-`make mata ARGS="metrics status"` for row counts.
+Then verify the node URL, shared credentials, database migrations, and that
+the server is not `disabled`. Use `make mata ARGS="metrics status"` for row
+counts.
 
 ### Code changes are not visible
 
@@ -182,8 +183,7 @@ docker compose --env-file config/db.config.env --env-file .env \
 
 ### The web container restarts or reports unhealthy
 
-Both overrides define a health check that requests `http://localhost/` inside the
-container. Read its recorded output before the logs:
+The web container has a health check. Read its recorded output before the logs:
 
 ```bash
 docker inspect --format='{{json .State.Health}}' mata-dashboard-web
@@ -216,11 +216,5 @@ Do not make the whole repository writable by the web user. Only `logs/`,
 `temp/`, and the configured authentication directory need application write
 access.
 
-## Security checklist
-
-- Replace all database password placeholders before production startup.
-- Publish only the dashboard or an HTTPS reverse proxy.
-- Keep OPA and MySQL on the internal Docker network.
-- Keep `config/` out of the web root and read-only in production.
-- Back up the MySQL data and the `mata_users` volume.
-- Use unique node API keys and rotate them if exposed.
+See [Secure an installation](../guides/secure-application.md) for the
+production baseline.

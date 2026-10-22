@@ -148,16 +148,11 @@ Send a sample alarm through any configured channel, including `email`, without
 using the queue:
 
 ```bash
-sudo -u <php-fpm-user> php bin/mata alarm test telegram
-# Docker
-docker exec -u www-data mata-dashboard-web php bin/mata alarm test telegram
+make mata ARGS="alarm test telegram"
 ```
 
-Run it as the user your crons run as, so its log files stay writable for them.
-Without a channel it lists the configured ones.
-
-It exits `0` when sent, `1` when delivery fails, printing the redacted error,
-and `2` for an unknown channel.
+Without a channel it lists the configured ones. It exits `0` when sent and `2`
+when delivery fails, printing the redacted error, or the channel is unknown.
 
 ### Explaining decisions
 
@@ -199,6 +194,4 @@ ORDER BY next_retry_at, created_at;
 `pending` and `retry` records are claimable when due. A claim uses `processing`;
 claims older than 15 minutes are treated as stale and can be recovered by a
 later dispatcher. Successful deliveries become `sent`. Failed sends become
-`retry` until they exhaust their attempts, then become `failed`. The schema
-accepts the retained `throttled` and `discarded` states, but the current runtime
-never writes either one.
+`retry` until they exhaust their attempts, then become `failed`.

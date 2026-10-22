@@ -1,8 +1,6 @@
 # Application error monitoring
 
-`cron/servers_data_fetch.php` records fatal-error and log-size events from its forced `GET /apps` response. Dashboard rendering displays those summaries.
-
-Deploy the dashboard before the node. The dashboard accepts old node payloads during the rollout; legacy app flags are ignored and omitted `monitoring` means every check is enabled.
+`cron/servers_data_fetch.php` records fatal-error and log-size events from each node's `/apps` response, which it fetches fresh rather than from the cache. The dashboard shows the same summaries.
 
 ## Node application settings
 
@@ -50,4 +48,4 @@ The job records `library_outdated_security` when an audit reports an advisory th
 - A failed or missing audit leaves the stored set untouched.
 
 !!! info
-    Both MATA Node and the dashboard must support `libraryaudit` before you set it in `apps.json`. Older nodes reject the key, and older dashboards reject an `/apps` response that contains it.
+    Older MATA Nodes reject `libraryaudit` in `apps.json`; update the node before you set it.

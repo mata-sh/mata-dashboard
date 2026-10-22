@@ -98,10 +98,12 @@ Rebuild Bulma after Sass changes with `npm install` and `npm run build-bulma`.
 ## Code layout
 
 - `src/Controllers/`: HTTP coordination
-- `src/Services/`: application and monitoring behavior
-- `src/Database/`: repositories and database access
+- `src/Services/<Domain>/`: application and monitoring behavior, including view builders
+- `src/Models/<Domain>/`: repositories and persistence
+- `src/Database/`: database connection and migration runner
 - `src/Config/`: environment and JSON configuration
-- `src/Views/`: view builders and renderers
+- `src/Views/`: renderers
+- `src/Cli/`: `bin/mata` commands
 - `cron/`: scheduled jobs
 - `policy/`: OPA policies and tests
 - `migrations/`: Phinx migrations

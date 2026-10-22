@@ -18,34 +18,10 @@ and delivers notifications.
 
 ## Start here
 
-- [Quick start](guides/quickstart.md)
-- [Docker quickstart](guides/quickstart-docker.md)
+- [Docker quickstart](guides/quickstart-docker.md): one command on a host with Docker
+- [Quick start](guides/quickstart.md): native or shared hosting
+- [Install with a coding agent](guides/agent-install.md)
 - [Add your first server](guides/first-server.md)
-
-## Guides
-
-- [Configuration](guides/configuration.md)
-- [Monitoring](guides/monitoring.md)
-- [Application error monitoring](guides/application-error-monitoring.md)
-- [User management](guides/user-management.md)
-- [Secure an installation](guides/secure-application.md)
-- [Web server configuration examples](examples/webserver-configs/README.md)
-
-## Reference
-
-- [Alarm decision and delivery flow](reference/alarms.md)
-- [Server metrics pipeline](architecture/server-metrics-pipeline.md)
-
-## Architecture
-
-- [Architecture overview](architecture/overview.md)
-- [Security architecture](architecture/security.md)
-- [Technology choices](architecture/technology-choices.md)
-
-## Development
-
-- [Development setup](development/development-setup.md)
-- [UI style guide](development/ui-styleguide.md)
 
 ## Contact
 

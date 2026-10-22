@@ -4,6 +4,9 @@
 through `make mata ARGS="…"`, which picks the right account, also in Docker.
 `server add` and `server remove` write `config/` and run as its owner.
 
+Without arguments it lists the commands; `--version` prints the installed
+release, and `<command> --help` documents a command's options.
+
 ## Exit codes
 
 Every command ends in one of four levels. The exit code and the `status` field of
@@ -31,7 +34,7 @@ a missing argument, also exit `2`.
 | `server add` | added and the node accepted the key | added, but the test failed or was skipped, or a file warning | nothing written |
 | `server test` | all healthy and authenticated | authenticated, but not healthy | unreachable or key rejected |
 | `server remove` | removed | removed, with a file warning | not found or cancelled |
-| `status` | all ok | maintenance, a cron job not run yet, a config problem | node unhealthy or unreachable, cron overdue |
+| `status` | all ok | maintenance, a cron job that never ran, a config problem | node unhealthy or unreachable, cron overdue |
 | `doctor` | all checks pass | warnings | a check failed |
 | `db status` | up to date | migrations pending | database unreachable |
 | `db migrate`, `db rollback`, `db check` | done or passed | — | failed |

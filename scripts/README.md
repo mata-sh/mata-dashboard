@@ -13,7 +13,9 @@ scripts/
 │   └── sync-node-docs.sh          # copies mata-node pages into docs/node/ (make docs-serve|docs-deploy)
 ├── systemd/                       # native service units; opa.service is installed by make opa-install-service
 ├── cron_database_probe.php        # database readiness probe used by the Docker cron smoke check
-└── setup.sh                       # guided setup (make setup)
+├── install.sh                     # one-command installer, attached to each release
+├── setup.sh                       # guided setup (make setup)
+└── version.sh                     # release from git tags (bin/mata --version, image labels)
 ```
 
 Run scripts from the project root. In Docker, run them inside `mata-web`.

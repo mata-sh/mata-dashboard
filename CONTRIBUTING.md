@@ -55,7 +55,7 @@ populated configuration files.
 
 Follow the [changelog guide](docs/development/changelog.md).
 
-## Release:
+## Release
 
 1. Rename `[Unreleased]` to the new version heading.
 2. Tag the commit with a plain semantic version, without a `v` prefix (for example `0.7.0`).
