@@ -139,10 +139,10 @@ class ApplicationConfigFactory
     }
 
     public static function createLoggingConfig(
-        string $path = 'logs/test.log',
+        string $filePath = 'logs/test.log',
         string $level = 'debug',
     ): LoggingConfig {
-        return new LoggingConfig($path, $level);
+        return new LoggingConfig($filePath, $level);
     }
 
     public static function createDatabaseConfig(

@@ -44,12 +44,16 @@ final class CliApplication extends Application
         try {
             return parent::doRun($input, $output);
         } catch (ExceptionInterface $exception) {
-            $this->renderThrowable($exception, $output instanceof ConsoleOutputInterface ? $output->getErrorOutput() : $output);
+            $this->renderThrowable($exception, self::errorOutput($output));
 
             return StatusLevel::Error->value;
         }
     }
 
+    /**
+     * A failure inside a command goes through CliOutput so it honours --json;
+     * -v adds the stack trace.
+     */
     protected function doRunCommand(Command $command, InputInterface $input, OutputInterface $output): int
     {
         try {
@@ -58,10 +62,15 @@ final class CliApplication extends Application
             throw $exception;
         } catch (Throwable $exception) {
             if ($output->isVerbose()) {
-                $this->renderThrowable($exception, $output instanceof ConsoleOutputInterface ? $output->getErrorOutput() : $output);
+                $this->renderThrowable($exception, self::errorOutput($output));
             }
 
             return CliOutput::fail($input, $output, $exception->getMessage());
         }
+    }
+
+    private static function errorOutput(OutputInterface $output): OutputInterface
+    {
+        return $output instanceof ConsoleOutputInterface ? $output->getErrorOutput() : $output;
     }
 }

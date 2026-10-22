@@ -234,7 +234,7 @@ class PathResolverTest extends TestCase
 
     /**
      * Web runs from public/ and cron from the crontab's working directory; a relative TEMP_DIR
-     * or LOG_PATH resolved against the cwd would split caches, locks and heartbeats between them.
+     * or APP_LOG_PATH resolved against the cwd would split caches, locks and heartbeats between them.
      *
      * @group pathresolver
      */
@@ -247,6 +247,7 @@ class PathResolverTest extends TestCase
         $this->assertSame($base->appPath . '/var/log/mata.log', $paths->appLogPath);
         $this->assertSame($base->appPath . '/var/log', $paths->logsPath);
         $this->assertSame($base->appPath . '/var/tmp', $paths->tempPath);
+        $this->assertSame($base->appPath . '/var/tmp/api-cache', $paths->apiCachePath);
         $this->assertSame($base->bootLogPath, $paths->bootLogPath);
 
         $absolute = $base->withOverrides('/srv/mata/app.log', '');
