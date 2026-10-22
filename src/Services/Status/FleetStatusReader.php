@@ -8,10 +8,10 @@ use Mata\Config\Monitoring\Loader\Dto\ConfigLoadProblem;
 use Mata\Services\Cache\ApiCacheKeyFactory;
 use Mata\Services\Cache\CacheStoreInterface;
 use Mata\Services\Cron\CronHeartbeatReader;
-use Mata\Services\Cron\Dto\CronJobState;
 use Mata\Services\Monitor\Dto\NodeHealthResult;
 use Mata\Services\Monitor\Dto\NodeHealthState;
 use Mata\Services\Status\Dto\FleetStatus;
+use Mata\Services\Status\Dto\ServerStatus;
 
 /**
  * Fleet status for scripts and checks, read only from what cron already wrote: the node health
@@ -37,41 +37,33 @@ final class FleetStatusReader
      */
     public function read(array $servers, int $now, array $configProblems = []): FleetStatus
     {
-        $serverRows = [];
+        $serverStatuses = [];
         foreach ($servers as $name => $config) {
-            $serverRows[] = $this->serverStatus((string) $name, is_array($config) ? $config : [], $now);
+            $serverStatuses[] = $this->serverStatus((string) $name, is_array($config) ? $config : [], $now);
         }
 
-        $cronRows = [];
-        foreach ($this->cron->read($now) as $job) {
-            $cronRows[] = [
-                'job' => $job->job,
-                'state' => $job->state->value,
-                'level' => match ($job->state) {
-                    CronJobState::Overdue => StatusLevel::Error,
-                    CronJobState::Never => StatusLevel::Warning,
-                    default => StatusLevel::Ok,
-                },
-                'last_run' => $job->lastRun,
-                'interval_seconds' => $job->interval,
-            ];
-        }
-
-        return new FleetStatus($serverRows, $cronRows, $now, $configProblems);
+        return new FleetStatus(
+            servers: $serverStatuses,
+            cron: $this->cron->read($now),
+            generatedAt: $now,
+            configProblems: $configProblems,
+        );
     }
 
-    /**
-     * @param array<string,mixed> $config
-     *
-     * @return array{name:string,title:string,health:string,level:StatusLevel,checked_at:?int,age_seconds:?int,error:?string}
-     */
-    private function serverStatus(string $name, array $config, int $now): array
+    /** @param array<string,mixed> $config */
+    private function serverStatus(string $name, array $config, int $now): ServerStatus
     {
         $apiUrl = is_string($config['api_url'] ?? null) ? $config['api_url'] : '';
         $title = is_string($config['title'] ?? null) ? $config['title'] : $name;
         $entry = $this->cache->getStale($this->keys->createApiRequestKey($apiUrl, 'GET', 'health'), -1);
         if ($entry === null) {
-            return ['name' => $name, 'title' => $title, 'health' => 'unknown', 'level' => StatusLevel::Unknown, 'checked_at' => null, 'age_seconds' => null, 'error' => 'No cached health result; has servers_data_fetch run?'];
+            return new ServerStatus(
+                name: $name,
+                title: $title,
+                health: NodeHealthState::Unknown,
+                level: StatusLevel::Unknown,
+                error: 'No cached health result; has servers_data_fetch run?',
+            );
         }
 
         $health = NodeHealthResult::fromArray($entry->value);
@@ -84,14 +76,14 @@ final class FleetStatusReader
             default => StatusLevel::Error,
         };
 
-        return [
-            'name' => $name,
-            'title' => $title,
-            'health' => $health->state->value,
-            'level' => $level,
-            'checked_at' => $entry->storedAt,
-            'age_seconds' => $age,
-            'error' => $stale ? "Health result is {$age}s old; servers_data_fetch may have stopped" : $health->error,
-        ];
+        return new ServerStatus(
+            name: $name,
+            title: $title,
+            health: $health->state,
+            level: $level,
+            checkedAt: $entry->storedAt,
+            ageSeconds: $age,
+            error: $stale ? "Health result is {$age}s old; servers_data_fetch may have stopped" : $health->error,
+        );
     }
 }

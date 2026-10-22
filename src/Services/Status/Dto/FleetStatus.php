@@ -6,19 +6,21 @@ namespace Mata\Services\Status\Dto;
 
 use JsonSerializable;
 use Mata\Config\Monitoring\Loader\Dto\ConfigLoadProblem;
+use Mata\Services\Cron\Dto\CronJobState;
+use Mata\Services\Cron\Dto\CronJobStatus;
 use Mata\Services\Status\StatusLevel;
 use Psr\Log\LogLevel;
 
 /**
- * Explicit export shape of `bin/mata status`. Only these fields leave the process: server
- * config (and its api_key) is never copied in.
+ * Explicit export shape of `bin/mata status`. Only these fields and those of ServerStatus
+ * leave the process: server config (and its api_key) is never copied in.
  */
 final readonly class FleetStatus implements JsonSerializable
 {
     /**
-     * @param list<array{name:string,title:string,health:string,level:StatusLevel,checked_at:?int,age_seconds:?int,error:?string}> $servers
-     * @param list<array{job:string,state:string,level:StatusLevel,last_run:?int,interval_seconds:?int}>                           $cron
-     * @param list<ConfigLoadProblem>                                                                                              $configProblems of the servers and TTL config
+     * @param list<ServerStatus>      $servers
+     * @param list<CronJobStatus>     $cron
+     * @param list<ConfigLoadProblem> $configProblems of the servers and TTL config
      */
     public function __construct(
         public array $servers,
@@ -30,9 +32,19 @@ final readonly class FleetStatus implements JsonSerializable
     public function level(): StatusLevel
     {
         return StatusLevel::worst([
-            ...array_column([...$this->servers, ...$this->cron], 'level'),
+            ...array_map(static fn (ServerStatus $server): StatusLevel => $server->level, $this->servers),
+            ...array_map(self::cronLevel(...), $this->cron),
             ...array_map(self::problemLevel(...), $this->configProblems),
         ]);
+    }
+
+    public static function cronLevel(CronJobStatus $cron): StatusLevel
+    {
+        return match ($cron->state) {
+            CronJobState::Overdue => StatusLevel::Error,
+            CronJobState::Never => StatusLevel::Warning,
+            default => StatusLevel::Ok,
+        };
     }
 
     /**
@@ -47,13 +59,17 @@ final readonly class FleetStatus implements JsonSerializable
     /** @return array<string,mixed> */
     public function jsonSerialize(): array
     {
-        $export = static fn (array $row): array => ['level' => $row['level']->label()] + $row;
-
         return [
             'status' => $this->level()->label(),
             'generated_at' => $this->generatedAt,
-            'servers' => array_map($export, $this->servers),
-            'cron' => array_map($export, $this->cron),
+            'servers' => $this->servers,
+            'cron' => array_map(static fn (CronJobStatus $cron): array => [
+                'level' => self::cronLevel($cron)->label(),
+                'job' => $cron->job,
+                'state' => $cron->state->value,
+                'last_run' => $cron->lastRun,
+                'interval_seconds' => $cron->interval,
+            ], $this->cron),
             'config_problems' => count($this->configProblems),
         ];
     }

@@ -53,13 +53,13 @@ abstract class AbstractJsonConfigLoader
      */
     abstract protected function parse(array $config, string $filePath): object;
 
-    /** Optional files are not created by setup, so their absence is normal. */
+    /** Return true for files setup does not create: their absence then yields the defaults without a problem. */
     protected function isOptional(): bool
     {
         return false;
     }
 
-    /** The app cannot run without this section, so a rejected file is critical and always alarms. */
+    /** Return true for a section the app cannot run without: a rejected file is then critical and always alarms. */
     protected function isRequiredToRun(): bool
     {
         return false;
@@ -80,7 +80,7 @@ abstract class AbstractJsonConfigLoader
 
         try {
             $section = $this->parseFile($filePath);
-        } catch (InvalidArgumentException|RuntimeException $exception) {
+        } catch (InvalidArgumentException | RuntimeException $exception) {
             $message = "Could not load {$this->fileName()}: {$exception->getMessage()}";
             $this->reportLoadFailure($message, $exception instanceof JsonConfigReadException ? $exception->fileName : null);
             if (!$this->fallbackOnFailure) {

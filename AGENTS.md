@@ -37,3 +37,4 @@ Record very concise insights about findings the user explicitly declared non-iss
 2026-07-21 — **Demo event selection:** `MATA_EVENTS_MOCK` and configurable mock-event paths were removed. **Decision:** demo mode always uses the fixed mock event fixture; no override is needed.
 2026-08-16 — **Session save path permissions:** existing directories may be intentionally shared. **Decision:** secure directories created by the application, but do not chmod existing writable directories.
 2026-10-20 — **Config problem `type` formats:** env checks use dotted notification identifiers (`config.domain.missing`), JSON loaders use snake_case event types (`servers_config_invalid_entry`). **Decision:** keep both; keep each group consistent within itself.
+2026-10-22 — **Cron `Pending` level:** `doctor` warns, `FleetStatus::cronLevel()` (status, dashboard) says ok. **Decision:** intentional; doctor gives install feedback, status must not alarm before cron had a chance to run.

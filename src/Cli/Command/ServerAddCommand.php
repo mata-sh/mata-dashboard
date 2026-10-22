@@ -88,7 +88,7 @@ final class ServerAddCommand extends Command
         $nodeLines = "DASHBOARD_SERVER_ID={$name}\nDASHBOARD_API_KEY={$apiKey}";
         if ($input->getOption('dry-run')) {
             if ($json) {
-                CliOutput::json($output, ['status' => 'ok', 'dry_run' => true, 'server' => $name, 'servers_json_entry' => $entry, 'node_env' => ['DASHBOARD_SERVER_ID' => $name, 'DASHBOARD_API_KEY' => $apiKey]]);
+                CliOutput::json($output, ['status' => StatusLevel::Ok->label(), 'dry_run' => true, 'server' => $name, 'servers_json_entry' => $entry, 'node_env' => ['DASHBOARD_SERVER_ID' => $name, 'DASHBOARD_API_KEY' => $apiKey]]);
             } else {
                 $output->writeln("Would add to servers.json:\n" . json_encode([$name => $entry], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
                 $output->writeln("Would store the key in servers.secrets.json. Node config.env:\n{$nodeLines}");

@@ -29,7 +29,7 @@ final class UserListCommand extends AbstractUserCommand
         $this->audit->info('Users list accessed', ['user_count' => count($rows)]);
 
         if ($input->getOption('json')) {
-            CliOutput::json($output, ['status' => 'ok', 'users' => $rows]);
+            CliOutput::json($output, ['status' => StatusLevel::Ok->label(), 'users' => $rows]);
 
             return StatusLevel::Ok->value;
         }

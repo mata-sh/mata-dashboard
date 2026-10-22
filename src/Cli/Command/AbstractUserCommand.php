@@ -53,6 +53,13 @@ abstract class AbstractUserCommand extends Command
         }
     }
 
+    protected function addPasswordOptions(): void
+    {
+        $this
+            ->addOption('password-stdin', null, InputOption::VALUE_NONE, 'Read the password from the first line of stdin')
+            ->addOption('generate-password', null, InputOption::VALUE_NONE, 'Generate a password and print it once');
+    }
+
     /**
      * Prompts for missing arguments, so `bin/mata user create` works without any. Optional
      * arguments are only asked for once a required one was, and keep their default on Enter.
@@ -91,11 +98,7 @@ abstract class AbstractUserCommand extends Command
             }
         }
 
-        $this->audit = new Logger('user-management-cli');
-        $handler = new StreamHandler($this->cli->paths()->logsPath . '/user-management-audit.log', Level::Info);
-        $handler->setFormatter(new LineFormatter("[%datetime%] %level_name%: %message% %context%\n", 'Y-m-d H:i:s', true, true));
-        $this->audit->pushHandler($handler);
-        $this->audit->pushProcessor($this->addAuditContext(...));
+        $this->audit = $this->auditLogger();
         $this->audit->info('User management command started', ['hostname' => gethostname()]);
 
         try {
@@ -147,13 +150,6 @@ abstract class AbstractUserCommand extends Command
         return rtrim(strtr(base64_encode(random_bytes(18)), '+/', '-_'), '=');
     }
 
-    protected function addPasswordOptions(): void
-    {
-        $this
-            ->addOption('password-stdin', null, InputOption::VALUE_NONE, 'Read the password from the first line of stdin')
-            ->addOption('generate-password', null, InputOption::VALUE_NONE, 'Generate a password and print it once');
-    }
-
     /** bcrypt ignores everything after 72 bytes; demo accounts publish their credentials by design. */
     private function passwordPolicyError(string $password): ?string
     {
@@ -168,6 +164,18 @@ abstract class AbstractUserCommand extends Command
         }
 
         return null;
+    }
+
+    private function auditLogger(): LoggerInterface
+    {
+        $handler = new StreamHandler($this->cli->paths()->logsPath . '/user-management-audit.log', Level::Info);
+        $handler->setFormatter(new LineFormatter("[%datetime%] %level_name%: %message% %context%\n", 'Y-m-d H:i:s', true, true));
+
+        $audit = new Logger('user-management-cli');
+        $audit->pushHandler($handler);
+        $audit->pushProcessor($this->addAuditContext(...));
+
+        return $audit;
     }
 
     /** Every audit entry records who ran which command against which environment. */

@@ -36,6 +36,11 @@ final class CronHeartbeatReader
         private readonly string $heartbeatDir,
     ) {}
 
+    public static function fromPaths(PathResolver $paths): self
+    {
+        return new self($paths->appPath . '/cron', $paths->cronLogsPath);
+    }
+
     /**
      * Job names of the entry points in cron/, sorted.
      *
@@ -56,7 +61,7 @@ final class CronHeartbeatReader
     {
         $files = [];
         foreach ($this->jobs() as $job) {
-            $files[$job] = "{$this->heartbeatDir}/heartbeat-{$job}.jsonl";
+            $files[$job] = CronJob::heartbeatFile($this->heartbeatDir, $job);
         }
         $cronStarted = $this->cronStarted($files);
 

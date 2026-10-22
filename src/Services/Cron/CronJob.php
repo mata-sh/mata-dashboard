@@ -61,6 +61,12 @@ class CronJob
         return trim(strtolower($jobName), '-');
     }
 
+    /** Heartbeat file of a job: touchHeartbeat() appends to it, CronHeartbeatReader reads it. */
+    public static function heartbeatFile(string $heartbeatDir, string $jobName): string
+    {
+        return "{$heartbeatDir}/heartbeat-{$jobName}.jsonl";
+    }
+
     /**
      * CronJob constructor.
      *

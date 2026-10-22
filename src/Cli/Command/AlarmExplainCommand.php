@@ -61,7 +61,7 @@ final class AlarmExplainCommand extends Command
         }
 
         if ($input->getOption('json')) {
-            CliOutput::json($output, ['status' => 'ok', 'events' => $decisions]);
+            CliOutput::json($output, ['status' => StatusLevel::Ok->label(), 'events' => $decisions]);
 
             return StatusLevel::Ok->value;
         }

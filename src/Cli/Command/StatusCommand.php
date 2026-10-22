@@ -14,6 +14,7 @@ use Mata\Services\Cache\CacheType;
 use Mata\Services\Cache\FileCacheStore;
 use Mata\Services\Cron\CronHeartbeatReader;
 use Mata\Services\Cron\Dto\CronJobState;
+use Mata\Services\Cron\Dto\CronJobStatus;
 use Mata\Services\Status\Dto\FleetStatus;
 use Mata\Services\Status\FleetStatusReader;
 use Mata\Services\Status\StatusLevel;
@@ -83,17 +84,18 @@ final class StatusCommand extends Command
     {
         $output->writeln('Servers');
         foreach ($status->servers as $server) {
-            $age = $server['age_seconds'] !== null ? " ({$server['age_seconds']}s ago)" : '';
-            $output->writeln('  ' . CliOutput::label($server['level']) . " {$server['name']}: {$server['health']}{$age}" . ($server['error'] !== null ? " — {$server['error']}" : ''));
+            $age = $server->ageSeconds !== null ? " ({$server->ageSeconds}s ago)" : '';
+            $error = $server->error !== null ? " — {$server->error}" : '';
+            $output->writeln('  ' . CliOutput::label($server->level) . " {$server->name}: {$server->health->value}{$age}{$error}");
         }
         if ($status->servers === []) {
             $output->writeln('  none configured');
         }
         $output->writeln('Cron');
-        foreach ($status->cron as $job) {
-            $output->writeln('  ' . CliOutput::label($job['level']) . " {$job['job']}: {$job['state']}");
+        foreach ($status->cron as $cron) {
+            $output->writeln('  ' . CliOutput::label(FleetStatus::cronLevel($cron)) . " {$cron->job}: {$cron->state->value}");
         }
-        $pending = count(array_filter($status->cron, static fn (array $job): bool => $job['state'] === CronJobState::Pending->value));
+        $pending = count(array_filter($status->cron, static fn (CronJobStatus $cron): bool => $cron->state === CronJobState::Pending));
         if ($pending > 0) {
             $output->writeln("{$pending} job(s) have not run yet; cron started less than a day ago, so their first run may still be ahead");
         }

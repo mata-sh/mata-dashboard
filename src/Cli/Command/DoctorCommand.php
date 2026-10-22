@@ -81,27 +81,28 @@ final class DoctorCommand extends Command
     {
         $report = (new InstanceConfigValidator())->validate($this->cli->configPath);
         $level = $report->level();
-        $this->add('config', $level, count($report->problems) . ' problem(s) in ' . $report->configPath, $level === StatusLevel::Ok ? null : 'bin/mata config validate');
+        $this->add('config', $level, count($report->problems) . ' problem(s) in ' . $report->configPath, hint: $level === StatusLevel::Ok ? null : 'bin/mata config validate');
 
         try {
             $config = $this->cli->load();
         } catch (Throwable $exception) {
-            $this->add('environment', StatusLevel::Error, $exception->getMessage(), 'Fix the env files or the ownership of logs/ and temp/; the remaining checks need them.');
+            $this->add('environment', StatusLevel::Error, $exception->getMessage(), hint: 'Fix the env files or the ownership of logs/ and temp/; the remaining checks need them.');
 
             return null;
         }
-        $this->add('environment', StatusLevel::Ok, "APP_ENV={$config->environment->env}", null);
+        $this->add('environment', StatusLevel::Ok, "APP_ENV={$config->environment->env}");
 
         return $config;
     }
 
     private function checkDirectories(): void
     {
-        foreach (['logs' => $this->cli->paths()->logsPath, 'temp' => $this->cli->paths()->tempPath, 'cache' => $this->cli->paths()->tempPath . '/api-cache'] as $name => $dir) {
+        $paths = $this->cli->paths();
+        foreach (['logs' => $paths->logsPath, 'temp' => $paths->tempPath, 'cache' => $paths->apiCachePath] as $name => $dir) {
             if (is_dir($dir) && is_writable($dir)) {
-                $this->add("dir:{$name}", StatusLevel::Ok, "{$dir} writable", null);
+                $this->add("dir:{$name}", StatusLevel::Ok, "{$dir} writable");
             } else {
-                $this->add("dir:{$name}", StatusLevel::Error, "{$dir} missing or not writable by {$this->currentUser()}", 'Give the web server user write access');
+                $this->add("dir:{$name}", StatusLevel::Error, "{$dir} missing or not writable by {$this->currentUser()}", hint: 'Give the web server user write access');
             }
         }
     }
@@ -111,22 +112,22 @@ final class DoctorCommand extends Command
         try {
             $file = UsersFilePathResolver::resolve($this->cli->paths());
         } catch (Throwable $exception) {
-            $this->add('users', StatusLevel::Error, $exception->getMessage(), null);
+            $this->add('users', StatusLevel::Error, $exception->getMessage());
 
             return;
         }
         if (!is_file($file)) {
-            $this->add('users', StatusLevel::Error, "{$file} missing; every route fails until it exists", 'bin/mata user create <name> admin --generate-password');
+            $this->add('users', StatusLevel::Error, "{$file} missing; every route fails until it exists", hint: 'bin/mata user create <name> admin --generate-password');
 
             return;
         }
         $mode = fileperms($file) & 0o777;
         if (!is_readable($file) || !is_writable($file)) {
-            $this->add('users', StatusLevel::Error, "{$file} not readable and writable by " . $this->currentUser(), null);
+            $this->add('users', StatusLevel::Error, "{$file} not readable and writable by " . $this->currentUser());
         } elseif (($mode & 0o077) !== 0) {
-            $this->add('users', StatusLevel::Error, sprintf('%s has mode %o; logins fail until it is private', $file, $mode), "chmod 600 {$file}");
+            $this->add('users', StatusLevel::Error, sprintf('%s has mode %o; logins fail until it is private', $file, $mode), hint: "chmod 600 {$file}");
         } else {
-            $this->add('users', StatusLevel::Ok, $file, null);
+            $this->add('users', StatusLevel::Ok, $file);
         }
     }
 
@@ -134,40 +135,41 @@ final class DoctorCommand extends Command
     {
         $file = rtrim($this->cli->configPath, '/') . '/' . ServersConfigLoader::SECRETS_FILE;
         if (!is_file($file)) {
-            $this->add('secrets', StatusLevel::Warning, "{$file} missing; servers have no keys", 'bin/mata server add creates it');
+            $this->add('secrets', StatusLevel::Warning, "{$file} missing; servers have no keys", hint: 'bin/mata server add creates it');
 
             return;
         }
         $mode = fileperms($file) & 0o777;
         if (($mode & 0o007) !== 0) {
-            $this->add('secrets', StatusLevel::Warning, sprintf('%s has mode %o; other users can read node keys', $file, $mode), "chmod 640 {$file} (group: the web server's)");
+            $this->add('secrets', StatusLevel::Warning, sprintf('%s has mode %o; other users can read node keys', $file, $mode), hint: "chmod 640 {$file} (group: the web server's)");
         } else {
-            $this->add('secrets', StatusLevel::Ok, sprintf('%s mode %o', $file, $mode), null);
+            $this->add('secrets', StatusLevel::Ok, sprintf('%s mode %o', $file, $mode));
         }
     }
 
     private function checkDatabase(ApplicationConfig $config): void
     {
         try {
+            // Connects the way the app does; Phinx below connects through its own adapter.
             new PdoDatabase($config->database);
             $pending = (new MigrationRunner($this->cli->paths()->appPath . '/migrations', $config->database, $config->environment->env))->pending();
         } catch (Throwable $exception) {
-            $this->add('database', StatusLevel::Error, $exception->getMessage(), 'Check db.config.env and that the database is running');
+            $this->add('database', StatusLevel::Error, $exception->getMessage(), hint: 'Check db.config.env and that the database is running');
 
             return;
         }
-        $this->add('database', StatusLevel::Ok, "connected to {$config->database->host}", null);
+        $this->add('database', StatusLevel::Ok, "connected to {$config->database->host}");
         if ($pending === []) {
-            $this->add('migrations', StatusLevel::Ok, 'up to date', null);
+            $this->add('migrations', StatusLevel::Ok, 'up to date');
         } else {
-            $this->add('migrations', StatusLevel::Warning, count($pending) . ' pending', 'bin/mata db migrate');
+            $this->add('migrations', StatusLevel::Warning, count($pending) . ' pending', hint: 'bin/mata db migrate');
         }
     }
 
     private function checkOpa(ApplicationConfig $config): void
     {
         if ($config->alarmDecision->driver !== 'opa') {
-            $this->add('opa', StatusLevel::Ok, "not used (ALARM_DECISION_DRIVER={$config->alarmDecision->driver})", null);
+            $this->add('opa', StatusLevel::Ok, "not used (ALARM_DECISION_DRIVER={$config->alarmDecision->driver})");
 
             return;
         }
@@ -179,20 +181,20 @@ final class DoctorCommand extends Command
             $code = null;
         }
         if ($code === 200) {
-            $this->add('opa', StatusLevel::Ok, "{$url} healthy", null);
+            $this->add('opa', StatusLevel::Ok, "{$url} healthy");
         } else {
-            $this->add('opa', StatusLevel::Error, "{$url} not reachable; alarms are not evaluated", 'make opa-start, or set ALARM_DECISION_DRIVER=builtin');
+            $this->add('opa', StatusLevel::Error, "{$url} not reachable; alarms are not evaluated", hint: 'make opa-start, or set ALARM_DECISION_DRIVER=builtin');
         }
     }
 
     private function checkCron(): void
     {
-        $reader = new CronHeartbeatReader($this->cli->paths()->appPath . '/cron', $this->cli->paths()->cronLogsPath);
-        foreach ($reader->read(time()) as $job) {
-            if ($job->job !== 'servers-data-fetch') {
+        $reader = CronHeartbeatReader::fromPaths($this->cli->paths());
+        foreach ($reader->read(time()) as $cron) {
+            if ($cron->job !== 'servers-data-fetch') {
                 continue;
             }
-            $level = match ($job->state) {
+            $level = match ($cron->state) {
                 CronJobState::Ok, CronJobState::Unknown => StatusLevel::Ok,
                 CronJobState::Overdue => StatusLevel::Error,
                 // Right after an install the first run is minutes away.
@@ -204,11 +206,11 @@ final class DoctorCommand extends Command
                 getenv('MATA_CRON') === 'container' => 'Cron in the web container runs it every 5 minutes; if it never does, check the container log (make logs)',
                 default => 'Install the crontab (cron/crontab.shared-hosting.template); bin/mata status shows every job',
             };
-            $this->add('cron', $level, "servers-data-fetch: {$job->state->value}", $hint);
+            $this->add('cron', $level, "servers-data-fetch: {$cron->state->value}", hint: $hint);
         }
     }
 
-    private function add(string $check, StatusLevel $level, string $message, ?string $hint): void
+    private function add(string $check, StatusLevel $level, string $message, ?string $hint = null): void
     {
         $this->checks[] = ['check' => $check, 'level' => $level, 'message' => $message, 'hint' => $hint];
     }
