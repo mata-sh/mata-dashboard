@@ -12,9 +12,9 @@ Credentials stay out of that repository. They live only in `*.env` files and in
 
 | Version | Keep out of Git |
 | --- | --- |
-| `servers.json`, `thresholds.json`, `intervals.json`, `ttl.json`, `data_retention.json` | `config.env`, `db.config.env`, `mail.config.env`: database password, mailer DSN, webhook URLs, per-host settings |
+| `servers.json`, `thresholds.json`, `intervals.json`, `ttl.json`, `data_retention.json` | `config.env`, `db.config.env`, `mail.config.env`: database password, mailer DSN, webhook URLs, advisory GitHub token and IMAP credentials, per-host settings |
 | `notification_rules.json`, `channels.json`, `limits.json` | `servers.secrets.json`: node API keys |
-| `probes.json`, `menu.json`, `charts.json` | `users.json`, `users.json.lock`: account state, not configuration |
+| `probes.json`, `menu.json`, `charts.json`, `advisories.json` | `users.json`, `users.json.lock`: account state, not configuration |
 | | `demo/`: local demo data |
 
 Use this `.gitignore` in the configuration repository:
@@ -34,8 +34,8 @@ demo/
     Deleting a committed secret in a later commit leaves it in the history and
     on every clone. If `servers.secrets.json` or an `.env` file was pushed,
     rotate what it contains: generate a new node key (`DASHBOARD_API_KEY` on the
-    node and `api_key` in `servers.secrets.json`) and change the database and
-    mail passwords.
+    node and `api_key` in `servers.secrets.json`), change the database, mail
+    and advisory IMAP passwords, and revoke any advisory GitHub token.
 
 ## Option 1: a repository in `config/`
 
