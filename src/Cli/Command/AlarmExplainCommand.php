@@ -40,10 +40,11 @@ final class AlarmExplainCommand extends Command
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
         $server = $input->getArgument('server');
+        $server = is_string($server) ? $server : null;
         $limit = (int) $input->getOption('limit');
 
         $events = new EventRepository(new PdoDatabase($this->cli->load()->database));
-        $rows = $events->getRecentAlarmDecisions(is_string($server) ? $server : null, $limit);
+        $rows = $events->getRecentAlarmDecisions($server, $limit);
 
         $decisions = [];
         foreach ($rows as $row) {
@@ -62,11 +63,18 @@ final class AlarmExplainCommand extends Command
 
         if ($input->getOption('json')) {
             CliOutput::json($output, ['status' => StatusLevel::Ok->label(), 'events' => $decisions]);
-
-            return StatusLevel::Ok->value;
+        } else {
+            $this->writeHuman($output, $decisions, $server);
         }
+
+        return StatusLevel::Ok->value;
+    }
+
+    /** @param list<array<string,mixed>> $decisions */
+    private function writeHuman(OutputInterface $output, array $decisions, ?string $server): void
+    {
         if ($decisions === []) {
-            $output->writeln('No evaluated events' . (is_string($server) ? " for '{$server}'" : '') . '.');
+            $output->writeln('No evaluated events' . ($server !== null ? " for '{$server}'" : '') . '.');
         }
         foreach ($decisions as $event) {
             $where = ($event['server'] ?? '-') . ($event['app'] !== null ? "/{$event['app']}" : '');
@@ -75,8 +83,6 @@ final class AlarmExplainCommand extends Command
                 $output->writeln("    {$line}");
             }
         }
-
-        return StatusLevel::Ok->value;
     }
 
     /**

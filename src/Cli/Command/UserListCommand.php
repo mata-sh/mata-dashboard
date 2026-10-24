@@ -30,14 +30,13 @@ final class UserListCommand extends AbstractUserCommand
 
         if ($input->getOption('json')) {
             CliOutput::json($output, ['status' => StatusLevel::Ok->label(), 'users' => $rows]);
-
-            return StatusLevel::Ok->value;
-        }
-        if ($rows === []) {
-            $output->writeln('No users. Create one with: bin/mata user create <username> <role>');
-        }
-        foreach ($rows as $row) {
-            $output->writeln("  {$row['username']} ({$row['role']})" . ($row['locked'] ? ' <comment>[locked]</comment>' : ''));
+        } else {
+            if ($rows === []) {
+                $output->writeln('No users. Create one with: bin/mata user create <username> <role>');
+            }
+            foreach ($rows as $row) {
+                $output->writeln("  {$row['username']} ({$row['role']})" . ($row['locked'] ? ' <comment>[locked]</comment>' : ''));
+            }
         }
 
         return StatusLevel::Ok->value;

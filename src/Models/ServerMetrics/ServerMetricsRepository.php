@@ -157,6 +157,30 @@ final class ServerMetricsRepository
     }
 
     /**
+     * Return the row count and latest timestamp of each tier: raw, hourly, daily.
+     *
+     * @return array<int,array{tier:string,rows:int,latest:?string}>
+     */
+    public function getTierSummary(): array
+    {
+        $rows = $this->db->runSelect(
+            <<<'SQL'
+                SELECT 'raw' AS tier, COUNT(*) AS row_count, MAX(collected_at) AS latest FROM server_metrics_raw
+                UNION ALL
+                SELECT 'hourly' AS tier, COUNT(*) AS row_count, MAX(hour_timestamp) AS latest FROM server_metrics_hourly
+                UNION ALL
+                SELECT 'daily' AS tier, COUNT(*) AS row_count, MAX(date) AS latest FROM server_metrics_daily
+            SQL
+        );
+
+        return array_map(static fn (array $row): array => [
+            'tier' => (string) $row['tier'],
+            'rows' => (int) $row['row_count'],
+            'latest' => $row['latest'] !== null ? (string) $row['latest'] : null,
+        ], $rows);
+    }
+
+    /**
      * Fetch the most recent aggregate timestamps to coordinate incremental jobs.
      *
      * @return array{

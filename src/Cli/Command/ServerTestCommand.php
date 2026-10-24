@@ -58,14 +58,13 @@ final class ServerTestCommand extends Command
                 'status' => $level->label(),
                 'servers' => $results,
             ]);
-
-            return $level->value;
-        }
-        foreach ($results as $result) {
-            self::writeResult($output, $result);
-        }
-        if ($results === []) {
-            $output->writeln('No enabled servers to test.');
+        } else {
+            foreach ($results as $result) {
+                self::writeResult($output, $result);
+            }
+            if ($results === []) {
+                $output->writeln('No enabled servers to test.');
+            }
         }
 
         return $level->value;

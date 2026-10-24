@@ -119,7 +119,7 @@ final class ConfigValidateCommandTest extends TestCase
         ]);
         $output = new BufferedOutput();
         $command = new ConfigValidateCommand(new InstanceConfigValidator(), $this->path);
-        (new ReflectionMethod($command, 'writeHuman'))->invoke($command, $report, $output);
+        (new ReflectionMethod($command, 'writeHuman'))->invoke($command, $output, $report);
         $display = $output->fetch();
         $this->assertSame(1, substr_count($display, '[unattributed] Unexpected loader failure'));
         $this->assertStringContainsString('[missing:DOMAIN] Missing input', $display);

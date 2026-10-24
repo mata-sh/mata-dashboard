@@ -68,7 +68,7 @@ final class ConfigValidateCommand extends Command
         if ($input->getOption('json')) {
             CliOutput::json($output, $report->jsonSerialize());
         } else {
-            $this->writeHuman($report, $output);
+            $this->writeHuman($output, $report);
         }
 
         return $report->level()->value;
@@ -81,7 +81,7 @@ final class ConfigValidateCommand extends Command
     }
 
     /** Prints each file's status, then every problem tagged with the files it came from, then the verdict. */
-    private function writeHuman(ConfigValidationReport $report, OutputInterface $output): void
+    private function writeHuman(OutputInterface $output, ConfigValidationReport $report): void
     {
         $output->writeln("Config: {$report->configPath}");
         foreach (array_keys($report->files) as $file) {

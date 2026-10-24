@@ -64,17 +64,21 @@ final class DoctorCommand extends Command
         if ($input->getOption('json')) {
             $checks = array_map(static fn (array $check): array => ['level' => $check['level']->label()] + $check, $this->checks);
             CliOutput::json($output, ['status' => $level->label(), 'checks' => $checks]);
-
-            return $level->value;
+        } else {
+            $this->writeHuman($output);
         }
+
+        return $level->value;
+    }
+
+    private function writeHuman(OutputInterface $output): void
+    {
         foreach ($this->checks as $check) {
             $output->writeln('  ' . CliOutput::mark($check['level']) . " {$check['check']}: {$check['message']}");
             if ($check['hint'] !== null) {
                 $output->writeln("      <comment>{$check['hint']}</comment>");
             }
         }
-
-        return $level->value;
     }
 
     private function checkConfig(): ?ApplicationConfig

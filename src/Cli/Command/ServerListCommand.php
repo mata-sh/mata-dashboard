@@ -49,13 +49,20 @@ final class ServerListCommand extends Command
 
         if ($input->getOption('json')) {
             CliOutput::json($output, ['status' => $level->label(), 'servers' => $rows]);
-
-            return $level->value;
+        } else {
+            $this->writeHuman($output, $rows);
         }
+
+        return $level->value;
+    }
+
+    /** @param list<array{name:string,title:string,api_url:string,disabled:bool,has_api_key:bool,problems:list<string>}> $rows */
+    private function writeHuman(OutputInterface $output, array $rows): void
+    {
         if ($rows === []) {
             $output->writeln('No servers configured. Add one with: bin/mata server add <name> --api-url <url>');
 
-            return $level->value;
+            return;
         }
 
         $table = new Table($output);
@@ -70,7 +77,5 @@ final class ServerListCommand extends Command
             ]);
         }
         $table->render();
-
-        return $level->value;
     }
 }

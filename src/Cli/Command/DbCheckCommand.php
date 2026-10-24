@@ -27,14 +27,13 @@ final class DbCheckCommand extends AbstractDbCommand
 
         if ($input->getOption('json')) {
             CliOutput::json($output, ['status' => $level->label(), 'checks' => $result['checks']]);
-
-            return $level->value;
+        } else {
+            foreach ($result['checks'] as $check) {
+                $details = ($check['details'] ?? '') !== '' ? " ({$check['details']})" : '';
+                $output->writeln('  ' . CliOutput::mark($check['status'] === 'ok' ? StatusLevel::Ok : StatusLevel::Error) . " {$check['label']}{$details}");
+            }
+            $output->writeln($level === StatusLevel::Ok ? '<info>Integrity checks passed.</info>' : '<error>Integrity checks failed.</error>');
         }
-        foreach ($result['checks'] as $check) {
-            $details = ($check['details'] ?? '') !== '' ? " ({$check['details']})" : '';
-            $output->writeln('  ' . CliOutput::mark($check['status'] === 'ok' ? StatusLevel::Ok : StatusLevel::Error) . " {$check['label']}{$details}");
-        }
-        $output->writeln($level === StatusLevel::Ok ? '<info>Integrity checks passed.</info>' : '<error>Integrity checks failed.</error>');
 
         return $level->value;
     }

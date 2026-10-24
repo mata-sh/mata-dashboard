@@ -7,6 +7,7 @@ namespace Mata\Cli\Command;
 use Mata\Cli\CliOutput;
 use Mata\Config\Monitoring\Section\ServersConfig;
 use Mata\Config\Monitoring\ServersConfigEditor;
+use Mata\Services\Monitor\Dto\NodeConnectionResult;
 use Mata\Services\Monitor\NodeConnectionTester;
 use Mata\Services\Status\StatusLevel;
 use Symfony\Component\Console\Attribute\AsCommand;
@@ -111,10 +112,15 @@ final class ServerAddCommand extends Command
                 'warnings' => $this->editor->warnings(),
                 'test' => $result,
             ]);
-
-            return $level->value;
+        } else {
+            $this->writeHuman($output, $name, $generated, $nodeLines, $result);
         }
 
+        return $level->value;
+    }
+
+    private function writeHuman(OutputInterface $output, string $name, bool $generated, string $nodeLines, ?NodeConnectionResult $result): void
+    {
         $output->writeln("<info>Added '{$name}'</info> to servers.json; key stored in servers.secrets.json.");
         foreach ($this->editor->warnings() as $warning) {
             $output->writeln("<comment>{$warning}</comment>");
@@ -128,8 +134,6 @@ final class ServerAddCommand extends Command
                 $output->writeln("Re-run <info>bin/mata server test {$name}</info> once the node is configured.");
             }
         }
-
-        return $level->value;
     }
 
     private static function nonEmpty(mixed $value): ?string
