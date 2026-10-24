@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Mata\Services\Advisory\Report;
 
+use DateTimeImmutable;
 use DateTimeZone;
 use Mata\Models\Advisory\Advisory;
 use Mata\Models\Advisory\AdvisoryReviewStatus;
@@ -23,6 +24,9 @@ final class AdvisoryReportPresenter
         'low' => ['label' => 'Low', 'emoji' => '🔵', 'fill' => '#2e7d43', 'border' => '#4da767', 'tint' => '#7bd88f'],
         'unknown' => ['label' => 'Unrated', 'emoji' => '⚪', 'fill' => '#4a5060', 'border' => '#6b7280', 'tint' => '#9a9a9a'],
     ];
+
+    /** Stands in for the worst severity of a report without advisories. */
+    private const QUIET = ['label' => 'Quiet', 'emoji' => '🟢', 'fill' => '#2e7d43', 'border' => '#4da767', 'tint' => '#7bd88f'];
 
     /** @var array<string,array{label:string,color:string}> */
     private const HEALTH = [
@@ -70,16 +74,16 @@ final class AdvisoryReportPresenter
             'title' => $report->title,
             'generated_at' => $report->generatedAt->format('Y-m-d H:i') . ' UTC',
             'period' => [
-                'since' => $since->setTimezone(new DateTimeZone('UTC'))->format('Y-m-d'),
-                'until' => $until->setTimezone(new DateTimeZone('UTC'))->format('Y-m-d'),
+                'since' => self::day($since),
+                'until' => self::day($until),
                 'days' => $days,
                 'label' => $days === 1 ? 'last 24 hours' : "last {$days} days",
             ],
             'scope' => $this->scope($report),
-            'worst' => self::severity($report->worstSeverity()->value),
+            'worst' => self::worst($report),
             'totals' => [
                 'advisories' => $report->total,
-                'critical_high' => $report->severityCounts['critical'] + $report->severityCounts['high'],
+                'critical_high' => $report->criticalOrHighCount(),
                 'unreviewed' => $report->unreviewed,
                 'notified' => $report->notified,
                 'cves' => $report->cveCount,
@@ -103,6 +107,18 @@ final class AdvisoryReportPresenter
     public static function severity(string $value): array
     {
         return self::SEVERITY[$value] ?? self::SEVERITY['unknown'];
+    }
+
+    /** @return array{label:string,emoji:string,fill:string,border:string,tint:string} the worst severity, or "Quiet" without advisories */
+    public static function worst(AdvisoryReport $report): array
+    {
+        return $report->total === 0 ? self::QUIET : self::severity($report->worstSeverity()->value);
+    }
+
+    /** A period bound as its UTC date. */
+    public static function day(DateTimeImmutable $time): string
+    {
+        return $time->setTimezone(new DateTimeZone('UTC'))->format('Y-m-d');
     }
 
     /** @return array<string,mixed> */

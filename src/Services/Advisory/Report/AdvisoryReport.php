@@ -44,6 +44,11 @@ final readonly class AdvisoryReport
         return array_slice([...($this->bySeverity[Severity::Critical->value] ?? []), ...($this->bySeverity[Severity::High->value] ?? [])], 0, $limit);
     }
 
+    public function criticalOrHighCount(): int
+    {
+        return ($this->severityCounts[Severity::Critical->value] ?? 0) + ($this->severityCounts[Severity::High->value] ?? 0);
+    }
+
     public function worstSeverity(): Severity
     {
         foreach (Severity::cases() as $severity) {

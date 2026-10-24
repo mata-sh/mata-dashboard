@@ -3,7 +3,7 @@
 {% set label = 'font-family:dejavusansmono; font-size:6.5pt; color:#8b93a5; font-weight:bold;' %}
 {% set meta = 'font-family:dejavusansmono; font-size:7pt; color:#8b93a5;' %}
 <p style="font-family:dejavusans; font-size:19pt; font-weight:bold; color:#e8eaf0;">{{ title|upper }}</p>
-<p style="{{ meta }}"><span style="color:{{ worst.tint }}; font-weight:bold;">▲ {{ (empty ? 'Quiet' : worst.label)|upper }}</span> &nbsp; {{ period.since }} → {{ period.until }} · {{ period.label|upper }} · GENERATED {{ generated_at }}</p>
+<p style="{{ meta }}"><span style="color:{{ worst.tint }}; font-weight:bold;">▲ {{ worst.label|upper }}</span> &nbsp; {{ period.since }} → {{ period.until }} · {{ period.label|upper }} · GENERATED {{ generated_at }}</p>
 <p style="font-family:dejavusans; font-size:8.5pt; color:#c9cfda;">{{ scope }}</p>
 
 <table cellpadding="6" cellspacing="0" style="border:1px solid #1f242e; background-color:#0e1015;">

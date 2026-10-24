@@ -9,6 +9,7 @@ use DateTimeZone;
 use InvalidArgumentException;
 use Mata\Cli\CliOutput;
 use Mata\Services\Advisory\Report\AdvisoryReport;
+use Mata\Services\Advisory\Report\AdvisoryReportPresenter;
 use Mata\Services\Advisory\Report\AdvisoryReportQuery;
 use Mata\Services\Advisory\Report\AdvisoryReportRenderer;
 use Mata\Services\Audit\Severity;
@@ -89,8 +90,7 @@ final class AdvisoryReportCommand extends AbstractAdvisoryCommand
         if ($mail) {
             try {
                 $to = array_values(array_filter((array) $input->getOption('to'), 'is_string'));
-                $digest = $this->advisories->config->digest;
-                $recipients = $this->advisories->digestMailer()->send($report, $to !== [] ? $to : $digest->recipients, $digest->attachPdf);
+                $recipients = $this->advisories->digestMailer()->send($report, $to);
             } catch (RuntimeException $exception) {
                 return CliOutput::fail($input, $output, $exception->getMessage());
             }
@@ -99,9 +99,9 @@ final class AdvisoryReportCommand extends AbstractAdvisoryCommand
         $summary = sprintf(
             '%d advisories (%d critical or high), %s – %s',
             $report->total,
-            $report->severityCounts['critical'] + $report->severityCounts['high'],
-            $query->since->format('Y-m-d'),
-            $query->until->format('Y-m-d')
+            $report->criticalOrHighCount(),
+            AdvisoryReportPresenter::day($query->since),
+            AdvisoryReportPresenter::day($query->until)
         );
         $payload = ['totals' => $report->toArray()['totals'], 'files' => $files, 'mailed_to' => $recipients];
         if ($files === [] && !$mail) {

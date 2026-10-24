@@ -4,6 +4,10 @@ declare(strict_types=1);
 
 namespace Mata\Config\Dto;
 
+use RuntimeException;
+use Symfony\Component\Mime\Address;
+use Symfony\Component\Mime\Exception\RfcComplianceException;
+
 /**
  * Immutable DTO representing mail and notification configuration.
  *
@@ -52,5 +56,62 @@ final class MailConfig
         }
 
         return rtrim($url, '/');
+    }
+
+    /**
+     * MAIL_FROM_EMAIL named MAIL_FROM_NAME, or "<application> Dashboard" when the name is unset.
+     *
+     * @throws RuntimeException when MAIL_FROM_EMAIL is unset or invalid
+     */
+    public function sender(string $applicationName): Address
+    {
+        $email = trim((string) $this->fromEmail);
+        if ($email === '') {
+            throw new RuntimeException('Mail sender address not configured (MAIL_FROM_EMAIL).');
+        }
+        $name = trim((string) $this->fromName);
+
+        return self::address($email, $name !== '' ? $name : $applicationName . ' Dashboard');
+    }
+
+    /**
+     * The first list that has a non-blank address, trimmed; MAIL_ALARM_RECIPIENTS when none has.
+     *
+     * @param list<string> ...$preferred
+     *
+     * @return list<string> empty when MAIL_ALARM_RECIPIENTS is empty too
+     */
+    public function recipients(array ...$preferred): array
+    {
+        foreach ([...$preferred, $this->alarmRecipients] as $recipients) {
+            $recipients = array_values(array_filter(array_map('trim', $recipients), static fn (string $recipient): bool => $recipient !== ''));
+            if ($recipients !== []) {
+                return $recipients;
+            }
+        }
+
+        return [];
+    }
+
+    /**
+     * @param list<string> $emails
+     *
+     * @return list<Address>
+     *
+     * @throws RuntimeException when an address is invalid
+     */
+    public static function addresses(array $emails): array
+    {
+        return array_map(self::address(...), $emails);
+    }
+
+    /** @throws RuntimeException when the address is invalid */
+    public static function address(string $email, string $name = ''): Address
+    {
+        try {
+            return new Address($email, $name);
+        } catch (RfcComplianceException $exception) {
+            throw new RuntimeException(sprintf('Invalid email address "%s".', $email), previous: $exception);
+        }
     }
 }

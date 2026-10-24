@@ -114,6 +114,7 @@ final readonly class AdvisoryRuntime
         return new AdvisoryDigestMailer(
             new Mailer(Transport::fromDsn((string) $this->appConfig->mail->dsn)),
             $this->appConfig->mail,
+            $this->config->digest,
             $this->reportRenderer(),
             $this->appConfig->general->appName,
         );

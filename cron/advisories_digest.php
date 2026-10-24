@@ -47,7 +47,7 @@ try {
     }
 
     $report = $advisories->reportBuilder()->build(AdvisoryReportQuery::lastDays($digest->everyDays, $now, $digest->relevantOnly), $now);
-    $recipients = $advisories->digestMailer()->send($report, $digest->recipients, $digest->attachPdf);
+    $recipients = $advisories->digestMailer()->send($report);
     $state->save(['last_sent_at' => $now->getTimestamp()]);
 
     $cron->log(sprintf('Sent digest with %d advisories to %d recipients in %.3fs', $report->total, count($recipients), $cron->endTimer()));
