@@ -69,21 +69,25 @@ final class FleetStatusReader
         $health = NodeHealthResult::fromArray($entry->value);
         $age = max(0, $now - $entry->storedAt);
         $stale = $age > 2 * $this->healthTtlSeconds + self::STALE_GRACE_SECONDS;
-        $level = $stale ? StatusLevel::Unknown : match ($health->state) {
-            NodeHealthState::Healthy => StatusLevel::Ok,
-            NodeHealthState::Maintenance => StatusLevel::Warning,
-            NodeHealthState::Unknown => StatusLevel::Unknown,
-            default => StatusLevel::Error,
-        };
 
         return new ServerStatus(
             name: $name,
             title: $title,
             health: $health->state,
-            level: $level,
+            level: $stale ? StatusLevel::Unknown : self::healthLevel($health->state),
             checkedAt: $entry->storedAt,
             ageSeconds: $age,
             error: $stale ? "Health result is {$age}s old; servers_data_fetch may have stopped" : $health->error,
         );
+    }
+
+    private static function healthLevel(NodeHealthState $state): StatusLevel
+    {
+        return match ($state) {
+            NodeHealthState::Healthy => StatusLevel::Ok,
+            NodeHealthState::Maintenance => StatusLevel::Warning,
+            NodeHealthState::Unknown => StatusLevel::Unknown,
+            default => StatusLevel::Error,
+        };
     }
 }

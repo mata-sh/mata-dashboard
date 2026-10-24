@@ -4,6 +4,11 @@
 through `make mata ARGS="…"`, which picks the right account, also in Docker.
 `server add` and `server remove` write `config/` and run as its owner.
 
+!!! info "Quoting in `ARGS`"
+    `ARGS` is pasted into a shell command line, so quote values as you would in a
+    shell: `ARGS="server add web-01 --title 'Web 01'"`. `make` expands `$` first;
+    write a literal `$`, e.g. in `--api-key`, as `$$`.
+
 Without arguments it lists the commands; `--version` prints the installed
 release, and `<command> --help` documents a command's options.
 

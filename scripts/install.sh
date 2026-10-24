@@ -71,19 +71,17 @@ native_hint() {
     say "     curl -fsSL https://mata.sh/install.sh | sh -s -- --native"
 }
 
-check_requirements() {
+check_tools() {
+    tools="git make"
+    [ "$mode" = docker ] || tools="$tools php composer"
     missing=
-    for tool in git make; do
+    for tool in $tools; do
         command -v "$tool" >/dev/null 2>&1 || missing="$missing $tool"
     done
-    if [ "$mode" = local ]; then
-        for tool in php composer; do
-            command -v "$tool" >/dev/null 2>&1 || missing="$missing $tool"
-        done
-    fi
     [ -z "$missing" ] || fail "missing:$missing. Install them with your package manager, then run this again."
-    [ "$mode" = docker ] || return 0
+}
 
+check_docker() {
     if ! command -v docker >/dev/null 2>&1 || ! docker compose version >/dev/null 2>&1; then
         fail "Docker with the Compose plugin is not installed. Either" \
             "  install it (https://docs.docker.com/engine/install/), then run this again," \
@@ -193,10 +191,11 @@ EOF
 
 main() {
     parse_args "$@"
-    check_requirements
+    check_tools
+    if [ "$mode" = docker ]; then check_docker; fi
     checkout
     setup
-    [ "$dry_run" = no ] || exit 0
+    if [ "$dry_run" = yes ]; then exit 0; fi
     if [ "$mode" = docker ]; then summary_docker; else summary_native; fi
 }
 
