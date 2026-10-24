@@ -35,7 +35,7 @@ final readonly class ProbesConfig
     /** @param array<string,mixed> $raw */
     public static function fromArray(array $raw): self
     {
-        $probes = ConfigObject::of($raw, 'probes');
+        $probes = ConfigObject::fromValue($raw, 'probes');
         $timeoutSeconds = $probes->integer('timeout_seconds', self::DEFAULT_TIMEOUT_SECONDS, minimum: 1);
         $maxRetries = $probes->integer('max_retries', self::DEFAULT_MAX_RETRIES, minimum: 0);
         $backoffBaseMs = $probes->integer('backoff_base_ms', self::DEFAULT_BACKOFF_BASE_MS, minimum: 0);

@@ -78,7 +78,7 @@ final readonly class ChannelsConfig
         if (!ConfigValueValidator::isSlug($name, NotificationRulesConfig::CHANNEL_NAME_MAX_LENGTH) || $name === self::EMAIL) {
             throw new InvalidArgumentException("{$path}: invalid or reserved channel name.");
         }
-        $entry = ConfigObject::of($value, $path);
+        $entry = ConfigObject::fromValue($value, $path);
         if ($entry->raw('type') !== 'webhook') {
             throw new InvalidArgumentException("{$entry->path('type')} must be \"webhook\".");
         }

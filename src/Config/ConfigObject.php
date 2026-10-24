@@ -7,9 +7,9 @@ namespace Mata\Config;
 use InvalidArgumentException;
 
 /**
- * One object of a JSON config file, read key by key. Only a missing key takes the default; an explicit
- * null is validated like any other value and fails. Messages name the key by its dotted path,
- * e.g. `advisories.sources.php.name`.
+ * Reads the keys of one object of a JSON config file: applies defaults, names each key by its dotted path
+ * (e.g. `advisories.sources.php.name`) and rejects unknown keys; ConfigValueValidator checks the values.
+ * Only a missing key takes the default; an explicit null is checked like any other value and fails.
  */
 final readonly class ConfigObject
 {
@@ -20,7 +20,7 @@ final readonly class ConfigObject
     ) {}
 
     /** @throws InvalidArgumentException when $value is not an object */
-    public static function of(mixed $value, string $path): self
+    public static function fromValue(mixed $value, string $path): self
     {
         return new self($path, ConfigValueValidator::object($value, $path));
     }
@@ -53,7 +53,7 @@ final readonly class ConfigObject
     /** A missing key reads as an empty object. */
     public function object(string $key): self
     {
-        return self::of($this->raw($key, []), $this->path($key));
+        return self::fromValue($this->raw($key, []), $this->path($key));
     }
 
     public function integer(string $key, int $default, ?int $minimum = null, ?int $maximum = null): int
@@ -63,34 +63,19 @@ final readonly class ConfigObject
 
     public function boolean(string $key, bool $default): bool
     {
-        $value = $this->raw($key, $default);
-        if (!is_bool($value)) {
-            throw new InvalidArgumentException("{$this->path($key)} must be a boolean.");
-        }
-
-        return $value;
+        return ConfigValueValidator::boolean($this->raw($key, $default), $this->path($key));
     }
 
-    /** The name of an environment variable; the key is required. */
+    /** The key is required. */
     public function envName(string $key): string
     {
-        $value = $this->raw($key);
-        if (!is_string($value) || !ConfigValueValidator::isEnvName($value)) {
-            throw new InvalidArgumentException("{$this->path($key)} must name an environment variable.");
-        }
-
-        return $value;
+        return ConfigValueValidator::envName($this->raw($key), $this->path($key));
     }
 
     /** Trimmed; a null default makes the key required. */
     public function text(string $key, ?string $default, int $maxLength, bool $allowEmpty = false): string
     {
-        $value = $this->raw($key, $default);
-        if (!is_string($value) || (!$allowEmpty && trim($value) === '') || mb_strlen($value) > $maxLength) {
-            throw new InvalidArgumentException("{$this->path($key)} must be a " . ($allowEmpty ? '' : 'non-empty ') . "string of at most {$maxLength} characters.");
-        }
-
-        return trim($value);
+        return ConfigValueValidator::text($this->raw($key, $default), $this->path($key), $maxLength, $allowEmpty);
     }
 
     /**
@@ -103,19 +88,6 @@ final readonly class ConfigObject
      */
     public function stringList(string $key, callable $isValid, string $expected): array
     {
-        $list = $this->raw($key, []);
-        if (!is_array($list) || !array_is_list($list)) {
-            throw new InvalidArgumentException("{$this->path($key)} must be {$expected}.");
-        }
-
-        $strings = [];
-        foreach ($list as $item) {
-            if (!is_string($item) || !$isValid($item)) {
-                throw new InvalidArgumentException("{$this->path($key)} must be {$expected}.");
-            }
-            $strings[] = $item;
-        }
-
-        return $strings;
+        return ConfigValueValidator::stringList($this->raw($key, []), $this->path($key), $isValid, $expected);
     }
 }

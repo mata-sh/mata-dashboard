@@ -80,7 +80,7 @@ abstract class AbstractJsonConfigLoader
 
         try {
             $section = $this->parseFile($filePath);
-        } catch (InvalidArgumentException | RuntimeException $exception) {
+        } catch (InvalidArgumentException|RuntimeException $exception) {
             $message = "Could not load {$this->fileName()}: {$exception->getMessage()}";
             $this->reportLoadFailure($message, $exception instanceof JsonConfigReadException ? $exception->fileName : null);
             if (!$this->fallbackOnFailure) {

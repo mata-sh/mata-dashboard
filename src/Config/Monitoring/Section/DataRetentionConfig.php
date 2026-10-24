@@ -42,7 +42,7 @@ final readonly class DataRetentionConfig
     /** @param array<string,mixed> $raw */
     public static function fromArray(array $raw): self
     {
-        $retention = ConfigObject::of($raw, 'data_retention');
+        $retention = ConfigObject::fromValue($raw, 'data_retention');
         $metrics = $retention->object('metrics');
         $aggregation = $retention->object('aggregation');
         $hourly = $aggregation->object('hourly');

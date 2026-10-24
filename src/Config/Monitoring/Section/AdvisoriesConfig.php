@@ -53,7 +53,7 @@ final readonly class AdvisoriesConfig
      */
     public static function fromArray(array $raw, callable $env, callable $reportInvalid): self
     {
-        $advisories = ConfigObject::of($raw, 'advisories');
+        $advisories = ConfigObject::fromValue($raw, 'advisories');
         $advisories->rejectUnknownKeys(self::ROOT_KEYS);
         $defaultInterval = $advisories->integer('poll_interval_minutes', 60, 5, 10080);
         $failureWarningAfter = $advisories->integer('failure_warning_after', 3, 1, 100);
@@ -113,7 +113,7 @@ final readonly class AdvisoriesConfig
         if (!ConfigValueValidator::isSlug($key, self::SOURCE_KEY_MAX_LENGTH)) {
             throw new InvalidArgumentException("{$path}: the key must be lowercase letters, digits, '-' or '_' (at most " . self::SOURCE_KEY_MAX_LENGTH . ').');
         }
-        $entry = ConfigObject::of($value, $path);
+        $entry = ConfigObject::fromValue($value, $path);
         $type = self::sourceType($entry);
         $entry->rejectUnknownKeys([...self::COMMON_SOURCE_KEYS, ...$type->settingKeys()]);
 

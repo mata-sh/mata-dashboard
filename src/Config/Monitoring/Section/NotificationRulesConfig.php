@@ -34,7 +34,7 @@ final readonly class NotificationRulesConfig
     /** @param array<string,mixed> $data */
     public static function fromArray(array $data): self
     {
-        $notificationRules = ConfigObject::of($data, 'notification rules');
+        $notificationRules = ConfigObject::fromValue($data, 'notification rules');
         $notificationRules->rejectUnknownKeys(['defaults', 'event_types', 'application_overrides']);
 
         return new self(
@@ -73,7 +73,7 @@ final readonly class NotificationRulesConfig
     private static function validateRules(mixed $rules, string $path): array
     {
         $validated = [];
-        foreach (ConfigObject::of($rules, $path)->values as $eventType => $rule) {
+        foreach (ConfigObject::fromValue($rules, $path)->values as $eventType => $rule) {
             self::assertNonEmptyKey($eventType, $path);
             $validated[(string) $eventType] = self::validateRule($rule, "{$path}.{$eventType}");
         }
@@ -85,7 +85,7 @@ final readonly class NotificationRulesConfig
     private static function validateApplicationOverrides(mixed $overrides): array
     {
         $validated = [];
-        foreach (ConfigObject::of($overrides, 'application_overrides')->values as $application => $rules) {
+        foreach (ConfigObject::fromValue($overrides, 'application_overrides')->values as $application => $rules) {
             self::assertNonEmptyKey($application, 'application_overrides');
             $validated[(string) $application] = self::validateRules($rules, "application_overrides.{$application}");
         }
@@ -96,7 +96,7 @@ final readonly class NotificationRulesConfig
     /** @return array{enabled?:bool,channels?:list<string>} */
     private static function validateRule(mixed $value, string $path): array
     {
-        $rule = ConfigObject::of($value, $path);
+        $rule = ConfigObject::fromValue($value, $path);
         $rule->rejectUnknownKeys(['enabled', 'channels']);
 
         // A rule sets only the keys it lists, so absent ones fall through to the next level.

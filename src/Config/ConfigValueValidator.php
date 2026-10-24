@@ -6,7 +6,10 @@ namespace Mata\Config;
 
 use InvalidArgumentException;
 
-/** Shared primitive validation for configuration factories. */
+/**
+ * Checks one decoded config value: each throwing method returns it typed or names it by $path in the
+ * message, and each `is*()` method only answers. Reading keys (defaults, paths, unknown keys) is ConfigObject's job.
+ */
 final class ConfigValueValidator
 {
     /**
@@ -40,6 +43,57 @@ final class ConfigValueValidator
         }
 
         return $value;
+    }
+
+    public static function boolean(mixed $value, string $path): bool
+    {
+        if (!is_bool($value)) {
+            throw new InvalidArgumentException("{$path} must be a boolean.");
+        }
+
+        return $value;
+    }
+
+    /** Returned trimmed. */
+    public static function text(mixed $value, string $path, int $maxLength, bool $allowEmpty = false): string
+    {
+        if (!is_string($value) || (!$allowEmpty && trim($value) === '') || mb_strlen($value) > $maxLength) {
+            throw new InvalidArgumentException("{$path} must be a " . ($allowEmpty ? '' : 'non-empty ') . "string of at most {$maxLength} characters.");
+        }
+
+        return trim($value);
+    }
+
+    public static function envName(mixed $value, string $path): string
+    {
+        if (!is_string($value) || !self::isEnvName($value)) {
+            throw new InvalidArgumentException("{$path} must name an environment variable.");
+        }
+
+        return $value;
+    }
+
+    /**
+     * @param callable(string):bool $isValid
+     * @param string                $expected completes "<path> must be …", e.g. "a list of email addresses"
+     *
+     * @return list<string>
+     */
+    public static function stringList(mixed $value, string $path, callable $isValid, string $expected): array
+    {
+        if (!is_array($value) || !array_is_list($value)) {
+            throw new InvalidArgumentException("{$path} must be {$expected}.");
+        }
+
+        $strings = [];
+        foreach ($value as $item) {
+            if (!is_string($item) || !$isValid($item)) {
+                throw new InvalidArgumentException("{$path} must be {$expected}.");
+            }
+            $strings[] = $item;
+        }
+
+        return $strings;
     }
 
     public static function integer(

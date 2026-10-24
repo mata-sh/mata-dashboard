@@ -36,7 +36,7 @@ final readonly class AlarmRateLimit
         string $path = 'limits.channels.default',
     ): self {
         $fallback ??= self::default();
-        $limits = ConfigObject::of($payload, $path);
+        $limits = ConfigObject::fromValue($payload, $path);
 
         return new self(
             $limits->integer('per_minute', $fallback->perMinute, minimum: 0),
