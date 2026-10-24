@@ -120,7 +120,7 @@ deliberately limited built-in driver where it cannot; see
 ```bash
 git clone https://github.com/mata-sh/mata-dashboard.git
 cd mata-dashboard
-make setup          # asks for local|docker and dev|demo|prod, writes .mata.mk
+make setup          # asks for native|docker and dev|demo|prod, writes .mata.mk
 make db-migrate
 make doctor
 ```

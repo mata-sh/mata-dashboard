@@ -95,5 +95,5 @@ make mata MODE=docker ENV=prod ARGS="db status"
 make mata MODE=docker ENV=prod ARGS="user list"
 ```
 
-For native installs, run the same checks with `MODE=local`. Review application,
+For native installs, run the same checks with `MODE=native`. Review application,
 cron, PHP, and web-server logs after the first collection and alarm cycles.

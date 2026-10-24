@@ -36,7 +36,7 @@ SELECTED_COMPOSE = $(if $(filter prod,$(ENV)),$(PROD_COMPOSE),$(DEV_COMPOSE))
 
 # Reusable operational checks. MODE is selected, never auto-detected.
 define REQUIRE_SELECTION
-case "$(MODE)" in local|docker) ;; *) echo "$(COLOR_RED)❌ MODE must be local or docker. Run: make setup$(COLOR_RESET)"; exit 1 ;; esac; \
+case "$(MODE)" in native|docker) ;; *) echo "$(COLOR_RED)❌ MODE must be native or docker. Run: make setup$(COLOR_RESET)"; exit 1 ;; esac; \
 case "$(ENV)" in dev|demo|prod) ;; *) echo "$(COLOR_RED)❌ ENV must be dev, demo, or prod. Run: make setup$(COLOR_RESET)"; exit 1 ;; esac
 endef
 
@@ -173,14 +173,14 @@ help:
 help-all: help
 	@echo ""
 	@echo "$(COLOR_BOLD)SETUP AND UTILITIES$(COLOR_RESET)"
-	@echo "  make setup MODE=local ENV=prod"
+	@echo "  make setup MODE=native ENV=prod"
 	@echo "  make setup MODE=docker ENV=dev"
 	@echo "  make setup MODE=docker ENV=demo ADMIN_USER=admin   (no prompts without a terminal)"
 	@echo "  make install-hooks"
 	@echo "  make setup-opa"
 	@echo "  make opa-install-service"
 	@echo "  make docs-deploy"
-	@echo "  Override the selection with MODE=local|docker ENV=dev|demo|prod"
+	@echo "  Override the selection with MODE=native|docker ENV=dev|demo|prod"
 	@echo ""
 	@echo "$(COLOR_BOLD)DATABASE$(COLOR_RESET)"
 	@echo "  make db-migrate | db-shell"
@@ -205,7 +205,7 @@ setup:
 	@MODE="$(MODE)" ENV="$(ENV)" START_SERVICES="$(START_SERVICES)" RUN_MIGRATIONS="$(RUN_MIGRATIONS)" INSTALL_OPA="$(INSTALL_OPA)" INSTALL_OPA_SERVICE="$(INSTALL_OPA_SERVICE)" CREATE_USER="$(CREATE_USER)" ADMIN_USER="$(ADMIN_USER)" WEBSERVER="$(WEBSERVER)" NONINTERACTIVE="$(NONINTERACTIVE)" MAKE_CMD="make" ./scripts/setup.sh
 
 # Native prerequisites and webserver configuration, called by the setup wizard.
-setup-local:
+setup-native:
 	@echo "$(COLOR_BLUE)📋 Creating config files from examples...$(COLOR_RESET)"
 	@mkdir -p config/demo temp/api-cache temp/sessions temp/templates-cache logs
 	@for file in config.env db.config.env mail.config.env servers.json servers.secrets.json ttl.json thresholds.json intervals.json data_retention.json; do \
@@ -295,14 +295,14 @@ doctor:
 	echo "$(COLOR_BOLD)MATA installation check$(COLOR_RESET)"; \
 	echo "  Mode:        $(MODE)"; \
 	echo "  Environment: $(ENV)"; \
-	case "$(MODE)" in local|docker) ;; *) echo "$(COLOR_RED)  ✗ Invalid or missing mode$(COLOR_RESET)"; failed=1 ;; esac; \
+	case "$(MODE)" in native|docker) ;; *) echo "$(COLOR_RED)  ✗ Invalid or missing mode$(COLOR_RESET)"; failed=1 ;; esac; \
 	case "$(ENV)" in dev|demo|prod) ;; *) echo "$(COLOR_RED)  ✗ Invalid or missing environment$(COLOR_RESET)"; failed=1 ;; esac; \
 	for file in config/config.env config/db.config.env config/mail.config.env; do \
 		if [ -f "$$file" ]; then echo "$(COLOR_GREEN)  ✓ $$file$(COLOR_RESET)"; else echo "$(COLOR_RED)  ✗ $$file missing$(COLOR_RESET)"; failed=1; fi; \
 	done; \
 	config_env=$(call GET_ENV_VALUE,config/config.env,APP_ENV); \
 	if [ "$$config_env" = "$(ENV)" ]; then echo "$(COLOR_GREEN)  ✓ config APP_ENV=$(ENV)$(COLOR_RESET)"; else echo "$(COLOR_RED)  ✗ config APP_ENV=$${config_env:-missing}, expected $(ENV)$(COLOR_RESET)"; failed=1; fi; \
-	if [ "$(MODE)" = "local" ]; then \
+	if [ "$(MODE)" = "native" ]; then \
 		command -v php >/dev/null 2>&1 && echo "$(COLOR_GREEN)  ✓ PHP available$(COLOR_RESET)" || { echo "$(COLOR_RED)  ✗ PHP missing$(COLOR_RESET)"; failed=1; }; \
 		[ -f vendor/autoload.php ] && echo "$(COLOR_GREEN)  ✓ Composer dependencies installed$(COLOR_RESET)" || { echo "$(COLOR_RED)  ✗ vendor/autoload.php missing$(COLOR_RESET)"; failed=1; }; \
 		if systemctl is-active --quiet opa.service 2>/dev/null; then echo "$(COLOR_GREEN)  ✓ OPA running$(COLOR_RESET)"; else echo "$(COLOR_YELLOW)  ! OPA not running$(COLOR_RESET)"; fi; \
@@ -397,7 +397,7 @@ opa-install-service:
 # Start OPA according to the mode selected by make setup.
 opa-start:
 	@$(REQUIRE_SELECTION); \
-	if [ "$(MODE)" = "local" ]; then \
+	if [ "$(MODE)" = "native" ]; then \
 		[ -f /etc/systemd/system/opa.service ] || { echo "$(COLOR_RED)❌ OPA service is not installed. Run: make opa-install-service$(COLOR_RESET)"; exit 1; }; \
 		sudo systemctl start opa.service; \
 	else \
@@ -407,7 +407,7 @@ opa-start:
 
 opa-stop:
 	@$(REQUIRE_SELECTION); \
-	if [ "$(MODE)" = "local" ]; then \
+	if [ "$(MODE)" = "native" ]; then \
 		sudo systemctl stop opa.service; \
 	else \
 		$(REQUIRE_DOCKER_MODE); \
@@ -417,7 +417,7 @@ opa-stop:
 opa-status:
 	@$(REQUIRE_SELECTION); \
 	echo "$(COLOR_BLUE)Mode: $(MODE) | Environment: $(ENV)$(COLOR_RESET)"; \
-	if [ "$(MODE)" = "local" ]; then \
+	if [ "$(MODE)" = "native" ]; then \
 		systemctl --no-pager --full status opa.service; \
 	else \
 		$(REQUIRE_DOCKER_MODE); \
@@ -426,7 +426,7 @@ opa-status:
 
 opa-test:
 	@$(REQUIRE_SELECTION); \
-	if [ "$(MODE)" = "local" ]; then \
+	if [ "$(MODE)" = "native" ]; then \
 		[ -x "$(OPA_BIN)" ] || { echo "$(COLOR_RED)❌ OPA binary missing. Run make setup-opa.$(COLOR_RESET)"; exit 1; }; \
 		"$(OPA_BIN)" test policy; \
 	else \
@@ -478,7 +478,7 @@ test:
 		echo "$(COLOR_RED)❌ Tests are blocked in production. Set ALLOW_PROD_TESTS=CONFIRM_PRODUCTION to override.$(COLOR_RESET)"; exit 1; \
 	fi; \
 	echo "$(COLOR_BLUE)Mode: $(MODE) | Environment: $(ENV)$(COLOR_RESET)"; \
-	if [ "$(MODE)" = "local" ]; then \
+	if [ "$(MODE)" = "native" ]; then \
 		[ -x vendor/bin/phpunit ] || { echo "$(COLOR_RED)❌ vendor/bin/phpunit is missing. Run composer install.$(COLOR_RESET)"; exit 1; }; \
 		APP_ENV="$(ENV)" vendor/bin/phpunit; \
 	else \
@@ -491,7 +491,7 @@ test-coverage:
 	if [ "$(ENV)" = "prod" ] && [ "$(ALLOW_PROD_TESTS)" != "CONFIRM_PRODUCTION" ]; then \
 		echo "$(COLOR_RED)❌ Coverage is blocked in production.$(COLOR_RESET)"; exit 1; \
 	fi; \
-	if [ "$(MODE)" = "local" ]; then \
+	if [ "$(MODE)" = "native" ]; then \
 		[ -x vendor/bin/phpunit ] || { echo "$(COLOR_RED)❌ vendor/bin/phpunit is missing.$(COLOR_RESET)"; exit 1; }; \
 		APP_ENV="$(ENV)" vendor/bin/phpunit --coverage-html coverage; \
 	else \
@@ -503,7 +503,7 @@ test-coverage:
 # Database Management
 # ============================================
 
-define REQUIRE_LOCAL_PHP
+define REQUIRE_NATIVE_PHP
 command -v php >/dev/null 2>&1 || { echo "$(COLOR_RED)❌ PHP is unavailable.$(COLOR_RESET)"; exit 1; }; \
 [ -f vendor/autoload.php ] || { echo "$(COLOR_RED)❌ Composer dependencies are missing.$(COLOR_RESET)"; exit 1; };
 endef
@@ -516,8 +516,8 @@ MATA_NO_INTERACTION := $(if $(NONINTERACTIVE_ON),--no-interaction)
 # web container. A terminal is passed through so prompts work; pipes and scripts get none.
 define RUN_MATA
 $(REQUIRE_SELECTION); \
-if [ "$(MODE)" = "local" ]; then \
-	$(REQUIRE_LOCAL_PHP) \
+if [ "$(MODE)" = "native" ]; then \
+	$(REQUIRE_NATIVE_PHP) \
 	dir=logs; [ "$${as_owner:-}" = yes ] && dir=config; \
 	owner=$$(stat -L -c '%U' "$$dir" 2>/dev/null || stat -L -f '%Su' "$$dir" 2>/dev/null || id -un); \
 	if [ "$$owner" = "$$(id -un)" ]; then php bin/mata $(1) $(MATA_NO_INTERACTION); \
@@ -553,11 +553,11 @@ db-migrate:
 db-backup:
 	@$(REQUIRE_SELECTION); \
 	echo "$(COLOR_BLUE)Mode: $(MODE) | Environment: $(ENV)$(COLOR_RESET)"; \
-	if [ "$(MODE)" = "local" ]; then $(REQUIRE_LOCAL_PHP) fi; \
+	if [ "$(MODE)" = "native" ]; then $(REQUIRE_NATIVE_PHP) fi; \
 	file="$(FILE)"; [ -n "$$file" ] || file="backups/backup-$$(date +%Y%m%d-%H%M%S).sql"; \
 	mkdir -p "$$(dirname "$$file")"; \
 	echo "$(COLOR_BLUE)Backing up $(ENV) database to $$file$(COLOR_RESET)"; \
-	if [ "$(MODE)" = "local" ]; then \
+	if [ "$(MODE)" = "native" ]; then \
 		APP_ENV="$(ENV)" php scripts/database/mysql-operation.php backup "$$file" >/dev/null || exit $$?; \
 	else \
 		$(REQUIRE_DOCKER_MODE); $(REQUIRE_DB_RUNNING); \
@@ -570,11 +570,11 @@ db-backup:
 db-restore:
 	@$(REQUIRE_SELECTION); \
 	echo "$(COLOR_BLUE)Mode: $(MODE) | Environment: $(ENV)$(COLOR_RESET)"; \
-	if [ "$(MODE)" = "local" ]; then $(REQUIRE_LOCAL_PHP) fi; \
+	if [ "$(MODE)" = "native" ]; then $(REQUIRE_NATIVE_PHP) fi; \
 	file="$(FILE)"; \
 	[ -n "$$file" ] || { echo "$(COLOR_RED)❌ Usage: make db-restore FILE=backups/example.sql$(COLOR_RESET)"; exit 1; }; \
 	[ -f "$$file" ] && [ -r "$$file" ] && [ -s "$$file" ] || { echo "$(COLOR_RED)❌ Backup must be a non-empty readable file: $$file$(COLOR_RESET)"; exit 1; }; \
-	if [ "$(MODE)" = "local" ]; then \
+	if [ "$(MODE)" = "native" ]; then \
 		db_host=$$(awk -F= '/^DB_HOST=/{sub(/^[^=]*=/, ""); gsub(/["[:space:]]/, ""); print; exit}' config/db.config.env); \
 		db_name=$$(awk -F= '/^DB_DATABASE=/{sub(/^[^=]*=/, ""); gsub(/["[:space:]]/, ""); print; exit}' config/db.config.env); \
 		target="host=$$db_host, database=$$db_name"; \
@@ -586,7 +586,7 @@ db-restore:
 	if [ "$(ALLOW_RESTORE)" != "$$expected" ]; then \
 		$(INTERACTIVE) || { echo "$(COLOR_RED)❌ No terminal to confirm; pass ALLOW_RESTORE='$$expected'.$(COLOR_RESET)"; exit 1; }; \
 		printf "Type '$$expected' to continue: "; read -r confirmation; [ "$$confirmation" = "$$expected" ] || { echo "Cancelled."; exit 1; }; fi; \
-	if [ "$(MODE)" = "local" ]; then \
+	if [ "$(MODE)" = "native" ]; then \
 		APP_ENV="$(ENV)" php scripts/database/mysql-operation.php restore "$$file"; \
 	else \
 		$(REQUIRE_DOCKER_MODE); $(REQUIRE_DB_RUNNING); \
@@ -597,8 +597,8 @@ db-restore:
 db-shell:
 	@$(REQUIRE_SELECTION); \
 	echo "$(COLOR_BLUE)Mode: $(MODE) | Environment: $(ENV)$(COLOR_RESET)"; \
-	if [ "$(MODE)" = "local" ]; then \
-		$(REQUIRE_LOCAL_PHP) \
+	if [ "$(MODE)" = "native" ]; then \
+		$(REQUIRE_NATIVE_PHP) \
 		APP_ENV="$(ENV)" php scripts/database/mysql-operation.php shell; \
 	else \
 		$(REQUIRE_DOCKER_MODE); $(REQUIRE_DB_RUNNING); \
@@ -790,7 +790,7 @@ prod-rebuild:
 status:
 	@$(REQUIRE_SELECTION); \
 	echo "$(COLOR_BOLD)Mode: $(MODE) | Environment: $(ENV)$(COLOR_RESET)"; \
-	if [ "$(MODE)" = "local" ]; then \
+	if [ "$(MODE)" = "native" ]; then \
 		command -v php >/dev/null 2>&1 && php -v | head -1 || true; \
 		if systemctl is-active --quiet opa.service 2>/dev/null; then echo "OPA: running"; else echo "OPA: stopped or unmanaged"; fi; \
 		app_log=$$(awk -F= '/^APP_LOG_PATH=/{sub(/^[^=]*=/, ""); gsub(/^"|"$$/, ""); print; exit}' config/config.env); app_log=$${app_log:-logs/app.log}; \
@@ -801,7 +801,7 @@ status:
 
 logs:
 	@$(REQUIRE_SELECTION); \
-	if [ "$(MODE)" = "local" ]; then \
+	if [ "$(MODE)" = "native" ]; then \
 		owner=$$(stat -c '%U' logs 2>/dev/null || stat -f '%Su' logs 2>/dev/null || id -un); \
 		app_file=$$(awk -F= '/^APP_LOG_PATH=/{sub(/^[^=]*=/, ""); gsub(/^"|"$$/, ""); print; exit}' config/config.env); app_file=$${app_file:-logs/app.log}; \
 		if [ -r logs ]; then \
@@ -823,13 +823,13 @@ logs-db:
 
 logs-php:
 	@$(REQUIRE_SELECTION); \
-	if [ "$(MODE)" = local ]; then file=logs/php-error.log; owner=$$(stat -c '%U' logs 2>/dev/null || stat -f '%Su' logs 2>/dev/null || id -un); \
+	if [ "$(MODE)" = native ]; then file=logs/php-error.log; owner=$$(stat -c '%U' logs 2>/dev/null || stat -f '%Su' logs 2>/dev/null || id -un); \
 		if [ -r "$$file" ]; then tail -n 500 -F "$$file"; else sudo -u "$$owner" test -f "$$file" || { echo "$(COLOR_RED)❌ $$file not found.$(COLOR_RESET)"; exit 1; }; sudo -u "$$owner" tail -n 500 -F "$$file"; fi; \
 	else $(REQUIRE_DOCKER_MODE); $(REQUIRE_WEB_RUNNING); $(SELECTED_COMPOSE) exec -u www-data mata-web tail -n 500 -F logs/php-error.log; fi
 
 logs-app:
 	@$(REQUIRE_SELECTION); \
-	if [ "$(MODE)" = local ]; then file=$$(awk -F= '/^APP_LOG_PATH=/{sub(/^[^=]*=/, ""); gsub(/^"|"$$/, ""); print; exit}' config/config.env); file=$${file:-logs/app.log}; owner=$$(stat -c '%U' logs 2>/dev/null || stat -f '%Su' logs 2>/dev/null || id -un); \
+	if [ "$(MODE)" = native ]; then file=$$(awk -F= '/^APP_LOG_PATH=/{sub(/^[^=]*=/, ""); gsub(/^"|"$$/, ""); print; exit}' config/config.env); file=$${file:-logs/app.log}; owner=$$(stat -c '%U' logs 2>/dev/null || stat -f '%Su' logs 2>/dev/null || id -un); \
 		if [ -r "$$file" ]; then tail -n 500 -F "$$file"; else sudo -u "$$owner" test -f "$$file" || { echo "$(COLOR_RED)❌ $$file not found.$(COLOR_RESET)"; exit 1; }; sudo -u "$$owner" tail -n 500 -F "$$file"; fi; \
 	else $(REQUIRE_DOCKER_MODE); $(REQUIRE_WEB_RUNNING); $(SELECTED_COMPOSE) exec -u www-data mata-web sh -c 'file=$$(awk -F= '\''/^APP_LOG_PATH=/{sub(/^[^=]*=/, ""); gsub(/^"|"$$/, ""); print; exit}'\'' config/config.env); exec tail -n 500 -F "$${file:-logs/app.log}"'; fi
 
@@ -952,7 +952,7 @@ docker-help:
 	@echo "  $(COLOR_YELLOW)make docker-clean$(COLOR_RESET)   - Clean mata-dashboard Docker resources only"
 	@echo "  $(COLOR_RED)make docker-clean-all$(COLOR_RESET)  - System-wide Docker cleanup (ALL projects!)"
 
-.PHONY: help help-all setup setup-local doctor mata install-hooks setup-opa opa-install-service opa-start opa-stop opa-status opa-test opa-validate \
+.PHONY: help help-all setup setup-native doctor mata install-hooks setup-opa opa-install-service opa-start opa-stop opa-status opa-test opa-validate \
 	test test-coverage \
 	db-migrate db-backup db-restore db-shell \
 	docs-node docs-serve docs-deploy \

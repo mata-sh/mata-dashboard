@@ -54,7 +54,7 @@ parse_args() {
     while [ $# -gt 0 ]; do
         case $1 in
             --docker) mode=docker ;;
-            --native) mode=local ;;
+            --native) mode=native ;;
             --dir) [ $# -ge 2 ] || fail "--dir needs a value"; dir=$2; shift ;;
             --version) [ $# -ge 2 ] || fail "--version needs a value"; version=$2; shift ;;
             --admin) [ $# -ge 2 ] || fail "--admin needs a value"; admin=$2; shift ;;
@@ -124,29 +124,26 @@ setup() {
         run make -C "$dir" setup NONINTERACTIVE=1 MODE=docker ENV=prod START_SERVICES=yes ADMIN_USER="$admin"
     else
         # CREATE_USERS_DIR=no: setup prints the root command for the directory instead of trying sudo.
-        run make -C "$dir" setup NONINTERACTIVE=1 MODE=local ENV=prod WEBSERVER=none \
+        run make -C "$dir" setup NONINTERACTIVE=1 MODE=native ENV=prod WEBSERVER=none \
             MATA_USERS_FILE="$users_file" CREATE_USERS_DIR=no
     fi
 }
 
-# The web container answers a few seconds after setup returns.
-wait_for_health() {
-    url=$1
+# Sets port and url for summary_docker. The web container answers a few seconds after setup returns.
+verify_docker() {
+    port=$(sed -n 's/^WEB_PORT=//p' "$dir/.env" 2>/dev/null | tr -d '"[:space:]')
+    port=${port:-3300}
+    url=http://127.0.0.1:$port
+    command -v curl >/dev/null 2>&1 || return 0
     tries=0
     until curl -fsS "$url/health" >/dev/null 2>&1; do
         tries=$((tries + 1))
-        [ "$tries" -lt 30 ] || return 1
+        [ "$tries" -lt 30 ] || fail "the dashboard does not answer at $url/health. See: make -C $dir logs"
         sleep 2
     done
 }
 
 summary_docker() {
-    port=$(sed -n 's/^WEB_PORT=//p' "$dir/.env" 2>/dev/null | tr -d '"[:space:]')
-    port=${port:-3300}
-    url=http://127.0.0.1:$port
-    if command -v curl >/dev/null 2>&1 && ! wait_for_health "$url"; then
-        fail "the dashboard does not answer at $url/health. See: make -C $dir logs"
-    fi
     cat <<EOF
 
 MATA Dashboard is running at $url (this host only).
@@ -196,7 +193,12 @@ main() {
     checkout
     setup
     if [ "$dry_run" = yes ]; then exit 0; fi
-    if [ "$mode" = docker ]; then summary_docker; else summary_native; fi
+    if [ "$mode" = docker ]; then
+        verify_docker
+        summary_docker
+    else
+        summary_native
+    fi
 }
 
 main "$@"

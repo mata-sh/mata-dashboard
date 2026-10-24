@@ -247,7 +247,7 @@ if [[ -z "$MODE" ]]; then
     if is_yes "${docker_answer:-no}"; then
         MODE=docker
     else
-        MODE=local
+        MODE=native
     fi
 fi
 
@@ -261,9 +261,9 @@ if [[ -z "$ADMIN_USER" ]] && ! interactive && is_yes "${CREATE_USER:-no}"; then
 fi
 
 case "$MODE" in
-    local|docker) ;;
+    native|docker) ;;
     *)
-        printf 'ERROR: MODE must be local or docker (received: %s)\n' "$MODE" >&2
+        printf 'ERROR: MODE must be native or docker (received: %s)\n' "$MODE" >&2
         exit 1
         ;;
 esac
@@ -310,8 +310,8 @@ printf '%s\n' '-------------'
 printf '  Mode:         %s\n' "$MODE"
 printf '  Environment:  %s\n\n' "$ENV"
 
-if [[ "$MODE" == local ]]; then
-    "$MAKE_CMD" setup-local MODE=local ENV="$ENV" WEBSERVER="$WEBSERVER"
+if [[ "$MODE" == native ]]; then
+    "$MAKE_CMD" setup-native MODE=native ENV="$ENV" WEBSERVER="$WEBSERVER"
 else
     "$MAKE_CMD" docker-init MODE=docker ENV="$ENV"
     if [[ ! -f .env ]]; then
@@ -322,7 +322,7 @@ else
 fi
 
 set_env_value config/config.env APP_ENV "$ENV"
-if [[ "$MODE" == local ]]; then
+if [[ "$MODE" == native ]]; then
     configure_users_file
 fi
 if [[ "$MODE" == docker ]]; then
@@ -348,7 +348,7 @@ migrations_ran=no
 opa_state='not started'
 user_state='not created'
 
-if [[ "$MODE" == local ]]; then
+if [[ "$MODE" == native ]]; then
     if [[ -x bin/opa ]]; then
         printf 'OPA binary is already installed at bin/opa.\n'
         INSTALL_OPA=no

@@ -29,7 +29,7 @@ cd mata-dashboard
 make setup
 ```
 
-Choose `local` or `docker`, then `dev`, `demo`, or `prod`. Development setup
+Choose native or Docker, then `dev`, `demo`, or `prod`. Development setup
 creates missing files from `config.example/`. It does not install static default
 credentials. Create the first user when setup offers it, or run:
 
@@ -40,7 +40,7 @@ make mata ARGS="user create"
 Use `MODE=... ENV=...` to override the saved selection for one command:
 
 ```bash
-MODE=local ENV=dev make test
+MODE=native ENV=dev make test
 MODE=docker ENV=dev make dev-start
 ```
 

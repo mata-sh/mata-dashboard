@@ -25,6 +25,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `make doctor` shows where `config/` points and whether it is a Git repository.
 
 ### Changed
+- The non-Docker mode is now `MODE=native` (was `MODE=local`); `local` is no longer accepted. Native installs set up earlier: change `MODE := local` to `MODE := native` in `.mata.mk`, or rerun `make setup`.
 - `make setup` runs without prompts when there is no terminal, so scripts and coding agents can install MATA.
 - Docker setup replaces the placeholder `MYSQL_ROOT_PASSWORD` and `DB_PASSWORD` with generated values.
 - `make db-migrate` runs `bin/mata db migrate` as the web server user.

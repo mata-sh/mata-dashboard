@@ -96,7 +96,7 @@ NONINTERACTIVE=1 make setup MODE=docker ENV=prod START_SERVICES=yes ADMIN_USER=a
 
 | Variable | Default without a terminal | Effect |
 | --- | --- | --- |
-| `MODE` | `local` | `docker` or `local` |
+| `MODE` | `native` | `docker` or `native` |
 | `ENV` | `dev` | `dev`, `demo`, or `prod` |
 | `START_SERVICES` | `yes`, `no` for `prod` | Docker: build and start the stack |
 | `RUN_MIGRATIONS` | `yes` | Docker: migrate after startup |

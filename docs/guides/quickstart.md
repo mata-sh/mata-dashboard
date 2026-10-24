@@ -27,13 +27,13 @@ cd mata-dashboard
 make setup
 ```
 
-Choose `local` and the required environment. Setup creates the core
+Answer no to the Docker question and choose the environment. Setup creates the core
 configuration files, installs Composer dependencies, and can create the first
 user. To run it without prompts, set the answers as variables; see
 [Unattended setup](quickstart-docker.md#unattended-setup):
 
 ```bash
-NONINTERACTIVE=1 make setup MODE=local ENV=prod WEBSERVER=nginx ADMIN_USER=admin \
+NONINTERACTIVE=1 make setup MODE=native ENV=prod WEBSERVER=nginx ADMIN_USER=admin \
   MATA_USERS_FILE=/var/lib/mata/users.json
 ```
 

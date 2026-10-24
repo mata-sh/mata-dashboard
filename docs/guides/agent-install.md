@@ -115,7 +115,7 @@ The details are in [Add your first server](first-server.md).
 Only when the person asks for it. The agent can prepare the checkout:
 
 ```bash
-NONINTERACTIVE=1 make setup MODE=local ENV=prod WEBSERVER=none \
+NONINTERACTIVE=1 make setup MODE=native ENV=prod WEBSERVER=none \
   MATA_USERS_FILE=/var/lib/mata/users.json
 ```
 

@@ -11,7 +11,7 @@ Run tests through Composer or the mode-aware Make target:
 
 ```bash
 composer test
-MODE=local ENV=dev make test
+MODE=native ENV=dev make test
 ```
 
 `make test` requires `make setup` first. Docker runs the suite inside the
