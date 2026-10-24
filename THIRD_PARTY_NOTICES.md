@@ -20,6 +20,7 @@ CycloneDX SBOM (`sbom.cdx.json`) listing them.
 | [SVG Loaders](https://github.com/SamHerbert/SVG-Loaders) | — | MIT | (c) 2014 Sam Herbert | `public/assets/icons/animated/*.svg` |
 | [Raleway](https://github.com/impallari/Raleway) | v37 | OFL-1.1 | Copyright 2010 The Raleway Project Authors | `public/assets/fonts/raleway/*.woff2` |
 | [Nunito](https://github.com/googlefonts/nunito) | v32 | OFL-1.1 | Copyright 2014 The Nunito Project Authors | `public/assets/fonts/nunito/*.woff2` |
+| [DejaVu fonts](https://dejavu-fonts.github.io) | 2.37 | Bitstream Vera and Arev font licenses (DejaVu changes public domain) | Copyright (c) 2003 Bitstream, Inc.; (c) 2006 Tavmjong Bah | `resources/fonts/pdf/dejavusans*` (converted for tc-lib-pdf); full text in `resources/fonts/pdf/LICENSE-DejaVu` |
 
 ## MIT License
 

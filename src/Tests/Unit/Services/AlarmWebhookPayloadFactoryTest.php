@@ -154,7 +154,7 @@ final class AlarmWebhookPayloadFactoryTest extends TestCase
         }
     }
 
-    private function factory(?string $dashboardUrl = 'https://mata.example.com/'): AlarmWebhookPayloadFactory
+    private function factory(?string $dashboardUrl = 'https://mata.example.com'): AlarmWebhookPayloadFactory
     {
         return new AlarmWebhookPayloadFactory(
             new FilesystemLoader(dirname(__DIR__, 4) . '/templates'),

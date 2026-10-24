@@ -73,6 +73,9 @@ final class AlarmEmailFactory
     private function createSubject(AlarmDeliveryView $view, string $title): string
     {
         $alarm = $view->alarm;
+        if (str_starts_with($alarm->type, 'advisories.') && trim((string) $alarm->app) === '' && trim((string) $alarm->server) === '') {
+            return sprintf('%s [ADVISORY] %s', $alarm->level->getEmoji(), $title);
+        }
         $app = $this->templateData->singleLine($alarm->app, '*');
         $server = $this->templateData->singleLine($alarm->server, '*');
 

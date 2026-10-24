@@ -28,6 +28,12 @@ CRON_ENV_FILE=/etc/mata/cron.env
 # audit is older than the audit TTL (default 24h), so 6-hourly runs keep it under 30h.
 40 */6 * * * . "$CRON_ENV_FILE" && cd "$APP_ROOT" && "$PHP_BIN" cron/libraries_audit.php >> "$CRON_LOG_DIR/app-libraries-audit.log" 2>&1
 
+# Security advisories (config/advisories.json; both exit at once without it)
+# Each source is fetched once its poll_interval_minutes passed; runs in between only check.
+# The digest job runs daily and mails once advisories.digest.every_days passed.
+2-59/5 * * * * . "$CRON_ENV_FILE" && cd "$APP_ROOT" && "$PHP_BIN" cron/advisories_poll.php >> "$CRON_LOG_DIR/app-advisories-poll.log" 2>&1
+15 7 * * * . "$CRON_ENV_FILE" && cd "$APP_ROOT" && "$PHP_BIN" cron/advisories_digest.php >> "$CRON_LOG_DIR/app-advisories-digest.log" 2>&1
+
 # Alarm evaluation and delivery
 * * * * * . "$CRON_ENV_FILE" && cd "$APP_ROOT" && "$PHP_BIN" cron/alarms_evaluate_critical.php >> "$CRON_LOG_DIR/app-alarms-evaluate-critical.log" 2>&1
 */5 * * * * . "$CRON_ENV_FILE" && cd "$APP_ROOT" && "$PHP_BIN" cron/alarms_evaluate_non_critical.php >> "$CRON_LOG_DIR/app-alarms-evaluate-non-critical.log" 2>&1

@@ -1,0 +1,146 @@
+{% set mono = "font-family:Consolas,'Courier New',monospace;" %}
+{% set sans = "font-family:Arial,Helvetica,sans-serif;" %}
+<!doctype html>
+<html lang="en" xmlns="http://www.w3.org/1999/xhtml">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="color-scheme" content="dark">
+    <meta name="supported-color-schemes" content="dark">
+    <title>{{ branding }} — {{ title }}</title>
+    <!--[if mso]><noscript><xml><o:OfficeDocumentSettings><o:PixelsPerInch>96</o:PixelsPerInch></o:OfficeDocumentSettings></xml></noscript><![endif]-->
+    <style>
+        body { margin:0; padding:0; }
+        a { text-decoration:none; }
+        @media only screen and (max-width: 640px) {
+            .container { width:100% !important; }
+            .px { padding-left:20px !important; padding-right:20px !important; }
+            .stat-cell { display:block !important; width:100% !important; box-sizing:border-box; border-right:0 !important; }
+            .stat-cell + .stat-cell { border-top:1px solid #1d2632; }
+        }
+    </style>
+</head>
+<body style="margin:0; padding:0; background-color:#000000; color:#e8eef5; -webkit-text-size-adjust:100%;">
+<div style="display:none; max-height:0; overflow:hidden; mso-hide:all;">{{ totals.advisories }} advisories · {{ totals.critical_high }} critical or high · {{ period.label }}</div>
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#000000;"><tr><td align="center" style="padding:32px 12px;">
+<table role="presentation" class="container" width="680" cellpadding="0" cellspacing="0" border="0" style="width:680px; max-width:680px;">
+    <tr><td style="padding:0;">
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr>
+            <td width="8" style="background-color:{{ worst.fill }}; font-size:0; line-height:0;">&nbsp;</td>
+            <td style="background-color:#0d1117; padding:14px 24px; border-top:1px solid #1d2632; border-right:1px solid #1d2632; border-bottom:1px solid #1d2632; {{ mono }} font-size:12px; letter-spacing:3px; color:#3fd0e0; text-transform:uppercase;">{{ branding }}<span style="color:#2a3644;">://</span>advisories</td>
+        </tr></table>
+    </td></tr>
+    <tr><td style="background-color:#0d1117; border-left:1px solid #1d2632; border-right:1px solid #1d2632; border-bottom:1px solid #1d2632;">
+
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td class="px" style="padding:32px 32px 0;">
+            <div style="{{ sans }} font-size:26px; line-height:34px; font-weight:bold; color:#ffffff; text-transform:uppercase;">{{ title }}</div>
+            <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="padding-top:16px;"><tr>
+                <td style="border:1px solid {{ worst.border }}; padding:5px 12px; {{ mono }} font-size:12px; letter-spacing:4px; color:{{ worst.tint }}; text-transform:uppercase;">▲ {{ empty ? 'Quiet' : worst.label }}</td>
+                <td style="padding-left:12px; {{ mono }} font-size:12px; letter-spacing:2px; color:#72849b;">{{ period.since }} → {{ period.until }} · {{ period.label|upper }}</td>
+            </tr></table>
+            <div style="{{ sans }} font-size:15px; line-height:23px; color:#8a99ad; padding-top:10px; padding-bottom:24px;">{{ scope }}</div>
+        </td></tr></table>
+
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td class="px" style="padding:0 32px;">
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border:1px solid #1d2632; background-color:#0a0e14;"><tr>
+                {% for stat in [
+                    {label: 'advisories', value: totals.advisories, color: '#e8eef5'},
+                    {label: 'critical / high', value: totals.critical_high, color: totals.critical_high > 0 ? '#f09595' : '#e8eef5'},
+                    {label: 'unreviewed', value: totals.unreviewed, color: totals.unreviewed > 0 ? '#9fe8f2' : '#e8eef5'},
+                    {label: 'cves', value: totals.cves, color: '#e8eef5'},
+                ] %}
+                <td class="stat-cell" width="25%" style="padding:18px 20px;{% if not loop.last %} border-right:1px solid #1d2632;{% endif %}">
+                    <div style="{{ mono }} font-size:11px; font-weight:bold; letter-spacing:2px; color:#718399; text-transform:uppercase;">{{ stat.label }}</div>
+                    <div style="{{ mono }} font-size:34px; line-height:42px; color:{{ stat.color }}; padding-top:4px;">{{ stat.value }}</div>
+                </td>
+                {% endfor %}
+            </tr></table>
+        </td></tr></table>
+
+        {% if not empty %}
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td class="px" style="padding:20px 32px 0;">
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr>
+                {% for row in severity_rows|filter(r => r.count > 0) %}
+                <td width="{{ max(row.percent, 4) }}%" style="background-color:{{ row.fill }}; height:8px; font-size:0; line-height:0;">&nbsp;</td>
+                {% endfor %}
+            </tr></table>
+            <div style="{{ mono }} font-size:12px; line-height:20px; color:#72849b; padding-top:8px;">
+                {% for row in severity_rows %}<span style="color:{{ row.tint }};">■</span> {{ row.label|upper }} {{ row.count }}{% if not loop.last %} &nbsp;·&nbsp; {% endif %}{% endfor %}
+            </div>
+        </td></tr></table>
+        {% endif %}
+
+        {% if highlights is not empty %}
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td class="px" style="padding:24px 32px 0;">
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#0a0e14; border:1px solid #1d2632;">
+                <tr><td colspan="2" style="padding:10px 16px; border-bottom:1px solid #1d2632; {{ mono }} font-size:14px; letter-spacing:2px; color:#3fd0e0;">&gt;_ highlights</td></tr>
+                {% for item in highlights %}
+                <tr>
+                    <td width="6" style="background-color:{{ item.severity.fill }}; font-size:0; line-height:0;">&nbsp;</td>
+                    <td style="padding:12px 16px;{% if not loop.last %} border-bottom:1px solid #151a22;{% endif %}">
+                        <div style="{{ mono }} font-size:11px; letter-spacing:2px; color:{{ item.severity.tint }}; text-transform:uppercase;">{{ item.severity.label }}{% if item.cvss %} · cvss {{ item.cvss }}{% endif %} <span style="color:#72849b;">· {{ item.source }} · {{ item.date }}</span></div>
+                        <div style="{{ sans }} font-size:15px; line-height:22px; padding-top:4px;">{% if item.link %}<a href="{{ item.link }}" style="color:#e8eef5;">{{ item.title }}</a>{% else %}<span style="color:#e8eef5;">{{ item.title }}</span>{% endif %}</div>
+                        {% if item.cves is not empty %}<div style="{{ mono }} font-size:12px; color:#9fe8f2; padding-top:4px;">{{ item.cves|join(' ') }}</div>{% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </table>
+        </td></tr></table>
+        {% endif %}
+
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td class="px" style="padding:24px 32px 0;">
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#0a0e14; border:1px solid #1d2632;">
+                <tr><td colspan="4" style="padding:10px 16px; border-bottom:1px solid #1d2632; {{ mono }} font-size:14px; letter-spacing:2px; color:#3fd0e0;">&gt;_ sources</td></tr>
+                {% for source in sources %}
+                <tr>
+                    <td style="padding:10px 16px; border-bottom:1px solid #151a22; {{ sans }} font-size:14px; color:#e8eef5;">{{ source.name }}<div style="{{ mono }} font-size:11px; color:#72849b; padding-top:2px;">{{ source.type_label|upper }}</div></td>
+                    <td align="right" style="padding:10px 16px; border-bottom:1px solid #151a22; {{ mono }} font-size:16px; color:#e8eef5;">{{ source.count }}</td>
+                    <td style="padding:10px 16px; border-bottom:1px solid #151a22; {{ mono }} font-size:12px; letter-spacing:1px; color:{{ source.health_color }}; text-transform:uppercase;">&#9679; {{ source.health_label }}</td>
+                    <td style="padding:10px 16px; border-bottom:1px solid #151a22; {{ mono }} font-size:12px; color:#72849b;">{{ source.last_success ?? '—' }}</td>
+                </tr>
+                {% if source.last_error %}<tr><td colspan="4" style="padding:0 16px 10px; border-bottom:1px solid #151a22; {{ mono }} font-size:12px; color:#f09595;">{{ source.last_error }}</td></tr>{% endif %}
+                {% endfor %}
+            </table>
+        </td></tr></table>
+
+        {% if top_products is not empty %}
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td class="px" style="padding:24px 32px 0;">
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#0a0e14; border:1px solid #1d2632;">
+                <tr><td colspan="3" style="padding:10px 16px; border-bottom:1px solid #1d2632; {{ mono }} font-size:14px; letter-spacing:2px; color:#3fd0e0;">&gt;_ most affected products</td></tr>
+                {% for product in top_products %}
+                <tr>
+                    <td style="padding:8px 16px; border-bottom:1px solid #151a22; {{ sans }} font-size:14px; color:#e8eef5;">{{ product.product }}</td>
+                    <td align="right" style="padding:8px 16px; border-bottom:1px solid #151a22; {{ mono }} font-size:14px; color:#e8eef5;">{{ product.count }}</td>
+                    <td style="padding:8px 16px; border-bottom:1px solid #151a22; {{ mono }} font-size:11px; letter-spacing:2px; color:{{ product.severity.tint }}; text-transform:uppercase;">{{ product.severity.label }}</td>
+                </tr>
+                {% endfor %}
+            </table>
+        </td></tr></table>
+        {% endif %}
+
+        {% for group in groups %}
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td class="px" style="padding:24px 32px 0;">
+            <div style="{{ mono }} font-size:12px; letter-spacing:3px; color:{{ group.severity.tint }}; text-transform:uppercase; padding-bottom:8px; border-bottom:1px solid {{ group.severity.fill }};">{{ group.severity.label }} · {{ group.count }}</div>
+            {% for item in group.items %}
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border-bottom:1px solid #151a22;"><tr><td style="padding:12px 0;">
+                <div style="{{ sans }} font-size:15px; line-height:22px;">{% if item.link %}<a href="{{ item.link }}" style="color:#e8eef5;">{{ item.title }}</a>{% else %}<span style="color:#e8eef5;">{{ item.title }}</span>{% endif %}</div>
+                <div style="{{ mono }} font-size:12px; line-height:19px; color:#72849b; padding-top:4px;">{{ item.source }} · {{ item.date }}{% if item.cvss %} · CVSS {{ item.cvss }}{% endif %}{% if item.cves is not empty %} · <span style="color:#9fe8f2;">{{ item.cves|join(' ') }}</span>{% endif %}</div>
+                {% if item.products is not empty %}<div style="{{ mono }} font-size:12px; line-height:19px; color:#8a99ad; padding-top:2px;">affected: {{ item.products|join('; ') }}{% if item.more_products > 0 %} (+{{ item.more_products }}){% endif %}</div>{% endif %}
+                {% if item.review %}<div style="{{ mono }} font-size:12px; line-height:19px; color:#7bd88f; padding-top:2px;">✓ {{ item.review.label }}{% if item.review.note %}: {{ item.review.note }}{% endif %}</div>{% endif %}
+                {% if item.summary %}<div style="{{ sans }} font-size:13px; line-height:20px; color:#8a99ad; padding-top:6px;">{{ item.summary }}</div>{% endif %}
+            </td></tr></table>
+            {% endfor %}
+        </td></tr></table>
+        {% endfor %}
+
+        {% if empty %}
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td class="px" style="padding:24px 32px 0; {{ sans }} font-size:15px; color:#8a99ad;">No advisories in this period.</td></tr></table>
+        {% endif %}
+
+        {% if dashboard_url %}<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td class="px" align="left" style="padding:28px 32px 32px;"><table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr><td style="background-color:#3fd0e0; border:1px solid #3fd0e0;"><a href="{{ dashboard_url }}" style="display:inline-block; padding:14px 32px; {{ mono }} font-size:13px; font-weight:bold; letter-spacing:3px; color:#07090e; text-transform:uppercase; text-decoration:none;">Open dashboard →</a></td></tr></table></td></tr></table>{% else %}<div style="height:32px; line-height:32px; font-size:0;">&nbsp;</div>{% endif %}
+    </td></tr>
+    <tr><td style="padding:16px 8px;"><div style="{{ mono }} font-size:11px; line-height:18px; letter-spacing:1px; color:#3a4656; text-align:center;">generated {{ generated_at }} by {{ branding }} advisory monitoring</div></td></tr>
+</table>
+</td></tr></table>
+</body>
+</html>

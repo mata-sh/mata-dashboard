@@ -16,8 +16,6 @@ use Mata\Config\ConfigValueValidator;
 final readonly class ChannelsConfig
 {
     public const EMAIL = 'email';
-    private const ENV_NAME_PATTERN = '/^[A-Z][A-Z0-9_]*$/';
-    private const TEMPLATE_NAME_PATTERN = '/^[a-z0-9][a-z0-9_-]*$/';
     private const WEBHOOK_KEYS = ['type', 'enabled', 'url_env', 'template', 'params', 'timeout_seconds'];
 
     /** @param array<string,WebhookChannel> $webhooks keyed by channel name */
@@ -76,7 +74,7 @@ final readonly class ChannelsConfig
     private static function webhook(string $name, mixed $entry, callable $env, bool $allowInsecure): ?WebhookChannel
     {
         $path = "channels.{$name}";
-        if (preg_match(NotificationRulesConfig::CHANNEL_NAME_PATTERN, $name) !== 1 || $name === self::EMAIL) {
+        if (!ConfigValueValidator::isSlug($name, NotificationRulesConfig::CHANNEL_NAME_MAX_LENGTH) || $name === self::EMAIL) {
             throw new InvalidArgumentException("{$path}: invalid or reserved channel name.");
         }
         if (!ConfigValueValidator::isObject($entry)) {
@@ -99,11 +97,11 @@ final readonly class ChannelsConfig
         }
 
         $urlEnv = $entry['url_env'] ?? null;
-        if (!is_string($urlEnv) || preg_match(self::ENV_NAME_PATTERN, $urlEnv) !== 1) {
+        if (!is_string($urlEnv) || !ConfigValueValidator::isEnvName($urlEnv)) {
             throw new InvalidArgumentException("{$path}.url_env must name an environment variable.");
         }
         $template = $entry['template'] ?? null;
-        if (!is_string($template) || preg_match(self::TEMPLATE_NAME_PATTERN, $template) !== 1) {
+        if (!is_string($template) || !ConfigValueValidator::isSlug($template)) {
             throw new InvalidArgumentException("{$path}.template must name a template in templates/webhooks/.");
         }
         $timeout = $entry['timeout_seconds'] ?? 5;

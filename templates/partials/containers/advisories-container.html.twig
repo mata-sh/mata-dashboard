@@ -1,0 +1,95 @@
+<div class="advisories-section">
+  <h3>Security Advisories<span class="section-help-icon" data-tippy-content="Advisories polled from the sources in config/advisories.json (RSS/Atom feeds, GitHub repositories, mailboxes, OSV packages, CSAF providers). Relevant ones match a source's keywords and minimum severity; depending on the source's notify setting they record an event or raise an alarm.">{{ icons.help|raw }}</span></h3>
+
+  {% if not configured %}
+    <div class="notification is-info is-light" role="status">
+      Advisory monitoring is not configured. Copy <code>config.example/advisories.json.example</code> to
+      <code>config/advisories.json</code>, run <code>bin/mata config validate</code>, then
+      <code>bin/mata advisory:fetch</code> to take the first baseline.
+    </div>
+  {% else %}
+    <div class="advisory-sources">
+      {% for source in sources %}
+        <div class="audit-server-row advisory-source-row health-{{ source.health }}">
+          <div class="audit-server-info advisory-source-info">
+            <span class="audit-server-label" title="{{ source.key }}">{{ source.name }}</span>
+            <span class="audit-server-meta">{{ source.type }} · every {{ source.interval }} min · notify: {{ source.notify ? 'yes' : 'no' }}</span>
+          </div>
+          <div class="advisory-source-body">
+            {% if source.description %}<div class="advisory-source-description">{{ source.description }}</div>{% endif %}
+            <div class="audit-summary advisory-source-summary">
+              {% set health_class = {ok: 'sev-low', failing: 'sev-critical', never_polled: 'pill-meta', disabled: 'pill-abandoned'}[source.health] %}
+              <span class="audit-pill {{ health_class }}">{{ {ok: 'OK', failing: 'Failing', never_polled: 'Not polled yet', disabled: 'Disabled'}[source.health] }}{% if source.failures > 0 %} <b>×{{ source.failures }}</b>{% endif %}</span>
+              <span class="audit-pill pill-meta"><b>{{ source.totals.total }}</b> stored</span>
+              <span class="audit-pill {{ source.totals.relevant > 0 ? 'sev-medium' : 'is-zero' }}"><b>{{ source.totals.relevant }}</b> relevant</span>
+              <span class="audit-pill {{ source.totals.unreviewed > 0 ? 'sev-high' : 'is-zero' }}"><b>{{ source.totals.unreviewed }}</b> unreviewed</span>
+              {% if source.keywords is not empty %}<span class="audit-pill pill-meta" title="{{ source.keywords|join(', ') }}">{{ source.keywords|length }} keywords</span>{% endif %}
+              {% if source.min_severity != 'low' %}<span class="audit-pill pill-meta">≥ {{ source.min_severity }}</span>{% endif %}
+            </div>
+            <div class="advisory-source-meta">
+              last success: {{ source.last_success ?? 'never' }}{% if source.last_polled and source.last_polled != source.last_success %} · last attempt: {{ source.last_polled }}{% endif %}
+              {% if source.url starts with 'https://' %} · <a href="{{ source.url }}" target="_blank" rel="noopener noreferrer">{{ icons.external|raw }} source</a>{% endif %}
+            </div>
+            {% if source.error %}<div class="advisory-source-error">{{ source.error }}</div>{% endif %}
+          </div>
+        </div>
+      {% else %}
+        <div class="notification is-warning is-light" role="status">advisories.json defines no valid sources; run <code>bin/mata config validate advisories.json</code>.</div>
+      {% endfor %}
+    </div>
+
+    <form class="filter-menu advisory-report-form" method="get" action="{{ endpoints.advisories_report }}">
+      <span class="advisory-report-label">Report</span>
+      <select name="days" aria-label="Report period">
+        {% for days in report_days %}
+          <option value="{{ days }}"{% if days == default_days %} selected{% endif %}>last {{ days }} days</option>
+        {% endfor %}
+      </select>
+      <select name="scope" aria-label="Report scope">
+        <option value="relevant">relevant only</option>
+        <option value="all">all advisories</option>
+      </select>
+      {% for format, label in {pdf: 'PDF', md: 'Markdown', html: 'HTML', json: 'JSON'} %}
+        <button class="button audit-run-button" type="submit" name="format" value="{{ format }}">{{ icons.download|raw }} {{ label }}</button>
+      {% endfor %}
+    </form>
+
+    <div class="filter-menu">
+      <select id="advisory-filter-days" aria-label="Table period">
+        <option value="30">last 30 days</option>
+        <option value="90" selected>last 90 days</option>
+        <option value="365">last 365 days</option>
+      </select>
+      <select id="advisory-filter-severity">
+        <option value="">Severity</option>
+        <option value="critical">Critical</option>
+        <option value="high">High</option>
+        <option value="medium">Medium</option>
+        <option value="low">Low</option>
+        <option value="unknown">Unrated</option>
+      </select>
+      <select id="advisory-filter-source">
+        <option value="">All Sources</option>
+        {% for source in sources %}
+          <option value="{{ source.key }}">{{ source.name }}</option>
+        {% endfor %}
+      </select>
+      <select id="advisory-filter-review">
+        <option value="">Any Review</option>
+        <option value="new">New</option>
+        <option value="reviewed">Reviewed</option>
+        <option value="not_relevant">Not relevant</option>
+      </select>
+      <input id="advisory-filter-text" type="text" placeholder="Title, CVE, product">
+      <label class="toggle">
+        <input type="checkbox" id="advisory-filter-relevant" checked>
+        <span class="toggle-track"></span>
+        <span class="toggle-text">relevant only</span>
+      </label>
+      <button class="button" id="advisory-filter-clear" type="button">Clear Filter</button>
+      <button type="button" class="button" hx-get="{{ endpoints.advisories_render }}" hx-target="#main-section" hx-swap="innerHTML">{{ icons.refresh|raw }} Refresh</button>
+    </div>
+
+    <div id="advisories-table" data-advisories-url="{{ endpoints.advisories_json }}" data-detail-url="{{ endpoints.advisory_detail }}"></div>
+  {% endif %}
+</div>

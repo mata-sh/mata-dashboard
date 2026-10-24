@@ -1,0 +1,78 @@
+{
+    "_comment": "Security advisory sources polled by cron/advisories_poll.php. Remove this file to turn the feature off. Types: feed (RSS/Atom), github (repository security advisories), imap (a mailbox that receives a mailing list), osv (one package from OSV.dev), csaf (a CSAF provider's changes.csv or ROLIE feed). notify: true (default) records an advisories.matched event that alarms like any other; false only lists.",
+    "poll_interval_minutes": 60,
+    "failure_warning_after": 3,
+    "stale_after_minutes": 360,
+    "digest": {
+        "enabled": true,
+        "every_days": 7,
+        "recipients": [],
+        "relevant_only": true,
+        "attach_pdf": true
+    },
+    "sources": {
+        "cert-bund": {
+            "name": "CERT-Bund WID",
+            "description": "BSI Warn- und Informationsdienst: security advisories for products used in German organizations.",
+            "type": "feed",
+            "url": "https://wid.cert-bund.de/content/public/securityAdvisory/rss",
+            "filters": {
+                "keywords": ["PHP", "Apache", "MySQL", "MariaDB", "Plesk", "Ubuntu", "GitLab", "jQuery"],
+                "min_severity": "medium"
+            }
+        },
+        "php-src": {
+            "name": "PHP",
+            "description": "Security advisories of the PHP interpreter (php/php-src).",
+            "type": "github",
+            "repository": "php/php-src"
+        },
+        "jquery": {
+            "name": "jQuery",
+            "description": "Security advisories of jQuery.",
+            "type": "github",
+            "repository": "jquery/jquery"
+        },
+        "jquery-ui": {
+            "name": "jQuery UI",
+            "description": "Security advisories of jQuery UI.",
+            "type": "github",
+            "repository": "jquery/jquery-ui"
+        },
+        "oss-security": {
+            "name": "oss-security",
+            "description": "Openwall oss-security mailing list, subscribed with a dedicated mailbox.",
+            "type": "imap",
+            "enabled": false,
+            "host": "imap.example.com",
+            "encryption": "ssl",
+            "username_env": "ADVISORY_IMAP_USERNAME",
+            "password_env": "ADVISORY_IMAP_PASSWORD",
+            "folder": "INBOX",
+            "addresses": ["oss-security@lists.openwall.com"],
+            "filters": {
+                "keywords": ["PHP", "Apache", "OpenSSL"]
+            },
+            "notify": false
+        },
+        "twig": {
+            "name": "Twig",
+            "description": "Vulnerabilities of the twig/twig Composer package from OSV.dev.",
+            "type": "osv",
+            "enabled": false,
+            "ecosystem": "Packagist",
+            "package": "twig/twig"
+        },
+        "cert-bund-csaf": {
+            "name": "CERT-Bund WID (CSAF)",
+            "description": "The cert-bund advisories as CSAF documents, with CVSS scores and affected versions. Enable instead of cert-bund, not with it.",
+            "type": "csaf",
+            "enabled": false,
+            "url": "https://wid.cert-bund.de/.well-known/csaf/white/changes.csv",
+            "filters": {
+                "keywords": ["PHP", "Apache", "MySQL", "MariaDB", "Plesk", "Ubuntu", "GitLab", "jQuery"],
+                "min_severity": "medium"
+            }
+        }
+    }
+}

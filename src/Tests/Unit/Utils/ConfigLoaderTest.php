@@ -162,6 +162,21 @@ class EnvConfigLoaderTest extends TestCase
         }
     }
 
+    public function testItWarnsAboutADashboardUrlThatMailsAndReportsCannotLink(): void
+    {
+        $types = fn (?string $url): array => array_column(
+            $this->configLoader->validateConfig(ApplicationConfigFactory::create(
+                mail: ApplicationConfigFactory::createMailConfig(dashboardUrl: $url),
+            ))['warnings'],
+            'type',
+        );
+
+        $this->assertContains('config.mail.dashboard_url.invalid', $types('ftp://mata.example.com'));
+        $this->assertContains('config.mail.dashboard_url.invalid', $types('https://user:pass@mata.example.com'));
+        $this->assertNotContains('config.mail.dashboard_url.invalid', $types('https://mata.example.com/'));
+        $this->assertNotContains('config.mail.dashboard_url.invalid', $types(null));
+    }
+
     public function testItTreatsMissingMailerDsnAsCritical(): void
     {
         $config = ApplicationConfigFactory::create(

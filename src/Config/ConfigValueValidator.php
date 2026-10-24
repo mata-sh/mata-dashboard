@@ -19,6 +19,19 @@ final class ConfigValueValidator
         return is_array($value) && ($value === [] || !array_is_list($value));
     }
 
+    /** Lowercase letters, digits, '-' and '_', starting with a letter or digit: safe in URLs, file names and SQL. */
+    public static function isSlug(string $value, ?int $maxLength = null): bool
+    {
+        return preg_match('/^[a-z0-9][a-z0-9_-]*$/D', $value) === 1
+            && ($maxLength === null || strlen($value) <= $maxLength);
+    }
+
+    /** Upper-case letters, digits and '_', starting with a letter. */
+    public static function isEnvName(string $value): bool
+    {
+        return preg_match('/^[A-Z][A-Z0-9_]*$/D', $value) === 1;
+    }
+
     /** @return array<array-key, mixed> */
     public static function object(mixed $value, string $path): array
     {

@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Mata\Services\Alarm\Delivery\Dto;
 
-/** How an alarm reads on every channel: description, metric, server color and environment. */
+/** How an alarm reads on every channel: description, metric, server color, environment and source link. */
 final readonly class AlarmPresentation
 {
     public function __construct(
@@ -12,5 +12,6 @@ final readonly class AlarmPresentation
         public ?AlarmMetric $metric = null,
         public ?string $serverColor = null,
         public ?AlarmEnvironment $environment = null,
+        public ?string $link = null,
     ) {}
 }

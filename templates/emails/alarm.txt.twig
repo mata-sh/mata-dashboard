@@ -1,8 +1,11 @@
 [{{ severity.value|upper }}] {{ target.heading }}
 
 {{ presentation.description }}
+{% if presentation.link %}
+Link: {{ presentation.link }}
+{% endif %}
 {% if presentation.metric %}
-{{ presentation.metric.label }}: {{ presentation.metric.value }}{% if presentation.metric.detail %} ({{ presentation.metric.detail }}){% endif %}
+{{ presentation.metric.label }}: {{ presentation.metric.value }}{{ presentation.metric.detail ? ' (' ~ presentation.metric.detail ~ ')' }}
 {% endif %}
 Last seen: {{ alarm.last_seen_at ?: 'No previous alarm' }}{% if alarm.last_seen_ago %} ({{ alarm.last_seen_ago }}){% endif %}
 Current alarm: {{ alarm.created_at }}

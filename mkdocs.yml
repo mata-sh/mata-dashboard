@@ -36,6 +36,7 @@ nav:
       - Version your config: guides/version-config.md
       - Monitoring: guides/monitoring.md
       - Application error monitoring: guides/application-error-monitoring.md
+      - Security advisories: guides/security-advisories.md
       - User management CLI: guides/user-management.md
       - Secure an installation: guides/secure-application.md
       - Web server examples: examples/webserver-configs/README.md

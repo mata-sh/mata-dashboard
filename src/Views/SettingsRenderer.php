@@ -506,7 +506,7 @@ class SettingsRenderer extends BaseRenderer
      * Build display data for mail transport and recipient configuration.
      *
      * The transport password is never exposed, and a credential carried in the
-     * DSN user component (API-key style DSNs) is masked as well.
+     * DSN user component (API-key style DSNs) is masked as well, like userinfo in the dashboard URL.
      *
      * @param null|MailConfig $mail Mail configuration
      *
@@ -524,7 +524,9 @@ class SettingsRenderer extends BaseRenderer
             'from_email' => (string) $mail->fromEmail,
             'from_name' => (string) $mail->fromName,
             'charset' => $mail->charset,
-            'dashboard_url' => (string) $mail->dashboardUrl,
+            // Userinfo makes the URL invalid but may still hold a password, so it is masked like the DSN's.
+            'dashboard_url' => (string) preg_replace('#^([^:/?\#]+://)[^/?\#]*@#', '$1***@', (string) $mail->dashboardUrl),
+            'dashboard_url_invalid' => $mail->dashboardUrl !== null && $mail->dashboardLink() === null,
             'recipients' => [
                 ['label' => 'Alarm', 'addresses' => $mail->alarmRecipients],
                 ['label' => 'Test', 'addresses' => $mail->testRecipients],

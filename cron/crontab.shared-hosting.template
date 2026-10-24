@@ -22,6 +22,12 @@ PHP_BIN=/usr/local/bin/php
 # audit is older than the audit TTL (default 24h), so 6-hourly runs keep it under 30h.
 40 */6 * * * "$PHP_BIN" "$APP_ROOT/cron/libraries_audit.php" >> "$APP_ROOT/logs/cron/app-libraries-audit.log" 2>&1
 
+# Security advisories (config/advisories.json; both exit at once without it)
+# Each source is fetched once its poll_interval_minutes passed; runs in between only check.
+# The digest job runs daily and mails once advisories.digest.every_days passed.
+2-59/5 * * * * "$PHP_BIN" "$APP_ROOT/cron/advisories_poll.php" >> "$APP_ROOT/logs/cron/app-advisories-poll.log" 2>&1
+15 7 * * * "$PHP_BIN" "$APP_ROOT/cron/advisories_digest.php" >> "$APP_ROOT/logs/cron/app-advisories-digest.log" 2>&1
+
 # Alarm evaluation and delivery
 # Hosts without OPA must set ALARM_DECISION_DRIVER=builtin in config/config.env.
 * * * * * "$PHP_BIN" "$APP_ROOT/cron/alarms_evaluate_critical.php" >> "$APP_ROOT/logs/cron/app-alarms-evaluate-critical.log" 2>&1

@@ -3,6 +3,7 @@
 
 declare(strict_types=1);
 
+use Mata\Bootstrap\AdvisoryRuntime;
 use Mata\Bootstrap\AlarmChannelRuntime;
 use Mata\Bootstrap\CronRuntime;
 use Mata\Bootstrap\MonitoringRuntime;
@@ -41,6 +42,14 @@ $cron->log('Started');
 $exitCode = 0;
 
 try {
+    // A stopped advisory poller cannot report itself; recorded before the candidates are read.
+    $stalledMinutes = AdvisoryRuntime::build($runtime->paths, $runtime->appConfig, $runtime->db)
+        ->watchdog($eventManager)
+        ->check(time());
+    if ($stalledMinutes !== null) {
+        $cron->log("Advisory polling stalled: last run {$stalledMinutes} minutes ago");
+    }
+
     $alarmDecisionService = AlarmDecisionServiceFactory::fromConfig($runtime->appConfig->alarmDecision);
     $notificationRuleResolver = new NotificationRuleResolver($notificationRules);
     $events = $eventAggregator->getAlarmDecisionCandidates(

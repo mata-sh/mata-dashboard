@@ -8,6 +8,7 @@ use Closure;
 use Mata\Config\ConfigSource;
 use Mata\Config\EnvConfigException;
 use Mata\Config\EnvConfigLoader;
+use Mata\Config\Monitoring\Loader\AdvisoriesConfigLoader;
 use Mata\Config\Monitoring\Loader\AlarmRateLimitsConfigLoader;
 use Mata\Config\Monitoring\Loader\ChannelsConfigLoader;
 use Mata\Config\Monitoring\Loader\ChartsConfigLoader;
@@ -143,6 +144,7 @@ final class InstanceConfigValidator
             ['files' => [ChartsConfigLoader::CHARTS_FILE], 'load' => (new ChartsConfigLoader(new MetricCatalog(), new MetricQueryPolicy(), fallbackOnFailure: false))->load(...)],
             ['files' => [ChannelsConfigLoader::CHANNELS_FILE], 'load' => (new ChannelsConfigLoader(fallbackOnFailure: false))->load(...)],
             ['files' => [AlarmRateLimitsConfigLoader::LIMITS_FILE], 'load' => (new AlarmRateLimitsConfigLoader(fallbackOnFailure: false))->load(...)],
+            ['files' => [AdvisoriesConfigLoader::ADVISORIES_FILE], 'load' => (new AdvisoriesConfigLoader(fallbackOnFailure: false))->load(...)],
         ];
     }
 

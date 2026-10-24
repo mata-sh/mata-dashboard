@@ -51,6 +51,7 @@ default decision := {
 
 # First matching rule wins
 decision := fatal_prod_app_error if fatal_prod_app_error
+else := security_advisory if security_advisory
 else := monitored_critical if monitored_critical
 else := monitored_warning if monitored_warning
 
@@ -68,6 +69,22 @@ fatal_prod_app_error := result if {
         "priority": 10,
         "enrich": false,
         "reason": "fatal_errors_prod",
+    }
+}
+
+# A new relevant advisory. advisories.json filters decide relevance, so every level
+# alarms by default; the level (critical, warning for high, info for medium/low) sets the
+# dispatch order. To alarm per source, match input.event.context.additional_data.source_name.
+advisory_priorities := {"critical": 10, "warning": 30, "info": 60}
+
+security_advisory := result if {
+    input.event.type == "advisories.matched"
+    result := {
+        "allow": true,
+        "channels": configured_channels(),
+        "priority": object.get(advisory_priorities, input.event.level, 60),
+        "enrich": false,
+        "reason": "security_advisory",
     }
 }
 
@@ -103,6 +120,8 @@ monitored_types := {
     "users_file_insecure",
     "user_account_locked",
     "user_account_changed",
+    "advisories.source_failing",
+    "advisories.poll_stalled",
 }
 
 monitored_critical := result if {

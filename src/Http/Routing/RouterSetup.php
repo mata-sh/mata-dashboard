@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace Mata\Http\Routing;
 
 use Bramus\Router\Router;
+use InvalidArgumentException;
+use Mata\Controllers\AdvisoryController;
 use Mata\Controllers\AuditController;
 use Mata\Controllers\DashboardController;
 use Mata\Controllers\LoginController;
@@ -36,6 +38,7 @@ class RouterSetup
     private LoginController $loginController;
     private DashboardController $dashboardController;
     private AuditController $auditController;
+    private AdvisoryController $advisoryController;
     private ModalController $modalController;
     private MetricsController $metricsController;
     private Endpoints $endpoints;
@@ -56,6 +59,7 @@ class RouterSetup
         LoginController $loginController,
         DashboardController $dashboardController,
         AuditController $auditController,
+        AdvisoryController $advisoryController,
         ModalController $modalController,
         MetricsController $metricsController,
         Endpoints $endpoints,
@@ -69,6 +73,7 @@ class RouterSetup
         $this->loginController = $loginController;
         $this->dashboardController = $dashboardController;
         $this->auditController = $auditController;
+        $this->advisoryController = $advisoryController;
         $this->modalController = $modalController;
         $this->metricsController = $metricsController;
         $this->endpoints = $endpoints;
@@ -374,6 +379,13 @@ class RouterSetup
                 ['audit_run_app_render', '/audit/run/{server}/{app}', 'post', fn ($server, $app) => $this->auditController->runAuditApp($server, $app)],
             ];
 
+            $advisoryRoutes = [
+                ['advisories_render', '/advisories', 'get', fn () => $this->advisoryController->renderOverview()],
+                ['advisories_report', '/advisories/report', 'get', fn () => $this->advisoryController->downloadReport()],
+                ['advisory_detail_render', '/advisories/{advisoryId}', 'get', fn ($advisoryId) => $this->advisoryController->renderDetail($advisoryId)],
+                ['advisory_review', '/advisories/{advisoryId}/review', 'post', fn ($advisoryId) => $this->advisoryController->review($advisoryId)],
+            ];
+
             // Content-based modals handled by ModalController
             $contentModalRoutes = [
                 ['modal_app_readme_render', '/modal/{server}/{app}/readme', 'get', fn ($server, $app) => $this->modalController->renderAppReadme($server, $app)],
@@ -412,6 +424,10 @@ class RouterSetup
                 $this->registerRoute($name, $path, $method, $handler);
             }
 
+            foreach ($advisoryRoutes as [$name, $path, $method, $handler]) {
+                $this->registerRoute($name, $path, $method, $handler);
+            }
+
             foreach ($contentModalRoutes as [$name, $path, $method, $handler]) {
                 $this->registerRoute($name, $path, $method, $handler);
             }
@@ -434,6 +450,7 @@ class RouterSetup
                 ['events_json', '/events', 'get', fn () => $this->dashboardController->getEventsJson()],
                 ['alarms_json', '/alarms', 'get', fn () => $this->dashboardController->getAlarmsJson()],
                 ['libraries_json', '/libraries', 'get', fn () => $this->dashboardController->getLibrariesJson()],
+                ['advisories_json', '/advisories', 'get', fn () => $this->advisoryController->getAdvisoriesJson()],
                 ['app_logs_json', '/logs/{server}/{app}', 'get', fn ($server, $app) => $this->modalController->getAppLogsJson($server, $app)],
                 ['app_logs_status_json', '/logs-status/{server}/{app}', 'get', fn ($server, $app) => $this->modalController->getAppLogsStatusJson($server, $app, forceRefresh: true)],
 
@@ -505,6 +522,13 @@ class RouterSetup
         // Validate server parameter for server-only modal routes
         $this->router->before('GET', '/watch/modal/([^/]+)/info.*', function ($server) {
             RouteParameter::assertSafe($server, 'Invalid server parameter');
+        });
+
+        // Advisory IDs are database IDs; /advisories/report is the only non-numeric child
+        $this->router->before('GET|POST', '/watch/advisories/([^/]+)(?:/review)?', function ($advisoryId) {
+            if ($advisoryId !== 'report' && preg_match('/^[1-9][0-9]{0,18}$/', $advisoryId) !== 1) {
+                throw new InvalidArgumentException('Invalid advisory parameter');
+            }
         });
 
         // Validate Composer audit route parameters

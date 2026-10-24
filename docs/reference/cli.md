@@ -42,6 +42,9 @@ a missing argument, also exit `2`.
 | `user …` | done | — | failed or refused |
 | `alarm test` | sent, or channels listed | — | delivery failed or unknown channel |
 | `alarm explain` | listed | — | failed |
+| `advisory sources` | every enabled source polled successfully | a source was not polled yet | a source is failing |
+| `advisory fetch` | polled, previewed or not due | — | a source failed |
+| `advisory report` | written, printed or mailed | — | invalid options or delivery failed |
 
 `status` exits `3` when cached node health is missing or stale, so a stopped
 cron never reports `ok`, and when `servers.json` cannot be loaded, so an empty

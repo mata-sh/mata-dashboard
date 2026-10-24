@@ -29,6 +29,7 @@ class MenuBuilder
         'events',
         'alarms',
         'libraries',
+        'advisories',
         'metrics',
         'databases',
         'force_refresh',
@@ -91,6 +92,14 @@ class MenuBuilder
                 'icon' => $this->tools->icon('package', 12),
                 'endpoint_key' => 'libraries_render',
                 'enabled' => true,
+            ],
+            [
+                // Shown once advisories.json exists; public/index.php passes that as the default.
+                'key' => 'advisories',
+                'label' => 'Advisories',
+                'icon' => $this->tools->icon('shield', 12),
+                'endpoint_key' => 'advisories_render',
+                'enabled' => false,
             ],
             [
                 'key' => 'metrics',

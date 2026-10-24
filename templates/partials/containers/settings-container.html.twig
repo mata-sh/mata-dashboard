@@ -332,7 +332,9 @@
           {% if settings.mail.dashboard_url %}
             <li>
               <span class="settings-key">dashboard URL</span>
-              <span class="settings-value">{{ settings.mail.dashboard_url }}</span>
+              <span class="settings-value">
+                {{ settings.mail.dashboard_url }}{% if settings.mail.dashboard_url_invalid %} <em class="is-warn">(invalid: needs an absolute http(s) URL without user:pass@; links omitted)</em>{% endif %}
+              </span>
             </li>
           {% endif %}
           {% for recipient in settings.mail.recipients %}

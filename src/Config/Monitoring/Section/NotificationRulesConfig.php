@@ -14,7 +14,7 @@ final readonly class NotificationRulesConfig
      * Rules accept any well-formed channel name. Whether a channel is configured is checked
      * per alarm run, so a missing webhook channel drops only its own deliveries.
      */
-    public const CHANNEL_NAME_PATTERN = '/^[a-z0-9][a-z0-9_-]{0,49}$/';
+    public const CHANNEL_NAME_MAX_LENGTH = 50;
 
     /** @var array{enabled:bool,channels:list<string>} */
     public const DEFAULT_RULE = ['enabled' => true, 'channels' => ['email']];
@@ -130,7 +130,7 @@ final readonly class NotificationRulesConfig
                 throw new InvalidArgumentException("{$path} values must be non-empty strings.");
             }
             $channel = strtolower(trim($channel));
-            if (preg_match(self::CHANNEL_NAME_PATTERN, $channel) !== 1) {
+            if (!ConfigValueValidator::isSlug($channel, self::CHANNEL_NAME_MAX_LENGTH)) {
                 throw new InvalidArgumentException("{$path} contains invalid channel name {$channel}.");
             }
             $validated[] = $channel;

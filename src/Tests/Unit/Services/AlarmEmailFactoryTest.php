@@ -181,13 +181,12 @@ final class AlarmEmailFactoryTest extends TestCase
         $this->assertStringNotContainsString('Open dashboard', (string) $email->getTextBody());
     }
 
-    public function testItRejectsInvalidDashboardUrlsDuringCreation(): void
+    public function testItOmitsDashboardCtaForAUrlWithCredentials(): void
     {
-        $factory = $this->factory('https://user:pass@mata.example.com');
+        $email = $this->factory('https://user:pass@mata.example.com')->create($this->view());
 
-        $this->expectException(RuntimeException::class);
-        $this->expectExceptionMessage('MAIL_DASHBOARD_URL');
-        $factory->create($this->view());
+        $this->assertStringNotContainsString('user:pass', (string) $email->getHtmlBody());
+        $this->assertStringNotContainsString('Open dashboard', (string) $email->getTextBody());
     }
 
     public function testItRejectsMissingRecipients(): void
@@ -232,10 +231,12 @@ final class AlarmEmailFactoryTest extends TestCase
         string $applicationName = 'MATA',
         array $servers = [],
     ): AlarmEmailFactory {
+        $mail = new MailConfig(null, $fromEmail, $fromName, $alarmRecipients, [], [], 'UTF-8', $dashboardUrl);
+
         return new AlarmEmailFactory(
             new FilesystemLoader(dirname(__DIR__, 4) . '/templates'),
-            new AlarmTemplateDataFactory($applicationName, $dashboardUrl, $servers),
-            new MailConfig(null, $fromEmail, $fromName, $alarmRecipients, [], [], 'UTF-8', $dashboardUrl),
+            new AlarmTemplateDataFactory($applicationName, $mail->dashboardLink(), $servers),
+            $mail,
         );
     }
 

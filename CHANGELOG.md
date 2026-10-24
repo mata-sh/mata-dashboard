@@ -6,6 +6,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Security advisory monitoring: `config/advisories.json` lists RSS/Atom feeds, GitHub repository advisories, IMAP mailboxes, OSV.dev packages and CSAF providers with keyword and severity filters. New relevant advisories are recorded once as `advisories.matched` events that alarm through the usual decision driver and notification rules (`"notify": false` only lists them); failing sources and a stopped poller warn. **Action:** copy `config.example/advisories.json.example`, run `bin/mata db migrate`, then `bin/mata advisory:fetch` for the baseline; shared hosting adds the two `advisories_*` lines from `cron/crontab.shared-hosting.template`.
+- An **Advisories** page lists sources, advisories with their raw payload and review status, and downloads PDF, Markdown, HTML or JSON reports.
+- `bin/mata advisory:sources`, `advisory:fetch [--preview]` and `advisory:report` (PDF, Markdown, HTML, JSON, or `--mail`); `advisories.json` `digest` mails the report periodically.
 - `curl -fsSL https://mata.sh/install.sh | sh` installs the newest release with Docker for production; `--native` prepares a native checkout. Each release attaches `install.sh`.
 - `make uninstall` removes a Docker install, including the database, `logs/` and `temp/` that only the containers can delete.
 - The "Install with a coding agent" guide is a runbook for agents; the docs site publishes `llms.txt`.
@@ -25,6 +28,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `make doctor` shows where `config/` points and whether it is a Git repository.
 
 ### Changed
+- An invalid `MAIL_DASHBOARD_URL` (not absolute http(s), or with `user:pass@`) no longer fails alarm delivery: alarm mails, webhooks and advisory reports omit the dashboard link; `bin/mata config validate` warns and the settings page marks it, masking any password.
+- The built-in alarm decision driver also delivers security advisory alarms and advisory poller warnings.
 - `make setup` runs without prompts when there is no terminal, so scripts and coding agents can install MATA.
 - Docker setup replaces the placeholder `MYSQL_ROOT_PASSWORD` and `DB_PASSWORD` with generated values.
 - `make db-migrate` runs `bin/mata db migrate` as the web server user.
@@ -44,6 +49,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `make users-*`, `db-rollback`, `db-status`, `db-check`, `db-hash-password` and the scripts they ran; use `bin/mata user …` and `bin/mata db …`.
 
 ### Fixed
+- Alarm text mails no longer join the metric line and "Last seen" when the metric has a detail.
 - Docker: two dashboard stacks on one host no longer reach each other's MySQL and OPA. Both now sit on a network private to each Compose project, and only the web container joins the shared `mata-network` to reach nodes. Recreate the containers for this to apply.
 - `config validate` reports actual file, process, and missing-input sources once per problem; each JSON problem lists every implicated file in `files`.
 - Cron jobs honour `LOG_PATH` and `TEMP_DIR`; they wrote caches, locks and heartbeats to the default `logs/` and `temp/`, so the dashboard showed stale data and cron jobs as not running

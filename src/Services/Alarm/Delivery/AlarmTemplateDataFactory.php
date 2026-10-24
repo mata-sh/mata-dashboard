@@ -6,32 +6,33 @@ namespace Mata\Services\Alarm\Delivery;
 
 use DateTimeImmutable;
 use Mata\Services\Alarm\Delivery\Dto\AlarmDeliveryView;
-use RuntimeException;
 
 /** Builds the template data shared by every alarm channel, so all channels render identical fields. */
 final readonly class AlarmTemplateDataFactory
 {
+    /** Advisory alarms carry no server or application; the source names them instead. */
+    public const ADVISORY_TYPE = 'advisories.matched';
+
     private AlarmPresenter $presenter;
 
-    /** @param array<string,mixed> $servers servers.json, for each server's color and environment */
+    /**
+     * @param ?string             $dashboardLink see MailConfig::dashboardLink()
+     * @param array<string,mixed> $servers       servers.json, for each server's color and environment
+     */
     public function __construct(
         public string $applicationName,
-        private ?string $dashboardUrl,
+        private ?string $dashboardLink,
         array $servers = [],
     ) {
         $this->presenter = new AlarmPresenter($servers);
     }
 
-    /**
-     * @return array<string,mixed>
-     *
-     * @throws RuntimeException when the configured dashboard URL is invalid
-     */
+    /** @return array<string,mixed> */
     public function create(AlarmDeliveryView $view): array
     {
         $alarm = $view->alarm;
         $app = $this->displayLabel($alarm->app, '');
-        $server = $this->displayLabel($alarm->server, 'Global');
+        $server = $this->displayLabel($alarm->server, $this->advisorySource($alarm->type, $alarm->context) ?? 'Global');
         $presentation = $this->presenter->present($alarm, $server, $view->appEnvironment);
 
         return [
@@ -39,7 +40,7 @@ final readonly class AlarmTemplateDataFactory
             'alarm' => [
                 'id' => $view->alarmId,
                 'type' => $alarm->type,
-                'title' => $this->title($alarm->type),
+                'title' => $this->title($alarm->type, $alarm->message),
                 'message' => $alarm->message,
                 'context' => $this->formatContext($alarm->context),
                 'created_at' => $view->alarmCreatedAt->format('Y-m-d H:i:s T'),
@@ -56,10 +57,22 @@ final readonly class AlarmTemplateDataFactory
                 'color' => $presentation->serverColor,
                 'environment' => $presentation->environment,
             ],
-            'presentation' => ['description' => $presentation->description, 'metric' => $presentation->metric],
+            'presentation' => ['description' => $presentation->description, 'metric' => $presentation->metric, 'link' => $presentation->link],
             'severity' => $alarm->level->getPresentation() + ['emoji' => $alarm->level->getEmoji()],
-            'dashboard_url' => $this->normalizeDashboardUrl($this->dashboardUrl),
+            'dashboard_url' => $this->dashboardLink,
         ];
+    }
+
+    /** Advisories have no server; their source takes the server's place in the headline. */
+    private function advisorySource(string $type, ?string $context): ?string
+    {
+        if ($type !== self::ADVISORY_TYPE) {
+            return null;
+        }
+        $decoded = json_decode((string) $context, true);
+        $name = is_array($decoded) ? ($decoded['additional_data']['source_name'] ?? null) : null;
+
+        return is_string($name) && trim($name) !== '' ? $name : 'Advisory';
     }
 
     /** Collapse control characters and whitespace runs for single-line fields such as subjects. */
@@ -76,8 +89,12 @@ final readonly class AlarmTemplateDataFactory
      * Humanize an event type for headlines, e.g. `node_unhealthy` becomes `Node unhealthy`.
      * A dotted prefix names the area: `server_metrics.ingestion_run_empty` becomes `Server metrics: ingestion run empty`.
      */
-    private function title(?string $type): string
+    private function title(?string $type, ?string $message = null): string
     {
+        // An advisory's own title says more than its event type.
+        if ($type === self::ADVISORY_TYPE && trim((string) $message) !== '') {
+            return mb_strimwidth($this->singleLine($message, ''), 0, 160, '…');
+        }
         $type = strtolower($this->singleLine($type, ''));
         $type = preg_replace('/\./', ': ', $type, 1) ?? $type;
         $type = str_replace(['.', '_'], ' ', $type);
@@ -117,29 +134,5 @@ final readonly class AlarmTemplateDataFactory
         $value = trim((string) $value);
 
         return $value === '' ? $fallback : $value;
-    }
-
-    private function normalizeDashboardUrl(?string $dashboardUrl): ?string
-    {
-        $dashboardUrl = trim((string) $dashboardUrl);
-        if ($dashboardUrl === '') {
-            return null;
-        }
-
-        $parts = parse_url($dashboardUrl);
-        $scheme = is_array($parts) ? strtolower((string) ($parts['scheme'] ?? '')) : '';
-        $host = is_array($parts) ? (string) ($parts['host'] ?? '') : '';
-        if (
-            !is_array($parts)
-            || !filter_var($dashboardUrl, FILTER_VALIDATE_URL)
-            || !in_array($scheme, ['http', 'https'], true)
-            || $host === ''
-            || isset($parts['user'])
-            || isset($parts['pass'])
-        ) {
-            throw new RuntimeException('MAIL_DASHBOARD_URL must be an absolute http or https URL without userinfo.');
-        }
-
-        return str_ends_with($dashboardUrl, '/') ? substr($dashboardUrl, 0, -1) : $dashboardUrl;
     }
 }

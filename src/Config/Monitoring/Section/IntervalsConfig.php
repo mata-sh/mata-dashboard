@@ -84,6 +84,9 @@ final readonly class IntervalsConfig
                 'ram_usage_too_high' => 30,
                 'fatal_errors_occurring' => 0,
                 'library_outdated_security' => 0,
+                'advisories.matched' => 0,
+                'advisories.source_failing' => 360,
+                'advisories.poll_stalled' => 360,
             ]],
             'alarms' => ['min_alarm_interval_minutes' => [
                 '_default' => 1440,
