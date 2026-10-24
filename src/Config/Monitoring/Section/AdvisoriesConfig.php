@@ -25,8 +25,9 @@ use Mata\Services\Audit\Severity;
 final readonly class AdvisoriesConfig
 {
     private const SOURCE_KEY_MAX_LENGTH = 64;
+    private const DEFAULT_FAILURE_WARNING_AFTER = 3;
+    private const DEFAULT_STALE_AFTER_MINUTES = 360;
     private const ROOT_KEYS = ['_comment', 'poll_interval_minutes', 'failure_warning_after', 'stale_after_minutes', 'digest', 'sources'];
-    private const DIGEST_KEYS = ['enabled', 'every_days', 'recipients', 'relevant_only', 'attach_pdf'];
     private const COMMON_SOURCE_KEYS = ['_comment', 'name', 'description', 'type', 'enabled', 'poll_interval_minutes', 'filters', 'notify'];
     private const FILTER_KEYS = ['keywords', 'min_severity'];
 
@@ -41,7 +42,13 @@ final readonly class AdvisoriesConfig
 
     public static function empty(): self
     {
-        return new self(false, [], 3, 360, AdvisoryDigestConfig::disabled());
+        return new self(
+            configured: false,
+            sources: [],
+            failureWarningAfter: self::DEFAULT_FAILURE_WARNING_AFTER,
+            staleAfterMinutes: self::DEFAULT_STALE_AFTER_MINUTES,
+            digest: AdvisoryDigestConfig::disabled(),
+        );
     }
 
     /**
@@ -56,9 +63,12 @@ final readonly class AdvisoriesConfig
         $advisories = ConfigObject::fromValue($raw, 'advisories');
         $advisories->rejectUnknownKeys(self::ROOT_KEYS);
         $defaultInterval = $advisories->integer('poll_interval_minutes', 60, 5, 10080);
-        $failureWarningAfter = $advisories->integer('failure_warning_after', 3, 1, 100);
-        $staleAfterMinutes = $advisories->integer('stale_after_minutes', 360, 15, 43200);
-        $digest = self::parseDigest($advisories);
+        $failureWarningAfter = $advisories->integer('failure_warning_after', self::DEFAULT_FAILURE_WARNING_AFTER, 1, 100);
+        $staleAfterMinutes = $advisories->integer('stale_after_minutes', self::DEFAULT_STALE_AFTER_MINUTES, 15, 43200);
+        // Without a `digest` key no digest is mailed; `"digest": {}` mails it with the defaults.
+        $digest = $advisories->hasKey('digest')
+            ? AdvisoryDigestConfig::fromConfig($advisories->object('digest'))
+            : AdvisoryDigestConfig::disabled();
         $entries = $advisories->object('sources')->values;
 
         $sources = [];
@@ -86,24 +96,6 @@ final readonly class AdvisoriesConfig
     public function source(string $key): ?AdvisorySource
     {
         return $this->sources[$key] ?? null;
-    }
-
-    /** Without a `digest` key no digest is mailed; `"digest": {}` mails it with the defaults. */
-    private static function parseDigest(ConfigObject $advisories): AdvisoryDigestConfig
-    {
-        if (!$advisories->hasKey('digest')) {
-            return AdvisoryDigestConfig::disabled();
-        }
-        $digest = $advisories->object('digest');
-        $digest->rejectUnknownKeys(self::DIGEST_KEYS);
-
-        return new AdvisoryDigestConfig(
-            enabled: $digest->boolean('enabled', true),
-            everyDays: $digest->integer('every_days', 7, 1, 92),
-            recipients: $digest->stringList('recipients', self::isEmail(...), 'a list of email addresses'),
-            relevantOnly: $digest->boolean('relevant_only', true),
-            attachPdf: $digest->boolean('attach_pdf', true),
-        );
     }
 
     /** @param callable(string):?string $env */
@@ -192,11 +184,13 @@ final readonly class AdvisoriesConfig
         if (!is_string($host) || filter_var($host, FILTER_VALIDATE_DOMAIN, FILTER_FLAG_HOSTNAME) === false) {
             throw new InvalidArgumentException("{$entry->path('host')} must be a host name.");
         }
+
         $encryption = $entry->raw('encryption', ImapEncryption::Ssl->value);
         $encryption = is_string($encryption) ? ImapEncryption::tryFrom($encryption) : null;
         if ($encryption === null) {
             throw new InvalidArgumentException("{$entry->path('encryption')} must be \"ssl\" or \"starttls\"; credentials are never sent unencrypted.");
         }
+        
         $addresses = $entry->stringList('addresses', self::isMailAddressOrListId(...), 'a list of addresses or list IDs');
 
         $credentials = [];
@@ -254,11 +248,6 @@ final readonly class AdvisoriesConfig
         }
 
         return $url;
-    }
-
-    private static function isEmail(string $value): bool
-    {
-        return filter_var($value, FILTER_VALIDATE_EMAIL) !== false;
     }
 
     private static function isMailAddressOrListId(string $value): bool
