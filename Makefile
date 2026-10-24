@@ -637,15 +637,16 @@ docker-init:
 	@set -e; $(REQUIRE_DOCKER_AVAILABLE); \
 	echo "$(COLOR_BLUE)🐳 Initializing Docker prerequisites...$(COLOR_RESET)"; \
 	docker network inspect mata-network >/dev/null 2>&1 || docker network create mata-network >/dev/null; \
+	php_version=$(call GET_ENV_VALUE,.env,PHP_VERSION); php_image="php:$${php_version:-8.3}-apache-trixie"; \
 	if ! mkdir -p config/demo temp/api-cache temp/sessions temp/templates-cache logs 2>/dev/null; then \
 		echo "$(COLOR_YELLOW)Writable paths belong to another user; preparing them through a scoped root container.$(COLOR_RESET)"; \
-		docker run --rm -v "$(CURDIR)/config:/mata/config" -v "$(CURDIR)/temp:/mata/temp" -v "$(CURDIR)/logs:/mata/logs" php:8.3-apache \
+		docker run --rm -v "$(CURDIR)/config:/mata/config" -v "$(CURDIR)/temp:/mata/temp" -v "$(CURDIR)/logs:/mata/logs" "$$php_image" \
 			sh -c 'mkdir -p /mata/config/demo /mata/temp/api-cache /mata/temp/sessions /mata/temp/templates-cache /mata/logs'; \
 	fi; \
 	for file in config.env db.config.env mail.config.env servers.json servers.secrets.json ttl.json thresholds.json intervals.json data_retention.json; do \
 		if [ ! -f "config/$$file" ]; then \
 			if cp "config.example/$${file}.example" "config/$$file" 2>/dev/null; then case "$$file" in *.env|servers.secrets.json) chmod 600 "config/$$file" ;; *) chmod 644 "config/$$file" ;; esac; \
-			else docker run --rm -v "$(CURDIR)/config:/mata/config" -v "$(CURDIR)/config.example:/mata/config.example:ro" php:8.3-apache sh -c "cp /mata/config.example/$${file}.example /mata/config/$$file && chown $$(id -u):$$(id -g) /mata/config/$$file && case '$$file' in *.env|servers.secrets.json) chmod 600 /mata/config/$$file ;; *) chmod 644 /mata/config/$$file ;; esac"; fi; \
+			else docker run --rm -v "$(CURDIR)/config:/mata/config" -v "$(CURDIR)/config.example:/mata/config.example:ro" "$$php_image" sh -c "cp /mata/config.example/$${file}.example /mata/config/$$file && chown $$(id -u):$$(id -g) /mata/config/$$file && case '$$file' in *.env|servers.secrets.json) chmod 600 /mata/config/$$file ;; *) chmod 644 /mata/config/$$file ;; esac"; fi; \
 			echo "$(COLOR_GREEN)✅ Created config/$$file$(COLOR_RESET)"; \
 		fi; \
 	done; \

@@ -44,6 +44,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `make users-*`, `db-rollback`, `db-status`, `db-check`, `db-hash-password` and the scripts they ran; use `bin/mata user …` and `bin/mata db …`.
 
 ### Fixed
+- Docker: two dashboard stacks on one host no longer reach each other's MySQL and OPA. Both now sit on a network private to each Compose project, and only the web container joins the shared `mata-network` to reach nodes. Recreate the containers for this to apply.
 - `config validate` reports actual file, process, and missing-input sources once per problem; each JSON problem lists every implicated file in `files`.
 - Cron jobs honour `LOG_PATH` and `TEMP_DIR`; they wrote caches, locks and heartbeats to the default `logs/` and `temp/`, so the dashboard showed stale data and cron jobs as not running
 - Production Docker: sign-in and user commands work; PHP's `open_basedir` excluded the users volume

@@ -33,7 +33,11 @@ services:
         condition: service_healthy
       mata-opa:
         condition: service_started
+    # The project network keeps mata-db and mata-opa private to this stack: on the shared
+    # network another stack's containers would answer to the same service names.
+    # mata-network is shared with mata-node so the dashboard can reach nodes by container name.
     networks:
+      - default
       - mata-network
   mata-db:
     image: mysql:8.0
@@ -61,8 +65,6 @@ services:
       timeout: 5s
       retries: 30
       start_period: 10s
-    networks:
-      - mata-network
 
   mata-opa:
     image: openpolicyagent/opa:1.19.1
@@ -71,8 +73,6 @@ services:
     command: ["run", "--server", "--addr", "0.0.0.0:3320", "--watch", "/policies"]
     volumes:
       - ./policy:/policies:ro
-    networks:
-      - mata-network
 
 volumes:
   mysql_data:
