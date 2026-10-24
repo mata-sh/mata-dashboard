@@ -3837,6 +3837,10 @@ label.audit-chip:has(input:checked)::after {
     border-left-color: var(--sev-critical-border);
 }
 
+.advisory-source-row.health-stale {
+    border-left-color: var(--sev-medium-border);
+}
+
 .advisory-source-row.health-disabled {
     opacity: .6;
 }

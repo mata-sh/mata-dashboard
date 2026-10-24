@@ -8,6 +8,7 @@ use DateTimeImmutable;
 use DateTimeZone;
 use Mata\Models\Advisory\Advisory;
 use Mata\Models\Advisory\AdvisoryReviewStatus;
+use Mata\Services\Advisory\AdvisorySourceHealth;
 use Mata\Services\Audit\Severity;
 
 /**
@@ -28,12 +29,13 @@ final class AdvisoryReportPresenter
     /** Stands in for the worst severity of a report without advisories. */
     private const QUIET = ['label' => 'Quiet', 'emoji' => '🟢', 'fill' => '#2e7d43', 'border' => '#4da767', 'tint' => '#7bd88f'];
 
-    /** @var array<string,array{label:string,color:string}> */
-    private const HEALTH = [
-        'ok' => ['label' => 'OK', 'color' => '#7bd88f'],
-        'failing' => ['label' => 'Failing', 'color' => '#f09595'],
-        'never_polled' => ['label' => 'Not polled yet', 'color' => '#9a9a9a'],
-        'disabled' => ['label' => 'Disabled', 'color' => '#5a6172'],
+    /** @var array<string,string> AdvisorySourceHealth value => color */
+    private const HEALTH_COLOR = [
+        'ok' => '#7bd88f',
+        'failing' => '#f09595',
+        'stale' => '#e3ce7a',
+        'never_polled' => '#9a9a9a',
+        'disabled' => '#5a6172',
     ];
 
     private const SUMMARY_LIMIT = 320;
@@ -91,8 +93,8 @@ final class AdvisoryReportPresenter
             ],
             'severity_rows' => $severityRows,
             'sources' => array_map(static fn (array $source): array => $source + [
-                'health_label' => self::HEALTH[$source['health']]['label'],
-                'health_color' => self::HEALTH[$source['health']]['color'],
+                'health_label' => AdvisorySourceHealth::from($source['health'])->label(),
+                'health_color' => self::HEALTH_COLOR[$source['health']],
                 'last_success' => self::shortTime($source['last_success_at']),
             ], $report->sources),
             'top_products' => array_map(static fn (array $product): array => $product + ['severity' => self::severity($product['worst'])], $report->topProducts),

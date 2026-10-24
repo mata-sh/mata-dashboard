@@ -95,8 +95,10 @@ final class OsvAdvisoryFetcher implements AdvisoryFetcherInterface
 
     /**
      * OSV lists one vulnerability once per database that has it (PyPI: PYSEC-… and GHSA-…,
-     * aliasing each other). Rated records come first, and a record whose ID or alias was
-     * already listed is dropped, so each vulnerability is notified once.
+     * aliasing each other). Rated records come first and one item stands for each alias
+     * group, so each vulnerability is notified once. The item carries every ID of its group,
+     * withdrawn records' too: a GHSA record that later wins over the PYSEC one stored earlier,
+     * or replaces it when PYSEC is withdrawn as a duplicate, is still recognized as stored.
      *
      * @param list<array<string,mixed>> $vulns
      *
@@ -104,23 +106,53 @@ final class OsvAdvisoryFetcher implements AdvisoryFetcherInterface
      */
     private function items(array $vulns, OsvPackage $package): array
     {
+        /** @var array<string,int> $groupOf ID => group */
+        $groupOf = [];
+
+        /** @var array<int,list<string>> $groups group => every ID of one vulnerability */
+        $groups = [];
+        foreach ($vulns as $index => $vuln) {
+            $ids = [$vuln['id'], ...self::aliases($vuln)];
+            $joined = [];
+            foreach ($ids as $id) {
+                if (isset($groupOf[$id])) {
+                    $joined[$groupOf[$id]] = true;
+                }
+            }
+            $group = array_key_first($joined) ?? $index;
+            foreach (array_keys($joined) as $other) {
+                $ids = [...$ids, ...$groups[$other]];
+                unset($groups[$other]);
+            }
+            $groups[$group] = array_values(array_unique($ids));
+            foreach ($groups[$group] as $id) {
+                $groupOf[$id] = $group;
+            }
+        }
+
         $vulns = array_values(array_filter($vulns, static fn (array $vuln): bool => ($vuln['withdrawn'] ?? null) === null));
         usort($vulns, fn (array $a, array $b): int => [$this->rating($a) === null, $a['id']] <=> [$this->rating($b) === null, $b['id']]);
 
         $items = [];
-        $seen = [];
         foreach ($vulns as $vuln) {
-            $aliases = array_values(array_filter(is_array($vuln['aliases'] ?? null) ? $vuln['aliases'] : [], 'is_string'));
-            if (array_intersect([$vuln['id'], ...$aliases], array_keys($seen)) !== []) {
+            $group = $groupOf[$vuln['id']];
+            if (isset($items[$group])) {
                 continue;
             }
-            foreach ([$vuln['id'], ...$aliases] as $id) {
-                $seen[$id] = true;
-            }
-            $items[] = $this->item($vuln, $aliases, $package);
+            $items[$group] = $this->item($vuln, array_values(array_diff($groups[$group], [$vuln['id']])), $package);
         }
 
-        return $items;
+        return array_values($items);
+    }
+
+    /**
+     * @param array<string,mixed> $vuln
+     *
+     * @return list<string>
+     */
+    private static function aliases(array $vuln): array
+    {
+        return array_values(array_filter(is_array($vuln['aliases'] ?? null) ? $vuln['aliases'] : [], 'is_string'));
     }
 
     /**
@@ -144,6 +176,7 @@ final class OsvAdvisoryFetcher implements AdvisoryFetcherInterface
             publishedAt: $this->date($vuln['published'] ?? null),
             rawFormat: 'json',
             raw: json_encode($vuln, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR),
+            aliases: $aliases,
         );
     }
 

@@ -167,6 +167,21 @@ final class AdvisoryFetcherTest extends TestCase
         $this->assertSame('https://osv.dev/vulnerability/GHSA-aaaa-bbbb-cccc', $items[0]->link);
     }
 
+    public function testOsvKeepsTheIdsOfAWithdrawnDuplicateSoTheAdvisoryStoredUnderItIsRecognized(): void
+    {
+        $source = new AdvisorySource('django', 'Django', '', AdvisorySourceType::Osv, 'https://osv.dev/list', true, 60, [], Severity::Low, true, package: new OsvPackage('PyPI', 'django'));
+        $fetcher = new OsvAdvisoryFetcher($this->client([new Response(200, [], (string) json_encode(['vulns' => [
+            ['id' => 'GHSA-aaaa-bbbb-cccc', 'aliases' => ['CVE-2026-1234'], 'database_specific' => ['severity' => 'HIGH']],
+            ['id' => 'PYSEC-2026-1', 'aliases' => ['GHSA-aaaa-bbbb-cccc'], 'withdrawn' => '2026-10-21T00:00:00Z'],
+        ]]))]), 'test');
+
+        $items = $fetcher->fetch($source, null)->items;
+
+        $this->assertCount(1, $items);
+        $this->assertSame('GHSA-aaaa-bbbb-cccc', $items[0]->externalId);
+        $this->assertEqualsCanonicalizing(['GHSA-aaaa-bbbb-cccc', 'CVE-2026-1234', 'PYSEC-2026-1'], $items[0]->ids());
+    }
+
     public function testCsafPollsNeverSplitDocumentsChangedInTheSameSecondAndSkipDocumentsThatAreGone(): void
     {
         $index = static fn (array $lines): Response => new Response(200, [], implode("\n", array_map(
@@ -232,6 +247,7 @@ final class AdvisoryFetcherTest extends TestCase
         $this->assertSame(['jQuery'], $filter->evaluate($source, $this->item('Fix in jquery ui', Severity::High))->matchedKeywords);
         $this->assertFalse($filter->evaluate($source, $this->item('PHP: minor', Severity::Medium))->relevant);
         $this->assertTrue($filter->evaluate($source, $this->item('[oss-security] PHP fix', Severity::Unknown))->relevant);
+        $this->assertSame(['PHP'], $filter->evaluate($source, $this->item("PHP: Gr\xFC\xDFe overflow", Severity::Critical))->matchedKeywords, 'Invalid UTF-8 must not hide a match.');
     }
 
     /**

@@ -55,7 +55,7 @@ class AdvisoryController extends BaseController
         return $this->executeWithErrorHandling(
             fn (): Response => new HtmlResponse($this->renderer->renderContainer(
                 configured: $this->advisories->config->configured,
-                sources: $this->advisories->config->configured ? $this->viewBuilder->sources() : [],
+                sources: $this->advisories->config->configured ? $this->viewBuilder->sources(new DateTimeImmutable('now', new DateTimeZone('UTC'))) : [],
                 endpoints: [
                     'advisories_render' => $this->endpoints->url('advisories_render'),
                     'advisories_json' => $this->endpoints->url('advisories_json'),

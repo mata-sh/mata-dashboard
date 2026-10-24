@@ -125,6 +125,20 @@ final class AdvisorySourcePollerSqlIntegrationTest extends TestCase
         $this->assertCount(1, $this->recorded);
     }
 
+    public function testAnAdvisoryThatReturnsUnderAnAliasIsNotNotifiedAgain(): void
+    {
+        $this->poller()->poll($this->source(), $this->at('10:00'));
+        $this->sourceReturns = [$this->item('PYSEC-2026-1', 'PHP: issue')];
+        $this->poller()->poll($this->source(), $this->at('11:00'));
+        // OSV added a rated GHSA record, which now stands for the vulnerability.
+        $this->sourceReturns = [$this->item('GHSA-aaaa-bbbb-cccc', 'PHP: issue', aliases: ['CVE-2026-1234', 'PYSEC-2026-1'])];
+
+        $result = $this->poller()->poll($this->source(), $this->at('12:00'));
+
+        $this->assertSame(0, $result->stored);
+        $this->assertCount(1, $this->recorded);
+    }
+
     public function testRepeatedFailuresWarnAndTheNextSuccessRecordsARecovery(): void
     {
         $this->sourceReturns = new AdvisoryFetchException('HTTP 503 from https://example.org/feed');
@@ -204,9 +218,10 @@ final class AdvisorySourcePollerSqlIntegrationTest extends TestCase
         );
     }
 
-    private function item(string $id, string $title, Severity $severity = Severity::High): AdvisoryItem
+    /** @param list<string> $aliases */
+    private function item(string $id, string $title, Severity $severity = Severity::High, array $aliases = []): AdvisoryItem
     {
-        return new AdvisoryItem($id, $title, "https://example.org/{$id}", null, $severity, null, [], [], new DateTimeImmutable('2026-10-24 09:00:00 UTC'), 'xml', '<item/>');
+        return new AdvisoryItem($id, $title, "https://example.org/{$id}", null, $severity, null, [], [], new DateTimeImmutable('2026-10-24 09:00:00 UTC'), 'xml', '<item/>', $aliases);
     }
 
     private function at(string $time): DateTimeImmutable

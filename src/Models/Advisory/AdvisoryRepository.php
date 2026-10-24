@@ -30,7 +30,7 @@ final class AdvisoryRepository
      *
      * @return array<string,true> the given IDs already stored for the source
      */
-    public function existingExternalIds(string $sourceKey, array $externalIds): array
+    public function knownIds(string $sourceKey, array $externalIds): array
     {
         $existing = [];
         foreach (array_chunk(array_values(array_unique($externalIds)), self::LOOKUP_CHUNK) as $chunk) {

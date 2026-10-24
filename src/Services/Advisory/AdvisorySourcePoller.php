@@ -9,6 +9,7 @@ use DateTimeZone;
 use Mata\Config\Monitoring\Section\Advisory\AdvisorySource;
 use Mata\Models\Advisory\Advisory;
 use Mata\Models\Advisory\AdvisoryRepository;
+use Mata\Models\Advisory\AdvisorySourceState;
 use Mata\Models\Advisory\AdvisorySourceStateRepository;
 use Mata\Services\Advisory\Dto\AdvisoryItem;
 use Mata\Services\Advisory\Dto\AdvisoryPollResult;
@@ -39,6 +40,7 @@ final class AdvisorySourcePoller
 
     private const RETRY_DAYS = 7;
     private const MAX_RAW_BYTES = 512 * 1024;
+    private const DUE_TOLERANCE_SECONDS = 30;
 
     /** @param array<string,AdvisoryFetcherInterface> $fetchers keyed by AdvisorySourceType value */
     public function __construct(
@@ -55,8 +57,7 @@ final class AdvisorySourcePoller
     {
         $nowText = self::utc($now);
         $state = $this->states->get($source->key);
-        if (!$force && $state?->lastPolledAt !== null
-            && strtotime($state->lastPolledAt . ' UTC') > $now->getTimestamp() - $source->pollIntervalMinutes * 60 + 30) {
+        if (!$force && !self::isDue($state, $source, $now)) {
             return new AdvisoryPollResult($source->key, AdvisoryPollStatus::NotDue);
         }
 
@@ -67,40 +68,49 @@ final class AdvisorySourcePoller
         }
 
         $baseline = $state === null || !$state->hasBaseline();
-        $items = $this->uniqueItems($fetched->items);
-        $existing = $this->advisories->existingExternalIds($source->key, array_keys($items));
+        $items = self::uniqueItems($fetched->items);
+        $knownIds = $this->advisories->knownIds($source->key, self::allIds($items));
         $stored = $relevant = 0;
-        foreach ($items as $externalId => $item) {
-            if (isset($existing[$externalId])) {
+        foreach ($items as $item) {
+            if (self::isKnown($item, $knownIds)) {
                 continue;
             }
             $relevance = $this->filter->evaluate($source, $item);
-            $this->advisories->insert($source->key, $this->capRaw($item), $relevance->relevant, $relevance->matchedKeywords, $baseline, $nowText);
+            $this->advisories->insert(
+                sourceKey: $source->key,
+                item: self::capRaw($item),
+                relevant: $relevance->relevant,
+                matchedKeywords: $relevance->matchedKeywords,
+                baseline: $baseline,
+                now: $nowText,
+            );
             ++$stored;
             $relevant += $relevance->relevant ? 1 : 0;
         }
 
-        $notified = 0;
-        if (!$baseline) {
-            $notBefore = self::utc($now->modify('-' . self::RETRY_DAYS . ' days'));
-            foreach ($this->advisories->pendingNotifications($source->key, $notBefore) as $advisory) {
-                $notified += $this->notify($source, $advisory, $nowText) ? 1 : 0;
-            }
-        }
+        $notified = $baseline ? 0 : $this->notifyPending($source, $now, $nowText);
 
         if ($state !== null && $state->consecutiveFailures >= $this->failureWarningAfter) {
             $this->recordRecovery($source, $state->consecutiveFailures);
         }
         $this->states->recordSuccess($source->key, $nowText, count($items), $fetched->cursor);
 
-        return new AdvisoryPollResult($source->key, AdvisoryPollStatus::Polled, count($items), $stored, $relevant, $notified, $baseline);
+        return new AdvisoryPollResult(
+            sourceKey: $source->key,
+            status: AdvisoryPollStatus::Polled,
+            fetched: count($items),
+            stored: $stored,
+            relevant: $relevant,
+            notified: $notified,
+            baseline: $baseline,
+        );
     }
 
     /** Fetch and filter without storing or notifying, e.g. to try filters from the CLI. */
     public function preview(AdvisorySource $source): AdvisoryPollResult
     {
         try {
-            $items = $this->uniqueItems($this->fetcher($source)->fetch($source, null)->items);
+            $items = self::uniqueItems($this->fetcher($source)->fetch($source, null)->items);
         } catch (AdvisoryFetchException $exception) {
             return new AdvisoryPollResult($source->key, AdvisoryPollStatus::Failed, error: $exception->getMessage());
         }
@@ -124,6 +134,28 @@ final class AdvisorySourcePoller
             Severity::High => 'warning',
             default => 'info',
         };
+    }
+
+    private static function isDue(?AdvisorySourceState $state, AdvisorySource $source, DateTimeImmutable $now): bool
+    {
+        if ($state?->lastPolledAt === null) {
+            return true;
+        }
+        $nextPollAt = strtotime($state->lastPolledAt . ' UTC') + $source->pollIntervalMinutes * 60;
+
+        return $nextPollAt - self::DUE_TOLERANCE_SECONDS <= $now->getTimestamp();
+    }
+
+    /** @return int advisories whose event was recorded */
+    private function notifyPending(AdvisorySource $source, DateTimeImmutable $now, string $nowText): int
+    {
+        $notBefore = self::utc($now->modify('-' . self::RETRY_DAYS . ' days'));
+        $notified = 0;
+        foreach ($this->advisories->pendingNotifications($source->key, $notBefore) as $advisory) {
+            $notified += $this->notify($source, $advisory, $nowText) ? 1 : 0;
+        }
+
+        return $notified;
     }
 
     private function notify(AdvisorySource $source, Advisory $advisory, string $now): bool
@@ -203,7 +235,7 @@ final class AdvisorySourcePoller
      *
      * @return array<string,AdvisoryItem> keyed by external ID; the first occurrence wins
      */
-    private function uniqueItems(array $items): array
+    private static function uniqueItems(array $items): array
     {
         $unique = [];
         foreach ($items as $item) {
@@ -213,25 +245,40 @@ final class AdvisorySourcePoller
         return $unique;
     }
 
-    private function capRaw(AdvisoryItem $item): AdvisoryItem
+    /**
+     * @param array<string,AdvisoryItem> $items
+     *
+     * @return list<string> the external IDs and aliases of all items
+     */
+    private static function allIds(array $items): array
+    {
+        $ids = [];
+        foreach ($items as $item) {
+            array_push($ids, ...$item->ids());
+        }
+
+        return $ids;
+    }
+
+    /** @param array<string,true> $knownIds external IDs already stored */
+    private static function isKnown(AdvisoryItem $item, array $knownIds): bool
+    {
+        foreach ($item->ids() as $id) {
+            if (isset($knownIds[$id])) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static function capRaw(AdvisoryItem $item): AdvisoryItem
     {
         if (strlen($item->raw) <= self::MAX_RAW_BYTES) {
             return $item;
         }
 
-        return new AdvisoryItem(
-            $item->externalId,
-            $item->title,
-            $item->link,
-            $item->summary,
-            $item->severity,
-            $item->cvssScore,
-            $item->cveIds,
-            $item->products,
-            $item->publishedAt,
-            $item->rawFormat,
-            mb_strcut($item->raw, 0, self::MAX_RAW_BYTES) . "\n[truncated]",
-        );
+        return $item->withRaw(mb_strcut($item->raw, 0, self::MAX_RAW_BYTES) . "\n[truncated]");
     }
 
     private static function utc(DateTimeImmutable $time): string

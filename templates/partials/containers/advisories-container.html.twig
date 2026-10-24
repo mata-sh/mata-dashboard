@@ -18,8 +18,8 @@
           <div class="advisory-source-body">
             {% if source.description %}<div class="advisory-source-description">{{ source.description }}</div>{% endif %}
             <div class="audit-summary advisory-source-summary">
-              {% set health_class = {ok: 'sev-low', failing: 'sev-critical', never_polled: 'pill-meta', disabled: 'pill-abandoned'}[source.health] %}
-              <span class="audit-pill {{ health_class }}">{{ {ok: 'OK', failing: 'Failing', never_polled: 'Not polled yet', disabled: 'Disabled'}[source.health] }}{% if source.failures > 0 %} <b>×{{ source.failures }}</b>{% endif %}</span>
+              {% set health_class = {ok: 'sev-low', failing: 'sev-critical', stale: 'sev-medium', never_polled: 'pill-meta', disabled: 'pill-abandoned'}[source.health] %}
+              <span class="audit-pill {{ health_class }}">{{ source.health_label }}{% if source.failures > 0 %} <b>×{{ source.failures }}</b>{% endif %}</span>
               <span class="audit-pill pill-meta"><b>{{ source.totals.total }}</b> stored</span>
               <span class="audit-pill {{ source.totals.relevant > 0 ? 'sev-medium' : 'is-zero' }}"><b>{{ source.totals.relevant }}</b> relevant</span>
               <span class="audit-pill {{ source.totals.unreviewed > 0 ? 'sev-high' : 'is-zero' }}"><b>{{ source.totals.unreviewed }}</b> unreviewed</span>

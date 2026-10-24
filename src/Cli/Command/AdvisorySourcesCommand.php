@@ -4,9 +4,11 @@ declare(strict_types=1);
 
 namespace Mata\Cli\Command;
 
+use DateTimeImmutable;
+use DateTimeZone;
 use Mata\Cli\CliOutput;
+use Mata\Services\Advisory\AdvisorySourceHealth;
 use Mata\Services\Advisory\Report\AdvisoryReport;
-use Mata\Services\Advisory\Report\AdvisoryReportBuilder;
 use Mata\Services\Status\StatusLevel;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Formatter\OutputFormatter;
@@ -28,16 +30,13 @@ final class AdvisorySourcesCommand extends AbstractAdvisoryCommand
         $states = $this->advisories->states->all();
         $totals = $this->advisories->advisories->sourceTotals();
 
+        $now = new DateTimeImmutable('now', new DateTimeZone('UTC'));
         $sources = [];
         $levels = [StatusLevel::Ok];
         foreach ($this->advisories->config->sources as $key => $source) {
             $state = $states[$key] ?? null;
-            $health = AdvisoryReportBuilder::health($source, $state);
-            $levels[] = match ($health) {
-                'failing' => StatusLevel::Error,
-                'never_polled' => StatusLevel::Warning,
-                default => StatusLevel::Ok,
-            };
+            $health = AdvisorySourceHealth::of($source, $state, $now, $this->advisories->config->staleAfterMinutes);
+            $levels[] = $health->level();
             $sources[] = [
                 'key' => $key,
                 'name' => $source->name,
@@ -48,7 +47,7 @@ final class AdvisorySourcesCommand extends AbstractAdvisoryCommand
                 'notify' => $source->notify,
                 'poll_interval_minutes' => $source->pollIntervalMinutes,
                 'filters' => ['keywords' => $source->keywords, 'min_severity' => $source->minSeverity->value],
-                'health' => $health,
+                'health' => $health->value,
                 'last_polled_at' => AdvisoryReport::isoTime($state?->lastPolledAt),
                 'last_success_at' => AdvisoryReport::isoTime($state?->lastSuccessAt),
                 'consecutive_failures' => $state->consecutiveFailures ?? 0,
@@ -68,11 +67,7 @@ final class AdvisorySourcesCommand extends AbstractAdvisoryCommand
             $output->writeln('advisories.json defines no valid sources; see bin/mata config validate advisories.json');
         }
         foreach ($sources as $source) {
-            $mark = CliOutput::mark(match ($source['health']) {
-                'failing' => StatusLevel::Error,
-                'never_polled' => StatusLevel::Warning,
-                default => StatusLevel::Ok,
-            });
+            $mark = CliOutput::mark(AdvisorySourceHealth::from($source['health'])->level());
             $output->writeln(sprintf(
                 '%s %-16s %-7s %-12s notify=%-3s every %dm  advisories=%d relevant=%d unreviewed=%d  last success: %s',
                 $mark,

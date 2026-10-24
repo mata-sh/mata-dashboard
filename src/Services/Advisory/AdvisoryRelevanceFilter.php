@@ -20,22 +20,21 @@ final class AdvisoryRelevanceFilter
     public function evaluate(AdvisorySource $source, AdvisoryItem $item): AdvisoryRelevance
     {
         if (!self::meetsSeverity($item->severity, $source->minSeverity)) {
-            return new AdvisoryRelevance(false, []);
+            return new AdvisoryRelevance(relevant: false, matchedKeywords: []);
         }
         if ($source->keywords === []) {
-            return new AdvisoryRelevance(true, []);
+            return new AdvisoryRelevance(relevant: true, matchedKeywords: []);
         }
 
-        $haystack = implode("\n", [$item->title, $item->summary ?? '', ...$item->products]);
+        $text = self::searchableText($item);
         $matched = [];
         foreach ($source->keywords as $keyword) {
-            $pattern = '/(?<![\p{L}\p{N}])' . preg_quote($keyword, '/') . '(?![\p{L}\p{N}])/iu';
-            if (preg_match($pattern, $haystack) === 1) {
+            if (self::containsWord($text, $keyword)) {
                 $matched[] = $keyword;
             }
         }
 
-        return new AdvisoryRelevance($matched !== [], $matched);
+        return new AdvisoryRelevance(relevant: $matched !== [], matchedKeywords: $matched);
     }
 
     /** Severity cases are declared worst first, so a lower index is more severe. */
@@ -47,5 +46,22 @@ final class AdvisoryRelevanceFilter
         $rank = array_flip(Severity::values());
 
         return $rank[$severity->value] <= $rank[$minimum->value];
+    }
+
+    /**
+     * Title, summary and products, one per line, so a keyword never matches across two fields.
+     * Invalid UTF-8 is replaced: it makes a /u match fail, which would drop the advisory.
+     */
+    private static function searchableText(AdvisoryItem $item): string
+    {
+        $fields = [$item->title, $item->summary ?? '', ...$item->products];
+
+        return mb_scrub(implode("\n", $fields), 'UTF-8');
+    }
+
+    /** Not touching a letter or digit, unlike \b, so "C++" and ".NET" match too. */
+    private static function containsWord(string $text, string $word): bool
+    {
+        return preg_match('/(?<![\p{L}\p{N}])' . preg_quote($word, '/') . '(?![\p{L}\p{N}])/iu', $text) === 1;
     }
 }

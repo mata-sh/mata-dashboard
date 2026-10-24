@@ -68,7 +68,11 @@ final class AdvisoryDigestMailer
             ->html($this->renderer->html($report), $this->mailConfig->charset)
             ->text($this->renderer->markdown($report), $this->mailConfig->charset);
         if ($this->digest->attachPdf) {
-            $email->attach($this->renderer->pdf($report), AdvisoryReportRenderer::fileName($report, 'pdf'), 'application/pdf');
+            $email->attach(
+                body: $this->renderer->pdf($report),
+                name: AdvisoryReportRenderer::fileName($report, 'pdf'),
+                contentType: 'application/pdf',
+            );
         }
 
         return $email;

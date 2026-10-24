@@ -14,6 +14,7 @@ use Mata\Models\Advisory\AdvisoryReviewStatus;
 use Mata\Models\Advisory\AdvisorySourceState;
 use Mata\Models\Advisory\AdvisorySourceStateRepository;
 use Mata\Services\Advisory\AdvisoryRelevanceFilter;
+use Mata\Services\Advisory\AdvisorySourceHealth;
 use Mata\Services\Audit\Severity;
 
 /**
@@ -75,7 +76,7 @@ final class AdvisoryReportBuilder
             notified: $notified,
             cveCount: count($cves),
             sources: array_values(array_map(
-                fn (AdvisorySource $source): array => $this->sourceSummary($source, $perSource[$source->key], $states[$source->key] ?? null),
+                fn (AdvisorySource $source): array => $this->sourceSummary($source, $perSource[$source->key], $states[$source->key] ?? null, $now),
                 $sources,
             )),
             topProducts: $this->topProducts($advisories),
@@ -89,7 +90,7 @@ final class AdvisoryReportBuilder
      *
      * @return array<string,mixed>
      */
-    private function sourceSummary(AdvisorySource $source, array $advisories, ?AdvisorySourceState $state): array
+    private function sourceSummary(AdvisorySource $source, array $advisories, ?AdvisorySourceState $state, DateTimeImmutable $now): array
     {
         $counts = array_fill_keys(Severity::values(), 0);
         foreach ($advisories as $advisory) {
@@ -106,22 +107,11 @@ final class AdvisoryReportBuilder
             'notify' => $source->notify,
             'count' => count($advisories),
             'severity_counts' => $counts,
-            'health' => self::health($source, $state),
+            'health' => AdvisorySourceHealth::of($source, $state, $now, $this->config->staleAfterMinutes)->value,
             'last_success_at' => AdvisoryReport::isoTime($state?->lastSuccessAt),
             'consecutive_failures' => $state->consecutiveFailures ?? 0,
             'last_error' => $state?->lastError,
         ];
-    }
-
-    /** ok, failing, never_polled or disabled. */
-    public static function health(AdvisorySource $source, ?AdvisorySourceState $state): string
-    {
-        return match (true) {
-            !$source->enabled => 'disabled',
-            $state === null || ($state->lastSuccessAt === null && $state->consecutiveFailures === 0) => 'never_polled',
-            $state->consecutiveFailures > 0 => 'failing',
-            default => 'ok',
-        };
     }
 
     /**

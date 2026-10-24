@@ -10,8 +10,8 @@ use Mata\Config\Monitoring\Section\AdvisoriesConfig;
 use Mata\Models\Advisory\Advisory;
 use Mata\Models\Advisory\AdvisoryRepository;
 use Mata\Models\Advisory\AdvisorySourceStateRepository;
+use Mata\Services\Advisory\AdvisorySourceHealth;
 use Mata\Services\Advisory\Report\AdvisoryReport;
-use Mata\Services\Advisory\Report\AdvisoryReportBuilder;
 use Mata\Services\Advisory\Report\AdvisoryReportPresenter;
 
 /** View data of the Advisories page: source health panels and the advisory table rows. */
@@ -24,13 +24,14 @@ final class AdvisoriesViewBuilder
     ) {}
 
     /** @return list<array<string,mixed>> */
-    public function sources(): array
+    public function sources(DateTimeImmutable $now): array
     {
         $states = $this->states->all();
         $totals = $this->advisories->sourceTotals();
         $rows = [];
         foreach ($this->config->sources as $key => $source) {
             $state = $states[$key] ?? null;
+            $health = AdvisorySourceHealth::of($source, $state, $now, $this->config->staleAfterMinutes);
             $rows[] = [
                 'key' => $key,
                 'name' => $source->name,
@@ -42,7 +43,8 @@ final class AdvisoriesViewBuilder
                 'interval' => $source->pollIntervalMinutes,
                 'keywords' => $source->keywords,
                 'min_severity' => $source->minSeverity->value,
-                'health' => AdvisoryReportBuilder::health($source, $state),
+                'health' => $health->value,
+                'health_label' => $health->label(),
                 'last_success' => self::display($state?->lastSuccessAt),
                 'last_polled' => self::display($state?->lastPolledAt),
                 'failures' => $state->consecutiveFailures ?? 0,

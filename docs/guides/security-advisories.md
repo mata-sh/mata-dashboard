@@ -69,7 +69,7 @@ new relevant advisory is notified exactly once, also across restarts.
 | --- | --- | --- |
 | `poll_interval_minutes` | `60` | Default fetch interval per source, 5 to 10080. |
 | `failure_warning_after` | `3` | Failed polls in a row before a 🟡 `advisories.source_failing` warning. |
-| `stale_after_minutes` | `360` | A poll cron silent this long raises a 🟡 `advisories.poll_stalled` warning. |
+| `stale_after_minutes` | `360` | A poll cron silent this long raises a 🟡 `advisories.poll_stalled` warning. A source not polled for its interval plus this long shows as **Stale**, and `advisory:sources` exits with a warning. |
 | `digest` | off | The periodic report mail, see [Digest](#digest). |
 | `sources` | — | Sources keyed by a stable ID (lowercase letters, digits, `-`, `_`). Renaming a key starts a new baseline. |
 

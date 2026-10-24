@@ -57,15 +57,23 @@ final class ImapAdvisoryFetcher implements AdvisoryFetcherInterface
 
             $query = $folder->messages()->withHeaders()->withBody()->leaveUnread();
             [$cursorValidity, $lastUid] = array_pad(explode(':', (string) $cursor, 2), 2, '');
-            if ($cursorValidity !== '' && $cursorValidity === $uidValidity && ctype_digit($lastUid)) {
-                $query->uid((int) $lastUid + 1, INF);
+            $cursorUid = $cursorValidity !== '' && $cursorValidity === $uidValidity && ctype_digit($lastUid) ? (int) $lastUid : null;
+            if ($cursorUid !== null) {
+                // Oldest first: the limit then leaves the newest for the next poll instead of skipping the oldest.
+                $query->uid($cursorUid + 1, INF);
+                $query->oldest();
             } else {
+                // Newest first (ImapEngine's default): without a cursor this is usually the first poll, a baseline that never alerts.
                 $query->since(new DateTimeImmutable('-' . self::BACKFILL_DAYS . ' days'));
             }
 
             $items = [];
-            $maxUid = ctype_digit($lastUid) && $cursorValidity === $uidValidity ? (int) $lastUid : 0;
+            $maxUid = $cursorUid ?? 0;
             foreach ($query->limit(self::MAX_MESSAGES)->get() as $message) {
+                // "UID n:*" also returns the newest message when its UID is below n.
+                if ($cursorUid !== null && $message->uid() <= $cursorUid) {
+                    continue;
+                }
                 $maxUid = max($maxUid, $message->uid());
                 if ($this->accepts($message, $config->addresses)) {
                     $items[] = $this->item($message);
