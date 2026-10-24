@@ -17,14 +17,17 @@ use Mata\Config\Monitoring\Section\Advisory\OsvPackage;
 use Mata\Services\Audit\Severity;
 
 /**
- * Security advisory sources from advisories.json. Without the file, or without sources in it,
- * the feature is off: no polling, no menu entry. Invalid sources are reported and skipped independently; disabled
- * ones are kept so the dashboard can list them. Secrets (GitHub token, IMAP credentials) come
- * from the environment variables the `*_env` keys name; messages name the variable only.
+ * Security advisory sources from advisories.json. Without the file, or without sources in it, the
+ * feature is off: no polling, no menu entry. Invalid sources are reported and skipped independently;
+ * disabled ones are kept so the dashboard can list them. Secrets (GitHub token, IMAP credentials)
+ * come from the environment variables the `*_env` keys name; messages name the variable only.
  */
 final readonly class AdvisoriesConfig
 {
     private const SOURCE_KEY_MAX_LENGTH = 64;
+    private const DEFAULT_POLL_INTERVAL_MINUTES = 60;
+    private const MIN_POLL_INTERVAL_MINUTES = 5;
+    private const MAX_POLL_INTERVAL_MINUTES = 10080;
     private const DEFAULT_FAILURE_WARNING_AFTER = 3;
     private const DEFAULT_STALE_AFTER_MINUTES = 360;
     private const ROOT_KEYS = ['_comment', 'poll_interval_minutes', 'failure_warning_after', 'stale_after_minutes', 'digest', 'sources'];
@@ -62,7 +65,12 @@ final readonly class AdvisoriesConfig
     {
         $advisories = ConfigObject::fromValue($raw, 'advisories');
         $advisories->rejectUnknownKeys(self::ROOT_KEYS);
-        $defaultInterval = $advisories->integer('poll_interval_minutes', 60, 5, 10080);
+        $defaultInterval = $advisories->integer(
+            'poll_interval_minutes',
+            self::DEFAULT_POLL_INTERVAL_MINUTES,
+            self::MIN_POLL_INTERVAL_MINUTES,
+            self::MAX_POLL_INTERVAL_MINUTES,
+        );
         $failureWarningAfter = $advisories->integer('failure_warning_after', self::DEFAULT_FAILURE_WARNING_AFTER, 1, 100);
         $staleAfterMinutes = $advisories->integer('stale_after_minutes', self::DEFAULT_STALE_AFTER_MINUTES, 15, 43200);
         // Without a `digest` key no digest is mailed; `"digest": {}` mails it with the defaults.
@@ -112,7 +120,7 @@ final readonly class AdvisoriesConfig
         $name = $entry->text('name', $key, 80);
         $description = $entry->text('description', '', 500, allowEmpty: true);
         $enabled = $entry->boolean('enabled', true);
-        $interval = $entry->integer('poll_interval_minutes', $defaultInterval, 5, 10080);
+        $interval = $entry->integer('poll_interval_minutes', $defaultInterval, self::MIN_POLL_INTERVAL_MINUTES, self::MAX_POLL_INTERVAL_MINUTES);
         [$keywords, $minSeverity] = self::filters($entry->object('filters'));
         $notify = $entry->boolean('notify', true);
 
@@ -143,9 +151,15 @@ final readonly class AdvisoriesConfig
     private static function sourceType(ConfigObject $entry): AdvisorySourceType
     {
         $type = $entry->raw('type');
+        $sourceType = is_string($type) ? AdvisorySourceType::tryFrom($type) : null;
+        if ($sourceType === null) {
+            $types = array_map(static fn (AdvisorySourceType $case): string => "\"{$case->value}\"", AdvisorySourceType::cases());
+            $last = array_pop($types);
 
-        return (is_string($type) ? AdvisorySourceType::tryFrom($type) : null)
-            ?? throw new InvalidArgumentException("{$entry->path('type')} must be \"feed\", \"github\", \"imap\", \"osv\" or \"csaf\".");
+            throw new InvalidArgumentException("{$entry->path('type')} must be " . implode(', ', $types) . " or {$last}.");
+        }
+
+        return $sourceType;
     }
 
     /**
@@ -190,7 +204,7 @@ final readonly class AdvisoriesConfig
         if ($encryption === null) {
             throw new InvalidArgumentException("{$entry->path('encryption')} must be \"ssl\" or \"starttls\"; credentials are never sent unencrypted.");
         }
-        
+
         $addresses = $entry->stringList('addresses', self::isMailAddressOrListId(...), 'a list of addresses or list IDs');
 
         $credentials = [];
