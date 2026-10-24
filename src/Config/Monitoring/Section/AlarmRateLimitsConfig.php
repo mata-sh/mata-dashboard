@@ -36,15 +36,10 @@ final readonly class AlarmRateLimitsConfig
 
         $globalDefault = AlarmRateLimit::default();
         if (array_key_exists('default', $channels)) {
-            $default = $channels['default'];
-            if (!ConfigValueValidator::isObject($default)) {
-                $reportInvalid('limits.channels.default must be an object; using default limits.');
-            } else {
-                try {
-                    $globalDefault = AlarmRateLimit::fromArray($default, $globalDefault, 'limits.channels.default');
-                } catch (InvalidArgumentException $exception) {
-                    $reportInvalid($exception->getMessage() . ' Using default limits.');
-                }
+            try {
+                $globalDefault = AlarmRateLimit::fromArray($channels['default'], $globalDefault, 'limits.channels.default');
+            } catch (InvalidArgumentException $exception) {
+                $reportInvalid($exception->getMessage() . ' Using default limits.');
             }
         }
 
@@ -54,18 +49,9 @@ final readonly class AlarmRateLimitsConfig
                 continue;
             }
             $channel = strtolower((string) $channel);
-            if (!ConfigValueValidator::isObject($config)) {
-                $reportInvalid("limits.channels.{$channel} must be an object; skipping entry.");
-
-                continue;
-            }
 
             try {
-                $channelLimits[$channel] = AlarmRateLimit::fromArray(
-                    $config,
-                    $globalDefault,
-                    "limits.channels.{$channel}",
-                );
+                $channelLimits[$channel] = AlarmRateLimit::fromArray($config, $globalDefault, "limits.channels.{$channel}");
             } catch (InvalidArgumentException $exception) {
                 $reportInvalid($exception->getMessage() . ' Skipping entry.');
             }
@@ -86,11 +72,6 @@ final readonly class AlarmRateLimitsConfig
             }
             foreach ($serverConfig as $channel => $override) {
                 $channel = strtolower((string) $channel);
-                if (!ConfigValueValidator::isObject($override)) {
-                    $reportInvalid("limits.overrides.{$server}.{$channel} must be an object; skipping entry.");
-
-                    continue;
-                }
 
                 try {
                     $serverOverrides[$server][$channel] = AlarmRateLimit::fromArray(

@@ -7,8 +7,9 @@ namespace Mata\Config;
 use InvalidArgumentException;
 
 /**
- * One object of a JSON config file, read key by key. A missing or null key takes the default;
- * messages name the key by its dotted path, e.g. `advisories.sources.php.name`.
+ * One object of a JSON config file, read key by key. Only a missing key takes the default; an explicit
+ * null is validated like any other value and fails. Messages name the key by its dotted path,
+ * e.g. `advisories.sources.php.name`.
  */
 final readonly class ConfigObject
 {
@@ -29,14 +30,15 @@ final readonly class ConfigObject
         return "{$this->path}.{$key}";
     }
 
-    public function has(string $key): bool
+    /** Whether the key is present, even with a null value. */
+    public function hasKey(string $key): bool
     {
         return array_key_exists($key, $this->values);
     }
 
     public function raw(string $key, mixed $default = null): mixed
     {
-        return $this->values[$key] ?? $default;
+        return array_key_exists($key, $this->values) ? $this->values[$key] : $default;
     }
 
     /** @param list<string> $allowed */
@@ -54,7 +56,7 @@ final readonly class ConfigObject
         return self::of($this->raw($key, []), $this->path($key));
     }
 
-    public function integer(string $key, int $default, int $minimum, int $maximum): int
+    public function integer(string $key, int $default, ?int $minimum = null, ?int $maximum = null): int
     {
         return ConfigValueValidator::integer($this->raw($key, $default), $this->path($key), $minimum, $maximum);
     }

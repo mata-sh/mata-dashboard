@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Mata\Config\Monitoring\Section;
 
 use InvalidArgumentException;
-use Mata\Config\ConfigValueValidator;
+use Mata\Config\ConfigObject;
 
 /** HTTP probe timeout, retry, and backoff configuration. */
 final readonly class ProbesConfig
@@ -35,27 +35,11 @@ final readonly class ProbesConfig
     /** @param array<string,mixed> $raw */
     public static function fromArray(array $raw): self
     {
-        $default = self::default();
-        $timeoutSeconds = ConfigValueValidator::integer(
-            array_key_exists('timeout_seconds', $raw) ? $raw['timeout_seconds'] : $default->timeoutSeconds,
-            'probes.timeout_seconds',
-            minimum: 1,
-        );
-        $maxRetries = ConfigValueValidator::integer(
-            array_key_exists('max_retries', $raw) ? $raw['max_retries'] : $default->maxRetries,
-            'probes.max_retries',
-            minimum: 0,
-        );
-        $backoffBaseMs = ConfigValueValidator::integer(
-            array_key_exists('backoff_base_ms', $raw) ? $raw['backoff_base_ms'] : $default->backoffBaseMs,
-            'probes.backoff_base_ms',
-            minimum: 0,
-        );
-        $backoffMaxMs = ConfigValueValidator::integer(
-            array_key_exists('backoff_max_ms', $raw) ? $raw['backoff_max_ms'] : $default->backoffMaxMs,
-            'probes.backoff_max_ms',
-            minimum: 0,
-        );
+        $probes = ConfigObject::of($raw, 'probes');
+        $timeoutSeconds = $probes->integer('timeout_seconds', self::DEFAULT_TIMEOUT_SECONDS, minimum: 1);
+        $maxRetries = $probes->integer('max_retries', self::DEFAULT_MAX_RETRIES, minimum: 0);
+        $backoffBaseMs = $probes->integer('backoff_base_ms', self::DEFAULT_BACKOFF_BASE_MS, minimum: 0);
+        $backoffMaxMs = $probes->integer('backoff_max_ms', self::DEFAULT_BACKOFF_MAX_MS, minimum: 0);
         if ($backoffMaxMs < $backoffBaseMs) {
             throw new InvalidArgumentException('probes.backoff_max_ms must be at least probes.backoff_base_ms.');
         }

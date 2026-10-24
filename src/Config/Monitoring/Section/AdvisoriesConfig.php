@@ -53,13 +53,13 @@ final readonly class AdvisoriesConfig
      */
     public static function fromArray(array $raw, callable $env, callable $reportInvalid): self
     {
-        $root = ConfigObject::of($raw, 'advisories');
-        $root->rejectUnknownKeys(self::ROOT_KEYS);
-        $defaultInterval = $root->integer('poll_interval_minutes', 60, 5, 10080);
-        $failureWarningAfter = $root->integer('failure_warning_after', 3, 1, 100);
-        $staleAfterMinutes = $root->integer('stale_after_minutes', 360, 15, 43200);
-        $digest = $root->raw('digest') === null ? AdvisoryDigestConfig::disabled() : self::digest($root->object('digest'));
-        $entries = $root->object('sources')->values;
+        $advisories = ConfigObject::of($raw, 'advisories');
+        $advisories->rejectUnknownKeys(self::ROOT_KEYS);
+        $defaultInterval = $advisories->integer('poll_interval_minutes', 60, 5, 10080);
+        $failureWarningAfter = $advisories->integer('failure_warning_after', 3, 1, 100);
+        $staleAfterMinutes = $advisories->integer('stale_after_minutes', 360, 15, 43200);
+        $digest = self::parseDigest($advisories);
+        $entries = $advisories->object('sources')->values;
 
         $sources = [];
         foreach ($entries as $key => $entry) {
@@ -88,8 +88,13 @@ final readonly class AdvisoriesConfig
         return $this->sources[$key] ?? null;
     }
 
-    private static function digest(ConfigObject $digest): AdvisoryDigestConfig
+    /** Without a `digest` key no digest is mailed; `"digest": {}` mails it with the defaults. */
+    private static function parseDigest(ConfigObject $advisories): AdvisoryDigestConfig
     {
+        if (!$advisories->hasKey('digest')) {
+            return AdvisoryDigestConfig::disabled();
+        }
+        $digest = $advisories->object('digest');
         $digest->rejectUnknownKeys(self::DIGEST_KEYS);
 
         return new AdvisoryDigestConfig(
@@ -165,7 +170,7 @@ final readonly class AdvisoriesConfig
         }
 
         $token = null;
-        if ($entry->has('token_env')) {
+        if ($entry->hasKey('token_env')) {
             $tokenEnv = $entry->envName('token_env');
             $token = trim((string) $env($tokenEnv));
             if ($token === '' && $enabled) {

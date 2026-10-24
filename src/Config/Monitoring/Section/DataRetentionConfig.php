@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Mata\Config\Monitoring\Section;
 
-use Mata\Config\ConfigValueValidator;
+use Mata\Config\ConfigObject;
 
 /** Retention, aggregation, pruning, and ingestion-health configuration. */
 final readonly class DataRetentionConfig
@@ -42,48 +42,38 @@ final readonly class DataRetentionConfig
     /** @param array<string,mixed> $raw */
     public static function fromArray(array $raw): self
     {
-        foreach (['metrics', 'events', 'alarms', 'aggregation', 'pruning', 'ingestion_health'] as $section) {
-            if (array_key_exists($section, $raw)) {
-                ConfigValueValidator::object($raw[$section], "data_retention.{$section}");
-            }
-        }
-        if (is_array($raw['aggregation'] ?? null)) {
-            foreach (['hourly', 'daily'] as $period) {
-                if (array_key_exists($period, $raw['aggregation'])) {
-                    ConfigValueValidator::object($raw['aggregation'][$period], "data_retention.aggregation.{$period}");
-                }
-            }
-        }
+        $retention = ConfigObject::of($raw, 'data_retention');
+        $metrics = $retention->object('metrics');
+        $aggregation = $retention->object('aggregation');
+        $hourly = $aggregation->object('hourly');
+        $daily = $aggregation->object('daily');
+        $ingestionHealth = $retention->object('ingestion_health');
 
-        $config = array_replace_recursive(self::defaults(), $raw);
-
-        $metrics = [
-            'raw_retention_days' => self::integer($config, ['metrics', 'raw_retention_days'], 0),
-            'hourly_retention_days' => self::integer($config, ['metrics', 'hourly_retention_days'], 0),
-            'daily_retention_days' => self::integer($config, ['metrics', 'daily_retention_days'], 0),
-        ];
-        $events = ['retention_days' => self::integer($config, ['events', 'retention_days'], 0)];
-        $alarms = ['retention_days' => self::integer($config, ['alarms', 'retention_days'], 0)];
-        $aggregation = [
-            'hourly' => [
-                'lag_minutes' => self::integer($config, ['aggregation', 'hourly', 'lag_minutes'], 0),
-                'catch_up_hours' => self::integer($config, ['aggregation', 'hourly', 'catch_up_hours'], 1),
+        return new self(
+            metrics: [
+                'raw_retention_days' => $metrics->integer('raw_retention_days', 30, minimum: 0),
+                'hourly_retention_days' => $metrics->integer('hourly_retention_days', 90, minimum: 0),
+                'daily_retention_days' => $metrics->integer('daily_retention_days', 365, minimum: 0),
             ],
-            'daily' => [
-                'lag_minutes' => self::integer($config, ['aggregation', 'daily', 'lag_minutes'], 0),
-                'catch_up_days' => self::integer($config, ['aggregation', 'daily', 'catch_up_days'], 1),
+            events: ['retention_days' => $retention->object('events')->integer('retention_days', 180, minimum: 0)],
+            alarms: ['retention_days' => $retention->object('alarms')->integer('retention_days', 365, minimum: 0)],
+            aggregation: [
+                'hourly' => [
+                    'lag_minutes' => $hourly->integer('lag_minutes', 5, minimum: 0),
+                    'catch_up_hours' => $hourly->integer('catch_up_hours', 24, minimum: 1),
+                ],
+                'daily' => [
+                    'lag_minutes' => $daily->integer('lag_minutes', 30, minimum: 0),
+                    'catch_up_days' => $daily->integer('catch_up_days', 7, minimum: 1),
+                ],
             ],
-        ];
-        $pruning = [
-            'batch_limit' => self::integer($config, ['pruning', 'batch_limit'], 1, 100000),
-        ];
-        $ingestionHealth = [
-            'stall_minutes' => self::integer($config, ['ingestion_health', 'stall_minutes'], 5),
-            'log_rotate_megabytes' => self::integer($config, ['ingestion_health', 'log_rotate_megabytes'], 1),
-            'log_rotate_files' => self::integer($config, ['ingestion_health', 'log_rotate_files'], 1),
-        ];
-
-        return new self($metrics, $events, $alarms, $aggregation, $pruning, $ingestionHealth);
+            pruning: ['batch_limit' => $retention->object('pruning')->integer('batch_limit', 5000, 1, 100000)],
+            ingestionHealth: [
+                'stall_minutes' => $ingestionHealth->integer('stall_minutes', 15, minimum: 5),
+                'log_rotate_megabytes' => $ingestionHealth->integer('log_rotate_megabytes', 5, minimum: 1),
+                'log_rotate_files' => $ingestionHealth->integer('log_rotate_files', 3, minimum: 1),
+            ],
+        );
     }
 
     public static function default(): self
@@ -102,51 +92,5 @@ final readonly class DataRetentionConfig
             'pruning' => $this->pruning,
             'ingestion_health' => $this->ingestionHealth,
         ];
-    }
-
-    /** @return array<string,mixed> */
-    public static function defaults(): array
-    {
-        return [
-            'metrics' => [
-                'raw_retention_days' => 30,
-                'hourly_retention_days' => 90,
-                'daily_retention_days' => 365,
-            ],
-            'events' => ['retention_days' => 180],
-            'alarms' => ['retention_days' => 365],
-            'aggregation' => [
-                'hourly' => ['lag_minutes' => 5, 'catch_up_hours' => 24],
-                'daily' => ['lag_minutes' => 30, 'catch_up_days' => 7],
-            ],
-            'pruning' => ['batch_limit' => 5000],
-            'ingestion_health' => [
-                'stall_minutes' => 15,
-                'log_rotate_megabytes' => 5,
-                'log_rotate_files' => 3,
-            ],
-        ];
-    }
-
-    /** @param array<string,mixed> $config
-     * @param non-empty-list<string> $segments
-     */
-    private static function integer(
-        array $config,
-        array $segments,
-        ?int $minimum = null,
-        ?int $maximum = null,
-    ): int {
-        $value = $config;
-        foreach ($segments as $segment) {
-            $value = is_array($value) && array_key_exists($segment, $value) ? $value[$segment] : null;
-        }
-
-        return ConfigValueValidator::integer(
-            $value,
-            'data_retention.' . implode('.', $segments),
-            $minimum,
-            $maximum,
-        );
     }
 }
