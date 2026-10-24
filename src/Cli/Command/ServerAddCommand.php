@@ -56,43 +56,38 @@ final class ServerAddCommand extends Command
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
         $name = (string) $input->getArgument('name');
-        $apiUrl = $input->getOption('api-url');
+        $apiUrl = self::nonEmpty($input->getOption('api-url'));
         $json = (bool) $input->getOption('json');
-        if (preg_match(ServersConfig::NAME_PATTERN, $name) !== 1) {
-            return CliOutput::fail($input, $output, "Invalid name '{$name}': use letters, digits, '.', '_' or '-' (max 64), starting with a letter or digit");
-        }
-        if (!is_string($apiUrl) || $apiUrl === '') {
+        if ($apiUrl === null) {
             return CliOutput::fail($input, $output, '--api-url is required');
         }
 
-        $entry = ['title' => is_string($input->getOption('title')) ? $input->getOption('title') : $name];
-        if (is_string($input->getOption('url'))) {
-            $entry['url'] = $input->getOption('url');
-        }
-        $entry['api_url'] = $apiUrl;
-        if (is_string($input->getOption('env'))) {
-            $entry['env'] = $input->getOption('env');
-        }
-        if ($input->getOption('allow-http')) {
-            $entry['allow_http'] = true;
-        }
+        // Empty options count as not given; key order is the order written to servers.json.
+        $entry = array_filter([
+            'title' => self::nonEmpty($input->getOption('title')) ?? $name,
+            'url' => self::nonEmpty($input->getOption('url')),
+            'api_url' => $apiUrl,
+            'env' => self::nonEmpty($input->getOption('env')),
+            'allow_http' => $input->getOption('allow-http') ? true : null,
+        ], static fn (mixed $value): bool => $value !== null);
 
         $apiKey = self::nonEmpty($input->getOption('api-key')) ?? self::nonEmpty(getenv('MATA_NODE_API_KEY'));
         $generated = $apiKey === null;
         $apiKey ??= bin2hex(random_bytes(32));
 
+        // Also rejects an invalid name, before anything is written.
         $errors = ServersConfig::validationErrors([$name => $entry + ['api_key' => $apiKey]]);
         if ($errors !== []) {
             return CliOutput::fail($input, $output, implode("\n", $errors));
         }
 
-        $nodeLines = "DASHBOARD_SERVER_ID={$name}\nDASHBOARD_API_KEY={$apiKey}";
+        $nodeEnv = ['DASHBOARD_SERVER_ID' => $name, 'DASHBOARD_API_KEY' => $apiKey];
         if ($input->getOption('dry-run')) {
             if ($json) {
-                CliOutput::json($output, ['status' => StatusLevel::Ok->label(), 'dry_run' => true, 'server' => $name, 'servers_json_entry' => $entry, 'node_env' => ['DASHBOARD_SERVER_ID' => $name, 'DASHBOARD_API_KEY' => $apiKey]]);
+                CliOutput::json($output, ['status' => StatusLevel::Ok->label(), 'dry_run' => true, 'server' => $name, 'servers_json_entry' => $entry, 'node_env' => $nodeEnv]);
             } else {
                 $output->writeln("Would add to servers.json:\n" . json_encode([$name => $entry], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
-                $output->writeln("Would store the key in servers.secrets.json. Node config.env:\n{$nodeLines}");
+                $output->writeln("Would store the key in servers.secrets.json. Node config.env:\n" . self::envLines($nodeEnv));
             }
 
             return StatusLevel::Ok->value;
@@ -108,25 +103,26 @@ final class ServerAddCommand extends Command
                 'status' => $level->label(),
                 'server' => $name,
                 'api_key_generated' => $generated,
-                'node_env' => ['DASHBOARD_SERVER_ID' => $name, 'DASHBOARD_API_KEY' => $apiKey],
+                'node_env' => $nodeEnv,
                 'warnings' => $this->editor->warnings(),
                 'test' => $result,
             ]);
         } else {
-            $this->writeHuman($output, $name, $generated, $nodeLines, $result);
+            $this->writeHuman($output, $name, $generated, $nodeEnv, $result);
         }
 
         return $level->value;
     }
 
-    private function writeHuman(OutputInterface $output, string $name, bool $generated, string $nodeLines, ?NodeConnectionResult $result): void
+    /** @param array<string,string> $nodeEnv */
+    private function writeHuman(OutputInterface $output, string $name, bool $generated, array $nodeEnv, ?NodeConnectionResult $result): void
     {
         $output->writeln("<info>Added '{$name}'</info> to servers.json; key stored in servers.secrets.json.");
         foreach ($this->editor->warnings() as $warning) {
             $output->writeln("<comment>{$warning}</comment>");
         }
         if ($generated) {
-            $output->writeln("\nSet these in the node's config/config.env (the key is shown only now):\n\n{$nodeLines}\n");
+            $output->writeln("\nSet these in the node's config/config.env (the key is shown only now):\n\n" . self::envLines($nodeEnv) . "\n");
         }
         if ($result !== null) {
             ServerTestCommand::writeResult($output, $result);
@@ -139,5 +135,16 @@ final class ServerAddCommand extends Command
     private static function nonEmpty(mixed $value): ?string
     {
         return is_string($value) && $value !== '' ? $value : null;
+    }
+
+    /** @param array<string,string> $env */
+    private static function envLines(array $env): string
+    {
+        $lines = [];
+        foreach ($env as $key => $value) {
+            $lines[] = "{$key}={$value}";
+        }
+
+        return implode("\n", $lines);
     }
 }

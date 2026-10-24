@@ -7,6 +7,8 @@ namespace Mata\Services\Monitor;
 use GuzzleHttp\Exception\BadResponseException;
 use GuzzleHttp\Exception\TransferException;
 use Mata\Services\Collect\NodeApiClient;
+use Mata\Services\Monitor\Dto\NodeAuthResult;
+use Mata\Services\Monitor\Dto\NodeAuthState;
 use Mata\Services\Monitor\Dto\NodeConnectionResult;
 use Mata\Services\Monitor\Dto\NodeHealthResult;
 use Mata\Utils\TypeConverter;
@@ -36,11 +38,24 @@ final class NodeConnectionTester
         if (!$health instanceof NodeHealthResult) {
             throw new UnexpectedValueException('Node health probe returned an invalid result.');
         }
-        $healthStatus = $health->status->value;
-        $healthError = $health->error;
+        $auth = $this->checkAuth($name, $apiUrl, $serverConfig, $apiKey);
 
+        return new NodeConnectionResult(
+            server: $name,
+            apiUrl: $apiUrl,
+            health: $health->state,
+            healthError: $health->error,
+            auth: $auth->state,
+            authError: $auth->error,
+            hint: $auth->hint,
+        );
+    }
+
+    /** @param array<string,mixed> $serverConfig servers.json entry */
+    private function checkAuth(string $name, string $apiUrl, array $serverConfig, ?string $apiKey): NodeAuthResult
+    {
         if ($apiKey === null || $apiKey === '') {
-            return new NodeConnectionResult($name, $apiUrl, $healthStatus, $healthError, 'skipped', 'No api_key in servers.secrets.json');
+            return new NodeAuthResult(NodeAuthState::Skipped, 'No api_key in servers.secrets.json');
         }
 
         try {
@@ -57,15 +72,15 @@ final class NodeConnectionTester
         } catch (BadResponseException $exception) {
             $code = $exception->getResponse()->getStatusCode();
 
-            return new NodeConnectionResult($name, $apiUrl, $healthStatus, $healthError, 'failed', "HTTP {$code} from " . self::AUTH_PATH, $this->hintForStatus($name, $code));
+            return new NodeAuthResult(NodeAuthState::Failed, "HTTP {$code} from " . self::AUTH_PATH, $this->hintForStatus($name, $code));
         } catch (TransferException $exception) {
             // Covers ConnectException and response-less RequestException (e.g. certificate verification failures).
-            return new NodeConnectionResult($name, $apiUrl, $healthStatus, $healthError, 'failed', $exception->getMessage(), 'The node is not reachable from this host: check api_url, DNS, firewall and TLS.');
+            return new NodeAuthResult(NodeAuthState::Failed, $exception->getMessage(), 'The node is not reachable from this host: check api_url, DNS, firewall and TLS.');
         } catch (Throwable $exception) {
-            return new NodeConnectionResult($name, $apiUrl, $healthStatus, $healthError, 'failed', $exception->getMessage());
+            return new NodeAuthResult(NodeAuthState::Failed, $exception->getMessage());
         }
 
-        return new NodeConnectionResult($name, $apiUrl, $healthStatus, $healthError, 'ok');
+        return new NodeAuthResult(NodeAuthState::Ok);
     }
 
     private function hintForStatus(string $name, int $code): ?string

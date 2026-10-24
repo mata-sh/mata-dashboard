@@ -73,9 +73,9 @@ final class ServerTestCommand extends Command
     public static function writeResult(OutputInterface $output, NodeConnectionResult $result): void
     {
         $output->writeln(CliOutput::mark($result->level()) . " {$result->server} ({$result->apiUrl})");
-        $health = $result->health . ($result->healthError !== null ? ": {$result->healthError}" : '');
+        $health = $result->health->value . ($result->healthError !== null ? ": {$result->healthError}" : '');
         $output->writeln("    health: {$health}");
-        $output->writeln("    auth:   {$result->auth}" . ($result->authError !== null ? ": {$result->authError}" : ''));
+        $output->writeln("    auth:   {$result->auth->value}" . ($result->authError !== null ? ": {$result->authError}" : ''));
         if ($result->hint !== null) {
             $output->writeln("    <comment>{$result->hint}</comment>");
         }

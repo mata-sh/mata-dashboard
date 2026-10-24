@@ -48,17 +48,20 @@ final class AlarmTestCommand extends Command
         )->senders();
 
         $channel = strtolower(trim((string) $input->getArgument('channel')));
-        if (!isset($senders[$channel])) {
-            $known = array_keys($senders);
-            $level = $channel === '' ? StatusLevel::Ok : StatusLevel::Error;
+        $known = array_keys($senders);
+        $listing = 'Configured channels: ' . implode(', ', $known)
+            . "\nChannels missing here are disabled or invalid in channels.json; see bin/mata config validate channels.json";
+        if ($channel === '') {
             if ($input->getOption('json')) {
-                CliOutput::json($output, ['status' => $level->label(), 'channels' => $known] + ($channel === '' ? [] : ['error' => "Unknown channel '{$channel}'"]));
+                CliOutput::json($output, ['status' => StatusLevel::Ok->label(), 'channels' => $known]);
             } else {
-                $output->writeln(($channel === '' ? '' : "<error>Unknown channel '{$channel}'.</error> ") . 'Configured channels: ' . implode(', ', $known));
-                $output->writeln('Channels missing here are disabled or invalid in channels.json; see bin/mata config validate channels.json');
+                $output->writeln($listing);
             }
 
-            return $level->value;
+            return StatusLevel::Ok->value;
+        }
+        if (!isset($senders[$channel])) {
+            return CliOutput::fail($input, $output, "Unknown channel '{$channel}'. {$listing}", payload: ['channels' => $known]);
         }
 
         $now = new DateTimeImmutable('now');

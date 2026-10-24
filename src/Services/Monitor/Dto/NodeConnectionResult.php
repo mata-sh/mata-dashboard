@@ -9,13 +9,12 @@ use Mata\Services\Status\StatusLevel;
 
 final readonly class NodeConnectionResult implements JsonSerializable
 {
-    /** @param 'failed'|'ok'|'skipped' $auth */
     public function __construct(
         public string $server,
         public string $apiUrl,
-        public string $health,
+        public NodeHealthState $health,
         public ?string $healthError,
-        public string $auth,
+        public NodeAuthState $auth,
         public ?string $authError = null,
         public ?string $hint = null,
     ) {}
@@ -24,8 +23,8 @@ final readonly class NodeConnectionResult implements JsonSerializable
     public function level(): StatusLevel
     {
         return match (true) {
-            $this->auth !== 'ok' => StatusLevel::Error,
-            $this->health !== 'healthy' => StatusLevel::Warning,
+            $this->auth !== NodeAuthState::Ok => StatusLevel::Error,
+            $this->health !== NodeHealthState::Healthy => StatusLevel::Warning,
             default => StatusLevel::Ok,
         };
     }
@@ -41,9 +40,9 @@ final readonly class NodeConnectionResult implements JsonSerializable
         return [
             'server' => $this->server,
             'api_url' => $this->apiUrl,
-            'health' => $this->health,
+            'health' => $this->health->value,
             'health_error' => $this->healthError,
-            'auth' => $this->auth,
+            'auth' => $this->auth->value,
             'auth_error' => $this->authError,
             'hint' => $this->hint,
             'ok' => $this->isOk(),
