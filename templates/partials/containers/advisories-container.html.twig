@@ -18,14 +18,20 @@
     {% set disabled_count = sources|length - enabled_sources|length %}
     {% set relevant = sources|reduce((carry, source) => carry + source.totals.relevant, 0) %}
     {% set unreviewed = sources|reduce((carry, source) => carry + source.totals.unreviewed, 0) %}
-    <div class="audit-summary">
-      {% for health, pill in {failing: 'sev-critical', stale: 'sev-medium', never_polled: 'pill-meta', ok: 'sev-low'} %}
-        {% set matching = enabled_sources|filter(source => source.health == health) %}
-        {% if matching is not empty %}<span class="audit-pill {{ pill }}"><b>{{ matching|length }}</b> {{ matching|first.health_label|lower }}</span>{% endif %}
-      {% endfor %}
-      {% if disabled_count > 0 %}<span class="audit-pill pill-abandoned"><b>{{ disabled_count }}</b> disabled</span>{% endif %}
-      <span class="audit-pill {{ relevant > 0 ? 'sev-medium' : 'is-zero' }}"><b>{{ relevant }}</b> relevant</span>
-      <span class="audit-pill {{ unreviewed > 0 ? 'sev-high' : 'is-zero' }}"><b>{{ unreviewed }}</b> unreviewed</span>
+    <div class="audit-summary advisory-overview-summary">
+      <div class="advisory-summary-group">
+        <span class="advisory-summary-label">Sources</span>
+        {% for health, pill in {failing: 'sev-critical', stale: 'sev-medium', never_polled: 'pill-meta', ok: 'sev-low'} %}
+          {% set matching = enabled_sources|filter(source => source.health == health) %}
+          {% if matching is not empty %}<span class="audit-pill {{ pill }}"><b>{{ matching|length }}</b> {{ matching|first.health_label|lower }}</span>{% endif %}
+        {% endfor %}
+        {% if disabled_count > 0 %}<span class="audit-pill pill-abandoned"><b>{{ disabled_count }}</b> disabled</span>{% endif %}
+      </div>
+      <div class="advisory-summary-group">
+        <span class="advisory-summary-label">Advisories</span>
+        <span class="audit-pill {{ relevant > 0 ? 'sev-medium' : 'is-zero' }}"><b>{{ relevant }}</b> relevant</span>
+        <span class="audit-pill {{ unreviewed > 0 ? 'sev-high' : 'is-zero' }}"><b>{{ unreviewed }}</b> unreviewed</span>
+      </div>
     </div>
 
     <div class="audit-details" id="advisories-overview-details">

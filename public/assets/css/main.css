@@ -3853,6 +3853,33 @@ label.audit-chip:has(input:checked)::after {
     display: flex;
 }
 
+.advisory-overview-summary {
+    row-gap: .5rem;
+}
+
+.advisory-summary-group {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: .4rem;
+}
+
+.advisory-summary-group + .advisory-summary-group {
+    border-left: 1px solid var(--border-default);
+    margin-left: .4rem;
+    padding-left: .8rem;
+}
+
+.advisory-summary-label {
+    margin-right: .2rem;
+    color: var(--text-muted);
+    font-family: "Raleway", sans-serif;
+    font-size: .62rem;
+    font-weight: 700;
+    letter-spacing: .14em;
+    text-transform: uppercase;
+}
+
 .advisory-show-disabled {
     margin-bottom: .5rem;
 }
