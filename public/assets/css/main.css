@@ -1610,6 +1610,11 @@ svg {
     stroke: none;
 }
 
+.app-title .app-framework svg.feather-box {
+    fill: none;
+    stroke: currentColor;
+}
+
 .modal-trigger,
 .server-title .server-refresh-btn,
 .server-refresh-stats-btn,

@@ -286,10 +286,10 @@ class NodeResponseNormalizer
     }
 
     /**
-     * The app's framework, or null when the node reports none or one this dashboard does not know.
+     * Keep custom framework names independently of the dashboard's bundled logo catalogue.
      *
-     * Older nodes omit the key and newer ones may report more frameworks, so neither case, nor a
-     * malformed value, rejects the apps payload: the card just shows no framework.
+     * Older nodes omit the key. Missing, disabled or malformed values show no framework
+     * without rejecting the apps payload.
      *
      * @param array<string,mixed> $appData
      *
@@ -311,9 +311,11 @@ class NodeResponseNormalizer
             return null;
         }
 
-        $known = AppFramework::tryFrom($name);
+        if (trim($name) === '' || $name === 'none') {
+            return null;
+        }
 
-        return $known === null ? null : ['name' => $known->value, 'version' => $version];
+        return ['name' => $name, 'version' => $version];
     }
 
     /**

@@ -728,21 +728,29 @@ class ServerRenderer extends BaseRenderer
      */
     private function buildAppFrameworkData(mixed $framework): ?array
     {
-        $known = is_array($framework) && is_string($framework['name'] ?? null)
-            ? AppFramework::tryFrom($framework['name'])
-            : null;
-        if ($known === null) {
+        if (!is_array($framework) || !is_string($framework['name'] ?? null)
+            || trim($framework['name']) === '' || $framework['name'] === 'none') {
             return null;
         }
 
-        $icon = $this->tools->icon($known->value, 12, 'app-framework-logo', 'frameworks');
-        $icon = preg_replace(['#<title>.*?</title>#s', '/ role="img"/'], ['', ' aria-hidden="true" focusable="false"'], $icon);
+        $known = AppFramework::tryFrom($framework['name']);
+        // Remote names never become paths. Unknown names and missing bundled logos use a fixed icon.
+        $icon = $known === null ? '' : $this->tools->icon($known->value, 12, 'app-framework-logo', 'frameworks');
+        if ($icon === '') {
+            $icon = $this->tools->icon('box', 12, 'app-framework-logo');
+        }
+        $icon = preg_replace(
+            ['#<title>.*?</title>#s', '/ role="img"/', '/<svg\b/'],
+            ['', '', '<svg aria-hidden="true" focusable="false"'],
+            $icon
+        );
         if (!is_string($icon) || $icon === '') {
             return null;
         }
 
         $version = is_string($framework['version'] ?? null) ? $framework['version'] : null;
-        $label = $version === null ? $known->label() : $known->label() . ' ' . $version;
+        $name = $known?->label() ?? $framework['name'];
+        $label = $version === null ? $name : $name . ' ' . $version;
 
         return ['label' => $label, 'tooltip' => Html::escapeTooltipValue($label), 'icon' => $icon];
     }

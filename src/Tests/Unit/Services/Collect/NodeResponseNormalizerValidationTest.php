@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Mata\Tests\Unit\Services\Collect;
 
+use Mata\Services\Collect\AppFramework;
 use Mata\Services\Collect\NodeResponseNormalizer;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
@@ -308,17 +309,50 @@ final class NodeResponseNormalizerValidationTest extends TestCase
         yield 'array value' => [['loganalysis' => []]];
     }
 
-    public function testFrameworkIsKept(): void
+    #[DataProvider('frameworkNames')]
+    public function testFrameworkNameIsKept(string $name): void
     {
-        $result = $this->normalizeApp(self::app(['framework' => ['name' => 'wordpress', 'version' => '6.8.3']]));
+        $result = $this->normalizeApp(self::app(['framework' => ['name' => $name, 'version' => '6.8.3']]));
 
-        $this->assertSame(['name' => 'wordpress', 'version' => '6.8.3'], $result['framework']);
+        $this->assertSame(['name' => $name, 'version' => '6.8.3'], $result['framework']);
     }
 
-    /**
-     * Older nodes send no framework, newer ones may name frameworks this dashboard does not know,
-     * and a malformed one must not hide the app: the card just shows no logo.
-     */
+    /** @return iterable<string,array{string}> */
+    public static function frameworkNames(): iterable
+    {
+        foreach (AppFramework::cases() as $framework) {
+            yield $framework->value => [$framework->value];
+        }
+
+        yield 'custom' => ['My Custom Framework'];
+
+        yield 'verbatim' => ['  Custom / CMS  '];
+
+        yield 'hostile' => ['<img src=x onerror=alert(1)>'];
+
+        yield 'path' => ['../../../../config/secrets'];
+    }
+
+    public function testCustomFrameworkWithoutVersionIsKept(): void
+    {
+        $result = $this->normalizeApp(self::app(['framework' => ['name' => 'Custom CMS']]));
+
+        $this->assertSame(['name' => 'Custom CMS', 'version' => null], $result['framework']);
+    }
+
+    public function testFrameworkKeepsOnlyNameAndVersion(): void
+    {
+        $result = $this->normalizeApp(self::app(['framework' => [
+            'name' => 'Custom CMS',
+            'version' => null,
+            'icon' => '<svg onload="alert(1)"></svg>',
+            'icon_url' => 'https://attacker.example/icon.svg',
+        ]]));
+
+        $this->assertSame(['name' => 'Custom CMS', 'version' => null], $result['framework']);
+    }
+
+    /** Missing, disabled and malformed frameworks must not hide the app. */
     #[DataProvider('frameworksWithoutLogo')]
     public function testFrameworkWithoutLogoKeepsTheApp(array $app): void
     {
@@ -335,7 +369,13 @@ final class NodeResponseNormalizerValidationTest extends TestCase
     {
         yield 'older node' => [[]];
 
-        yield 'unknown framework' => [['framework' => ['name' => 'joomla', 'version' => '5.2.0']]];
+        yield 'null' => [['framework' => null]];
+
+        yield 'none' => [['framework' => ['name' => 'none', 'version' => null]]];
+
+        yield 'empty name' => [['framework' => ['name' => '   ']]];
+
+        yield 'non-string name' => [['framework' => ['name' => 5]]];
 
         yield 'not an object' => [['framework' => 'wordpress']];
 

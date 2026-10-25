@@ -17,7 +17,10 @@ CycloneDX SBOM (`sbom.cdx.json`) listing them.
 | [Tabulator](https://tabulator.info) | 5.5.0 | MIT | (c) 2015-2023 Oli Folkerd | `public/assets/js/tabulator.min.js`, `public/assets/css/tabulator_*.min.css` |
 | [Bulma](https://bulma.io) | 1.0.3 | MIT | (c) 2024 Jeremy Thomas | `public/assets/css/bulma.css`, `public/assets/css/bulma.purged.min.css` (compiled) |
 | [Feather](https://feathericons.com) | 4.x | MIT | (c) 2013-2023 Cole Bemis | `public/assets/icons/*.svg` (Feather icons) |
-| [Simple Icons](https://simpleicons.org) | 16.34.0 | CC0-1.0 | Simple Icons contributors; the marks are trademarks of their owners, see below | `public/assets/icons/frameworks/*.svg` |
+| [Simple Icons](https://simpleicons.org) | 16.34.0 | CC0-1.0 | Simple Icons contributors | `public/assets/icons/frameworks/*.svg`, except Neos, Sylius and Sulu |
+| [Font Awesome Free](https://github.com/FortAwesome/Font-Awesome/blob/7.2.0/svgs/brands/neos.svg) | 7.2.0 | [CC-BY-4.0](https://creativecommons.org/licenses/by/4.0/) | Copyright 2026 Fonticons, Inc. | `public/assets/icons/frameworks/neos.svg` |
+| [Sylius](https://github.com/Sylius/Sylius/blob/bfa8c93d922ed11bfa3f2f5982cab714bd134c66/src/Sylius/Bundle/AdminBundle/Resources/assets/images/sylius-logo.svg) | `bfa8c93` | MIT | Copyright (c) 2011-present Sylius Sp. z o.o. | `public/assets/icons/frameworks/sylius.svg` (symbol only, monochrome) |
+| [Sulu](https://github.com/sulu/sulu/blob/ae5269b82aa4cc6daf21187c9a4b89fb2d88a9ea/src/Sulu/Bundle/AdminBundle/Tests/Application/config/iconSet/svgs/sulu-only.svg) | `ae5269b` | MIT | Copyright (c) 2020 Sulu GmbH | `public/assets/icons/frameworks/sulu.svg` (`viewBox` added, monochrome) |
 | [SVG Loaders](https://github.com/SamHerbert/SVG-Loaders) | — | MIT | (c) 2014 Sam Herbert | `public/assets/icons/animated/*.svg` |
 | [Raleway](https://github.com/impallari/Raleway) | v37 | OFL-1.1 | Copyright 2010 The Raleway Project Authors | `public/assets/fonts/raleway/*.woff2` |
 | [Nunito](https://github.com/googlefonts/nunito) | v32 | OFL-1.1 | Copyright 2014 The Nunito Project Authors | `public/assets/fonts/nunito/*.woff2` |
@@ -25,30 +28,15 @@ CycloneDX SBOM (`sbom.cdx.json`) listing them.
 
 ## Framework and CMS logos
 
-`public/assets/icons/frameworks/` holds the Laravel, Symfony, WordPress, Drupal and TYPO3 marks
-from the Simple Icons 16.34.0 npm package. Simple Icons releases its SVG data under
-[CC0 1.0](https://creativecommons.org/publicdomain/zero/1.0/) and lists no separate license for
-these five icons; that absence does not prove each mark is CC0 upstream (see Drupal below).
-CC0 does not cover trademark rights: the marks remain trademarks of their
-owners and are used only to identify the software an application runs, not to suggest
-endorsement. The files are byte-for-byte as published; the dashboard only sizes and colors them
-and drops the embedded `<title>` when inlining them.
-
-| Mark | Trademark owner | Upstream source | Brand guidelines |
-| --- | --- | --- | --- |
-| Laravel | Laravel Holdings Inc. | <https://github.com/laravel/art> | <https://laravel.com/trademark> |
-| Symfony | Symfony SAS | <https://symfony.com/logo> | <https://symfony.com/trademark> |
-| WordPress | WordPress Foundation | <https://wordpress.org/about/logos> | <https://wordpressfoundation.org/trademark-policy> |
-| Drupal | Dries Buytaert | <https://www.drupal.org/about/media-kit/logos> | <https://www.drupal.org/trademark> |
-| TYPO3 | TYPO3 Association | <https://styleguide.typo3.com/styleguide/logo> | <https://styleguide.typo3.com> |
-
-Drupal: drupal.org licenses the Druplicon under GPL-2.0 and treats the Drupal logo and wordmark
-as trademarks under its trademark policy, which licenses logo use separately.
+The logos in `public/assets/icons/frameworks/` only identify the software an application
+runs and do not imply endorsement. They remain trademarks of their owners; the licenses above
+cover the SVG files, not trademark rights. Drupal licenses its logo separately under its
+[trademark policy](https://www.drupal.org/trademark).
 
 ## MIT License
 
-Applies to Chart.js, Popper, Tippy.js, Tabulator, Bulma, Feather and SVG
-Loaders, each with the copyright notice listed above.
+Applies to Chart.js, Popper, Tippy.js, Tabulator, Bulma, Feather, SVG Loaders,
+Sylius and Sulu, each with the copyright notice listed above.
 
 ```text
 Permission is hereby granted, free of charge, to any person obtaining a copy
