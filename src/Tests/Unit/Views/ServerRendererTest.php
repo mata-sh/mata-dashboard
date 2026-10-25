@@ -256,18 +256,63 @@ final class ServerRendererTest extends TestCase
         ]);
     }
 
+    public function testRendersFrameworkLogoWithVersionAsAccessibleName(): void
+    {
+        $html = $this->renderAppCard(
+            ['level' => 'good', 'max_size_formatted' => '12 KB'],
+            ['show_events_count' => 0, 'show_events_type' => 'working'],
+            extraAppData: ['framework' => ['name' => 'wordpress', 'version' => '6.8.3']],
+        );
+
+        $this->assertStringContainsString(
+            '<span class="app-framework" role="img" aria-label="WordPress 6.8.3" data-tippy-content="WordPress 6.8.3">',
+            $html
+        );
+        $this->assertStringContainsString('aria-hidden="true" focusable="false"', $html);
+        // The logo's own <title> would add a native tooltip next to Tippy's.
+        $this->assertStringNotContainsString('<title>', $html);
+    }
+
+    public function testRendersFrameworkNameWhenVersionIsUnknown(): void
+    {
+        $html = $this->renderAppCard(
+            ['level' => 'good', 'max_size_formatted' => '12 KB'],
+            ['show_events_count' => 0, 'show_events_type' => 'working'],
+            extraAppData: ['framework' => ['name' => 'typo3', 'version' => null]],
+        );
+
+        $this->assertStringContainsString('aria-label="TYPO3" data-tippy-content="TYPO3"', $html);
+    }
+
+    public function testRendersNoFrameworkLogoWithoutFramework(): void
+    {
+        $html = $this->renderAppCard(
+            ['level' => 'good', 'max_size_formatted' => '12 KB'],
+            ['show_events_count' => 0, 'show_events_type' => 'working'],
+        );
+
+        $this->assertStringNotContainsString('app-framework', $html);
+    }
+
     /**
      * @param array<string,mixed> $logAnalysisData
      * @param array<string,mixed> $errorAnalysisData
      * @param array<string,mixed> $sessionData
+     * @param array<string,mixed> $extraAppData
      */
     private function renderAppCard(
         array $logAnalysisData,
         array $errorAnalysisData,
-        array $sessionData = ['formatted_count' => '0', 'level' => 'good', 'tooltip' => 'sessions']
+        array $sessionData = ['formatted_count' => '0', 'level' => 'good', 'tooltip' => 'sessions'],
+        array $extraAppData = []
     ): string {
-        $tools = $this->createStub(Tools::class);
-        $tools->method('formatDuration')->willReturn('1 s');
+        // Real icon loading, so the shipped logo files are what gets rendered.
+        $tools = new class (dirname(__DIR__, 4)) extends Tools {
+            public function formatDuration(int $seconds): string
+            {
+                return '1 s';
+            }
+        };
 
         $endpoints = $this->createStub(Endpoints::class);
         $endpoints->method('url')->willReturnCallback(
@@ -296,7 +341,7 @@ final class ServerRendererTest extends TestCase
                     'url' => 'https://shop.example.test',
                     'env' => 'prod',
                     'path' => '/srv/shop',
-                ],
+                ] + $extraAppData,
                 'logAnalysis' => ['log_analysis' => $logAnalysisData, 'error_analysis' => $errorAnalysisData],
                 'session' => $sessionData,
                 'availability' => [],

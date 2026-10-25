@@ -26,6 +26,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `bin/mata config validate` checks every config file with the app's own loaders.
 - `bin/mata` is the new operator CLI; `make mata ARGS="…"` runs it as the web server user.
 - `make doctor` shows where `config/` points and whether it is a Git repository.
+- Application cards show a small monochrome logo of the app's framework or CMS (Laravel, Symfony, WordPress, Drupal, TYPO3) next to the title, with the running version on hover. Pairs with the node release that reports `framework` in `/apps`; apps on older nodes, or without a known framework, show no logo.
 - Database cards show each named connection as a collapsible row with its engine, aligned metrics and databases; one failed connection no longer hides the others. `database_unreachable` lists all failed connections; `database_connections_too_high` uses the busiest. **Action:** update dashboard and nodes together; older nodes' database data is rejected.
 
 ### Changed

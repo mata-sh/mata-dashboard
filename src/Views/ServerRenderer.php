@@ -7,6 +7,7 @@ namespace Mata\Views;
 use Exception;
 use Mata\Core\App;
 use Mata\Http\Routing\Endpoints;
+use Mata\Services\Collect\AppFramework;
 use Mata\Services\Cron\Dto\CronJobState;
 use Mata\Services\Cron\Dto\CronJobStatus;
 use Mata\Services\Monitor\Dto\NodeHealthState;
@@ -680,6 +681,7 @@ class ServerRenderer extends BaseRenderer
                 'status_tooltip' => $this->logRenderer->formatErrorAnalysisTooltip($logAnalysis['error_analysis']),
                 'loganalysis_enabled' => $logAnalysisEnabled,
                 'status_clickable' => $logAnalysisEnabled,
+                'framework' => $this->buildAppFrameworkData($appData['framework'] ?? null),
                 'title_tooltip' => $this->buildAppTitleTooltip(
                     is_string($appData['description'] ?? null) ? $appData['description'] : null,
                     $appsCacheAge,
@@ -714,6 +716,35 @@ class ServerRenderer extends BaseRenderer
                 'tooltip' => $sessionData['tooltip'],
             ],
         ];
+    }
+
+    /**
+     * Logo and "WordPress 6.8.3" label for the app's framework; null shows no logo.
+     *
+     * The logo is inlined unchanged except for its `<title>`, which would add a native
+     * tooltip next to Tippy's; the wrapper carries the accessible name instead.
+     *
+     * @return null|array{label:string,tooltip:string,icon:string}
+     */
+    private function buildAppFrameworkData(mixed $framework): ?array
+    {
+        $known = is_array($framework) && is_string($framework['name'] ?? null)
+            ? AppFramework::tryFrom($framework['name'])
+            : null;
+        if ($known === null) {
+            return null;
+        }
+
+        $icon = $this->tools->icon($known->value, 12, 'app-framework-logo', 'frameworks');
+        $icon = preg_replace(['#<title>.*?</title>#s', '/ role="img"/'], ['', ' aria-hidden="true" focusable="false"'], $icon);
+        if (!is_string($icon) || $icon === '') {
+            return null;
+        }
+
+        $version = is_string($framework['version'] ?? null) ? $framework['version'] : null;
+        $label = $version === null ? $known->label() : $known->label() . ' ' . $version;
+
+        return ['label' => $label, 'tooltip' => Html::escapeTooltipValue($label), 'icon' => $icon];
     }
 
     /**

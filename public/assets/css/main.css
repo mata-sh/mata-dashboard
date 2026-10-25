@@ -1586,6 +1586,30 @@ svg {
     height: 14px;
 }
 
+/* Framework logo after the app name: muted until the card is hovered, like the README button.
+   The marks are filled shapes, so the global icon stroke must not thicken them. */
+.app-title .app-framework {
+    display: inline-flex;
+    align-items: center;
+    margin: 0 4px 0 5px;
+    color: var(--text-muted);
+    opacity: .45;
+    transition: opacity .15s ease, color .15s ease;
+}
+
+.app-container:hover .app-framework {
+    color: var(--text-label);
+    opacity: 1;
+}
+
+.app-title .app-framework svg {
+    width: 12px;
+    height: 12px;
+    margin: 0;
+    fill: currentColor;
+    stroke: none;
+}
+
 .modal-trigger,
 .server-title .server-refresh-btn,
 .server-refresh-stats-btn,

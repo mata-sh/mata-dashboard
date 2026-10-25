@@ -308,6 +308,40 @@ final class NodeResponseNormalizerValidationTest extends TestCase
         yield 'array value' => [['loganalysis' => []]];
     }
 
+    public function testFrameworkIsKept(): void
+    {
+        $result = $this->normalizeApp(self::app(['framework' => ['name' => 'wordpress', 'version' => '6.8.3']]));
+
+        $this->assertSame(['name' => 'wordpress', 'version' => '6.8.3'], $result['framework']);
+    }
+
+    /**
+     * Older nodes send no framework, newer ones may name frameworks this dashboard does not know,
+     * and a malformed one must not hide the app: the card just shows no logo.
+     */
+    #[DataProvider('frameworksWithoutLogo')]
+    public function testFrameworkWithoutLogoKeepsTheApp(array $app): void
+    {
+        $result = $this->normalizeApp(self::app($app));
+
+        $this->assertSame('Shop', $result['title']);
+        $this->assertArrayNotHasKey('framework', $result);
+    }
+
+    /**
+     * @return iterable<string,array{array<string,mixed>}>
+     */
+    public static function frameworksWithoutLogo(): iterable
+    {
+        yield 'older node' => [[]];
+
+        yield 'unknown framework' => [['framework' => ['name' => 'joomla', 'version' => '5.2.0']]];
+
+        yield 'not an object' => [['framework' => 'wordpress']];
+
+        yield 'version not a release' => [['framework' => ['name' => 'wordpress', 'version' => '<b>6</b>']]];
+    }
+
     public function testInvalidStatusUrlIsAnExplicitError(): void
     {
         $response = $this->normalizer->normalizeApiResponse([
