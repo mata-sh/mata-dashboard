@@ -102,6 +102,16 @@ interface ServerDataCollectorInterface
     public function fetchAppLogs(string $app, CacheType $cacheType = CacheType::AppLogs): ?array;
 
     /**
+     * Fetch up to $limit parsed entries per log file, bypassing the cache so a larger readout
+     * never replaces the dashboard's cached copy.
+     *
+     * @param ''|'errors'|'warnings' $filter node-side entry filter; '' for all entries
+     *
+     * @return null|array<string,mixed> Grouped log entries or null on failure
+     */
+    public function fetchAppLogEntries(string $app, string $filter, int $limit): ?array;
+
+    /**
      * Fetch log file metadata (sizes, line counts, last modified).
      *
      * @param string    $app       App identifier

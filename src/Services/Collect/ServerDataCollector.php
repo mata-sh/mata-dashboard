@@ -40,6 +40,7 @@ class ServerDataCollector implements ServerDataCollectorInterface
      * @param CacheTtlResolver       $ttlResolver        Cache TTL configuration lookup
      * @param NodeApiClient          $apiClient          HTTP communication client
      * @param NodeResponseNormalizer $responseNormalizer Node response parsing and normalization
+     * @param bool                   $cacheOnly          Never request the node: answer from the cache, stale included, or null
      */
     public function __construct(
         LoggerInterface $logger,
@@ -48,6 +49,7 @@ class ServerDataCollector implements ServerDataCollectorInterface
         CacheTtlResolver $ttlResolver,
         NodeApiClient $apiClient,
         NodeResponseNormalizer $responseNormalizer,
+        private readonly bool $cacheOnly = false,
     ) {
         $this->logger = $logger;
         $this->cacheStore = $cacheStore;
@@ -127,6 +129,10 @@ class ServerDataCollector implements ServerDataCollectorInterface
      */
     public function fetchDatabaseProcesses(string $connection, ?string $database): ?array
     {
+        if ($this->cacheOnly) {
+            return null;
+        }
+
         $path = 'databases/processes';
         $query = ['active_only' => 0, 'limit' => 100, 'connection' => $connection];
         if ($database !== null) {
@@ -203,6 +209,30 @@ class ServerDataCollector implements ServerDataCollectorInterface
     public function fetchAppLogs(string $app, CacheType $cacheType = CacheType::AppLogs): ?array
     {
         return $this->request('GET', "{$app}/logs", $cacheType);
+    }
+
+    public function fetchAppLogEntries(string $app, string $filter, int $limit): ?array
+    {
+        if ($this->cacheOnly) {
+            return null;
+        }
+
+        $path = "{$app}/logs";
+        $query = ['limit' => $limit];
+        if ($filter !== '') {
+            $query['filter'] = $filter;
+        }
+
+        try {
+            return $this->responseNormalizer->normalizeApiResponse(
+                data: $this->fetchFromApi('GET', $path, ['query' => $query]),
+                path: $path,
+            );
+        } catch (TransferException $e) {
+            $this->logger->warning("Fetching log entries failed: {$e->getMessage()}");
+
+            return $this->nodeErrorResponse($e, $path, 0);
+        }
     }
 
     /**
@@ -333,6 +363,10 @@ class ServerDataCollector implements ServerDataCollectorInterface
             );
         }
 
+        if ($this->cacheOnly) {
+            return $this->staleCacheResponse($cacheKey, $ttlSeconds, $path);
+        }
+
         // 2. Try fresh API
         try {
             $rawData = $this->fetchFromApi($method, $path, $requestOptions);
@@ -352,22 +386,31 @@ class ServerDataCollector implements ServerDataCollectorInterface
                 return $nodeError;
             }
 
-            // 3. Try stale cache
-            $staleEntry = $this->cacheStore->getStale($cacheKey, $ttlSeconds);
-            if ($staleEntry !== null) {
-                return $this->responseNormalizer->normalizeApiResponse(
-                    data: $staleEntry->value,
-                    cacheAge: max(0, time() - $staleEntry->storedAt),
-                    cacheTtl: $ttlSeconds,
-                    fromCache: true,
-                    staleCache: true,
-                    path: $path,
-                );
-            }
-
-            // 4. Surface a structured node error when the failed response carried one
-            return $this->nodeErrorResponse($e, $path, $ttlSeconds);
+            // 3. Try stale cache, 4. else surface a structured node error when the failed response carried one
+            return $this->staleCacheResponse($cacheKey, $ttlSeconds, $path) ?? $this->nodeErrorResponse($e, $path, $ttlSeconds);
         }
+    }
+
+    /**
+     * The cached response past its TTL, marked stale; null without one.
+     *
+     * @return null|array<string,mixed>
+     */
+    private function staleCacheResponse(string $cacheKey, int $ttlSeconds, string $path): ?array
+    {
+        $staleEntry = $this->cacheStore->getStale($cacheKey, $ttlSeconds);
+        if ($staleEntry === null) {
+            return null;
+        }
+
+        return $this->responseNormalizer->normalizeApiResponse(
+            data: $staleEntry->value,
+            cacheAge: max(0, time() - $staleEntry->storedAt),
+            cacheTtl: $ttlSeconds,
+            fromCache: true,
+            staleCache: true,
+            path: $path,
+        );
     }
 
     /**

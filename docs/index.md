@@ -8,9 +8,10 @@
 <strong>Monitoring Anomalies & Tracking Alarms</strong>
 </div>
 
-MATA Dashboard is a PHP monitoring dashboard for servers and hosted
-applications. It polls read-only MATA Nodes, records events, evaluates alarms,
-and delivers notifications.
+MATA Dashboard monitors the security and health of PHP applications across
+servers, including shared and managed hosting. It polls read-only MATA Nodes,
+audits their Composer dependencies, watches security advisory sources, records
+events, evaluates alarms, and delivers notifications.
 
 <div align="center">
     <img src="images/screenshot.jpg" alt="MATA Dashboard screenshot" width="600">

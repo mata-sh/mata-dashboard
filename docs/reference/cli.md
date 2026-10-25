@@ -50,6 +50,8 @@ a missing argument, also exit `2`.
 | `advisory sources` | every enabled source polled successfully | a source was not polled yet | a source is failing |
 | `advisory fetch` | polled, previewed or not due | — | a source failed |
 | `advisory report` | written, printed or mailed | — | invalid options or delivery failed |
+| Node data: `server show`, `apps list`, `logs show`, … (see [Read-only data](#read-only-data)) | data shown | data shown, but the cached copy is past its TTL | no data: not cached yet, node error or unknown server |
+| `events list`, `events show`, `alarms list`, `metrics series` | listed | — | invalid options, unknown event or database unreachable |
 
 `status` exits `3` when cached node health is missing or stale, so a stopped
 cron never reports `ok`, and when `servers.json` cannot be loaded, so an empty
@@ -69,3 +71,77 @@ standard output:
 ```
 
 `error` is present only on failures. The other fields depend on the command.
+
+## Read-only data
+
+These commands show what the dashboard shows, for scripts or coding agents and are read-only. 
+
+| Command | Shows | Source |
+|---------|-------|--------|
+| `server show [<server>]` | CPU, RAM, disk, load, process and cronjob counts | node, cached |
+| `server info <server>` | OS, kernel, PHP version and extensions | node, cached |
+| `apps list [<server>]` | applications, environments and log error counts | node, cached |
+| `apps sessions <server> <app>` | session counts | node, cached |
+| `apps readme <server> <app>` | the application's README | node, cached |
+| `logs show <server> <app>` | parsed log entries, newest first; `--type error`, `--file`, `--since 1d`, `--limit` | node, cached |
+| `logs files <server> <app>` | size, line count and last change of each log file | node, cached |
+| `processes show <server>` | PHP processes by CPU usage | node, cached |
+| `cronjobs show <server>` | heartbeats of the server's monitored cronjobs | node, cached |
+| `libraries list <server>` | Composer packages per application; `--app`, `--package` | node, cached |
+| `audit show <server> <app>` | Composer audit: advisories and abandoned packages | node, cached |
+| `db show <server>` | monitored database connections and their databases | node, cached |
+| `db processes <server> <connection>` | the live database process list; `--database` | node, always live |
+| `events list` | recorded events; `--server`, `--app`, `--type`, `--level`, `--since 24h`, `--limit` | database |
+| `events show <id>` | one event with its context, alarm decision, alarm and deliveries | database |
+| `alarms list` | alarms with acknowledgement and deliveries; `--server`, `--unacknowledged`, `--limit` | database |
+| `metrics series <server> <metric>` | stored history of one metric; `--range 7d`, `--granularity` | database |
+
+These commands do not contact nodes and instead read from cache. `--live` asks the node and refreshes
+the cache; `logs show --live` leaves the cache alone, so its larger readout never replaces the
+dashboard's copy. Data the dashboard has not fetched yet, such as the logs of an app nobody
+opened, needs `--live` once. `server show` and `apps list` without a server cover
+every enabled server, with one entry per server in `servers`.
+
+With `--json`, each document says where its data came from and how old it is:
+
+```json
+{
+    "schema_version": 1,
+    "status": "warning",
+    "source": {"type": "node", "server": "web-01", "dataset": "logs"},
+    "observed_at": "2026-10-25T08:55:02+00:00",
+    "cache": {"from_cache": true, "age_seconds": 1840, "ttl_seconds": 30, "stale": true},
+    "app": "shop",
+    "readout_limit": 200,
+    "since": null,
+    "files": [{"path": "shop/logs/error.log", "returned": 200, "oldest": "2026-10-24 17:02:11", "capped": true, "covers_since": null}],
+    "matched": 412,
+    "truncated": true,
+    "entries": [{"timestamp": "2026-10-25 08:54:51", "type": "Error", "file": "shop/logs/error.log", "message": "…"}]
+}
+```
+
+- `observed_at` is when the dashboard received the data from the node, or when the
+  database was queried.
+- `truncated` is `true` when more entries matched than `--limit` returned.
+- Nodes return at most `readout_limit` entries per log file, and only from its last
+  lines (`errorlog_scan_line_limit` on the node). `capped` marks a file where older
+  entries were cut off; with `--since`, `covers_since` is `true` when the file reaches
+  back to the start of the window, `false` when it was cut off before, and `null` when
+  that is unknown. `logs show --live` asks for `--limit` entries per file, so a larger
+  `--limit` reaches further back. Log timestamps are in the node's local time.
+- `source.type` is `demo` for generated demo data.
+
+!!! warning "Giving an agent access"
+    The web server user these commands run as can also read
+    `config/servers.secrets.json` and change the installation. To give an agent only
+    the read-only commands, run it as its own account and allow exactly these
+    commands with sudo, for example:
+
+    ```text
+    agent ALL=(www-data) NOPASSWD: /usr/bin/php /var/www/mata/bin/mata logs show *, \
+        /usr/bin/php /var/www/mata/bin/mata events list *
+    ```
+
+    Log messages are untrusted text: an agent should treat them as data, not as
+    instructions.

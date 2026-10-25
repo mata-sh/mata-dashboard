@@ -331,6 +331,52 @@ final class ServerDataCollectorTest extends TestCase
         $this->assertNull($response['error']);
     }
 
+    /** The CLI's default mode: an agent calling it in a loop must never reach the node. */
+    public function testCacheOnlyAnswersFromStaleCacheAndNeverRequestsTheNode(): void
+    {
+        $cache = $this->createStub(CacheStoreInterface::class);
+        $cache->method('get')->willReturn(null);
+        $cache->method('getStale')->willReturnOnConsecutiveCalls(new CacheEntry(['apps' => []], time() - 3600), null);
+        $apiClient = $this->createMock(NodeApiClient::class);
+        $apiClient->method('getApiBase')->willReturn('https://node.example.test/api');
+        $apiClient->expects($this->never())->method('request');
+
+        $collector = new ServerDataCollector(
+            new NullLogger(),
+            $cache,
+            new ApiCacheKeyFactory(),
+            new CacheTtlResolver(new TtlConfig(['apps' => 60, 'appLogs' => 60])),
+            $apiClient,
+            new NodeResponseNormalizer(new NullLogger()),
+            cacheOnly: true,
+        );
+
+        $apps = $collector->getApps();
+        $this->assertTrue($apps['from_cache']);
+        $this->assertTrue($apps['stale_cache']);
+        $this->assertNull($collector->fetchAppLogs('shop'));
+        $this->assertNull($collector->fetchDatabaseProcesses('reporting', null));
+    }
+
+    /** A larger CLI readout must not replace the dashboard's cached log copy. */
+    public function testLogEntriesWithALimitAreRequestedLiveAndNeverCached(): void
+    {
+        $cache = $this->createMock(CacheStoreInterface::class);
+        $cache->expects($this->never())->method('put');
+        $cache->expects($this->never())->method('get');
+        $apiClient = $this->createMock(NodeApiClient::class);
+        $apiClient->method('getApiBase')->willReturn('https://node.example.test/api');
+        $apiClient->expects($this->once())
+            ->method('request')
+            ->with('GET', 'shop/logs', ['query' => ['limit' => 500, 'filter' => 'errors']])
+            ->willReturn('{"entries":{"error.log":[]},"readout_limit":500}')
+        ;
+
+        $response = $this->createCollector($cache, $apiClient)->fetchAppLogEntries('shop', 'errors', 500);
+
+        $this->assertSame(500, $response['result']['readout_limit']);
+    }
+
     private function createCollector(CacheStoreInterface $cache, NodeApiClient $apiClient): ServerDataCollector
     {
         return new ServerDataCollector(

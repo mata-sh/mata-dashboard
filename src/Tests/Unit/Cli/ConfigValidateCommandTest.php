@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Mata\Tests\Unit\Cli;
 
-use Mata\Cli\Command\ConfigValidateCommand;
+use Mata\Cli\Command\Config\ConfigValidateCommand;
 use Mata\Config\ConfigSource;
 use Mata\Config\Validation\ConfigProblem;
 use Mata\Config\Validation\ConfigValidationReport;

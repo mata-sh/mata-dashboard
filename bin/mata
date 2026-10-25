@@ -5,28 +5,45 @@ declare(strict_types=1);
 
 use Mata\Cli\CliApplication;
 use Mata\Cli\CliConfig;
-use Mata\Cli\Command\AdvisoryFetchCommand;
-use Mata\Cli\Command\AdvisoryReportCommand;
-use Mata\Cli\Command\AdvisorySourcesCommand;
-use Mata\Cli\Command\AlarmExplainCommand;
-use Mata\Cli\Command\AlarmTestCommand;
-use Mata\Cli\Command\ConfigValidateCommand;
+use Mata\Cli\Command\Advisory\AdvisoryFetchCommand;
+use Mata\Cli\Command\Advisory\AdvisoryReportCommand;
+use Mata\Cli\Command\Advisory\AdvisorySourcesCommand;
+use Mata\Cli\Command\Alarm\AlarmExplainCommand;
+use Mata\Cli\Command\Alarm\AlarmsListCommand;
+use Mata\Cli\Command\Alarm\AlarmTestCommand;
+use Mata\Cli\Command\Apps\AppsListCommand;
+use Mata\Cli\Command\Apps\AppsReadmeCommand;
+use Mata\Cli\Command\Apps\AppsSessionsCommand;
+use Mata\Cli\Command\Audit\AuditShowCommand;
+use Mata\Cli\Command\Config\ConfigValidateCommand;
+use Mata\Cli\Command\Cronjobs\CronjobsShowCommand;
+use Mata\Cli\Command\Db\DbProcessesCommand;
+use Mata\Cli\Command\Db\DbShowCommand;
 use Mata\Cli\Command\DoctorCommand;
-use Mata\Cli\Command\MetricsStatusCommand;
-use Mata\Cli\Command\MigrateCheckCommand;
-use Mata\Cli\Command\MigrateDownCommand;
-use Mata\Cli\Command\MigrateStatusCommand;
-use Mata\Cli\Command\MigrateUpCommand;
-use Mata\Cli\Command\ServerAddCommand;
-use Mata\Cli\Command\ServerListCommand;
-use Mata\Cli\Command\ServerRemoveCommand;
-use Mata\Cli\Command\ServerTestCommand;
+use Mata\Cli\Command\Events\EventsListCommand;
+use Mata\Cli\Command\Events\EventsShowCommand;
+use Mata\Cli\Command\Libraries\LibrariesListCommand;
+use Mata\Cli\Command\Logs\LogsFilesCommand;
+use Mata\Cli\Command\Logs\LogsShowCommand;
+use Mata\Cli\Command\Metrics\MetricsSeriesCommand;
+use Mata\Cli\Command\Metrics\MetricsStatusCommand;
+use Mata\Cli\Command\Migrate\MigrateCheckCommand;
+use Mata\Cli\Command\Migrate\MigrateDownCommand;
+use Mata\Cli\Command\Migrate\MigrateStatusCommand;
+use Mata\Cli\Command\Migrate\MigrateUpCommand;
+use Mata\Cli\Command\Processes\ProcessesShowCommand;
+use Mata\Cli\Command\Server\ServerAddCommand;
+use Mata\Cli\Command\Server\ServerInfoCommand;
+use Mata\Cli\Command\Server\ServerListCommand;
+use Mata\Cli\Command\Server\ServerRemoveCommand;
+use Mata\Cli\Command\Server\ServerShowCommand;
+use Mata\Cli\Command\Server\ServerTestCommand;
 use Mata\Cli\Command\StatusCommand;
-use Mata\Cli\Command\UserCreateCommand;
-use Mata\Cli\Command\UserDeleteCommand;
-use Mata\Cli\Command\UserListCommand;
-use Mata\Cli\Command\UserPasswdCommand;
-use Mata\Cli\Command\UserUnlockCommand;
+use Mata\Cli\Command\User\UserCreateCommand;
+use Mata\Cli\Command\User\UserDeleteCommand;
+use Mata\Cli\Command\User\UserListCommand;
+use Mata\Cli\Command\User\UserPasswdCommand;
+use Mata\Cli\Command\User\UserUnlockCommand;
 use Mata\Config\Dto\NodeApiConfig;
 use Mata\Config\Monitoring\ServersConfigEditor;
 use Mata\Config\Validation\ConfigValidator;
@@ -84,6 +101,24 @@ $application->addCommands([
     new AdvisorySourcesCommand($cli),
     new AdvisoryFetchCommand($cli),
     new AdvisoryReportCommand($cli),
+    // Read-only data for operators and agents
+    new ServerShowCommand($cli),
+    new ServerInfoCommand($cli),
+    new AppsListCommand($cli),
+    new AppsSessionsCommand($cli),
+    new AppsReadmeCommand($cli),
+    new LogsShowCommand($cli),
+    new LogsFilesCommand($cli),
+    new ProcessesShowCommand($cli),
+    new CronjobsShowCommand($cli),
+    new LibrariesListCommand($cli),
+    new AuditShowCommand($cli),
+    new DbShowCommand($cli),
+    new DbProcessesCommand($cli),
+    new EventsListCommand($cli),
+    new EventsShowCommand($cli),
+    new AlarmsListCommand($cli),
+    new MetricsSeriesCommand($cli),
 ]);
 
 // The CLI SAPI fills argv with strings; filtering only narrows the type for PHPStan.

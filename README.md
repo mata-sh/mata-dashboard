@@ -8,12 +8,18 @@
 [![HTMX][HTMX-shield]][empty-url]
 ![PHP 8.3+][PHP-shield]
 
-Monitoring for environments where a full observability stack is impractical:
-shared hosting, small VPS boxes, legacy servers. Anywhere you can run PHP 8.3.
+Security and health monitoring for PHP applications where a full observability
+stack is impractical: shared and managed hosting, small VPS boxes, legacy
+servers. Anywhere you can run PHP 8.3.
 
-One dashboard polls one or more read-only nodes over HTTPS, stores events and
-metrics in MySQL/MariaDB, evaluates alarms, and sends them by email or webhook.
-Minimal dependencies, no Node runtime, no JavaScript framework.
+Know which of your sites run Composer packages with known vulnerabilities,
+which new advisories affect your stack, and which applications throw errors
+nobody has reported yet.
+
+One dashboard polls read-only nodes over HTTPS, audits their dependencies,
+watches advisory sources, stores events and metrics in MySQL/MariaDB, evaluates
+alarms, and sends them by email or webhook. Minimal dependencies, no Node
+runtime, no JavaScript framework.
 
 [![Screenshot][product-screenshot]][demo-url]
 
@@ -92,14 +98,20 @@ Collected from nodes:
 Not collected: secrets, environment variables, database contents, source code.
 What a node exposes is what the node is configured to expose.
 
-## Security advisories
+## Vulnerability tracking
 
-The dashboard can also watch security advisory sources: RSS/Atom feeds,
-GitHub repository advisories, IMAP mailboxes, OSV.dev packages and CSAF
-providers. Keyword and severity filters decide what is relevant; each new
-match alarms once through the usual notification rules. The **Advisories**
-page lists sources and advisories, and a scheduled digest mails PDF, Markdown,
-HTML or JSON reports. See [Security advisories](docs/guides/security-advisories.md).
+- **Dependency audits.** Nodes run `composer audit` for every application with
+  Composer enabled. Each advisory new to an application is recorded once,
+  as a critical event when it is rated high or critical. The **Audit** page
+  shows every application's audit across all servers. See
+  [Application error monitoring](docs/guides/application-error-monitoring.md).
+- **Advisory sources.** The dashboard watches RSS/Atom feeds, GitHub repository
+  advisories, IMAP mailboxes, OSV.dev packages and CSAF providers. The first
+  poll of a source is a silent baseline; after that, keyword and severity
+  filters decide what is relevant and each new match alarms once. The
+  **Advisories** page lists sources and advisories, and a scheduled digest
+  mails PDF, Markdown, HTML or JSON reports. See
+  [Security advisories](docs/guides/security-advisories.md).
 
 ## Alarm model
 
@@ -133,8 +145,10 @@ There is no settings UI. Configuration is plain files: JSON for monitoring,
 - **Scriptable.** Every `bin/mata` command takes `--json` and documents its exit
   codes.
 - **Agent ready.** `config.example/AGENTS.md` gives coding agents the rules for
-  a configuration repository, [Install with a coding agent](docs/guides/agent-install.md)
-  is a non-interactive runbook, and the documentation publishes `llms.txt`.
+  a configuration repository, and [Install with a coding agent](docs/guides/agent-install.md)
+  is a non-interactive runbook. Read-only commands such as `bin/mata logs show`
+  return the dashboard's data as JSON. Agents can read the whole documentation
+  as Markdown from [`llms-full.txt`](https://docs.mata.sh/llms-full.txt).
 
 ## Requirements
 
@@ -182,6 +196,7 @@ MATA began as a minimalistic tool for monitoring PHP deployments with limited ho
 **Ideal for**
 
 - Agencies managing dozens of customer servers
+- Knowing which client sites run vulnerable dependencies, in one place
 - A handful to roughly 100 nodes and teams of 1 to 20 people
 - PHP applications across legacy and modern stacks
 - Shared hosting, small VPSs, and other restricted environments

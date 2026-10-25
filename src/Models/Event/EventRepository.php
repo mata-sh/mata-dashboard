@@ -189,6 +189,63 @@ class EventRepository
     }
 
     /**
+     * One event with its server, application and stored alarm decision; null when it does not exist.
+     *
+     * @return null|array<string,mixed>
+     */
+    public function find(int $id): ?array
+    {
+        $rows = $this->db->runSelect(<<<'SQL'
+            SELECT e.id, e.`datetime`, e.type, e.level, e.message, e.context, e.evaluated_at, e.alarm_decision,
+                s.name AS server, a.code AS app, a.app_env
+            FROM events AS e
+            LEFT JOIN servers AS s ON e.server_id = s.id
+            LEFT JOIN applications AS a ON e.application_id = a.id
+            WHERE e.id = ?
+            SQL, [$id]);
+
+        return $rows[0] ?? null;
+    }
+
+    /**
+     * Events matching every given filter, newest first.
+     *
+     * @return array<int,array<string,mixed>>
+     */
+    public function findRecent(
+        ?string $server,
+        ?string $app,
+        ?string $type,
+        ?string $level,
+        ?DateTimeImmutable $since,
+        int $limit,
+    ): array {
+        $limit = max(1, $limit);
+        $filters = [
+            's.name = ?' => $server,
+            'a.code = ?' => $app,
+            'e.type = ?' => $type,
+            'e.level = ?' => $level,
+            'e.`datetime` >= ?' => $since?->format('Y-m-d H:i:s'),
+        ];
+        $filters = array_filter($filters, static fn (?string $value): bool => $value !== null);
+        $where = $filters === [] ? '' : 'WHERE ' . implode(' AND ', array_keys($filters));
+
+        $sql = <<<SQL
+            SELECT e.id, e.`datetime`, e.type, e.level, e.message, e.context, e.evaluated_at,
+                s.name AS server, a.code AS app, a.app_env
+            FROM events AS e
+            LEFT JOIN servers AS s ON e.server_id = s.id
+            LEFT JOIN applications AS a ON e.application_id = a.id
+            {$where}
+            ORDER BY e.`datetime` DESC, e.id DESC
+            LIMIT {$limit}
+        SQL;
+
+        return $this->db->runSelect($sql, array_values($filters));
+    }
+
+    /**
      * Most recent evaluated events with their stored alarm decision trace, newest first.
      *
      * @return array<int,array<string,mixed>>

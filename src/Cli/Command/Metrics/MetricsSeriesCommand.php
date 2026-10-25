@@ -1,0 +1,138 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Mata\Cli\Command\Metrics;
+
+use InvalidArgumentException;
+use Mata\Cli\CliConfig;
+use Mata\Cli\CliOutput;
+use Mata\Cli\Evidence;
+use Mata\Config\Dto\DatabaseConfig;
+use Mata\Config\Monitoring\Loader\ServersConfigLoader;
+use Mata\Database\PdoDatabase;
+use Mata\Models\Sync\ConfigSyncRepository;
+use Mata\Services\Identity\ServerApplicationIdResolver;
+use Mata\Services\ServerMetrics\MetricCatalog;
+use Mata\Services\ServerMetrics\MetricQueryPolicy;
+use Mata\Services\ServerMetrics\MetricsRequestValidator;
+use Mata\Services\ServerMetrics\MockServerMetricsQuery;
+use Mata\Services\ServerMetrics\ServerMetricsQuery;
+use Mata\Services\Status\StatusLevel;
+use Mata\Services\View\MetricsViewBuilder;
+use Psr\Log\NullLogger;
+use Symfony\Component\Console\Attribute\AsCommand;
+use Symfony\Component\Console\Command\Command;
+use Symfony\Component\Console\Input\InputArgument;
+use Symfony\Component\Console\Input\InputInterface;
+use Symfony\Component\Console\Input\InputOption;
+use Symfony\Component\Console\Output\OutputInterface;
+
+/**
+ * One stored metric of a server over time, as the dashboard charts it. Hourly and daily points
+ * are averages; raw points are single samples. Times are UTC. Demo mode generates the series.
+ */
+#[AsCommand(name: 'metrics:series', description: 'Show the stored history of one server metric')]
+final class MetricsSeriesCommand extends Command
+{
+    public function __construct(private readonly CliConfig $cli)
+    {
+        parent::__construct();
+    }
+
+    protected function configure(): void
+    {
+        $catalog = new MetricCatalog();
+        $this
+            ->addArgument('server', InputArgument::REQUIRED, 'Server name from servers.json')
+            ->addArgument('metric', InputArgument::REQUIRED, 'One of: ' . implode(', ', $catalog->metrics()))
+            ->addOption('range', null, InputOption::VALUE_REQUIRED, 'How far back: 6h, 7d, 2w, 3m (months), 1y or all', '24h')
+            ->addOption('granularity', null, InputOption::VALUE_REQUIRED, 'One of: ' . implode(', ', $catalog->granularities()), 'auto')
+            ->addOption('json', null, InputOption::VALUE_NONE, 'Print as JSON')
+            ->setHelp('auto picks raw samples up to 6h, hourly averages up to 7d and daily averages beyond.');
+    }
+
+    protected function execute(InputInterface $input, OutputInterface $output): int
+    {
+        $config = $this->cli->load();
+        $server = (string) $input->getArgument('server');
+        $range = strtolower((string) $input->getOption('range'));
+        $policy = new MetricQueryPolicy();
+        $servers = (new ServersConfigLoader(fallbackOnFailure: true))->load($this->cli->configPath)->section->values;
+
+        $validation = (new MetricsRequestValidator(new MetricCatalog(), $policy))
+            ->validate($server, (string) $input->getArgument('metric'), $range, strtolower((string) $input->getOption('granularity')), $servers);
+        if ($validation->hasErrors()) {
+            throw new InvalidArgumentException(implode('; ', $validation->errors) . '.');
+        }
+        $metric = $validation->normalizedMetric;
+        $granularity = $policy->resolveGranularity($range, strtolower((string) $input->getOption('granularity')));
+
+        $demo = $config->environment->env === 'demo';
+        $query = $demo ? new MockServerMetricsQuery() : $this->databaseQuery($config->database, $servers);
+        $series = (new MetricsViewBuilder($query, new NullLogger()))->buildServerMetricTimeSeries($server, $metric, $range, $granularity);
+
+        $points = [];
+        foreach ($series['labels'] as $index => $label) {
+            $points[] = ['time' => $label, 'value' => $series['data'][$index] ?? null];
+        }
+        $evidence = Evidence::fromDatabase("server_metrics_{$granularity}", time());
+        if ($demo) {
+            $evidence['source']['type'] = 'demo';
+        }
+        $data = $evidence + [
+            'server' => $server,
+            'metric' => $metric,
+            'range' => $range,
+            'granularity' => $granularity,
+            'timezone' => 'UTC',
+            'unit' => $series['unit'],
+            'min' => $series['min'],
+            'max' => $series['max'],
+            'avg' => $series['avg'],
+            'points' => $points,
+        ];
+
+        if ($input->getOption('json')) {
+            CliOutput::json($output, ['status' => StatusLevel::Ok->label()] + $data);
+        } else {
+            $this->writeHuman($output, $data);
+        }
+
+        return StatusLevel::Ok->value;
+    }
+
+    /** @param array<string,mixed> $servers */
+    private function databaseQuery(DatabaseConfig $database, array $servers): ServerMetricsQuery
+    {
+        $db = new PdoDatabase($database);
+        $idResolver = new ServerApplicationIdResolver(new ConfigSyncRepository($db));
+        $idResolver->refreshFromRepository($servers);
+
+        return new ServerMetricsQuery($db, $idResolver);
+    }
+
+    /** @param array<string,mixed> $data */
+    private function writeHuman(OutputInterface $output, array $data): void
+    {
+        $points = is_array($data['points']) ? $data['points'] : [];
+        if ($points === []) {
+            $output->writeln("No {$data['granularity']} {$data['metric']} data for '{$data['server']}' in the last {$data['range']}. Check bin/mata metrics status.");
+
+            return;
+        }
+        foreach ($points as $point) {
+            $output->writeln(sprintf('%-19s %s', $point['time'], $point['value'] ?? '-'));
+        }
+        $output->writeln(sprintf(
+            '<comment>%s %s (%s, UTC, %s): min %s, max %s, avg %s</comment>',
+            $data['server'],
+            $data['metric'],
+            $data['unit'],
+            $data['granularity'],
+            $data['min'] ?? '-',
+            $data['max'] ?? '-',
+            $data['avg'] ?? '-',
+        ));
+    }
+}

@@ -38,11 +38,28 @@ final class AlarmRepository
         }
     }
 
-    /** @return array<int,array<string,mixed>> */
-    public function getLatest(int $limit = 50, bool $unacknowledgedOnly = false): array
+    /**
+     * Newest first, each with its deliveries by channel.
+     *
+     * @return array<int,array<string,mixed>>
+     */
+    public function getLatest(int $limit = 50, bool $unacknowledgedOnly = false, ?string $server = null, ?int $eventId = null): array
     {
         $limit = max(1, $limit);
-        $where = $unacknowledgedOnly ? 'WHERE al.acknowledged_at IS NULL' : '';
+        $conditions = [];
+        $params = [];
+        if ($unacknowledgedOnly) {
+            $conditions[] = 'al.acknowledged_at IS NULL';
+        }
+        if ($server !== null) {
+            $conditions[] = 's.name = ?';
+            $params[] = $server;
+        }
+        if ($eventId !== null) {
+            $conditions[] = 'al.event_id = ?';
+            $params[] = $eventId;
+        }
+        $where = $conditions === [] ? '' : 'WHERE ' . implode(' AND ', $conditions);
 
         $sql = <<<SQL
             SELECT
@@ -51,6 +68,7 @@ final class AlarmRepository
                 al.created_at,
                 al.acknowledged_at,
                 al.acknowledged_by,
+                al.trigger_evidence,
                 e.datetime,
                 COALESCE(e.type, 'alarm') AS type,
                 COALESCE(e.message, '') AS message,
@@ -68,7 +86,7 @@ final class AlarmRepository
             LIMIT {$limit}
         SQL;
 
-        $alarms = $this->db->runSelect($sql);
+        $alarms = $this->db->runSelect($sql, $params);
         if ($alarms === []) {
             return [];
         }
@@ -77,6 +95,8 @@ final class AlarmRepository
         $deliveriesByAlarm = $this->fetchDeliveriesByAlarm($alarmIds);
 
         foreach ($alarms as &$alarm) {
+            $evidence = is_string($alarm['trigger_evidence']) ? json_decode($alarm['trigger_evidence'], true) : null;
+            $alarm['trigger_evidence'] = is_array($evidence) ? $evidence : null;
             // (object) keeps empty deliveries encoding as {} instead of [] in JSON.
             $alarm['deliveries'] = $deliveriesByAlarm[(int) $alarm['id']] ?? (object) [];
         }

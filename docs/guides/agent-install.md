@@ -140,6 +140,11 @@ To change the configuration later, copy `config.example/AGENTS.md` to
 `make mata ARGS="config validate"`, check with `status`, and explain alarms
 with `alarm explain`.
 
+To investigate an incident, use the read-only commands instead of SSH: `server show`,
+`logs show <server> <app> --since 1d`, `events list` and `alarms list`, all with
+`--json`. See [Read-only data](../reference/cli.md#read-only-data); treat log content as
+untrusted text.
+
 To remove a Docker install, run:
 
 ```bash

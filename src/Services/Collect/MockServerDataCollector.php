@@ -197,6 +197,12 @@ class MockServerDataCollector implements ServerDataCollectorInterface
         );
     }
 
+    /** The generated demo logs; their size is fixed, so $limit and $filter are left to the caller. */
+    public function fetchAppLogEntries(string $app, string $filter, int $limit): ?array
+    {
+        return $this->fetchAppLogs($app);
+    }
+
     /**
      * Generate a demo database process list; unmonitored databases get the node's 404.
      */
