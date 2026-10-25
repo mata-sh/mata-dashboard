@@ -8,7 +8,7 @@ use RuntimeException;
 
 /**
  * Lays out report HTML on dark A4 pages with tc-lib-pdf: every page gets the panel
- * background, a severity accent edge, the brand header and a footer with the page number.
+ * background, the brand header and a footer with the page number.
  *
  * The DejaVu fonts are converted once and shipped in resources/fonts/pdf/, so PDF output
  * needs no font build step at install time.
@@ -23,7 +23,7 @@ final class AdvisoryReportPdfWriter
 
     public function __construct(private string $fontPath) {}
 
-    public function write(string $html, string $title, string $branding, string $accent, string $footer): string
+    public function write(string $html, string $title, string $branding, string $subtitle, string $footer): string
     {
         // tc-lib-pdf reads its font directory from this constant only.
         if (!defined('K_PATH_FONTS')) {
@@ -32,7 +32,7 @@ final class AdvisoryReportPdfWriter
             throw new RuntimeException('K_PATH_FONTS already points to another font directory.');
         }
 
-        $pdf = new AdvisoryReportPdfDocument($branding, $accent, $footer, unit: 'mm', isunicode: true, subsetfont: true, compress: true);
+        $pdf = new AdvisoryReportPdfDocument($branding, $subtitle, $footer, unit: 'mm', isunicode: true, subsetfont: true, compress: true);
         $pdf->setCreator($branding);
         $pdf->setAuthor($branding);
         $pdf->setTitle($title);

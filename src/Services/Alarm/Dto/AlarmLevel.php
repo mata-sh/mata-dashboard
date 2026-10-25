@@ -28,24 +28,26 @@ enum AlarmLevel: string
     }
 
     /**
-     * Get display presentation for this level (severity code and accent color).
+     * Get display presentation for this level: severity code, badge fill and accent color.
+     * Colors are the dashboard's severity tokens (docs/development/ui-styleguide.md): the fill
+     * carries white text, the accent is the lighter border shade used for text on dark surfaces.
      *
-     * @return array{value:string,display_label:string,code:string,accent:string}
+     * @return array{value:string,display_label:string,code:string,fill:string,accent:string}
      */
     public function getPresentation(): array
     {
         return match ($this) {
             self::Critical => [
-                'value' => 'critical', 'display_label' => 'Critical', 'code' => 'SEV-1', 'accent' => '#ff3b4e',
+                'value' => 'critical', 'display_label' => 'Critical', 'code' => 'SEV-1', 'fill' => '#c22a35', 'accent' => '#e05561',
             ],
             self::Error => [
-                'value' => 'error', 'display_label' => 'Error', 'code' => 'SEV-2', 'accent' => '#ffb020',
+                'value' => 'error', 'display_label' => 'Error', 'code' => 'SEV-2', 'fill' => '#c05a1d', 'accent' => '#e0854a',
             ],
             self::Warning => [
-                'value' => 'warning', 'display_label' => 'Warning', 'code' => 'SEV-3', 'accent' => '#ffb020',
+                'value' => 'warning', 'display_label' => 'Warning', 'code' => 'SEV-3', 'fill' => '#9c7c14', 'accent' => '#c4a53a',
             ],
             self::Info => [
-                'value' => 'info', 'display_label' => 'Info', 'code' => 'SEV-4', 'accent' => '#3fd0e0',
+                'value' => 'info', 'display_label' => 'Info', 'code' => 'SEV-4', 'fill' => '#2f6f7d', 'accent' => '#7fe3f0',
             ],
         };
     }

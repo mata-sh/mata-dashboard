@@ -13,28 +13,30 @@ use Mata\Services\Audit\Severity;
 
 /**
  * Template data shared by the Markdown, HTML and PDF reports, so every format shows the same
- * numbers in the same words. Colors are the severity tokens of docs/development/ui-styleguide.md.
+ * numbers in the same words. Colors are the severity tokens of docs/development/ui-styleguide.md:
+ * severity labels are pills like the dashboard's .audit-pill (fill, border, white bold text);
+ * colored text on the dark surface uses the border shade, which stays distinct per level.
  */
 final class AdvisoryReportPresenter
 {
-    /** @var array<string,array{label:string,emoji:string,fill:string,border:string,tint:string}> */
+    /** @var array<string,array{label:string,emoji:string,fill:string,border:string}> */
     private const SEVERITY = [
-        'critical' => ['label' => 'Critical', 'emoji' => '🔴', 'fill' => '#c22a35', 'border' => '#e05561', 'tint' => '#f09595'],
-        'high' => ['label' => 'High', 'emoji' => '🟡', 'fill' => '#c05a1d', 'border' => '#e0854a', 'tint' => '#f0b27b'],
-        'medium' => ['label' => 'Medium', 'emoji' => '🔵', 'fill' => '#9c7c14', 'border' => '#c4a53a', 'tint' => '#e3ce7a'],
-        'low' => ['label' => 'Low', 'emoji' => '🔵', 'fill' => '#2e7d43', 'border' => '#4da767', 'tint' => '#7bd88f'],
-        'unknown' => ['label' => 'Unrated', 'emoji' => '⚪', 'fill' => '#4a5060', 'border' => '#6b7280', 'tint' => '#9a9a9a'],
+        'critical' => ['label' => 'Critical', 'emoji' => '🔴', 'fill' => '#c22a35', 'border' => '#e05561'],
+        'high' => ['label' => 'High', 'emoji' => '🟡', 'fill' => '#c05a1d', 'border' => '#e0854a'],
+        'medium' => ['label' => 'Medium', 'emoji' => '🔵', 'fill' => '#9c7c14', 'border' => '#c4a53a'],
+        'low' => ['label' => 'Low', 'emoji' => '🔵', 'fill' => '#2e7d43', 'border' => '#4da767'],
+        'unknown' => ['label' => 'Unrated', 'emoji' => '⚪', 'fill' => '#4a5060', 'border' => '#6b7280'],
     ];
 
     /** Stands in for the worst severity of a report without advisories. */
-    private const QUIET = ['label' => 'Quiet', 'emoji' => '🟢', 'fill' => '#2e7d43', 'border' => '#4da767', 'tint' => '#7bd88f'];
+    private const QUIET = ['label' => 'Quiet', 'emoji' => '🟢', 'fill' => '#2e7d43', 'border' => '#4da767'];
 
     /** @var array<string,string> AdvisorySourceHealth value => color */
     private const HEALTH_COLOR = [
-        'ok' => '#7bd88f',
-        'failing' => '#f09595',
-        'stale' => '#e3ce7a',
-        'never_polled' => '#9a9a9a',
+        'ok' => '#4da767',
+        'failing' => '#e05561',
+        'stale' => '#c4a53a',
+        'never_polled' => '#8b93a5',
         'disabled' => '#5a6172',
     ];
 
@@ -105,13 +107,13 @@ final class AdvisoryReportPresenter
         ];
     }
 
-    /** @return array{label:string,emoji:string,fill:string,border:string,tint:string} */
+    /** @return array{label:string,emoji:string,fill:string,border:string} */
     public static function severity(string $value): array
     {
         return self::SEVERITY[$value] ?? self::SEVERITY['unknown'];
     }
 
-    /** @return array{label:string,emoji:string,fill:string,border:string,tint:string} the worst severity, or "Quiet" without advisories */
+    /** @return array{label:string,emoji:string,fill:string,border:string} the worst severity, or "Quiet" without advisories */
     public static function worst(AdvisoryReport $report): array
     {
         return $report->total === 0 ? self::QUIET : self::severity($report->worstSeverity()->value);

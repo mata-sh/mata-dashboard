@@ -70,7 +70,7 @@ final class AlarmEmailFactoryTest extends TestCase
         $this->assertStringContainsString('>Api-1</td>', $html);
         $this->assertStringContainsString('Detected fatal errors above threshold.', $html);
         $this->assertStringContainsString('&quot;actual_value&quot;: 2000', $html);
-        $this->assertStringContainsString('#ff3b4e', $html);
+        $this->assertStringContainsString('background-color:#c22a35', $html);
         $this->assertStringContainsString('CRITICAL · Api-1 · 2k fatal_errors_occurring · Alarm #123', $html);
         $this->assertStringContainsString('event_id:</span> <span style="color:#e8eef5;">456</span>', $html);
         $this->assertStringContainsString('event_time:</span> <span style="color:#e8eef5;">2026-07-11 17:15:00 UTC</span>', $html);

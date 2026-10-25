@@ -29,6 +29,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Database cards show each named connection as a collapsible row with its engine, aligned metrics and databases; one failed connection no longer hides the others. `database_unreachable` lists all failed connections; `database_connections_too_high` uses the busiest. **Action:** update dashboard and nodes together; older nodes' database data is rejected.
 
 ### Changed
+- Alarm emails and advisory reports (PDF, HTML mail) use the dashboard's severity colors: severity labels are solid pills like the Composer audit, critical, high, medium and low are easier to tell apart, and error and warning alarms no longer share one color. The header shows the plain brand name instead of `MATA://…`, and the severity strip along the left edge is gone.
 - The non-Docker mode is now `MODE=native` (was `MODE=local`); `local` is no longer accepted. Native installs set up earlier: change `MODE := local` to `MODE := native` in `.mata.mk`, or rerun `make setup`.
 - An invalid `MAIL_DASHBOARD_URL` (not absolute http(s), or with `user:pass@`) no longer fails alarm delivery: alarm mails, webhooks and advisory reports omit the dashboard link; `bin/mata config validate` warns and the settings page marks it, masking any password.
 - The built-in alarm decision driver also delivers security advisory alarms and advisory poller warnings.

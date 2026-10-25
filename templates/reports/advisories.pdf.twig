@@ -1,16 +1,18 @@
 {#- Rendered by tc-lib-pdf's HTML engine: plain tables with explicit widths, inline styles only.
-    Page background, accent edge, header and footer are drawn by AdvisoryReportPdfWriter. -#}
+    Page background, header and footer are drawn by AdvisoryReportPdfWriter.
+    Severity pills mirror the dashboard's .audit-pill: solid fill, white bold text. -#}
 {% set label = 'font-family:dejavusansmono; font-size:6.5pt; color:#8b93a5; font-weight:bold;' %}
 {% set meta = 'font-family:dejavusansmono; font-size:7pt; color:#8b93a5;' %}
+{% set pill = 'font-family:dejavusansmono; font-size:6.5pt; font-weight:bold; color:#ffffff;' %}
 <p style="font-family:dejavusans; font-size:19pt; font-weight:bold; color:#e8eaf0;">{{ title|upper }}</p>
-<p style="{{ meta }}"><span style="color:{{ worst.tint }}; font-weight:bold;">▲ {{ worst.label|upper }}</span> &nbsp; {{ period.since }} → {{ period.until }} · {{ period.label|upper }} · GENERATED {{ generated_at }}</p>
+<p style="{{ meta }}"><span style="{{ pill }} background-color:{{ worst.fill }};">&nbsp;{{ worst.label|upper }}&nbsp;</span> &nbsp; {{ period.since }} → {{ period.until }} · {{ period.label|upper }} · GENERATED {{ generated_at }}</p>
 <p style="font-family:dejavusans; font-size:8.5pt; color:#c9cfda;">{{ scope }}</p>
 
 <table cellpadding="6" cellspacing="0" style="border:1px solid #1f242e; background-color:#0e1015;">
     <tr>
         {% for stat in [
             {label: 'ADVISORIES', value: totals.advisories, color: '#e8eaf0'},
-            {label: 'CRITICAL / HIGH', value: totals.critical_high, color: totals.critical_high > 0 ? '#f09595' : '#e8eaf0'},
+            {label: 'CRITICAL / HIGH', value: totals.critical_high, color: totals.critical_high > 0 ? '#e05561' : '#e8eaf0'},
             {label: 'UNREVIEWED', value: totals.unreviewed, color: totals.unreviewed > 0 ? '#9fe8f2' : '#e8eaf0'},
             {label: 'CVES', value: totals.cves, color: '#e8eaf0'},
         ] %}
@@ -20,7 +22,7 @@
 </table>
 
 {% if not empty %}
-<p style="{{ meta }}">{% for row in severity_rows %}<span style="color:{{ row.tint }};">■</span> {{ row.label|upper }} {{ row.count }} ({{ row.percent }}%){% if not loop.last %} &nbsp; · &nbsp; {% endif %}{% endfor %}</p>
+<p style="{{ meta }}">{% for row in severity_rows %}{% if row.count > 0 %}<span style="{{ pill }} background-color:{{ row.fill }};">&nbsp;{{ row.count }} {{ row.label|upper }}&nbsp;</span>{% else %}<span style="{{ pill }} color:#5a6172;">&nbsp;0 {{ row.label|upper }}&nbsp;</span>{% endif %} <span style="color:#5a6172;">{{ row.percent }}%</span>{% if not loop.last %} &nbsp; &nbsp; {% endif %}{% endfor %}</p>
 {% endif %}
 
 {% if highlights is not empty %}
@@ -28,8 +30,7 @@
 <table cellpadding="4" cellspacing="0" style="border:1px solid #1f242e; background-color:#0e1015;">
     {% for item in highlights %}
     <tr>
-        <td width="2%" style="background-color:{{ item.severity.fill }};"></td>
-        <td width="14%" style="font-family:dejavusansmono; font-size:6.5pt; color:{{ item.severity.tint }}; font-weight:bold;">{{ item.severity.label|upper }}{% if item.cvss %}<br />CVSS {{ item.cvss }}{% endif %}</td>
+        <td width="16%"><span style="{{ pill }} background-color:{{ item.severity.fill }};">&nbsp;{{ item.severity.label|upper }}&nbsp;</span>{% if item.cvss %}<br /><span style="{{ meta }}">CVSS {{ item.cvss }}</span>{% endif %}</td>
         <td width="62%" style="font-family:dejavusans; font-size:8pt; color:#e8eaf0;">{% if item.link %}<a href="{{ item.link }}" style="color:#e8eaf0; text-decoration:none;">{{ item.title }}</a>{% else %}{{ item.title }}{% endif %}{% if item.cves is not empty %}<br /><span style="font-family:dejavusansmono; font-size:6.5pt; color:#9fe8f2;">{{ item.cves|join(' ') }}</span>{% endif %}</td>
         <td width="22%" style="{{ meta }}">{{ item.source }}<br />{{ item.date }}</td>
     </tr>
@@ -48,7 +49,7 @@
     </tr>
     {% for source in sources %}
     <tr style="background-color:{{ loop.index is even ? '#0f1218' : '#0b0d12' }};">
-        <td width="34%" style="font-family:dejavusans; font-size:8pt; color:#e8eaf0;">{{ source.name }}{% if source.last_error %}<br /><span style="font-family:dejavusansmono; font-size:6.5pt; color:#f09595;">{{ source.last_error }}</span>{% endif %}</td>
+        <td width="34%" style="font-family:dejavusans; font-size:8pt; color:#e8eaf0;">{{ source.name }}{% if source.last_error %}<br /><span style="font-family:dejavusansmono; font-size:6.5pt; color:#e05561;">{{ source.last_error }}</span>{% endif %}</td>
         <td width="14%" style="{{ meta }}">{{ source.type_label|upper }}</td>
         <td width="12%" align="right" style="font-family:dejavusansmono; font-size:8pt; color:#e8eaf0;">{{ source.count }}</td>
         <td width="18%" style="font-family:dejavusansmono; font-size:7pt; color:{{ source.health_color }};">● {{ source.health_label|upper }}</td>
@@ -64,19 +65,18 @@
     <tr style="background-color:{{ loop.index is even ? '#0f1218' : '#0b0d12' }};">
         <td width="66%" style="font-family:dejavusans; font-size:8pt; color:#e8eaf0;">{{ product.product }}</td>
         <td width="12%" align="right" style="font-family:dejavusansmono; font-size:8pt; color:#e8eaf0;">{{ product.count }}</td>
-        <td width="22%" style="font-family:dejavusansmono; font-size:6.5pt; font-weight:bold; color:{{ product.severity.tint }};">{{ product.severity.label|upper }}</td>
+        <td width="22%"><span style="{{ pill }} background-color:{{ product.severity.fill }};">&nbsp;{{ product.severity.label|upper }}&nbsp;</span></td>
     </tr>
     {% endfor %}
 </table>
 {% endif %}
 
 {% for group in groups %}
-<p style="font-family:dejavusansmono; font-size:9pt; font-weight:bold; color:{{ group.severity.tint }};">{{ group.severity.label|upper }} · {{ group.count }}</p>
+<p><span style="{{ pill }} font-size:8pt; background-color:{{ group.severity.fill }};">&nbsp;{{ group.severity.label|upper }}&nbsp;</span> <span style="{{ meta }}">{{ group.count }} {{ group.count == 1 ? 'advisory' : 'advisories' }}</span></p>
 <table cellpadding="4" cellspacing="0" style="border-top:1px solid {{ group.severity.fill }};">
     {% for item in group.items %}
     <tr style="background-color:{{ loop.index is even ? '#0f1218' : '#0b0d12' }};">
-        <td width="2%" style="background-color:{{ item.severity.fill }};"></td>
-        <td width="98%">
+        <td width="100%">
             <span style="font-family:dejavusans; font-size:8.5pt; font-weight:bold; color:#e8eaf0;">{% if item.link %}<a href="{{ item.link }}" style="color:#e8eaf0; text-decoration:none;">{{ item.title }}</a>{% else %}{{ item.title }}{% endif %}</span><br />
             <span style="{{ meta }}">{{ item.source }} · {{ item.date }}{% if item.cvss %} · CVSS {{ item.cvss }}{% endif %}</span>{% if item.cves is not empty %}<span style="font-family:dejavusansmono; font-size:7pt; color:#9fe8f2;"> · {{ item.cves|join(' ') }}</span>{% endif %}
             {% if item.products is not empty %}<br /><span style="{{ meta }}">affected: {{ item.products|join('; ') }}{% if item.more_products > 0 %} (+{{ item.more_products }}){% endif %}</span>{% endif %}

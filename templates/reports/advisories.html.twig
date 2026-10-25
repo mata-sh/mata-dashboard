@@ -1,5 +1,7 @@
 {% set mono = "font-family:Consolas,'Courier New',monospace;" %}
 {% set sans = "font-family:Arial,Helvetica,sans-serif;" %}
+{#- Severity pill, as the dashboard's .audit-pill: solid fill, lighter border, white bold text. -#}
+{% set pill = "display:inline-block; padding:2px 8px; border-radius:4px; " ~ mono ~ " font-size:11px; line-height:16px; font-weight:bold; letter-spacing:1px; color:#ffffff; text-transform:uppercase;" %}
 <!doctype html>
 <html lang="en" xmlns="http://www.w3.org/1999/xhtml">
 <head>
@@ -25,9 +27,9 @@
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#000000;"><tr><td align="center" style="padding:32px 12px;">
 <table role="presentation" class="container" width="680" cellpadding="0" cellspacing="0" border="0" style="width:680px; max-width:680px;">
     <tr><td style="padding:0;">
-        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr>
-            <td width="8" style="background-color:{{ worst.fill }}; font-size:0; line-height:0;">&nbsp;</td>
-            <td style="background-color:#0d1117; padding:14px 24px; border-top:1px solid #1d2632; border-right:1px solid #1d2632; border-bottom:1px solid #1d2632; {{ mono }} font-size:12px; letter-spacing:3px; color:#3fd0e0; text-transform:uppercase;">{{ branding }}<span style="color:#2a3644;">://</span>advisories</td>
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#0e1015; border:1px solid #1d2632; border-bottom:1px solid #2f6f7d;"><tr>
+            <td class="px" style="padding:14px 32px; {{ sans }} font-size:14px; font-weight:bold; letter-spacing:2px; color:#e8eef5; text-transform:uppercase;">{{ branding }}</td>
+            <td class="px" align="right" style="padding:14px 32px; {{ sans }} font-size:13px; color:#8a99ad;">Security advisories</td>
         </tr></table>
     </td></tr>
     <tr><td style="background-color:#0d1117; border-left:1px solid #1d2632; border-right:1px solid #1d2632; border-bottom:1px solid #1d2632;">
@@ -35,7 +37,7 @@
         <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td class="px" style="padding:32px 32px 0;">
             <div style="{{ sans }} font-size:26px; line-height:34px; font-weight:bold; color:#ffffff; text-transform:uppercase;">{{ title }}</div>
             <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="padding-top:16px;"><tr>
-                <td style="border:1px solid {{ worst.border }}; padding:5px 12px; {{ mono }} font-size:12px; letter-spacing:4px; color:{{ worst.tint }}; text-transform:uppercase;">▲ {{ worst.label }}</td>
+                <td><span style="{{ pill }} background-color:{{ worst.fill }}; border:1px solid {{ worst.border }};">{{ worst.label }}</span></td>
                 <td style="padding-left:12px; {{ mono }} font-size:12px; letter-spacing:2px; color:#72849b;">{{ period.since }} → {{ period.until }} · {{ period.label|upper }}</td>
             </tr></table>
             <div style="{{ sans }} font-size:15px; line-height:23px; color:#8a99ad; padding-top:10px; padding-bottom:24px;">{{ scope }}</div>
@@ -45,7 +47,7 @@
             <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border:1px solid #1d2632; background-color:#0a0e14;"><tr>
                 {% for stat in [
                     {label: 'advisories', value: totals.advisories, color: '#e8eef5'},
-                    {label: 'critical / high', value: totals.critical_high, color: totals.critical_high > 0 ? '#f09595' : '#e8eef5'},
+                    {label: 'critical / high', value: totals.critical_high, color: totals.critical_high > 0 ? '#e05561' : '#e8eef5'},
                     {label: 'unreviewed', value: totals.unreviewed, color: totals.unreviewed > 0 ? '#9fe8f2' : '#e8eef5'},
                     {label: 'cves', value: totals.cves, color: '#e8eef5'},
                 ] %}
@@ -64,8 +66,8 @@
                 <td width="{{ max(row.percent, 4) }}%" style="background-color:{{ row.fill }}; height:8px; font-size:0; line-height:0;">&nbsp;</td>
                 {% endfor %}
             </tr></table>
-            <div style="{{ mono }} font-size:12px; line-height:20px; color:#72849b; padding-top:8px;">
-                {% for row in severity_rows %}<span style="color:{{ row.tint }};">■</span> {{ row.label|upper }} {{ row.count }}{% if not loop.last %} &nbsp;·&nbsp; {% endif %}{% endfor %}
+            <div style="padding-top:10px; line-height:26px;">
+                {% for row in severity_rows %}{% if row.count > 0 %}<span style="{{ pill }} background-color:{{ row.fill }}; border:1px solid {{ row.border }};">{{ row.count }} {{ row.label }}</span>{% else %}<span style="{{ pill }} border:1px solid #2a3040; color:#5a6172;">0 {{ row.label }}</span>{% endif %}{% if not loop.last %}&nbsp; {% endif %}{% endfor %}
             </div>
         </td></tr></table>
         {% endif %}
@@ -73,12 +75,11 @@
         {% if highlights is not empty %}
         <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td class="px" style="padding:24px 32px 0;">
             <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#0a0e14; border:1px solid #1d2632;">
-                <tr><td colspan="2" style="padding:10px 16px; border-bottom:1px solid #1d2632; {{ mono }} font-size:14px; letter-spacing:2px; color:#3fd0e0;">&gt;_ highlights</td></tr>
+                <tr><td style="padding:10px 16px; border-bottom:1px solid #1d2632; {{ mono }} font-size:14px; letter-spacing:2px; color:#3fd0e0;">&gt;_ highlights</td></tr>
                 {% for item in highlights %}
                 <tr>
-                    <td width="6" style="background-color:{{ item.severity.fill }}; font-size:0; line-height:0;">&nbsp;</td>
                     <td style="padding:12px 16px;{% if not loop.last %} border-bottom:1px solid #151a22;{% endif %}">
-                        <div style="{{ mono }} font-size:11px; letter-spacing:2px; color:{{ item.severity.tint }}; text-transform:uppercase;">{{ item.severity.label }}{% if item.cvss %} · cvss {{ item.cvss }}{% endif %} <span style="color:#72849b;">· {{ item.source }} · {{ item.date }}</span></div>
+                        <div style="{{ mono }} font-size:12px; line-height:20px; color:#72849b;"><span style="{{ pill }} background-color:{{ item.severity.fill }}; border:1px solid {{ item.severity.border }};">{{ item.severity.label }}</span>&nbsp; {% if item.cvss %}CVSS {{ item.cvss }} · {% endif %}{{ item.source }} · {{ item.date }}</div>
                         <div style="{{ sans }} font-size:15px; line-height:22px; padding-top:4px;">{% if item.link %}<a href="{{ item.link }}" style="color:#e8eef5;">{{ item.title }}</a>{% else %}<span style="color:#e8eef5;">{{ item.title }}</span>{% endif %}</div>
                         {% if item.cves is not empty %}<div style="{{ mono }} font-size:12px; color:#9fe8f2; padding-top:4px;">{{ item.cves|join(' ') }}</div>{% endif %}
                     </td>
@@ -98,7 +99,7 @@
                     <td style="padding:10px 16px; border-bottom:1px solid #151a22; {{ mono }} font-size:12px; letter-spacing:1px; color:{{ source.health_color }}; text-transform:uppercase;">&#9679; {{ source.health_label }}</td>
                     <td style="padding:10px 16px; border-bottom:1px solid #151a22; {{ mono }} font-size:12px; color:#72849b;">{{ source.last_success ?? '—' }}</td>
                 </tr>
-                {% if source.last_error %}<tr><td colspan="4" style="padding:0 16px 10px; border-bottom:1px solid #151a22; {{ mono }} font-size:12px; color:#f09595;">{{ source.last_error }}</td></tr>{% endif %}
+                {% if source.last_error %}<tr><td colspan="4" style="padding:0 16px 10px; border-bottom:1px solid #151a22; {{ mono }} font-size:12px; color:#e05561;">{{ source.last_error }}</td></tr>{% endif %}
                 {% endfor %}
             </table>
         </td></tr></table>
@@ -111,7 +112,7 @@
                 <tr>
                     <td style="padding:8px 16px; border-bottom:1px solid #151a22; {{ sans }} font-size:14px; color:#e8eef5;">{{ product.product }}</td>
                     <td align="right" style="padding:8px 16px; border-bottom:1px solid #151a22; {{ mono }} font-size:14px; color:#e8eef5;">{{ product.count }}</td>
-                    <td style="padding:8px 16px; border-bottom:1px solid #151a22; {{ mono }} font-size:11px; letter-spacing:2px; color:{{ product.severity.tint }}; text-transform:uppercase;">{{ product.severity.label }}</td>
+                    <td style="padding:8px 16px; border-bottom:1px solid #151a22;"><span style="{{ pill }} background-color:{{ product.severity.fill }}; border:1px solid {{ product.severity.border }};">{{ product.severity.label }}</span></td>
                 </tr>
                 {% endfor %}
             </table>
@@ -120,7 +121,7 @@
 
         {% for group in groups %}
         <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td class="px" style="padding:24px 32px 0;">
-            <div style="{{ mono }} font-size:12px; letter-spacing:3px; color:{{ group.severity.tint }}; text-transform:uppercase; padding-bottom:8px; border-bottom:1px solid {{ group.severity.fill }};">{{ group.severity.label }} · {{ group.count }}</div>
+            <div style="{{ mono }} font-size:12px; line-height:22px; color:#72849b; padding-bottom:8px; border-bottom:1px solid {{ group.severity.fill }};"><span style="{{ pill }} font-size:12px; background-color:{{ group.severity.fill }}; border:1px solid {{ group.severity.border }};">{{ group.severity.label }}</span>&nbsp; {{ group.count }} {{ group.count == 1 ? 'advisory' : 'advisories' }}</div>
             {% for item in group.items %}
             <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border-bottom:1px solid #151a22;"><tr><td style="padding:12px 0;">
                 <div style="{{ sans }} font-size:15px; line-height:22px;">{% if item.link %}<a href="{{ item.link }}" style="color:#e8eef5;">{{ item.title }}</a>{% else %}<span style="color:#e8eef5;">{{ item.title }}</span>{% endif %}</div>

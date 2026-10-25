@@ -66,8 +66,8 @@ final class AdvisoryReportRenderer
             $this->twig->render('reports/advisories.pdf.twig', $data),
             title: $data['title'],
             branding: $data['branding'],
-            accent: $data['worst']['fill'],
-            footer: "{$data['branding']}://advisories · {$data['period']['since']} – {$data['period']['until']} · generated {$data['generated_at']}",
+            subtitle: "Security advisories · {$data['period']['since']} – {$data['period']['until']}",
+            footer: "Generated {$data['generated_at']} by {$data['branding']} advisory monitoring",
         );
     }
 
