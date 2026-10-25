@@ -45,6 +45,9 @@ public/branding/*
 # npm
 node_modules/
 
+# generated review reports
+reports/
+
 TODO.md
 
 # local plans
