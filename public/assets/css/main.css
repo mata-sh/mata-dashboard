@@ -251,7 +251,10 @@ svg {
 }
 
 .navbar.is-dark {
-    --bulma-navbar-background-color: transparent;
+    /* Frosted glass: --surface-base at 70% so scrolled content stays legible */
+    --bulma-navbar-background-color: rgba(11, 13, 18, .7);
+    -webkit-backdrop-filter: blur(12px) saturate(140%);
+    backdrop-filter: blur(12px) saturate(140%);
     border-bottom: 1px solid #393939;
 }
 
