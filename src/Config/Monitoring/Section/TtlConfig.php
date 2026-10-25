@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Mata\Config\Monitoring\Section;
 
-use Mata\Config\ConfigValueValidator;
+use Mata\Config\ConfigValue;
 
 /** Cache TTLs in seconds, keyed by ttl.json key. */
 final readonly class TtlConfig
@@ -18,7 +18,7 @@ final readonly class TtlConfig
         $validated = [];
         foreach ($values as $key => $value) {
             $key = (string) $key;
-            $validated[$key] = ConfigValueValidator::integer($value, "ttl.{$key}");
+            $validated[$key] = ConfigValue::integer($value, "ttl.{$key}");
         }
         $this->values = $validated;
     }

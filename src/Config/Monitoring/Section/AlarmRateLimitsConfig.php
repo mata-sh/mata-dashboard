@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Mata\Config\Monitoring\Section;
 
 use InvalidArgumentException;
-use Mata\Config\ConfigValueValidator;
+use Mata\Config\ConfigValue;
 
 /** Global, channel, and per-server alarm delivery limits. */
 final readonly class AlarmRateLimitsConfig
@@ -29,7 +29,7 @@ final readonly class AlarmRateLimitsConfig
     public static function fromArray(array $raw, callable $reportInvalid): self
     {
         $channels = $raw['channels'] ?? [];
-        if (!ConfigValueValidator::isObject($channels)) {
+        if (!ConfigValue::isObject($channels)) {
             $reportInvalid('limits.channels must be an object; using default limits.');
             $channels = [];
         }
@@ -59,13 +59,13 @@ final readonly class AlarmRateLimitsConfig
 
         $serverOverrides = [];
         $overrides = $raw['overrides'] ?? [];
-        if (!ConfigValueValidator::isObject($overrides)) {
+        if (!ConfigValue::isObject($overrides)) {
             $reportInvalid('limits.overrides must be an object; skipping overrides.');
             $overrides = [];
         }
         foreach ($overrides as $server => $serverConfig) {
             $server = strtolower((string) $server);
-            if (!ConfigValueValidator::isObject($serverConfig)) {
+            if (!ConfigValue::isObject($serverConfig)) {
                 $reportInvalid("limits.overrides.{$server} must be an object; skipping entry.");
 
                 continue;

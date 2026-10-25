@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Mata\Config\Monitoring\Section;
 
-use Mata\Config\ConfigValueValidator;
+use Mata\Config\ConfigValue;
 
 /** Event and alarm cooldowns keyed by operator-defined event type. */
 final readonly class IntervalsConfig
@@ -30,10 +30,10 @@ final readonly class IntervalsConfig
             if (!array_key_exists($section, $raw)) {
                 continue;
             }
-            $sectionConfig = ConfigValueValidator::object($raw[$section], "intervals.{$section}");
+            $sectionConfig = ConfigValue::object($raw[$section], "intervals.{$section}");
             $map = $section === 'events' ? 'min_event_interval_minutes' : 'min_alarm_interval_minutes';
             if (array_key_exists($map, $sectionConfig)) {
-                ConfigValueValidator::object($sectionConfig[$map], "intervals.{$section}.{$map}");
+                ConfigValue::object($sectionConfig[$map], "intervals.{$section}.{$map}");
             }
         }
 
@@ -117,7 +117,7 @@ final readonly class IntervalsConfig
         $intervals = [];
         foreach ($raw as $type => $minutes) {
             $type = (string) $type;
-            $intervals[$type] = ConfigValueValidator::integer($minutes, "{$path}.{$type}", minimum: 0);
+            $intervals[$type] = ConfigValue::integer($minutes, "{$path}.{$type}", minimum: 0);
         }
 
         return $intervals;

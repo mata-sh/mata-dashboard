@@ -29,7 +29,7 @@ use Mata\Cli\Command\UserPasswdCommand;
 use Mata\Cli\Command\UserUnlockCommand;
 use Mata\Config\Dto\NodeApiConfig;
 use Mata\Config\Monitoring\ServersConfigEditor;
-use Mata\Config\Validation\InstanceConfigValidator;
+use Mata\Config\Validation\ConfigValidator;
 use Mata\Services\Monitor\HttpProbeClient;
 use Mata\Services\Monitor\NodeConnectionTester;
 use Mata\Utils\AppVersion;
@@ -62,7 +62,7 @@ $connectionTester = new NodeConnectionTester(new HttpProbeClient(), NodeApiConfi
 
 $application = new CliApplication('mata dashboard', static fn (): ?string => AppVersion::detect($paths->appPath));
 $application->addCommands([
-    new ConfigValidateCommand(new InstanceConfigValidator(), $cli->configPath),
+    new ConfigValidateCommand(new ConfigValidator(), $cli->configPath),
     new ServerListCommand($serversEditor),
     new ServerAddCommand($serversEditor, $connectionTester),
     new ServerTestCommand($serversEditor, $connectionTester),

@@ -6,7 +6,7 @@ namespace Mata\Cli\Command;
 
 use Mata\Cli\CliOutput;
 use Mata\Config\Validation\ConfigValidationReport;
-use Mata\Config\Validation\InstanceConfigValidator;
+use Mata\Config\Validation\ConfigValidator;
 use Mata\Services\Status\StatusLevel;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
@@ -16,11 +16,11 @@ use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 
-#[AsCommand(name: 'config:validate', description: 'Validate the instance config files with the loaders the app uses')]
+#[AsCommand(name: 'config:validate', description: 'Validate the config files with the loaders the app uses')]
 final class ConfigValidateCommand extends Command
 {
     public function __construct(
-        private readonly InstanceConfigValidator $validator,
+        private readonly ConfigValidator $validator,
         private readonly string $defaultConfigPath,
     ) {
         parent::__construct();

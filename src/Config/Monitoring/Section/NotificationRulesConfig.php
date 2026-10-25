@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace Mata\Config\Monitoring\Section;
 
 use InvalidArgumentException;
-use Mata\Config\ConfigObject;
-use Mata\Config\ConfigValueValidator;
+use Mata\Config\ConfigValue;
+use Mata\Config\Monitoring\ConfigObject;
 
 /** Notification routing rules, cascading defaults to event type to application override. */
 final readonly class NotificationRulesConfig
@@ -124,7 +124,7 @@ final readonly class NotificationRulesConfig
                 throw new InvalidArgumentException("{$path} values must be non-empty strings.");
             }
             $channel = strtolower(trim($channel));
-            if (!ConfigValueValidator::isSlug($channel, self::CHANNEL_NAME_MAX_LENGTH)) {
+            if (!ConfigValue::isSlug($channel, self::CHANNEL_NAME_MAX_LENGTH)) {
                 throw new InvalidArgumentException("{$path} contains invalid channel name {$channel}.");
             }
             $validated[] = $channel;

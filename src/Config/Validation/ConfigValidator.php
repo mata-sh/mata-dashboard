@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Mata\Config\Validation;
 
-use FilesystemIterator;
 use Mata\Config\ConfigSource;
 use Mata\Config\Dto\ApplicationConfig;
 use Mata\Config\EnvConfigException;
@@ -30,15 +29,13 @@ use Mata\Services\ServerMetrics\MetricCatalog;
 use Mata\Services\ServerMetrics\MetricQueryPolicy;
 use Mata\Services\Status\StatusLevel;
 use Psr\Log\LogLevel;
-use RecursiveDirectoryIterator;
-use RecursiveIteratorIterator;
 
 /**
- * Validates an instance config directory with the same loaders the web app and cron use, so
+ * Validates a config directory with the same loaders the web app and cron use, so
  * a file passes here exactly when the app would accept it. Problems the app would only log
  * become a report instead; files the app would replace with defaults wholesale are errors.
  */
-final class InstanceConfigValidator
+final class ConfigValidator
 {
     /**
      * Reported types that are errors although the file loads: every invalid servers entry drops
@@ -48,9 +45,6 @@ final class InstanceConfigValidator
 
     /** Files a JSON loader reads next to its own; validated, and selectable as $onlyFile, together with it. */
     private const COMPANION_FILES = [ServersConfigLoader::SERVERS_FILE => [ServersConfigLoader::SECRETS_FILE]];
-
-    /** Local Rego policies, loaded by OPA next to the shipped policy/ directory. */
-    public const POLICY_DIR = 'policy';
 
     /**
      * @param ?string $onlyFile validate only the files loaded together with this one: the three env
@@ -75,15 +69,15 @@ final class InstanceConfigValidator
         // Env files always load: the JSON loaders read their variables (channels.json *_env keys).
         $loader = new EnvConfigLoader();
         [$envProblems, $config] = $this->validateEnv($configPath, $loader);
-        
+
         if (!$selected(EnvConfigLoader::INSTANCE_FILES)) {
             $envProblems = [];
         }
 
-        // policy/ has no $onlyFile entry, so only a full run checks it.
+        // Local policies have no $onlyFile entry, so only a full run checks them.
         $policyProblems = [];
         if ($onlyFile === null && $config !== null) {
-            $policyProblems = $this->validatePolicies($configPath, $config, $loader);
+            $policyProblems = (new LocalPolicyValidator())->validate($configPath, $config->alarmDecision, $loader->sourceOf(...));
         }
 
         $jsonProblems = [];
@@ -138,7 +132,6 @@ final class InstanceConfigValidator
             [StatusLevel::Warning, $result['warnings']],
         ];
         foreach ($levelsAndEntries as [$level, $entries]) {
-
             foreach ($entries as $entry) {
                 $problems[] = new ConfigProblem(
                     level: $level,
@@ -150,97 +143,6 @@ final class InstanceConfigValidator
         }
 
         return [$problems, $config];
-    }
-
-    /**
-     * OPA merges these files with the shipped policy/ into one namespace: a local file that
-     * declares a shipped package (a copied alarms.rego) stops OPA from loading any policy.
-     *
-     * @return list<ConfigProblem>
-     */
-    private function validatePolicies(string $configPath, ApplicationConfig $config, EnvConfigLoader $loader): array
-    {
-        $problems = [];
-        $hasDecisionPolicy = false;
-        foreach ($this->policyFiles($configPath) as $file) {
-            $package = preg_match('/^\s*package\s+(\S+)/m', (string) file_get_contents($configPath . '/' . $file), $match) === 1 ? $match[1] : '';
-            if ($package !== 'local' && !str_starts_with($package, 'local.')) {
-                $problems[] = new ConfigProblem(
-                    level: StatusLevel::Error,
-                    type: 'config.policy.package.invalid',
-                    message: "{$file} declares package " . ($package === '' ? '(none)' : $package) . '; local policies need a package under local, such as local.alarms, or OPA can fail to load next to the shipped policies',
-                    sources: [ConfigSource::file($file)],
-                );
-            }
-            $hasDecisionPolicy = $hasDecisionPolicy || !str_ends_with($file, '_test.rego');
-        }
-
-        $decisionProblem = $this->decisionPathProblem($config, $hasDecisionPolicy, $loader);
-        if ($decisionProblem !== null) {
-            $problems[] = $decisionProblem;
-        }
-
-        return $problems;
-    }
-
-    /** Warns when local policies and the configured alarm decision disagree. */
-    private function decisionPathProblem(ApplicationConfig $config, bool $hasDecisionPolicy, EnvConfigLoader $loader): ?ConfigProblem
-    {
-        $driver = $config->alarmDecision->driver;
-        $decisionPath = $config->alarmDecision->opa->decisionPath;
-        $queriesLocal = str_starts_with($decisionPath, '/v1/data/local/');
-        $dir = self::POLICY_DIR . '/';
-
-        if ($driver !== 'opa') {
-            if (!$hasDecisionPolicy) {
-                return null;
-            }
-
-            return new ConfigProblem(
-                level: StatusLevel::Warning,
-                type: 'config.policy.unused',
-                message: "{$dir} has local policies, but ALARM_DECISION_DRIVER={$driver} ignores them",
-                sources: [$loader->sourceOf('ALARM_DECISION_DRIVER')],
-            );
-        }
-        if ($hasDecisionPolicy && !$queriesLocal) {
-            return new ConfigProblem(
-                level: StatusLevel::Warning,
-                type: 'config.policy.unused',
-                message: "{$dir} has local policies, but OPA_ALARM_DECISION_PATH={$decisionPath} does not query them; set it to the local decision, such as /v1/data/local/alarms/decision",
-                sources: [$loader->sourceOf('OPA_ALARM_DECISION_PATH')],
-            );
-        }
-        if (!$hasDecisionPolicy && $queriesLocal) {
-            return new ConfigProblem(
-                level: StatusLevel::Warning,
-                type: 'config.policy.missing',
-                message: "OPA_ALARM_DECISION_PATH={$decisionPath} queries a local policy, but {$dir} has none; every alarm evaluation would fail",
-                sources: [$loader->sourceOf('OPA_ALARM_DECISION_PATH')],
-            );
-        }
-
-        return null;
-    }
-
-    /** @return list<string> .rego files below POLICY_DIR, relative to the config path */
-    private function policyFiles(string $configPath): array
-    {
-        $dir = $configPath . '/' . self::POLICY_DIR;
-        if (!is_dir($dir)) {
-            return [];
-        }
-
-        $files = [];
-        $iterator = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($dir, FilesystemIterator::SKIP_DOTS));
-        foreach ($iterator as $entry) {
-            if ($entry->isFile() && $entry->getExtension() === 'rego') {
-                $files[] = self::POLICY_DIR . substr($entry->getPathname(), strlen($dir));
-            }
-        }
-        sort($files);
-
-        return $files;
     }
 
     /** @return list<array{files:list<string>,loader:AbstractJsonConfigLoader<covariant object>}> */
@@ -325,7 +227,6 @@ final class InstanceConfigValidator
         $isEmptyServerMessage = $loadProblem->message === ServersConfig::EMPTY_ERROR;
 
         if ($rejected || ($isErrorType && !$isEmptyServerMessage)) {
-
             return StatusLevel::Error;
         }
 

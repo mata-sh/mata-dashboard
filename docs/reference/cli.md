@@ -34,7 +34,7 @@ a missing argument, also exit `2`.
 
 | Command | `0` | `1` | `2` |
 |---------|-----|-----|-----|
-| `config validate` | valid | warnings only | the app would ignore a file or drop a server, or OPA would load no policy |
+| `config validate` | valid | warnings only | the app would ignore a file or drop a server, or a local policy is outside the `local` package |
 | `server list` | every server valid | — | a server has problems |
 | `server add` | added and the node accepted the key | added, but the test failed or was skipped, or a file warning | nothing written |
 | `server test` | all healthy and authenticated | authenticated, but not healthy | unreachable or key rejected |

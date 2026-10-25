@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Mata\Config\Monitoring\Section\Advisory;
 
 use InvalidArgumentException;
-use Mata\Config\ConfigObject;
+use Mata\Config\Monitoring\ConfigObject;
 
 /** The periodic advisory report mailed by cron/advisories_digest.php. */
 final readonly class AdvisoryDigestConfig

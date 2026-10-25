@@ -10,7 +10,7 @@ use InvalidArgumentException;
  * Checks one decoded config value: each throwing method returns it typed or names it by $path in the
  * message, and each `is*()` method only answers. Reading keys (defaults, paths, unknown keys) is ConfigObject's job.
  */
-final class ConfigValueValidator
+final class ConfigValue
 {
     /**
      * A decoded JSON object; an empty one decodes to the same [] as an empty list.

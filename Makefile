@@ -117,7 +117,9 @@ OPA_BASE_URL := https://openpolicyagent.org/downloads/latest
 OPA_BIN_DIR := bin
 OPA_BIN := $(OPA_BIN_DIR)/opa
 OPA_SERVICE_TEMPLATE := scripts/systemd/opa.service
-# Instance-owned overrides, loaded next to policy/ (see docs/reference/alarms.md).
+# Shipped policies, updated with the dashboard.
+OPA_POLICY_DIR := policy
+# Instance-owned overrides, loaded next to $(OPA_POLICY_DIR)/ (see docs/reference/alarms.md).
 OPA_LOCAL_POLICY_DIR := config/policy
 
 # ============================================
@@ -209,7 +211,7 @@ setup:
 # Native prerequisites and webserver configuration, called by the setup wizard.
 setup-native:
 	@echo "$(COLOR_BLUE)📋 Creating config files from examples...$(COLOR_RESET)"
-	@mkdir -p config/demo config/policy temp/api-cache temp/sessions temp/templates-cache logs
+	@mkdir -p config/demo $(OPA_LOCAL_POLICY_DIR) temp/api-cache temp/sessions temp/templates-cache logs
 	@for file in config.env db.config.env mail.config.env servers.json servers.secrets.json ttl.json thresholds.json intervals.json data_retention.json; do \
 		if [ ! -f "config/$$file" ]; then \
 			cp "config.example/$${file}.example" "config/$$file"; \
@@ -392,7 +394,7 @@ opa-install-service:
 	fi
 	@mkdir -p "$(OPA_LOCAL_POLICY_DIR)"
 	@echo "$(COLOR_BLUE)🛠️  Installing systemd unit...$(COLOR_RESET)"
-	@sudo sh -c 'sed -e "s|@@OPA_BIN@@|$(abspath $(OPA_BIN))|g" -e "s|@@OPA_WORKDIR@@|$(CURDIR)|g" -e "s|@@OPA_POLICY_DIR@@|$(CURDIR)/policy|g" -e "s|@@OPA_LOCAL_POLICY_DIR@@|$(CURDIR)/$(OPA_LOCAL_POLICY_DIR)|g" "$(OPA_SERVICE_TEMPLATE)" > /etc/systemd/system/opa.service'
+	@sudo sh -c 'sed -e "s|@@OPA_BIN@@|$(abspath $(OPA_BIN))|g" -e "s|@@OPA_WORKDIR@@|$(CURDIR)|g" -e "s|@@OPA_POLICY_DIR@@|$(CURDIR)/$(OPA_POLICY_DIR)|g" -e "s|@@OPA_LOCAL_POLICY_DIR@@|$(CURDIR)/$(OPA_LOCAL_POLICY_DIR)|g" "$(OPA_SERVICE_TEMPLATE)" > /etc/systemd/system/opa.service'
 	@sudo systemctl daemon-reload
 	@sudo systemctl enable --now opa.service
 	@echo "$(COLOR_GREEN)✅ OPA service installed and started$(COLOR_RESET)"
@@ -433,7 +435,7 @@ opa-test:
 	mkdir -p "$(OPA_LOCAL_POLICY_DIR)"; \
 	if [ "$(MODE)" = "native" ]; then \
 		[ -x "$(OPA_BIN)" ] || { echo "$(COLOR_RED)❌ OPA binary missing. Run make setup-opa.$(COLOR_RESET)"; exit 1; }; \
-		"$(OPA_BIN)" test policy "$(OPA_LOCAL_POLICY_DIR)"; \
+		"$(OPA_BIN)" test "$(OPA_POLICY_DIR)" "$(OPA_LOCAL_POLICY_DIR)"; \
 	else \
 		$(REQUIRE_DOCKER_MODE); \
 		$(SELECTED_COMPOSE) run --rm --no-deps --entrypoint /opa mata-opa test /policies /local-policies; \
@@ -464,7 +466,7 @@ opa-validate:
 		file="config.example/$${pair%%:*}.json.example"; \
 		ns="$${pair#*:}"; \
 		echo "$(COLOR_BLUE)opa: $$file ($$ns)$(COLOR_RESET)"; \
-		result=$$($$OPA eval --format raw --data policy --input "$$file" "data.$$ns.deny") || { status=1; continue; }; \
+		result=$$($$OPA eval --format raw --data "$(OPA_POLICY_DIR)" --input "$$file" "data.$$ns.deny") || { status=1; continue; }; \
 		if [ "$$result" != "[]" ]; then \
 			echo "$(COLOR_RED)❌ $$file failed policy validation$(COLOR_RESET)"; \
 			printf '%s\n' "$$result"; \
@@ -643,10 +645,10 @@ docker-init:
 	echo "$(COLOR_BLUE)🐳 Initializing Docker prerequisites...$(COLOR_RESET)"; \
 	docker network inspect mata-network >/dev/null 2>&1 || docker network create mata-network >/dev/null; \
 	php_version=$(call GET_ENV_VALUE,.env,PHP_VERSION); php_image="php:$${php_version:-8.3}-apache-trixie"; \
-	if ! mkdir -p config/demo config/policy temp/api-cache temp/sessions temp/templates-cache logs 2>/dev/null; then \
+	if ! mkdir -p config/demo $(OPA_LOCAL_POLICY_DIR) temp/api-cache temp/sessions temp/templates-cache logs 2>/dev/null; then \
 		echo "$(COLOR_YELLOW)Writable paths belong to another user; preparing them through a scoped root container.$(COLOR_RESET)"; \
 		docker run --rm -v "$(CURDIR)/config:/mata/config" -v "$(CURDIR)/temp:/mata/temp" -v "$(CURDIR)/logs:/mata/logs" "$$php_image" \
-			sh -c 'mkdir -p /mata/config/demo /mata/config/policy /mata/temp/api-cache /mata/temp/sessions /mata/temp/templates-cache /mata/logs'; \
+			sh -c 'mkdir -p /mata/config/demo /mata/$(OPA_LOCAL_POLICY_DIR) /mata/temp/api-cache /mata/temp/sessions /mata/temp/templates-cache /mata/logs'; \
 	fi; \
 	for file in config.env db.config.env mail.config.env servers.json servers.secrets.json ttl.json thresholds.json intervals.json data_retention.json; do \
 		if [ ! -f "config/$$file" ]; then \

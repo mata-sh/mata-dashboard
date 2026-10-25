@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Mata\Config\Monitoring\Section;
 
 use InvalidArgumentException;
-use Mata\Config\ConfigObject;
+use Mata\Config\Monitoring\ConfigObject;
 
 /** One channel's per-minute, per-hour, and per-day alarm delivery limits. */
 final readonly class AlarmRateLimit

@@ -9,7 +9,8 @@ use Mata\Cli\CliConfig;
 use Mata\Cli\CliOutput;
 use Mata\Config\Dto\ApplicationConfig;
 use Mata\Config\Monitoring\Loader\ServersConfigLoader;
-use Mata\Config\Validation\InstanceConfigValidator;
+use Mata\Config\Validation\ConfigValidator;
+use Mata\Config\Validation\LocalPolicyValidator;
 use Mata\Database\MigrationRunner;
 use Mata\Database\PdoDatabase;
 use Mata\Services\Alarm\Evaluation\OpaAlarmDecisionService;
@@ -84,7 +85,7 @@ final class DoctorCommand extends Command
 
     private function checkConfig(): ?ApplicationConfig
     {
-        $report = (new InstanceConfigValidator())->validate($this->cli->configPath);
+        $report = (new ConfigValidator())->validate($this->cli->configPath);
         $level = $report->level();
         $this->add('config', $level, count($report->problems) . ' problem(s) in ' . $report->configPath, hint: $level === StatusLevel::Ok ? null : 'bin/mata config validate');
 
@@ -193,13 +194,14 @@ final class DoctorCommand extends Command
 
         // A healthy OPA still answers {} for a package it has not loaded (a typo in the path, a
         // deleted config/policy/ file), and every evaluation then fails.
-        $path = $config->alarmDecision->opa->decisionPath;
+        $opa = $config->alarmDecision->opa;
+        $decisionUrl = rtrim($opa->baseUri, '/') . $opa->decisionPath;
 
         try {
-            (new OpaAlarmDecisionService($config->alarmDecision->opa, 1))->decide(['type' => 'doctor_probe', 'level' => 'info']);
-            $this->add('opa', StatusLevel::Ok, "{$url} healthy, decisions from {$path}");
+            (new OpaAlarmDecisionService($opa, batchLimit: 1))->decide(['type' => 'doctor_probe', 'level' => 'info']);
+            $this->add('opa', StatusLevel::Ok, "{$url} healthy, decisions from {$opa->decisionPath}");
         } catch (Throwable $exception) {
-            $this->add('opa', StatusLevel::Error, "{$path} gave no decision ({$exception->getMessage()}); alarms are not evaluated", hint: 'Check OPA_ALARM_DECISION_PATH and the package in config/policy/; make opa-test shows policy errors');
+            $this->add('opa', StatusLevel::Error, "{$decisionUrl} gave no decision ({$exception->getMessage()}); alarms are not evaluated", hint: 'Check OPA_ALARM_DECISION_PATH and the package in config/' . LocalPolicyValidator::LOCAL_POLICY_DIR . '/; make opa-test shows policy errors');
         }
     }
 

@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Mata\Config\Monitoring\Section;
 
 use InvalidArgumentException;
-use Mata\Config\ConfigValueValidator;
+use Mata\Config\ConfigValue;
 
 /** Metric thresholds and alarm rules keyed by operator-defined metric or event type. */
 final readonly class ThresholdsConfig
@@ -95,7 +95,7 @@ final readonly class ThresholdsConfig
      */
     private static function thresholdMap(mixed $raw, string $path, callable $reportInvalid): array
     {
-        if (!ConfigValueValidator::isObject($raw)) {
+        if (!ConfigValue::isObject($raw)) {
             $reportInvalid("{$path} must be an object; ignoring section.");
 
             return [];
@@ -105,7 +105,7 @@ final readonly class ThresholdsConfig
         foreach ($raw as $metric => $thresholds) {
             $metric = (string) $metric;
             $metricPath = "{$path}.{$metric}";
-            if (!ConfigValueValidator::isObject($thresholds)) {
+            if (!ConfigValue::isObject($thresholds)) {
                 $reportInvalid("{$metricPath} must be an object; skipping entry.");
 
                 continue;
@@ -155,7 +155,7 @@ final readonly class ThresholdsConfig
      */
     private static function alarmRuleMap(mixed $raw, array $defaults, callable $reportInvalid): array
     {
-        if (!ConfigValueValidator::isObject($raw)) {
+        if (!ConfigValue::isObject($raw)) {
             $reportInvalid('thresholds.alarms must be an object; ignoring section.');
 
             return [];
@@ -181,7 +181,7 @@ final readonly class ThresholdsConfig
     /** @return array<string,mixed> */
     private static function validateAlarmRule(mixed $rule, string $path): array
     {
-        if (!ConfigValueValidator::isObject($rule)) {
+        if (!ConfigValue::isObject($rule)) {
             throw new InvalidArgumentException("{$path} must be an object");
         }
         if (array_key_exists('enabled', $rule) && !is_bool($rule['enabled'])) {
@@ -193,20 +193,20 @@ final readonly class ThresholdsConfig
             throw new InvalidArgumentException("{$path}.strategy is invalid");
         }
         if ($strategy === 'consecutive_failures' || array_key_exists('required_count', $rule)) {
-            ConfigValueValidator::integer($rule['required_count'] ?? null, "{$path}.required_count", minimum: 1);
+            ConfigValue::integer($rule['required_count'] ?? null, "{$path}.required_count", minimum: 1);
         }
         if ($strategy === 'consecutive_failures' || array_key_exists('window_minutes', $rule)) {
-            ConfigValueValidator::integer($rule['window_minutes'] ?? null, "{$path}.window_minutes", minimum: 1);
+            ConfigValue::integer($rule['window_minutes'] ?? null, "{$path}.window_minutes", minimum: 1);
         }
         if (array_key_exists('alarm_threshold_event_count', $rule)) {
-            ConfigValueValidator::integer(
+            ConfigValue::integer(
                 $rule['alarm_threshold_event_count'],
                 "{$path}.alarm_threshold_event_count",
                 minimum: 0,
             );
         }
         if (array_key_exists('alarm_threshold_window_minutes', $rule)) {
-            ConfigValueValidator::integer(
+            ConfigValue::integer(
                 $rule['alarm_threshold_window_minutes'],
                 "{$path}.alarm_threshold_window_minutes",
                 minimum: 1,

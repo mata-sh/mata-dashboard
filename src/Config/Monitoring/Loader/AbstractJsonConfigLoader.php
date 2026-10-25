@@ -7,7 +7,7 @@ namespace Mata\Config\Monitoring\Loader;
 use InvalidArgumentException;
 use JsonException;
 use Mata\Config\ConfigSource;
-use Mata\Config\ConfigValueValidator;
+use Mata\Config\ConfigValue;
 use Mata\Config\Monitoring\Loader\Dto\ConfigLoadProblem;
 use Mata\Config\Monitoring\Loader\Dto\ConfigLoadResult;
 use Psr\Log\LogLevel;
@@ -126,7 +126,7 @@ abstract class AbstractJsonConfigLoader
         }
 
         // An empty object decodes to the same [] as an empty list.
-        if (!ConfigValueValidator::isObject($config)) {
+        if (!ConfigValue::isObject($config)) {
             throw new JsonConfigReadException("{$file} must contain a JSON object", $file);
         }
 

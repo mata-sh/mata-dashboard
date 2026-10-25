@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Mata\Config\Monitoring\Section;
 
 use InvalidArgumentException;
-use Mata\Config\ConfigObject;
+use Mata\Config\Monitoring\ConfigObject;
 
 /** HTTP probe timeout, retry, and backoff configuration. */
 final readonly class ProbesConfig

@@ -7,7 +7,7 @@ namespace Mata\Config\Validation;
 use JsonSerializable;
 use Mata\Services\Status\StatusLevel;
 
-/** Result of validating an instance config directory. */
+/** Result of validating a config directory. */
 final readonly class ConfigValidationReport implements JsonSerializable
 {
     /**

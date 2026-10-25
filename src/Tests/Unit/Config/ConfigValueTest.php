@@ -5,16 +5,16 @@ declare(strict_types=1);
 namespace Mata\Tests\Unit\Config;
 
 use InvalidArgumentException;
-use Mata\Config\ConfigValueValidator;
+use Mata\Config\ConfigValue;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
 /**
- * @covers \Mata\Config\ConfigValueValidator
+ * @covers \Mata\Config\ConfigValue
  *
  * @internal
  */
-final class ConfigValueValidatorTest extends TestCase
+final class ConfigValueTest extends TestCase
 {
     #[DataProvider('unsupportedIntegerValues')]
     public function testIntegerRejectsEveryUnsupportedJsonType(mixed $value): void
@@ -22,7 +22,7 @@ final class ConfigValueValidatorTest extends TestCase
         $this->expectException(InvalidArgumentException::class);
         $this->expectExceptionMessage('section.option must be an integer.');
 
-        ConfigValueValidator::integer($value, 'section.option');
+        ConfigValue::integer($value, 'section.option');
     }
 
     /** @return iterable<string,array{mixed}> */
@@ -43,14 +43,14 @@ final class ConfigValueValidatorTest extends TestCase
 
     public function testIntegerAcceptsBounds(): void
     {
-        $this->assertSame(0, ConfigValueValidator::integer(0, 'value', minimum: 0, maximum: 1));
-        $this->assertSame(1, ConfigValueValidator::integer(1, 'value', minimum: 0, maximum: 1));
+        $this->assertSame(0, ConfigValue::integer(0, 'value', minimum: 0, maximum: 1));
+        $this->assertSame(1, ConfigValue::integer(1, 'value', minimum: 0, maximum: 1));
     }
 
     public function testIntegerRejectsValuesOutsideBounds(): void
     {
         try {
-            ConfigValueValidator::integer(-1, 'section.minimum', minimum: 0);
+            ConfigValue::integer(-1, 'section.minimum', minimum: 0);
             self::fail('Expected minimum validation to fail.');
         } catch (InvalidArgumentException $exception) {
             self::assertSame('section.minimum must be at least 0.', $exception->getMessage());
@@ -58,7 +58,7 @@ final class ConfigValueValidatorTest extends TestCase
 
         $this->expectException(InvalidArgumentException::class);
         $this->expectExceptionMessage('section.maximum must be at most 10.');
-        ConfigValueValidator::integer(11, 'section.maximum', maximum: 10);
+        ConfigValue::integer(11, 'section.maximum', maximum: 10);
     }
 
     #[DataProvider('invalidIntegerStrings')]
@@ -66,7 +66,7 @@ final class ConfigValueValidatorTest extends TestCase
     {
         $this->expectException(InvalidArgumentException::class);
 
-        ConfigValueValidator::integerString($value, 'env.VALUE');
+        ConfigValue::integerString($value, 'env.VALUE');
     }
 
     /** @return iterable<string,array{string}> */

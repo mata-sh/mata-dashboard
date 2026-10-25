@@ -4,19 +4,22 @@ declare(strict_types=1);
 
 namespace Mata\Tests\Unit\Config;
 
+use FilesystemIterator;
 use Mata\Config\ConfigSource;
 use Mata\Config\Validation\ConfigProblem;
 use Mata\Config\Validation\ConfigValidationReport;
-use Mata\Config\Validation\InstanceConfigValidator;
+use Mata\Config\Validation\ConfigValidator;
 use Mata\Services\Status\StatusLevel;
 use PHPUnit\Framework\TestCase;
+use RecursiveDirectoryIterator;
+use RecursiveIteratorIterator;
 
 /**
  * @internal
  *
  * @coversNothing
  */
-final class InstanceConfigValidatorTest extends TestCase
+final class ConfigValidatorTest extends TestCase
 {
     private string $configPath;
 
@@ -42,9 +45,12 @@ final class InstanceConfigValidatorTest extends TestCase
     {
         $_ENV = $this->env;
         $_SERVER = $this->server;
-        // policy/ files first, so the directory is empty when the top level removes it.
-        foreach ([...glob($this->configPath . '/policy/*') ?: [], ...glob($this->configPath . '/*') ?: []] as $path) {
-            is_dir($path) ? rmdir($path) : unlink($path);
+        $entries = new RecursiveIteratorIterator(
+            new RecursiveDirectoryIterator($this->configPath, FilesystemIterator::SKIP_DOTS),
+            RecursiveIteratorIterator::CHILD_FIRST
+        );
+        foreach ($entries as $entry) {
+            $entry->isDir() ? rmdir($entry->getPathname()) : unlink($entry->getPathname());
         }
         rmdir($this->configPath);
     }
@@ -56,7 +62,7 @@ final class InstanceConfigValidatorTest extends TestCase
 
         foreach (['config.env', 'db.config.env', 'mail.config.env'] as $selected) {
             $_ENV = $_SERVER = [];
-            $report = (new InstanceConfigValidator())->validate($this->configPath, $selected);
+            $report = (new ConfigValidator())->validate($this->configPath, $selected);
             $this->assertSame(StatusLevel::Error, $report->level());
             $this->assertCount(1, $report->problems);
             $problem = $report->problems[0];
@@ -70,7 +76,7 @@ final class InstanceConfigValidatorTest extends TestCase
         $this->writeMinimalEnv();
         file_put_contents($this->configPath . '/db.config.env', "INVALID NAME=value\n");
 
-        $report = (new InstanceConfigValidator())->validate($this->configPath, 'mail.config.env');
+        $report = (new ConfigValidator())->validate($this->configPath, 'mail.config.env');
 
         $this->assertSame(StatusLevel::Error, $report->level());
         $this->assertCount(1, $report->problems);
@@ -84,7 +90,7 @@ final class InstanceConfigValidatorTest extends TestCase
         file_put_contents($this->configPath . '/servers.json', '{"_comment":"No nodes yet"}');
         file_put_contents($this->configPath . '/servers.secrets.json', '{}');
 
-        $report = (new InstanceConfigValidator())->validate($this->configPath, 'servers.json');
+        $report = (new ConfigValidator())->validate($this->configPath, 'servers.json');
 
         $this->assertSame(StatusLevel::Warning, $report->level());
         $this->assertSame(StatusLevel::Warning, $report->fileStatus('servers.json'));
@@ -98,7 +104,7 @@ final class InstanceConfigValidatorTest extends TestCase
         file_put_contents($this->configPath . '/mail.config.env', "SYM_MAILER_DSN=null://null\nSYM_FROM_EMAIL=monitor@example.com\nDB_PASSWORD=0\n");
         file_put_contents($this->configPath . '/db.config.env', "DB_DATABASE=mata\nDB_PORT=3306\n");
 
-        $report = (new InstanceConfigValidator())->validate($this->configPath, 'db.config.env');
+        $report = (new ConfigValidator())->validate($this->configPath, 'db.config.env');
 
         $this->assertSame(StatusLevel::Warning, $report->level());
         $this->assertCount(1, $report->problems);
@@ -118,7 +124,7 @@ final class InstanceConfigValidatorTest extends TestCase
         file_put_contents($this->configPath . '/config.env', "DOMAIN=\nPROVENANCE_WEBHOOK=https://example.com/hook\n");
         file_put_contents($this->configPath . '/channels.json', '{"channels":{"test":{"type":"webhook","url_env":"PROVENANCE_WEBHOOK","template":"test"}}}');
 
-        $report = (new InstanceConfigValidator())->validate($this->configPath, 'channels.json');
+        $report = (new ConfigValidator())->validate($this->configPath, 'channels.json');
 
         $this->assertSame(['channels.json' => true], $report->files);
         $this->assertSame(StatusLevel::Ok, $report->level());
@@ -132,7 +138,7 @@ final class InstanceConfigValidatorTest extends TestCase
         file_put_contents($this->configPath . '/config.env', 'DOMAIN=');
         file_put_contents($this->configPath . '/servers.secrets.json', '{broken');
 
-        $report = (new InstanceConfigValidator())->validate($this->configPath, 'servers.secrets.json');
+        $report = (new ConfigValidator())->validate($this->configPath, 'servers.secrets.json');
 
         $this->assertSame(['servers.json' => true, 'servers.secrets.json' => true], $report->files);
         $this->assertSame(StatusLevel::Error, $report->level());
@@ -155,7 +161,7 @@ final class InstanceConfigValidatorTest extends TestCase
         mkdir($this->configPath . '/policy');
         copy(dirname(__DIR__, 4) . '/policy/alarms.rego', $this->configPath . '/policy/alarms.rego');
 
-        $problems = $this->problemsOfType((new InstanceConfigValidator())->validate($this->configPath), 'config.policy.package.invalid');
+        $problems = $this->problemsOfType((new ConfigValidator())->validate($this->configPath), 'config.policy.invalid');
 
         $this->assertCount(1, $problems);
         $this->assertSame(StatusLevel::Error, $problems[0]->level);
@@ -168,10 +174,24 @@ final class InstanceConfigValidatorTest extends TestCase
         mkdir($this->configPath . '/policy');
         file_put_contents($this->configPath . '/policy/alarms.rego', "package local.alarms\n\nimport data.alarms as shipped\n\ndecision := shipped.decision\n");
 
-        $problems = $this->problemsOfType((new InstanceConfigValidator())->validate($this->configPath), 'config.policy.unused');
+        $problems = $this->problemsOfType((new ConfigValidator())->validate($this->configPath), 'config.policy.unused');
 
         $this->assertCount(1, $problems);
         $this->assertSame(StatusLevel::Warning, $problems[0]->level);
+    }
+
+    public function testDecisionPathToALocalPolicyWithOnlyTestsWarns(): void
+    {
+        $this->writeMinimalEnv();
+        file_put_contents($this->configPath . '/config.env', "DOMAIN=example.com\nOPA_ALARM_DECISION_PATH=/v1/data/local/alarms/decision\n");
+        mkdir($this->configPath . '/policy');
+        file_put_contents($this->configPath . '/policy/alarms_test.rego', "package local.alarms_test\n");
+
+        $problems = $this->problemsOfType((new ConfigValidator())->validate($this->configPath), 'config.policy.missing');
+
+        $this->assertCount(1, $problems);
+        $this->assertSame(StatusLevel::Warning, $problems[0]->level);
+        $this->assertSame(['config.env'], $problems[0]->files());
     }
 
     /** @return list<ConfigProblem> */
@@ -182,7 +202,7 @@ final class InstanceConfigValidatorTest extends TestCase
 
     public function testShippedTemplatesHaveNoErrors(): void
     {
-        $report = (new InstanceConfigValidator())->validate($this->configPath);
+        $report = (new ConfigValidator())->validate($this->configPath);
 
         $errors = array_filter($report->problems, static fn (ConfigProblem $problem): bool => $problem->level === StatusLevel::Error);
         $this->assertSame([], array_map(static fn (ConfigProblem $problem): string => implode(', ', $problem->files()) . ": {$problem->message}", array_values($errors)));
@@ -195,7 +215,7 @@ final class InstanceConfigValidatorTest extends TestCase
             'web-01' => ['title' => 'Web', 'url' => 'https://web.example.com/', 'api_url' => 'https://node.example.com/', 'api_key' => 'inline'],
         ]));
 
-        $report = (new InstanceConfigValidator())->validate($this->configPath);
+        $report = (new ConfigValidator())->validate($this->configPath);
 
         $this->assertSame(StatusLevel::Error, $report->level());
         $this->assertSame(StatusLevel::Error, $report->fileStatus('ttl.json'));

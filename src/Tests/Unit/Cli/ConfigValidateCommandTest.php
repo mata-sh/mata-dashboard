@@ -8,7 +8,7 @@ use Mata\Cli\Command\ConfigValidateCommand;
 use Mata\Config\ConfigSource;
 use Mata\Config\Validation\ConfigProblem;
 use Mata\Config\Validation\ConfigValidationReport;
-use Mata\Config\Validation\InstanceConfigValidator;
+use Mata\Config\Validation\ConfigValidator;
 use Mata\Services\Status\StatusLevel;
 use PHPUnit\Framework\TestCase;
 use ReflectionMethod;
@@ -118,7 +118,7 @@ final class ConfigValidateCommandTest extends TestCase
             new ConfigProblem(StatusLevel::Warning, 'missing', 'Missing input', [ConfigSource::missing('DOMAIN')]),
         ]);
         $output = new BufferedOutput();
-        $command = new ConfigValidateCommand(new InstanceConfigValidator(), $this->path);
+        $command = new ConfigValidateCommand(new ConfigValidator(), $this->path);
         (new ReflectionMethod($command, 'writeHuman'))->invoke($command, $output, $report);
         $display = $output->fetch();
         $this->assertSame(1, substr_count($display, '[unattributed] Unexpected loader failure'));
@@ -128,7 +128,7 @@ final class ConfigValidateCommandTest extends TestCase
 
     private function runCommand(bool $json): CommandTester
     {
-        $tester = new CommandTester(new ConfigValidateCommand(new InstanceConfigValidator(), $this->path));
+        $tester = new CommandTester(new ConfigValidateCommand(new ConfigValidator(), $this->path));
         $tester->execute(['file' => 'config.env', '--json' => $json]);
 
         return $tester;

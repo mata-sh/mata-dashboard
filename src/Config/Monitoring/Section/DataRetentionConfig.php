@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Mata\Config\Monitoring\Section;
 
-use Mata\Config\ConfigObject;
+use Mata\Config\Monitoring\ConfigObject;
 
 /** Retention, aggregation, pruning, and ingestion-health configuration. */
 final readonly class DataRetentionConfig

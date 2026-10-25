@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace Mata\Config\Monitoring\Section;
 
 use InvalidArgumentException;
-use Mata\Config\ConfigObject;
-use Mata\Config\ConfigValueValidator;
+use Mata\Config\ConfigValue;
+use Mata\Config\Monitoring\ConfigObject;
 
 /**
  * Alarm delivery channels from channels.json, next to the built-in email channel that
@@ -37,7 +37,7 @@ final readonly class ChannelsConfig
     public static function fromArray(array $raw, callable $env, callable $reportInvalid): self
     {
         $entries = $raw['channels'] ?? [];
-        if (!ConfigValueValidator::isObject($entries)) {
+        if (!ConfigValue::isObject($entries)) {
             $reportInvalid('channels must be an object; only email is available.');
 
             return self::empty();
@@ -75,7 +75,7 @@ final readonly class ChannelsConfig
     private static function webhook(string $name, mixed $value, callable $env, bool $allowInsecure): ?WebhookChannel
     {
         $path = "channels.{$name}";
-        if (!ConfigValueValidator::isSlug($name, NotificationRulesConfig::CHANNEL_NAME_MAX_LENGTH) || $name === self::EMAIL) {
+        if (!ConfigValue::isSlug($name, NotificationRulesConfig::CHANNEL_NAME_MAX_LENGTH) || $name === self::EMAIL) {
             throw new InvalidArgumentException("{$path}: invalid or reserved channel name.");
         }
         $entry = ConfigObject::fromValue($value, $path);
@@ -89,7 +89,7 @@ final readonly class ChannelsConfig
 
         $urlEnv = $entry->envName('url_env');
         $template = $entry->raw('template');
-        if (!is_string($template) || !ConfigValueValidator::isSlug($template)) {
+        if (!is_string($template) || !ConfigValue::isSlug($template)) {
             throw new InvalidArgumentException("{$entry->path('template')} must name a template in templates/webhooks/.");
         }
         $timeout = $entry->integer('timeout_seconds', 5, 1, 30);

@@ -2,13 +2,14 @@
 
 declare(strict_types=1);
 
-namespace Mata\Config;
+namespace Mata\Config\Monitoring;
 
 use InvalidArgumentException;
+use Mata\Config\ConfigValue;
 
 /**
  * Reads the keys of one object of a JSON config file: applies defaults, names each key by its dotted path
- * (e.g. `advisories.sources.php.name`) and rejects unknown keys; ConfigValueValidator checks the values.
+ * (e.g. `advisories.sources.php.name`) and rejects unknown keys; ConfigValue checks the values.
  * Only a missing key takes the default; an explicit null is checked like any other value and fails.
  */
 final readonly class ConfigObject
@@ -22,7 +23,7 @@ final readonly class ConfigObject
     /** @throws InvalidArgumentException when $value is not an object */
     public static function fromValue(mixed $value, string $path): self
     {
-        return new self($path, ConfigValueValidator::object($value, $path));
+        return new self($path, ConfigValue::object($value, $path));
     }
 
     public function path(string $key): string
@@ -58,24 +59,24 @@ final readonly class ConfigObject
 
     public function integer(string $key, int $default, ?int $minimum = null, ?int $maximum = null): int
     {
-        return ConfigValueValidator::integer($this->raw($key, $default), $this->path($key), $minimum, $maximum);
+        return ConfigValue::integer($this->raw($key, $default), $this->path($key), $minimum, $maximum);
     }
 
     public function boolean(string $key, bool $default): bool
     {
-        return ConfigValueValidator::boolean($this->raw($key, $default), $this->path($key));
+        return ConfigValue::boolean($this->raw($key, $default), $this->path($key));
     }
 
     /** The key is required. */
     public function envName(string $key): string
     {
-        return ConfigValueValidator::envName($this->raw($key), $this->path($key));
+        return ConfigValue::envName($this->raw($key), $this->path($key));
     }
 
     /** Trimmed; a null default makes the key required. */
     public function text(string $key, ?string $default, int $maxLength, bool $allowEmpty = false): string
     {
-        return ConfigValueValidator::text($this->raw($key, $default), $this->path($key), $maxLength, $allowEmpty);
+        return ConfigValue::text($this->raw($key, $default), $this->path($key), $maxLength, $allowEmpty);
     }
 
     /**
@@ -88,6 +89,6 @@ final readonly class ConfigObject
      */
     public function stringList(string $key, callable $isValid, string $expected): array
     {
-        return ConfigValueValidator::stringList($this->raw($key, []), $this->path($key), $isValid, $expected);
+        return ConfigValue::stringList($this->raw($key, []), $this->path($key), $isValid, $expected);
     }
 }

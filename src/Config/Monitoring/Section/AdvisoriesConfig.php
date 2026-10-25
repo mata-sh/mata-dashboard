@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace Mata\Config\Monitoring\Section;
 
 use InvalidArgumentException;
-use Mata\Config\ConfigObject;
-use Mata\Config\ConfigValueValidator;
+use Mata\Config\ConfigValue;
+use Mata\Config\Monitoring\ConfigObject;
 use Mata\Config\Monitoring\Section\Advisory\AdvisoryDigestConfig;
 use Mata\Config\Monitoring\Section\Advisory\AdvisorySource;
 use Mata\Config\Monitoring\Section\Advisory\AdvisorySourceType;
@@ -110,7 +110,7 @@ final readonly class AdvisoriesConfig
     private static function parseSource(string $key, mixed $value, int $defaultInterval, callable $env): AdvisorySource
     {
         $path = "advisories.sources.{$key}";
-        if (!ConfigValueValidator::isSlug($key, self::SOURCE_KEY_MAX_LENGTH)) {
+        if (!ConfigValue::isSlug($key, self::SOURCE_KEY_MAX_LENGTH)) {
             throw new InvalidArgumentException("{$path}: the key must be lowercase letters, digits, '-' or '_' (at most " . self::SOURCE_KEY_MAX_LENGTH . ').');
         }
         $entry = ConfigObject::fromValue($value, $path);

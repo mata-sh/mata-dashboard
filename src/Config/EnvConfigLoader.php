@@ -137,7 +137,7 @@ final class EnvConfigLoader
         $seed = $this->normalizeOptionalEnvValue($this->getEnv('DEMO_SEED'));
 
         try {
-            $parsedSeed = $seed === null ? null : ConfigValueValidator::integerString($seed, 'env.DEMO_SEED', minimum: 0);
+            $parsedSeed = $seed === null ? null : ConfigValue::integerString($seed, 'env.DEMO_SEED', minimum: 0);
         } catch (InvalidArgumentException $exception) {
             throw new EnvConfigException($exception->getMessage(), $this->sourceOf('DEMO_SEED'), $exception);
         }
@@ -278,7 +278,7 @@ final class EnvConfigLoader
         ?int $maximum = null,
     ): int {
         try {
-            return ConfigValueValidator::integerString(
+            return ConfigValue::integerString(
                 $this->readRawEnv($key) ?? (string) $default,
                 "env.{$key}",
                 $minimum,
@@ -296,7 +296,7 @@ final class EnvConfigLoader
         ?float $maximum = null,
     ): float {
         try {
-            return ConfigValueValidator::decimalString(
+            return ConfigValue::decimalString(
                 $this->readRawEnv($key) ?? (string) $default,
                 "env.{$key}",
                 $minimum,

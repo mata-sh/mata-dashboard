@@ -11,7 +11,7 @@ use RuntimeException;
 use Throwable;
 
 /**
- * The instance config as bin/mata commands see it: config/ and the env files loaded from it,
+ * The config as bin/mata commands see it: config/ and the env files loaded from it,
  * with APP_LOG_PATH and TEMP_DIR applied to the paths as the app does.
  */
 final class CliConfig
