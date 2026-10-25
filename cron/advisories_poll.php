@@ -33,12 +33,6 @@ $cron->log('Started');
 
 try {
     $cron->touchHeartbeat();
-    if ($runtime->appConfig->environment->env === 'demo') {
-        $cron->log('Demo environment: advisory polling skipped');
-
-        return;
-    }
-
     $advisories = AdvisoryRuntime::build($runtime->paths, $runtime->appConfig, $runtime->db, $eventManager);
     $sources = $advisories->config->enabledSources();
     if ($sources === []) {

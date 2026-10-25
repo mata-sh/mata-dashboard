@@ -164,4 +164,5 @@ and, with `attach_pdf`, the PDF attached. `recipients` defaults to `MAIL_ALARM_R
   only documents changed since, up to 100 per poll; a larger backlog continues on the next one.
   Documents a provider lists but will not serve are skipped with an
   `advisories.csaf_document_skipped` warning in `logs/app.log`.
-- In the `demo` environment the poll cron does nothing.
+- The `demo` environment polls the real sources like any other. Only the cron fetches, so
+  dashboard visitors cannot trigger requests to the sources.
