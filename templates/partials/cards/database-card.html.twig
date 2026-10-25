@@ -4,36 +4,35 @@
       {{ server.title }}
       <button type="button" class="server-refresh-btn" aria-label="Refresh databases" data-tippy-content="Refresh Databases" hx-swap="outerHTML" hx-target="#database-{{ server.id }}" hx-get="{{ server.refresh_url }}">{{ icons.refresh_ccw|raw }}</button>
     </h3>
-  </div>
-
-  <div class="sqlstats-container">
-    SQL Processes: {{ system.processes_sql ?? '–' }}
+    <span>SQL Processes: {{ system.processes_sql ?? '–' }}</span>
   </div>
 
 {% if not_configured %}
   <div class="db-row-empty">Database monitoring is not configured on this node.</div>
 {% elseif overview %}
+  {% for connection in overview.connections %}
+    <div class="sqlstats-container">
+      <strong>{{ connection.connection }}</strong> · {{ connection.engine }} ·
+      {% if connection.error %}
+        <span class="server-fetch-error">{{ connection.error.message }}</span>
+      {% else %}
+        {{ connection.connections }} / {{ connection.max_connections }} connections · {{ connection.running }} run · up {{ connection.uptime }}
+        {% if connection.details %} · {{ connection.details }}{% endif %}
+      {% endif %}
+      <button type="button" class="db-process-list modal-trigger" aria-label="Open process list for connection {{ connection.connection }}" aria-haspopup="dialog" hx-get="{{ connection.process_modal_url }}" hx-target="#modal-container" hx-trigger="click" hx-toggle="modal">{{ icons.activity|raw }}</button>
+    </div>
+  {% endfor %}
   <div class="sqlstats-container db-row">
-    <span class="app-title">{{ icons.database|raw }} {{ overview.engine }}</span>
-    <span class="db-endpoint" data-tippy-content="Server uptime">up {{ overview.uptime }}</span>
-    <span class="db-metric" data-tippy-content="Connections / max connections">
-      {{ overview.connections }} <em>/ {{ overview.max_connections }}</em>
-    </span>
-    <span class="db-metric" data-tippy-content="Running threads">{{ overview.running }} <em>run</em></span>
-    <button type="button" class="db-metric db-process-list modal-trigger" aria-label="Open process list for all monitored databases" aria-haspopup="dialog" data-tippy-content="Process list" hx-get="{{ overview.process_modal_url }}" hx-target="#modal-container" hx-trigger="click" hx-toggle="modal">{{ icons.activity|raw }}</button>
-    <span class="db-status is-ok" role="img" aria-label="Database server OK" data-tippy-content="Connected">{{ icons.check_circle|raw }}</span>
+    <strong>Database</strong><strong>Description</strong><strong>Engine</strong><strong>Connection</strong><span></span><span></span>
   </div>
-  {% if overview.details %}
-    <div class="db-row-note">{{ overview.details }}</div>
-  {% endif %}
   {% for db in overview.databases %}
     <div class="sqlstats-container db-row">
       <span class="app-title">{{ icons.database|raw }} {{ db.name }}</span>
       <span class="db-endpoint">{{ db.description }}</span>
-      <span></span>
-      <span></span>
-      <button type="button" class="db-metric db-process-list modal-trigger" aria-label="Open process list for {{ db.name }}" aria-haspopup="dialog" data-tippy-content="Process list" hx-get="{{ db.process_modal_url }}" hx-target="#modal-container" hx-trigger="click" hx-toggle="modal">{{ icons.activity|raw }}</button>
-      <span></span>
+      <span>{{ db.engine }}</span>
+      <span>{{ db.connection }}</span>
+      <button type="button" class="db-metric db-process-list modal-trigger" aria-label="Open process list for {{ db.connection }} / {{ db.name }}" aria-haspopup="dialog" data-tippy-content="Process list" hx-get="{{ db.process_modal_url }}" hx-target="#modal-container" hx-trigger="click" hx-toggle="modal">{{ icons.activity|raw }}</button>
+      <span>{% if db.error %}{{ db.error.message }}{% endif %}</span>
     </div>
   {% endfor %}
 {% endif %}

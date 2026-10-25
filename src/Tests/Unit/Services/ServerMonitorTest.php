@@ -312,7 +312,7 @@ final class ServerMonitorTest extends TestCase
      */
     public static function databaseOverviews(): iterable
     {
-        $status = static fn (int $connections): array => ['result' => ['status' => ['connections' => $connections, 'max_connections' => 151]]];
+        $status = static fn (int $connections): array => ['result' => ['connections' => [['connection' => 'primary', 'error' => null, 'status' => ['connections' => $connections, 'max_connections' => 151]]]]];
         $nodeError = static fn (int $statusCode): array => ['result' => null, 'error' => ['message' => 'Node message', 'status_code' => $statusCode]];
 
         yield 'database server down' => [$nodeError(503), ['database_unreachable']];
@@ -322,5 +322,16 @@ final class ServerMonitorTest extends TestCase
         yield 'connections near max_connections' => [$status(140), ['database_connections_too_high']];
 
         yield 'normal load' => [$status(40), []];
+
+        $multiple = $status(80);
+        $multiple['result']['connections'][] = ['connection' => 'Replica', 'error' => null, 'status' => ['connections' => 80, 'max_connections' => 151]];
+
+        yield 'never sum counters' => [$multiple, []];
+
+        $multiple['result']['connections'][] = ['connection' => 'Offline', 'status' => null, 'error' => ['status_code' => 503]];
+
+        yield 'partial failure' => [$multiple, ['database_unreachable']];
+
+        yield 'stale partial failure' => [$multiple + ['stale_cache' => true], []];
     }
 }

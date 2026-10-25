@@ -1,7 +1,7 @@
 {% embed "partials/modals/modal-shell.html.twig" with {
     modal_class: 'database-processes-modal',
     modal_title: 'Database Processes',
-    modal_context: server.name ~ ' / ' ~ database.name,
+    modal_context: server.name ~ ' / ' ~ connection ~ ' / ' ~ database.name,
     refresh_endpoint: endpoints.refresh,
     wide: true
 } %}

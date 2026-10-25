@@ -493,27 +493,53 @@ class NodeResponseNormalizer
      * @param array<string,mixed> $data
      *
      * @return array{
-     *     engine:string,
-     *     collected_at:string,
-     *     status:array<string,null|int>,
-     *     databases:list<array{name:string,description:string}>
+     *     connections:list<array<string,mixed>>
      * }
      *
      * @throws InvalidNodePayloadException When the node payload is invalid
      */
     public function normalizeDatabaseOverview(array $data): array
     {
+        $entries = $data['connections'] ?? null;
+        if (!is_array($entries) || !array_is_list($entries)) {
+            throw new InvalidNodePayloadException('Node returned an invalid connections list.', 'databases/overview');
+        }
+        $connections = [];
+        $names = [];
+        foreach ($entries as $entry) {
+            $name = is_array($entry) ? ($entry['connection'] ?? null) : null;
+            if (!is_string($name) || trim($name) === '' || in_array($name, $names, true)) {
+                throw new InvalidNodePayloadException('Node returned an invalid connection name.', 'databases/overview');
+            }
+            $names[] = $name;
+            $connections[] = $this->normalizeDatabaseConnection($entry);
+        }
+
+        return ['connections' => $connections];
+    }
+
+    /**
+     * @param array<string,mixed> $data
+     *
+     * @return array<string,mixed>
+     */
+    private function normalizeDatabaseConnection(array $data): array
+    {
         $endpoint = 'databases/overview';
+        $error = $data['error'] ?? null;
+        if ($error !== null && (!is_array($error) || ($error['status_code'] ?? null) !== 503)) {
+            throw new InvalidNodePayloadException('Node returned an invalid connection error.', $endpoint);
+        }
         $engine = TypeConverter::toString($data['engine'] ?? null);
         $collectedAt = TypeConverter::toString($data['collected_at'] ?? null);
         $status = $data['status'] ?? null;
         $databases = $data['databases'] ?? null;
-        if ($engine === null || $collectedAt === null || !is_array($status) || !is_array($databases) || !array_is_list($databases)) {
+        if ($engine === null || $collectedAt === null || ($error === null ? !is_array($status) : $status !== null) || !is_array($databases) || !array_is_list($databases)) {
             throw new InvalidNodePayloadException('Node returned an invalid database overview.', $endpoint);
         }
 
         $normalizedStatus = [];
-        foreach (self::DATABASE_STATUS_FIELDS as $field => $nullable) {
+        foreach ($error === null ? self::DATABASE_STATUS_FIELDS : [] as $field => $nullable) {
             $value = $status[$field] ?? null;
             if (!(is_int($value) && $value >= 0) && !($nullable && $value === null)) {
                 throw new InvalidNodePayloadException("Node returned invalid database {$field} data.", $endpoint);
@@ -533,7 +559,9 @@ class NodeResponseNormalizer
         return [
             'engine' => $engine,
             'collected_at' => $collectedAt,
-            'status' => $normalizedStatus,
+            'connection' => $data['connection'],
+            'status' => $error === null ? $normalizedStatus : null,
+            'error' => $error === null ? null : ['status_code' => 503, 'message' => 'Database connection failed'],
             'databases' => $normalizedDatabases,
         ];
     }
@@ -553,6 +581,10 @@ class NodeResponseNormalizer
     public function normalizeDatabaseProcesses(array $data): array
     {
         $endpoint = 'databases/processes';
+        $connection = $data['connection'] ?? null;
+        if (!is_string($connection) || trim($connection) === '') {
+            throw new InvalidNodePayloadException('Node returned an invalid connection name.', $endpoint);
+        }
         $engine = TypeConverter::toString($data['engine'] ?? null);
         $visibility = $data['visibility'] ?? null;
         $summary = $data['summary_by_database'] ?? null;
@@ -583,6 +615,7 @@ class NodeResponseNormalizer
 
         return [
             'engine' => $engine,
+            'connection' => $connection,
             'visibility' => $visibility,
             'summary_by_database' => $normalizedSummary,
             'processes' => $normalizedProcesses,

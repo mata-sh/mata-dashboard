@@ -200,14 +200,14 @@ class MockServerDataCollector implements ServerDataCollectorInterface
     /**
      * Generate a demo database process list; unmonitored databases get the node's 404.
      */
-    public function fetchDatabaseProcesses(?string $database): ?array
+    public function fetchDatabaseProcesses(string $connection, ?string $database): ?array
     {
         $path = 'databases/processes';
-        $data = $this->serverCatalog->databaseProcesses($database);
+        $data = $this->serverCatalog->databaseProcesses($database, $connection);
         if ($data === null) {
             return $this->responseNormalizer->errorApiResponse([
                 'kind' => 'node_response',
-                'message' => "Database '{$database}' is not monitored.",
+                'message' => 'Connection or database is not monitored.',
                 'endpoint' => $path,
                 'status_code' => 404,
             ]);

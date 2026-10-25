@@ -26,7 +26,9 @@ final class DatabaseRendererTest extends TestCase
 {
     public function testShowsServerStatusOnceForSeveralDatabasesAndOmitsUnreportedCounters(): void
     {
-        $overview = (new NodeResponseNormalizer(new NullLogger()))->normalizeApiResponse([
+        $overview = (new NodeResponseNormalizer(new NullLogger()))->normalizeApiResponse(['connections' => [[
+            'connection' => 'primary',
+            'error' => null,
             'engine' => 'pgsql',
             'collected_at' => '2026-10-10T12:00:00+00:00',
             'status' => [
@@ -43,7 +45,7 @@ final class DatabaseRendererTest extends TestCase
                 ['name' => 'analytics', 'description' => 'Reports'],
                 ['name' => 'crm', 'description' => 'CRM'],
             ],
-        ], path: 'databases/overview');
+        ]]], path: 'databases/overview');
 
         $html = $this->render($overview);
 
@@ -51,6 +53,29 @@ final class DatabaseRendererTest extends TestCase
         $this->assertStringContainsString('analytics', $html);
         $this->assertStringNotContainsString('Refused', $html);
         $this->assertStringNotContainsString('server-fetch-error', $html);
+    }
+
+    public function testSameDatabaseOnTwoConnectionsKeepsSeparateLinksWhenOneFails(): void
+    {
+        $status = ['max_connections' => 151, 'connections' => 12, 'running' => 2, 'max_used_connections' => null, 'refused_connections' => null, 'aborted_connects' => null, 'uptime_seconds' => 60];
+        $connection = static fn (string $name, ?array $status): array => [
+            'connection' => $name,
+            'engine' => 'mariadb',
+            'collected_at' => '2026-10-10T12:00:00+00:00',
+            'status' => $status,
+            'databases' => [['name' => 'shop', 'description' => 'Shop']],
+            'error' => $status === null ? ['status_code' => 503, 'message' => 'Database connection failed'] : null,
+        ];
+        $overview = (new NodeResponseNormalizer(new NullLogger()))->normalizeApiResponse([
+            'connections' => [$connection('prod', $status), $connection('test', null)],
+        ], path: 'databases/overview');
+
+        $html = $this->render($overview);
+
+        $this->assertStringContainsString('hx-get="watch/modal/db1/databases/prod/processes?database=shop"', $html);
+        $this->assertStringContainsString('hx-get="watch/modal/db1/databases/test/processes?database=shop"', $html);
+        $this->assertStringContainsString('Database connection failed', $html);
+        $this->assertSame(1, substr_count($html, '/ 151'));
     }
 
     public function testTitleTooltipShowsOverviewCacheAge(): void
@@ -111,6 +136,7 @@ final class DatabaseRendererTest extends TestCase
 
         $endpoints = new Endpoints();
         $endpoints->register('refresh_database', 'watch/refresh/database/{server}');
+        $endpoints->register('modal_db_processes_render', 'watch/modal/{server}/databases/{connection}/processes');
 
         $renderer = new DatabaseRenderer(
             new Environment(new FilesystemLoader(dirname(__DIR__, 4) . '/templates')),

@@ -41,11 +41,11 @@ interface ServerDataCollectorInterface
     public function getDatabaseOverview(CacheType $cacheType = CacheType::Databases): ?array;
 
     /**
-     * Fetch the live database process list, optionally limited to one monitored database.
+     * Fetch the live process list of one connection, optionally limited to one monitored database.
      *
      * @return null|array<string,mixed> Normalized process-list response or null on failure
      */
-    public function fetchDatabaseProcesses(?string $database): ?array;
+    public function fetchDatabaseProcesses(string $connection, ?string $database): ?array;
 
     /**
      * Fetch server information including OS version, packages, and PHP extensions.

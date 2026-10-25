@@ -107,7 +107,7 @@ final class ModalRendererTest extends TestCase
         );
 
         $html = $renderer->renderDatabaseProcessesModal(
-            ['visibility' => 'all_sessions', 'processes' => [['host' => '<script>alert(1)</script>']], 'truncated' => false],
+            ['connection' => 'primary', 'visibility' => 'all_sessions', 'processes' => [['host' => '<script>alert(1)</script>']], 'truncated' => false],
             'server1',
             'main',
             '/refresh'
@@ -127,6 +127,7 @@ final class ModalRendererTest extends TestCase
             $this->createStub(Endpoints::class),
         );
         $result = [
+            'connection' => 'primary',
             'engine' => 'pgsql',
             'visibility' => 'own_sessions',
             'summary_by_database' => [],

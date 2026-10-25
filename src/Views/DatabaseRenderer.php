@@ -86,8 +86,7 @@ class DatabaseRenderer extends BaseRenderer
     /**
      * Build template data for one server's database card.
      *
-     * The overview describes one database server: status numbers are shown once per
-     * server, and monitored databases are only listed with their process-list links.
+     * Status observations are shown once per connection, without summing instance counters.
      * A 404 from the overview means the node has database monitoring turned off.
      *
      * @param null|array<string,mixed> $overviewResponse Collector response for `databases/overview`
@@ -146,35 +145,55 @@ class DatabaseRenderer extends BaseRenderer
      */
     private function buildOverview(array $overview, string $server): array
     {
-        /** @var array<string,null|int> $status */
+        $connections = [];
+        $databases = [];
+        foreach ($overview['connections'] as $connection) {
+            $summary = $this->buildConnection($connection, $server);
+            $connections[] = $summary;
+            array_push($databases, ...$summary['databases']);
+        }
+
+        return ['connections' => $connections, 'databases' => $databases];
+    }
+
+    /**
+     * @param array<string,mixed> $overview
+     *
+     * @return array<string,mixed>
+     */
+    private function buildConnection(array $overview, string $server): array
+    {
         $status = $overview['status'];
+        $params = ['server' => $server, 'connection' => $overview['connection']];
 
         /** @var list<array{name:string,description:string}> $databases */
         $databases = $overview['databases'];
 
         $details = [];
         foreach (['max_used_connections' => 'Peak', 'refused_connections' => 'Refused', 'aborted_connects' => 'Aborted'] as $field => $label) {
-            if ($status[$field] !== null) {
+            if (($status[$field] ?? null) !== null) {
                 $details[] = $label . ' ' . $this->formatNumber($status[$field]);
             }
         }
 
         return [
             'engine' => $overview['engine'],
-            'uptime' => $this->tools->formatDuration((int) $status['uptime_seconds']),
-            'connections' => $this->formatNumber((int) $status['connections']),
-            'max_connections' => $this->formatNumber((int) $status['max_connections']),
-            'running' => $this->formatNumber((int) $status['running']),
+            'connection' => $overview['connection'],
+            'error' => $overview['error'],
+            'uptime' => $this->tools->formatDuration((int) ($status['uptime_seconds'] ?? 0)),
+            'connections' => $this->formatNumber((int) ($status['connections'] ?? 0)),
+            'max_connections' => $this->formatNumber((int) ($status['max_connections'] ?? 0)),
+            'running' => $this->formatNumber((int) ($status['running'] ?? 0)),
             'details' => implode(' · ', $details),
-            'process_modal_url' => $this->endpoints->url('modal_db_server_processes_render', ['server' => $server]),
+            'process_modal_url' => $this->endpoints->url('modal_db_processes_render', $params),
             'databases' => array_map(
                 fn (array $database): array => [
                     'name' => $database['name'],
                     'description' => $database['description'],
-                    'process_modal_url' => $this->endpoints->url('modal_db_processes_render', [
-                        'server' => $server,
-                        'database' => $database['name'],
-                    ]),
+                    'engine' => $overview['engine'],
+                    'connection' => $overview['connection'],
+                    'error' => $overview['error'],
+                    'process_modal_url' => $this->endpoints->url('modal_db_processes_render', $params, ['database' => $database['name']]),
                 ],
                 $databases,
             ),

@@ -316,15 +316,17 @@ final class ServerDataCollectorTest extends TestCase
     {
         $cache = $this->createMock(CacheStoreInterface::class);
         $cache->expects($this->never())->method('put');
+        $cache->expects($this->never())->method('get');
+        $cache->expects($this->never())->method('getStale');
         $apiClient = $this->createMock(NodeApiClient::class);
         $apiClient->method('getApiBase')->willReturn('https://node.example.test/api');
         $apiClient->expects($this->once())
             ->method('request')
-            ->with('GET', 'databases/processes', ['query' => ['active_only' => 0, 'limit' => 100, 'database' => 'shop']])
-            ->willReturn('{"engine":"mariadb","visibility":"all_sessions","summary_by_database":[],"processes":[],"truncated":false}')
+            ->with('GET', 'databases/processes', ['query' => ['active_only' => 0, 'limit' => 100, 'connection' => 'reporting', 'database' => 'shop']])
+            ->willReturn('{"connection":"reporting","engine":"mariadb","visibility":"all_sessions","summary_by_database":[],"processes":[],"truncated":false}')
         ;
 
-        $response = $this->createCollector($cache, $apiClient)->fetchDatabaseProcesses('shop');
+        $response = $this->createCollector($cache, $apiClient)->fetchDatabaseProcesses('reporting', 'shop');
 
         $this->assertNull($response['error']);
     }

@@ -1076,12 +1076,12 @@ MARKDOWN;
         $collector = $this->createMockServerDataCollector('server1');
         $collector->expects($this->once())
             ->method('fetchDatabaseProcesses')
-            ->with('dropped')
+            ->with('dropped', null)
             ->willReturn([
                 'result' => null,
                 'error' => [
                     'kind' => 'node_response',
-                    'message' => "Database 'dropped' is not monitored.",
+                    'message' => "Connection 'dropped' is not monitored.",
                     'endpoint' => 'databases/processes',
                     'status_code' => 404,
                 ],

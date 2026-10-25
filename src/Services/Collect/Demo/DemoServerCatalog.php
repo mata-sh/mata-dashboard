@@ -123,7 +123,7 @@ final class DemoServerCatalog
      */
     public function databaseOverview(): array
     {
-        return [
+        $primary = [
             'engine' => 'mariadb',
             'collected_at' => gmdate('c'),
             'status' => [
@@ -141,6 +141,19 @@ final class DemoServerCatalog
                 self::DATABASES,
             ),
         ];
+        $primary['connection'] = 'primary';
+        $primary['error'] = null;
+        $reporting = $primary;
+        $reporting['connection'] = 'reporting';
+        $reporting['engine'] = 'pgsql';
+        $reporting['status']['connections'] = 3;
+        $reporting['status']['running'] = 1;
+        $reporting['status']['max_used_connections'] = null;
+        $reporting['status']['refused_connections'] = null;
+        $reporting['status']['aborted_connects'] = null;
+        $reporting['databases'] = [['name' => 'analytics', 'description' => 'Reporting replica']];
+
+        return ['connections' => [$primary, $reporting]];
     }
 
     /**
@@ -148,9 +161,11 @@ final class DemoServerCatalog
      *
      * @return null|array<string,mixed>
      */
-    public function databaseProcesses(?string $database): ?array
+    public function databaseProcesses(?string $database, string $connection): ?array
     {
-        if ($database !== null && !isset(self::DATABASES[$database])) {
+        if (!in_array($connection, ['primary', 'reporting'], true)
+            || ($connection === 'reporting' && $database !== null && $database !== 'analytics')
+            || ($database !== null && !isset(self::DATABASES[$database]))) {
             return null;
         }
 
@@ -161,7 +176,8 @@ final class DemoServerCatalog
                 ['id' => 202, 'user' => 'worker', 'host' => '10.0.1.30:51290', 'database' => 'ecommerce_prod', 'command' => 'Query', 'time_seconds' => 1, 'state' => 'Updating', 'statement' => 'UPDATE'],
                 ['id' => 101, 'user' => 'dashboard', 'host' => 'localhost', 'database' => 'mata_dashboard', 'command' => 'Query', 'time_seconds' => 0, 'state' => 'executing', 'statement' => 'SELECT'],
             ],
-            static fn (array $row): bool => $database === null || $row['database'] === $database,
+            static fn (array $row): bool => ($database === null || $row['database'] === $database)
+                && ($connection === 'primary' || $row['database'] === 'analytics'),
         ));
 
         $summary = [];
@@ -178,8 +194,9 @@ final class DemoServerCatalog
         }
 
         return [
-            'engine' => 'mariadb',
+            'engine' => $connection === 'primary' ? 'mariadb' : 'pgsql',
             'collected_at' => gmdate('c'),
+            'connection' => $connection,
             'visibility' => 'all_sessions',
             'summary_by_database' => $summary,
             'processes' => $processes,

@@ -362,22 +362,24 @@ class ModalController extends BaseController
     }
 
     /**
-     * Fetch and render the live process list for one monitored database, or all of them.
+     * Fetch and render the live process list of one connection, for the monitored database in
+     * the `database` query parameter or all of them.
      *
      * @return Response Rendered modal HTML response
      */
-    public function renderDatabaseProcesses(string $server, ?string $database = null): Response
+    public function renderDatabaseProcesses(string $server, string $connection): Response
     {
-        $target = $database === null ? "databases on {$server}" : "database '{$database}' on {$server}";
-        $modalContext = $database === null ? $server : "{$server} / {$database}";
+        $database = $this->request->queryString('database');
+        $target = $database === null ? "databases of connection '{$connection}' on {$server}" : "database '{$database}' of connection '{$connection}' on {$server}";
+        $modalContext = $database === null ? "{$server} / {$connection}" : "{$server} / {$connection} / {$database}";
 
         return $this->executeWithErrorHandling(
-            function () use ($server, $database, $target, $modalContext) {
+            function () use ($server, $database, $connection, $target, $modalContext) {
                 if (!isset($this->serverDataCollectors[$server])) {
                     return $this->handleHtmlNotFound("Server '{$server}'", 'Database process request');
                 }
 
-                $processesResponse = $this->serverDataCollectors[$server]->fetchDatabaseProcesses($database);
+                $processesResponse = $this->serverDataCollectors[$server]->fetchDatabaseProcesses($connection, $database);
                 // The node answers 404 for unknown databases and when monitoring is off.
                 if (($processesResponse['error']['status_code'] ?? null) === 404) {
                     $this->logNotFound(ucfirst($target), 'Database process request');
@@ -386,13 +388,15 @@ class ModalController extends BaseController
                 }
                 $nodeError = $this->nodeErrorMessage($processesResponse);
                 if ($nodeError !== null) {
-                    return $this->errorModal('Database Processes', $modalContext, $nodeError, 502);
+                    return $this->errorModal('Database Processes', $modalContext, $nodeError, ($processesResponse['error']['status_code'] ?? null) === 400 ? 400 : 502);
                 }
 
                 $processesResponse = $this->requireValidResponse($processesResponse, "process list for {$target}");
-                $refreshEndpoint = $database === null
-                    ? $this->endpoints->url('modal_db_server_processes_render', ['server' => $server])
-                    : $this->endpoints->url('modal_db_processes_render', ['server' => $server, 'database' => $database]);
+                $refreshEndpoint = $this->endpoints->url(
+                    'modal_db_processes_render',
+                    ['server' => $server, 'connection' => $connection],
+                    $database === null ? [] : ['database' => $database],
+                );
 
                 return new HtmlResponse($this->modalRenderer->renderDatabaseProcessesModal(
                     $processesResponse['result'],

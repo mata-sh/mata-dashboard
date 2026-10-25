@@ -56,13 +56,15 @@ cached read path.
 | `GET` | `/watch/modal/{server}/{app}/readme/refresh` | README modal with a forced source refresh. |
 | `GET` | `/watch/modal/{server}/{app}/logs` | Application logs modal. |
 | `GET` | `/watch/modal/{server}/{app}/logs/refresh` | Logs modal with a forced source refresh. |
-| `GET` | `/watch/modal/{server}/database/{database}/processes` | Database process-list modal. |
-| `GET` | `/watch/modal/{server}/database/{database}/processes/refresh` | Process-list modal with a forced source refresh. |
+| `GET` | `/watch/modal/{server}/databases/{connection}/processes?database=NAME` | Live process-list modal of one database connection; without `database`, all its monitored databases. Refresh reloads the same URL. |
 | `GET` | `/watch/modal/{server}/info` | Server-information modal. |
 | `GET` | `/watch/modal/{server}/info/refresh` | Server-information modal with a forced source refresh. |
 | `GET` | `/watch/modal/{server}/cronjobs` | Server cronjobs modal. |
 | `GET` | `/watch/modal/{server}/cronjobs/refresh` | Cronjobs modal with a forced source refresh. |
 | `GET` | `/watch/modal/{server}/metrics` | Shared server-card history modal. See [Server metrics](#server-metrics). |
+
+!!! info "Database connection selection"
+    `{connection}` is the connection name from the node's `databases.json`, limited to letters, digits, `.`, `_` and `-` like `{server}`. Unknown connections or databases return 404. Process requests always bypass the cache.
 
 ## General JSON API
 

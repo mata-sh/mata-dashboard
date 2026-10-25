@@ -125,10 +125,10 @@ class ServerDataCollector implements ServerDataCollectorInterface
      *
      * @return null|array<string,mixed> Normalized process-list response or null on failure
      */
-    public function fetchDatabaseProcesses(?string $database): ?array
+    public function fetchDatabaseProcesses(string $connection, ?string $database): ?array
     {
         $path = 'databases/processes';
-        $query = ['active_only' => 0, 'limit' => 100];
+        $query = ['active_only' => 0, 'limit' => 100, 'connection' => $connection];
         if ($database !== null) {
             $query['database'] = $database;
         }

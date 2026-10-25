@@ -566,6 +566,7 @@ class ModalRenderer extends BaseRenderer
         return [
             'server' => ['name' => $server],
             'database' => ['name' => $database ?? 'all monitored databases'],
+            'connection' => $result['connection'],
             'processes' => $processes,
             'summary' => is_array($result['summary_by_database'] ?? null) ? $result['summary_by_database'] : [],
             'own_sessions_only' => ($result['visibility'] ?? null) === 'own_sessions',

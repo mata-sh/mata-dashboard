@@ -302,12 +302,8 @@ class RouterSetupTest extends TestCase
         $this->invokeMethod($setup, 'setupWatchRoutes');
 
         $this->assertSame(
-            'watch/modal/{server}/database/{database}/processes',
+            'watch/modal/{server}/databases/{connection}/processes',
             $endpoints->get('modal_db_processes_render')
-        );
-        $this->assertSame(
-            'watch/modal/{server}/databases/processes',
-            $endpoints->get('modal_db_server_processes_render')
         );
     }
 

@@ -30,10 +30,11 @@ final class MockServerDataCollectorTest extends TestCase
             ['url' => 'https://database-server.example.test'],
         );
 
+        $this->assertSame(404, $collector->fetchDatabaseProcesses('primary', 'unknown')['error']['status_code']);
         $responses = [
             $collector->getDatabaseOverview(),
-            $collector->fetchDatabaseProcesses(null),
-            $collector->fetchDatabaseProcesses('analytics'),
+            $collector->fetchDatabaseProcesses('primary', null),
+            $collector->fetchDatabaseProcesses('reporting', 'analytics'),
         ];
 
         foreach ($responses as $response) {

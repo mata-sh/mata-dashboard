@@ -137,6 +137,9 @@ class ServerMonitor
     public function evaluateDatabaseOverview(ServerDataCollectorInterface $serverDataCollector, string $server): void
     {
         $response = $serverDataCollector->getDatabaseOverview();
+        if (($response['stale_cache'] ?? false) === true) {
+            return;
+        }
         $error = $response['error'] ?? null;
         if (is_array($error)) {
             if (($error['status_code'] ?? null) === 503) {
@@ -152,28 +155,55 @@ class ServerMonitor
             return;
         }
 
-        $status = $response['result']['status'] ?? null;
-        if (($response['stale_cache'] ?? false) === true || !is_array($status) || $status['max_connections'] === 0) {
+        $failed = [];
+        $selected = null;
+        $highest = -1;
+        foreach ($response['result']['connections'] ?? [] as $entry) {
+            if ($entry['error'] !== null) {
+                $failed[] = $entry['connection'];
+
+                continue;
+            }
+            $status = $entry['status'];
+            if ($status['max_connections'] === 0) {
+                continue;
+            }
+            $utilization = $status['connections'] / $status['max_connections'] * 100;
+            if ($utilization > $highest) {
+                $highest = $utilization;
+                $selected = $entry;
+            }
+        }
+        if ($failed !== []) {
+            $this->eventManager->handle(new EventCommand(
+                type: 'database_unreachable',
+                message: 'Database connections unreachable on Server: ' . $server . ': ' . implode(', ', $failed),
+                level: 'critical',
+                server: $server,
+                metric: new EventMetric('database_reachable', 0, additional: ['connections' => $failed]),
+            ));
+        }
+        if ($selected === null) {
             return;
         }
-
-        $connections = (int) $status['connections'];
-        $maxConnections = (int) $status['max_connections'];
-        $percent = (int) ($connections / $maxConnections * 100);
+        $connections = (int) $selected['status']['connections'];
+        $maxConnections = (int) $selected['status']['max_connections'];
+        $percent = (int) $highest;
+        $connection = $selected['connection'];
         if ($this->thresholds->serverLevel($percent, 'database_connections_percent') !== 'alarm') {
             return;
         }
 
         $this->eventManager->handle(new EventCommand(
             type: 'database_connections_too_high',
-            message: "Database connections critical ({$connections}/{$maxConnections}, {$percent} %) on Server: {$server}",
+            message: "Database connections critical ({$connections}/{$maxConnections}, {$percent} %) on Server: {$server}, connection: {$connection}",
             level: 'critical',
             server: $server,
             metric: new EventMetric(
                 'database_connections_percent',
                 $percent,
                 $this->thresholds->serverLimit('database_connections_percent'),
-                ['connections' => $connections, 'max_connections' => $maxConnections]
+                ['connection' => $connection, 'connections' => $connections, 'max_connections' => $maxConnections]
             )
         ));
     }
