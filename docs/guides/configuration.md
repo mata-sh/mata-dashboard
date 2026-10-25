@@ -31,9 +31,10 @@ creates `.env` for Compose.
 | `config/charts.json` | Optional dashboard chart metrics and timespans |
 | `config/limits.json` | Optional transport limits for queued alarm deliveries |
 | `config/channels.json` | Optional alarm channels besides email, such as a Telegram webhook |
+| `config/advisories.json` | Optional [security advisory](security-advisories.md) sources, filters and digest |
 
 `probes.json`, `notification_rules.json`, `menu.json`, `charts.json`,
-`limits.json`, and `channels.json` are not created by setup. Their loaders use
+`limits.json`, `channels.json`, and `advisories.json` are not created by setup. Their loaders use
 built-in defaults when they are absent or empty (`{}`); without `channels.json`,
 alarms are delivered by email only.
 `limits.json` has no example; see the [alarm reference](../reference/alarms.md)

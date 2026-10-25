@@ -5,6 +5,9 @@ declare(strict_types=1);
 
 use Mata\Cli\CliApplication;
 use Mata\Cli\CliConfig;
+use Mata\Cli\Command\AdvisoryFetchCommand;
+use Mata\Cli\Command\AdvisoryReportCommand;
+use Mata\Cli\Command\AdvisorySourcesCommand;
 use Mata\Cli\Command\AlarmExplainCommand;
 use Mata\Cli\Command\AlarmTestCommand;
 use Mata\Cli\Command\ConfigValidateCommand;
@@ -78,6 +81,9 @@ $application->addCommands([
     new DoctorCommand($cli),
     new AlarmTestCommand($cli),
     new AlarmExplainCommand($cli),
+    new AdvisorySourcesCommand($cli),
+    new AdvisoryFetchCommand($cli),
+    new AdvisoryReportCommand($cli),
 ]);
 
 // The CLI SAPI fills argv with strings; filtering only narrows the type for PHPStan.

@@ -1,0 +1,50 @@
+{% embed "partials/modals/modal-shell.html.twig" with {
+    modal_class: 'advisory-modal',
+    modal_title: 'Advisory',
+    modal_context: source_name,
+    modal_meta: advisory.externalId|length > 48 ? advisory.externalId|slice(0, 47) ~ '…' : advisory.externalId,
+    wide: true
+} %}
+  {% block modal_body %}
+    <div class="advisory-detail">
+      <div class="audit-summary">
+        <span class="audit-pill sev-{{ severity.value }}">{{ severity.label }}</span>
+        {% if advisory.cvssScore is not null %}<span class="audit-pill pill-meta">CVSS <b>{{ advisory.cvssScore|number_format(1) }}</b></span>{% endif %}
+        <span class="audit-pill {{ advisory.relevant ? 'sev-medium' : 'is-zero' }}">{{ advisory.relevant ? 'relevant' : 'filtered out' }}</span>
+        {% if advisory.baseline %}<span class="audit-pill pill-meta" title="Stored by the source's first poll, without notifying">baseline</span>{% endif %}
+        {% if advisory.eventId is not null %}<span class="audit-pill pill-meta">event #{{ advisory.eventId }}</span>{% endif %}
+      </div>
+
+      <h4 class="advisory-detail-title">
+        {% if advisory.link %}<a href="{{ advisory.link }}" target="_blank" rel="noopener noreferrer">{{ advisory.title }} {{ icons.external|raw }}</a>{% else %}{{ advisory.title }}{% endif %}
+      </h4>
+
+      <dl class="advisory-detail-fields">
+        <dt>Published</dt><dd>{{ occurred_at|replace({'T': ' ', 'Z': ' UTC'}) }}</dd>
+        <dt>First seen</dt><dd>{{ first_seen_at|replace({'T': ' ', 'Z': ' UTC'}) }}</dd>
+        {% if advisory.cveIds is not empty %}<dt>CVE</dt><dd class="advisory-mono">{{ advisory.cveIds|join(' ') }}</dd>{% endif %}
+        {% if advisory.products is not empty %}<dt>Affected</dt><dd>{{ advisory.products|join('; ') }}</dd>{% endif %}
+        {% if advisory.matchedKeywords is not empty %}<dt>Matched</dt><dd>{{ advisory.matchedKeywords|join(', ') }}</dd>{% endif %}
+      </dl>
+
+      {% if advisory.summary %}<p class="advisory-detail-summary">{{ advisory.summary }}</p>{% endif %}
+
+      <form class="advisory-review-form" hx-post="{{ review_url }}" hx-target="#modal-container" hx-swap="innerHTML">
+        <label for="advisory-review-status">Review</label>
+        <select id="advisory-review-status" name="status">
+          {% for status in review_statuses %}
+            <option value="{{ status.value }}"{% if status.value == advisory.reviewStatus.value %} selected{% endif %}>{{ status.label }}</option>
+          {% endfor %}
+        </select>
+        <input type="text" name="note" maxlength="1000" placeholder="Note, e.g. patched on all hosts" value="{{ advisory.reviewNote ?? '' }}">
+        <button class="button audit-run-button" type="submit">Save</button>
+        {% if advisory.reviewedAt %}<span class="advisory-review-meta">by {{ advisory.reviewedBy }} · {{ advisory.reviewedAt }} UTC</span>{% endif %}
+      </form>
+
+      <details class="advisory-raw">
+        <summary>Raw {{ raw.format|upper }}</summary>
+        <pre>{{ raw.content }}</pre>
+      </details>
+    </div>
+  {% endblock %}
+{% endembed %}

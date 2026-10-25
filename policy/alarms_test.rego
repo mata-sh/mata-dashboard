@@ -192,3 +192,42 @@ test_orders_export_stale_critical_is_denied if {
     decision.allow == false
     decision.reason == "no_rule_match"
 }
+
+test_security_advisory_alarms_at_every_level if {
+    every level, priority in {"critical": 10, "warning": 30, "info": 60} {
+        decision := alarms.decision with input as {
+            "event": {"type": "advisories.matched", "level": level},
+            "channels": ["email"],
+        }
+        decision.allow == true
+        decision.priority == priority
+        decision.channels == ["email"]
+        decision.reason == "security_advisory"
+    }
+}
+
+test_advisories_source_failing_warning_is_allowed if {
+    decision := alarms.decision with input as {
+        "event": {"type": "advisories.source_failing", "level": "warning"},
+    }
+
+    decision.allow == true
+    decision.reason == "monitored_warning"
+}
+
+test_advisories_poll_stalled_warning_is_allowed if {
+    decision := alarms.decision with input as {
+        "event": {"type": "advisories.poll_stalled", "level": "warning"},
+    }
+
+    decision.allow == true
+    decision.reason == "monitored_warning"
+}
+
+test_advisories_source_recovered_is_denied if {
+    decision := alarms.decision with input as {
+        "event": {"type": "advisories.source_recovered", "level": "info"},
+    }
+
+    decision.allow == false
+}

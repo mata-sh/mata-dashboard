@@ -2478,6 +2478,10 @@ svg {
     font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
 }
 
+.settings-value em.is-warn {
+    color: #e3ce7a;
+}
+
 .settings-thresholds,
 .settings-groups {
     display: grid;
@@ -3818,4 +3822,310 @@ label.audit-chip:has(input:checked)::after {
     font-size: .78rem;
     line-height: 1.5;
     color: #c9cfda;
+}
+/* ── Security advisories ─────────────────────────────────────────── */
+
+.advisories-section h3 {
+    font-size: 1.2em;
+}
+
+.advisory-sources {
+    display: flex;
+    flex-direction: column;
+    gap: .35rem;
+    margin-bottom: .9rem;
+}
+
+.advisory-source-row.health-failing {
+    border-left-color: var(--sev-critical-border);
+}
+
+.advisory-source-row.health-stale {
+    border-left-color: var(--sev-medium-border);
+}
+
+.advisory-source-row.health-disabled {
+    display: none;
+    opacity: .6;
+}
+
+.advisory-sources.show-disabled .advisory-source-row.health-disabled {
+    display: flex;
+}
+
+.advisory-overview-summary {
+    row-gap: .5rem;
+}
+
+.advisory-summary-group {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: .4rem;
+}
+
+.advisory-summary-group + .advisory-summary-group {
+    border-left: 1px solid var(--border-default);
+    margin-left: .4rem;
+    padding-left: .8rem;
+}
+
+.advisory-summary-label {
+    margin-right: .2rem;
+    color: var(--text-muted);
+    font-family: "Raleway", sans-serif;
+    font-size: .62rem;
+    font-weight: 700;
+    letter-spacing: .14em;
+    text-transform: uppercase;
+}
+
+.advisory-show-disabled {
+    margin-bottom: .5rem;
+}
+
+.advisory-source-info {
+    flex-basis: 220px;
+    cursor: default;
+}
+
+.advisory-source-body {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    gap: .3rem;
+    min-width: 0;
+}
+
+.advisory-source-description {
+    color: var(--text-body);
+    font-size: .85rem;
+}
+
+.advisory-source-summary {
+    margin-bottom: 0;
+}
+
+.advisory-source-meta {
+    color: var(--text-faint);
+    font-size: .72rem;
+}
+
+.advisory-source-meta a {
+    color: var(--text-muted);
+}
+
+.advisory-source-meta a:hover {
+    color: var(--accent-text);
+}
+
+.advisory-source-meta svg {
+    width: 11px;
+    height: 11px;
+    vertical-align: -1px;
+}
+
+.advisory-source-error {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: .75rem;
+    color: var(--sev-critical-tint);
+    overflow-wrap: anywhere;
+}
+
+.advisory-report-form {
+    grid-template-columns: max-content repeat(2, minmax(160px, 220px)) repeat(4, minmax(110px, 1fr));
+    border-left-color: var(--accent-border);
+}
+
+@media (max-width: 1100px) {
+    .advisory-report-form {
+        grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    }
+}
+
+.advisory-report-label {
+    font-size: .72rem;
+    font-weight: 700;
+    letter-spacing: .07em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+}
+
+.advisory-report-form .button svg {
+    width: 12px;
+    height: 12px;
+    margin-right: .25rem;
+}
+
+/* Table severity pills share one width, sized for CRITICAL */
+.advisory-severity {
+    justify-content: center;
+    min-width: 8em;
+}
+
+.advisory-mono {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: .78rem;
+    color: var(--accent-text);
+}
+
+.advisory-title-trigger {
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    text-align: left;
+}
+
+.advisory-muted {
+    color: var(--text-muted);
+    font-size: .8rem;
+}
+
+.advisory-baseline-tag {
+    margin-left: .4rem;
+    padding: 0 .35rem;
+    border: 1px solid var(--border-strong);
+    border-radius: 4px;
+    font-size: .65rem;
+    text-transform: uppercase;
+    letter-spacing: .06em;
+    color: var(--text-faint);
+}
+
+.advisory-review {
+    font-size: .72rem;
+    font-weight: 700;
+    letter-spacing: .05em;
+    text-transform: uppercase;
+}
+
+.advisory-review-new {
+    color: var(--accent-text);
+}
+
+.advisory-review-reviewed {
+    color: var(--sev-low-tint);
+}
+
+.advisory-review-not_relevant {
+    color: var(--text-faint);
+}
+
+.advisory-detail-title {
+    margin: .6rem 0 .5rem;
+    font-size: 1.05rem;
+    color: var(--text-bright);
+}
+
+.advisory-detail-title a {
+    color: var(--text-bright);
+}
+
+.advisory-detail-title a:hover {
+    color: var(--accent-text);
+}
+
+.advisory-detail-fields {
+    display: grid;
+    grid-template-columns: max-content 1fr;
+    gap: .2rem .9rem;
+    font-size: .85rem;
+}
+
+.advisory-detail-fields dt {
+    font-size: .72rem;
+    font-weight: 700;
+    letter-spacing: .07em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+}
+
+.advisory-detail-fields dd {
+    margin: 0;
+    color: var(--text-body);
+    overflow-wrap: anywhere;
+}
+
+.advisory-detail-summary {
+    margin: .75rem 0;
+    color: var(--text-body);
+    font-size: .9rem;
+    line-height: 1.5;
+}
+
+.advisory-review-form {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: .5rem;
+    margin: .75rem 0;
+    padding: .5rem .6rem;
+    background: var(--surface-panel);
+    border: 1px solid var(--border-default);
+    border-left: 2px solid var(--accent-edge);
+    border-radius: 4px;
+}
+
+.advisory-review-form label {
+    font-size: .72rem;
+    font-weight: 700;
+    letter-spacing: .07em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+}
+
+.advisory-review-form select,
+.advisory-review-form input {
+    padding: .3rem .5rem;
+    background: var(--surface-control);
+    border: 1px solid var(--border-control);
+    border-radius: 4px;
+    color: var(--text-bright);
+    color-scheme: dark;
+}
+
+.advisory-review-form input {
+    flex: 1;
+    min-width: 200px;
+}
+
+.advisory-review-form select:focus,
+.advisory-review-form input:focus {
+    outline: none;
+    border-color: var(--accent-border);
+    box-shadow: 0 0 0 2px var(--accent-focus-ring);
+}
+
+.advisory-review-meta {
+    color: var(--text-faint);
+    font-size: .72rem;
+}
+
+.advisory-raw summary {
+    cursor: pointer;
+    font-size: .72rem;
+    font-weight: 700;
+    letter-spacing: .07em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+}
+
+.advisory-raw summary:hover {
+    color: var(--accent-text);
+}
+
+.advisory-raw pre {
+    margin-top: .4rem;
+    padding: .6rem .75rem;
+    max-height: 420px;
+    overflow: auto;
+    background: var(--surface-base);
+    border: 1px solid var(--border-hairline);
+    border-radius: 4px;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: .75rem;
+    line-height: 1.5;
+    color: var(--text-body);
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
 }

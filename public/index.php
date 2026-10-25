@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use Bramus\Router\Router;
+use Mata\Bootstrap\AdvisoryRuntime;
 use Mata\Bootstrap\BrandingResolver;
 use Mata\Bootstrap\DatabaseBootstrap;
 use Mata\Config\EnvConfigFatalException;
@@ -20,6 +21,7 @@ use Mata\Config\Monitoring\Loader\ServersConfigLoader;
 use Mata\Config\Monitoring\Loader\ThresholdsConfigLoader;
 use Mata\Config\Monitoring\Loader\TtlConfigLoader;
 use Mata\Config\Monitoring\MonitoringConfigLoader;
+use Mata\Controllers\AdvisoryController;
 use Mata\Controllers\AuditController;
 use Mata\Controllers\DashboardController;
 use Mata\Controllers\LoginController;
@@ -379,7 +381,9 @@ $cacheStore = new FileCacheStore($log, $paths->apiCachePath);
 $cacheKeyFactory = new ApiCacheKeyFactory();
 $ttlResolver = new CacheTtlResolver($monitoringConfig->ttl);
 $endpoints = new Endpoints();
-$menuBuilder = new MenuBuilder($endpoints, $tools, $monitoringConfig->menu->overrides);
+// Advisories: the menu entry follows advisories.json unless menu.json says otherwise.
+$advisoryRuntime = AdvisoryRuntime::build($paths, $appConfig, $db, $eventManager);
+$menuBuilder = new MenuBuilder($endpoints, $tools, $monitoringConfig->menu->overrides + ['advisories' => $advisoryRuntime->config->configured]);
 
 // ************************************************************************************************
 // Server Monitoring Services (live API or demo mocks)
@@ -446,6 +450,16 @@ $auditController = new AuditController(
     $request,
 );
 
+$advisoryController = new AdvisoryController(
+    $app,
+    $tools,
+    $twig,
+    $log,
+    $endpoints,
+    $advisoryRuntime,
+    $request,
+);
+
 $modalController = new ModalController(
     $app,
     $tools,
@@ -506,6 +520,7 @@ $routerSetup = new RouterSetup(
     $loginController,
     $dashboardController,
     $auditController,
+    $advisoryController,
     $modalController,
     $metricsController,
     $endpoints,

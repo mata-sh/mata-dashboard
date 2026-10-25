@@ -7,6 +7,7 @@ namespace Mata\Tests\Unit\Config;
 use Closure;
 use Mata\Config\ConfigSource;
 use Mata\Config\Monitoring\Loader\AbstractJsonConfigLoader;
+use Mata\Config\Monitoring\Loader\AdvisoriesConfigLoader;
 use Mata\Config\Monitoring\Loader\AlarmRateLimitsConfigLoader;
 use Mata\Config\Monitoring\Loader\ChannelsConfigLoader;
 use Mata\Config\Monitoring\Loader\ChartsConfigLoader;
@@ -20,6 +21,7 @@ use Mata\Config\Monitoring\Loader\ProbesConfigLoader;
 use Mata\Config\Monitoring\Loader\ServersConfigLoader;
 use Mata\Config\Monitoring\Loader\ThresholdsConfigLoader;
 use Mata\Config\Monitoring\Loader\TtlConfigLoader;
+use Mata\Config\Monitoring\Section\AdvisoriesConfig;
 use Mata\Config\Monitoring\Section\AlarmRateLimitsConfig;
 use Mata\Config\Monitoring\Section\ChannelsConfig;
 use Mata\Config\Monitoring\Section\ChartsConfig;
@@ -321,6 +323,15 @@ final class MonitoringConfigLoaderContractTest extends TestCase
                 'wrongType' => '{"channels": {"telegram": {"type": "webhook", "url_env": "WEBHOOK_TELEGRAM_URL", "template": "telegram", "timeout_seconds": "abc"}}}',
                 'default' => static fn (): object => ChannelsConfig::empty(),
                 'load' => static fn (bool $fallback, string $root): ConfigLoadResult => (new ChannelsConfigLoader(fallbackOnFailure: $fallback))->load($root),
+            ],
+            // Optional: a missing file turns advisory monitoring off.
+            'advisories' => [
+                'class' => AdvisoriesConfigLoader::class,
+                'file' => 'advisories.json',
+                'silentWhenMissing' => true,
+                'wrongType' => '{"poll_interval_minutes": "60", "sources": {}}',
+                'default' => static fn (): object => AdvisoriesConfig::empty(),
+                'load' => static fn (bool $fallback, string $root): ConfigLoadResult => (new AdvisoriesConfigLoader(fallbackOnFailure: $fallback))->load($root),
             ],
         ];
     }

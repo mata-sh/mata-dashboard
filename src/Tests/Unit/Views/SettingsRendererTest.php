@@ -132,6 +132,15 @@ final class SettingsRendererTest extends TestCase
         $this->assertStringNotContainsString($apiKey, json_encode($summary, JSON_THROW_ON_ERROR));
     }
 
+    public function testFlagsAnUnusableDashboardUrlWithoutExposingItsPassword(): void
+    {
+        $method = new ReflectionMethod(SettingsRenderer::class, 'summarizeMailConfig');
+        $summary = $method->invoke($this->createRenderer(sys_get_temp_dir()), $this->createMailConfig(null, 'https://ops:s3cret@mata.example.com/'));
+
+        $this->assertSame('https://***@mata.example.com/', $summary['dashboard_url']);
+        $this->assertTrue($summary['dashboard_url_invalid']);
+    }
+
     public function testReportsMissingMailTransport(): void
     {
         $method = new ReflectionMethod(SettingsRenderer::class, 'summarizeMailConfig');
@@ -203,7 +212,7 @@ final class SettingsRendererTest extends TestCase
         $this->assertSame([], $summary['overrides']);
     }
 
-    private function createMailConfig(?string $dsn): MailConfig
+    private function createMailConfig(?string $dsn, ?string $dashboardUrl = null): MailConfig
     {
         return new MailConfig(
             dsn: $dsn,
@@ -213,7 +222,7 @@ final class SettingsRendererTest extends TestCase
             testRecipients: [],
             devRecipients: [],
             charset: 'utf-8',
-            dashboardUrl: null,
+            dashboardUrl: $dashboardUrl,
         );
     }
 

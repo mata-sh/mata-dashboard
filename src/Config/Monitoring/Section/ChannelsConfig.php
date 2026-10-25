@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Mata\Config\Monitoring\Section;
 
 use InvalidArgumentException;
+use Mata\Config\ConfigObject;
 use Mata\Config\ConfigValueValidator;
 
 /**
@@ -16,8 +17,6 @@ use Mata\Config\ConfigValueValidator;
 final readonly class ChannelsConfig
 {
     public const EMAIL = 'email';
-    private const ENV_NAME_PATTERN = '/^[A-Z][A-Z0-9_]*$/';
-    private const TEMPLATE_NAME_PATTERN = '/^[a-z0-9][a-z0-9_-]*$/';
     private const WEBHOOK_KEYS = ['type', 'enabled', 'url_env', 'template', 'params', 'timeout_seconds'];
 
     /** @param array<string,WebhookChannel> $webhooks keyed by channel name */
@@ -73,46 +72,30 @@ final readonly class ChannelsConfig
     }
 
     /** @param callable(string):?string $env */
-    private static function webhook(string $name, mixed $entry, callable $env, bool $allowInsecure): ?WebhookChannel
+    private static function webhook(string $name, mixed $value, callable $env, bool $allowInsecure): ?WebhookChannel
     {
         $path = "channels.{$name}";
-        if (preg_match(NotificationRulesConfig::CHANNEL_NAME_PATTERN, $name) !== 1 || $name === self::EMAIL) {
+        if (!ConfigValueValidator::isSlug($name, NotificationRulesConfig::CHANNEL_NAME_MAX_LENGTH) || $name === self::EMAIL) {
             throw new InvalidArgumentException("{$path}: invalid or reserved channel name.");
         }
-        if (!ConfigValueValidator::isObject($entry)) {
-            throw new InvalidArgumentException("{$path} must be an object.");
+        $entry = ConfigObject::fromValue($value, $path);
+        if ($entry->raw('type') !== 'webhook') {
+            throw new InvalidArgumentException("{$entry->path('type')} must be \"webhook\".");
         }
-        if (($entry['type'] ?? null) !== 'webhook') {
-            throw new InvalidArgumentException("{$path}.type must be \"webhook\".");
-        }
-        $unknown = array_diff(array_keys($entry), self::WEBHOOK_KEYS);
-        if ($unknown !== []) {
-            throw new InvalidArgumentException("{$path} contains unknown key " . reset($unknown) . '.');
-        }
-
-        $enabled = $entry['enabled'] ?? true;
-        if (!is_bool($enabled)) {
-            throw new InvalidArgumentException("{$path}.enabled must be a boolean.");
-        }
-        if (!$enabled) {
+        $entry->rejectUnknownKeys(self::WEBHOOK_KEYS);
+        if (!$entry->boolean('enabled', true)) {
             return null;
         }
 
-        $urlEnv = $entry['url_env'] ?? null;
-        if (!is_string($urlEnv) || preg_match(self::ENV_NAME_PATTERN, $urlEnv) !== 1) {
-            throw new InvalidArgumentException("{$path}.url_env must name an environment variable.");
+        $urlEnv = $entry->envName('url_env');
+        $template = $entry->raw('template');
+        if (!is_string($template) || !ConfigValueValidator::isSlug($template)) {
+            throw new InvalidArgumentException("{$entry->path('template')} must name a template in templates/webhooks/.");
         }
-        $template = $entry['template'] ?? null;
-        if (!is_string($template) || preg_match(self::TEMPLATE_NAME_PATTERN, $template) !== 1) {
-            throw new InvalidArgumentException("{$path}.template must name a template in templates/webhooks/.");
-        }
-        $timeout = $entry['timeout_seconds'] ?? 5;
-        if (!is_int($timeout) || $timeout < 1 || $timeout > 30) {
-            throw new InvalidArgumentException("{$path}.timeout_seconds must be an integer from 1 to 30.");
-        }
-        $params = $entry['params'] ?? [];
-        if (!ConfigValueValidator::isObject($params) || array_filter($params, static fn (mixed $value): bool => !is_scalar($value)) !== []) {
-            throw new InvalidArgumentException("{$path}.params must be an object of strings, numbers or booleans.");
+        $timeout = $entry->integer('timeout_seconds', 5, 1, 30);
+        $params = $entry->object('params')->values;
+        if (array_filter($params, static fn (mixed $param): bool => !is_scalar($param)) !== []) {
+            throw new InvalidArgumentException("{$entry->path('params')} must be an object of strings, numbers or booleans.");
         }
 
         $url = trim((string) $env($urlEnv));

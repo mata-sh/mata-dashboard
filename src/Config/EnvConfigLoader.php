@@ -472,6 +472,13 @@ final class EnvConfigLoader
                 'message' => 'Mail from_email not configured - emails may not send properly',
             ];
         }
+        if ($config->mail->dashboardUrl !== null && $config->mail->dashboardLink() === null) {
+            $warnings[] = [
+                'type' => 'config.mail.dashboard_url.invalid',
+                'variables' => ['MAIL_DASHBOARD_URL'],
+                'message' => 'MAIL_DASHBOARD_URL must be an absolute http or https URL without userinfo - mails and reports omit the dashboard link',
+            ];
+        }
 
         return [
             'critical_errors' => $criticalErrors,

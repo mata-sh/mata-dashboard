@@ -36,8 +36,9 @@ first. The current drivers use `10`, `30`, `60`, and `100`.
 
 `ALARM_DECISION_DRIVER=opa` uses the configured OPA service.
 `ALARM_DECISION_DRIVER=builtin` supports hosts without OPA. The built-in driver
-allows critical events and `fatal_errors_occurring` on the channels their
-notification rule selects, and denies other candidates.
+allows critical events, `fatal_errors_occurring`, `advisories.matched`
+and the advisory poller warnings on the channels their notification rule
+selects, and denies other candidates. See [Security advisories](../guides/security-advisories.md).
 
 Disabled threshold entries still allow event recording but do not create alarms
 through this pipeline.

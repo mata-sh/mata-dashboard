@@ -58,7 +58,7 @@ final readonly class AlarmChannelRuntime
             channels: $loaded->section,
             paths: $paths,
             appConfig: $appConfig,
-            mailer: new Mailer(Transport::fromDsn($appConfig->mail->dsn)),
+            mailer: new Mailer(Transport::fromDsn((string) $appConfig->mail->dsn)),
             log: $log,
         );
     }
@@ -117,7 +117,7 @@ final readonly class AlarmChannelRuntime
         $templates = new FilesystemLoader($this->paths->templatesPath);
         $templateData = new AlarmTemplateDataFactory(
             $this->appConfig->general->appName,
-            $this->appConfig->mail->dashboardUrl,
+            $this->appConfig->mail->dashboardLink(),
             $this->serverPresentationConfig(),
         );
 

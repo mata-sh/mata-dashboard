@@ -28,6 +28,8 @@ installs, and only as the right user.
 - `make mata ARGS="alarm explain [server]"`: why recent events did or did not alarm, after the next
   evaluation run.
 - `make mata ARGS="doctor"`: database, migrations, OPA, users file, cron.
+- `make mata ARGS="advisory:fetch <source> --preview"`: what an advisories.json source returns and
+  which entries its filters keep, without storing or notifying.
 
 Every command takes `--json` and documents its exit codes in `--help`
 (`make mata ARGS="<command> --help"`).

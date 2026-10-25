@@ -99,7 +99,7 @@ final class ChannelsConfigTest extends TestCase
 
         yield 'string timeout' => [['telegram' => $valid + ['timeout_seconds' => '5']], 'timeout_seconds must be an integer'];
 
-        yield 'timeout above bound' => [['telegram' => $valid + ['timeout_seconds' => 31]], 'timeout_seconds must be an integer'];
+        yield 'timeout above bound' => [['telegram' => $valid + ['timeout_seconds' => 31]], 'timeout_seconds must be at most 30'];
 
         yield 'nested param' => [['telegram' => $valid + ['params' => ['chat_id' => ['id' => 1]]]], 'params must be an object'];
 

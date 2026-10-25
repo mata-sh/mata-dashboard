@@ -1,0 +1,93 @@
+{#- Rendered by tc-lib-pdf's HTML engine: plain tables with explicit widths, inline styles only.
+    Page background, accent edge, header and footer are drawn by AdvisoryReportPdfWriter. -#}
+{% set label = 'font-family:dejavusansmono; font-size:6.5pt; color:#8b93a5; font-weight:bold;' %}
+{% set meta = 'font-family:dejavusansmono; font-size:7pt; color:#8b93a5;' %}
+<p style="font-family:dejavusans; font-size:19pt; font-weight:bold; color:#e8eaf0;">{{ title|upper }}</p>
+<p style="{{ meta }}"><span style="color:{{ worst.tint }}; font-weight:bold;">▲ {{ worst.label|upper }}</span> &nbsp; {{ period.since }} → {{ period.until }} · {{ period.label|upper }} · GENERATED {{ generated_at }}</p>
+<p style="font-family:dejavusans; font-size:8.5pt; color:#c9cfda;">{{ scope }}</p>
+
+<table cellpadding="6" cellspacing="0" style="border:1px solid #1f242e; background-color:#0e1015;">
+    <tr>
+        {% for stat in [
+            {label: 'ADVISORIES', value: totals.advisories, color: '#e8eaf0'},
+            {label: 'CRITICAL / HIGH', value: totals.critical_high, color: totals.critical_high > 0 ? '#f09595' : '#e8eaf0'},
+            {label: 'UNREVIEWED', value: totals.unreviewed, color: totals.unreviewed > 0 ? '#9fe8f2' : '#e8eaf0'},
+            {label: 'CVES', value: totals.cves, color: '#e8eaf0'},
+        ] %}
+        <td width="25%" style="border-right:1px solid #1f242e;"><span style="{{ label }}">{{ stat.label }}</span><br /><span style="font-family:dejavusansmono; font-size:20pt; color:{{ stat.color }};">{{ stat.value }}</span></td>
+        {% endfor %}
+    </tr>
+</table>
+
+{% if not empty %}
+<p style="{{ meta }}">{% for row in severity_rows %}<span style="color:{{ row.tint }};">■</span> {{ row.label|upper }} {{ row.count }} ({{ row.percent }}%){% if not loop.last %} &nbsp; · &nbsp; {% endif %}{% endfor %}</p>
+{% endif %}
+
+{% if highlights is not empty %}
+<p style="font-family:dejavusansmono; font-size:9pt; color:#3fd0e0;">&gt;_ highlights</p>
+<table cellpadding="4" cellspacing="0" style="border:1px solid #1f242e; background-color:#0e1015;">
+    {% for item in highlights %}
+    <tr>
+        <td width="2%" style="background-color:{{ item.severity.fill }};"></td>
+        <td width="14%" style="font-family:dejavusansmono; font-size:6.5pt; color:{{ item.severity.tint }}; font-weight:bold;">{{ item.severity.label|upper }}{% if item.cvss %}<br />CVSS {{ item.cvss }}{% endif %}</td>
+        <td width="62%" style="font-family:dejavusans; font-size:8pt; color:#e8eaf0;">{% if item.link %}<a href="{{ item.link }}" style="color:#e8eaf0; text-decoration:none;">{{ item.title }}</a>{% else %}{{ item.title }}{% endif %}{% if item.cves is not empty %}<br /><span style="font-family:dejavusansmono; font-size:6.5pt; color:#9fe8f2;">{{ item.cves|join(' ') }}</span>{% endif %}</td>
+        <td width="22%" style="{{ meta }}">{{ item.source }}<br />{{ item.date }}</td>
+    </tr>
+    {% endfor %}
+</table>
+{% endif %}
+
+<p style="font-family:dejavusansmono; font-size:9pt; color:#3fd0e0;">&gt;_ sources</p>
+<table cellpadding="4" cellspacing="0" style="border:1px solid #1f242e;">
+    <tr style="background-color:#0e1015;">
+        <td width="34%" style="{{ label }}">SOURCE</td>
+        <td width="14%" style="{{ label }}">TYPE</td>
+        <td width="12%" align="right" style="{{ label }}">ADVISORIES</td>
+        <td width="18%" style="{{ label }}">STATUS</td>
+        <td width="22%" style="{{ label }}">LAST SUCCESS</td>
+    </tr>
+    {% for source in sources %}
+    <tr style="background-color:{{ loop.index is even ? '#0f1218' : '#0b0d12' }};">
+        <td width="34%" style="font-family:dejavusans; font-size:8pt; color:#e8eaf0;">{{ source.name }}{% if source.last_error %}<br /><span style="font-family:dejavusansmono; font-size:6.5pt; color:#f09595;">{{ source.last_error }}</span>{% endif %}</td>
+        <td width="14%" style="{{ meta }}">{{ source.type_label|upper }}</td>
+        <td width="12%" align="right" style="font-family:dejavusansmono; font-size:8pt; color:#e8eaf0;">{{ source.count }}</td>
+        <td width="18%" style="font-family:dejavusansmono; font-size:7pt; color:{{ source.health_color }};">● {{ source.health_label|upper }}</td>
+        <td width="22%" style="{{ meta }}">{{ source.last_success ?? '—' }}</td>
+    </tr>
+    {% endfor %}
+</table>
+
+{% if top_products is not empty %}
+<p style="font-family:dejavusansmono; font-size:9pt; color:#3fd0e0;">&gt;_ most affected products</p>
+<table cellpadding="4" cellspacing="0" style="border:1px solid #1f242e;">
+    {% for product in top_products %}
+    <tr style="background-color:{{ loop.index is even ? '#0f1218' : '#0b0d12' }};">
+        <td width="66%" style="font-family:dejavusans; font-size:8pt; color:#e8eaf0;">{{ product.product }}</td>
+        <td width="12%" align="right" style="font-family:dejavusansmono; font-size:8pt; color:#e8eaf0;">{{ product.count }}</td>
+        <td width="22%" style="font-family:dejavusansmono; font-size:6.5pt; font-weight:bold; color:{{ product.severity.tint }};">{{ product.severity.label|upper }}</td>
+    </tr>
+    {% endfor %}
+</table>
+{% endif %}
+
+{% for group in groups %}
+<p style="font-family:dejavusansmono; font-size:9pt; font-weight:bold; color:{{ group.severity.tint }};">{{ group.severity.label|upper }} · {{ group.count }}</p>
+<table cellpadding="4" cellspacing="0" style="border-top:1px solid {{ group.severity.fill }};">
+    {% for item in group.items %}
+    <tr style="background-color:{{ loop.index is even ? '#0f1218' : '#0b0d12' }};">
+        <td width="2%" style="background-color:{{ item.severity.fill }};"></td>
+        <td width="98%">
+            <span style="font-family:dejavusans; font-size:8.5pt; font-weight:bold; color:#e8eaf0;">{% if item.link %}<a href="{{ item.link }}" style="color:#e8eaf0; text-decoration:none;">{{ item.title }}</a>{% else %}{{ item.title }}{% endif %}</span><br />
+            <span style="{{ meta }}">{{ item.source }} · {{ item.date }}{% if item.cvss %} · CVSS {{ item.cvss }}{% endif %}</span>{% if item.cves is not empty %}<span style="font-family:dejavusansmono; font-size:7pt; color:#9fe8f2;"> · {{ item.cves|join(' ') }}</span>{% endif %}
+            {% if item.products is not empty %}<br /><span style="{{ meta }}">affected: {{ item.products|join('; ') }}{% if item.more_products > 0 %} (+{{ item.more_products }}){% endif %}</span>{% endif %}
+            {% if item.review %}<br /><span style="font-family:dejavusansmono; font-size:7pt; color:#7bd88f;">✓ {{ item.review.label }}{% if item.review.note %}: {{ item.review.note }}{% endif %}</span>{% endif %}
+            {% if item.summary %}<br /><span style="font-family:dejavusans; font-size:7.5pt; color:#c9cfda;">{{ item.summary }}</span>{% endif %}
+        </td>
+    </tr>
+    {% endfor %}
+</table>
+{% endfor %}
+
+{% if empty %}
+<p style="font-family:dejavusans; font-size:10pt; color:#8b93a5;">No advisories in this period.</p>
+{% endif %}

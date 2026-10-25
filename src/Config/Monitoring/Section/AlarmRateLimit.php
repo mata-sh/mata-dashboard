@@ -4,7 +4,8 @@ declare(strict_types=1);
 
 namespace Mata\Config\Monitoring\Section;
 
-use Mata\Config\ConfigValueValidator;
+use InvalidArgumentException;
+use Mata\Config\ConfigObject;
 
 /** One channel's per-minute, per-hour, and per-day alarm delivery limits. */
 final readonly class AlarmRateLimit
@@ -25,31 +26,22 @@ final readonly class AlarmRateLimit
     }
 
     /**
-     * @param array<string,mixed> $payload
+     * Limits missing from $payload come from $fallback.
+     *
+     * @throws InvalidArgumentException when $payload is not an object or a limit is invalid
      */
     public static function fromArray(
-        array $payload,
+        mixed $payload,
         ?self $fallback = null,
         string $path = 'limits.channels.default',
     ): self {
         $fallback ??= self::default();
+        $limits = ConfigObject::fromValue($payload, $path);
 
         return new self(
-            ConfigValueValidator::integer(
-                array_key_exists('per_minute', $payload) ? $payload['per_minute'] : $fallback->perMinute,
-                "{$path}.per_minute",
-                minimum: 0,
-            ),
-            ConfigValueValidator::integer(
-                array_key_exists('per_hour', $payload) ? $payload['per_hour'] : $fallback->perHour,
-                "{$path}.per_hour",
-                minimum: 0,
-            ),
-            ConfigValueValidator::integer(
-                array_key_exists('per_day', $payload) ? $payload['per_day'] : $fallback->perDay,
-                "{$path}.per_day",
-                minimum: 0,
-            ),
+            $limits->integer('per_minute', $fallback->perMinute, minimum: 0),
+            $limits->integer('per_hour', $fallback->perHour, minimum: 0),
+            $limits->integer('per_day', $fallback->perDay, minimum: 0),
         );
     }
 

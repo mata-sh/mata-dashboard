@@ -35,6 +35,14 @@ final class DockerCrontabTest extends TestCase
             'schedule' => '40 */6 * * *',
             'log' => 'app-libraries-audit.log',
         ],
+        'advisories_poll.php' => [
+            'schedule' => '2-59/5 * * * *',
+            'log' => 'app-advisories-poll.log',
+        ],
+        'advisories_digest.php' => [
+            'schedule' => '15 7 * * *',
+            'log' => 'app-advisories-digest.log',
+        ],
         'alarms_evaluate_critical.php' => [
             'schedule' => '* * * * *',
             'log' => 'app-alarms-evaluate-critical.log',

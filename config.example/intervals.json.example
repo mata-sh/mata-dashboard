@@ -12,6 +12,9 @@
             "server_metrics.ingestion_stalled": 15,
             "fatal_errors_occurring": 0,
             "library_outdated_security": 0,
+            "advisories.matched": 0,
+            "advisories.source_failing": 360,
+            "advisories.poll_stalled": 360,
             "cpu_usage_too_high": 30,
             "ram_usage_too_high": 30
         }

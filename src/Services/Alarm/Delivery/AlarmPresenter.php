@@ -45,8 +45,14 @@ final class AlarmPresenter
             'library_outdated_security' => ['Detected Composer libraries with new security advisories.', $ruleDetail],
             'user_account_locked' => ['Detected an account locked after repeated failed logins.', $ruleDetail],
             'user_account_changed' => ['Detected a created, deleted or re-roled user account.', $ruleDetail],
+            'advisories.matched' => [$this->advisoryTitle($alarm->message), $this->advisoryDetail($context)],
+            'advisories.source_failing' => ['Detected an advisory source that keeps failing; new advisories may be missed.', $ruleDetail],
+            'advisories.poll_stalled' => ['Detected stopped advisory polling; new advisories are not detected.', $ruleDetail],
             default => [$this->defaultDescription($alarm->type), null],
         };
+        if ($type === 'advisories.matched') {
+            $value = strtoupper((string) ($context['additional_data']['severity'] ?? 'unrated'));
+        }
 
         $config = $this->serverConfig($server);
         $serverEnv = is_string($config['env'] ?? null) ? $config['env'] : null;
@@ -54,11 +60,14 @@ final class AlarmPresenter
         $metric = $value === null ? null : new AlarmMetric(strtoupper($type), $value, $detail);
         $environment = AlarmEnvironment::tryFromString($appEnvironment) ?? AlarmEnvironment::tryFromString($serverEnv);
 
+        $link = $context['additional_data']['link'] ?? null;
+
         return new AlarmPresentation(
             description: $description,
             metric: $metric,
             serverColor: $this->serverColor($config['primary_color'] ?? null),
             environment: $environment,
+            link: is_string($link) && preg_match('#^https?://#i', $link) === 1 ? $link : null,
         );
     }
 
@@ -77,6 +86,32 @@ final class AlarmPresenter
         }
 
         return $evidence !== [] ? 'Alarm rule: first event' : null;
+    }
+
+    /** The event message is "[Source] Title"; the target badge already names the source. */
+    private function advisoryTitle(string $message): string
+    {
+        $title = trim(preg_replace('/^\[[^\]]+\]\s*/u', '', $message, 1) ?? $message);
+
+        return $title === '' ? 'Detected a new security advisory from a monitored source.' : $title;
+    }
+
+    /** @param array<string,mixed> $context */
+    private function advisoryDetail(array $context): ?string
+    {
+        $data = is_array($context['additional_data'] ?? null) ? $context['additional_data'] : [];
+        $parts = [];
+        if (is_string($data['source_name'] ?? null)) {
+            $parts[] = $data['source_name'];
+        }
+        if (is_numeric($data['cvss'] ?? null)) {
+            $parts[] = 'CVSS ' . number_format((float) $data['cvss'], 1);
+        }
+        if (is_array($data['cve_ids'] ?? null) && $data['cve_ids'] !== []) {
+            $parts[] = implode(' ', array_slice(array_filter($data['cve_ids'], 'is_string'), 0, 3));
+        }
+
+        return $parts === [] ? null : implode(' · ', $parts);
     }
 
     private function defaultDescription(string $type): string
@@ -106,6 +141,8 @@ final class AlarmPresenter
             'users_file_insecure' => 'INSECURE',
             'user_account_locked' => 'LOCKED',
             'user_account_changed' => 'CHANGED',
+            'advisories.source_failing' => 'FAILING',
+            'advisories.poll_stalled' => 'STALLED',
             default => null,
         };
     }
