@@ -3845,7 +3845,16 @@ label.audit-chip:has(input:checked)::after {
 }
 
 .advisory-source-row.health-disabled {
+    display: none;
     opacity: .6;
+}
+
+.advisory-sources.show-disabled .advisory-source-row.health-disabled {
+    display: flex;
+}
+
+.advisory-show-disabled {
+    margin-bottom: .5rem;
 }
 
 .advisory-source-info {

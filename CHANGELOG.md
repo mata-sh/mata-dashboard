@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - Security advisory monitoring: `config/advisories.json` lists RSS/Atom feeds, GitHub repository advisories, IMAP mailboxes, OSV.dev packages and CSAF providers with keyword and severity filters. New relevant advisories are recorded once as `advisories.matched` events that alarm through the usual decision driver and notification rules (`"notify": false` only lists them); failing sources and a stopped poller warn. **Action:** copy `config.example/advisories.json.example`, run `bin/mata db migrate`, then `bin/mata advisory:fetch` for the baseline; shared hosting adds the two `advisories_*` lines from `cron/crontab.shared-hosting.template`.
-- An **Advisories** page lists sources, advisories with their raw payload and review status, and downloads PDF, Markdown, HTML or JSON reports.
+- An **Advisories** page lists sources, advisories with their raw payload and review status, and downloads PDF, Markdown, HTML or JSON reports. Like the Composer audit, the sources and report downloads fold under the page title behind a summary; disabled sources are hidden unless "show disabled" is on.
 - `bin/mata advisory:sources`, `advisory:fetch [--preview]` and `advisory:report` (PDF, Markdown, HTML, JSON, or `--mail`); `advisories.json` `digest` mails the report periodically.
 - `curl -fsSL https://mata.sh/install.sh | sh` installs the newest release with Docker for production; `--native` prepares a native checkout. Each release attaches `install.sh`.
 - `make uninstall` removes a Docker install, including the database, `logs/` and `temp/` that only the containers can delete.

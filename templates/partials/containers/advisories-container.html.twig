@@ -1,5 +1,11 @@
-<div class="advisories-section">
-  <h3>Security Advisories<span class="section-help-icon" data-tippy-content="Advisories polled from the sources in config/advisories.json (RSS/Atom feeds, GitHub repositories, mailboxes, OSV packages, CSAF providers). Relevant ones match a source's keywords and minimum severity; depending on the source's notify setting they record an event or raise an alarm.">{{ icons.help|raw }}</span></h3>
+<div class="advisories-section audit-section" id="advisories-overview">
+  {% if configured %}
+  <h3 class="audit-title" role="button" tabindex="0" aria-controls="advisories-overview-details"
+      _="on click or keydown[key=='Enter'] toggle .is-open on #advisories-overview">Security Advisories <span class="audit-caret" aria-hidden="true">&#9656;</span>
+  {% else %}
+  <h3>Security Advisories
+  {% endif %}
+  <span class="section-help-icon" data-tippy-content="Advisories polled from the sources in config/advisories.json (RSS/Atom feeds, GitHub repositories, mailboxes, OSV packages, CSAF providers). Relevant ones match a source's keywords and minimum severity; depending on the source's notify setting they record an event or raise an alarm.">{{ icons.help|raw }}</span></h3>
 
   {% if not configured %}
     <div class="notification is-info is-light" role="status">
@@ -8,51 +14,74 @@
       <code>bin/mata advisory:fetch</code> to take the first baseline.
     </div>
   {% else %}
-    <div class="advisory-sources">
-      {% for source in sources %}
-        <div class="audit-server-row advisory-source-row health-{{ source.health }}">
-          <div class="audit-server-info advisory-source-info">
-            <span class="audit-server-label" title="{{ source.key }}">{{ source.name }}</span>
-            <span class="audit-server-meta">{{ source.type }} · every {{ source.interval }} min · notify: {{ source.notify ? 'yes' : 'no' }}</span>
-          </div>
-          <div class="advisory-source-body">
-            {% if source.description %}<div class="advisory-source-description">{{ source.description }}</div>{% endif %}
-            <div class="audit-summary advisory-source-summary">
-              {% set health_class = {ok: 'sev-low', failing: 'sev-critical', stale: 'sev-medium', never_polled: 'pill-meta', disabled: 'pill-abandoned'}[source.health] %}
-              <span class="audit-pill {{ health_class }}">{{ source.health_label }}{% if source.failures > 0 %} <b>×{{ source.failures }}</b>{% endif %}</span>
-              <span class="audit-pill pill-meta"><b>{{ source.totals.total }}</b> stored</span>
-              <span class="audit-pill {{ source.totals.relevant > 0 ? 'sev-medium' : 'is-zero' }}"><b>{{ source.totals.relevant }}</b> relevant</span>
-              <span class="audit-pill {{ source.totals.unreviewed > 0 ? 'sev-high' : 'is-zero' }}"><b>{{ source.totals.unreviewed }}</b> unreviewed</span>
-              {% if source.keywords is not empty %}<span class="audit-pill pill-meta" title="{{ source.keywords|join(', ') }}">{{ source.keywords|length }} keywords</span>{% endif %}
-              {% if source.min_severity != 'low' %}<span class="audit-pill pill-meta">≥ {{ source.min_severity }}</span>{% endif %}
-            </div>
-            <div class="advisory-source-meta">
-              last success: {{ source.last_success ?? 'never' }}{% if source.last_polled and source.last_polled != source.last_success %} · last attempt: {{ source.last_polled }}{% endif %}
-              {% if source.url starts with 'https://' %} · <a href="{{ source.url }}" target="_blank" rel="noopener noreferrer">{{ icons.external|raw }} source</a>{% endif %}
-            </div>
-            {% if source.error %}<div class="advisory-source-error">{{ source.error }}</div>{% endif %}
-          </div>
-        </div>
-      {% else %}
-        <div class="notification is-warning is-light" role="status">advisories.json defines no valid sources; run <code>bin/mata config validate advisories.json</code>.</div>
+    {% set enabled_sources = sources|filter(source => source.enabled) %}
+    {% set disabled_count = sources|length - enabled_sources|length %}
+    {% set relevant = sources|reduce((carry, source) => carry + source.totals.relevant, 0) %}
+    {% set unreviewed = sources|reduce((carry, source) => carry + source.totals.unreviewed, 0) %}
+    <div class="audit-summary">
+      {% for health, pill in {failing: 'sev-critical', stale: 'sev-medium', never_polled: 'pill-meta', ok: 'sev-low'} %}
+        {% set matching = enabled_sources|filter(source => source.health == health) %}
+        {% if matching is not empty %}<span class="audit-pill {{ pill }}"><b>{{ matching|length }}</b> {{ matching|first.health_label|lower }}</span>{% endif %}
       {% endfor %}
+      {% if disabled_count > 0 %}<span class="audit-pill pill-abandoned"><b>{{ disabled_count }}</b> disabled</span>{% endif %}
+      <span class="audit-pill {{ relevant > 0 ? 'sev-medium' : 'is-zero' }}"><b>{{ relevant }}</b> relevant</span>
+      <span class="audit-pill {{ unreviewed > 0 ? 'sev-high' : 'is-zero' }}"><b>{{ unreviewed }}</b> unreviewed</span>
     </div>
 
-    <form class="filter-menu advisory-report-form" method="get" action="{{ endpoints.advisories_report }}">
-      <span class="advisory-report-label">Report</span>
-      <select name="days" aria-label="Report period">
-        {% for days in report_days %}
-          <option value="{{ days }}"{% if days == default_days %} selected{% endif %}>last {{ days }} days</option>
+    <div class="audit-details" id="advisories-overview-details">
+      {% if disabled_count > 0 %}
+        <label class="toggle advisory-show-disabled">
+          <input type="checkbox" _="on change toggle .show-disabled on #advisory-sources">
+          <span class="toggle-track"></span>
+          <span class="toggle-text">show disabled ({{ disabled_count }})</span>
+        </label>
+      {% endif %}
+      <div class="advisory-sources" id="advisory-sources">
+        {% for source in sources %}
+          <div class="audit-server-row advisory-source-row health-{{ source.health }}">
+            <div class="audit-server-info advisory-source-info">
+              <span class="audit-server-label" title="{{ source.key }}">{{ source.name }}</span>
+              <span class="audit-server-meta">{{ source.type }} · every {{ source.interval }} min · notify: {{ source.notify ? 'yes' : 'no' }}</span>
+            </div>
+            <div class="advisory-source-body">
+              {% if source.description %}<div class="advisory-source-description">{{ source.description }}</div>{% endif %}
+              <div class="audit-summary advisory-source-summary">
+                {% set health_class = {ok: 'sev-low', failing: 'sev-critical', stale: 'sev-medium', never_polled: 'pill-meta', disabled: 'pill-abandoned'}[source.health] %}
+                <span class="audit-pill {{ health_class }}">{{ source.health_label }}{% if source.failures > 0 %} <b>×{{ source.failures }}</b>{% endif %}</span>
+                <span class="audit-pill pill-meta"><b>{{ source.totals.total }}</b> stored</span>
+                <span class="audit-pill {{ source.totals.relevant > 0 ? 'sev-medium' : 'is-zero' }}"><b>{{ source.totals.relevant }}</b> relevant</span>
+                <span class="audit-pill {{ source.totals.unreviewed > 0 ? 'sev-high' : 'is-zero' }}"><b>{{ source.totals.unreviewed }}</b> unreviewed</span>
+                {% if source.keywords is not empty %}<span class="audit-pill pill-meta" title="{{ source.keywords|join(', ') }}">{{ source.keywords|length }} keywords</span>{% endif %}
+                {% if source.min_severity != 'low' %}<span class="audit-pill pill-meta">≥ {{ source.min_severity }}</span>{% endif %}
+              </div>
+              <div class="advisory-source-meta">
+                last success: {{ source.last_success ?? 'never' }}{% if source.last_polled and source.last_polled != source.last_success %} · last attempt: {{ source.last_polled }}{% endif %}
+                {% if source.url starts with 'https://' %} · <a href="{{ source.url }}" target="_blank" rel="noopener noreferrer">{{ icons.external|raw }} source</a>{% endif %}
+              </div>
+              {% if source.error %}<div class="advisory-source-error">{{ source.error }}</div>{% endif %}
+            </div>
+          </div>
+        {% else %}
+          <div class="notification is-warning is-light" role="status">advisories.json defines no valid sources; run <code>bin/mata config validate advisories.json</code>.</div>
         {% endfor %}
-      </select>
-      <select name="scope" aria-label="Report scope">
-        <option value="relevant">relevant only</option>
-        <option value="all">all advisories</option>
-      </select>
-      {% for format, label in {pdf: 'PDF', md: 'Markdown', html: 'HTML', json: 'JSON'} %}
-        <button class="button audit-run-button" type="submit" name="format" value="{{ format }}">{{ icons.download|raw }} {{ label }}</button>
-      {% endfor %}
-    </form>
+      </div>
+
+      <form class="filter-menu advisory-report-form" method="get" action="{{ endpoints.advisories_report }}">
+        <span class="advisory-report-label">Report</span>
+        <select name="days" aria-label="Report period">
+          {% for days in report_days %}
+            <option value="{{ days }}"{% if days == default_days %} selected{% endif %}>last {{ days }} days</option>
+          {% endfor %}
+        </select>
+        <select name="scope" aria-label="Report scope">
+          <option value="relevant">relevant only</option>
+          <option value="all">all advisories</option>
+        </select>
+        {% for format, label in {pdf: 'PDF', md: 'Markdown', html: 'HTML', json: 'JSON'} %}
+          <button class="button audit-run-button" type="submit" name="format" value="{{ format }}">{{ icons.download|raw }} {{ label }}</button>
+        {% endfor %}
+      </form>
+    </div>
 
     <div class="filter-menu">
       <select id="advisory-filter-days" aria-label="Table period">
