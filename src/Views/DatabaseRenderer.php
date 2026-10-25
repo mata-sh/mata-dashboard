@@ -126,7 +126,7 @@ class DatabaseRenderer extends BaseRenderer
                 'cache_ttl' => is_int($cacheTtl) ? $this->tools->formatDuration($cacheTtl) : null,
                 'refresh_url' => $this->endpoints->url('refresh_database', ['server' => $server]),
             ],
-            'icons' => $this->getCommonIcons(),
+            'icons' => $this->getCommonIcons() + ['chevron' => $this->tools->icon('chevron-right', 12)],
             'system' => [
                 'processes_sql' => $sqlProcessCount,
             ],
@@ -166,22 +166,23 @@ class DatabaseRenderer extends BaseRenderer
         /** @var list<array{name:string,description:string}> $databases */
         $databases = $overview['databases'];
 
-        $details = [];
-        foreach (['max_used_connections' => 'Peak', 'refused_connections' => 'Refused', 'aborted_connects' => 'Aborted'] as $field => $label) {
-            if (($status[$field] ?? null) !== null) {
-                $details[] = $label . ' ' . $this->formatNumber($status[$field]);
-            }
-        }
+        $connections = (int) ($status['connections'] ?? 0);
+        $maxConnections = (int) ($status['max_connections'] ?? 0);
+        // Counters an engine does not report (PostgreSQL) stay null so their column renders empty.
+        $counter = fn (string $field): ?string => isset($status[$field]) ? $this->formatNumber($status[$field]) : null;
 
         return [
             'engine' => $overview['engine'],
             'connection' => $overview['connection'],
             'error' => $overview['error'],
             'uptime' => $this->tools->formatDuration((int) ($status['uptime_seconds'] ?? 0)),
-            'connections' => $this->formatNumber((int) ($status['connections'] ?? 0)),
-            'max_connections' => $this->formatNumber((int) ($status['max_connections'] ?? 0)),
+            'connections' => $this->formatNumber($connections),
+            'max_connections' => $this->formatNumber($maxConnections),
+            'usage_percent' => $maxConnections > 0 ? min(100, (int) round($connections / $maxConnections * 100)) : 0,
             'running' => $this->formatNumber((int) ($status['running'] ?? 0)),
-            'details' => implode(' · ', $details),
+            'peak' => $counter('max_used_connections'),
+            'refused' => $counter('refused_connections'),
+            'aborted' => $counter('aborted_connects'),
             'process_modal_url' => $this->endpoints->url('modal_db_processes_render', $params),
             'databases' => array_map(
                 fn (array $database): array => [

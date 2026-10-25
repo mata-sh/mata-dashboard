@@ -69,10 +69,13 @@
     }
 
     function destroyLibrariesTable(context) {
-        var root = context instanceof Element ? context : document;
-        var tableElement = root.matches && root.matches('#libraries-table')
-            ? root
-            : root.querySelector('#libraries-table');
+        // htmx also cleans up text nodes; falling back to document would destroy the table on any swap.
+        if (!(context instanceof Element)) {
+            return;
+        }
+        var tableElement = context.matches('#libraries-table')
+            ? context
+            : context.querySelector('#libraries-table');
         var table = tableElement && tableElement._mataTabulator;
 
         if (table && typeof table.destroy === 'function') {

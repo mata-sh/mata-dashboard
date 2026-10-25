@@ -11,19 +11,44 @@
   <div class="db-row-empty">Database monitoring is not configured on this node.</div>
 {% elseif overview %}
   {% for connection in overview.connections %}
-    <section class="db-connection{% if connection.error %} is-down{% endif %}" aria-label="Connection {{ connection.connection }}">
-      <div class="db-connection-head">
+    <details class="db-connection{% if connection.error %} is-down{% endif %}" data-collapse-key="{{ server.id }}/{{ connection.connection }}" open>
+      <summary class="db-connection-head" aria-label="Connection {{ connection.connection }}, {{ connection.error ? 'failed' : 'online' }}">
+        <span class="db-connection-toggle" aria-hidden="true">{{ icons.chevron|raw }}</span>
         <span class="db-connection-state" aria-hidden="true"></span>
-        <strong class="db-connection-name">{{ connection.connection }}</strong>
+        <strong class="db-connection-name" data-tippy-content="{{ connection.databases|length }} monitored database{{ connection.databases|length == 1 ? '' : 's' }}">{{ connection.connection }}</strong>
         <span class="db-engine">{{ connection.engine }}</span>
         {% if connection.error %}
-          <span class="db-connection-error">{{ connection.error.message }}</span>
+          <span class="db-connection-error">{{ icons.alert|raw }} {{ connection.error.message }}</span>
         {% else %}
-          <span class="db-connection-stats">{{ connection.connections }} / {{ connection.max_connections }} connections · {{ connection.running }} running · up {{ connection.uptime }}</span>
-          {% if connection.details %}<span class="db-connection-details">{{ connection.details }}</span>{% endif %}
+          <span class="db-stats">
+          <span class="db-stat" data-tippy-content="Open connections / max_connections">
+            <span class="db-stat-label">Conn</span>
+            <span class="db-stat-value">{{ connection.connections }} <em>/ {{ connection.max_connections }}</em></span>
+            <span class="db-usage" aria-hidden="true"><span style="width: {{ connection.usage_percent }}%"></span></span>
+          </span>
+          <span class="db-stat" data-tippy-content="Queries running right now">
+            <span class="db-stat-label">Running</span><span class="db-stat-value">{{ connection.running }}</span>
+          </span>
+          <span class="db-stat" data-tippy-content="Database server uptime">
+            <span class="db-stat-label">Up</span><span class="db-stat-value">{{ connection.uptime }}</span>
+          </span>
+          {% for stat in [
+            {label: 'Peak', value: connection.peak, tip: 'Most connections at once since start'},
+            {label: 'Refused', value: connection.refused, tip: 'Connections refused at the limit since start'},
+            {label: 'Aborted', value: connection.aborted, tip: 'Failed connection attempts since start'},
+          ] %}
+            {% if stat.value is null %}
+              <span class="db-stat is-empty"></span>
+            {% else %}
+              <span class="db-stat" data-tippy-content="{{ stat.tip }}">
+                <span class="db-stat-label">{{ stat.label }}</span><span class="db-stat-value">{{ stat.value }}</span>
+              </span>
+            {% endif %}
+          {% endfor %}
+          </span>
         {% endif %}
         <button type="button" class="db-process-list modal-trigger" aria-label="Open process list for connection {{ connection.connection }}" aria-haspopup="dialog" data-tippy-content="Process list" hx-get="{{ connection.process_modal_url }}" hx-target="#modal-container" hx-trigger="click" hx-toggle="modal">{{ icons.activity|raw }}</button>
-      </div>
+      </summary>
       <ul class="db-list">
         {% for db in connection.databases %}
           <li class="db-item">
@@ -33,7 +58,7 @@
           </li>
         {% endfor %}
       </ul>
-    </section>
+    </details>
   {% endfor %}
 {% endif %}
 

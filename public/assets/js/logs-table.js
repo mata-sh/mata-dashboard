@@ -18,10 +18,13 @@
     }
 
     function destroyLogsTable(context) {
-        var root = context instanceof Element ? context : document;
-        var tableElement = root.matches && root.matches('#logs-table')
-            ? root
-            : root.querySelector('#logs-table');
+        // htmx also cleans up text nodes; falling back to document would destroy the table on any swap.
+        if (!(context instanceof Element)) {
+            return;
+        }
+        var tableElement = context.matches('#logs-table')
+            ? context
+            : context.querySelector('#logs-table');
         var table = tableElement && tableElement._mataTabulator;
 
         if (table && typeof table.destroy === 'function') {

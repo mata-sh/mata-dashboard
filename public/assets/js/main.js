@@ -496,6 +496,45 @@ document.body.addEventListener('input', (event) => {
     applyFleetFilter(event.target.closest('.fleet-summary'));
 });
 
+// Database connections the viewer collapsed stay collapsed when their card is refreshed.
+const dbCollapsedKey = 'mata-db-connections-collapsed';
+
+function readCollapsedDbConnections() {
+    try {
+        const keys = JSON.parse(localStorage.getItem(dbCollapsedKey) ?? '[]');
+        return new Set(Array.isArray(keys) ? keys : []);
+    } catch {
+        return new Set();
+    }
+}
+
+// `toggle` does not bubble, so listen in the capture phase.
+document.addEventListener('toggle', (event) => {
+    const details = event.target;
+    if (!(details instanceof HTMLDetailsElement) || !details.matches('.db-connection[data-collapse-key]')) return;
+
+    const collapsed = readCollapsedDbConnections();
+    if (details.open) {
+        collapsed.delete(details.dataset.collapseKey);
+    } else {
+        collapsed.add(details.dataset.collapseKey);
+    }
+    try {
+        localStorage.setItem(dbCollapsedKey, JSON.stringify([...collapsed]));
+    } catch {
+        // Storage unavailable; the choice lasts until the card is refreshed.
+    }
+}, true);
+
+document.body.addEventListener('htmx:afterSwap', () => {
+    const collapsed = readCollapsedDbConnections();
+    if (collapsed.size === 0) return;
+    // A refreshed card replaces its own element, so search the whole page.
+    document.querySelectorAll('.db-connection[data-collapse-key]').forEach((details) => {
+        if (collapsed.has(details.dataset.collapseKey)) details.open = false;
+    });
+});
+
 // Restore the collapsed state before the first paint of a freshly swapped summary.
 document.body.addEventListener('htmx:afterSwap', () => {
     const summary = document.getElementById('fleet-summary');

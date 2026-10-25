@@ -1256,65 +1256,191 @@ svg {
     cursor: pointer;
 }
 
-/* One block per database connection: status line, then its monitored databases */
+/* One collapsible block per database connection: status line, then its monitored databases.
+   Every connection header shares one column template whose tracks never depend on their content,
+   and all cards are equally wide, so each metric lines up across connections and cards. */
+.database-section {
+    container-type: inline-size;
+    --db-columns: 12px 8px minmax(110px, 180px) 60px minmax(124px, 172px) minmax(84px, 104px)
+        minmax(104px, 132px) minmax(76px, 92px) minmax(84px, 104px) minmax(124px, 156px) minmax(0, 1fr) 22px;
+}
+
 .db-connection {
     margin-top: 4px;
-    border-radius: 3px;
+    border: 1px solid var(--border-hairline);
+    border-radius: 5px;
     background-color: #000;
 }
 
-.db-connection-head {
-    display: flex;
-    flex-wrap: wrap;
+.db-connection-head,
+.db-item {
+    display: grid;
+    grid-template-columns: var(--db-columns);
     align-items: center;
-    gap: 4px 10px;
-    padding: 9px 12px;
+    gap: 6px 10px;
+}
+
+.db-connection-head {
+    min-height: 40px;
+    padding: 6px 12px;
+    border-radius: 5px;
+    color: var(--text-body);
+    cursor: pointer;
+    list-style: none;
+    transition: background-color .12s ease;
+}
+
+.db-connection-head::-webkit-details-marker {
+    display: none;
+}
+
+.db-connection-head:hover {
+    background-color: var(--surface-hover);
+}
+
+.db-connection-head:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 2px var(--accent-focus-ring);
+}
+
+.db-connection[open] > .db-connection-head {
+    border-radius: 5px 5px 0 0;
+}
+
+.db-connection-toggle {
+    display: inline-flex;
+    color: var(--text-faint);
+    transition: transform .12s ease;
+}
+
+.db-connection-toggle svg {
+    stroke: currentColor;
+}
+
+.db-connection[open] .db-connection-toggle {
+    transform: rotate(90deg);
 }
 
 .db-connection-state {
-    flex-shrink: 0;
     width: 8px;
     height: 8px;
     border-radius: 50%;
-    background: #4da767;
+    background: var(--sev-low-border);
+    box-shadow: 0 0 6px rgba(77, 167, 103, .45);
 }
 
 .db-connection.is-down .db-connection-state {
-    background: #e05561;
+    background: var(--sev-critical-border);
+    box-shadow: 0 0 6px rgba(224, 85, 97, .5);
 }
 
 .db-connection-name {
-    color: #efefef;
+    overflow: hidden;
+    color: var(--text-bright);
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 .db-engine {
-    padding: 0 6px;
-    border: 1px solid #262c38;
+    justify-self: start;
+    padding: 1px 6px;
+    border: 1px solid var(--border-control);
     border-radius: 4px;
-    color: #8b93a5;
-    font-size: 0.75em;
+    background: var(--surface-chip);
+    color: var(--text-muted);
+    font-size: 0.7rem;
+    letter-spacing: .02em;
 }
 
-.db-connection-stats,
-.db-connection-details {
+/* The metric cells are direct grid items on wide cards and their own grid on narrow ones */
+.db-stats {
+    display: contents;
+}
+
+/* Metric cell: faint label left, tabular value right, like the app rows' count chips */
+.db-stat {
+    position: relative;
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 6px;
+    min-width: 0;
+    padding: 3px 8px;
+    border: 1px solid var(--border-default);
+    border-radius: 4px;
+    background: var(--surface-panel);
+    white-space: nowrap;
+}
+
+/* A counter the engine does not report keeps its slot so later columns stay aligned */
+.db-stat.is-empty {
+    visibility: hidden;
+}
+
+.db-stat-label {
+    color: var(--text-faint);
+    font-size: 0.65rem;
+    font-weight: 600;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+}
+
+.db-stat-value {
+    overflow: hidden;
+    color: var(--text-bright);
+    font-size: 0.85rem;
     font-variant-numeric: tabular-nums;
+    text-overflow: ellipsis;
 }
 
-.db-connection-details {
-    color: #8b93a5;
+.db-stat-value em {
+    color: var(--text-muted);
+    font-style: normal;
+}
+
+/* Connection usage against max_connections, drawn along the cell's bottom edge */
+.db-usage {
+    position: absolute;
+    right: 8px;
+    bottom: 2px;
+    left: 8px;
+    height: 2px;
+    border-radius: 1px;
+    background: var(--border-default);
+    overflow: hidden;
+}
+
+.db-usage > span {
+    display: block;
+    min-width: 2px;
+    height: 100%;
+    background: var(--accent-border);
 }
 
 .db-connection-error {
-    color: #ff8a93;
+    grid-column: 5 / -2;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    min-width: 0;
+    color: var(--sev-critical-tint);
 }
 
-.db-connection-head .db-process-list.modal-trigger {
-    margin-left: auto;
+.db-connection-error svg {
+    flex-shrink: 0;
+    stroke: currentColor;
+}
+
+.db-connection-head .db-process-list.modal-trigger,
+.db-item .db-process-list.modal-trigger {
+    grid-column: -2;
+    height: 22px;
 }
 
 .db-list {
     margin: 0;
-    padding: 0 12px 4px 30px;
+    padding: 0 12px 4px;
+    border-top: 1px solid var(--border-hairline);
     list-style: none;
 }
 
@@ -1323,20 +1449,20 @@ svg {
 }
 
 .db-item {
-    display: grid;
-    grid-template-columns: minmax(0, max-content) minmax(0, 1fr) auto;
-    align-items: center;
-    gap: 16px;
     padding: 5px 0;
-    border-top: 1px solid #1a1e26;
+}
+
+.db-item + .db-item {
+    border-top: 1px solid var(--border-hairline);
 }
 
 .db-name {
+    grid-column: 3 / 5;
     display: flex;
     align-items: center;
     gap: 6px;
     min-width: 0;
-    color: #efefef;
+    color: var(--text-body);
 }
 
 .db-name > span,
@@ -1348,14 +1474,58 @@ svg {
 
 .db-name svg {
     flex-shrink: 0;
-    width: 14px;
-    height: 14px;
-    stroke: #8b93a5;
+    stroke: var(--text-muted);
 }
 
 .db-description {
-    color: #8b93a5;
+    grid-column: 5 / -2;
+    color: var(--text-muted);
     font-size: 0.9em;
+}
+
+/* Narrow cards: name row on top, metrics in an equal-width grid below it, still aligned */
+@container (max-width: 980px) {
+    /* A container query cannot restyle its container, so the rows get the narrow templates */
+    .db-connection-head {
+        grid-template-columns: 12px 8px minmax(0, 1fr) auto 22px;
+    }
+
+    .db-item {
+        grid-template-columns: 12px 8px minmax(0, max-content) minmax(0, 1fr) 22px;
+    }
+
+    .db-connection-head .db-process-list.modal-trigger {
+        grid-row: 1;
+    }
+
+    .db-stats {
+        grid-column: 3 / -1;
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 6px;
+    }
+
+    .db-connection-error {
+        grid-column: 3 / -1;
+    }
+
+    .db-name {
+        grid-column: 3 / 4;
+    }
+
+    .db-description {
+        grid-column: 4 / -2;
+    }
+}
+
+@container (max-width: 520px) {
+    .db-stats {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .db-stat.is-empty {
+        display: none;
+    }
 }
 
 .db-row-empty {

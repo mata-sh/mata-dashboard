@@ -26,7 +26,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `bin/mata config validate` checks every config file with the app's own loaders.
 - `bin/mata` is the new operator CLI; `make mata ARGS="…"` runs it as the web server user.
 - `make doctor` shows where `config/` points and whether it is a Git repository.
-- Database cards group databases under each named connection, with its engine and status; one failed connection no longer hides the others. `database_unreachable` lists all failed connections; `database_connections_too_high` uses the busiest. **Action:** update dashboard and nodes together; older nodes' database data is rejected.
+- Database cards show each named connection as a collapsible row with its engine, aligned metrics and databases; one failed connection no longer hides the others. `database_unreachable` lists all failed connections; `database_connections_too_high` uses the busiest. **Action:** update dashboard and nodes together; older nodes' database data is rejected.
 
 ### Changed
 - The non-Docker mode is now `MODE=native` (was `MODE=local`); `local` is no longer accepted. Native installs set up earlier: change `MODE := local` to `MODE := native` in `.mata.mk`, or rerun `make setup`.
@@ -51,6 +51,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `make users-*`, `db-rollback`, `db-status`, `db-check`, `db-hash-password` and the scripts they ran; use `bin/mata user …` and `bin/mata db …`.
 
 ### Fixed
+- The libraries and logs tables no longer empty themselves when the notification bell refreshes.
 - Alarm text mails no longer join the metric line and "Last seen" when the metric has a detail.
 - Docker: two dashboard stacks on one host no longer reach each other's MySQL and OPA. Both now sit on a network private to each Compose project, and only the web container joins the shared `mata-network` to reach nodes. Recreate the containers for this to apply.
 - `config validate` reports actual file, process, and missing-input sources once per problem; each JSON problem lists every implicated file in `files`.
