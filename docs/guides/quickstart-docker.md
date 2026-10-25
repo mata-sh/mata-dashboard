@@ -136,7 +136,7 @@ Set the target explicitly; the environment selects the Compose stack:
 ENV_NAME=dev # dev, demo, or prod
 make logs MODE=docker ENV="$ENV_NAME"
 make ps MODE=docker ENV="$ENV_NAME"
-make mata MODE=docker ENV="$ENV_NAME" ARGS="db status"
+make mata MODE=docker ENV="$ENV_NAME" ARGS="migrate status"
 make db-backup MODE=docker ENV="$ENV_NAME"
 ```
 

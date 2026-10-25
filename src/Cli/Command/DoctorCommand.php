@@ -168,7 +168,7 @@ final class DoctorCommand extends Command
         if ($pending === []) {
             $this->add('migrations', StatusLevel::Ok, 'up to date');
         } else {
-            $this->add('migrations', StatusLevel::Warning, count($pending) . ' pending', hint: 'bin/mata db migrate');
+            $this->add('migrations', StatusLevel::Warning, count($pending) . ' pending', hint: 'bin/mata migrate up');
         }
     }
 

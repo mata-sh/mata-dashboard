@@ -6,10 +6,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
-- Security advisory monitoring: `config/advisories.json` lists RSS/Atom feeds, GitHub repository advisories, IMAP mailboxes, OSV.dev packages and CSAF providers with keyword and severity filters. New relevant advisories are recorded once as `advisories.matched` events that alarm through the usual decision driver and notification rules (`"notify": false` only lists them); failing sources and a stopped poller warn. `bin/mata advisory:sources|fetch|report` and the `digest` setting mail PDF, Markdown, HTML or JSON reports. **Action:** copy `config.example/advisories.json.example`, run `bin/mata db migrate`, then `bin/mata advisory:fetch` for the baseline; shared hosting adds the two `advisories_*` lines from `cron/crontab.shared-hosting.template`.
+- Security advisory monitoring: `config/advisories.json` lists RSS/Atom feeds, GitHub repository advisories, IMAP mailboxes, OSV.dev packages and CSAF providers with keyword and severity filters. New relevant advisories are recorded once as `advisories.matched` events that alarm through the usual decision driver and notification rules (`"notify": false` only lists them); failing sources and a stopped poller warn. `bin/mata advisory:sources|fetch|report` and the `digest` setting mail PDF, Markdown, HTML or JSON reports. **Action:** copy `config.example/advisories.json.example`, run `bin/mata migrate up`, then `bin/mata advisory:fetch` for the baseline; shared hosting adds the two `advisories_*` lines from `cron/crontab.shared-hosting.template`.
 - An **Advisories** page lists sources and advisories with their review status and downloads reports.
 - Local alarm policies: OPA also loads `config/policy/`, so overrides are versioned with the configuration and build on the shipped `policy/alarms.rego` in a `local.*` package; `OPA_ALARM_DECISION_PATH=/v1/data/local/alarms/decision` selects them. `config validate` rejects local files outside a `local` package and warns when the decision path and local policies do not match; `doctor` checks that the configured decision path answers; `make opa-test` tests both directories. **Action:** native installs with the OPA systemd unit run `make opa-install-service` once; Docker picks it up on the next `make dev-start` or `make prod-start`.
-- `bin/mata` operator CLI (`make mata ARGS="…"` runs it as the web server user): `server add|list|test|remove`, `config validate`, `status` (Nagios exit codes), `doctor`, `user …`, `db …`, `alarm test|explain`, `metrics status` and `--version`, most with `--json`. Docker images built with `make` carry the version, also as the `org.opencontainers.image.version` label.
+- `bin/mata` operator CLI (`make mata ARGS="…"` runs it as the web server user): `server add|list|test|remove`, `config validate`, `status` (Nagios exit codes), `doctor`, `user …`, `migrate status|up|down|check`, `alarm test|explain`, `metrics status` and `--version`, most with `--json`. Docker images built with `make` carry the version, also as the `org.opencontainers.image.version` label.
 - `curl -fsSL https://mata.sh/install.sh | sh` installs the newest release with Docker for production; `--native` prepares a native checkout. Each release attaches `install.sh`.
 - `make uninstall` removes a Docker install, including the database, `logs/` and `temp/` that only the containers can delete.
 - A summary bar above the server grid counts servers and apps by state and filters the cards; the cards reload from the cache every `DASHBOARD_AUTO_REFRESH_SECONDS` (default 60).
@@ -22,19 +22,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Node API keys move from `config/servers.json` to `config/servers.secrets.json`. **Action:** move each `api_key` there; the file needs mode 0640 and the web server's group.
 - Server names in `servers.json` follow the `bin/mata server add` rule; other servers are dropped and reported. **Action:** rename them in both server files and the node's `DASHBOARD_SERVER_ID`.
 - A `thresholds.json` metric whose limits decrease in the listed order is skipped and reported. **Action:** run `bin/mata config validate`.
-- Config load events are renamed: `<file>_config_not_found` to `<file>_config_invalid` and `<file>_config_validation_error` to `<file>_config_invalid_entry`. **Action:** run `bin/mata db migrate` and rename these keys in `notification_rules.json`.
+- Config load events are renamed: `<file>_config_not_found` to `<file>_config_invalid` and `<file>_config_validation_error` to `<file>_config_invalid_entry`. **Action:** run `bin/mata migrate up` and rename these keys in `notification_rules.json`.
 - `config/` is instance-owned: the application repository ignores all of it, templates moved to `config.example/`, and the development container no longer changes its owner or mode on start. **Action:** if Git reports dubious ownership, run `sudo chown -R "$(id -un)" config/` once.
 - Alarm emails and advisory reports use the dashboard's severity colors and a plain header; error and warning alarms no longer share one color.
 - An invalid `MAIL_DASHBOARD_URL` (not absolute http(s), or with `user:pass@`) no longer fails alarm delivery: messages omit the dashboard link, and `bin/mata config validate` and the settings page flag it.
 - `make setup` runs without prompts when there is no terminal, and Docker setup replaces the placeholder `MYSQL_ROOT_PASSWORD` and `DB_PASSWORD` with generated values.
-- `make db-migrate` runs `bin/mata db migrate` as the web server user; `make doctor` shows where `config/` points and whether it is a Git repository.
+- `make db-migrate` runs `bin/mata migrate up` as the web server user; `make doctor` shows where `config/` points and whether it is a Git repository.
 - The server grid adapts to the screen width: `DASHBOARD_SERVER_COLUMNS` is now a maximum (default 4).
 - An empty `config/probes.json` means the built-in probe defaults.
 - The demo shows a mostly healthy fleet with a single incident instead of every failure state at once.
 - Documentation is published at <https://docs.mata.sh>.
 
 ### Removed
-- `scripts/alarm_channel_test.php`, `scripts/server_metrics_diagnostic.php`, `make users-*`, `db-rollback`, `db-status`, `db-check`, `db-hash-password` and the scripts they ran; use `bin/mata alarm test`, `metrics status`, `user …` and `db …`.
+- `scripts/alarm_channel_test.php`, `scripts/server_metrics_diagnostic.php`, `make users-*`, `db-rollback`, `db-status`, `db-check`, `db-hash-password` and the scripts they ran; use `bin/mata alarm test`, `metrics status`, `user …` and `migrate …`.
 
 ### Fixed
 - Docker: two dashboard stacks on one host no longer reach each other's MySQL and OPA; only the web container joins the shared `mata-network`. **Action:** recreate the containers.

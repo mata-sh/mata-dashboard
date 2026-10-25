@@ -12,8 +12,8 @@ use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 
-#[AsCommand(name: 'db:check', description: 'Run the database integrity checks')]
-final class DbCheckCommand extends AbstractDbCommand
+#[AsCommand(name: 'migrate:check', description: 'Run the database integrity checks')]
+final class MigrateCheckCommand extends AbstractDbCommand
 {
     protected function writes(): bool
     {

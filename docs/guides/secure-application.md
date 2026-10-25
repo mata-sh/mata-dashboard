@@ -91,7 +91,7 @@ validation.
 
 ```bash
 make doctor MODE=docker ENV=prod
-make mata MODE=docker ENV=prod ARGS="db status"
+make mata MODE=docker ENV=prod ARGS="migrate status"
 make mata MODE=docker ENV=prod ARGS="user list"
 ```
 

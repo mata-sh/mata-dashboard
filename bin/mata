@@ -11,12 +11,12 @@ use Mata\Cli\Command\AdvisorySourcesCommand;
 use Mata\Cli\Command\AlarmExplainCommand;
 use Mata\Cli\Command\AlarmTestCommand;
 use Mata\Cli\Command\ConfigValidateCommand;
-use Mata\Cli\Command\DbCheckCommand;
-use Mata\Cli\Command\DbMigrateCommand;
-use Mata\Cli\Command\DbRollbackCommand;
-use Mata\Cli\Command\DbStatusCommand;
 use Mata\Cli\Command\DoctorCommand;
 use Mata\Cli\Command\MetricsStatusCommand;
+use Mata\Cli\Command\MigrateCheckCommand;
+use Mata\Cli\Command\MigrateDownCommand;
+use Mata\Cli\Command\MigrateStatusCommand;
+use Mata\Cli\Command\MigrateUpCommand;
 use Mata\Cli\Command\ServerAddCommand;
 use Mata\Cli\Command\ServerListCommand;
 use Mata\Cli\Command\ServerRemoveCommand;
@@ -73,10 +73,10 @@ $application->addCommands([
     new UserPasswdCommand($cli),
     new UserUnlockCommand($cli),
     new UserDeleteCommand($cli),
-    new DbStatusCommand($cli),
-    new DbMigrateCommand($cli),
-    new DbRollbackCommand($cli),
-    new DbCheckCommand($cli),
+    new MigrateStatusCommand($cli),
+    new MigrateUpCommand($cli),
+    new MigrateDownCommand($cli),
+    new MigrateCheckCommand($cli),
     new MetricsStatusCommand($cli),
     new DoctorCommand($cli),
     new AlarmTestCommand($cli),

@@ -9,8 +9,8 @@ use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 
-#[AsCommand(name: 'db:migrate', description: 'Apply pending database migrations')]
-final class DbMigrateCommand extends AbstractDbCommand
+#[AsCommand(name: 'migrate:up', description: 'Apply pending database migrations')]
+final class MigrateUpCommand extends AbstractDbCommand
 {
     protected function writes(): bool
     {

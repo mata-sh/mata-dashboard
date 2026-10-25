@@ -9,8 +9,8 @@ use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 
-#[AsCommand(name: 'db:rollback', description: 'Roll back the last database migration')]
-final class DbRollbackCommand extends AbstractDbCommand
+#[AsCommand(name: 'migrate:down', description: 'Roll back the last database migration')]
+final class MigrateDownCommand extends AbstractDbCommand
 {
     protected function configure(): void
     {

@@ -156,7 +156,7 @@ help:
 	@echo "$(COLOR_BOLD)OPERATOR CLI$(COLOR_RESET) (bin/mata; make mata runs it as the right user and container)"
 	@echo "  $(COLOR_GREEN)make mata$(COLOR_RESET) $(COLOR_CYAN)ARGS=\"user create admin admin\"$(COLOR_RESET)   users: list, create, passwd, unlock, delete"
 	@echo "  $(COLOR_GREEN)make mata$(COLOR_RESET) $(COLOR_CYAN)ARGS=\"server add <name> ...\"$(COLOR_RESET)     servers: list, add, test, remove"
-	@echo "  $(COLOR_GREEN)make mata$(COLOR_RESET) $(COLOR_CYAN)ARGS=\"config validate\"$(COLOR_RESET)           also: db status|rollback|check, alarm test|explain"
+	@echo "  $(COLOR_GREEN)make mata$(COLOR_RESET) $(COLOR_CYAN)ARGS=\"config validate\"$(COLOR_RESET)           also: migrate status|up|down|check, alarm test|explain"
 	@echo "  $(COLOR_GREEN)make mata$(COLOR_RESET)                                  list every command; $(COLOR_CYAN)ARGS=\"<command> --help\"$(COLOR_RESET) for options"
 	@echo ""
 	@echo "$(COLOR_BOLD)OPA$(COLOR_RESET)"
@@ -555,7 +555,7 @@ mata:
 # Kept as a target because deployments run it; the confirmation happens here, not in the container.
 db-migrate:
 	@$(call CONFIRM_PRODUCTION_WRITE,database migration); \
-	$(call RUN_MATA,db:migrate --yes)
+	$(call RUN_MATA,migrate:up --yes)
 
 db-backup:
 	@$(REQUIRE_SELECTION); \

@@ -10,8 +10,8 @@ use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 
-#[AsCommand(name: 'db:status', description: 'Show pending database migrations')]
-final class DbStatusCommand extends AbstractDbCommand
+#[AsCommand(name: 'migrate:status', description: 'Show pending database migrations')]
+final class MigrateStatusCommand extends AbstractDbCommand
 {
     protected function configure(): void
     {
@@ -34,7 +34,7 @@ final class DbStatusCommand extends AbstractDbCommand
             CliOutput::json($output, ['status' => $level->label(), 'environment' => $this->config->environment->env, 'pending' => $pending]);
         } else {
             $migrations->printStatus();
-            $output->writeln($pending === [] ? '<info>Up to date.</info>' : '<comment>' . count($pending) . ' pending; run bin/mata db migrate</comment>');
+            $output->writeln($pending === [] ? '<info>Up to date.</info>' : '<comment>' . count($pending) . ' pending; run bin/mata migrate up</comment>');
         }
 
         return $level->value;

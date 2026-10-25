@@ -41,8 +41,8 @@ a missing argument, also exit `2`.
 | `server remove` | removed | removed, with a file warning | not found or cancelled |
 | `status` | all ok | maintenance, a cron job that never ran, a config problem | node unhealthy or unreachable, cron overdue |
 | `doctor` | all checks pass | warnings | a check failed |
-| `db status` | up to date | migrations pending | database unreachable |
-| `db migrate`, `db rollback`, `db check` | done or passed | — | failed |
+| `migrate status` | up to date | migrations pending | database unreachable |
+| `migrate up`, `migrate down`, `migrate check` | done or passed | — | failed |
 | `metrics status` | listed | — | database unreachable |
 | `user …` | done | — | failed or refused |
 | `alarm test` | sent, or channels listed | — | delivery failed or unknown channel |
