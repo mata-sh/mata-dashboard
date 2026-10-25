@@ -1,5 +1,22 @@
 # Contributing
 
+## Before you open a pull request
+
+MATA is maintained by one developer alongside other work, so reviews can take
+a while.
+
+- **Bugs and questions:** open an issue with the version (`bin/mata --version`),
+  native or Docker mode, and the output of `bin/mata doctor` with secrets
+  removed.
+- **Typos and documentation fixes:** open a pull request directly.
+- **Anything else:** open an issue first and describe the problem before
+  writing code. Changes should fit the [scope](README.md#scope).
+- **Security issues:** follow [`SECURITY.md`](SECURITY.md), not a public issue.
+
+A pull request may be declined even when the code is good, if it adds more
+maintenance than the project can take on. That is a decision about scope, not
+about the work.
+
 ## Start
 
 ```bash

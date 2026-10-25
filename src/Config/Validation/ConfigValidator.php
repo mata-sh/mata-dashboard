@@ -66,6 +66,13 @@ final class ConfigValidator
             }
         }
 
+        // Local policies have no $onlyFile entry, so only a full run lists and checks them.
+        if ($onlyFile === null) {
+            foreach ((new LocalPolicyValidator())->files($configPath) as $file) {
+                $files[$file] = true;
+            }
+        }
+
         // Env files always load: the JSON loaders read their variables (channels.json *_env keys).
         $loader = new EnvConfigLoader();
         [$envProblems, $config] = $this->validateEnv($configPath, $loader);
@@ -74,7 +81,7 @@ final class ConfigValidator
             $envProblems = [];
         }
 
-        // Local policies have no $onlyFile entry, so only a full run checks them.
+        // The policy checks compare against the alarm decision settings, so they need the env config.
         $policyProblems = [];
         if ($onlyFile === null && $config !== null) {
             $policyProblems = (new LocalPolicyValidator())->validate($configPath, $config->alarmDecision, $loader->sourceOf(...));
@@ -98,7 +105,7 @@ final class ConfigValidator
         return [...EnvConfigLoader::INSTANCE_FILES, ...array_merge(...array_column($this->jsonChecks(), 'files'))];
     }
 
-    /** @return array{list<ConfigProblem>,?ApplicationConfig} */
+    /** @return array{0: list<ConfigProblem>, 1: ?ApplicationConfig} the problems, and the config unless it failed to load */
     private function validateEnv(string $configPath, EnvConfigLoader $loader): array
     {
         $problems = [];

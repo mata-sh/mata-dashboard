@@ -31,7 +31,7 @@ final class LocalPolicyValidator
      */
     public function validate(string $configPath, AlarmDecisionConfig $alarmDecision, Closure $sourceOf): array
     {
-        $files = $this->policyFiles($configPath);
+        $files = $this->files($configPath);
 
         $problems = [];
         foreach ($files as $file) {
@@ -56,6 +56,26 @@ final class LocalPolicyValidator
         }
 
         return $problems;
+    }
+
+    /** @return list<string> .rego files below LOCAL_POLICY_DIR, relative to the config path */
+    public function files(string $configPath): array
+    {
+        $dir = $configPath . '/' . self::LOCAL_POLICY_DIR;
+        if (!is_dir($dir)) {
+            return [];
+        }
+
+        $files = [];
+        $iterator = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($dir, FilesystemIterator::SKIP_DOTS));
+        foreach ($iterator as $entry) {
+            if ($entry->isFile() && $entry->getExtension() === 'rego') {
+                $files[] = self::LOCAL_POLICY_DIR . substr($entry->getPathname(), strlen($dir));
+            }
+        }
+        sort($files);
+
+        return $files;
     }
 
     /**
@@ -101,25 +121,5 @@ final class LocalPolicyValidator
         $source = (string) file_get_contents($path);
 
         return preg_match('/^\s*package\s+(\S+)/m', $source, $match) === 1 ? $match[1] : null;
-    }
-
-    /** @return list<string> .rego files below LOCAL_POLICY_DIR, relative to the config path */
-    private function policyFiles(string $configPath): array
-    {
-        $dir = $configPath . '/' . self::LOCAL_POLICY_DIR;
-        if (!is_dir($dir)) {
-            return [];
-        }
-
-        $files = [];
-        $iterator = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($dir, FilesystemIterator::SKIP_DOTS));
-        foreach ($iterator as $entry) {
-            if ($entry->isFile() && $entry->getExtension() === 'rego') {
-                $files[] = self::LOCAL_POLICY_DIR . substr($entry->getPathname(), strlen($dir));
-            }
-        }
-        sort($files);
-
-        return $files;
     }
 }

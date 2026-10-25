@@ -161,11 +161,13 @@ final class ConfigValidatorTest extends TestCase
         mkdir($this->configPath . '/policy');
         copy(dirname(__DIR__, 4) . '/policy/alarms.rego', $this->configPath . '/policy/alarms.rego');
 
-        $problems = $this->problemsOfType((new ConfigValidator())->validate($this->configPath), 'config.policy.invalid');
+        $report = (new ConfigValidator())->validate($this->configPath);
+        $problems = $this->problemsOfType($report, 'config.policy.invalid');
 
         $this->assertCount(1, $problems);
         $this->assertSame(StatusLevel::Error, $problems[0]->level);
         $this->assertSame(['policy/alarms.rego'], $problems[0]->files());
+        $this->assertSame(StatusLevel::Error, $report->fileStatus('policy/alarms.rego'));
     }
 
     public function testLocalPolicyThatTheDecisionPathDoesNotQueryWarns(): void

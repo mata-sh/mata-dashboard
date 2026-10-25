@@ -193,6 +193,18 @@ MATA began as a minimalistic tool for monitoring PHP deployments with limited ho
 - Large user populations
 - Kubernetes or large-scale observability
 
+## Project status
+
+MATA is used in production by the team that builds it, to monitor client
+applications across managed hosting and small VPSs. It is pre-1.0:
+configuration and the node API can still change between minor releases, and
+the [changelog](CHANGELOG.md) lists the action each upgrade needs.
+
+It is maintained by one developer alongside other work. There is no support
+agreement or guaranteed response time. Bug reports and questions are welcome
+in [issues](https://github.com/mata-sh/mata-dashboard/issues); please read
+[`CONTRIBUTING.md`](CONTRIBUTING.md) before opening a pull request.
+
 ## Documentation
 
 Full docs at [docs.mata.sh][docs-url] (source in [`docs/`](docs/index.md)):

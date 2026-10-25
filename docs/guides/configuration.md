@@ -253,8 +253,9 @@ values. Without the check, a broken file only shows up as a warning event while
 the app runs on defaults; only a missing or invalid `servers.json` or
 `servers.secrets.json` raises an alarm.
 
-A full run also checks `config/policy/`: a file outside a `local` package is an
-error, a decision path that does not match the local policies a warning (see
+A full run also lists and checks each `.rego` file in `config/policy/`: a file
+outside a `local` package is an error, a decision path that does not match the
+local policies a warning (see
 [Local policy overrides](../reference/alarms.md#local-policy-overrides)).
 
 A file argument validates everything loaded with it: any of the three `.env`
