@@ -6,63 +6,43 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
-- Security advisory monitoring: `config/advisories.json` lists RSS/Atom feeds, GitHub repository advisories, IMAP mailboxes, OSV.dev packages and CSAF providers with keyword and severity filters. New relevant advisories are recorded once as `advisories.matched` events that alarm through the usual decision driver and notification rules (`"notify": false` only lists them); failing sources and a stopped poller warn. **Action:** copy `config.example/advisories.json.example`, run `bin/mata db migrate`, then `bin/mata advisory:fetch` for the baseline; shared hosting adds the two `advisories_*` lines from `cron/crontab.shared-hosting.template`.
-- An **Advisories** page lists sources, advisories with their raw payload and review status, and downloads PDF, Markdown, HTML or JSON reports. Like the Composer audit, the sources and report downloads fold under the page title behind a summary; disabled sources are hidden unless "show disabled" is on.
-- `bin/mata advisory:sources`, `advisory:fetch [--preview]` and `advisory:report` (PDF, Markdown, HTML, JSON, or `--mail`); `advisories.json` `digest` mails the report periodically.
+- Security advisory monitoring: `config/advisories.json` lists RSS/Atom feeds, GitHub repository advisories, IMAP mailboxes, OSV.dev packages and CSAF providers with keyword and severity filters. New relevant advisories are recorded once as `advisories.matched` events that alarm through the usual decision driver and notification rules (`"notify": false` only lists them); failing sources and a stopped poller warn. `bin/mata advisory:sources|fetch|report` and the `digest` setting mail PDF, Markdown, HTML or JSON reports. **Action:** copy `config.example/advisories.json.example`, run `bin/mata db migrate`, then `bin/mata advisory:fetch` for the baseline; shared hosting adds the two `advisories_*` lines from `cron/crontab.shared-hosting.template`.
+- An **Advisories** page lists sources and advisories with their review status and downloads reports.
+- `bin/mata` operator CLI (`make mata ARGS="…"` runs it as the web server user): `server add|list|test|remove`, `config validate`, `status` (Nagios exit codes), `doctor`, `user …`, `db …`, `alarm test|explain`, `metrics status` and `--version`, most with `--json`. Docker images built with `make` carry the version, also as the `org.opencontainers.image.version` label.
 - `curl -fsSL https://mata.sh/install.sh | sh` installs the newest release with Docker for production; `--native` prepares a native checkout. Each release attaches `install.sh`.
 - `make uninstall` removes a Docker install, including the database, `logs/` and `temp/` that only the containers can delete.
-- The "Install with a coding agent" guide is a runbook for agents; the docs site publishes `llms.txt`.
-- `DEMO_SEED` makes the generated demo data repeatable
-- A summary bar above the server grid counts servers and apps by state and filters the cards.
-- Server cards reload from the cache every `DASHBOARD_AUTO_REFRESH_SECONDS` (default 60).
-- In `demo`, `DEMO_LOGIN_USERNAME` and `DEMO_LOGIN_PASSWORD` prefill the login form.
-- `config.example/AGENTS.md` gives coding agents rules for editing a config repository.
-- `bin/mata alarm test [channel]` replaces `scripts/alarm_channel_test.php`; `bin/mata alarm explain [server]` shows recent alarm decisions.
-- `bin/mata metrics status` replaces `scripts/server_metrics_diagnostic.php`.
-- `bin/mata user …`, `db …` and `doctor` commands, all with `--json`.
-- `bin/mata status` reports node health and cron jobs with Nagios exit codes.
-- `bin/mata --version` shows the installed release, taken from git tags; Docker images built with `make` include it, also as the `org.opencontainers.image.version` label.
-- `bin/mata server add|list|test|remove` manage `servers.json` and `servers.secrets.json`.
-- `bin/mata config validate` checks every config file with the app's own loaders.
-- `bin/mata` is the new operator CLI; `make mata ARGS="…"` runs it as the web server user.
-- `make doctor` shows where `config/` points and whether it is a Git repository.
-- Database cards show each named connection as a collapsible row with its engine, aligned metrics and databases; one failed connection no longer hides the others. `database_unreachable` lists all failed connections; `database_connections_too_high` uses the busiest. **Action:** update dashboard and nodes together; older nodes' database data is rejected.
+- A summary bar above the server grid counts servers and apps by state and filters the cards; the cards reload from the cache every `DASHBOARD_AUTO_REFRESH_SECONDS` (default 60).
+- Demo: `DEMO_SEED` makes the generated data repeatable, and `DEMO_LOGIN_USERNAME` and `DEMO_LOGIN_PASSWORD` prefill the login form.
+- Coding agents: the "Install with a coding agent" guide is a runbook, the docs site publishes `llms.txt`, and `config.example/AGENTS.md` gives rules for editing a config repository.
 
 ### Changed
-- Alarm emails and advisory reports (PDF, HTML mail) use the dashboard's severity colors: severity labels are solid pills like the Composer audit, critical, high, medium and low are easier to tell apart, and error and warning alarms no longer share one color. The header shows the plain brand name instead of `MATA://…`, and the severity strip along the left edge is gone.
-- The non-Docker mode is now `MODE=native` (was `MODE=local`); `local` is no longer accepted. Native installs set up earlier: change `MODE := local` to `MODE := native` in `.mata.mk`, or rerun `make setup`.
-- An invalid `MAIL_DASHBOARD_URL` (not absolute http(s), or with `user:pass@`) no longer fails alarm delivery: alarm mails, webhooks and advisory reports omit the dashboard link; `bin/mata config validate` warns and the settings page marks it, masking any password.
-- The built-in alarm decision driver also delivers security advisory alarms and advisory poller warnings.
-- `make setup` runs without prompts when there is no terminal, so scripts and coding agents can install MATA.
-- Docker setup replaces the placeholder `MYSQL_ROOT_PASSWORD` and `DB_PASSWORD` with generated values.
-- `make db-migrate` runs `bin/mata db migrate` as the web server user.
-- Documentation is published at https://docs.mata.sh
-- The demo shows a mostly healthy fleet with a single incident instead of every failure state at once.
-- The server grid adapts to the screen width: `DASHBOARD_SERVER_COLUMNS` is now a maximum (default 4).
+- Database cards show each named connection as a collapsible row with its engine, metrics and databases; one failed connection no longer hides the others. `database_unreachable` lists all failed connections; `database_connections_too_high` uses the busiest. **Action:** update dashboard and nodes together; older nodes' database data is rejected.
+- The non-Docker mode is now `MODE=native`; `local` is no longer accepted. **Action:** in `.mata.mk`, change `MODE := local` to `MODE := native`, or rerun `make setup`.
 - Node API keys move from `config/servers.json` to `config/servers.secrets.json`. **Action:** move each `api_key` there; the file needs mode 0640 and the web server's group.
-- The application repository ignores all of `config/`; templates moved to `config.example/`.
-- Config load events use one naming scheme: `<file>_config_invalid`
 - Server names in `servers.json` follow the `bin/mata server add` rule; other servers are dropped and reported. **Action:** rename them in both server files and the node's `DASHBOARD_SERVER_ID`.
-- An empty `config/probes.json` means the built-in probe defaults.
-- The development container no longer changes the owner or mode of `config/` on start. **Action:** if Git reports dubious ownership, run `sudo chown -R "$(id -un)" config/` once.
 - A `thresholds.json` metric whose limits decrease in the listed order is skipped and reported. **Action:** run `bin/mata config validate`.
+- Config load events are renamed: `<file>_config_not_found` to `<file>_config_invalid` and `<file>_config_validation_error` to `<file>_config_invalid_entry`. **Action:** run `bin/mata db migrate` and rename these keys in `notification_rules.json`.
+- `config/` is instance-owned: the application repository ignores all of it, templates moved to `config.example/`, and the development container no longer changes its owner or mode on start. **Action:** if Git reports dubious ownership, run `sudo chown -R "$(id -un)" config/` once.
+- Alarm emails and advisory reports use the dashboard's severity colors and a plain header; error and warning alarms no longer share one color.
+- An invalid `MAIL_DASHBOARD_URL` (not absolute http(s), or with `user:pass@`) no longer fails alarm delivery: messages omit the dashboard link, and `bin/mata config validate` and the settings page flag it.
+- `make setup` runs without prompts when there is no terminal, and Docker setup replaces the placeholder `MYSQL_ROOT_PASSWORD` and `DB_PASSWORD` with generated values.
+- `make db-migrate` runs `bin/mata db migrate` as the web server user; `make doctor` shows where `config/` points and whether it is a Git repository.
+- The server grid adapts to the screen width: `DASHBOARD_SERVER_COLUMNS` is now a maximum (default 4).
+- An empty `config/probes.json` means the built-in probe defaults.
+- The demo shows a mostly healthy fleet with a single incident instead of every failure state at once.
+- Documentation is published at <https://docs.mata.sh>.
 
 ### Removed
-- `config/phinx.php`, which `make db-migrate` never used.
-- `make users-*`, `db-rollback`, `db-status`, `db-check`, `db-hash-password` and the scripts they ran; use `bin/mata user …` and `bin/mata db …`.
+- `scripts/alarm_channel_test.php`, `scripts/server_metrics_diagnostic.php`, `make users-*`, `db-rollback`, `db-status`, `db-check`, `db-hash-password` and the scripts they ran; use `bin/mata alarm test`, `metrics status`, `user …` and `db …`.
 
 ### Fixed
+- Docker: two dashboard stacks on one host no longer reach each other's MySQL and OPA; only the web container joins the shared `mata-network`. **Action:** recreate the containers.
+- Cron jobs honour `LOG_PATH` and `TEMP_DIR`; they wrote to the default `logs/` and `temp/`, so the dashboard showed stale data and cron jobs as not running.
+- Production Docker: fresh installs build, run their cron jobs, and allow sign-in and user commands.
 - The libraries and logs tables no longer empty themselves when the notification bell refreshes.
 - Alarm text mails no longer join the metric line and "Last seen" when the metric has a detail.
-- Docker: two dashboard stacks on one host no longer reach each other's MySQL and OPA. Both now sit on a network private to each Compose project, and only the web container joins the shared `mata-network` to reach nodes. Recreate the containers for this to apply.
-- `config validate` reports actual file, process, and missing-input sources once per problem; each JSON problem lists every implicated file in `files`.
-- Cron jobs honour `LOG_PATH` and `TEMP_DIR`; they wrote caches, locks and heartbeats to the default `logs/` and `temp/`, so the dashboard showed stale data and cron jobs as not running
-- Production Docker: sign-in and user commands work; PHP's `open_basedir` excluded the users volume
-- Production Docker runs its cron jobs on a fresh install; they failed until `logs/cron` existed on the host
-- Production Docker builds leave out `data/`, which made the build fail once MySQL owned it
-- When the account may not use Docker, `make` says so and names the fix instead of reporting "Docker daemon is unavailable"
-- The users-file error page links to the users-file setup guide instead of a missing page
-- App environment badges (PROD, TEST, …) center their text vertically
+- When the account may not use Docker, `make` says so and names the fix instead of reporting "Docker daemon is unavailable".
+- The users-file error page links to the users-file setup guide instead of a missing page.
 
 ## [0.8.0] - 2026-10-11
 
