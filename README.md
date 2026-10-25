@@ -91,6 +91,15 @@ Collected from nodes:
 Not collected: secrets, environment variables, database contents, source code.
 What a node exposes is what the node is configured to expose.
 
+## Security advisories
+
+The dashboard can also watch security advisory sources: RSS/Atom feeds,
+GitHub repository advisories, IMAP mailboxes, OSV.dev packages and CSAF
+providers. Keyword and severity filters decide what is relevant; each new
+match alarms once through the usual notification rules. The **Advisories**
+page lists sources and advisories, and a scheduled digest mails PDF, Markdown,
+HTML or JSON reports. See [Security advisories](docs/guides/security-advisories.md).
+
 ## Alarm model
 
 | Term | Meaning |
@@ -141,6 +150,7 @@ installs the same manifest as the `www-data` crontab.
 | `servers_metrics_collect.php` | Writes raw server snapshots (chained after the fetch, reusing the warm cache) |
 | `servers_metrics_aggregate.php` | Rolls raw rows up to hourly and daily |
 | `libraries_audit.php` | Refreshes expired Composer audits and records new security advisories |
+| `advisories_poll.php` / `advisories_digest.php` | Polls advisory sources and records new matches / mails the advisory digest when due |
 | `alarms_evaluate_{critical,non_critical}.php` | Turns events into logical alarms |
 | `alarms_dispatch.php` | Sends due deliveries |
 | `retention_cleanup.php` / `rate_limit_cleanup.php` | Expire database rows and file-based rate-limit state |
@@ -169,6 +179,7 @@ Full docs at [docs.mata.sh][docs-url] (source in [`docs/`](docs/index.md)):
 [architecture](docs/architecture/overview.md) ·
 [technology choices](docs/architecture/technology-choices.md) ·
 [configuration](docs/guides/configuration.md) ·
+[security advisories](docs/guides/security-advisories.md) ·
 [server metrics pipeline](docs/architecture/server-metrics-pipeline.md) ·
 [development setup](docs/development/development-setup.md)
 
