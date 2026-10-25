@@ -141,19 +141,16 @@ class DatabaseRenderer extends BaseRenderer
     /**
      * @param array<string,mixed> $overview Normalized `databases/overview` result
      *
-     * @return array<string,mixed> Display-ready server status and monitored databases
+     * @return array<string,mixed> Display-ready connections, each with its monitored databases
      */
     private function buildOverview(array $overview, string $server): array
     {
-        $connections = [];
-        $databases = [];
-        foreach ($overview['connections'] as $connection) {
-            $summary = $this->buildConnection($connection, $server);
-            $connections[] = $summary;
-            array_push($databases, ...$summary['databases']);
-        }
-
-        return ['connections' => $connections, 'databases' => $databases];
+        return [
+            'connections' => array_map(
+                fn (array $connection): array => $this->buildConnection($connection, $server),
+                $overview['connections'],
+            ),
+        ];
     }
 
     /**
@@ -190,9 +187,6 @@ class DatabaseRenderer extends BaseRenderer
                 fn (array $database): array => [
                     'name' => $database['name'],
                     'description' => $database['description'],
-                    'engine' => $overview['engine'],
-                    'connection' => $overview['connection'],
-                    'error' => $overview['error'],
                     'process_modal_url' => $this->endpoints->url('modal_db_processes_render', $params, ['database' => $database['name']]),
                 ],
                 $databases,

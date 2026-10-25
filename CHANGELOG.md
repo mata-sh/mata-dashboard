@@ -26,7 +26,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `bin/mata config validate` checks every config file with the app's own loaders.
 - `bin/mata` is the new operator CLI; `make mata ARGS="…"` runs it as the web server user.
 - `make doctor` shows where `config/` points and whether it is a Git repository.
-- Database cards show each named connection with its engine and status; one failed connection no longer hides the others. `database_unreachable` lists all failed connections; `database_connections_too_high` uses the busiest. **Action:** update dashboard and nodes together; older nodes' database data is rejected.
+- Database cards group databases under each named connection, with its engine and status; one failed connection no longer hides the others. `database_unreachable` lists all failed connections; `database_connections_too_high` uses the busiest. **Action:** update dashboard and nodes together; older nodes' database data is rejected.
 
 ### Changed
 - The non-Docker mode is now `MODE=native` (was `MODE=local`); `local` is no longer accepted. Native installs set up earlier: change `MODE := local` to `MODE := native` in `.mata.mk`, or rerun `make setup`.
