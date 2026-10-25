@@ -3957,6 +3957,12 @@ label.audit-chip:has(input:checked)::after {
     margin-right: .25rem;
 }
 
+/* Table severity pills share one width, sized for CRITICAL */
+.advisory-severity {
+    justify-content: center;
+    min-width: 8em;
+}
+
 .advisory-mono {
     font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
     font-size: .78rem;

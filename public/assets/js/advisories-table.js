@@ -16,7 +16,7 @@
     function formatSeverity(cell) {
         var row = cell.getRow().getData();
         var element = document.createElement('span');
-        element.className = 'audit-pill sev-' + row.severity;
+        element.className = 'audit-pill advisory-severity sev-' + row.severity;
         element.textContent = row.severity_label;
 
         return element;
