@@ -70,6 +70,7 @@ installed on each monitored host.
   still works when the database does not.
 - **Policy as code.** Alarm decisions are Rego policies in `policy/`, unit-tested
   with OPA in CI; the same policies validate the shipped config examples.
+  Installations add their own overrides in `config/policy/`.
 - **Configurable retention** for metrics, events, and alarms.
 
 [`SECURITY.md`](SECURITY.md) covers vulnerability reporting and supported
@@ -115,6 +116,25 @@ decision driver.
 Decisions come from OPA (`policy/*.rego`) where it can run, or from a
 deliberately limited built-in driver where it cannot; see
 [`ALARM_DECISION_DRIVER`](docs/reference/alarms.md).
+
+## Configuration as code
+
+There is no settings UI. Configuration is plain files: JSON for monitoring,
+`.env` for credentials and per-host settings, Rego for alarm decisions.
+
+- **Versionable.** The application repository ignores `config/`, so it can be
+  its own Git repository with history, diffs and rollback; credentials stay in
+  ignored files. See [Version your config](docs/guides/version-config.md).
+- **Overridable policies.** `policy/` ships and updates with the dashboard.
+  Local policies in `config/policy/` build on it and are versioned with your
+  configuration. See [Local policy overrides](docs/reference/alarms.md#local-policy-overrides).
+- **Validated.** `bin/mata config validate` checks every file and `make opa-test`
+  the policies; both fit a pre-commit hook.
+- **Scriptable.** Every `bin/mata` command takes `--json` and documents its exit
+  codes.
+- **Agent ready.** `config.example/AGENTS.md` gives coding agents the rules for
+  a configuration repository, [Install with a coding agent](docs/guides/agent-install.md)
+  is a non-interactive runbook, and the documentation publishes `llms.txt`.
 
 ## Requirements
 
@@ -179,6 +199,7 @@ Full docs at [docs.mata.sh][docs-url] (source in [`docs/`](docs/index.md)):
 [architecture](docs/architecture/overview.md) ·
 [technology choices](docs/architecture/technology-choices.md) ·
 [configuration](docs/guides/configuration.md) ·
+[version your config](docs/guides/version-config.md) ·
 [security advisories](docs/guides/security-advisories.md) ·
 [server metrics pipeline](docs/architecture/server-metrics-pipeline.md) ·
 [development setup](docs/development/development-setup.md)

@@ -20,6 +20,10 @@ installs, and only as the right user.
   name must equal the node's `DASHBOARD_SERVER_ID`.
 - **Keep permissions when editing by hand:** the web server reads these files through their group.
   `servers.secrets.json` must stay `0640` with the web server's group, or every server fails to load.
+- **Alarm policies go in `policy/` under a `local` package** (`package local.alarms`), built on the
+  shipped one with `import data.alarms as shipped` and `else := shipped.decision`. Never copy the
+  shipped `alarms.rego` with its package: OPA then loads no policy at all. `OPA_ALARM_DECISION_PATH`
+  in `config.env` selects the local decision; `make opa-test` must pass before you commit.
 
 ## Checking the effect
 

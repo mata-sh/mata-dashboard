@@ -43,6 +43,91 @@ selects, and denies other candidates. See [Security advisories](../guides/securi
 Disabled threshold entries still allow event recording but do not create alarms
 through this pipeline.
 
+## Local policy overrides
+
+`policy/alarms.rego` ships with the dashboard and updates with it. To change a
+decision, write your own policy in `config/policy/`, which you
+[version with the rest of your configuration](../guides/version-config.md).
+OPA loads that directory next to `policy/`, and `OPA_ALARM_DECISION_PATH`
+selects which decision the dashboard asks for.
+
+!!! warning "Use a package under `local`"
+    OPA merges both directories into one namespace. Declare a package under
+    `local`, such as `local.alarms`. A copy of `alarms.rego` that keeps
+    `package alarms` stops OPA from loading any policy, so `config validate`
+    reports it as an error.
+
+Build on the shipped policy instead of copying it. `import data.alarms` gives
+access to its rules and helpers, and `else := shipped.decision` keeps every
+other event as shipped, including changes that arrive with an upgrade:
+
+```rego
+# config/policy/alarms.rego
+package local.alarms
+
+import rego.v1
+import data.alarms as shipped
+
+# Fatal errors on staging alarm too; everything else as shipped.
+decision := {
+    "allow": true,
+    "channels": shipped.configured_channels(),
+    "priority": 20,
+    "enrich": false,
+    "reason": "fatal_errors_staging",
+} if {
+    input.event.type == "fatal_errors_occurring"
+    input.application.env == "staging"
+} else := shipped.decision
+```
+
+Then point the dashboard at it in `config/config.env`:
+
+```env
+OPA_ALARM_DECISION_PATH=/v1/data/local/alarms/decision
+```
+
+The comment at the top of `policy/alarms.rego` documents the input and the
+result fields. Remove the variable to go back to the shipped decision.
+
+Keep tests next to the policy, in files ending in `_test.rego`:
+
+```rego
+# config/policy/alarms_test.rego
+package local.alarms_test
+
+import rego.v1
+import data.local.alarms
+
+test_staging_fatal_alarms if {
+    alarms.decision.reason == "fatal_errors_staging" with input as {
+        "event": {"type": "fatal_errors_occurring", "level": "error"},
+        "application": {"env": "staging"},
+        "channels": ["email"],
+    }
+}
+```
+
+After each change:
+
+| Command | Checks |
+| --- | --- |
+| `make opa-test` | Local and shipped policies compile together, and all tests pass |
+| `make mata ARGS="config validate"` | Package names; a local policy the decision path does not query, or a decision path without one |
+| `make mata ARGS="doctor"` | OPA answers the configured decision path |
+
+!!! warning "OPA keeps the last policy that compiled"
+    OPA reloads both directories when a file changes. It ignores a file that
+    does not compile, logs that only at info level, and keeps serving the
+    previous version, so `doctor` still passes. Run `make opa-test` before you
+    rely on a change. When OPA starts with a broken file, it loads no policy at
+    all.
+
+Local policies take effect only with `ALARM_DECISION_DRIVER=opa`; the built-in
+driver ignores them. Docker mounts `config/policy/` into the OPA container. A
+native systemd OPA loads it once `make opa-install-service` has written the
+unit.
+
 ## Direct alarms
 
 Configuration and bootstrap failures use an emergency path. Direct alarms

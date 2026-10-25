@@ -6,6 +6,7 @@ namespace Mata\Tests\Unit\Config;
 
 use Mata\Config\ConfigSource;
 use Mata\Config\Validation\ConfigProblem;
+use Mata\Config\Validation\ConfigValidationReport;
 use Mata\Config\Validation\InstanceConfigValidator;
 use Mata\Services\Status\StatusLevel;
 use PHPUnit\Framework\TestCase;
@@ -41,7 +42,10 @@ final class InstanceConfigValidatorTest extends TestCase
     {
         $_ENV = $this->env;
         $_SERVER = $this->server;
-        array_map('unlink', glob($this->configPath . '/*') ?: []);
+        // policy/ files first, so the directory is empty when the top level removes it.
+        foreach ([...glob($this->configPath . '/policy/*') ?: [], ...glob($this->configPath . '/*') ?: []] as $path) {
+            is_dir($path) ? rmdir($path) : unlink($path);
+        }
         rmdir($this->configPath);
     }
 
@@ -143,6 +147,37 @@ final class InstanceConfigValidatorTest extends TestCase
         file_put_contents($this->configPath . '/config.env', "DOMAIN=example.com\n");
         file_put_contents($this->configPath . '/db.config.env', "DB_HOST=localhost\nDB_USERNAME=mata\nDB_PASSWORD=secret\nDB_DATABASE=mata\nDB_PORT=3306\n");
         file_put_contents($this->configPath . '/mail.config.env', "SYM_MAILER_DSN=null://null\nSYM_FROM_EMAIL=monitor@example.com\n");
+    }
+
+    public function testCopiedShippedPolicyIsAnErrorBecauseOpaWouldNotLoad(): void
+    {
+        $this->writeMinimalEnv();
+        mkdir($this->configPath . '/policy');
+        copy(dirname(__DIR__, 4) . '/policy/alarms.rego', $this->configPath . '/policy/alarms.rego');
+
+        $problems = $this->problemsOfType((new InstanceConfigValidator())->validate($this->configPath), 'config.policy.package.invalid');
+
+        $this->assertCount(1, $problems);
+        $this->assertSame(StatusLevel::Error, $problems[0]->level);
+        $this->assertSame(['policy/alarms.rego'], $problems[0]->files());
+    }
+
+    public function testLocalPolicyThatTheDecisionPathDoesNotQueryWarns(): void
+    {
+        $this->writeMinimalEnv();
+        mkdir($this->configPath . '/policy');
+        file_put_contents($this->configPath . '/policy/alarms.rego', "package local.alarms\n\nimport data.alarms as shipped\n\ndecision := shipped.decision\n");
+
+        $problems = $this->problemsOfType((new InstanceConfigValidator())->validate($this->configPath), 'config.policy.unused');
+
+        $this->assertCount(1, $problems);
+        $this->assertSame(StatusLevel::Warning, $problems[0]->level);
+    }
+
+    /** @return list<ConfigProblem> */
+    private function problemsOfType(ConfigValidationReport $report, string $type): array
+    {
+        return array_values(array_filter($report->problems, static fn (ConfigProblem $problem): bool => $problem->type === $type));
     }
 
     public function testShippedTemplatesHaveNoErrors(): void

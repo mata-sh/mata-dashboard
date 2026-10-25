@@ -70,9 +70,21 @@ services:
     image: openpolicyagent/opa:1.19.1
     container_name: ${COMPOSE_PROJECT_NAME:-mata}-opa
     restart: unless-stopped
-    command: ["run", "--server", "--addr", "0.0.0.0:3320", "--watch", "/policies"]
+    command: ["run", "--server", "--addr", "0.0.0.0:3320", "--watch", "/policies", "/local-policies"]
+    # The image runs as 1000:1000; www-data's group (33) lets it read the 0640 files that
+    # make prod-fix-perms leaves in config/.
+    group_add:
+      - "33"
     volumes:
       - ./policy:/policies:ro
+      # Local overrides (packages under local.*). make creates the directory; without it Docker
+      # would create a root-owned one inside config/, which may be its own Git repository.
+      - type: bind
+        source: ./config/policy
+        target: /local-policies
+        read_only: true
+        bind:
+          create_host_path: false
 
 volumes:
   mysql_data:

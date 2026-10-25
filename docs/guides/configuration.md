@@ -32,6 +32,7 @@ creates `.env` for Compose.
 | `config/limits.json` | Optional transport limits for queued alarm deliveries |
 | `config/channels.json` | Optional alarm channels besides email, such as a Telegram webhook |
 | `config/advisories.json` | Optional [security advisory](security-advisories.md) sources, filters and digest |
+| `config/policy/` | Optional [local alarm policies](../reference/alarms.md#local-policy-overrides), loaded by OPA |
 
 `probes.json`, `notification_rules.json`, `menu.json`, `charts.json`,
 `limits.json`, `channels.json`, and `advisories.json` are not created by setup. Their loaders use
@@ -252,8 +253,13 @@ values. Without the check, a broken file only shows up as a warning event while
 the app runs on defaults; only a missing or invalid `servers.json` or
 `servers.secrets.json` raises an alarm.
 
+A full run also checks `config/policy/`: a file outside a `local` package is an
+error, a decision path that does not match the local policies a warning (see
+[Local policy overrides](../reference/alarms.md#local-policy-overrides)).
+
 A file argument validates everything loaded with it: any of the three `.env`
-files checks their merged environment, and either server file checks both.
+files checks their merged environment, and either server file checks both. It
+skips the policy checks.
 
 Each problem names its sources without their values: a file and variable
 (`config.env:DOMAIN`), a process environment value (`process:DOMAIN`), or an
@@ -294,4 +300,5 @@ symlinked `config/` points and whether it is a Git repository; natively, it
 also checks PHP, Composer dependencies, and the OPA service. It then runs
 `bin/mata doctor` as the web server user: config validity, writable `logs/` and
 `temp/`, the users and secrets file modes, the database and pending migrations,
-OPA health when it is the driver, and whether the data-fetch cron runs.
+OPA health and a decision from `OPA_ALARM_DECISION_PATH` when it is the driver,
+and whether the data-fetch cron runs.

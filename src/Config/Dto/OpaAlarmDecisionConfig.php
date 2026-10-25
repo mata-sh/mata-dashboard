@@ -8,6 +8,9 @@ use InvalidArgumentException;
 
 final readonly class OpaAlarmDecisionConfig
 {
+    /** Decision of the shipped policy/alarms.rego; config/policy/ overrides answer under /v1/data/local/. */
+    public const SHIPPED_DECISION_PATH = '/v1/data/alarms/decision';
+
     public string $baseUri;
     public string $decisionPath;
     public float $timeoutSeconds;

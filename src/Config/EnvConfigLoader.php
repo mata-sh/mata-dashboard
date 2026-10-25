@@ -115,7 +115,7 @@ final class EnvConfigLoader
             batchLimit: $this->getEnvInteger('ALARM_DECISION_BATCH_LIMIT', 100, minimum: 1),
             opa: new OpaAlarmDecisionConfig(
                 baseUri: (string) $this->getEnv('OPA_ALARM_BASE_URI', 'http://127.0.0.1:3320'),
-                decisionPath: (string) $this->getEnv('OPA_ALARM_DECISION_PATH', '/v1/data/alarms/decision'),
+                decisionPath: (string) $this->getEnv('OPA_ALARM_DECISION_PATH', OpaAlarmDecisionConfig::SHIPPED_DECISION_PATH),
                 timeoutSeconds: $this->getEnvDecimal('OPA_ALARM_TIMEOUT_SECONDS', 5, minimum: 1),
             ),
         );

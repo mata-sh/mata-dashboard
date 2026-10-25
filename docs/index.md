@@ -22,6 +22,7 @@ and delivers notifications.
 - [Quick start](guides/quickstart.md): native or shared hosting
 - [Install with a coding agent](guides/agent-install.md)
 - [Add your first server](guides/first-server.md)
+- [Version your config](guides/version-config.md): configuration and alarm policies in their own Git repository
 
 ## Contact
 

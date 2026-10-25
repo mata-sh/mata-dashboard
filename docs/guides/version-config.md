@@ -2,8 +2,9 @@
 
 `config/` belongs to your installation. The application repository ignores it
 completely, so you can keep it in its own Git repository. You get history,
-diffs, and rollback for thresholds, servers, and alarm rules, and an agent can
-propose configuration changes as commits you review.
+diffs, and rollback for thresholds, servers, alarm rules, and
+[local alarm policies](../reference/alarms.md#local-policy-overrides), and an
+agent can propose configuration changes as commits you review.
 
 Credentials stay out of that repository. They live only in `*.env` files and in
 `servers.secrets.json`, which the repository ignores.
@@ -15,7 +16,7 @@ Credentials stay out of that repository. They live only in `*.env` files and in
 | `servers.json`, `thresholds.json`, `intervals.json`, `ttl.json`, `data_retention.json` | `config.env`, `db.config.env`, `mail.config.env`: database password, mailer DSN, webhook URLs, advisory GitHub token and IMAP credentials, per-host settings |
 | `notification_rules.json`, `channels.json`, `limits.json` | `servers.secrets.json`: node API keys |
 | `probes.json`, `menu.json`, `charts.json`, `advisories.json` | `users.json`, `users.json.lock`: account state, not configuration |
-| | `demo/`: local demo data |
+| `policy/`: local Rego policies and their tests | `demo/`: local demo data |
 
 Use this `.gitignore` in the configuration repository:
 
@@ -124,24 +125,30 @@ for a checkout that is not mounted as `config/`. Save this as
 ```sh
 #!/bin/sh
 # Block the commit on errors (exit 2); let warnings (exit 1) through.
-php /path/to/mata-dashboard/bin/mata config validate --path "$(git rev-parse --show-toplevel)"
-[ $? -lt 2 ]
+root="$(git rev-parse --show-toplevel)"
+php /path/to/mata-dashboard/bin/mata config validate --path "$root"
+[ $? -lt 2 ] || exit 1
+# Compile and test local policies together with the shipped ones.
+[ ! -d "$root/policy" ] || opa test /path/to/mata-dashboard/policy "$root/policy"
 ```
 
-The hook checks the working tree, not only the staged changes.
+The hook checks the working tree, not only the staged changes. The `opa test`
+step needs the `opa` binary (`make setup-opa` puts it in the dashboard's
+`bin/`).
 
 If agents edit the configuration, copy `config.example/AGENTS.md` into the
 repository. It tells them to validate after every edit, keep keys in
-`servers.secrets.json`, and add servers with `make mata ARGS="server add …"`
-instead of editing the server files by hand.
+`servers.secrets.json`, add servers with `make mata ARGS="server add …"`
+instead of editing the server files by hand, and build local policies on the
+shipped one.
 
 The [configuration guide](configuration.md#validate-changes) lists what counts as
 an error.
 
-!!! info "Policies are part of the application"
-    The Rego policies in `policy/` ship with the dashboard and are not part of
-    your configuration. Adjust alarm behaviour through `thresholds.json`,
-    `notification_rules.json`, and `intervals.json`.
+!!! info "Shipped and local policies"
+    The Rego policies in the dashboard's `policy/` ship and update with the
+    application. Your overrides live in `config/policy/` and are versioned here;
+    see [Local policy overrides](../reference/alarms.md#local-policy-overrides).
 
 ## Why not a Git submodule
 

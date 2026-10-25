@@ -4,17 +4,18 @@ declare(strict_types=1);
 
 namespace Mata\Config\Validation;
 
-use Closure;
+use FilesystemIterator;
 use Mata\Config\ConfigSource;
+use Mata\Config\Dto\ApplicationConfig;
 use Mata\Config\EnvConfigException;
 use Mata\Config\EnvConfigLoader;
+use Mata\Config\Monitoring\Loader\AbstractJsonConfigLoader;
 use Mata\Config\Monitoring\Loader\AdvisoriesConfigLoader;
 use Mata\Config\Monitoring\Loader\AlarmRateLimitsConfigLoader;
 use Mata\Config\Monitoring\Loader\ChannelsConfigLoader;
 use Mata\Config\Monitoring\Loader\ChartsConfigLoader;
 use Mata\Config\Monitoring\Loader\DataRetentionConfigLoader;
 use Mata\Config\Monitoring\Loader\Dto\ConfigLoadProblem;
-use Mata\Config\Monitoring\Loader\Dto\ConfigLoadResult;
 use Mata\Config\Monitoring\Loader\IntervalsConfigLoader;
 use Mata\Config\Monitoring\Loader\MenuConfigLoader;
 use Mata\Config\Monitoring\Loader\MonitoringConfigLoadException;
@@ -29,6 +30,8 @@ use Mata\Services\ServerMetrics\MetricCatalog;
 use Mata\Services\ServerMetrics\MetricQueryPolicy;
 use Mata\Services\Status\StatusLevel;
 use Psr\Log\LogLevel;
+use RecursiveDirectoryIterator;
+use RecursiveIteratorIterator;
 
 /**
  * Validates an instance config directory with the same loaders the web app and cron use, so
@@ -43,6 +46,12 @@ final class InstanceConfigValidator
      */
     private const ERROR_TYPES = ['servers_config_invalid_entry'];
 
+    /** Files a JSON loader reads next to its own; validated, and selectable as $onlyFile, together with it. */
+    private const COMPANION_FILES = [ServersConfigLoader::SERVERS_FILE => [ServersConfigLoader::SECRETS_FILE]];
+
+    /** Local Rego policies, loaded by OPA next to the shipped policy/ directory. */
+    public const POLICY_DIR = 'policy';
+
     /**
      * @param ?string $onlyFile validate only the files loaded together with this one: the three env
      *                          files, or servers.json with servers.secrets.json
@@ -51,10 +60,11 @@ final class InstanceConfigValidator
     {
         $configPath = rtrim($configPath, '/');
         $jsonChecks = $this->jsonChecks();
+        $selected = static fn (array $files): bool => $onlyFile === null || in_array($onlyFile, $files, true);
 
         $files = [];
         foreach ([EnvConfigLoader::INSTANCE_FILES, ...array_column($jsonChecks, 'files')] as $checkFiles) {
-            if ($onlyFile !== null && !in_array($onlyFile, $checkFiles, true)) {
+            if (!$selected($checkFiles)) {
                 continue;
             }
             foreach ($checkFiles as $file) {
@@ -63,13 +73,27 @@ final class InstanceConfigValidator
         }
 
         // Env files always load: the JSON loaders read their variables (channels.json *_env keys).
-        $envProblems = $this->validateEnv($configPath);
-        $problems = $onlyFile === null || in_array($onlyFile, EnvConfigLoader::INSTANCE_FILES, true) ? $envProblems : [];
+        $loader = new EnvConfigLoader();
+        [$envProblems, $config] = $this->validateEnv($configPath, $loader);
+        
+        if (!$selected(EnvConfigLoader::INSTANCE_FILES)) {
+            $envProblems = [];
+        }
+
+        // policy/ has no $onlyFile entry, so only a full run checks it.
+        $policyProblems = [];
+        if ($onlyFile === null && $config !== null) {
+            $policyProblems = $this->validatePolicies($configPath, $config, $loader);
+        }
+
+        $jsonProblems = [];
         foreach ($jsonChecks as $check) {
-            if ($onlyFile === null || in_array($onlyFile, $check['files'], true)) {
-                $problems = [...$problems, ...$this->validateJson($configPath, $check['files'], $check['load'])];
+            if ($selected($check['files'])) {
+                $jsonProblems = [...$jsonProblems, ...$this->validateJson($configPath, $check['files'], $check['loader'])];
             }
         }
+
+        $problems = [...$envProblems, ...$policyProblems, ...$jsonProblems];
 
         return new ConfigValidationReport($configPath, $files, $problems);
     }
@@ -80,8 +104,8 @@ final class InstanceConfigValidator
         return [...EnvConfigLoader::INSTANCE_FILES, ...array_merge(...array_column($this->jsonChecks(), 'files'))];
     }
 
-    /** @return list<ConfigProblem> */
-    private function validateEnv(string $configPath): array
+    /** @return array{list<ConfigProblem>,?ApplicationConfig} */
+    private function validateEnv(string $configPath, EnvConfigLoader $loader): array
     {
         $problems = [];
         foreach (EnvConfigLoader::INSTANCE_FILES as $file) {
@@ -95,10 +119,9 @@ final class InstanceConfigValidator
             }
         }
 
-        $loader = new EnvConfigLoader();
-
         try {
-            $result = $loader->validateConfig($loader->load(EnvConfigLoader::INSTANCE_FILES, $configPath));
+            $config = $loader->load(EnvConfigLoader::INSTANCE_FILES, $configPath);
+            $result = $loader->validateConfig($config);
         } catch (EnvConfigException $exception) {
             $problems[] = new ConfigProblem(
                 level: StatusLevel::Error,
@@ -107,10 +130,15 @@ final class InstanceConfigValidator
                 sources: [$exception->source],
             );
 
-            return $problems;
+            return [$problems, null];
         }
 
-        foreach ([[StatusLevel::Error, $result['critical_errors']], [StatusLevel::Warning, $result['warnings']]] as [$level, $entries]) {
+        $levelsAndEntries = [
+            [StatusLevel::Error, $result['critical_errors']],
+            [StatusLevel::Warning, $result['warnings']],
+        ];
+        foreach ($levelsAndEntries as [$level, $entries]) {
+
             foreach ($entries as $entry) {
                 $problems[] = new ConfigProblem(
                     level: $level,
@@ -121,43 +149,145 @@ final class InstanceConfigValidator
             }
         }
 
-        return $problems;
+        return [$problems, $config];
     }
 
     /**
-     * Loaders that support it run without fallback, so a file the app would replace with
-     * defaults throws instead of passing quietly.
+     * OPA merges these files with the shipped policy/ into one namespace: a local file that
+     * declares a shipped package (a copied alarms.rego) stops OPA from loading any policy.
      *
-     * @return list<array{files:list<string>,load:Closure(string):ConfigLoadResult<object>}>
+     * @return list<ConfigProblem>
      */
+    private function validatePolicies(string $configPath, ApplicationConfig $config, EnvConfigLoader $loader): array
+    {
+        $problems = [];
+        $hasDecisionPolicy = false;
+        foreach ($this->policyFiles($configPath) as $file) {
+            $package = preg_match('/^\s*package\s+(\S+)/m', (string) file_get_contents($configPath . '/' . $file), $match) === 1 ? $match[1] : '';
+            if ($package !== 'local' && !str_starts_with($package, 'local.')) {
+                $problems[] = new ConfigProblem(
+                    level: StatusLevel::Error,
+                    type: 'config.policy.package.invalid',
+                    message: "{$file} declares package " . ($package === '' ? '(none)' : $package) . '; local policies need a package under local, such as local.alarms, or OPA can fail to load next to the shipped policies',
+                    sources: [ConfigSource::file($file)],
+                );
+            }
+            $hasDecisionPolicy = $hasDecisionPolicy || !str_ends_with($file, '_test.rego');
+        }
+
+        $decisionProblem = $this->decisionPathProblem($config, $hasDecisionPolicy, $loader);
+        if ($decisionProblem !== null) {
+            $problems[] = $decisionProblem;
+        }
+
+        return $problems;
+    }
+
+    /** Warns when local policies and the configured alarm decision disagree. */
+    private function decisionPathProblem(ApplicationConfig $config, bool $hasDecisionPolicy, EnvConfigLoader $loader): ?ConfigProblem
+    {
+        $driver = $config->alarmDecision->driver;
+        $decisionPath = $config->alarmDecision->opa->decisionPath;
+        $queriesLocal = str_starts_with($decisionPath, '/v1/data/local/');
+        $dir = self::POLICY_DIR . '/';
+
+        if ($driver !== 'opa') {
+            if (!$hasDecisionPolicy) {
+                return null;
+            }
+
+            return new ConfigProblem(
+                level: StatusLevel::Warning,
+                type: 'config.policy.unused',
+                message: "{$dir} has local policies, but ALARM_DECISION_DRIVER={$driver} ignores them",
+                sources: [$loader->sourceOf('ALARM_DECISION_DRIVER')],
+            );
+        }
+        if ($hasDecisionPolicy && !$queriesLocal) {
+            return new ConfigProblem(
+                level: StatusLevel::Warning,
+                type: 'config.policy.unused',
+                message: "{$dir} has local policies, but OPA_ALARM_DECISION_PATH={$decisionPath} does not query them; set it to the local decision, such as /v1/data/local/alarms/decision",
+                sources: [$loader->sourceOf('OPA_ALARM_DECISION_PATH')],
+            );
+        }
+        if (!$hasDecisionPolicy && $queriesLocal) {
+            return new ConfigProblem(
+                level: StatusLevel::Warning,
+                type: 'config.policy.missing',
+                message: "OPA_ALARM_DECISION_PATH={$decisionPath} queries a local policy, but {$dir} has none; every alarm evaluation would fail",
+                sources: [$loader->sourceOf('OPA_ALARM_DECISION_PATH')],
+            );
+        }
+
+        return null;
+    }
+
+    /** @return list<string> .rego files below POLICY_DIR, relative to the config path */
+    private function policyFiles(string $configPath): array
+    {
+        $dir = $configPath . '/' . self::POLICY_DIR;
+        if (!is_dir($dir)) {
+            return [];
+        }
+
+        $files = [];
+        $iterator = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($dir, FilesystemIterator::SKIP_DOTS));
+        foreach ($iterator as $entry) {
+            if ($entry->isFile() && $entry->getExtension() === 'rego') {
+                $files[] = self::POLICY_DIR . substr($entry->getPathname(), strlen($dir));
+            }
+        }
+        sort($files);
+
+        return $files;
+    }
+
+    /** @return list<array{files:list<string>,loader:AbstractJsonConfigLoader<covariant object>}> */
     private function jsonChecks(): array
     {
+        $checks = [];
+        foreach ($this->jsonLoaders() as $file => $loader) {
+            $checks[] = ['files' => [$file, ...self::COMPANION_FILES[$file] ?? []], 'loader' => $loader];
+        }
+
+        return $checks;
+    }
+
+    /**
+     * Loaders run without fallback, so a file the app would replace with defaults throws instead
+     * of passing quietly.
+     *
+     * @return array<string, AbstractJsonConfigLoader<covariant object>> keyed by the file each loader reads
+     */
+    private function jsonLoaders(): array
+    {
         return [
-            ['files' => [ServersConfigLoader::SERVERS_FILE, ServersConfigLoader::SECRETS_FILE], 'load' => (new ServersConfigLoader(fallbackOnFailure: false))->load(...)],
-            ['files' => [TtlConfigLoader::TTL_FILE], 'load' => (new TtlConfigLoader(fallbackOnFailure: false))->load(...)],
-            ['files' => [DataRetentionConfigLoader::DATA_RETENTION_FILE], 'load' => (new DataRetentionConfigLoader(fallbackOnFailure: false))->load(...)],
-            ['files' => [IntervalsConfigLoader::INTERVALS_FILE], 'load' => (new IntervalsConfigLoader(fallbackOnFailure: false))->load(...)],
-            ['files' => [ProbesConfigLoader::PROBES_FILE], 'load' => (new ProbesConfigLoader(fallbackOnFailure: false))->load(...)],
-            ['files' => [NotificationRulesConfigLoader::NOTIFICATION_RULES_FILE], 'load' => (new NotificationRulesConfigLoader(fallbackOnFailure: false))->load(...)],
-            ['files' => [ThresholdsConfigLoader::THRESHOLDS_FILE], 'load' => (new ThresholdsConfigLoader(fallbackOnFailure: false))->load(...)],
-            ['files' => [MenuConfigLoader::MENU_FILE], 'load' => (new MenuConfigLoader(MenuBuilder::MENU_KEYS, fallbackOnFailure: false))->load(...)],
-            ['files' => [ChartsConfigLoader::CHARTS_FILE], 'load' => (new ChartsConfigLoader(new MetricCatalog(), new MetricQueryPolicy(), fallbackOnFailure: false))->load(...)],
-            ['files' => [ChannelsConfigLoader::CHANNELS_FILE], 'load' => (new ChannelsConfigLoader(fallbackOnFailure: false))->load(...)],
-            ['files' => [AlarmRateLimitsConfigLoader::LIMITS_FILE], 'load' => (new AlarmRateLimitsConfigLoader(fallbackOnFailure: false))->load(...)],
-            ['files' => [AdvisoriesConfigLoader::ADVISORIES_FILE], 'load' => (new AdvisoriesConfigLoader(fallbackOnFailure: false))->load(...)],
+            ServersConfigLoader::SERVERS_FILE => new ServersConfigLoader(fallbackOnFailure: false),
+            TtlConfigLoader::TTL_FILE => new TtlConfigLoader(fallbackOnFailure: false),
+            DataRetentionConfigLoader::DATA_RETENTION_FILE => new DataRetentionConfigLoader(fallbackOnFailure: false),
+            IntervalsConfigLoader::INTERVALS_FILE => new IntervalsConfigLoader(fallbackOnFailure: false),
+            ProbesConfigLoader::PROBES_FILE => new ProbesConfigLoader(fallbackOnFailure: false),
+            NotificationRulesConfigLoader::NOTIFICATION_RULES_FILE => new NotificationRulesConfigLoader(fallbackOnFailure: false),
+            ThresholdsConfigLoader::THRESHOLDS_FILE => new ThresholdsConfigLoader(fallbackOnFailure: false),
+            MenuConfigLoader::MENU_FILE => new MenuConfigLoader(MenuBuilder::MENU_KEYS, fallbackOnFailure: false),
+            ChartsConfigLoader::CHARTS_FILE => new ChartsConfigLoader(new MetricCatalog(), new MetricQueryPolicy(), fallbackOnFailure: false),
+            ChannelsConfigLoader::CHANNELS_FILE => new ChannelsConfigLoader(fallbackOnFailure: false),
+            AlarmRateLimitsConfigLoader::LIMITS_FILE => new AlarmRateLimitsConfigLoader(fallbackOnFailure: false),
+            AdvisoriesConfigLoader::ADVISORIES_FILE => new AdvisoriesConfigLoader(fallbackOnFailure: false),
         ];
     }
 
     /**
-     * @param list<string>                              $files the file the loader reads first, then any companions
-     * @param Closure(string): ConfigLoadResult<object> $load
+     * @param list<string>                               $files  the file the loader reads first, then any companions
+     * @param AbstractJsonConfigLoader<covariant object> $loader
      *
      * @return list<ConfigProblem>
      */
-    private function validateJson(string $configPath, array $files, Closure $load): array
+    private function validateJson(string $configPath, array $files, AbstractJsonConfigLoader $loader): array
     {
         try {
-            $loadProblems = $load($configPath)->problems;
+            $loadProblems = $loader->load($configPath)->problems;
             $rejected = false;
         } catch (MonitoringConfigLoadException $exception) {
             // Guard only: loaders report the rejection before throwing, so the list is never empty.
@@ -191,7 +321,11 @@ final class InstanceConfigValidator
      */
     private function levelFor(ConfigLoadProblem $loadProblem, bool $rejected): StatusLevel
     {
-        if ($rejected || (in_array($loadProblem->type, self::ERROR_TYPES, true) && $loadProblem->message !== ServersConfig::EMPTY_ERROR)) {
+        $isErrorType = in_array($loadProblem->type, self::ERROR_TYPES, true);
+        $isEmptyServerMessage = $loadProblem->message === ServersConfig::EMPTY_ERROR;
+
+        if ($rejected || ($isErrorType && !$isEmptyServerMessage)) {
+
             return StatusLevel::Error;
         }
 

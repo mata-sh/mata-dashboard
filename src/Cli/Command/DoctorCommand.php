@@ -12,6 +12,7 @@ use Mata\Config\Monitoring\Loader\ServersConfigLoader;
 use Mata\Config\Validation\InstanceConfigValidator;
 use Mata\Database\MigrationRunner;
 use Mata\Database\PdoDatabase;
+use Mata\Services\Alarm\Evaluation\OpaAlarmDecisionService;
 use Mata\Services\Cron\CronHeartbeatReader;
 use Mata\Services\Cron\Dto\CronJobState;
 use Mata\Services\Status\StatusLevel;
@@ -184,10 +185,21 @@ final class DoctorCommand extends Command
         } catch (Throwable) {
             $code = null;
         }
-        if ($code === 200) {
-            $this->add('opa', StatusLevel::Ok, "{$url} healthy");
-        } else {
+        if ($code !== 200) {
             $this->add('opa', StatusLevel::Error, "{$url} not reachable; alarms are not evaluated", hint: 'make opa-start, or set ALARM_DECISION_DRIVER=builtin');
+
+            return;
+        }
+
+        // A healthy OPA still answers {} for a package it has not loaded (a typo in the path, a
+        // deleted config/policy/ file), and every evaluation then fails.
+        $path = $config->alarmDecision->opa->decisionPath;
+
+        try {
+            (new OpaAlarmDecisionService($config->alarmDecision->opa, 1))->decide(['type' => 'doctor_probe', 'level' => 'info']);
+            $this->add('opa', StatusLevel::Ok, "{$url} healthy, decisions from {$path}");
+        } catch (Throwable $exception) {
+            $this->add('opa', StatusLevel::Error, "{$path} gave no decision ({$exception->getMessage()}); alarms are not evaluated", hint: 'Check OPA_ALARM_DECISION_PATH and the package in config/policy/; make opa-test shows policy errors');
         }
     }
 
