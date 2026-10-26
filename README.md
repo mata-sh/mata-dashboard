@@ -23,7 +23,7 @@ runtime, no JavaScript framework.
 
 [![Screenshot][product-screenshot]][demo-url]
 
-[Try the live demo][demo-url] · [Documentation][docs-url]
+[Website][site-url] · [Try the live demo][demo-url] · [Documentation][docs-url]
 
 User: **demo** | Password: **demo**
 
@@ -148,6 +148,16 @@ There is no settings UI. Configuration is plain files: JSON for monitoring,
 
 ## Setup
 
+On a server with Docker, this installs the newest release for production into
+`./mata-dashboard` and creates the `admin` account:
+
+```bash
+curl -fsSL https://mata.sh/install.sh | sh
+```
+
+Pipe to `sh -s -- --native` to prepare a native install instead, or
+`sh -s -- --help` for all options. For development, demo, or a manual install:
+
 ```bash
 git clone https://github.com/mata-sh/mata-dashboard.git
 cd mata-dashboard
@@ -241,6 +251,7 @@ xarc | mata@xarc.dev
 [product-screenshot]: docs/images/screenshot.jpg
 [license-url]: https://github.com/mata-sh/mata-dashboard/blob/main/LICENSE
 [ci-url]: https://github.com/mata-sh/mata-dashboard/actions/workflows/ci.yml
+[site-url]: https://mata.sh
 [demo-url]: https://demo.mata.sh
 [docs-url]: https://docs.mata.sh
 [empty-url]: #

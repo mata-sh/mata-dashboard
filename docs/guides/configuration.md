@@ -38,8 +38,10 @@ creates `.env` for Compose.
 `limits.json`, `channels.json`, and `advisories.json` are not created by setup. Their loaders use
 built-in defaults when they are absent or empty (`{}`); without `channels.json`,
 alarms are delivered by email only.
-`limits.json` has no example; see the [alarm reference](../reference/alarms.md)
-for its built-in limits.
+See `config.example/limits.json.example` for the optional rate-limit configuration
+and its defaults. Setup does not create `limits.json`; when absent or empty, the
+loader uses the same built-in limits. See the [alarm reference](../reference/alarms.md)
+for details.
 
 `menu.json` is a flat map of menu keys to visibility booleans. `charts.json`
 uses a `dashboard` section to configure the chart's metric and timespan lists.

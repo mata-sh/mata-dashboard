@@ -1,0 +1,15 @@
+{
+    "channels": {
+        "email": {
+            "per_minute": 30,
+            "per_hour": 200,
+            "per_day": 1000
+        },
+        "default": {
+            "per_minute": 20,
+            "per_hour": 120,
+            "per_day": 500
+        }
+    },
+    "overrides": {}
+}
