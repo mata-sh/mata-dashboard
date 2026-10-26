@@ -50,6 +50,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - When the account may not use Docker, `make` says so and names the fix instead of reporting "Docker daemon is unavailable".
 - The users-file error page links to the users-file setup guide instead of a missing page.
 - Server and app route parameters reject `.` and `..`, which could otherwise reach a node API path as a directory traversal.
+- Node `api_key`s are no longer copied into the database; `servers.metadata` keeps only the title, colors and info.
 
 ## [0.8.0] - 2026-10-11
 

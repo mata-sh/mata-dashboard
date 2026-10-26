@@ -8,7 +8,6 @@ final class CreateCoreTables extends AbstractMigration
 {
     public function change(): void
     {
-        $this->createEnvironmentsTable();
         $this->createServersTable();
         $this->createApplicationsTable();
         $this->createServerApplicationsTable();
@@ -27,38 +26,20 @@ final class CreateCoreTables extends AbstractMigration
         ];
     }
 
-    private function createEnvironmentsTable(): void
-    {
-        $table = $this->table('environments', $this->tableOptions());
-        $table
-            ->addColumn('id', 'biginteger', ['identity' => true, 'signed' => false])
-            ->addColumn('name', 'string', ['limit' => 50, 'null' => false])
-            ->addColumn('description', 'string', ['limit' => 255, 'null' => true])
-            ->addTimestamps()
-            ->addIndex(['name'], ['unique' => true, 'name' => 'uq_environment_name'])
-            ->create();
-    }
-
     private function createServersTable(): void
     {
         $table = $this->table('servers', $this->tableOptions());
         $table
             ->addColumn('id', 'biginteger', ['identity' => true, 'signed' => false])
-            ->addColumn('environment_id', 'biginteger', ['null' => true, 'signed' => false])
             ->addColumn('name', 'string', ['limit' => 100, 'null' => false])
             ->addColumn('hostname', 'string', ['limit' => 150, 'null' => true])
             ->addColumn('provider', 'string', ['limit' => 100, 'null' => true])
             ->addColumn('metadata', 'json', [
                 'null' => true,
-                'comment' => 'Additional server configuration from config files (api keys, theming, custom fields, etc.)',
+                'comment' => 'Display fields from servers.json at the last sync (title, colors, info); never secrets',
             ])
             ->addTimestamps()
             ->addIndex(['name'], ['unique' => true, 'name' => 'uq_server_name'])
-            ->addForeignKey('environment_id', 'environments', 'id', [
-                'delete' => 'SET_NULL',
-                'update' => 'NO_ACTION',
-                'constraint' => 'fk_servers_environment',
-            ])
             ->create();
     }
 

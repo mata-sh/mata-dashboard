@@ -193,20 +193,14 @@ final class ServerConfigDatabaseSync
      */
     private function upsertServer(string $serverName, array $serverConfig): void
     {
-        // Extract fields from configuration
         $hostname = $serverConfig['api_url'] ?? $serverConfig['url'] ?? null;
         $provider = $serverConfig['provider'] ?? null;
+        // Display fields only, kept so a removed server stays recognisable; never secrets or connection settings.
         $metadata = json_encode([
             'title' => $serverConfig['title'] ?? $serverName,
-            'api_url' => $serverConfig['api_url'] ?? null,
-            'api_key' => $serverConfig['api_key'] ?? null,
             'primary_color' => $serverConfig['primary_color'] ?? null,
             'secondary_color' => $serverConfig['secondary_color'] ?? null,
-            'env' => $serverConfig['env'] ?? null,
             'info' => $serverConfig['info'] ?? null,
-            'check_disk_space' => $serverConfig['check_disk_space'] ?? null,
-            'allow_http' => $serverConfig['allow_http'] ?? null,
-            'suppress_http_warning' => $serverConfig['suppress_http_warning'] ?? null,
         ]);
 
         if ($metadata === false) {
