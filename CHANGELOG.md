@@ -43,6 +43,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `scripts/alarm_channel_test.php`, `scripts/server_metrics_diagnostic.php`, `make users-*`, `db-rollback`, `db-status`, `db-check`, `db-hash-password` and the scripts they ran; use `bin/mata alarm test`, `metrics status`, `user …` and `migrate …`.
 
 ### Fixed
+- App names in dashboard server cards now have 3px of right margin.
+- `doctor` no longer mistakes inaccessible users files for missing ones; run it as the application user to check access before creating users.
 - Docker: two dashboard stacks on one host no longer reach each other's MySQL and OPA; only the web container joins the shared `mata-network`. **Action:** recreate the containers.
 - Cron jobs honour `LOG_PATH` and `TEMP_DIR`; they wrote to the default `logs/` and `temp/`, so the dashboard showed stale data and cron jobs as not running.
 - Production Docker: fresh installs build, run their cron jobs, and allow sign-in and user commands.

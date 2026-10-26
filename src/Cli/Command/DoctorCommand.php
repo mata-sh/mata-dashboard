@@ -123,18 +123,46 @@ final class DoctorCommand extends Command
             return;
         }
         if (!is_file($file)) {
-            $this->add('users', StatusLevel::Error, "{$file} missing; every route fails until it exists", hint: 'bin/mata user create <name> admin --generate-password');
+            $this->checkUnavailableUsersFile($file);
 
             return;
         }
         $mode = fileperms($file) & 0o777;
         if (!is_readable($file) || !is_writable($file)) {
-            $this->add('users', StatusLevel::Error, "{$file} not readable and writable by " . $this->currentUser());
+            $this->add('users', StatusLevel::Error, "{$file} not readable and writable by " . $this->currentUser(), hint: 'Run doctor as the application user (web server user) to check its access');
         } elseif (($mode & 0o077) !== 0) {
             $this->add('users', StatusLevel::Error, sprintf('%s has mode %o; logins fail until it is private', $file, $mode), hint: "chmod 600 {$file}");
         } else {
             $this->add('users', StatusLevel::Ok, $file);
         }
+    }
+
+    private function checkUnavailableUsersFile(string $file): void
+    {
+        $hint = 'Run doctor as the application user (web server user) to check its access';
+        $directory = dirname($file);
+        for ($ancestor = $directory;; $ancestor = dirname($ancestor)) {
+            // Directory lookup needs search (execute) permission, not read permission.
+            // Use the process's access check, not mode bits: root and ACLs can differ.
+            if (is_dir($ancestor) && !is_executable($ancestor)) {
+                $this->add('users', StatusLevel::Error, "{$file}: permission denied for " . $this->currentUser() . " (cannot search {$ancestor})", hint: $hint);
+
+                return;
+            }
+            if (dirname($ancestor) === $ancestor) {
+                break;
+            }
+        }
+
+        // A failed stat alone cannot distinguish absence from an inaccessible target.
+        // Listing the searchable parent confirms absence without misclassifying symlinks.
+        $entries = is_dir($directory) && is_executable($directory) ? @scandir($directory) : false;
+        if ($entries !== false && !in_array(basename($file), $entries, true)) {
+            $this->add('users', StatusLevel::Error, "{$file} missing; every route fails until it exists", hint: 'bin/mata user create <name> admin --generate-password');
+
+            return;
+        }
+        $this->add('users', StatusLevel::Error, "{$file} missing or inaccessible to " . $this->currentUser(), hint: $hint);
     }
 
     private function checkSecretsFile(): void
