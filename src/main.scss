@@ -36,7 +36,17 @@ $red: red;
 @use "bulma/sass/layout/container";
 @use "bulma/sass/layout/section";
 
-@use "bulma/sass/themes";
+// Dark only: main.css styles dark surfaces, so ignore prefers-color-scheme.
+// Same layering as bulma/sass/themes uses for [data-theme=dark].
+@use "bulma/sass/themes/light";
+@use "bulma/sass/themes/dark";
+@use "bulma/sass/themes/setup";
+
+:root {
+  @include light.light-theme;
+  @include dark.dark-theme;
+  @include setup.setup-theme;
+}
 
 // Fonts are loaded via fonts.css in the HTML head
 

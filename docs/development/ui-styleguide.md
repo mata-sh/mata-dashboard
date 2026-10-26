@@ -213,8 +213,11 @@ border `#3f93a6`, thumb `#7fe3f0`. Markup: hidden checkbox +
   `stroke: currentColor` (and reset the navbar margin) or they inherit these.
 - **Perfect circles**: use `border-radius: 9999px`, not `50%`, on count
   badges so they become stadiums instead of ovals when content widens.
-- **Dark native widgets**: set `color-scheme: dark` on inputs/selects so the
-  browser draws dark dropdowns and date pickers.
+- **Dark only**: `src/main.scss` applies Bulma's dark theme on `:root`
+  regardless of `prefers-color-scheme`, and `<meta name="color-scheme"
+  content="dark">` in the layouts makes the browser draw native dropdowns,
+  date pickers and scrollbars dark. There is no light theme; don't add
+  `@use "bulma/sass/themes"` back.
 - **Bulma variables**: when a color must match Bulma chrome (e.g. the badge
   ring against the navbar), reference the CSS variable
   (`var(--bulma-dark, #2e333d)`) instead of hardcoding.

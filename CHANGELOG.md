@@ -40,6 +40,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - An empty `config/probes.json` means the built-in probe defaults.
 - The demo shows a mostly healthy fleet with a single incident instead of every failure state at once.
 - Documentation is published at <https://docs.mata.sh>.
+- The dashboard is always dark; it no longer switches to Bulma's unstyled light theme when the system prefers light mode.
 
 ### Removed
 - `scripts/alarm_channel_test.php`, `scripts/server_metrics_diagnostic.php`, `make users-*`, `db-rollback`, `db-status`, `db-check`, `db-hash-password` and the scripts they ran; use `bin/mata alarm test`, `metrics status`, `user …` and `migrate …`.
