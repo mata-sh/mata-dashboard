@@ -107,7 +107,13 @@
     </div>
   </section>
 
-  <section class="settings-card">
+  <section class="settings-card" aria-labelledby="loaded-configuration-title">
+    <header class="settings-card-header">
+      <h3 id="loaded-configuration-title">Loaded Configuration</h3>
+      <p class="settings-subtitle">
+        Values read from the files in the config root. Each section names its source file.
+      </p>
+    </header>
     <div class="settings-subcard" id="cache-windows">
       <h3 class="settings-title" role="button" tabindex="0" aria-controls="cache-windows-details"
           _="on click or keydown[key=='Enter'] toggle .is-open on #cache-windows">

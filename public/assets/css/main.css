@@ -107,6 +107,12 @@ svg {
     stroke-width: 2.5;
 }
 
+/* Bulma buttons are flex containers, which drop the space between an icon and its
+   label. gap only applies between items, so icon-only buttons stay centred. */
+.button:has(> svg.feather) {
+    gap: .5rem;
+}
+
 #htmx-progress {
     position: fixed;
     top: 0;
@@ -2644,6 +2650,15 @@ svg {
     }
 }
 
+/* Static heading for a card that groups collapsible subcards. */
+.settings-card-header {
+    margin-bottom: 16px;
+}
+
+.settings-card-header h3 {
+    margin-bottom: 0;
+}
+
 .settings-subcard {
     background-color: #0e1015;
     border: 1px solid #1f242e;
@@ -3639,7 +3654,6 @@ label.audit-chip:has(input:checked)::after {
 .mata-modal .modal-refresh-button-top svg {
     width: 12px;
     height: 12px;
-    margin-right: 8px;
     stroke: currentColor;
 }
 
@@ -4188,7 +4202,6 @@ label.audit-chip:has(input:checked)::after {
 .advisory-report-form .button svg {
     width: 12px;
     height: 12px;
-    margin-right: .25rem;
 }
 
 /* Table severity pills share one width, sized for CRITICAL */
