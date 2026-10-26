@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Mata\Tests\Unit\Services\Cron;
 
-use Mata\Services\Cron\CronHeartbeatReader;
 use Mata\Services\Cron\Dto\CronJobState;
 use Mata\Services\Cron\Dto\CronJobStatus;
 use Mata\Tests\TestCase;
@@ -16,25 +15,9 @@ use Mata\Tests\TestCase;
  */
 final class CronHeartbeatReaderTest extends TestCase
 {
+    use CronHeartbeatFixtures;
+
     private const NOW = 1_760_000_000;
-
-    private string $directory;
-
-    protected function setUp(): void
-    {
-        $this->directory = sys_get_temp_dir() . '/mata-cron-heartbeat-' . bin2hex(random_bytes(8));
-        mkdir("{$this->directory}/cron", 0700, true);
-        mkdir("{$this->directory}/logs", 0700, true);
-    }
-
-    protected function tearDown(): void
-    {
-        foreach (['cron', 'logs'] as $subdirectory) {
-            array_map('unlink', glob("{$this->directory}/{$subdirectory}/*") ?: []);
-            rmdir("{$this->directory}/{$subdirectory}");
-        }
-        rmdir($this->directory);
-    }
 
     public function testProgressHeartbeatsWithinARunDoNotShortenTheInterval(): void
     {
@@ -107,30 +90,5 @@ final class CronHeartbeatReaderTest extends TestCase
         touch($file, $lastRun);
 
         return $this->reader()->read(self::NOW)[0];
-    }
-
-    /**
-     * Same pretty-printed format CronJob::touchHeartbeat() appends.
-     *
-     * @param list<int> $heartbeats
-     */
-    private function writeHeartbeats(string $job, array $heartbeats): string
-    {
-        $file = "{$this->directory}/logs/heartbeat-{$job}.jsonl";
-        foreach ($heartbeats as $timestamp) {
-            file_put_contents($file, json_encode([
-                'ts' => gmdate('Y-m-d\TH:i:s\Z', $timestamp),
-                'job' => $job,
-                'status' => 'ok',
-                'duration_ms' => 0.2,
-            ], JSON_PRETTY_PRINT) . PHP_EOL, FILE_APPEND);
-        }
-
-        return $file;
-    }
-
-    private function reader(): CronHeartbeatReader
-    {
-        return new CronHeartbeatReader("{$this->directory}/cron", "{$this->directory}/logs");
     }
 }

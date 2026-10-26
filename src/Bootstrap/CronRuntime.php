@@ -12,6 +12,7 @@ use Mata\Database\DatabaseIntegrityChecker;
 use Mata\Database\DatabaseInterface;
 use Mata\Database\NullDatabase;
 use Mata\Database\PdoDatabase;
+use Mata\Services\Cron\CronHeartbeatWriter;
 use Mata\Services\Cron\CronJob;
 use Mata\Utils\PathResolver;
 use Mata\Utils\Tools;
@@ -103,6 +104,7 @@ final readonly class CronRuntime
         $cron = new CronJob(
             logger: $log,
             jobName: $jobName,
+            heartbeatWriter: new CronHeartbeatWriter($appConfig->logging->cronHeartbeatMaxBytes),
             lockDir: $paths->tempPath . '/',
             heartbeatFile: CronJob::heartbeatFile($paths->cronLogsPath, $jobName),
         );

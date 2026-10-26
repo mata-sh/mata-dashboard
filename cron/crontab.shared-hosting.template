@@ -36,6 +36,8 @@ PHP_BIN=/usr/local/bin/php
 
 # Database retention
 25 2 * * * "$PHP_BIN" "$APP_ROOT/cron/retention_cleanup.php" >> "$APP_ROOT/logs/cron/app-retention-cleanup.log" 2>&1
+# Heartbeats of removed cron jobs; current jobs are never pruned by age.
+35 2 * * * "$PHP_BIN" "$APP_ROOT/cron/cron_history_cleanup.php" >> "$APP_ROOT/logs/cron/app-cron-history-cleanup.log" 2>&1
 
 # Filesystem rate-limit storage expires records but requires active deletion.
 17 * * * * "$PHP_BIN" "$APP_ROOT/cron/rate_limit_cleanup.php" >> "$APP_ROOT/logs/cron/app-rate-limit-cleanup.log" 2>&1

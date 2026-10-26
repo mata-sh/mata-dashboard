@@ -17,6 +17,7 @@ final class DemoCronCatalog
         'alarms-dispatch' => 60,
         'alarms-evaluate-critical' => 60,
         'alarms-evaluate-non-critical' => 300,
+        'cron-history-cleanup' => 86400,
         'libraries-audit' => 21600,
         'rate-limit-cleanup' => 3600,
         'retention-cleanup' => 86400,

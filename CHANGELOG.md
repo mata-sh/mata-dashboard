@@ -21,6 +21,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Repeated log messages: with nodes that group them, the logs modal and `logs show` show each message once with its count, "(×42)", and the JSON of `logs show` and `evidence` carries `count` and `first_seen`. Older nodes keep working, one entry per occurrence.
 
 ### Changed
+- Cron heartbeat history now compacts at `CRON_HEARTBEAT_MAX_BYTES` (default 1 MiB), keeping its first entry and recent history; the new daily `cron_history_cleanup.php` job removes heartbeats of deleted jobs. **Action:** shared hosting adds the `cron_history_cleanup.php` line from the crontab template.
 - Database cards show each named connection as a collapsible row with its engine, metrics and databases; one failed connection no longer hides the others. `database_unreachable` lists all failed connections; `database_connections_too_high` uses the busiest. **Action:** update dashboard and nodes together; older nodes' database data is rejected.
 - The non-Docker mode is now `MODE=native`; `local` is no longer accepted. **Action:** in `.mata.mk`, change `MODE := local` to `MODE := native`, or rerun `make setup`.
 - Node API keys move from `config/servers.json` to `config/servers.secrets.json`. **Action:** move each `api_key` there; the file needs mode 0640 and the web server's group.

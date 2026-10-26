@@ -59,6 +59,10 @@ final class DockerCrontabTest extends TestCase
             'schedule' => '25 2 * * *',
             'log' => 'app-retention-cleanup.log',
         ],
+        'cron_history_cleanup.php' => [
+            'schedule' => '35 2 * * *',
+            'log' => 'app-cron-history-cleanup.log',
+        ],
         'rate_limit_cleanup.php' => [
             'schedule' => '17 * * * *',
             'log' => 'app-rate-limit-cleanup.log',

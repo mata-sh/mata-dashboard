@@ -188,6 +188,7 @@ installs the same manifest as the `www-data` crontab.
 | `alarms_evaluate_{critical,non_critical}.php` | Turns events into logical alarms |
 | `alarms_dispatch.php` | Sends due deliveries |
 | `retention_cleanup.php` / `rate_limit_cleanup.php` | Expire database rows and file-based rate-limit state |
+| `cron_history_cleanup.php` | Removes heartbeat history of deleted cron jobs |
 
 ## Scope
 

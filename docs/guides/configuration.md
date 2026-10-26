@@ -74,6 +74,26 @@ Never commit those files, even when you version the rest of `config/`. Keep
 production authentication data outside the deployment and web root with
 `MATA_USERS_FILE`; see the [user management guide](user-management.md).
 
+## Cron heartbeat retention
+
+Heartbeat files live in a `cron/` directory beside the `APP_LOG_PATH` file
+(default `logs/cron/`). Once a file exceeds `CRON_HEARTBEAT_MAX_BYTES` in
+`config/config.env` (default `1048576`, valid range `131072`–`1073741824`), its
+next write compacts it to the first heartbeat plus the complete records of the
+latest 64 KiB, so cron status keeps its start time and inferred run interval.
+
+!!! info "Daily cleanup"
+
+    `cron_history_cleanup.php` deletes heartbeat files of jobs no longer in
+    `cron/*.php`. Docker installs pick it up on rebuild; shared-hosting installs
+    must add its line from `cron/crontab.shared-hosting.template`.
+
+!!! warning "File access"
+
+    Do not rotate heartbeat files externally; readers and writers lock the same
+    inode. Compaction rewrites in place, so a crash mid-rewrite can damage that
+    file's history.
+
 ## Environment files
 
 `APP_ENV` accepts `dev`, `demo`, or `prod`. Native setup writes it to

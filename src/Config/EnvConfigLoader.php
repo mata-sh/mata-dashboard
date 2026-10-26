@@ -215,6 +215,12 @@ final class EnvConfigLoader
         return new LoggingConfig(
             filePath: $this->getEnv('APP_LOG_PATH', 'logs/app.log'),
             level: $this->getEnv('MONOLOG_LEVEL', 'debug'),
+            cronHeartbeatMaxBytes: $this->getEnvInteger(
+                'CRON_HEARTBEAT_MAX_BYTES',
+                LoggingConfig::DEFAULT_CRON_HEARTBEAT_MAX_BYTES,
+                minimum: LoggingConfig::CRON_HEARTBEAT_MAX_BYTES_LOWER_BOUND,
+                maximum: LoggingConfig::CRON_HEARTBEAT_MAX_BYTES_UPPER_BOUND,
+            ),
         );
     }
 

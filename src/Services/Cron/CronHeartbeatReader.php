@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Mata\Services\Cron;
 
+use Mata\Services\Cron\Dto\CronHeartbeatSnapshot;
 use Mata\Services\Cron\Dto\CronJobState;
 use Mata\Services\Cron\Dto\CronJobStatus;
 use Mata\Utils\PathResolver;
@@ -16,7 +17,7 @@ use Mata\Utils\PathResolver;
  */
 final class CronHeartbeatReader
 {
-    /** Bytes read from the end of each heartbeat file; the files are never rotated. */
+    /** Bytes read from the end of each heartbeat file. */
     private const TAIL_BYTES = 8192;
 
     /** Jobs heartbeat several times per run; closer heartbeats belong to the same run. */
@@ -59,29 +60,28 @@ final class CronHeartbeatReader
      */
     public function read(int $now): array
     {
-        $files = [];
+        $snapshots = [];
         foreach ($this->jobs() as $job) {
-            $files[$job] = CronJob::heartbeatFile($this->heartbeatDir, $job);
+            $snapshots[$job] = $this->snapshot(CronJob::heartbeatFile($this->heartbeatDir, $job));
         }
-        $cronStarted = $this->cronStarted($files);
+        $cronStarted = $this->cronStarted($snapshots);
 
         return array_map(
-            fn (string $job): CronJobStatus => $this->status($job, $files[$job], $now, $cronStarted),
-            array_keys($files)
+            fn (string $job): CronJobStatus => $this->status($job, $snapshots[$job], $now, $cronStarted),
+            array_keys($snapshots)
         );
     }
 
-    private function status(string $job, string $heartbeatFile, int $now, ?int $cronStarted): CronJobStatus
+    private function status(string $job, CronHeartbeatSnapshot $snapshot, int $now, ?int $cronStarted): CronJobStatus
     {
-        // The file's mtime is the last heartbeat; unlike "ts" it does not depend on PHP's timezone.
-        $lastRun = is_readable($heartbeatFile) ? filemtime($heartbeatFile) : false;
-        if ($lastRun === false) {
+        $lastRun = $snapshot->lastModified;
+        if ($lastRun === null) {
             $pending = $cronStarted !== null && $now - $cronStarted < self::PENDING_SECONDS;
 
             return new CronJobStatus($job, $pending ? CronJobState::Pending : CronJobState::Never);
         }
 
-        $interval = $this->inferInterval($this->tailTimestamps($heartbeatFile));
+        $interval = $this->inferInterval($this->timestamps($snapshot->tail));
         $state = match (true) {
             $interval === null => CronJobState::Unknown,
             $now - $lastRun > 2 * $interval + self::OVERDUE_GRACE_SECONDS => CronJobState::Overdue,
@@ -94,20 +94,14 @@ final class CronHeartbeatReader
     /**
      * First heartbeat of any job, from the start of each file; null when no job has run.
      *
-     * @param array<string,string> $heartbeatFiles
+     * @param array<string,CronHeartbeatSnapshot> $snapshots
      */
-    private function cronStarted(array $heartbeatFiles): ?int
+    private function cronStarted(array $snapshots): ?int
     {
         $first = null;
-        foreach ($heartbeatFiles as $file) {
-            $handle = is_readable($file) ? fopen($file, 'rb') : false;
-            if ($handle === false) {
-                continue;
-            }
-            $head = (string) fread($handle, 1024);
-            fclose($handle);
-            $timestamp = preg_match('/"ts":\s*"([^"]+)"/', $head, $match) === 1 ? strtotime($match[1]) : false;
-            if ($timestamp !== false) {
+        foreach ($snapshots as $snapshot) {
+            $timestamp = $this->timestamps($snapshot->head)[0] ?? null;
+            if ($timestamp !== null) {
                 $first = $first === null ? $timestamp : min($first, $timestamp);
             }
         }
@@ -115,23 +109,33 @@ final class CronHeartbeatReader
         return $first;
     }
 
-    /**
-     * @return list<int>
-     */
-    private function tailTimestamps(string $heartbeatFile): array
+    /** Head, tail and mtime under one shared lock, so a compaction is never seen half-written. */
+    private function snapshot(string $file): CronHeartbeatSnapshot
     {
-        $handle = fopen($heartbeatFile, 'rb');
+        $handle = is_readable($file) ? fopen($file, 'rb') : false;
         if ($handle === false) {
-            return [];
+            return new CronHeartbeatSnapshot();
         }
 
-        $size = (int) (fstat($handle)['size'] ?? 0);
-        fseek($handle, max(0, $size - self::TAIL_BYTES));
-        $tail = (string) stream_get_contents($handle);
-        fclose($handle);
+        try {
+            if (!flock($handle, LOCK_SH)) {
+                return new CronHeartbeatSnapshot();
+            }
+            $stat = fstat($handle);
+            $head = (string) fread($handle, CronHeartbeatWriter::HEAD_BYTES);
+            fseek($handle, max(0, (int) ($stat['size'] ?? 0) - self::TAIL_BYTES));
 
-        // Entries are pretty-printed JSON; a regex skips the entry cut off at the start.
-        preg_match_all('/"ts":\s*"([^"]+)"/', $tail, $matches);
+            return new CronHeartbeatSnapshot($head, (string) stream_get_contents($handle), $stat['mtime'] ?? null);
+        } finally {
+            fclose($handle);
+        }
+    }
+
+    /** @return list<int> */
+    private function timestamps(string $chunk): array
+    {
+        // Both legacy pretty JSON and compact JSONL contain the same timestamp field.
+        preg_match_all('/"ts":\s*"([^"]+)"/', $chunk, $matches);
 
         $timestamps = [];
         foreach ($matches[1] as $value) {

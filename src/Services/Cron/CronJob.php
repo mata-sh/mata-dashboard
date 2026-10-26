@@ -32,6 +32,11 @@ class CronJob
     protected string $heartbeatFile;
 
     /**
+     * Appends to {@see $heartbeatFile} and keeps it below its maximum size.
+     */
+    private readonly CronHeartbeatWriter $heartbeatWriter;
+
+    /**
      * Path to lock file that prevents concurrent execution.
      */
     protected string $lockFile;
@@ -70,19 +75,22 @@ class CronJob
     /**
      * CronJob constructor.
      *
-     * @param string          $jobName       Name of the cronjob like "daily-report"
-     * @param string          $lockDir       Directory for lock files
-     * @param string          $heartbeatFile File written by touchHeartbeat()
-     * @param LoggerInterface $logger        Logger instance for job output
+     * @param LoggerInterface     $logger          Logger instance for job output
+     * @param string              $jobName         Name of the cronjob like "daily-report"
+     * @param CronHeartbeatWriter $heartbeatWriter Writer used by touchHeartbeat()
+     * @param string              $lockDir         Directory for lock files
+     * @param string              $heartbeatFile   File written by touchHeartbeat()
      */
     public function __construct(
         LoggerInterface $logger,
         string $jobName,
+        CronHeartbeatWriter $heartbeatWriter,
         string $lockDir = '/tmp',
         string $heartbeatFile = '/tmp/cron-heartbeat.jsonl',
     ) {
         $this->jobName = $jobName;
         $this->heartbeatFile = $heartbeatFile;
+        $this->heartbeatWriter = $heartbeatWriter;
         $this->lockFile = "{$lockDir}/{$jobName}.lock";
         $this->logger = $logger;
 
@@ -102,12 +110,12 @@ class CronJob
      */
     public function touchHeartbeat(): void
     {
-        file_put_contents($this->heartbeatFile, json_encode([
+        $this->heartbeatWriter->append($this->heartbeatFile, [
             'ts' => date('Y-m-d\TH:i:s\Z'),
             'job' => $this->jobName,
             'status' => 'ok',
             'duration_ms' => $this->endTimer(),
-        ], JSON_PRETTY_PRINT) . PHP_EOL, FILE_APPEND);
+        ]);
     }
 
     /**

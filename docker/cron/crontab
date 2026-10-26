@@ -41,6 +41,8 @@ CRON_ENV_FILE=/etc/mata/cron.env
 
 # Database retention
 25 2 * * * . "$CRON_ENV_FILE" && cd "$APP_ROOT" && "$PHP_BIN" cron/retention_cleanup.php >> "$CRON_LOG_DIR/app-retention-cleanup.log" 2>&1
+# Heartbeats of removed cron jobs; current jobs are never pruned by age.
+35 2 * * * . "$CRON_ENV_FILE" && cd "$APP_ROOT" && "$PHP_BIN" cron/cron_history_cleanup.php >> "$CRON_LOG_DIR/app-cron-history-cleanup.log" 2>&1
 
 # Filesystem rate-limit storage expires records but requires active deletion.
 17 * * * * . "$CRON_ENV_FILE" && cd "$APP_ROOT" && "$PHP_BIN" cron/rate_limit_cleanup.php >> "$CRON_LOG_DIR/app-rate-limit-cleanup.log" 2>&1

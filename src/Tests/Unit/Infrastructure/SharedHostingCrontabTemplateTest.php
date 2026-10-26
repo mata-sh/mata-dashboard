@@ -27,6 +27,7 @@ final class SharedHostingCrontabTemplateTest extends TestCase
         'alarms_evaluate_non_critical.php' => '*/5 * * * *',
         'alarms_dispatch.php' => '* * * * *',
         'retention_cleanup.php' => '25 2 * * *',
+        'cron_history_cleanup.php' => '35 2 * * *',
         'rate_limit_cleanup.php' => '17 * * * *',
     ];
 

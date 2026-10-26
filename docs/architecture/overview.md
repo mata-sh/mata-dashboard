@@ -61,6 +61,7 @@ The important jobs are:
 - `alarms_dispatch.php` sends due delivery records.
 - `retention_cleanup.php` removes expired database rows and reconciles config-warning notifications.
 - `rate_limit_cleanup.php` removes expired file-based rate-limit state.
+- `cron_history_cleanup.php` removes heartbeat files of cron jobs that no longer exist.
 
 See [Server metrics pipeline](server-metrics-pipeline.md) and the
 [alarm decision flow](../reference/alarms.md) for the detailed paths.
