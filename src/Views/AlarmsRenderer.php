@@ -32,6 +32,7 @@ class AlarmsRenderer extends BaseRenderer
             'endpoints' => [
                 'alarms_json' => $endpoints->url('alarms_json'),
                 'alarms_ack' => $alarmsAckUrl,
+                'ack_all' => $endpoints->url('notification_bell_ack_all'),
             ],
             'icons' => [
                 'help' => $this->tools->icon('help-circle', 14),

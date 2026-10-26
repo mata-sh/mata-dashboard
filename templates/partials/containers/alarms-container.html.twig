@@ -29,6 +29,9 @@
         <input id="filter-msg" type="text" placeholder="Message">
 
         <button class="button" id="filter-clear">Clear Filter</button>
+        <button type="button" class="button" id="alarms-ack-all"
+                data-ack-all-url="{{ endpoints.ack_all }}"
+                title="Acknowledge all alarms, regardless of active filters">Acknowledge all</button>
     </div>
 
     <div id="alarms-table"

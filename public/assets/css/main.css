@@ -1564,6 +1564,7 @@ svg {
 
 .app-title .app-name {
     text-transform: none;
+    margin-right: 3px;
 }
 
 .app-title > :not(.app-name),
@@ -3685,6 +3686,10 @@ label.audit-chip:has(input:checked)::after {
     margin-bottom: .4rem;
     font-size: .72rem;
     color: #5a6172;
+}
+
+.logs-modal-note {
+    color: #ffa500;
 }
 
 .modal-empty {

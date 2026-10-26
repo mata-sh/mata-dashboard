@@ -7,7 +7,7 @@
 } %}
   {% block modal_body %}
     {% if logs.readout_limit %}
-      <p class="modal-note" title="Older entries are not available in this modal.">
+      <p class="modal-note logs-modal-note" title="Older entries are not available in this modal.">
         Latest {{ logs.readout_limit|number_format }} entries per log file
       </p>
     {% endif %}

@@ -221,6 +221,37 @@
 
         tableElement._mataTabulator = table;
 
+        var acknowledgeAllButton = document.getElementById('alarms-ack-all');
+        var unacknowledgedFilter = document.getElementById('filter-unacknowledged');
+        acknowledgeAllButton.addEventListener('click', function () {
+            var csrfToken = document.querySelector('meta[name="csrf-token"]');
+            if (acknowledgeAllButton.disabled || !csrfToken || !acknowledgeAllButton.dataset.ackAllUrl) {
+                return;
+            }
+
+            acknowledgeAllButton.disabled = true;
+            fetch(acknowledgeAllButton.dataset.ackAllUrl, {
+                method: 'POST',
+                headers: {'X-CSRF-Token': csrfToken.content},
+            })
+                .then(function (response) {
+                    if (!response.ok) {
+                        throw new Error('Could not acknowledge all alarms');
+                    }
+
+                    if (tableElement._mataTabulator === table) {
+                        table.setData(alarmsUrl + (unacknowledgedFilter.checked ? '?unacknowledged=1' : ''));
+                    }
+                    document.body.dispatchEvent(new Event('bell-refresh'));
+                })
+                .catch(function (error) {
+                    console.error(error);
+                })
+                .finally(function () {
+                    acknowledgeAllButton.disabled = false;
+                });
+        });
+
         function applyFilters() {
             var filters = [];
             var values = {
