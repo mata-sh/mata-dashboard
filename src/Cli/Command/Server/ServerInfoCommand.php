@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Mata\Cli\Command\Server;
 
 use Mata\Cli\CliOutput;
-use Mata\Cli\Command\AbstractNodeEvidenceCommand;
+use Mata\Cli\Command\AbstractNodeDatasetCommand;
 use Mata\Services\Cache\CacheType;
 use Mata\Services\Collect\ServerDataCollectorInterface;
 use Symfony\Component\Console\Attribute\AsCommand;
@@ -14,9 +14,9 @@ use Symfony\Component\Console\Output\OutputInterface;
 
 /** Operating system, kernel, PHP version and extensions of a server. */
 #[AsCommand(name: 'server:info', description: 'Show the OS, kernel, PHP version and extensions of a server')]
-final class ServerInfoCommand extends AbstractNodeEvidenceCommand
+final class ServerInfoCommand extends AbstractNodeDatasetCommand
 {
-    protected function dataset(InputInterface $input): string
+    protected function datasetName(InputInterface $input): string
     {
         return 'server info';
     }

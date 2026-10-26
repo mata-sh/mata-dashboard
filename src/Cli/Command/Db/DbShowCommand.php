@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Mata\Cli\Command\Db;
 
 use Mata\Cli\CliOutput;
-use Mata\Cli\Command\AbstractNodeEvidenceCommand;
+use Mata\Cli\Command\AbstractNodeDatasetCommand;
 use Mata\Services\Cache\CacheType;
 use Mata\Services\Collect\ServerDataCollectorInterface;
 use Symfony\Component\Console\Attribute\AsCommand;
@@ -14,9 +14,9 @@ use Symfony\Component\Console\Output\OutputInterface;
 
 /** Status of each database connection a node monitors, and the databases on it. */
 #[AsCommand(name: 'db:show', description: 'Show the monitored database connections of a server')]
-final class DbShowCommand extends AbstractNodeEvidenceCommand
+final class DbShowCommand extends AbstractNodeDatasetCommand
 {
-    protected function dataset(InputInterface $input): string
+    protected function datasetName(InputInterface $input): string
     {
         return 'databases';
     }

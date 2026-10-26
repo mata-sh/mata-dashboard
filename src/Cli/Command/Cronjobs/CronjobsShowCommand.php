@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Mata\Cli\Command\Cronjobs;
 
 use Mata\Cli\CliOutput;
-use Mata\Cli\Command\AbstractNodeEvidenceCommand;
+use Mata\Cli\Command\AbstractNodeDatasetCommand;
 use Mata\Services\Cache\CacheType;
 use Mata\Services\Collect\ServerDataCollectorInterface;
 use Symfony\Component\Console\Attribute\AsCommand;
@@ -19,9 +19,9 @@ use Symfony\Component\Console\Output\OutputInterface;
  * those are in `status`.
  */
 #[AsCommand(name: 'cronjobs:show', description: "Show the heartbeats of a server's monitored cronjobs")]
-final class CronjobsShowCommand extends AbstractNodeEvidenceCommand
+final class CronjobsShowCommand extends AbstractNodeDatasetCommand
 {
-    protected function dataset(InputInterface $input): string
+    protected function datasetName(InputInterface $input): string
     {
         return 'cronjobs';
     }

@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Mata\Cli\Command\Libraries;
 
+use Mata\Cli\CliInput;
 use Mata\Cli\CliOutput;
-use Mata\Cli\Command\AbstractNodeEvidenceCommand;
-use Mata\Cli\Evidence;
+use Mata\Cli\Command\AbstractNodeDatasetCommand;
 use Mata\Services\Cache\CacheType;
 use Mata\Services\Collect\ServerDataCollectorInterface;
 use Symfony\Component\Console\Attribute\AsCommand;
@@ -18,7 +18,7 @@ use Symfony\Component\Console\Output\OutputInterface;
 
 /** Installed Composer packages of each application, from composer.lock on the node. */
 #[AsCommand(name: 'libraries:list', description: 'List the Composer packages of the applications of a server')]
-final class LibrariesListCommand extends AbstractNodeEvidenceCommand
+final class LibrariesListCommand extends AbstractNodeDatasetCommand
 {
     protected function configure(): void
     {
@@ -28,7 +28,7 @@ final class LibrariesListCommand extends AbstractNodeEvidenceCommand
             ->addOption('package', null, InputOption::VALUE_REQUIRED, 'Only packages whose name contains this, e.g. symfony/');
     }
 
-    protected function dataset(InputInterface $input): string
+    protected function datasetName(InputInterface $input): string
     {
         return 'libraries';
     }
@@ -40,8 +40,8 @@ final class LibrariesListCommand extends AbstractNodeEvidenceCommand
 
     protected function extract(mixed $result, InputInterface $input): array
     {
-        $onlyApp = Evidence::stringOption($input, 'app');
-        $search = Evidence::stringOption($input, 'package');
+        $onlyApp = CliInput::stringOption($input, 'app');
+        $search = CliInput::stringOption($input, 'package');
 
         $apps = [];
         foreach (is_array($result) ? $result : [] as $app => $libraries) {

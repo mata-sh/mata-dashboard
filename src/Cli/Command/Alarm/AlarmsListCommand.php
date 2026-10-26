@@ -5,15 +5,15 @@ declare(strict_types=1);
 namespace Mata\Cli\Command\Alarm;
 
 use DateTimeImmutable;
-use Mata\Cli\CliConfig;
+use Mata\Cli\CliInput;
 use Mata\Cli\CliOutput;
+use Mata\Cli\Command\AbstractResultCommand;
 use Mata\Cli\EventPresenter;
-use Mata\Cli\Evidence;
+use Mata\Cli\Provenance;
 use Mata\Database\PdoDatabase;
 use Mata\Models\Alarm\AlarmRepository;
 use Mata\Services\Status\StatusLevel;
 use Symfony\Component\Console\Attribute\AsCommand;
-use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
@@ -23,26 +23,21 @@ use Symfony\Component\Console\Output\OutputInterface;
  * happened to each delivery. Events that did not become alarms are in events list.
  */
 #[AsCommand(name: 'alarms:list', description: 'List alarms with their acknowledgement and deliveries, newest first')]
-final class AlarmsListCommand extends Command
+final class AlarmsListCommand extends AbstractResultCommand
 {
-    public function __construct(private readonly CliConfig $cli)
-    {
-        parent::__construct();
-    }
-
     protected function configure(): void
     {
+        parent::configure();
         $this
             ->addOption('server', null, InputOption::VALUE_REQUIRED, 'Only alarms of this server (servers.json name)')
             ->addOption('unacknowledged', null, InputOption::VALUE_NONE, 'Only alarms nobody acknowledged')
-            ->addOption('limit', null, InputOption::VALUE_REQUIRED, 'Number of alarms', '50')
-            ->addOption('json', null, InputOption::VALUE_NONE, 'Print as JSON');
+            ->addOption('limit', null, InputOption::VALUE_REQUIRED, 'Number of alarms', '50');
     }
 
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
-        $limit = Evidence::limit($input);
-        $server = Evidence::stringOption($input, 'server');
+        $limit = CliInput::limit($input);
+        $server = CliInput::stringOption($input, 'server');
         $unacknowledged = $input->getOption('unacknowledged') === true;
         $filters = [];
         if ($server !== null) {
@@ -56,20 +51,14 @@ final class AlarmsListCommand extends Command
         // One more row than asked tells whether the list is complete.
         $rows = $repository->getLatest($limit + 1, $unacknowledged, $server);
         $alarms = array_slice($rows, 0, $limit);
-        $data = Evidence::fromDatabase('alarms', new DateTimeImmutable()) + [
+        $data = Provenance::fromDatabase('alarms', new DateTimeImmutable()) + [
             // An object even when empty, so `filters` keeps one JSON type.
             'filters' => (object) $filters,
             'truncated' => count($rows) > $limit,
             'alarms' => $alarms,
         ];
 
-        if ($input->getOption('json')) {
-            CliOutput::json($output, ['status' => StatusLevel::Ok->label()] + $data);
-        } else {
-            $this->writeHuman($output, $alarms, $data['truncated']);
-        }
-
-        return StatusLevel::Ok->value;
+        return $this->report($input, $output, StatusLevel::Ok, $data, fn () => $this->writeHuman($output, $alarms, $data['truncated']));
     }
 
     /** @param array<int,array<string,mixed>> $alarms */
@@ -90,14 +79,14 @@ final class AlarmsListCommand extends Command
                 CliOutput::value($alarm['created_at']),
                 CliOutput::value($alarm['level']),
                 CliOutput::value($alarm['type']),
-                EventPresenter::location($alarm['server'], $alarm['app']),
+                CliOutput::location($alarm['server'], $alarm['app']),
                 $acknowledged,
                 CliOutput::value($alarm['message']),
             ));
 
             $deliveries = [];
             foreach ((array) $alarm['deliveries'] as $channel => $delivery) {
-                $deliveries[] = EventPresenter::delivery((string) $channel, $delivery);
+                $deliveries[] = EventPresenter::deliveryLine((string) $channel, $delivery);
             }
             $deliveries = $deliveries === [] ? '-' : implode(', ', $deliveries);
             $output->writeln("    deliveries: {$deliveries} · event {$alarm['event_id']}");

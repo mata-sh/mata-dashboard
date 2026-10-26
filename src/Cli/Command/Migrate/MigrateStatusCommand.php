@@ -5,14 +5,13 @@ declare(strict_types=1);
 namespace Mata\Cli\Command\Migrate;
 
 use Mata\Cli\CliOutput;
-use Mata\Cli\Command\AbstractDbCommand;
 use Mata\Services\Status\StatusLevel;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 
 #[AsCommand(name: 'migrate:status', description: 'Show pending database migrations')]
-final class MigrateStatusCommand extends AbstractDbCommand
+final class MigrateStatusCommand extends AbstractMigrateCommand
 {
     protected function configure(): void
     {

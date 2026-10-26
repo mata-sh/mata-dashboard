@@ -5,9 +5,10 @@ declare(strict_types=1);
 namespace Mata\Cli\Command\Logs;
 
 use DateTimeImmutable;
+use Mata\Cli\CliInput;
 use Mata\Cli\CliOutput;
-use Mata\Cli\Command\AbstractNodeEvidenceCommand;
-use Mata\Cli\Evidence;
+use Mata\Cli\Command\AbstractNodeDatasetCommand;
+use Mata\Cli\LogEntries;
 use Mata\Services\Collect\ServerDataCollectorInterface;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Input\InputInterface;
@@ -21,7 +22,7 @@ use Symfony\Component\Console\Output\OutputInterface;
  * --live asks the node for --limit entries per file, so a larger --limit reaches further back.
  */
 #[AsCommand(name: 'logs:show', description: 'Show the parsed log entries of an application, newest first')]
-final class LogsShowCommand extends AbstractNodeEvidenceCommand
+final class LogsShowCommand extends AbstractNodeDatasetCommand
 {
     /** Node-side filters, keyed by the --type that maps to them. */
     private const NODE_FILTERS = ['error' => 'errors', 'warning' => 'warnings'];
@@ -37,84 +38,36 @@ final class LogsShowCommand extends AbstractNodeEvidenceCommand
         $this
             ->addOption('type', null, InputOption::VALUE_REQUIRED, 'Only entries of this type, e.g. error, warning, deprecated')
             ->addOption('file', null, InputOption::VALUE_REQUIRED, 'Only entries of this log file, as listed in `files`')
-            ->addOption('since', null, InputOption::VALUE_REQUIRED, 'Only entries this recent: ' . Evidence::DURATIONS . '; node local time')
+            ->addOption('since', null, InputOption::VALUE_REQUIRED, 'Only entries this recent: ' . CliInput::DURATIONS . '; node local time')
             ->addOption('limit', null, InputOption::VALUE_REQUIRED, 'Number of entries; with --live also per file from the node', '50');
     }
 
-    protected function dataset(InputInterface $input): string
+    protected function datasetName(InputInterface $input): string
     {
         return 'logs';
     }
 
     protected function fetch(ServerDataCollectorInterface $collector, bool $live, InputInterface $input): ?array
     {
-        $app = self::app($input);
+        $app = self::appArgument($input);
         if (!$live) {
             return $collector->fetchAppLogs($app);
         }
 
-        return $collector->fetchAppLogEntries($app, self::NODE_FILTERS[self::type($input)] ?? '', Evidence::limit($input));
+        return $collector->fetchAppLogEntries($app, self::NODE_FILTERS[self::type($input)] ?? '', CliInput::limit($input));
     }
 
     protected function extract(mixed $result, InputInterface $input): array
     {
-        $limit = Evidence::limit($input);
-        $type = self::type($input);
-        $file = Evidence::stringOption($input, 'file');
-        $since = Evidence::since($input, new DateTimeImmutable())?->format('Y-m-d H:i:s');
-        $groups = is_array($result) && is_array($result['entries'] ?? null) ? $result['entries'] : [];
-        $readoutLimit = is_array($result) && is_int($result['readout_limit'] ?? null) ? $result['readout_limit'] : null;
-
-        $entries = [];
-        $files = [];
-        foreach ($groups as $path => $group) {
-            $group = array_values(array_filter(is_array($group) ? $group : [], 'is_array'));
-            $timestamps = [];
-            foreach ($group as $entry) {
-                if (is_string($entry['timestamp'] ?? null)) {
-                    $timestamps[] = $entry['timestamp'];
-                }
-            }
-            $oldest = $timestamps === [] ? null : min($timestamps);
-            // Capped: the node stopped at readout_limit, so older entries were cut off. Uncapped
-            // proves less: the node also scans only the last lines of a file (errorlog_scan_line_limit).
-            $capped = $readoutLimit !== null && count($group) >= $readoutLimit;
-            $files[] = [
-                'path' => (string) $path,
-                'returned' => count($group),
-                'oldest' => $oldest,
-                'capped' => $capped,
-                'covers_since' => match (true) {
-                    $since === null => null,
-                    $oldest !== null && $oldest <= $since => true,
-                    $capped => false,
-                    default => null,
-                },
-            ];
-            if ($file !== null && $path !== $file) {
-                continue;
-            }
-            foreach ($group as $entry) {
-                $timestamp = is_string($entry['timestamp'] ?? null) ? $entry['timestamp'] : null;
-                if (($type !== null && strtolower((string) ($entry['type'] ?? '')) !== $type)
-                    || ($since !== null && ($timestamp === null || $timestamp < $since))) {
-                    continue;
-                }
-                $entries[] = [
-                    'timestamp' => $timestamp,
-                    'type' => is_string($entry['type'] ?? null) ? $entry['type'] : null,
-                    'file' => (string) $path,
-                    'message' => is_string($entry['message'] ?? null) ? $entry['message'] : '',
-                ];
-            }
-        }
-        // Node timestamps are Y-m-d H:i:s, so they sort as strings; entries without one go last.
-        usort($entries, static fn (array $a, array $b): int => strcmp((string) $b['timestamp'], (string) $a['timestamp']));
+        $limit = CliInput::limit($input);
+        $since = CliInput::since($input, new DateTimeImmutable())?->format('Y-m-d H:i:s');
+        $filtered = LogEntries::filter($result, self::type($input), CliInput::stringOption($input, 'file'), $since);
+        $entries = $filtered['entries'];
 
         return [
-            'readout_limit' => $readoutLimit,
+            'readout_limit' => $filtered['readout_limit'],
             'since' => $since,
-            'files' => $files,
+            'files' => $filtered['files'],
             'matched' => count($entries),
             'truncated' => count($entries) > $limit,
             'entries' => array_slice($entries, 0, $limit),
@@ -129,25 +82,12 @@ final class LogsShowCommand extends AbstractNodeEvidenceCommand
             $output->writeln('No log entries.');
         }
         foreach ($entries as $entry) {
-            $output->writeln(sprintf(
-                '<info>%s</info> %-10s %s: %s',
-                CliOutput::value($entry['timestamp']),
-                CliOutput::value($entry['type']),
-                CliOutput::value(basename($entry['file'])),
-                CliOutput::value($entry['message']),
-            ));
+            $output->writeln(LogEntries::line($entry));
         }
         if ($data['truncated'] === true) {
             CliOutput::truncated($output, 'entries', count($entries), (int) $data['matched']);
         }
-        $cut = [];
-        foreach (is_array($data['files']) ? $data['files'] : [] as $file) {
-            // With --since, only files whose readout ends inside the window miss entries.
-            $missesEntries = $data['since'] !== null ? $file['covers_since'] === false : $file['capped'];
-            if ($missesEntries) {
-                $cut[] = basename($file['path']);
-            }
-        }
+        $cut = LogEntries::filesMissingEntries(is_array($data['files']) ? $data['files'] : [], $data['since'] !== null);
         if ($cut !== []) {
             $output->writeln(sprintf(
                 '<comment>The node returned only the last %d entries of %s; older entries are not shown%s.</comment>',
@@ -160,7 +100,7 @@ final class LogsShowCommand extends AbstractNodeEvidenceCommand
 
     private static function type(InputInterface $input): ?string
     {
-        $type = Evidence::stringOption($input, 'type');
+        $type = CliInput::stringOption($input, 'type');
 
         return $type === null ? null : strtolower($type);
     }

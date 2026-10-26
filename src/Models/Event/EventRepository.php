@@ -219,6 +219,7 @@ class EventRepository
         ?string $level,
         ?DateTimeImmutable $since,
         int $limit,
+        ?DateTimeImmutable $until = null,
     ): array {
         $limit = max(1, $limit);
         $filters = [
@@ -227,6 +228,7 @@ class EventRepository
             'e.type = ?' => $type,
             'e.level = ?' => $level,
             'e.`datetime` >= ?' => $since?->format('Y-m-d H:i:s'),
+            'e.`datetime` <= ?' => $until?->format('Y-m-d H:i:s'),
         ];
         $filters = array_filter($filters, static fn (?string $value): bool => $value !== null);
         $where = $filters === [] ? '' : 'WHERE ' . implode(' AND ', array_keys($filters));

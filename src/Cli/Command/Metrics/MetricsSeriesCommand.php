@@ -6,24 +6,19 @@ namespace Mata\Cli\Command\Metrics;
 
 use DateTimeImmutable;
 use InvalidArgumentException;
-use Mata\Cli\CliConfig;
+use Mata\Cli\CliInput;
 use Mata\Cli\CliOutput;
-use Mata\Cli\Evidence;
-use Mata\Config\Dto\DatabaseConfig;
+use Mata\Cli\Command\AbstractResultCommand;
+use Mata\Cli\Provenance;
+use Mata\Cli\StoredMetrics;
 use Mata\Config\Monitoring\Loader\ServersConfigLoader;
-use Mata\Database\PdoDatabase;
-use Mata\Models\Sync\ConfigSyncRepository;
-use Mata\Services\Identity\ServerApplicationIdResolver;
 use Mata\Services\ServerMetrics\MetricCatalog;
 use Mata\Services\ServerMetrics\MetricQueryPolicy;
 use Mata\Services\ServerMetrics\MetricsRequestValidator;
-use Mata\Services\ServerMetrics\MockServerMetricsQuery;
-use Mata\Services\ServerMetrics\ServerMetricsQuery;
 use Mata\Services\Status\StatusLevel;
 use Mata\Services\View\MetricsViewBuilder;
 use Psr\Log\NullLogger;
 use Symfony\Component\Console\Attribute\AsCommand;
-use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
@@ -34,22 +29,17 @@ use Symfony\Component\Console\Output\OutputInterface;
  * are averages; raw points are single samples. Times are UTC. Demo mode generates the series.
  */
 #[AsCommand(name: 'metrics:series', description: 'Show the stored history of one server metric')]
-final class MetricsSeriesCommand extends Command
+final class MetricsSeriesCommand extends AbstractResultCommand
 {
-    public function __construct(private readonly CliConfig $cli)
-    {
-        parent::__construct();
-    }
-
     protected function configure(): void
     {
         $catalog = new MetricCatalog();
+        parent::configure();
         $this
             ->addArgument('server', InputArgument::REQUIRED, 'Server name from servers.json')
             ->addArgument('metric', InputArgument::REQUIRED, 'One of: ' . implode(', ', $catalog->metrics()))
-            ->addOption('range', null, InputOption::VALUE_REQUIRED, 'How far back: ' . Evidence::DURATIONS . ' or all', '24h')
+            ->addOption('range', null, InputOption::VALUE_REQUIRED, 'How far back: ' . CliInput::DURATIONS . ' or all', '24h')
             ->addOption('granularity', null, InputOption::VALUE_REQUIRED, 'One of: ' . implode(', ', $catalog->granularities()), 'auto')
-            ->addOption('json', null, InputOption::VALUE_NONE, 'Print as JSON')
             ->setHelp('auto picks raw samples up to 6h, hourly averages up to 7d and daily averages beyond.');
     }
 
@@ -72,14 +62,14 @@ final class MetricsSeriesCommand extends Command
         $granularity = $policy->resolveGranularity($range, $requestedGranularity);
 
         $demo = $config->environment->env === 'demo';
-        $query = $demo ? new MockServerMetricsQuery() : $this->databaseQuery($config->database, $servers);
+        $query = StoredMetrics::query($config, $servers);
         $series = (new MetricsViewBuilder($query, new NullLogger()))->buildServerMetricTimeSeries($server, $metric, $range, $granularity);
 
         $points = [];
         foreach ($series['labels'] as $index => $label) {
             $points[] = ['time' => $label, 'value' => $series['data'][$index] ?? null];
         }
-        $data = Evidence::fromDatabase("server_metrics_{$granularity}", new DateTimeImmutable(), $demo) + [
+        $data = Provenance::fromDatabase("server_metrics_{$granularity}", new DateTimeImmutable(), $demo) + [
             'server' => $server,
             'metric' => $metric,
             'range' => $range,
@@ -92,23 +82,7 @@ final class MetricsSeriesCommand extends Command
             'points' => $points,
         ];
 
-        if ($input->getOption('json')) {
-            CliOutput::json($output, ['status' => StatusLevel::Ok->label()] + $data);
-        } else {
-            $this->writeHuman($output, $data);
-        }
-
-        return StatusLevel::Ok->value;
-    }
-
-    /** @param array<string,mixed> $servers */
-    private function databaseQuery(DatabaseConfig $database, array $servers): ServerMetricsQuery
-    {
-        $db = new PdoDatabase($database);
-        $idResolver = new ServerApplicationIdResolver(new ConfigSyncRepository($db));
-        $idResolver->refreshFromRepository($servers);
-
-        return new ServerMetricsQuery($db, $idResolver);
+        return $this->report($input, $output, StatusLevel::Ok, $data, fn () => $this->writeHuman($output, $data));
     }
 
     /** @param array<string,mixed> $data */

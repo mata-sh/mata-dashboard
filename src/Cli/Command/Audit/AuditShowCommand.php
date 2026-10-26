@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Mata\Cli\Command\Audit;
 
 use Mata\Cli\CliOutput;
-use Mata\Cli\Command\AbstractNodeEvidenceCommand;
+use Mata\Cli\Command\AbstractNodeDatasetCommand;
 use Mata\Services\Cache\CacheType;
 use Mata\Services\Collect\ServerDataCollectorInterface;
 use Symfony\Component\Console\Attribute\AsCommand;
@@ -19,21 +19,21 @@ use Symfony\Component\Console\Output\OutputInterface;
  * which can take up to a minute.
  */
 #[AsCommand(name: 'audit:show', description: 'Show the Composer security audit of an application')]
-final class AuditShowCommand extends AbstractNodeEvidenceCommand
+final class AuditShowCommand extends AbstractNodeDatasetCommand
 {
     protected function requiresApp(): bool
     {
         return true;
     }
 
-    protected function dataset(InputInterface $input): string
+    protected function datasetName(InputInterface $input): string
     {
         return 'composer audit';
     }
 
     protected function fetch(ServerDataCollectorInterface $collector, bool $live, InputInterface $input): ?array
     {
-        return $collector->fetchAppComposerAudit(self::app($input), self::cacheType($live, CacheType::Audit));
+        return $collector->fetchAppComposerAudit(self::appArgument($input), self::cacheType($live, CacheType::Audit));
     }
 
     protected function extract(mixed $result, InputInterface $input): array

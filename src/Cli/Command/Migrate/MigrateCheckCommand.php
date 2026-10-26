@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Mata\Cli\Command\Migrate;
 
 use Mata\Cli\CliOutput;
-use Mata\Cli\Command\AbstractDbCommand;
 use Mata\Database\DatabaseIntegrityChecker;
 use Mata\Database\PdoDatabase;
 use Mata\Services\Status\StatusLevel;
@@ -14,7 +13,7 @@ use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 
 #[AsCommand(name: 'migrate:check', description: 'Run the database integrity checks')]
-final class MigrateCheckCommand extends AbstractDbCommand
+final class MigrateCheckCommand extends AbstractMigrateCommand
 {
     protected function writes(): bool
     {

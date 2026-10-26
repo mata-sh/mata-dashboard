@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Mata\Cli\Command;
+namespace Mata\Cli\Command\Migrate;
 
 use Mata\Cli\CliConfig;
 use Mata\Cli\CliOutput;
@@ -14,9 +14,9 @@ use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 
 /**
- * Database commands against APP_ENV's environment.
+ * Migration commands against APP_ENV's database.
  */
-abstract class AbstractDbCommand extends Command
+abstract class AbstractMigrateCommand extends Command
 {
     protected ApplicationConfig $config;
 

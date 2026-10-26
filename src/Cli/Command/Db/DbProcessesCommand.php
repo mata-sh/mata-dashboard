@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Mata\Cli\Command\Db;
 
+use Mata\Cli\CliInput;
 use Mata\Cli\CliOutput;
-use Mata\Cli\Command\AbstractNodeEvidenceCommand;
-use Mata\Cli\Evidence;
+use Mata\Cli\Command\AbstractNodeDatasetCommand;
 use Mata\Services\Collect\ServerDataCollectorInterface;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Helper\Table;
@@ -20,9 +20,9 @@ use Symfony\Component\Console\Output\OutputInterface;
  * the node. `visibility` says whether the node's database user sees all sessions or only its own.
  */
 #[AsCommand(name: 'db:processes', description: 'Show the live process list of a monitored database connection')]
-final class DbProcessesCommand extends AbstractNodeEvidenceCommand
+final class DbProcessesCommand extends AbstractNodeDatasetCommand
 {
-    protected function alwaysLive(): bool
+    protected function alwaysAsksNode(): bool
     {
         return true;
     }
@@ -35,7 +35,7 @@ final class DbProcessesCommand extends AbstractNodeEvidenceCommand
             ->addOption('database', null, InputOption::VALUE_REQUIRED, 'Only sessions of this monitored database');
     }
 
-    protected function dataset(InputInterface $input): string
+    protected function datasetName(InputInterface $input): string
     {
         return 'database processes';
     }
@@ -44,7 +44,7 @@ final class DbProcessesCommand extends AbstractNodeEvidenceCommand
     {
         $connection = (string) $input->getArgument('connection');
 
-        return $collector->fetchDatabaseProcesses($connection, Evidence::stringOption($input, 'database'));
+        return $collector->fetchDatabaseProcesses($connection, CliInput::stringOption($input, 'database'));
     }
 
     protected function extract(mixed $result, InputInterface $input): array

@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Mata\Cli\Command\Apps;
 
 use Mata\Cli\CliOutput;
-use Mata\Cli\Command\AbstractNodeEvidenceCommand;
+use Mata\Cli\Command\AbstractNodeDatasetCommand;
 use Mata\Services\Cache\CacheType;
 use Mata\Services\Collect\ServerDataCollectorInterface;
 use Symfony\Component\Console\Attribute\AsCommand;
@@ -14,14 +14,14 @@ use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 
 #[AsCommand(name: 'apps:list', description: 'List the applications of one or all servers with their log status')]
-final class AppsListCommand extends AbstractNodeEvidenceCommand
+final class AppsListCommand extends AbstractNodeDatasetCommand
 {
-    protected function serverOptional(): bool
+    protected function coversFleet(): bool
     {
         return true;
     }
 
-    protected function dataset(InputInterface $input): string
+    protected function datasetName(InputInterface $input): string
     {
         return 'apps';
     }

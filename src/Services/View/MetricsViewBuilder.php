@@ -170,6 +170,37 @@ class MetricsViewBuilder
     ): array {
         ['start' => $start, 'end' => $end] = $this->parseTimeRange($range, $granularity);
 
+        return ['server_name' => $serverName, 'range' => $range, 'granularity' => $granularity]
+            + $this->buildMultiMetricTimeSeriesBetween($serverName, $metrics, $start, $end, $granularity);
+    }
+
+    /**
+     * Like buildMultiMetricTimeSeries(), for a window that need not end now, e.g. around an
+     * event. Hourly and daily points are labelled with the start of their bucket, so $start
+     * is aligned down to it; labels are UTC.
+     *
+     * @param array<int,string> $metrics
+     *
+     * @return array{
+     *     labels: array<int,string>,
+     *     datasets: array<int,array{metric:string,data:array<int,null|float|int>,unit:string}>
+     * }
+     */
+    public function buildMultiMetricTimeSeriesBetween(
+        string $serverName,
+        array $metrics,
+        DateTimeImmutable $start,
+        DateTimeImmutable $end,
+        string $granularity
+    ): array {
+        $start = $start->setTimezone(new DateTimeZone('UTC'));
+        $end = $end->setTimezone(new DateTimeZone('UTC'));
+        if ($granularity === 'daily') {
+            $start = $start->setTime(0, 0, 0);
+        } elseif ($granularity === 'hourly') {
+            $start = $start->setTime((int) $start->format('H'), 0, 0);
+        }
+
         $dataPoints = match ($granularity) {
             'daily' => $this->metricsQuery->getDailyMetrics($serverName, $start, $end),
             'hourly' => $this->metricsQuery->getHourlyMetrics($serverName, $start, $end),
@@ -178,13 +209,7 @@ class MetricsViewBuilder
         };
 
         if ($dataPoints === []) {
-            return [
-                'server_name' => $serverName,
-                'range' => $range,
-                'granularity' => $granularity,
-                'labels' => [],
-                'datasets' => [],
-            ];
+            return ['labels' => [], 'datasets' => []];
         }
 
         $labels = [];
@@ -209,13 +234,7 @@ class MetricsViewBuilder
             ];
         }
 
-        return [
-            'server_name' => $serverName,
-            'range' => $range,
-            'granularity' => $granularity,
-            'labels' => $labels,
-            'datasets' => $datasets,
-        ];
+        return ['labels' => $labels, 'datasets' => $datasets];
     }
 
     /**

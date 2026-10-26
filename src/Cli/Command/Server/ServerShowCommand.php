@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Mata\Cli\Command\Server;
 
 use Mata\Cli\CliOutput;
-use Mata\Cli\Command\AbstractNodeEvidenceCommand;
+use Mata\Cli\Command\AbstractNodeDatasetCommand;
 use Mata\Services\Cache\CacheType;
 use Mata\Services\Collect\ServerDataCollectorInterface;
 use Symfony\Component\Console\Attribute\AsCommand;
@@ -18,14 +18,14 @@ use Symfony\Component\Console\Output\OutputInterface;
  * RAM and disk sizes are in kilobytes.
  */
 #[AsCommand(name: 'server:show', description: 'Show CPU, RAM, disk, load and process counts of one or all servers')]
-final class ServerShowCommand extends AbstractNodeEvidenceCommand
+final class ServerShowCommand extends AbstractNodeDatasetCommand
 {
-    protected function serverOptional(): bool
+    protected function coversFleet(): bool
     {
         return true;
     }
 
-    protected function dataset(InputInterface $input): string
+    protected function datasetName(InputInterface $input): string
     {
         return 'system';
     }

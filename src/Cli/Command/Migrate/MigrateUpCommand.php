@@ -5,13 +5,12 @@ declare(strict_types=1);
 namespace Mata\Cli\Command\Migrate;
 
 use Mata\Cli\CliOutput;
-use Mata\Cli\Command\AbstractDbCommand;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 
 #[AsCommand(name: 'migrate:up', description: 'Apply pending database migrations')]
-final class MigrateUpCommand extends AbstractDbCommand
+final class MigrateUpCommand extends AbstractMigrateCommand
 {
     protected function writes(): bool
     {

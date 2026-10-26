@@ -20,6 +20,9 @@ use Symfony\Component\Console\Question\Question;
  */
 final class CliOutput
 {
+    /** Raised when a field changes meaning or disappears; new fields keep it. */
+    public const SCHEMA_VERSION = 1;
+
     /**
      * Written raw: the formatter would strip `<info>`-like text from values.
      *
@@ -28,7 +31,7 @@ final class CliOutput
     public static function json(OutputInterface $output, array $payload): void
     {
         $output->writeln(json_encode(
-            ['schema_version' => 1] + $payload,
+            ['schema_version' => self::SCHEMA_VERSION] + $payload,
             JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR,
         ), OutputInterface::OUTPUT_RAW);
     }
@@ -133,6 +136,14 @@ final class CliOutput
         $text = self::plain($value);
 
         return $text === '' ? '-' : OutputFormatter::escape($text);
+    }
+
+    /** "server/app", escaped. A missing name is null from EventRepository and '' from AlarmRepository. */
+    public static function location(mixed $server, mixed $app): string
+    {
+        $location = self::value($server);
+
+        return self::value($app) === '-' ? $location : $location . '/' . self::value($app);
     }
 
     /** value() before escaping; null and objects in a list are left out. */

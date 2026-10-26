@@ -22,6 +22,7 @@ use Mata\Cli\Command\Db\DbShowCommand;
 use Mata\Cli\Command\DoctorCommand;
 use Mata\Cli\Command\Events\EventsListCommand;
 use Mata\Cli\Command\Events\EventsShowCommand;
+use Mata\Cli\Command\Evidence\EvidenceCommand;
 use Mata\Cli\Command\Libraries\LibrariesListCommand;
 use Mata\Cli\Command\Logs\LogsFilesCommand;
 use Mata\Cli\Command\Logs\LogsShowCommand;
@@ -32,6 +33,8 @@ use Mata\Cli\Command\Migrate\MigrateDownCommand;
 use Mata\Cli\Command\Migrate\MigrateStatusCommand;
 use Mata\Cli\Command\Migrate\MigrateUpCommand;
 use Mata\Cli\Command\Processes\ProcessesShowCommand;
+use Mata\Cli\Command\Saved\SavedListCommand;
+use Mata\Cli\Command\Saved\SavedShowCommand;
 use Mata\Cli\Command\Server\ServerAddCommand;
 use Mata\Cli\Command\Server\ServerInfoCommand;
 use Mata\Cli\Command\Server\ServerListCommand;
@@ -119,6 +122,9 @@ $application->addCommands([
     new EventsShowCommand($cli),
     new AlarmsListCommand($cli),
     new MetricsSeriesCommand($cli),
+    new EvidenceCommand($cli),
+    new SavedListCommand($cli),
+    new SavedShowCommand($cli),
 ]);
 
 // The CLI SAPI fills argv with strings; filtering only narrows the type for PHPStan.
