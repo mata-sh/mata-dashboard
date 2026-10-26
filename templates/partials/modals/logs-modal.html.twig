@@ -10,6 +10,7 @@
       <p class="modal-note logs-modal-note" title="Older entries are not available in this modal.">
         Latest {{ logs.readout_limit|number_format }} entries per log file
       </p>
+      <p class="modal-note">Increase errorlog_readout_limit in the node's config/transmit.json.</p>
     {% endif %}
     {{ content.modal_content|raw }}
   {% endblock %}
