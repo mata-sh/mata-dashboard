@@ -9,6 +9,7 @@ use JsonException;
 use Mata\Database\DatabaseInterface;
 use Mata\Services\Advisory\Dto\AdvisoryItem;
 use Mata\Services\Audit\Severity;
+use Throwable;
 
 /**
  * Stored advisories. A row is inserted once per (source, external ID) and is the memory that
@@ -157,6 +158,38 @@ final class AdvisoryRepository
             'UPDATE advisories SET review_status = ?, review_note = ?, reviewed_by = ?, reviewed_at = ? WHERE id = ?',
             [$status->value, $reset ? null : $note, $reset ? null : $reviewedBy, $reset ? null : $now, $id],
         ) > 0;
+    }
+
+    /**
+     * Reviews several advisories in one transaction. Advisories already in $status are left
+     * alone, so a bulk review keeps their reviewer, time and note.
+     *
+     * @param list<int> $ids
+     *
+     * @return int advisories changed
+     */
+    public function reviewMany(array $ids, AdvisoryReviewStatus $status, ?string $note, ?string $reviewedBy, string $now): int
+    {
+        $reset = $status === AdvisoryReviewStatus::New;
+        $changed = 0;
+        $this->db->beginTransaction();
+
+        try {
+            foreach (array_chunk(array_values(array_unique($ids)), self::LOOKUP_CHUNK) as $chunk) {
+                $placeholders = implode(',', array_fill(0, count($chunk), '?'));
+                $changed += $this->db->runStatement(
+                    "UPDATE advisories SET review_status = ?, review_note = ?, reviewed_by = ?, reviewed_at = ? WHERE review_status <> ? AND id IN ({$placeholders})",
+                    [$status->value, $reset ? null : $note, $reset ? null : $reviewedBy, $reset ? null : $now, $status->value, ...$chunk],
+                );
+            }
+            $this->db->commit();
+        } catch (Throwable $exception) {
+            $this->db->rollback();
+
+            throw $exception;
+        }
+
+        return $changed;
     }
 
     /**

@@ -133,6 +133,13 @@ Click an advisory on the **Advisories** page to see its fields, the raw feed ite
 mail, and to mark it **Reviewed** or **Not relevant** with a short note. Reports leave out
 advisories reviewed as not relevant unless asked.
 
+To review many at once, filter the table, pick a status under **Set review…** and click
+**Apply to N shown**. This applies to every advisory the filters show, on all pages,
+and takes an optional shared note. **New** resets reviews and clears their notes.
+
+!!! info "Existing reviews are kept"
+    Advisories that already have the chosen status keep their reviewer, time and note.
+
 ## Reports
 
 The page downloads the report for the last 7, 30 or 90 days. On the command line:

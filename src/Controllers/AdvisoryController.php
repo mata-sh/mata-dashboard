@@ -8,6 +8,7 @@ use DateTimeImmutable;
 use DateTimeZone;
 use Mata\Bootstrap\AdvisoryRuntime;
 use Mata\Core\App;
+use Mata\Database\DatabaseId;
 use Mata\Http\Request;
 use Mata\Http\Responses\HtmlResponse;
 use Mata\Http\Responses\JsonResponse;
@@ -31,6 +32,9 @@ class AdvisoryController extends BaseController
     private const TABLE_DAYS = [30, 90, 365];
     private const REPORT_MAX_DAYS = 3660;
     private const NOTE_LIMIT = 1000;
+
+    /** The table loads at most this many rows (AdvisoryRepository::findSince()). */
+    private const BULK_LIMIT = 5000;
 
     private AdvisoriesRenderer $renderer;
     private AdvisoriesViewBuilder $viewBuilder;
@@ -61,6 +65,7 @@ class AdvisoryController extends BaseController
                     'advisories_json' => $this->endpoints->url('advisories_json'),
                     'advisory_detail' => $this->endpoints->url('advisory_detail_render', ['advisoryId' => '__ID__']),
                     'advisories_report' => $this->endpoints->url('advisories_report'),
+                    'advisories_review' => $this->endpoints->url('advisories_review'),
                 ],
                 defaultDigestDays: $this->advisories->config->digest->everyDays,
             )),
@@ -112,7 +117,7 @@ class AdvisoryController extends BaseController
                 $status = AdvisoryReviewStatus::tryFrom($this->request->postString('status') ?? '');
                 $note = trim($this->request->postString('note') ?? '');
                 if ($status === null || mb_strlen($note) > self::NOTE_LIMIT) {
-                    return $this->handleValidationError(['status' => 'new, reviewed or not_relevant', 'note' => 'at most 1000 characters']);
+                    return $this->handleValidationError(['status' => 'new, reviewed or not_relevant', 'note' => 'at most ' . self::NOTE_LIMIT . ' characters']);
                 }
                 $updated = $this->advisories->advisories->review(
                     (int) $advisoryId,
@@ -129,6 +134,36 @@ class AdvisoryController extends BaseController
             },
             'Failed to save the review',
             'Advisory review',
+        );
+    }
+
+    /** Reviews the advisories the table filter shows and returns how many changed. */
+    public function reviewMany(): Response
+    {
+        return $this->executeWithErrorHandling(
+            function (): Response {
+                $ids = self::parseBulkIds($this->request->postList('ids'));
+                $status = AdvisoryReviewStatus::tryFrom($this->request->postString('status') ?? '');
+                $note = trim($this->request->postString('note') ?? '');
+                if ($ids === null || $status === null || mb_strlen($note) > self::NOTE_LIMIT) {
+                    return $this->handleValidationError([
+                        'ids' => '1 to ' . self::BULK_LIMIT . ' advisory IDs',
+                        'status' => 'new, reviewed or not_relevant',
+                        'note' => 'at most ' . self::NOTE_LIMIT . ' characters',
+                    ]);
+                }
+                $changed = $this->advisories->advisories->reviewMany(
+                    $ids,
+                    $status,
+                    $note === '' ? null : $note,
+                    $this->app->auth->getUsername() ?? 'unknown',
+                    $this->now()->format('Y-m-d H:i:s'),
+                );
+
+                return new JsonResponse(['changed' => $changed]);
+            },
+            'Failed to save the reviews',
+            'Advisory bulk review',
         );
     }
 
@@ -159,6 +194,25 @@ class AdvisoryController extends BaseController
             'Failed to build the advisory report',
             'Advisory report download',
         );
+    }
+
+    /**
+     * @param list<string> $ids
+     *
+     * @return null|list<int> null unless 1 to BULK_LIMIT database IDs
+     */
+    private static function parseBulkIds(array $ids): ?array
+    {
+        if ($ids === [] || count($ids) > self::BULK_LIMIT) {
+            return null;
+        }
+        foreach ($ids as $id) {
+            if (!DatabaseId::isValid($id)) {
+                return null;
+            }
+        }
+
+        return array_map('intval', $ids);
     }
 
     private function now(): DateTimeImmutable

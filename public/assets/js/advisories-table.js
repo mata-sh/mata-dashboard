@@ -177,6 +177,89 @@
             document.getElementById('advisory-filter-relevant').checked = false;
             applyFilters();
         });
+
+        initializeBulkReview(table);
+    }
+
+    // Bulk review acts on the rows the filters show, across all pages.
+    function initializeBulkReview(table) {
+        var statusSelect = document.getElementById('advisory-bulk-status');
+        var applyButton = document.getElementById('advisory-bulk-apply');
+        var shownCount = 0;
+        var saving = false;
+
+        function updateButton() {
+            applyButton.textContent = 'Apply to ' + shownCount + ' shown';
+            applyButton.disabled = saving || !statusSelect.value || shownCount === 0;
+        }
+
+        function fail(message) {
+            if (window.mataOpenMessageModal) {
+                window.mataOpenMessageModal(message, applyButton, 'Bulk review');
+            }
+        }
+
+        table.on('dataFiltered', function (filters, rows) {
+            shownCount = rows.length;
+            updateButton();
+        });
+        statusSelect.addEventListener('change', updateButton);
+
+        applyButton.addEventListener('click', function () {
+            var csrfToken = document.querySelector('meta[name="csrf-token"]');
+            var status = statusSelect.value;
+            var label = statusSelect.options[statusSelect.selectedIndex].text;
+            if (applyButton.disabled || !csrfToken || !applyButton.dataset.reviewUrl) {
+                return;
+            }
+
+            var shown = table.getData('active');
+            var ids = shown.filter(function (row) { return row.review_status !== status; }).map(function (row) { return row.id; });
+            if (ids.length === 0) {
+                fail('All ' + shown.length + ' shown advisories are already "' + label + '".');
+
+                return;
+            }
+            var question = 'Set ' + ids.length + ' of ' + shown.length + ' shown advisories to "' + label + '"?';
+            if (ids.length < shown.length) {
+                question += ' ' + (shown.length - ids.length) + ' already are and keep their review.';
+            }
+            var note = '';
+            if (status === 'new') {
+                if (!window.confirm(question + ' This clears their notes and reviewers.')) {
+                    return;
+                }
+            } else {
+                note = window.prompt(question + '\n\nOptional note for all of them:', '');
+                if (note === null) {
+                    return;
+                }
+            }
+
+            var body = new URLSearchParams();
+            ids.forEach(function (id) { body.append('ids[]', id); });
+            body.append('status', status);
+            body.append('note', note);
+            saving = true;
+            updateButton();
+            fetch(applyButton.dataset.reviewUrl, {method: 'POST', headers: {'X-CSRF-Token': csrfToken.content}, body: body})
+                .then(function (response) {
+                    if (!response.ok) {
+                        return response.json().catch(function () { return {}; }).then(function (data) {
+                            throw new Error(data.message || 'Request failed (HTTP ' + response.status + ')');
+                        });
+                    }
+                    statusSelect.value = '';
+                    document.body.dispatchEvent(new Event('advisoryReviewed'));
+                })
+                .catch(function (error) {
+                    fail(error.message);
+                })
+                .finally(function () {
+                    saving = false;
+                    updateButton();
+                });
+        });
     }
 
     document.addEventListener('DOMContentLoaded', function () {

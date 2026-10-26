@@ -122,6 +122,14 @@
         <span class="toggle-text">relevant only</span>
       </label>
       <button class="button" id="advisory-filter-clear" type="button">Clear Filter</button>
+      <select id="advisory-bulk-status" aria-label="Review status for all shown advisories">
+        <option value="">Set review…</option>
+        <option value="reviewed">Reviewed</option>
+        <option value="not_relevant">Not relevant</option>
+        <option value="new">New</option>
+      </select>
+      <button class="button" id="advisory-bulk-apply" type="button" data-review-url="{{ endpoints.advisories_review }}" disabled
+              title="Set the review of every advisory the filters show, on all pages">Apply to 0 shown</button>
       <button type="button" class="button" hx-get="{{ endpoints.advisories_render }}" hx-target="#main-section" hx-swap="innerHTML">{{ icons.refresh|raw }} Refresh</button>
     </div>
 

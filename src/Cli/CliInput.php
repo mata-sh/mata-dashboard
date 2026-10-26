@@ -7,6 +7,7 @@ namespace Mata\Cli;
 use DateInterval;
 use DateTimeImmutable;
 use InvalidArgumentException;
+use Mata\Database\DatabaseId;
 use Mata\Http\Security\RouteParameter;
 use Mata\Services\ServerMetrics\MetricQueryPolicy;
 use Symfony\Component\Console\Input\InputInterface;
@@ -46,7 +47,7 @@ final class CliInput
      */
     public static function id(string $value, string $name): int
     {
-        if (preg_match('/^[1-9][0-9]{0,18}$/', $value) !== 1) {
+        if (!DatabaseId::isValid($value)) {
             throw new InvalidArgumentException("{$name} must be a positive integer.");
         }
 

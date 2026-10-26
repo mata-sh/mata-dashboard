@@ -13,6 +13,7 @@ use Mata\Controllers\LoginController;
 use Mata\Controllers\MetricsController;
 use Mata\Controllers\ModalController;
 use Mata\Core\App;
+use Mata\Database\DatabaseId;
 use Mata\Http\Request;
 use Mata\Http\Responses\HtmlResponse;
 use Mata\Http\Responses\Response;
@@ -382,6 +383,7 @@ class RouterSetup
             $advisoryRoutes = [
                 ['advisories_render', '/advisories', 'get', fn () => $this->advisoryController->renderOverview()],
                 ['advisories_report', '/advisories/report', 'get', fn () => $this->advisoryController->downloadReport()],
+                ['advisories_review', '/advisories/review', 'post', fn () => $this->advisoryController->reviewMany()],
                 ['advisory_detail_render', '/advisories/{advisoryId}', 'get', fn ($advisoryId) => $this->advisoryController->renderDetail($advisoryId)],
                 ['advisory_review', '/advisories/{advisoryId}/review', 'post', fn ($advisoryId) => $this->advisoryController->review($advisoryId)],
             ];
@@ -523,9 +525,9 @@ class RouterSetup
             RouteParameter::assertSafe($server, 'Invalid server parameter');
         });
 
-        // Advisory IDs are database IDs; /advisories/report is the only non-numeric child
+        // Advisory IDs are database IDs; /advisories/report and /advisories/review are the only non-numeric children
         $this->router->before('GET|POST', '/watch/advisories/([^/]+)(?:/review)?', function ($advisoryId) {
-            if ($advisoryId !== 'report' && preg_match('/^[1-9][0-9]{0,18}$/', $advisoryId) !== 1) {
+            if (!in_array($advisoryId, ['report', 'review'], true) && !DatabaseId::isValid($advisoryId)) {
                 throw new InvalidArgumentException('Invalid advisory parameter');
             }
         });
