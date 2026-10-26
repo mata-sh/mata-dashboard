@@ -48,7 +48,7 @@ jobs:
       - name: Install MkDocs
         run: |
           pipx install mkdocs
-          pipx inject mkdocs mkdocs-shadcn
+          pipx inject mkdocs mkdocs-shadcn mkdocs-llmstxt
 
       - name: Sync MATA Node docs
         run: scripts/docs/sync-node-docs.sh

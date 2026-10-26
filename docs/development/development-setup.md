@@ -103,7 +103,7 @@ Rebuild Bulma after Sass changes with `npm install` and `npm run build-bulma`.
 - `src/Database/`: database connection and migration runner
 - `src/Config/`: environment and JSON configuration
 - `src/Views/`: renderers
-- `src/Cli/`: `bin/mata` commands
+- `src/Cli/Command/<Group>/`: `bin/mata` commands, one folder per command group (`server:*` in `Server/`); base classes shared across groups stay in `src/Cli/Command/`
 - `cron/`: scheduled jobs
 - `policy/`: OPA policies and tests
 - `migrations/`: Phinx migrations

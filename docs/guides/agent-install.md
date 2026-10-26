@@ -4,6 +4,10 @@ This page is a runbook for coding agents such as Claude Code or Codex. A person
 can follow it too. Every command runs without prompts and reports its result,
 so each step can be checked before the next.
 
+For the rest of the documentation, fetch <https://docs.mata.sh/llms-full.txt>:
+the guides and reference as plain Markdown in one file.
+<https://docs.mata.sh/llms.txt> lists the same pages one link each.
+
 !!! info "Rules for the agent"
     - Never run `sudo`. When a step needs it, stop and give the person the exact
       command, then continue after they confirm.

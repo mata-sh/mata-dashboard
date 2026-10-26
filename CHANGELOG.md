@@ -15,7 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `make uninstall` removes a Docker install, including the database, `logs/` and `temp/` that only the containers can delete.
 - A summary bar above the server grid counts servers and apps by state and filters the cards; the cards reload from the cache every `DASHBOARD_AUTO_REFRESH_SECONDS` (default 60).
 - Demo: `DEMO_SEED` makes the generated data repeatable, and `DEMO_LOGIN_USERNAME` and `DEMO_LOGIN_PASSWORD` prefill the login form.
-- Coding agents: the "Install with a coding agent" guide is a runbook, the docs site publishes `llms.txt`, and `config.example/AGENTS.md` gives rules for editing a config repository.
+- Coding agents: the "Install with a coding agent" guide is a runbook, the docs site publishes `llms.txt` and `llms-full.txt` (linked from the README and the guide), and `config.example/AGENTS.md` gives rules for editing a config repository.
 
 ### Changed
 - Database cards show each named connection as a collapsible row with its engine, metrics and databases; one failed connection no longer hides the others. `database_unreachable` lists all failed connections; `database_connections_too_high` uses the busiest. **Action:** update dashboard and nodes together; older nodes' database data is rejected.
