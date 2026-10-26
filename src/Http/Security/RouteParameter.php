@@ -18,13 +18,13 @@ final class RouteParameter
     private const SAFE_PATTERN = '/^[a-zA-Z0-9_\-.]+$/';
 
     /**
-     * Throw if the value contains anything outside the safe charset.
+     * Throw if the value contains anything outside the safe charset or is a `.` or `..` dot segment.
      *
      * @throws InvalidArgumentException when validation fails
      */
     public static function assertSafe(string $value, string $errorMessage): void
     {
-        if (preg_match(self::SAFE_PATTERN, $value) !== 1) {
+        if ($value === '.' || $value === '..' || preg_match(self::SAFE_PATTERN, $value) !== 1) {
             throw new InvalidArgumentException($errorMessage);
         }
     }

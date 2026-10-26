@@ -309,17 +309,30 @@ class RouterSetupTest extends TestCase
 
     public function testRouteParameterValidationAcceptsSafeValues(): void
     {
-        RouteParameter::assertSafe('server-01.example_org', 'Invalid route parameter');
+        $this->expectNotToPerformAssertions();
 
-        $this->assertTrue(true);
+        RouteParameter::assertSafe('server-01.example_org', 'Invalid route parameter');
     }
 
-    public function testRouteParameterValidationRejectsUnsafeValues(): void
+    #[DataProvider('unsafeValueProvider')]
+    public function testRouteParameterValidationRejectsUnsafeValues(string $value): void
     {
         $this->expectException(InvalidArgumentException::class);
         $this->expectExceptionMessage('Invalid route parameter');
 
-        RouteParameter::assertSafe('../server', 'Invalid route parameter');
+        RouteParameter::assertSafe($value, 'Invalid route parameter');
+    }
+
+    /**
+     * @return array<string,array{0:string}>
+     */
+    public static function unsafeValueProvider(): array
+    {
+        return [
+            'slash' => ['../server'],
+            'current directory' => ['.'],
+            'parent directory' => ['..'],
+        ];
     }
 
     /**
