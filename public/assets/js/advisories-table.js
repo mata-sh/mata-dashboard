@@ -116,8 +116,7 @@
                 {title: 'Severity', field: 'severity', hozAlign: 'center', formatter: formatSeverity,
                     sorter: function (a, b) { return SEVERITY_RANK[a] - SEVERITY_RANK[b]; }},
                 {title: 'CVSS', field: 'cvss', sorter: 'number', hozAlign: 'center'},
-                {title: 'Title', field: 'title', sorter: 'string', maxWidth: 560, tooltip: true, cssClass: 'table-message-cell', formatter: formatTitle,
-                    cellClick: function (event, cell) { openDetail(cell.getRow().getData().id); }},
+                {title: 'Title', field: 'title', sorter: 'string', maxWidth: 560, tooltip: true, cssClass: 'table-message-cell', formatter: formatTitle},
                 {title: 'CVE', field: 'cves', sorter: 'string', maxWidth: 220, tooltip: true, formatter: formatMono},
                 {title: 'Affected', field: 'products', sorter: 'string', maxWidth: 260, tooltip: true, formatter: formatMuted},
                 {title: 'Matched', field: 'keywords', sorter: 'string', maxWidth: 160, tooltip: true},
@@ -126,6 +125,9 @@
             ],
         });
         tableElement._mataTabulator = table;
+        table.on('rowClick', function (event, row) {
+            openDetail(row.getData().id);
+        });
 
         function openDetail(id) {
             if (!detailUrl || typeof htmx === 'undefined') {
