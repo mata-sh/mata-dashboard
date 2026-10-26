@@ -4,15 +4,16 @@ declare(strict_types=1);
 
 namespace Mata\Cli\Command\Alarm;
 
+use DateTimeImmutable;
 use Mata\Cli\CliConfig;
 use Mata\Cli\CliOutput;
+use Mata\Cli\EventPresenter;
 use Mata\Cli\Evidence;
 use Mata\Database\PdoDatabase;
 use Mata\Models\Alarm\AlarmRepository;
 use Mata\Services\Status\StatusLevel;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
-use Symfony\Component\Console\Formatter\OutputFormatter;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
@@ -41,23 +42,31 @@ final class AlarmsListCommand extends Command
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
         $limit = Evidence::limit($input);
-        $server = $input->getOption('server');
-        $server = is_string($server) && trim($server) !== '' ? trim($server) : null;
+        $server = Evidence::stringOption($input, 'server');
         $unacknowledged = $input->getOption('unacknowledged') === true;
+        $filters = [];
+        if ($server !== null) {
+            $filters['server'] = $server;
+        }
+        if ($unacknowledged) {
+            $filters['unacknowledged'] = true;
+        }
 
         $repository = new AlarmRepository(new PdoDatabase($this->cli->load()->database));
         // One more row than asked tells whether the list is complete.
         $rows = $repository->getLatest($limit + 1, $unacknowledged, $server);
         $alarms = array_slice($rows, 0, $limit);
+        $data = Evidence::fromDatabase('alarms', new DateTimeImmutable()) + [
+            // An object even when empty, so `filters` keeps one JSON type.
+            'filters' => (object) $filters,
+            'truncated' => count($rows) > $limit,
+            'alarms' => $alarms,
+        ];
 
         if ($input->getOption('json')) {
-            CliOutput::json($output, ['status' => StatusLevel::Ok->label()] + Evidence::fromDatabase('alarms', time()) + [
-                'filters' => (object) array_filter(['server' => $server, 'unacknowledged' => $unacknowledged ?: null], static fn (bool|string|null $value): bool => $value !== null),
-                'truncated' => count($rows) > $limit,
-                'alarms' => $alarms,
-            ]);
+            CliOutput::json($output, ['status' => StatusLevel::Ok->label()] + $data);
         } else {
-            $this->writeHuman($output, $alarms, count($rows) > $limit);
+            $this->writeHuman($output, $alarms, $data['truncated']);
         }
 
         return StatusLevel::Ok->value;
@@ -68,27 +77,33 @@ final class AlarmsListCommand extends Command
     {
         if ($alarms === []) {
             $output->writeln('No matching alarms.');
+
+            return;
         }
+
         foreach ($alarms as $alarm) {
-            $where = ($alarm['server'] !== '' ? $alarm['server'] : '-') . ($alarm['app'] !== '' ? "/{$alarm['app']}" : '');
-            $acknowledged = $alarm['acknowledged_at'] !== null ? "ack {$alarm['acknowledged_by']}" : '<comment>unacknowledged</comment>';
+            $acknowledged = $alarm['acknowledged_at'] === null
+                ? '<comment>unacknowledged</comment>'
+                : 'ack ' . CliOutput::value($alarm['acknowledged_by']);
             $output->writeln(sprintf(
                 '<info>%s</info> %-8s %s (%s) %s: %s',
-                $alarm['created_at'],
-                $alarm['level'],
-                $alarm['type'],
-                OutputFormatter::escape($where),
+                CliOutput::value($alarm['created_at']),
+                CliOutput::value($alarm['level']),
+                CliOutput::value($alarm['type']),
+                EventPresenter::location($alarm['server'], $alarm['app']),
                 $acknowledged,
-                OutputFormatter::escape((string) $alarm['message']),
+                CliOutput::value($alarm['message']),
             ));
+
             $deliveries = [];
             foreach ((array) $alarm['deliveries'] as $channel => $delivery) {
-                $deliveries[] = "{$channel} {$delivery['status']}" . ($delivery['attempts'] > 1 ? " ({$delivery['attempts']} attempts)" : '');
+                $deliveries[] = EventPresenter::delivery((string) $channel, $delivery);
             }
-            $output->writeln('    deliveries: ' . ($deliveries === [] ? '-' : implode(', ', $deliveries)) . " · event {$alarm['event_id']}");
+            $deliveries = $deliveries === [] ? '-' : implode(', ', $deliveries);
+            $output->writeln("    deliveries: {$deliveries} · event {$alarm['event_id']}");
         }
         if ($truncated) {
-            $output->writeln('More alarms match; narrow the filters or raise --limit.');
+            CliOutput::truncated($output, 'alarms', count($alarms));
         }
     }
 }

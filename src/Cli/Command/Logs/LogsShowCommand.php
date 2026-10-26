@@ -5,12 +5,11 @@ declare(strict_types=1);
 namespace Mata\Cli\Command\Logs;
 
 use DateTimeImmutable;
+use Mata\Cli\CliOutput;
 use Mata\Cli\Command\AbstractNodeEvidenceCommand;
 use Mata\Cli\Evidence;
 use Mata\Services\Collect\ServerDataCollectorInterface;
 use Symfony\Component\Console\Attribute\AsCommand;
-use Symfony\Component\Console\Formatter\OutputFormatter;
-use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
@@ -27,14 +26,18 @@ final class LogsShowCommand extends AbstractNodeEvidenceCommand
     /** Node-side filters, keyed by the --type that maps to them. */
     private const NODE_FILTERS = ['error' => 'errors', 'warning' => 'warnings'];
 
+    protected function requiresApp(): bool
+    {
+        return true;
+    }
+
     protected function configure(): void
     {
         parent::configure();
         $this
-            ->addArgument('app', InputArgument::REQUIRED, 'Application name, see apps list')
             ->addOption('type', null, InputOption::VALUE_REQUIRED, 'Only entries of this type, e.g. error, warning, deprecated')
             ->addOption('file', null, InputOption::VALUE_REQUIRED, 'Only entries of this log file, as listed in `files`')
-            ->addOption('since', null, InputOption::VALUE_REQUIRED, 'Only entries this recent: 2h, 1d, 1w (node local time)')
+            ->addOption('since', null, InputOption::VALUE_REQUIRED, 'Only entries this recent: ' . Evidence::DURATIONS . '; node local time')
             ->addOption('limit', null, InputOption::VALUE_REQUIRED, 'Number of entries; with --live also per file from the node', '50');
     }
 
@@ -46,8 +49,6 @@ final class LogsShowCommand extends AbstractNodeEvidenceCommand
     protected function fetch(ServerDataCollectorInterface $collector, bool $live, InputInterface $input): ?array
     {
         $app = self::app($input);
-        Evidence::since($input, new DateTimeImmutable());
-
         if (!$live) {
             return $collector->fetchAppLogs($app);
         }
@@ -59,7 +60,7 @@ final class LogsShowCommand extends AbstractNodeEvidenceCommand
     {
         $limit = Evidence::limit($input);
         $type = self::type($input);
-        $file = is_string($input->getOption('file')) ? $input->getOption('file') : null;
+        $file = Evidence::stringOption($input, 'file');
         $since = Evidence::since($input, new DateTimeImmutable())?->format('Y-m-d H:i:s');
         $groups = is_array($result) && is_array($result['entries'] ?? null) ? $result['entries'] : [];
         $readoutLimit = is_array($result) && is_int($result['readout_limit'] ?? null) ? $result['readout_limit'] : null;
@@ -68,7 +69,12 @@ final class LogsShowCommand extends AbstractNodeEvidenceCommand
         $files = [];
         foreach ($groups as $path => $group) {
             $group = array_values(array_filter(is_array($group) ? $group : [], 'is_array'));
-            $timestamps = array_filter(array_map(static fn (array $entry): ?string => is_string($entry['timestamp'] ?? null) ? $entry['timestamp'] : null, $group));
+            $timestamps = [];
+            foreach ($group as $entry) {
+                if (is_string($entry['timestamp'] ?? null)) {
+                    $timestamps[] = $entry['timestamp'];
+                }
+            }
             $oldest = $timestamps === [] ? null : min($timestamps);
             // Capped: the node stopped at readout_limit, so older entries were cut off. Uncapped
             // proves less: the node also scans only the last lines of a file (errorlog_scan_line_limit).
@@ -106,7 +112,6 @@ final class LogsShowCommand extends AbstractNodeEvidenceCommand
         usort($entries, static fn (array $a, array $b): int => strcmp((string) $b['timestamp'], (string) $a['timestamp']));
 
         return [
-            'app' => (string) $input->getArgument('app'),
             'readout_limit' => $readoutLimit,
             'since' => $since,
             'files' => $files,
@@ -119,20 +124,21 @@ final class LogsShowCommand extends AbstractNodeEvidenceCommand
     protected function writeHuman(OutputInterface $output, array $data): void
     {
         $entries = is_array($data['entries']) ? $data['entries'] : [];
+        // No early return: the note about cut-off files below matters most when nothing matched.
         if ($entries === []) {
             $output->writeln('No log entries.');
         }
         foreach ($entries as $entry) {
             $output->writeln(sprintf(
                 '<info>%s</info> %-10s %s: %s',
-                $entry['timestamp'] ?? '-',
-                $entry['type'] ?? '-',
-                OutputFormatter::escape(basename($entry['file'])),
-                OutputFormatter::escape($entry['message']),
+                CliOutput::value($entry['timestamp']),
+                CliOutput::value($entry['type']),
+                CliOutput::value(basename($entry['file'])),
+                CliOutput::value($entry['message']),
             ));
         }
         if ($data['truncated'] === true) {
-            $output->writeln(sprintf('%d of %d matching entries; raise --limit for more.', count($entries), $data['matched']));
+            CliOutput::truncated($output, 'entries', count($entries), (int) $data['matched']);
         }
         $cut = [];
         foreach (is_array($data['files']) ? $data['files'] : [] as $file) {
@@ -146,7 +152,7 @@ final class LogsShowCommand extends AbstractNodeEvidenceCommand
             $output->writeln(sprintf(
                 '<comment>The node returned only the last %d entries of %s; older entries are not shown%s.</comment>',
                 $data['readout_limit'],
-                OutputFormatter::escape(implode(', ', $cut)),
+                CliOutput::value($cut),
                 $data['since'] !== null ? ', so the --since window is not fully covered' : '',
             ));
         }
@@ -154,8 +160,8 @@ final class LogsShowCommand extends AbstractNodeEvidenceCommand
 
     private static function type(InputInterface $input): ?string
     {
-        $type = $input->getOption('type');
+        $type = Evidence::stringOption($input, 'type');
 
-        return is_string($type) && $type !== '' ? strtolower($type) : null;
+        return $type === null ? null : strtolower($type);
     }
 }

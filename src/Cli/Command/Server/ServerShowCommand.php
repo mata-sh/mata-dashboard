@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Mata\Cli\Command\Server;
 
+use Mata\Cli\CliOutput;
 use Mata\Cli\Command\AbstractNodeEvidenceCommand;
 use Mata\Services\Cache\CacheType;
 use Mata\Services\Collect\ServerDataCollectorInterface;
@@ -51,23 +52,23 @@ final class ServerShowCommand extends AbstractNodeEvidenceCommand
         $cronjobs = is_array($system['cronjobs'] ?? null) ? $system['cronjobs'] : [];
         $output->writeln(sprintf(
             'cpu %s%% · ram %s%% of %s · disk %s%% of %s · load %s · up %s',
-            $system['cpu_usage'] ?? '-',
-            $system['ram_percent'] ?? '-',
+            CliOutput::value($system['cpu_usage'] ?? null),
+            CliOutput::value($system['ram_percent'] ?? null),
             self::size($system['ram_capacity'] ?? null),
-            $system['disk_percent'] ?? '-',
+            CliOutput::value($system['disk_percent'] ?? null),
             self::size($system['disk_space_capacity'] ?? null),
-            $system['load_average'] ?? '-',
+            CliOutput::value($system['load_average'] ?? null),
             is_numeric($system['uptime'] ?? null) ? intdiv((int) $system['uptime'], 86400) . 'd' : '-',
         ));
         $output->writeln(sprintf(
             'processes %s (php %s, sql %s) · files %s · cronjobs %s working, %s stale, %s missing',
-            $processes['total'] ?? '-',
-            $processes['php'] ?? '-',
-            $processes['sql'] ?? '-',
-            $system['total_system_filecount'] ?? '-',
-            $cronjobs['working'] ?? '-',
-            $cronjobs['stale'] ?? '-',
-            $cronjobs['missing'] ?? '-',
+            CliOutput::value($processes['total'] ?? null),
+            CliOutput::value($processes['php'] ?? null),
+            CliOutput::value($processes['sql'] ?? null),
+            CliOutput::value($system['total_system_filecount'] ?? null),
+            CliOutput::value($cronjobs['working'] ?? null),
+            CliOutput::value($cronjobs['stale'] ?? null),
+            CliOutput::value($cronjobs['missing'] ?? null),
         ));
     }
 

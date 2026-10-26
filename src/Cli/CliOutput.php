@@ -7,6 +7,7 @@ namespace Mata\Cli;
 use Mata\Services\Status\StatusLevel;
 use Symfony\Component\Console\Formatter\OutputFormatter;
 use Symfony\Component\Console\Helper\QuestionHelper;
+use Symfony\Component\Console\Helper\Table;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Question\ConfirmationQuestion;
@@ -120,6 +121,54 @@ final class CliOutput
             StatusLevel::Error => '<error>error</error>',
             StatusLevel::Unknown => '<comment>unknown</comment>',
         };
+    }
+
+    /**
+     * A data value for human output: escaped, so `<…>` in node or user text prints as text
+     * instead of styling; '-' when missing or empty; booleans as yes/no; lists joined with
+     * commas, nested lists in brackets: "a, [b, c]".
+     */
+    public static function value(mixed $value): string
+    {
+        $text = self::plain($value);
+
+        return $text === '' ? '-' : OutputFormatter::escape($text);
+    }
+
+    /** value() before escaping; null and objects in a list are left out. */
+    private static function plain(mixed $value): string
+    {
+        return match (true) {
+            is_bool($value) => $value ? 'yes' : 'no',
+            is_scalar($value) => (string) $value,
+            is_array($value) => implode(', ', array_map(
+                static fn (mixed $item): string => is_array($item) ? '[' . self::plain($item) . ']' : self::plain($item),
+                array_filter($value, static fn (mixed $item): bool => is_scalar($item) || is_array($item)),
+            )),
+            default => '',
+        };
+    }
+
+    /**
+     * The note under a list that --limit cut short.
+     *
+     * @param string   $items   plural noun, e.g. 'events'
+     * @param null|int $matched how many matched in total, null when unknown
+     */
+    public static function truncated(OutputInterface $output, string $items, int $shown, ?int $matched = null): void
+    {
+        $output->writeln($matched === null
+            ? "<comment>Showing {$shown} {$items}; more match. Narrow the filters or raise --limit.</comment>"
+            : "<comment>Showing {$shown} of {$matched} {$items}; raise --limit for more.</comment>");
+    }
+
+    /** Right-aligns numeric columns, keeping the table's style otherwise. Call after setStyle(). */
+    public static function alignRight(Table $table, int ...$columns): void
+    {
+        $right = (clone $table->getStyle())->setPadType(STR_PAD_LEFT);
+        foreach ($columns as $column) {
+            $table->setColumnStyle($column, $right);
+        }
     }
 
     /** Name of the account running bin/mata; null without the posix extension. */

@@ -4,10 +4,11 @@ declare(strict_types=1);
 
 namespace Mata\Cli\Command\Db;
 
+use Mata\Cli\CliOutput;
 use Mata\Cli\Command\AbstractNodeEvidenceCommand;
+use Mata\Cli\Evidence;
 use Mata\Services\Collect\ServerDataCollectorInterface;
 use Symfony\Component\Console\Attribute\AsCommand;
-use Symfony\Component\Console\Formatter\OutputFormatter;
 use Symfony\Component\Console\Helper\Table;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
@@ -41,9 +42,9 @@ final class DbProcessesCommand extends AbstractNodeEvidenceCommand
 
     protected function fetch(ServerDataCollectorInterface $collector, bool $live, InputInterface $input): ?array
     {
-        $database = $input->getOption('database');
+        $connection = (string) $input->getArgument('connection');
 
-        return $collector->fetchDatabaseProcesses((string) $input->getArgument('connection'), is_string($database) ? $database : null);
+        return $collector->fetchDatabaseProcesses($connection, Evidence::stringOption($input, 'database'));
     }
 
     protected function extract(mixed $result, InputInterface $input): array
@@ -53,22 +54,24 @@ final class DbProcessesCommand extends AbstractNodeEvidenceCommand
 
     protected function writeHuman(OutputInterface $output, array $data): void
     {
-        $output->writeln(OutputFormatter::escape(sprintf(
+        $output->writeln(sprintf(
             '%s (%s), visibility: %s',
-            $data['connection'] ?? '-',
-            $data['engine'] ?? '-',
-            $data['visibility'] ?? '-',
-        )));
+            CliOutput::value($data['connection'] ?? null),
+            CliOutput::value($data['engine'] ?? null),
+            CliOutput::value($data['visibility'] ?? null),
+        ));
 
         $summary = is_array($data['summary_by_database'] ?? null) ? $data['summary_by_database'] : [];
         if ($summary !== []) {
             $table = new Table($output);
             $table->setHeaders(['Database', 'Connections', 'Running']);
-            $right = (clone Table::getStyleDefinition('default'))->setPadType(STR_PAD_LEFT);
-            $table->setColumnStyle(1, $right);
-            $table->setColumnStyle(2, $right);
+            CliOutput::alignRight($table, 1, 2);
             foreach ($summary as $group) {
-                $table->addRow([OutputFormatter::escape((string) $group['database']), $group['connections'], $group['running']]);
+                $table->addRow([
+                    CliOutput::value($group['database'] ?? null),
+                    CliOutput::value($group['connections'] ?? null),
+                    CliOutput::value($group['running'] ?? null),
+                ]);
             }
             $table->render();
         }
@@ -82,23 +85,22 @@ final class DbProcessesCommand extends AbstractNodeEvidenceCommand
 
         // Compact: statements can be long, and borders would stretch every row to them.
         $table = (new Table($output))->setStyle('compact');
-        $table->setHeaders(['ID', 'USER', 'DATABASE', 'COMMAND', 'TIME', 'STATEMENT']);
-        $right = (clone Table::getStyleDefinition('compact'))->setPadType(STR_PAD_LEFT);
-        $table->setColumnStyle(0, $right);
-        $table->setColumnStyle(4, $right);
+        $table->setHeaders(['ID', 'User', 'Database', 'Command', 'Time', 'Statement']);
+        CliOutput::alignRight($table, 0, 4);
         foreach ($processes as $process) {
             $table->addRow([
-                $process['id'] ?? '-',
-                OutputFormatter::escape((string) ($process['user'] ?? '-')),
-                OutputFormatter::escape((string) ($process['database'] ?? '-')),
-                OutputFormatter::escape((string) ($process['command'] ?? '-')),
-                isset($process['time_seconds']) ? "{$process['time_seconds']}s" : '-',
-                OutputFormatter::escape((string) ($process['statement'] ?? $process['state'] ?? '')),
+                CliOutput::value($process['id'] ?? null),
+                CliOutput::value($process['user'] ?? null),
+                CliOutput::value($process['database'] ?? null),
+                CliOutput::value($process['command'] ?? null),
+                isset($process['time_seconds']) ? CliOutput::value($process['time_seconds']) . 's' : '-',
+                CliOutput::value($process['statement'] ?? $process['state'] ?? null),
             ]);
         }
         $table->render();
+        // The node caps the list itself; --limit does not apply here.
         if (($data['truncated'] ?? false) === true) {
-            $output->writeln('The node truncated the list.');
+            $output->writeln('<comment>The node returned only part of the sessions.</comment>');
         }
     }
 }

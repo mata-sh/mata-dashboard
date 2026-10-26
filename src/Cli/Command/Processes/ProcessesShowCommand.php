@@ -4,12 +4,12 @@ declare(strict_types=1);
 
 namespace Mata\Cli\Command\Processes;
 
+use Mata\Cli\CliOutput;
 use Mata\Cli\Command\AbstractNodeEvidenceCommand;
 use Mata\Cli\Evidence;
 use Mata\Services\Cache\CacheType;
 use Mata\Services\Collect\ServerDataCollectorInterface;
 use Symfony\Component\Console\Attribute\AsCommand;
-use Symfony\Component\Console\Formatter\OutputFormatter;
 use Symfony\Component\Console\Helper\Table;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
@@ -59,21 +59,21 @@ final class ProcessesShowCommand extends AbstractNodeEvidenceCommand
 
         // Compact: the command line can be long, and borders would stretch every row to it.
         $table = (new Table($output))->setStyle('compact');
-        $table->setHeaders(['PID', 'USER', '%CPU', '%MEM', 'ELAPSED', 'COMMAND']);
-        $right = (clone Table::getStyleDefinition('compact'))->setPadType(STR_PAD_LEFT);
-        foreach ([0, 2, 3, 4] as $column) {
-            $table->setColumnStyle($column, $right);
-        }
+        $table->setHeaders(['PID', 'User', '%CPU', '%MEM', 'Elapsed', 'Command']);
+        CliOutput::alignRight($table, 0, 2, 3, 4);
         foreach ($processes as $process) {
             $table->addRow([
-                $process['pid'] ?? '-',
-                OutputFormatter::escape((string) ($process['user'] ?? '-')),
-                $process['cpu'] ?? '-',
-                $process['mem'] ?? '-',
-                $process['etime'] ?? '-',
-                OutputFormatter::escape((string) ($process['args'] ?? '')),
+                CliOutput::value($process['pid'] ?? null),
+                CliOutput::value($process['user'] ?? null),
+                CliOutput::value($process['cpu'] ?? null),
+                CliOutput::value($process['mem'] ?? null),
+                CliOutput::value($process['etime'] ?? null),
+                CliOutput::value($process['args'] ?? null),
             ]);
         }
         $table->render();
+        if ($data['truncated'] === true) {
+            CliOutput::truncated($output, 'processes', count($processes), (int) $data['matched']);
+        }
     }
 }

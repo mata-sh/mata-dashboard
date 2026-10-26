@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace Mata\Cli\Command\Server;
 
+use Mata\Cli\CliOutput;
 use Mata\Cli\Command\AbstractNodeEvidenceCommand;
 use Mata\Services\Cache\CacheType;
 use Mata\Services\Collect\ServerDataCollectorInterface;
 use Symfony\Component\Console\Attribute\AsCommand;
-use Symfony\Component\Console\Formatter\OutputFormatter;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 
@@ -34,8 +34,7 @@ final class ServerInfoCommand extends AbstractNodeEvidenceCommand
     protected function writeHuman(OutputInterface $output, array $data): void
     {
         foreach (is_array($data['info']) ? $data['info'] : [] as $key => $value) {
-            $value = is_array($value) ? implode(', ', array_map('strval', $value)) : (string) $value;
-            $output->writeln(sprintf('%-20s %s', $key, OutputFormatter::escape($value)));
+            $output->writeln(sprintf('%-20s %s', CliOutput::value($key), CliOutput::value($value)));
         }
     }
 }

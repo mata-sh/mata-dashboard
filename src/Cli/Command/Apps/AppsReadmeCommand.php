@@ -8,7 +8,6 @@ use Mata\Cli\Command\AbstractNodeEvidenceCommand;
 use Mata\Services\Cache\CacheType;
 use Mata\Services\Collect\ServerDataCollectorInterface;
 use Symfony\Component\Console\Attribute\AsCommand;
-use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 
@@ -16,10 +15,9 @@ use Symfony\Component\Console\Output\OutputInterface;
 #[AsCommand(name: 'apps:readme', description: 'Show the README of an application')]
 final class AppsReadmeCommand extends AbstractNodeEvidenceCommand
 {
-    protected function configure(): void
+    protected function requiresApp(): bool
     {
-        parent::configure();
-        $this->addArgument('app', InputArgument::REQUIRED, 'Application name, see apps list');
+        return true;
     }
 
     protected function dataset(InputInterface $input): string
@@ -34,11 +32,12 @@ final class AppsReadmeCommand extends AbstractNodeEvidenceCommand
 
     protected function extract(mixed $result, InputInterface $input): array
     {
-        return ['app' => (string) $input->getArgument('app'), 'readme' => is_string($result) ? $result : ''];
+        return ['readme' => is_string($result) ? $result : ''];
     }
 
     protected function writeHuman(OutputInterface $output, array $data): void
     {
+        // Raw: Markdown is full of `<…>`, and the formatter would read it as styling.
         $output->writeln($data['readme'] === '' ? 'No README.' : (string) $data['readme'], OutputInterface::OUTPUT_RAW);
     }
 }

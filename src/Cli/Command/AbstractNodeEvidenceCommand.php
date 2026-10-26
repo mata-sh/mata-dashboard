@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Mata\Cli\Command;
 
+use DateTimeImmutable;
 use InvalidArgumentException;
 use Mata\Cli\CliConfig;
 use Mata\Cli\CliOutput;
@@ -80,12 +81,21 @@ abstract class AbstractNodeEvidenceCommand extends Command
         return false;
     }
 
+    /** Commands about one application take an `app` argument and report it as the JSON `app` field. */
+    protected function requiresApp(): bool
+    {
+        return false;
+    }
+
     protected function configure(): void
     {
         if ($this->serverOptional()) {
             $this->addArgument('server', InputArgument::OPTIONAL, 'Server name from servers.json; all enabled servers without it');
         } else {
             $this->addArgument('server', InputArgument::REQUIRED, 'Server name from servers.json');
+        }
+        if ($this->requiresApp()) {
+            $this->addArgument('app', InputArgument::REQUIRED, 'Application name, see apps list');
         }
         if (!$this->alwaysLive()) {
             $this->addOption('live', null, InputOption::VALUE_NONE, 'Ask the node instead of reading the cache');
@@ -124,8 +134,15 @@ abstract class AbstractNodeEvidenceCommand extends Command
 
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
+        // Reject bad input before reading config or asking a node; fetch() and extract() parse it again.
+        if ($this->requiresApp()) {
+            self::app($input);
+        }
         if ($input->hasOption('limit')) {
             Evidence::limit($input);
+        }
+        if ($input->hasOption('since')) {
+            Evidence::since($input, new DateTimeImmutable());
         }
         $config = $this->cli->load();
         $server = $input->getArgument('server');
@@ -135,9 +152,14 @@ abstract class AbstractNodeEvidenceCommand extends Command
             return $this->executeFleet($input, $output, $config, $servers);
         }
 
-        $serverConfig = str_starts_with($server, '_') ? null : ($servers[$server] ?? null);
+        $serverConfig = self::isServerName($server) ? ($servers[$server] ?? null) : null;
         if (!is_array($serverConfig)) {
-            $known = array_values(array_filter(array_map('strval', array_keys($servers)), static fn (string $name): bool => !str_starts_with($name, '_')));
+            $known = [];
+            foreach (array_keys($servers) as $name) {
+                if (self::isServerName((string) $name)) {
+                    $known[] = (string) $name;
+                }
+            }
 
             return CliOutput::fail($input, $output, "Server '{$server}' is not in servers.json.", payload: ['servers' => $known]);
         }
@@ -169,7 +191,7 @@ abstract class AbstractNodeEvidenceCommand extends Command
         $levels = [];
         foreach ($servers as $name => $serverConfig) {
             $name = (string) $name;
-            if (str_starts_with($name, '_') || !is_array($serverConfig) || ServerConfigState::isDisabled($serverConfig)) {
+            if (!self::isServerName($name) || !is_array($serverConfig) || ServerConfigState::isDisabled($serverConfig)) {
                 continue;
             }
             $read = $this->read($input, $config, $name, $serverConfig);
@@ -230,7 +252,7 @@ abstract class AbstractNodeEvidenceCommand extends Command
                 : "No cached copy of the {$dataset} of '{$server}' yet. Pass --live to ask the node.");
         }
 
-        $evidence = Evidence::fromNode($server, $dataset, $response, $demo, time());
+        $evidence = Evidence::fromNode($server, $dataset, $response, $demo, new DateTimeImmutable());
         $nodeError = $response['error'] ?? null;
         if (is_array($nodeError)) {
             $message = is_string($nodeError['message'] ?? null) ? $nodeError['message'] : 'The node returned an error.';
@@ -238,7 +260,8 @@ abstract class AbstractNodeEvidenceCommand extends Command
             return self::failure($message, $evidence + ['node_error' => $nodeError]);
         }
 
-        $data = $this->extract($response['result'] ?? null, $input);
+        $app = $this->requiresApp() ? ['app' => self::app($input)] : [];
+        $data = $app + $this->extract($response['result'] ?? null, $input);
         $notice = isset($response['notice']) ? ['notice' => $response['notice']] : [];
 
         return [
@@ -247,6 +270,12 @@ abstract class AbstractNodeEvidenceCommand extends Command
             'document' => $evidence + $notice + $data,
             'data' => $data,
         ];
+    }
+
+    /** servers.json keys starting with an underscore, like `_README`, document the file. */
+    private static function isServerName(string $name): bool
+    {
+        return !str_starts_with($name, '_');
     }
 
     /**

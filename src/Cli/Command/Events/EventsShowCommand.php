@@ -4,9 +4,11 @@ declare(strict_types=1);
 
 namespace Mata\Cli\Command\Events;
 
+use DateTimeImmutable;
 use InvalidArgumentException;
 use Mata\Cli\CliConfig;
 use Mata\Cli\CliOutput;
+use Mata\Cli\EventPresenter;
 use Mata\Cli\Evidence;
 use Mata\Database\PdoDatabase;
 use Mata\Models\Alarm\AlarmRepository;
@@ -14,7 +16,6 @@ use Mata\Models\Event\EventRepository;
 use Mata\Services\Status\StatusLevel;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
-use Symfony\Component\Console\Formatter\OutputFormatter;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
@@ -52,24 +53,12 @@ final class EventsShowCommand extends Command
             return CliOutput::fail($input, $output, "Event {$id} does not exist; retention may have deleted it.");
         }
 
-        $event = [
-            'id' => (int) $row['id'],
-            'datetime' => $row['datetime'],
-            'level' => $row['level'],
-            'type' => $row['type'],
-            'server' => $row['server'],
-            'app' => $row['app'],
-            'app_env' => $row['app_env'],
-            'message' => $row['message'],
-            'context' => self::decode($row['context']),
-            'evaluated_at' => $row['evaluated_at'],
-            'alarm_decision' => self::decode($row['alarm_decision']),
-        ];
-        $alarm = (new AlarmRepository($db))->getLatest(1, eventId: $event['id'])[0] ?? null;
-        $alarm = $alarm === null ? null : array_intersect_key($alarm, array_flip(['id', 'created_at', 'acknowledged_at', 'acknowledged_by', 'trigger_evidence', 'deliveries']));
+        $event = EventPresenter::event($row) + ['alarm_decision' => EventPresenter::decode($row['alarm_decision'])];
+        $alarm = self::alarm($db, $event['id']);
 
         if ($input->getOption('json')) {
-            CliOutput::json($output, ['status' => StatusLevel::Ok->label()] + Evidence::fromDatabase('events', time()) + ['event' => $event, 'alarm' => $alarm]);
+            $data = Evidence::fromDatabase('events', new DateTimeImmutable()) + ['event' => $event, 'alarm' => $alarm];
+            CliOutput::json($output, ['status' => StatusLevel::Ok->label()] + $data);
         } else {
             $this->writeHuman($output, $event, $alarm);
         }
@@ -78,17 +67,45 @@ final class EventsShowCommand extends Command
     }
 
     /**
+     * The alarm the event raised, without the event fields it repeats; null when there is none.
+     *
+     * @return null|array<string,mixed>
+     */
+    private static function alarm(PdoDatabase $db, int $eventId): ?array
+    {
+        $alarm = (new AlarmRepository($db))->getLatest(1, eventId: $eventId)[0] ?? null;
+        if ($alarm === null) {
+            return null;
+        }
+
+        return [
+            'id' => $alarm['id'],
+            'created_at' => $alarm['created_at'],
+            'acknowledged_at' => $alarm['acknowledged_at'],
+            'acknowledged_by' => $alarm['acknowledged_by'],
+            'trigger_evidence' => $alarm['trigger_evidence'],
+            'deliveries' => $alarm['deliveries'],
+        ];
+    }
+
+    /**
      * @param array<string,mixed>      $event
      * @param null|array<string,mixed> $alarm
      */
     private function writeHuman(OutputInterface $output, array $event, ?array $alarm): void
     {
-        $where = ($event['server'] ?? '-') . ($event['app'] !== null ? "/{$event['app']}" : '');
-        $output->writeln("<info>{$event['datetime']}</info> {$event['level']} {$event['type']} (" . OutputFormatter::escape($where) . ')');
-        $output->writeln(OutputFormatter::escape((string) $event['message']));
+        $output->writeln(sprintf(
+            '<info>%s</info> %s %s (%s)',
+            CliOutput::value($event['datetime']),
+            CliOutput::value($event['level']),
+            CliOutput::value($event['type']),
+            EventPresenter::location($event['server'], $event['app']),
+        ));
+        $output->writeln(CliOutput::value($event['message']));
         foreach (['context', 'alarm_decision'] as $field) {
             if ($event[$field] !== null) {
-                $output->writeln("{$field}: " . OutputFormatter::escape((string) json_encode($event[$field], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE)));
+                $json = json_encode($event[$field], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+                $output->writeln("{$field}: " . CliOutput::value($json));
             }
         }
         if ($event['evaluated_at'] === null) {
@@ -99,22 +116,13 @@ final class EventsShowCommand extends Command
 
             return;
         }
-        $output->writeln(sprintf(
-            'alarm %d at %s, %s',
-            $alarm['id'],
-            $alarm['created_at'],
-            $alarm['acknowledged_at'] !== null ? "acknowledged by {$alarm['acknowledged_by']} at {$alarm['acknowledged_at']}" : 'unacknowledged',
-        ));
+        $acknowledged = $alarm['acknowledged_at'] === null
+            ? 'unacknowledged'
+            : sprintf('acknowledged by %s at %s', CliOutput::value($alarm['acknowledged_by']), CliOutput::value($alarm['acknowledged_at']));
+        $output->writeln(sprintf('alarm %d at %s, %s', $alarm['id'], CliOutput::value($alarm['created_at']), $acknowledged));
         foreach ((array) $alarm['deliveries'] as $channel => $delivery) {
-            $output->writeln(sprintf('    %s: %s after %d attempt(s), processed %s', $channel, $delivery['status'], $delivery['attempts'], $delivery['processed_at'] ?? '-'));
+            $processed = CliOutput::value($delivery['processed_at'] ?? null);
+            $output->writeln('    ' . EventPresenter::delivery((string) $channel, $delivery) . ", processed {$processed}");
         }
-    }
-
-    /** @return null|array<mixed> */
-    private static function decode(mixed $json): ?array
-    {
-        $decoded = is_string($json) ? json_decode($json, true) : null;
-
-        return is_array($decoded) ? $decoded : null;
     }
 }

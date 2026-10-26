@@ -4,13 +4,12 @@ declare(strict_types=1);
 
 namespace Mata\Cli\Command\Logs;
 
+use Mata\Cli\CliOutput;
 use Mata\Cli\Command\AbstractNodeEvidenceCommand;
 use Mata\Services\Cache\CacheType;
 use Mata\Services\Collect\ServerDataCollectorInterface;
 use Symfony\Component\Console\Attribute\AsCommand;
-use Symfony\Component\Console\Formatter\OutputFormatter;
 use Symfony\Component\Console\Helper\Table;
-use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 
@@ -18,10 +17,9 @@ use Symfony\Component\Console\Output\OutputInterface;
 #[AsCommand(name: 'logs:files', description: 'Show the size and last change of the log files of an application')]
 final class LogsFilesCommand extends AbstractNodeEvidenceCommand
 {
-    protected function configure(): void
+    protected function requiresApp(): bool
     {
-        parent::configure();
-        $this->addArgument('app', InputArgument::REQUIRED, 'Application name, see apps list');
+        return true;
     }
 
     protected function dataset(InputInterface $input): string
@@ -41,7 +39,7 @@ final class LogsFilesCommand extends AbstractNodeEvidenceCommand
             $files[] = ['path' => (string) $path] + (is_array($file) ? $file : []);
         }
 
-        return ['app' => (string) $input->getArgument('app'), 'files' => $files];
+        return ['files' => $files];
     }
 
     protected function writeHuman(OutputInterface $output, array $data): void
@@ -55,15 +53,13 @@ final class LogsFilesCommand extends AbstractNodeEvidenceCommand
 
         $table = new Table($output);
         $table->setHeaders(['Path', 'Bytes', 'Lines', 'Last modified']);
-        $right = (clone Table::getStyleDefinition('default'))->setPadType(STR_PAD_LEFT);
-        $table->setColumnStyle(1, $right);
-        $table->setColumnStyle(2, $right);
+        CliOutput::alignRight($table, 1, 2);
         foreach ($files as $file) {
             $table->addRow([
-                OutputFormatter::escape($file['path']),
-                $file['size'] ?? '-',
-                $file['lines'] ?? '-',
-                $file['last_modified'] ?? '-',
+                CliOutput::value($file['path']),
+                CliOutput::value($file['size'] ?? null),
+                CliOutput::value($file['lines'] ?? null),
+                CliOutput::value($file['last_modified'] ?? null),
             ]);
         }
         $table->render();

@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace Mata\Cli\Command\Db;
 
+use Mata\Cli\CliOutput;
 use Mata\Cli\Command\AbstractNodeEvidenceCommand;
 use Mata\Services\Cache\CacheType;
 use Mata\Services\Collect\ServerDataCollectorInterface;
 use Symfony\Component\Console\Attribute\AsCommand;
-use Symfony\Component\Console\Formatter\OutputFormatter;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 
@@ -38,14 +38,17 @@ final class DbShowCommand extends AbstractNodeEvidenceCommand
         $connections = is_array($data['connections']) ? $data['connections'] : [];
         if ($connections === []) {
             $output->writeln('No monitored database connections.');
+
+            return;
         }
+
         foreach ($connections as $connection) {
-            $name = OutputFormatter::escape((string) ($connection['connection'] ?? '-'));
-            $engine = OutputFormatter::escape((string) ($connection['engine'] ?? '-'));
+            $name = CliOutput::value($connection['connection'] ?? null);
+            $engine = CliOutput::value($connection['engine'] ?? null);
             $error = $connection['error'] ?? null;
             if ($error !== null) {
                 $message = is_array($error) ? ($error['message'] ?? 'error') : $error;
-                $output->writeln("<error>{$name}</error> ({$engine}): " . OutputFormatter::escape((string) $message));
+                $output->writeln("<error>{$name}</error> ({$engine}): " . CliOutput::value($message));
 
                 continue;
             }
@@ -54,13 +57,24 @@ final class DbShowCommand extends AbstractNodeEvidenceCommand
                 '<info>%s</info> (%s) connections %s/%s, running %s',
                 $name,
                 $engine,
-                $status['connections'] ?? '-',
-                $status['max_connections'] ?? '-',
-                $status['running'] ?? '-',
+                CliOutput::value($status['connections'] ?? null),
+                CliOutput::value($status['max_connections'] ?? null),
+                CliOutput::value($status['running'] ?? null),
             ));
-            $databases = is_array($connection['databases'] ?? null) ? $connection['databases'] : [];
-            $names = array_map(static fn (mixed $database): string => is_array($database) ? (string) ($database['name'] ?? '') : '', $databases);
-            $output->writeln('    databases: ' . ($names === [] ? '-' : OutputFormatter::escape(implode(', ', $names))));
+            $output->writeln('    databases: ' . CliOutput::value(self::databaseNames($connection['databases'] ?? null)));
         }
+    }
+
+    /** @return list<string> */
+    private static function databaseNames(mixed $databases): array
+    {
+        $names = [];
+        foreach (is_array($databases) ? $databases : [] as $database) {
+            if (is_array($database) && is_string($database['name'] ?? null)) {
+                $names[] = $database['name'];
+            }
+        }
+
+        return $names;
     }
 }

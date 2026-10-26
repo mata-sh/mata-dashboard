@@ -4,11 +4,12 @@ declare(strict_types=1);
 
 namespace Mata\Cli\Command\Libraries;
 
+use Mata\Cli\CliOutput;
 use Mata\Cli\Command\AbstractNodeEvidenceCommand;
+use Mata\Cli\Evidence;
 use Mata\Services\Cache\CacheType;
 use Mata\Services\Collect\ServerDataCollectorInterface;
 use Symfony\Component\Console\Attribute\AsCommand;
-use Symfony\Component\Console\Formatter\OutputFormatter;
 use Symfony\Component\Console\Helper\Table;
 use Symfony\Component\Console\Helper\TableSeparator;
 use Symfony\Component\Console\Input\InputInterface;
@@ -39,22 +40,24 @@ final class LibrariesListCommand extends AbstractNodeEvidenceCommand
 
     protected function extract(mixed $result, InputInterface $input): array
     {
-        $onlyApp = $input->getOption('app');
-        $package = $input->getOption('package');
+        $onlyApp = Evidence::stringOption($input, 'app');
+        $search = Evidence::stringOption($input, 'package');
+
         $apps = [];
         foreach (is_array($result) ? $result : [] as $app => $libraries) {
-            if (is_string($onlyApp) && $app !== $onlyApp) {
+            $app = (string) $app;
+            if ($onlyApp !== null && $app !== $onlyApp) {
                 continue;
             }
-            $libraries = array_values(array_filter(
-                is_array($libraries) ? $libraries : [],
-                static fn (mixed $library): bool => is_array($library)
-                    && (!is_string($package) || str_contains((string) ($library['name'] ?? ''), $package)),
-            ));
-            $apps[] = ['app' => (string) $app, 'packages' => array_map(
-                static fn (array $library): array => ['name' => $library['name'] ?? null, 'version' => $library['version'] ?? null],
-                $libraries,
-            )];
+            $packages = [];
+            foreach (is_array($libraries) ? $libraries : [] as $library) {
+                $name = is_array($library) ? ($library['name'] ?? null) : null;
+                if (!is_string($name) || ($search !== null && !str_contains($name, $search))) {
+                    continue;
+                }
+                $packages[] = ['name' => $name, 'version' => $library['version'] ?? null];
+            }
+            $apps[] = ['app' => $app, 'packages' => $packages];
         }
 
         return ['apps' => $apps];
@@ -76,13 +79,9 @@ final class LibrariesListCommand extends AbstractNodeEvidenceCommand
                 $table->addRow(new TableSeparator());
             }
             // The application name only on its first row, so each group reads as one block.
-            $name = OutputFormatter::escape($app['app']);
+            $name = CliOutput::value($app['app']);
             foreach ($app['packages'] as $library) {
-                $table->addRow([
-                    $name,
-                    OutputFormatter::escape((string) $library['name']),
-                    OutputFormatter::escape((string) $library['version']),
-                ]);
+                $table->addRow([$name, CliOutput::value($library['name']), CliOutput::value($library['version'])]);
                 $name = '';
             }
         }

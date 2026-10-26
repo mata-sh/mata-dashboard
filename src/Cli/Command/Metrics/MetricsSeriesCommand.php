@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Mata\Cli\Command\Metrics;
 
+use DateTimeImmutable;
 use InvalidArgumentException;
 use Mata\Cli\CliConfig;
 use Mata\Cli\CliOutput;
@@ -46,7 +47,7 @@ final class MetricsSeriesCommand extends Command
         $this
             ->addArgument('server', InputArgument::REQUIRED, 'Server name from servers.json')
             ->addArgument('metric', InputArgument::REQUIRED, 'One of: ' . implode(', ', $catalog->metrics()))
-            ->addOption('range', null, InputOption::VALUE_REQUIRED, 'How far back: 6h, 7d, 2w, 3m (months), 1y or all', '24h')
+            ->addOption('range', null, InputOption::VALUE_REQUIRED, 'How far back: ' . Evidence::DURATIONS . ' or all', '24h')
             ->addOption('granularity', null, InputOption::VALUE_REQUIRED, 'One of: ' . implode(', ', $catalog->granularities()), 'auto')
             ->addOption('json', null, InputOption::VALUE_NONE, 'Print as JSON')
             ->setHelp('auto picks raw samples up to 6h, hourly averages up to 7d and daily averages beyond.');
@@ -56,17 +57,19 @@ final class MetricsSeriesCommand extends Command
     {
         $config = $this->cli->load();
         $server = (string) $input->getArgument('server');
+        $metric = (string) $input->getArgument('metric');
         $range = strtolower((string) $input->getOption('range'));
+        $requestedGranularity = strtolower((string) $input->getOption('granularity'));
         $policy = new MetricQueryPolicy();
         $servers = (new ServersConfigLoader(fallbackOnFailure: true))->load($this->cli->configPath)->section->values;
 
-        $validation = (new MetricsRequestValidator(new MetricCatalog(), $policy))
-            ->validate($server, (string) $input->getArgument('metric'), $range, strtolower((string) $input->getOption('granularity')), $servers);
+        $validator = new MetricsRequestValidator(new MetricCatalog(), $policy);
+        $validation = $validator->validate($server, $metric, $range, $requestedGranularity, $servers);
         if ($validation->hasErrors()) {
             throw new InvalidArgumentException(implode('; ', $validation->errors) . '.');
         }
         $metric = $validation->normalizedMetric;
-        $granularity = $policy->resolveGranularity($range, strtolower((string) $input->getOption('granularity')));
+        $granularity = $policy->resolveGranularity($range, $requestedGranularity);
 
         $demo = $config->environment->env === 'demo';
         $query = $demo ? new MockServerMetricsQuery() : $this->databaseQuery($config->database, $servers);
@@ -76,11 +79,7 @@ final class MetricsSeriesCommand extends Command
         foreach ($series['labels'] as $index => $label) {
             $points[] = ['time' => $label, 'value' => $series['data'][$index] ?? null];
         }
-        $evidence = Evidence::fromDatabase("server_metrics_{$granularity}", time());
-        if ($demo) {
-            $evidence['source']['type'] = 'demo';
-        }
-        $data = $evidence + [
+        $data = Evidence::fromDatabase("server_metrics_{$granularity}", new DateTimeImmutable(), $demo) + [
             'server' => $server,
             'metric' => $metric,
             'range' => $range,
@@ -117,22 +116,28 @@ final class MetricsSeriesCommand extends Command
     {
         $points = is_array($data['points']) ? $data['points'] : [];
         if ($points === []) {
-            $output->writeln("No {$data['granularity']} {$data['metric']} data for '{$data['server']}' in the last {$data['range']}. Check bin/mata metrics status.");
+            $output->writeln(sprintf(
+                "No %s %s data for '%s' in the last %s. Check bin/mata metrics status.",
+                $data['granularity'],
+                $data['metric'],
+                CliOutput::value($data['server']),
+                $data['range'],
+            ));
 
             return;
         }
         foreach ($points as $point) {
-            $output->writeln(sprintf('%-19s %s', $point['time'], $point['value'] ?? '-'));
+            $output->writeln(sprintf('%-19s %s', $point['time'], CliOutput::value($point['value'])));
         }
         $output->writeln(sprintf(
             '<comment>%s %s (%s, UTC, %s): min %s, max %s, avg %s</comment>',
-            $data['server'],
+            CliOutput::value($data['server']),
             $data['metric'],
-            $data['unit'],
+            CliOutput::value($data['unit']),
             $data['granularity'],
-            $data['min'] ?? '-',
-            $data['max'] ?? '-',
-            $data['avg'] ?? '-',
+            CliOutput::value($data['min']),
+            CliOutput::value($data['max']),
+            CliOutput::value($data['avg']),
         ));
     }
 }

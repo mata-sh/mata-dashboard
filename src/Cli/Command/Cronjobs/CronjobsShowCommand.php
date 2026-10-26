@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Mata\Cli\Command\Cronjobs;
 
+use Mata\Cli\CliOutput;
 use Mata\Cli\Command\AbstractNodeEvidenceCommand;
 use Mata\Services\Cache\CacheType;
 use Mata\Services\Collect\ServerDataCollectorInterface;
@@ -40,15 +41,23 @@ final class CronjobsShowCommand extends AbstractNodeEvidenceCommand
         $cronjobs = is_array($data['cronjobs']) ? $data['cronjobs'] : [];
         if ($cronjobs === []) {
             $output->writeln('No monitored cronjobs.');
+
+            return;
         }
+
         foreach ($cronjobs as $cronjob) {
             $state = match (true) {
                 ($cronjob['exists'] ?? false) !== true => '<error>missing</error>',
                 ($cronjob['stale'] ?? false) === true => '<comment>stale</comment>',
                 default => '<info>ok</info>',
             };
-            $output->writeln(sprintf('%s %s (last change %s)', $state, OutputFormatter::escape((string) ($cronjob['path'] ?? '-')), $cronjob['mtime'] ?? '-'));
-            foreach (is_array($cronjob['content_tail'] ?? null) ? $cronjob['content_tail'] : [] as $line) {
+            $path = CliOutput::value($cronjob['path'] ?? null);
+            $changed = CliOutput::value($cronjob['mtime'] ?? null);
+            $output->writeln("{$state} {$path} (last change {$changed})");
+
+            // Escaped, not CliOutput::value(): a blank line of the file stays blank.
+            $tail = is_array($cronjob['content_tail'] ?? null) ? $cronjob['content_tail'] : [];
+            foreach ($tail as $line) {
                 $output->writeln('    ' . OutputFormatter::escape((string) $line));
             }
         }

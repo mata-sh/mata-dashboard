@@ -6,6 +6,7 @@ namespace Mata\Cli;
 
 use DateInterval;
 use DateTimeImmutable;
+use DateTimeZone;
 use InvalidArgumentException;
 use Mata\Services\ServerMetrics\MetricQueryPolicy;
 use Symfony\Component\Console\Input\InputInterface;
@@ -16,18 +17,22 @@ use Symfony\Component\Console\Input\InputInterface;
  */
 final class Evidence
 {
+    /** Durations that --since and `metrics series --range` accept, for help texts and errors. */
+    public const DURATIONS = '24h, 7d, 2w, 3m (months), 1y';
+
     /** Upper bound of --limit; logs show --live passes it to the node per log file. */
     private const MAX_LIMIT = 999_999;
 
     /**
      * A node response as ServerDataCollector returns it. observed_at is when the dashboard
      * received the data, so a cached copy dates from its fetch, not from this command.
+     * observed_at is in UTC whatever the time zone of $now.
      *
      * @param array<string,mixed> $response
      *
      * @return array{source:array<string,string>,observed_at:string,cache:array<string,bool|int>}
      */
-    public static function fromNode(string $server, string $dataset, array $response, bool $demo, int $now): array
+    public static function fromNode(string $server, string $dataset, array $response, bool $demo, DateTimeImmutable $now): array
     {
         $source = ['type' => $demo ? 'demo' : 'node', 'server' => $server, 'dataset' => $dataset];
         $fromCache = ($response['from_cache'] ?? false) === true;
@@ -35,7 +40,7 @@ final class Evidence
 
         return [
             'source' => $source,
-            'observed_at' => gmdate(DATE_ATOM, $now - $age),
+            'observed_at' => self::utc($now->modify(sprintf('%+d seconds', -$age))),
             'cache' => [
                 'from_cache' => $fromCache,
                 'age_seconds' => $age,
@@ -53,12 +58,21 @@ final class Evidence
         return is_int($value) ? $value : 0;
     }
 
-    /** @return array{source:array<string,string>,observed_at:string} */
-    public static function fromDatabase(string $table, int $now): array
+    private static function utc(DateTimeImmutable $time): string
+    {
+        return $time->setTimezone(new DateTimeZone('UTC'))->format(DATE_ATOM);
+    }
+
+    /**
+     * Data read from the dashboard database; in demo mode generated instead.
+     *
+     * @return array{source:array<string,string>,observed_at:string}
+     */
+    public static function fromDatabase(string $table, DateTimeImmutable $now, bool $demo = false): array
     {
         return [
-            'source' => ['type' => 'database', 'table' => $table],
-            'observed_at' => gmdate(DATE_ATOM, $now),
+            'source' => ['type' => $demo ? 'demo' : 'database', 'table' => $table],
+            'observed_at' => self::utc($now),
         ];
     }
 
@@ -80,8 +94,18 @@ final class Evidence
     }
 
     /**
+     * A text option, trimmed; null when it is missing or blank.
+     */
+    public static function stringOption(InputInterface $input, string $name): ?string
+    {
+        $value = $input->getOption($name);
+
+        return is_string($value) && trim($value) !== '' ? trim($value) : null;
+    }
+
+    /**
      * --since as the start of the window, in the same units as `metrics series --range`
-     * (24h, 7d, 2w, 3m for months, 1y); null without the option.
+     * (see DURATIONS); null without the option.
      *
      * @throws InvalidArgumentException naming the option
      */
@@ -93,7 +117,7 @@ final class Evidence
         }
         $range = is_string($since) ? (new MetricQueryPolicy())->parseRange($since) : null;
         if ($range === null) {
-            throw new InvalidArgumentException('--since must be a duration such as 24h, 7d, 2w, 3m (months) or 1y.');
+            throw new InvalidArgumentException('--since must be a duration such as ' . self::DURATIONS . '.');
         }
         $unit = ['h' => 'PT%dH', 'd' => 'P%dD', 'w' => 'P%dW', 'm' => 'P%dM', 'y' => 'P%dY'][$range['unit']];
 

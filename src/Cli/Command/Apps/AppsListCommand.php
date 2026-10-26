@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace Mata\Cli\Command\Apps;
 
+use Mata\Cli\CliOutput;
 use Mata\Cli\Command\AbstractNodeEvidenceCommand;
 use Mata\Services\Cache\CacheType;
 use Mata\Services\Collect\ServerDataCollectorInterface;
 use Symfony\Component\Console\Attribute\AsCommand;
-use Symfony\Component\Console\Formatter\OutputFormatter;
 use Symfony\Component\Console\Helper\Table;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
@@ -54,10 +54,10 @@ final class AppsListCommand extends AbstractNodeEvidenceCommand
         $table->setHeaders(['Name', 'Env', 'Log', 'URL']);
         foreach ($apps as $app) {
             $table->addRow([
-                OutputFormatter::escape((string) $app['name']),
-                OutputFormatter::escape((string) ($app['env'] ?? '-')),
+                CliOutput::value($app['name']),
+                CliOutput::value($app['env'] ?? null),
                 self::logStatus($app['status'] ?? null),
-                OutputFormatter::escape((string) ($app['url'] ?? '')),
+                CliOutput::value($app['url'] ?? null),
             ]);
         }
         $table->render();
