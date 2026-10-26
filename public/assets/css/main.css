@@ -3652,6 +3652,12 @@ label.audit-chip:has(input:checked)::after {
     color: #8b93a5;
 }
 
+.modal-note {
+    margin-bottom: .4rem;
+    font-size: .72rem;
+    color: #5a6172;
+}
+
 .modal-empty {
     padding: 1.5rem;
     border: 1px dashed #2a3040;
