@@ -20,7 +20,7 @@
     {% set unreviewed = sources|reduce((carry, source) => carry + source.totals.unreviewed, 0) %}
     <div class="audit-summary advisory-overview-summary">
       <div class="advisory-summary-group">
-        <span class="advisory-summary-label">Sources</span>
+        <span class="advisory-summary-label">Sources:</span>
         {% for health, pill in {failing: 'sev-critical', stale: 'sev-medium', never_polled: 'pill-meta', ok: 'sev-low'} %}
           {% set matching = enabled_sources|filter(source => source.health == health) %}
           {% if matching is not empty %}<span class="audit-pill {{ pill }}"><b>{{ matching|length }}</b> {{ matching|first.health_label|lower }}</span>{% endif %}
@@ -28,7 +28,7 @@
         {% if disabled_count > 0 %}<span class="audit-pill pill-abandoned"><b>{{ disabled_count }}</b> disabled</span>{% endif %}
       </div>
       <div class="advisory-summary-group">
-        <span class="advisory-summary-label">Advisories</span>
+        <span class="advisory-summary-label">Advisories:</span>
         <span class="audit-pill {{ relevant > 0 ? 'sev-medium' : 'is-zero' }}"><b>{{ relevant }}</b> relevant</span>
         <span class="audit-pill {{ unreviewed > 0 ? 'sev-high' : 'is-zero' }}"><b>{{ unreviewed }}</b> unreviewed</span>
       </div>
@@ -121,15 +121,18 @@
         <span class="toggle-track"></span>
         <span class="toggle-text">relevant only</span>
       </label>
+      <div class="advisory-bulk" role="group" aria-labelledby="advisory-bulk-label">
+        <span class="advisory-bulk-label" id="advisory-bulk-label">Bulk review</span>
+        <select id="advisory-bulk-status" aria-label="Review status for all shown advisories">
+          <option value="">Status…</option>
+          <option value="reviewed">Reviewed</option>
+          <option value="not_relevant">Not relevant</option>
+          <option value="new">New</option>
+        </select>
+        <button class="button" id="advisory-bulk-apply" type="button" data-review-url="{{ endpoints.advisories_review }}" disabled
+                title="Set the review of every advisory the filters show, on all pages">Set 0 shown to…</button>
+      </div>
       <button class="button" id="advisory-filter-clear" type="button">Clear Filter</button>
-      <select id="advisory-bulk-status" aria-label="Review status for all shown advisories">
-        <option value="">Set review…</option>
-        <option value="reviewed">Reviewed</option>
-        <option value="not_relevant">Not relevant</option>
-        <option value="new">New</option>
-      </select>
-      <button class="button" id="advisory-bulk-apply" type="button" data-review-url="{{ endpoints.advisories_review }}" disabled
-              title="Set the review of every advisory the filters show, on all pages">Apply to 0 shown</button>
       <button type="button" class="button" hx-get="{{ endpoints.advisories_render }}" hx-target="#main-section" hx-swap="innerHTML">{{ icons.refresh|raw }} Refresh</button>
     </div>
 

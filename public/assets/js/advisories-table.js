@@ -188,8 +188,11 @@
         var shownCount = 0;
         var saving = false;
 
+        // The button names the chosen status, so it reads as the second half of the dropdown.
         function updateButton() {
-            applyButton.textContent = 'Apply to ' + shownCount + ' shown';
+            applyButton.textContent = statusSelect.value
+                ? 'Set ' + shownCount + ' to ' + statusSelect.options[statusSelect.selectedIndex].text
+                : 'Set ' + shownCount + ' shown to…';
             applyButton.disabled = saving || !statusSelect.value || shownCount === 0;
         }
 

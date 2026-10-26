@@ -4204,6 +4204,71 @@ label.audit-chip:has(input:checked)::after {
     height: 12px;
 }
 
+/* Bulk review: label, status and button share one outline so they read as one control */
+.advisory-bulk {
+    grid-column: span 2;
+    display: flex;
+    min-width: 0;
+    background: var(--surface-control-alt);
+    border: 1px solid var(--border-control);
+    border-radius: 4px;
+}
+
+.advisory-bulk:focus-within {
+    border-color: var(--accent-border);
+}
+
+.advisory-bulk-label {
+    display: flex;
+    align-items: center;
+    padding: 0 .75rem;
+    border-right: 1px solid var(--border-control);
+    font-size: .72rem;
+    font-weight: 700;
+    letter-spacing: .07em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    white-space: nowrap;
+}
+
+.filter-menu .advisory-bulk select {
+    flex: 0 1 10rem;
+    min-width: 0;
+    border: 0;
+    border-radius: 0;
+}
+
+.filter-menu .advisory-bulk .button {
+    flex: 1 1 auto;
+    min-width: 0;
+    border: 0;
+    border-left: 1px solid var(--border-control);
+    border-radius: 0 3px 3px 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* One grid column on phones; spanning two would add an implicit column and overflow.
+   The button moves below label and status, still inside the outline. */
+@media (max-width: 560px) {
+    .advisory-bulk {
+        grid-column: 1 / -1;
+        flex-wrap: wrap;
+    }
+
+    .filter-menu .advisory-bulk select {
+        flex: 1 1 0;
+    }
+
+    .filter-menu .advisory-bulk .button {
+        flex-basis: 100%;
+        border-left: 0;
+        border-top: 1px solid var(--border-control);
+        border-radius: 0 0 3px 3px;
+    }
+}
+
 /* Table severity pills share one width, sized for CRITICAL */
 .advisory-severity {
     justify-content: center;
