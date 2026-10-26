@@ -2,6 +2,9 @@
   <span class="app-ping {{ app.ping }}" data-tippy-content="{{ app.ping_latency }}"></span>
   <span class="app-title">
     <span class="app-name" data-tippy-content="{{ app.title_tooltip }}">{{ app.name }}</span>
+    {% if app.framework %}
+      <span class="app-framework" role="img" aria-label="{{ app.framework.label }}" data-tippy-content="{{ app.framework.tooltip }}">{{ app.framework.icon|raw }}</span>
+    {% endif %}
     <a class="app-url-btn" href="{{ app.url }}" target="_blank" data-tippy-content="{{ app.url_tooltip }}">{{ icons.link|raw }}</a>
     {# <!--  <a class="app-refresh-btn htmx-indicator"  
            hx-get="/watch/refresh/app" 

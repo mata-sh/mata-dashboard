@@ -28,6 +28,8 @@ class NodeResponseNormalizer
         'uptime_seconds' => false,
     ];
 
+    private const FRAMEWORK_VERSION_PATTERN = '/^\d[0-9A-Za-z.+-]{0,63}$/';
+
     public function __construct(private LoggerInterface $logger) {}
 
     /**
@@ -203,8 +205,10 @@ class NodeResponseNormalizer
                     throw new InvalidNodePayloadException("Node returned an invalid description for {$appName}.", 'apps');
                 }
 
+                $framework = $this->normalizeAppFramework($appData, $appName);
+
                 $normalizedApp = $appData;
-                unset($normalizedApp['maintenance']);
+                unset($normalizedApp['maintenance'], $normalizedApp['framework']);
 
                 // A disabled check is omitted by the node and must stay absent after normalization.
                 if (!$loganalysisEnabled) {
@@ -230,6 +234,9 @@ class NodeResponseNormalizer
                 }
                 if ($normalizedLogs !== null) {
                     $normalizedFields['logs'] = $normalizedLogs;
+                }
+                if ($framework !== null) {
+                    $normalizedFields['framework'] = $framework;
                 }
                 if ($sessionsEnabled) {
                     $normalizedFields['session'] = $this->normalizeSessionData(
@@ -276,6 +283,39 @@ class NodeResponseNormalizer
         }
 
         return AppMonitoringSettings::fromAppPayload($appData, $this->logger);
+    }
+
+    /**
+     * Keep custom framework names independently of the dashboard's bundled logo catalogue.
+     *
+     * Older nodes omit the key. Missing, disabled or malformed values show no framework
+     * without rejecting the apps payload.
+     *
+     * @param array<string,mixed> $appData
+     *
+     * @return null|array{name:string,version:null|string}
+     */
+    private function normalizeAppFramework(array $appData, string $appName): ?array
+    {
+        $framework = $appData['framework'] ?? null;
+        if ($framework === null) {
+            return null;
+        }
+
+        $name = is_array($framework) ? ($framework['name'] ?? null) : null;
+        $version = is_array($framework) ? ($framework['version'] ?? null) : null;
+        if (!is_string($name)
+            || ($version !== null && (!is_string($version) || preg_match(self::FRAMEWORK_VERSION_PATTERN, $version) !== 1))) {
+            $this->logger->warning("Node returned an invalid framework for {$appName}; it is not shown.");
+
+            return null;
+        }
+
+        if (trim($name) === '' || $name === 'none') {
+            return null;
+        }
+
+        return ['name' => $name, 'version' => $version];
     }
 
     /**

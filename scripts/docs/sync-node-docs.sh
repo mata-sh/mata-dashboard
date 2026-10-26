@@ -32,6 +32,7 @@ mkdir -p "$target"
 # page in mata-node -> page in docs/node/
 cp "$src/docs/configuration.md" "$target/configuration.md"
 cp "$src/docs/cli.md" "$target/cli.md"
+cp "$src/docs/frameworks.md" "$target/frameworks.md"
 cp "$src/docs/log-parsers.md" "$target/log-parsers.md"
 cp "$src/docs/shell-command-surface.md" "$target/shell-command-surface.md"
 # docker/README.md links into ../docs/; those pages sit next to it here.

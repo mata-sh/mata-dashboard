@@ -30,6 +30,20 @@ Application error, log-size, session, and reachability behavior is controlled
 by the node's per-app `monitoring` settings. The dashboard also has two
 server-scoped configuration flags. See [Application error monitoring](application-error-monitoring.md).
 
+### Framework and CMS labels
+
+Nodes may include `framework: {"name": "shopware", "version": "6.7.0"}` in each
+`/apps` entry. The version is optional or `null`. Application cards show the name
+and version on hover, using a bundled logo for Laravel, Symfony, WordPress,
+Drupal, TYPO3, Shopware, Joomla, CakePHP, Sylius, Craft CMS, Statamic,
+Contao, Sulu, Neos, October CMS, Yii and CodeIgniter. Magento is labelled but
+uses the generic icon, as Adobe does not license its marks.
+
+Custom names are shown verbatim as escaped text with a generic box icon. Names
+never select arbitrary files or URLs; all icons ship with the dashboard. A
+missing bundled logo also uses the generic icon. An omitted or `null` framework,
+or the name `none`, shows no framework icon, including on older nodes.
+
 ## Alarm delivery
 
 Events, logical alarms, and deliveries are separate records. A notification

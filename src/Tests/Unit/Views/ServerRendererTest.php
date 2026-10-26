@@ -6,6 +6,7 @@ namespace Mata\Tests\Unit\Views;
 
 use Mata\Core\App;
 use Mata\Http\Routing\Endpoints;
+use Mata\Services\Collect\AppFramework;
 use Mata\Services\Monitor\Dto\NodeHealthState;
 use Mata\Utils\Tools;
 use Mata\Views\LogRenderer;
@@ -256,18 +257,184 @@ final class ServerRendererTest extends TestCase
         ]);
     }
 
+    public function testRendersFrameworkLogoWithVersionAsAccessibleName(): void
+    {
+        $html = $this->renderAppCard(
+            ['level' => 'good', 'max_size_formatted' => '12 KB'],
+            ['show_events_count' => 0, 'show_events_type' => 'working'],
+            extraAppData: ['framework' => ['name' => 'wordpress', 'version' => '6.8.3']],
+        );
+
+        $this->assertStringContainsString(
+            '<span class="app-framework" role="img" aria-label="WordPress 6.8.3" data-tippy-content="WordPress 6.8.3">',
+            $html
+        );
+        $this->assertStringContainsString('aria-hidden="true" focusable="false"', $html);
+        // The logo's own <title> would add a native tooltip next to Tippy's.
+        $this->assertStringNotContainsString('<title>', $html);
+    }
+
+    public function testRendersFrameworkNameWhenVersionIsUnknown(): void
+    {
+        $html = $this->renderAppCard(
+            ['level' => 'good', 'max_size_formatted' => '12 KB'],
+            ['show_events_count' => 0, 'show_events_type' => 'working'],
+            extraAppData: ['framework' => ['name' => 'typo3', 'version' => null]],
+        );
+
+        $this->assertStringContainsString('aria-label="TYPO3" data-tippy-content="TYPO3"', $html);
+    }
+
+    #[DataProvider('knownFrameworks')]
+    public function testRendersBundledKnownFrameworkLogo(AppFramework $framework): void
+    {
+        $html = $this->renderAppCard(
+            ['level' => 'good', 'max_size_formatted' => '12 KB'],
+            ['show_events_count' => 0, 'show_events_type' => 'working'],
+            extraAppData: ['framework' => ['name' => $framework->value, 'version' => null]],
+        );
+
+        $this->assertStringContainsString('aria-label="' . $framework->label() . '"', $html);
+        $this->assertStringContainsString('app-framework-logo', $html);
+        $this->assertStringNotContainsString('feather-box', $html);
+        $this->assertStringNotContainsString('<title>', $html);
+    }
+
+    /** @return iterable<string,array{AppFramework}> */
+    public static function knownFrameworks(): iterable
+    {
+        foreach (AppFramework::cases() as $framework) {
+            if ($framework !== AppFramework::Magento) {
+                yield $framework->value => [$framework];
+            }
+        }
+    }
+
+    public function testRendersMagentoLabelWithGenericIcon(): void
+    {
+        $html = $this->renderAppCard(
+            ['level' => 'good', 'max_size_formatted' => '12 KB'],
+            ['show_events_count' => 0, 'show_events_type' => 'working'],
+            extraAppData: ['framework' => ['name' => 'magento', 'version' => '2.4.8-p3']],
+        );
+
+        $this->assertStringContainsString('aria-label="Magento 2.4.8-p3"', $html);
+        $this->assertStringContainsString('feather-box', $html);
+    }
+
+    public function testRendersEscapedCustomFrameworkLabelWithGenericIcon(): void
+    {
+        $html = $this->renderAppCard(
+            ['level' => 'good', 'max_size_formatted' => '12 KB'],
+            ['show_events_count' => 0, 'show_events_type' => 'working'],
+            extraAppData: ['framework' => [
+                'name' => 'Custom <img src=x onerror="alert(1)"> & CMS',
+                'version' => '1.2.3',
+                'icon' => '<svg onload="alert(2)"></svg>',
+            ]],
+        );
+
+        $this->assertStringContainsString('aria-label="Custom &lt;img src=x onerror=&quot;alert(1)&quot;&gt; &amp; CMS 1.2.3"', $html);
+        // Tippy parses HTML, so its text must remain escaped after the attribute is decoded.
+        $this->assertStringContainsString('data-tippy-content="Custom &amp;lt;img', $html);
+        $this->assertStringContainsString('feather-box', $html);
+        $this->assertStringNotContainsString('<img', $html);
+        $this->assertStringNotContainsString('alert(2)', $html);
+    }
+
+    #[DataProvider('customFrameworkNames')]
+    public function testCustomFrameworkNameCannotSelectAnAsset(string $name): void
+    {
+        $tools = $this->createMock(Tools::class);
+        $tools->expects($this->once())->method('icon')->with('box', 12, 'app-framework-logo', '')
+            ->willReturn('<svg></svg>');
+
+        $result = (new ReflectionMethod(ServerRenderer::class, 'buildAppFrameworkData'))->invoke(
+            $this->createRenderer(tools: $tools),
+            ['name' => $name, 'version' => null]
+        );
+
+        $this->assertSame($name, $result['label']);
+        $this->assertStringContainsString('aria-hidden="true"', $result['icon']);
+    }
+
+    /** @return iterable<string,array{string}> */
+    public static function customFrameworkNames(): iterable
+    {
+        yield 'custom' => ['My Custom CMS'];
+
+        yield 'existing local icon outside catalogue' => ['../server'];
+
+        yield 'absolute path' => ['/tmp/secret'];
+
+        yield 'remote URL' => ['https://attacker.example/icon.svg'];
+
+        yield 'raw SVG' => ['<svg onload="alert(1)"></svg>'];
+    }
+
+    public function testMissingKnownIconFallsBackToGenericIcon(): void
+    {
+        $tools = $this->createMock(Tools::class);
+        $tools->expects($this->exactly(2))->method('icon')->willReturnMap([
+            ['wordpress', 12, 'app-framework-logo', 'frameworks', ''],
+            ['box', 12, 'app-framework-logo', '', '<svg class="generic"></svg>'],
+        ]);
+
+        $result = (new ReflectionMethod(ServerRenderer::class, 'buildAppFrameworkData'))->invoke(
+            $this->createRenderer(tools: $tools),
+            ['name' => 'wordpress', 'version' => '6.8.3']
+        );
+
+        $this->assertSame('WordPress 6.8.3', $result['label']);
+        $this->assertStringContainsString('class="generic"', $result['icon']);
+    }
+
+    /** @param array<string,mixed> $extraAppData */
+    #[DataProvider('appsWithoutFramework')]
+    public function testRendersNoFrameworkLogoWithoutFramework(array $extraAppData): void
+    {
+        $html = $this->renderAppCard(
+            ['level' => 'good', 'max_size_formatted' => '12 KB'],
+            ['show_events_count' => 0, 'show_events_type' => 'working'],
+            extraAppData: $extraAppData,
+        );
+
+        $this->assertStringNotContainsString('app-framework', $html);
+    }
+
+    /** @return iterable<string,array{array<string,mixed>}> */
+    public static function appsWithoutFramework(): iterable
+    {
+        yield 'older node' => [[]];
+
+        yield 'null' => [['framework' => null]];
+
+        yield 'none' => [['framework' => ['name' => 'none', 'version' => null]]];
+
+        yield 'empty' => [['framework' => ['name' => '', 'version' => null]]];
+
+        yield 'invalid' => [['framework' => ['name' => 123]]];
+    }
+
     /**
      * @param array<string,mixed> $logAnalysisData
      * @param array<string,mixed> $errorAnalysisData
      * @param array<string,mixed> $sessionData
+     * @param array<string,mixed> $extraAppData
      */
     private function renderAppCard(
         array $logAnalysisData,
         array $errorAnalysisData,
-        array $sessionData = ['formatted_count' => '0', 'level' => 'good', 'tooltip' => 'sessions']
+        array $sessionData = ['formatted_count' => '0', 'level' => 'good', 'tooltip' => 'sessions'],
+        array $extraAppData = []
     ): string {
-        $tools = $this->createStub(Tools::class);
-        $tools->method('formatDuration')->willReturn('1 s');
+        // Real icon loading, so the shipped logo files are what gets rendered.
+        $tools = new class (dirname(__DIR__, 4)) extends Tools {
+            public function formatDuration(int $seconds): string
+            {
+                return '1 s';
+            }
+        };
 
         $endpoints = $this->createStub(Endpoints::class);
         $endpoints->method('url')->willReturnCallback(
@@ -296,7 +463,7 @@ final class ServerRendererTest extends TestCase
                     'url' => 'https://shop.example.test',
                     'env' => 'prod',
                     'path' => '/srv/shop',
-                ],
+                ] + $extraAppData,
                 'logAnalysis' => ['log_analysis' => $logAnalysisData, 'error_analysis' => $errorAnalysisData],
                 'session' => $sessionData,
                 'availability' => [],
@@ -306,12 +473,12 @@ final class ServerRendererTest extends TestCase
         ]);
     }
 
-    private function createRenderer(?Endpoints $endpoints = null): ServerRenderer
+    private function createRenderer(?Endpoints $endpoints = null, ?Tools $tools = null): ServerRenderer
     {
         return new ServerRenderer(
             $this->createStub(Environment::class),
             $this->createStub(Logger::class),
-            $this->createStub(Tools::class),
+            $tools ?? $this->createStub(Tools::class),
             $this->createStub(App::class),
             $endpoints ?? $this->createStub(Endpoints::class),
             $this->createStub(LogRenderer::class)

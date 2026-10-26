@@ -160,6 +160,9 @@ final class DemoAppGenerator
                 'session' => $session,
                 'logs' => $logs,
             ];
+            if (isset($template['framework'])) {
+                $apps[$appKey]['framework'] = $template['framework'];
+            }
         }
 
         $apps = $this->injectIncident($serverName, $apps, $preset);

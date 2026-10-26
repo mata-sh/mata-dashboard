@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Mata\Tests\Unit\Services\Collect;
 
+use Mata\Services\Collect\AppFramework;
 use Mata\Services\Collect\NodeResponseNormalizer;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
@@ -306,6 +307,79 @@ final class NodeResponseNormalizerValidationTest extends TestCase
         yield 'null value' => [['loganalysis' => null]];
 
         yield 'array value' => [['loganalysis' => []]];
+    }
+
+    #[DataProvider('frameworkNames')]
+    public function testFrameworkNameIsKept(string $name): void
+    {
+        $result = $this->normalizeApp(self::app(['framework' => ['name' => $name, 'version' => '6.8.3']]));
+
+        $this->assertSame(['name' => $name, 'version' => '6.8.3'], $result['framework']);
+    }
+
+    /** @return iterable<string,array{string}> */
+    public static function frameworkNames(): iterable
+    {
+        foreach (AppFramework::cases() as $framework) {
+            yield $framework->value => [$framework->value];
+        }
+
+        yield 'custom' => ['My Custom Framework'];
+
+        yield 'verbatim' => ['  Custom / CMS  '];
+
+        yield 'hostile' => ['<img src=x onerror=alert(1)>'];
+
+        yield 'path' => ['../../../../config/secrets'];
+    }
+
+    public function testCustomFrameworkWithoutVersionIsKept(): void
+    {
+        $result = $this->normalizeApp(self::app(['framework' => ['name' => 'Custom CMS']]));
+
+        $this->assertSame(['name' => 'Custom CMS', 'version' => null], $result['framework']);
+    }
+
+    public function testFrameworkKeepsOnlyNameAndVersion(): void
+    {
+        $result = $this->normalizeApp(self::app(['framework' => [
+            'name' => 'Custom CMS',
+            'version' => null,
+            'icon' => '<svg onload="alert(1)"></svg>',
+            'icon_url' => 'https://attacker.example/icon.svg',
+        ]]));
+
+        $this->assertSame(['name' => 'Custom CMS', 'version' => null], $result['framework']);
+    }
+
+    /** Missing, disabled and malformed frameworks must not hide the app. */
+    #[DataProvider('frameworksWithoutLogo')]
+    public function testFrameworkWithoutLogoKeepsTheApp(array $app): void
+    {
+        $result = $this->normalizeApp(self::app($app));
+
+        $this->assertSame('Shop', $result['title']);
+        $this->assertArrayNotHasKey('framework', $result);
+    }
+
+    /**
+     * @return iterable<string,array{array<string,mixed>}>
+     */
+    public static function frameworksWithoutLogo(): iterable
+    {
+        yield 'older node' => [[]];
+
+        yield 'null' => [['framework' => null]];
+
+        yield 'none' => [['framework' => ['name' => 'none', 'version' => null]]];
+
+        yield 'empty name' => [['framework' => ['name' => '   ']]];
+
+        yield 'non-string name' => [['framework' => ['name' => 5]]];
+
+        yield 'not an object' => [['framework' => 'wordpress']];
+
+        yield 'version not a release' => [['framework' => ['name' => 'wordpress', 'version' => '<b>6</b>']]];
     }
 
     public function testInvalidStatusUrlIsAnExplicitError(): void

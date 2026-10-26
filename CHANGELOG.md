@@ -19,6 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Demo: `DEMO_SEED` makes the generated data repeatable, and `DEMO_LOGIN_USERNAME` and `DEMO_LOGIN_PASSWORD` prefill the login form.
 - Coding agents: the "Install with a coding agent" guide is a runbook, the docs site publishes `llms.txt` and `llms-full.txt` (linked from the README and the guide), and `config.example/AGENTS.md` gives rules for editing a config repository.
 - Repeated log messages: with nodes that group them, the logs modal and `logs show` show each message once with its count, "(×42)", and the JSON of `logs show` and `evidence` carries `count` and `first_seen`. Older nodes keep working, one entry per occurrence.
+- Application cards show bundled framework and CMS logos, including Shopware, Joomla, CakePHP, Sylius, Craft CMS, Statamic, Contao, Sulu, Neos, October CMS, Yii and CodeIgniter, with the name and optional version on hover. Magento is labelled with a generic icon. Custom names use an escaped label and a generic icon, also used if a bundled logo is missing. Requires nodes reporting `framework` in `/apps`; older nodes and apps without a framework show no logo.
 
 ### Changed
 - Cron heartbeat history now compacts at `CRON_HEARTBEAT_MAX_BYTES` (default 1 MiB), keeping its first entry and recent history; the new daily `cron_history_cleanup.php` job removes heartbeats of deleted jobs. **Action:** shared hosting adds the `cron_history_cleanup.php` line from the crontab template.

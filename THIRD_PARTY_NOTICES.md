@@ -17,15 +17,26 @@ CycloneDX SBOM (`sbom.cdx.json`) listing them.
 | [Tabulator](https://tabulator.info) | 5.5.0 | MIT | (c) 2015-2023 Oli Folkerd | `public/assets/js/tabulator.min.js`, `public/assets/css/tabulator_*.min.css` |
 | [Bulma](https://bulma.io) | 1.0.3 | MIT | (c) 2024 Jeremy Thomas | `public/assets/css/bulma.css`, `public/assets/css/bulma.purged.min.css` (compiled) |
 | [Feather](https://feathericons.com) | 4.x | MIT | (c) 2013-2023 Cole Bemis | `public/assets/icons/*.svg` (Feather icons) |
+| [Simple Icons](https://simpleicons.org) | 16.34.0 | CC0-1.0 | Simple Icons contributors | `public/assets/icons/frameworks/*.svg`, except Neos, Sylius and Sulu |
+| [Font Awesome Free](https://github.com/FortAwesome/Font-Awesome/blob/7.2.0/svgs/brands/neos.svg) | 7.2.0 | [CC-BY-4.0](https://creativecommons.org/licenses/by/4.0/) | Copyright 2026 Fonticons, Inc. | `public/assets/icons/frameworks/neos.svg` |
+| [Sylius](https://github.com/Sylius/Sylius/blob/bfa8c93d922ed11bfa3f2f5982cab714bd134c66/src/Sylius/Bundle/AdminBundle/Resources/assets/images/sylius-logo.svg) | `bfa8c93` | MIT | Copyright (c) 2011-present Sylius Sp. z o.o. | `public/assets/icons/frameworks/sylius.svg` (symbol only, monochrome) |
+| [Sulu](https://github.com/sulu/sulu/blob/ae5269b82aa4cc6daf21187c9a4b89fb2d88a9ea/src/Sulu/Bundle/AdminBundle/Tests/Application/config/iconSet/svgs/sulu-only.svg) | `ae5269b` | MIT | Copyright (c) 2020 Sulu GmbH | `public/assets/icons/frameworks/sulu.svg` (`viewBox` added, monochrome) |
 | [SVG Loaders](https://github.com/SamHerbert/SVG-Loaders) | — | MIT | (c) 2014 Sam Herbert | `public/assets/icons/animated/*.svg` |
 | [Raleway](https://github.com/impallari/Raleway) | v37 | OFL-1.1 | Copyright 2010 The Raleway Project Authors | `public/assets/fonts/raleway/*.woff2` |
 | [Nunito](https://github.com/googlefonts/nunito) | v32 | OFL-1.1 | Copyright 2014 The Nunito Project Authors | `public/assets/fonts/nunito/*.woff2` |
 | [DejaVu fonts](https://dejavu-fonts.github.io) | 2.37 | Bitstream Vera and Arev font licenses (DejaVu changes public domain) | Copyright (c) 2003 Bitstream, Inc.; (c) 2006 Tavmjong Bah | `resources/fonts/pdf/dejavusans*` (converted for tc-lib-pdf); full text in `resources/fonts/pdf/LICENSE-DejaVu` |
 
+## Framework and CMS logos
+
+The logos in `public/assets/icons/frameworks/` only identify the software an application
+runs and do not imply endorsement. They remain trademarks of their owners; the licenses above
+cover the SVG files, not trademark rights. Drupal licenses its logo separately under its
+[trademark policy](https://www.drupal.org/trademark).
+
 ## MIT License
 
-Applies to Chart.js, Popper, Tippy.js, Tabulator, Bulma, Feather and SVG
-Loaders, each with the copyright notice listed above.
+Applies to Chart.js, Popper, Tippy.js, Tabulator, Bulma, Feather, SVG Loaders,
+Sylius and Sulu, each with the copyright notice listed above.
 
 ```text
 Permission is hereby granted, free of charge, to any person obtaining a copy
