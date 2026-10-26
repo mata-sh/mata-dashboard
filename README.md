@@ -36,24 +36,12 @@ User: **demo** | Password: **demo**
 
 ```mermaid
 flowchart LR
-    Browser[Dashboard user] --> Dashboard[Dashboard]
-    Dashboard -->|pull current data| Node[Read-only nodes]
-    Dashboard <--> DB[(MySQL / MariaDB)]
-
-    Jobs[Scheduled jobs] -->|collect snapshots| Node
-    Jobs -->|events and raw metrics| DB
-    Jobs --> Aggregate[Metric aggregation]
-    DB -->|raw metrics| Aggregate
-    Aggregate -->|hourly and daily metrics| DB
-
-    Jobs --> Evaluate[Alarm evaluation]
-    DB -->|events| Evaluate
-    Evaluate -->|alarms and deliveries| DB
-
-    Jobs --> Dispatch[Alarm dispatch]
-    DB -->|due deliveries| Dispatch
-    Dispatch --> Channels[Email / webhooks]
-    Dispatch -->|status and retries| DB
+    User[Browser] --> Web[Dashboard]
+    Web -->|pull| Node[Nodes]
+    Cron[Cron jobs] -->|pull| Node
+    Web <--> DB[(MySQL / MariaDB)]
+    Cron <--> DB
+    Cron --> Out[Email / webhooks]
 ```
 
 The dashboard serves the UI and pulls node data on demand. Cron does the
