@@ -276,16 +276,22 @@ class MockServerDataCollector implements ServerDataCollectorInterface
                 $entries = [];
 
                 for ($i = 0; $i < $entriesCount; ++$i) {
-                    $timestamp = date('Y-m-d H:i:s', time() - mt_rand(3600, 86400 * 7));
+                    $lastSeen = time() - mt_rand(3600, 86400 * 7);
+                    $timestamp = date('Y-m-d H:i:s', $lastSeen);
                     $errorType = $errorTypes[array_rand($errorTypes)];
                     $file = '/var/www/' . $app . '/src/' . ['Controller', 'Model', 'Service'][array_rand(['Controller', 'Model', 'Service'])] . '/'
                            . ucfirst($app) . ['Controller', 'Model', 'Service'][array_rand(['Controller', 'Model', 'Service'])] . '.php';
                     $line = mt_rand(15, 250);
+                    // Like a grouping node: about one message in four repeated.
+                    $count = mt_rand(1, 4) === 1 ? mt_rand(2, 60) : 1;
 
                     $entries[] = [
                         'timestamp' => $timestamp,
                         'type' => $errorType['type'],
                         'message' => $errorType['message'] . ' ' . $file . ':' . $line,
+                        'count' => $count,
+                        'first_seen' => date('Y-m-d H:i:s', $lastSeen - ($count > 1 ? mt_rand(600, 86400) : 0)),
+                        'last_seen' => $timestamp,
                     ];
                 }
 
@@ -296,7 +302,7 @@ class MockServerDataCollector implements ServerDataCollectorInterface
         });
 
         return $this->responseNormalizer->normalizeApiResponse(
-            ['entries' => $groupedLogs, 'readout_limit' => 200],
+            ['grouped' => true, 'entries' => $groupedLogs, 'readout_limit' => 200],
             $this->cacheAge,
             $ttlSeconds,
             false,

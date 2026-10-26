@@ -120,7 +120,7 @@ With `--json`, each document says where its data came from and how old it is:
     "files": [{"path": "shop/logs/error.log", "returned": 200, "oldest": "2026-10-24 17:02:11", "capped": true, "covers_since": null}],
     "matched": 412,
     "truncated": true,
-    "entries": [{"timestamp": "2026-10-25 08:54:51", "type": "Error", "file": "shop/logs/error.log", "message": "…"}]
+    "entries": [{"timestamp": "2026-10-25 08:54:51", "type": "Error", "file": "shop/logs/error.log", "message": "…", "count": 42, "first_seen": "2026-10-25 08:01:12"}]
 }
 ```
 
@@ -133,6 +133,10 @@ With `--json`, each document says where its data came from and how old it is:
   back to the start of the window, `false` when it was cut off before, and `null` when
   that is unknown. `logs show --live` asks for `--limit` entries per file, so a larger
   `--limit` reaches further back. Log timestamps are in the node's local time.
+- Nodes group repeats of one message into one entry: `count` is how often it occurred,
+  `first_seen` the first and `timestamp` the last time, both within the scanned lines.
+  `oldest`, `--since` and the evidence window use that span. Older nodes send every
+  occurrence, each with `count` 1.
 - `source.type` is `demo` for generated demo data.
 
 !!! warning "Giving an agent access"

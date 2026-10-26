@@ -564,6 +564,8 @@ class ModalControllerTest extends TestCase
                 'type' => 'Error',
                 'message' => 'Boom',
                 'source' => 'logs/app.log',
+                'count' => 1,
+                'first_seen' => '2026-07-09 12:00:00',
             ],
         ];
 

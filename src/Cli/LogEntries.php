@@ -18,7 +18,7 @@ final class LogEntries
      * @return array{
      *     readout_limit: null|int,
      *     files: list<array{path:string,returned:int,oldest:null|string,capped:bool,covers_since:null|bool}>,
-     *     entries: list<array{timestamp:null|string,type:null|string,file:string,message:string}>
+     *     entries: list<array{timestamp:null|string,type:null|string,file:string,message:string,count:int,first_seen:null|string}>
      * }
      */
     public static function filter(mixed $result, ?string $type, ?string $file, ?string $since, ?string $until = null): array
@@ -28,15 +28,20 @@ final class LogEntries
 
         $entries = [];
         $files = [];
-        foreach ($groups as $path => $group) {
-            $group = array_values(array_filter(is_array($group) ? $group : [], 'is_array'));
-            $timestamps = [];
-            foreach ($group as $entry) {
-                if (is_string($entry['timestamp'] ?? null)) {
-                    $timestamps[] = $entry['timestamp'];
+        foreach ($groups as $path => $nodeEntries) {
+            $group = [];
+            $firstSeen = [];
+            foreach (is_array($nodeEntries) ? $nodeEntries : [] as $nodeEntry) {
+                if (!is_array($nodeEntry)) {
+                    continue;
+                }
+                $entry = self::entry($nodeEntry, (string) $path);
+                $group[] = $entry;
+                if ($entry['first_seen'] !== null) {
+                    $firstSeen[] = $entry['first_seen'];
                 }
             }
-            $oldest = $timestamps === [] ? null : min($timestamps);
+            $oldest = $firstSeen === [] ? null : min($firstSeen);
             // Capped: the node stopped at readout_limit, so older entries were cut off. Uncapped
             // proves less: the node also scans only the last lines of a file (errorlog_scan_line_limit).
             $capped = $readoutLimit !== null && count($group) >= $readoutLimit;
@@ -56,16 +61,9 @@ final class LogEntries
                 continue;
             }
             foreach ($group as $entry) {
-                $timestamp = is_string($entry['timestamp'] ?? null) ? $entry['timestamp'] : null;
-                if (!self::matches($entry, $timestamp, $type, $since, $until)) {
-                    continue;
+                if (self::matches($entry, $type, $since, $until)) {
+                    $entries[] = $entry;
                 }
-                $entries[] = [
-                    'timestamp' => $timestamp,
-                    'type' => is_string($entry['type'] ?? null) ? $entry['type'] : null,
-                    'file' => (string) $path,
-                    'message' => is_string($entry['message'] ?? null) ? $entry['message'] : '',
-                ];
             }
         }
 
@@ -89,18 +87,22 @@ final class LogEntries
     }
 
     /**
-     * One line per entry, as logs show prints them; with the app when the entry has one.
+     * One line per entry, as logs show prints them; with the app when the entry has one, and the
+     * number of occurrences when the message repeated.
      *
      * @param array<string,mixed> $entry
      */
     public static function line(array $entry): string
     {
+        $count = is_int($entry['count'] ?? null) ? $entry['count'] : 1;
+
         return sprintf(
-            '<info>%s</info> %-10s %s: %s',
+            '<info>%s</info> %-10s %s: %s%s',
             CliOutput::value($entry['timestamp']),
             CliOutput::value($entry['type']),
             CliOutput::value(self::fileName($entry['file'], $entry['app'] ?? null)),
             CliOutput::value($entry['message']),
+            $count > 1 ? " <comment>(×{$count})</comment>" : '',
         );
     }
 
@@ -133,18 +135,44 @@ final class LogEntries
         return is_string($app) ? "{$app}/{$file}" : $file;
     }
 
-    /** @param array<mixed> $entry */
-    private static function matches(array $entry, ?string $timestamp, ?string $type, ?string $since, ?string $until): bool
+    /**
+     * An entry as logs show and evidence return it. Nodes that group repeats send `count` and
+     * `first_seen`, with `timestamp` as the last time; from older nodes each entry occurred once.
+     *
+     * @param array<mixed> $entry
+     *
+     * @return array{timestamp:null|string,type:null|string,file:string,message:string,count:int,first_seen:null|string}
+     */
+    private static function entry(array $entry, string $file): array
     {
-        if ($type !== null && strtolower((string) ($entry['type'] ?? '')) !== $type) {
+        $timestamp = is_string($entry['timestamp'] ?? null) ? $entry['timestamp'] : null;
+
+        return [
+            'timestamp' => $timestamp,
+            'type' => is_string($entry['type'] ?? null) ? $entry['type'] : null,
+            'file' => $file,
+            'message' => is_string($entry['message'] ?? null) ? $entry['message'] : '',
+            'count' => is_int($entry['count'] ?? null) && $entry['count'] > 0 ? $entry['count'] : 1,
+            'first_seen' => is_string($entry['first_seen'] ?? null) ? $entry['first_seen'] : $timestamp,
+        ];
+    }
+
+    /**
+     * A grouped entry matches a window it overlaps: last seen after its start, first seen before its end.
+     *
+     * @param array{timestamp:null|string,type:null|string,first_seen:null|string} $entry
+     */
+    private static function matches(array $entry, ?string $type, ?string $since, ?string $until): bool
+    {
+        if ($type !== null && strtolower((string) $entry['type']) !== $type) {
             return false;
         }
         if ($since === null && $until === null) {
             return true;
         }
 
-        return $timestamp !== null
-            && ($since === null || $timestamp >= $since)
-            && ($until === null || $timestamp <= $until);
+        return $entry['timestamp'] !== null
+            && ($since === null || $entry['timestamp'] >= $since)
+            && ($until === null || (string) $entry['first_seen'] <= $until);
     }
 }

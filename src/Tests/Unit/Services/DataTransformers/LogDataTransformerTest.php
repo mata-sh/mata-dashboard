@@ -40,12 +40,16 @@ final class LogDataTransformerTest extends TestCase
                 'type' => 'Error',
                 'message' => 'New error',
                 'source' => 'app/logs/app.log',
+                'count' => 1,
+                'first_seen' => '2026-07-09 13:00:00',
             ],
             [
                 'timestamp' => '2026-07-09 12:00:00',
                 'type' => 'Warning',
                 'message' => 'Old warning',
                 'source' => 'app/logs/app.log',
+                'count' => 1,
+                'first_seen' => '2026-07-09 12:00:00',
             ],
         ], $result);
     }
@@ -104,6 +108,8 @@ final class LogDataTransformerTest extends TestCase
                 'type' => 'Error',
                 'message' => 'Valid error',
                 'source' => 'logs/app.log',
+                'count' => 1,
+                'first_seen' => '2026-07-09 13:00:00',
             ],
         ], $result);
     }

@@ -54,11 +54,14 @@ class LogDataTransformer
                     continue;
                 }
 
+                // Nodes that group repeats send count and first_seen; older ones one entry per occurrence.
                 $flatLogs[] = [
                     'timestamp' => $entry['timestamp'],
                     'type' => $this->normalizeLogType($entry['type']),
                     'message' => $entry['message'],
                     'source' => $normalizedSource,
+                    'count' => is_int($entry['count'] ?? null) && $entry['count'] > 0 ? $entry['count'] : 1,
+                    'first_seen' => is_string($entry['first_seen'] ?? null) ? $entry['first_seen'] : $entry['timestamp'],
                 ];
             }
         }

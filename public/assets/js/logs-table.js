@@ -17,6 +17,22 @@
         return element;
     }
 
+    function formatMessage(cell) {
+        var row = cell.getRow().getData();
+        var element = document.createElement('span');
+        element.textContent = String(cell.getValue() || '');
+        if (row.count > 1) {
+            var count = document.createElement('span');
+            count.style.fontWeight = 'bold';
+            count.style.whiteSpace = 'nowrap';
+            count.title = 'First seen ' + row.first_seen + ', last seen ' + row.timestamp;
+            count.textContent = ' (×' + row.count + ')';
+            element.appendChild(count);
+        }
+
+        return element;
+    }
+
     function destroyLogsTable(context) {
         // htmx also cleans up text nodes; falling back to document would destroy the table on any swap.
         if (!(context instanceof Element)) {
@@ -61,7 +77,7 @@
                 {title: 'Timestamp', field: 'timestamp', sorter: 'datetime', hozAlign: 'center', width: 180},
                 {title: 'Type', field: 'type', hozAlign: 'center', width: 120, formatter: formatType},
                 {title: 'Source', field: 'source', sorter: 'string', hozAlign: 'left', width: 250},
-                {title: 'Message', field: 'message', sorter: 'string'},
+                {title: 'Message', field: 'message', sorter: 'string', formatter: formatMessage},
             ],
         });
 
