@@ -5,11 +5,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.9.0] - 2026-10-26
+
 ### Added
 - The alarms table has an "Acknowledge all" button that acknowledges all alarms, regardless of active filters.
 - Security advisory monitoring: `config/advisories.json` lists RSS/Atom feeds, GitHub repository advisories, IMAP mailboxes, OSV.dev packages and CSAF providers with keyword and severity filters. New relevant advisories are recorded once as `advisories.matched` events that alarm through the usual decision driver and notification rules (`"notify": false` only lists them); failing sources and a stopped poller warn. `bin/mata advisory:sources|fetch|report` and the `digest` setting mail PDF, Markdown, HTML or JSON reports. **Action:** copy `config.example/advisories.json.example`, run `bin/mata migrate up`, then `bin/mata advisory:fetch` for the baseline; shared hosting adds the two `advisories_*` lines from `cron/crontab.shared-hosting.template`.
 - An **Advisories** page lists sources and advisories with their review status and downloads reports.
-- The Advisories table reviews every advisory the filters show at once (**Set review…** and **Apply to N shown**), with an optional shared note; advisories already in that status keep their review.
+- The Advisories table reviews every advisory the filters show at once (**Bulk review**, next to the relevant-only toggle), with an optional shared note; advisories already in that status keep their review.
 - Local alarm policies: OPA also loads `config/policy/`, so overrides are versioned with the configuration and build on the shipped `policy/alarms.rego` in a `local.*` package; `OPA_ALARM_DECISION_PATH=/v1/data/local/alarms/decision` selects them. `config validate` rejects local files outside a `local` package and warns when the decision path and local policies do not match; `doctor` checks that the configured decision path answers; `make opa-test` tests both directories. **Action:** native installs with the OPA systemd unit run `make opa-install-service` once; Docker picks it up on the next `make dev-start` or `make prod-start`.
 - `bin/mata` operator CLI (`make mata ARGS="…"` runs it as the web server user): `server add|list|test|remove`, `config validate`, `status` (Nagios exit codes), `doctor`, `user …`, `migrate status|up|down|check`, `alarm test|explain`, `metrics status` and `--version`, most with `--json`. Docker images built with `make` carry the version, also as the `org.opencontainers.image.version` label.
 - Read-only data commands for scripts and coding agents: `bin/mata server show|info`, `apps list|sessions|readme`, `logs show|files`, `processes show`, `cronjobs show`, `libraries list`, `audit show`, `db show|processes`, `events list|show`, `alarms list` and `metrics series`. Node data comes from the dashboard's cache unless `--live` asks the node; with `--json` each document carries `source`, `observed_at`, `cache` and `truncated`, and `logs show` says per file whether the node cut off older entries.
@@ -24,6 +26,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Application cards show bundled framework and CMS logos, including Shopware, Joomla, CakePHP, Sylius, Craft CMS, Statamic, Contao, Sulu, Neos, October CMS, Yii and CodeIgniter, with the name and optional version on hover. Magento is labelled with a generic icon. Custom names use an escaped label and a generic icon, also used if a bundled logo is missing. Requires nodes reporting `framework` in `/apps`; older nodes and apps without a framework show no logo.
 
 ### Changed
+- The settings page groups file-backed values under "Loaded Configuration", with each section naming its source file.
 - The log modal's entry-limit hint uses orange text for better visibility.
 - Cron heartbeat history now compacts at `CRON_HEARTBEAT_MAX_BYTES` (default 1 MiB), keeping its first entry and recent history; the new daily `cron_history_cleanup.php` job removes heartbeats of deleted jobs. **Action:** shared hosting adds the `cron_history_cleanup.php` line from the crontab template.
 - Database cards show each named connection as a collapsible row with its engine, metrics and databases; one failed connection no longer hides the others. `database_unreachable` lists all failed connections; `database_connections_too_high` uses the busiest. **Action:** update dashboard and nodes together; older nodes' database data is rejected.
@@ -47,6 +50,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `scripts/alarm_channel_test.php`, `scripts/server_metrics_diagnostic.php`, `make users-*`, `db-rollback`, `db-status`, `db-check`, `db-hash-password` and the scripts they ran; use `bin/mata alarm test`, `metrics status`, `user …` and `migrate …`.
 
 ### Fixed
+- Advisory details open when clicking anywhere on a table row, not just its title.
 - App names in dashboard server cards now have 3px of right margin.
 - `doctor` no longer mistakes inaccessible users files for missing ones; run it as the application user to check access before creating users.
 - Docker: two dashboard stacks on one host no longer reach each other's MySQL and OPA; only the web container joins the shared `mata-network`. **Action:** recreate the containers.
