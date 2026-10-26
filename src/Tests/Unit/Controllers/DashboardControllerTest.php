@@ -465,10 +465,12 @@ class DashboardControllerTest extends TestCase
         $this->controller = $this->createController();
 
         $this->endpoints
-            ->expects($this->once())
+            ->expects($this->exactly(2))
             ->method('url')
-            ->with('alarms_json')
-            ->willReturn('/api/alarms/json')
+            ->willReturnMap([
+                ['alarms_json', [], [], '/api/alarms/json'],
+                ['notification_bell_ack_all', [], [], '/watch/notification-bell/ack-all'],
+            ])
         ;
 
         $this->twig
@@ -477,7 +479,8 @@ class DashboardControllerTest extends TestCase
             ->with(
                 'partials/containers/alarms-container.html.twig',
                 $this->callback(function ($data) {
-                    return isset($data['endpoints']['alarms_json']);
+                    return ($data['endpoints']['alarms_json'] ?? null) === '/api/alarms/json'
+                        && ($data['endpoints']['ack_all'] ?? null) === '/watch/notification-bell/ack-all';
                 })
             )
             ->willReturn('<div>Alarms container</div>')
