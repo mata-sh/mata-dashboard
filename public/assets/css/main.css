@@ -3508,6 +3508,11 @@ label.audit-chip:has(input:checked)::after {
     color: var(--sev-none-tint);
 }
 
+/* Tooltips are appended to <body>; multi-line ones (cronjobs, log stats) read as lists. */
+.tippy-box {
+    text-align: left;
+}
+
 /* ── Notification bell (topbar) ──────────────────────────────── */
 .navbar-item.notification-bell {
     position: relative;
