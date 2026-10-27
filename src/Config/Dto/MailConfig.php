@@ -18,16 +18,12 @@ final class MailConfig
 {
     /**
      * @param array<int,string> $alarmRecipients List of email addresses for alarm notifications
-     * @param array<int,string> $testRecipients  List of email addresses for test emails
-     * @param array<int,string> $devRecipients   List of email addresses for development notifications
      */
     public function __construct(
         public readonly ?string $dsn,
         public readonly ?string $fromEmail,
         public readonly ?string $fromName,
         public readonly array $alarmRecipients,
-        public readonly array $testRecipients,
-        public readonly array $devRecipients,
         public readonly string $charset,
         public readonly ?string $dashboardUrl,
     ) {}
@@ -59,15 +55,15 @@ final class MailConfig
     }
 
     /**
-     * MAIL_FROM_EMAIL named MAIL_FROM_NAME, or "<application> Dashboard" when the name is unset.
+     * SYM_FROM_EMAIL named SYM_FROM_NAME, or "<application> Dashboard" when the name is unset.
      *
-     * @throws RuntimeException when MAIL_FROM_EMAIL is unset or invalid
+     * @throws RuntimeException when SYM_FROM_EMAIL is unset or invalid
      */
     public function sender(string $applicationName): Address
     {
         $email = trim((string) $this->fromEmail);
         if ($email === '') {
-            throw new RuntimeException('Mail sender address not configured (MAIL_FROM_EMAIL).');
+            throw new RuntimeException('Mail sender address not configured (SYM_FROM_EMAIL).');
         }
         $name = trim((string) $this->fromName);
 

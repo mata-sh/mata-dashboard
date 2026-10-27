@@ -189,6 +189,16 @@ final class AlarmEmailFactoryTest extends TestCase
         $this->assertStringNotContainsString('Open dashboard', (string) $email->getTextBody());
     }
 
+    public function testAnEmailChannelMailsItsOwnRecipientsInsteadOfTheAlarmRecipients(): void
+    {
+        $email = $this->factory(channelRecipients: ['security@example.com'])->create($this->view());
+
+        $this->assertSame(['security@example.com'], array_map(
+            static fn ($address): string => $address->getAddress(),
+            $email->getTo(),
+        ));
+    }
+
     public function testItRejectsMissingRecipients(): void
     {
         $factory = $this->factory(alarmRecipients: []);
@@ -230,13 +240,15 @@ final class AlarmEmailFactoryTest extends TestCase
         array $alarmRecipients = ['ops@example.com', 'oncall@example.com'],
         string $applicationName = 'MATA',
         array $servers = [],
+        array $channelRecipients = [],
     ): AlarmEmailFactory {
-        $mail = new MailConfig(null, $fromEmail, $fromName, $alarmRecipients, [], [], 'UTF-8', $dashboardUrl);
+        $mail = new MailConfig(null, $fromEmail, $fromName, $alarmRecipients, 'UTF-8', $dashboardUrl);
 
         return new AlarmEmailFactory(
             new FilesystemLoader(dirname(__DIR__, 4) . '/templates'),
             new AlarmTemplateDataFactory($applicationName, $mail->dashboardLink(), $servers),
             $mail,
+            $channelRecipients,
         );
     }
 

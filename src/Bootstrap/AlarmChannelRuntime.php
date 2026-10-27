@@ -107,8 +107,8 @@ final readonly class AlarmChannelRuntime
     }
 
     /**
-     * One sender per configured channel: the built-in email sender plus one per enabled webhook.
-     * All of them render from the same template data, so every channel shows the same alarm fields.
+     * One sender per configured channel: the built-in email sender plus one per enabled email
+     * channel and webhook.
      *
      * @return array<string,AlarmChannelSenderInterface> keyed by channel name
      */
@@ -126,6 +126,10 @@ final readonly class AlarmChannelRuntime
         $http = new Client();
 
         $senders = [ChannelsConfig::EMAIL => new AlarmEmailSender($emailFactory, $this->mailer, $this->log)];
+        foreach ($this->channels->emails as $name => $email) {
+            $factory = new AlarmEmailFactory($templates, $templateData, $this->appConfig->mail, $email->recipients);
+            $senders[$name] = new AlarmEmailSender($factory, $this->mailer, $this->log);
+        }
         foreach ($this->channels->webhooks as $name => $webhook) {
             $senders[$name] = new AlarmWebhookSender($webhook, $payloadFactory, $http, $this->log);
         }

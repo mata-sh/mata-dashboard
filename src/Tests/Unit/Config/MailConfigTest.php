@@ -42,6 +42,6 @@ final class MailConfigTest extends TestCase
     /** @param list<string> $alarmRecipients */
     private function config(?string $fromName = null, array $alarmRecipients = []): MailConfig
     {
-        return new MailConfig(null, 'alerts@example.com', $fromName, $alarmRecipients, [], [], 'UTF-8', null);
+        return new MailConfig(null, 'alerts@example.com', $fromName, $alarmRecipients, 'UTF-8', null);
     }
 }

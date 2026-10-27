@@ -78,10 +78,19 @@ final class AlarmChannelRuntimeTest extends TestCase
         file_put_contents($appPath . '/config/servers.json', '{}');
 
         try {
-            $senders = $this->runtime($this->telegramChannels(), PathResolver::fromAppPath($appPath))->senders();
+            $channels = ChannelsConfig::fromArray(
+                ['channels' => [
+                    'telegram' => ['type' => 'webhook', 'url_env' => 'WEBHOOK_TELEGRAM_URL', 'template' => 'telegram'],
+                    'security' => ['type' => 'email', 'recipients' => ['security@example.com']],
+                ]],
+                static fn (string $name): string => 'https://api.telegram.org/botX/sendMessage',
+                static function (string $message): void {},
+            );
+            $senders = $this->runtime($channels, PathResolver::fromAppPath($appPath))->senders();
 
-            $this->assertSame(['email', 'telegram'], array_keys($senders));
+            $this->assertSame(['email', 'security', 'telegram'], array_keys($senders));
             $this->assertInstanceOf(AlarmEmailSender::class, $senders['email']);
+            $this->assertInstanceOf(AlarmEmailSender::class, $senders['security']);
             $this->assertInstanceOf(AlarmWebhookSender::class, $senders['telegram']);
         } finally {
             $this->cleanupTempFiles([$appPath]);

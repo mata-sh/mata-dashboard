@@ -1,5 +1,10 @@
 {
   "channels": {
+    "security-email": {
+      "type": "email",
+      "enabled": true,
+      "recipients": ["security@your-domain.com"]
+    },
     "telegram": {
       "type": "webhook",
       "enabled": true,

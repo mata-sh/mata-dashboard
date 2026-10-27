@@ -39,6 +39,19 @@ final class ChannelsConfigTest extends TestCase
         $this->assertSame([], $this->reports);
     }
 
+    public function testEmailChannelKeepsItsOwnRecipients(): void
+    {
+        $config = $this->load([
+            'telegram' => ['type' => 'webhook', 'url_env' => 'WEBHOOK_TELEGRAM_URL', 'template' => 'telegram'],
+            'security' => ['type' => 'email', 'recipients' => ['security@example.com', 'ciso@example.com']],
+            'audit' => ['type' => 'email', 'enabled' => false, 'recipients' => ['audit@example.com']],
+        ]);
+
+        $this->assertSame(['email', 'security', 'telegram'], $config->names());
+        $this->assertSame(['security@example.com', 'ciso@example.com'], $config->emails['security']->recipients);
+        $this->assertSame([], $this->reports);
+    }
+
     public function testDefaultsApplyAndDisabledChannelsAreSkippedSilently(): void
     {
         $config = $this->load([
@@ -85,9 +98,19 @@ final class ChannelsConfigTest extends TestCase
 
         yield 'list entry' => [['telegram' => ['a', 'b']], 'must be an object'];
 
-        yield 'missing type' => [['telegram' => ['url_env' => 'WEBHOOK_TELEGRAM_URL', 'template' => 'telegram']], 'type must be "webhook"'];
+        yield 'missing type' => [['telegram' => ['url_env' => 'WEBHOOK_TELEGRAM_URL', 'template' => 'telegram']], 'type must be "email" or "webhook"'];
 
-        yield 'unknown type' => [['telegram' => ['type' => 'sms'] + $valid], 'type must be "webhook"'];
+        yield 'unknown type' => [['telegram' => ['type' => 'sms'] + $valid], 'type must be "email" or "webhook"'];
+
+        yield 'email without recipients' => [['security' => ['type' => 'email']], 'recipients must be a non-empty list of email addresses'];
+
+        yield 'email with empty recipients' => [['security' => ['type' => 'email', 'recipients' => []]], 'recipients must be a non-empty list'];
+
+        yield 'email with invalid address' => [['security' => ['type' => 'email', 'recipients' => ['security']]], 'recipients must be a non-empty list'];
+
+        yield 'email recipients as string' => [['security' => ['type' => 'email', 'recipients' => 'security@example.com']], 'recipients must be a non-empty list'];
+
+        yield 'email with webhook key' => [['security' => ['type' => 'email', 'recipients' => ['security@example.com'], 'template' => 'generic']], 'unknown key template'];
 
         yield 'unknown key' => [['telegram' => $valid + ['url' => 'https://x']], 'unknown key url'];
 

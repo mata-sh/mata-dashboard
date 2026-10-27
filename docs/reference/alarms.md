@@ -1,7 +1,7 @@
 # Alarm decision and delivery flow
 
 MATA delivers alarms by email and through outgoing [webhook channels](#channels),
-such as Telegram. Each channel is delivered, retried, and rate-limited independently.
+such as Telegram. Extra email channels send selected alarms to other addresses. Each channel is delivered, retried, and rate-limited independently.
 
 ## Records
 
@@ -132,8 +132,8 @@ unit.
 
 Configuration and bootstrap failures use an emergency path. Direct alarms
 bypass the alarm threshold gate, notification rules, the decision driver, and
-`intervals.json` delivery deduplication. They are always delivered by email, never
-through webhook channels. When persistence is available, they use the same queue
+`intervals.json` delivery deduplication. They are always delivered by the built-in
+`email` channel, never through channels from `channels.json`. When persistence is available, they use the same queue
 and transport limits as policy-evaluated alarms.
 
 When delivery storage is unavailable, no email can be queued. A filesystem lock
@@ -164,6 +164,50 @@ in `MAIL_ALARM_RECIPIENTS`. Every other channel is an entry in the optional
 name in `notification_rules.json`. Deduplication, rate limits, and retries are kept
 per channel. A channel that keeps failing does not affect the others.
 
+An invalid channel entry is skipped and recorded as a
+`channels_config_invalid_entry` event. When `notification_rules.json` names a
+channel that is not configured, for example after a typo or after disabling it,
+the evaluators skip that channel's deliveries, deliver the other channels as
+usual, and record a `notification_rules_unknown_channel` warning.
+
+### Email channels
+
+An `email` channel sends alarms to its own `recipients` through the SMTP settings
+in `config/mail.config.env`. For example, send new security advisories to the
+security team and keep every other alarm on `MAIL_ALARM_RECIPIENTS`:
+
+```json
+{
+  "channels": {
+    "security-email": {
+      "type": "email",
+      "recipients": ["security@example.com"]
+    }
+  }
+}
+```
+
+```json
+{
+  "event_types": {
+    "advisories.matched": {"channels": ["security-email"]}
+  }
+}
+```
+
+The second file is `config/notification_rules.json`. To also keep the built-in
+copy, list `["email", "security-email"]`.
+
+| Key | Meaning |
+| --- | --- |
+| `type` | `email`. |
+| `enabled` | Optional, default `true`. A disabled channel is ignored. |
+| `recipients` | Required list of one or more email addresses. |
+
+The name `email` is reserved for the built-in channel.
+
+### Webhook channels
+
 ```json
 {
   "channels": {
@@ -179,7 +223,7 @@ per channel. A channel that keeps failing does not affect the others.
 
 | Key | Meaning |
 | --- | --- |
-| `type` | Required. `webhook` is currently the only type. |
+| `type` | `webhook`. |
 | `enabled` | Optional, default `true`. A disabled channel is ignored. |
 | `url_env` | Environment variable in `config/config.env` holding the URL. |
 | `template` | Payload template in `templates/webhooks/`: `telegram`, `slack`, `discord`, or `generic`. |
@@ -196,13 +240,7 @@ URLs must use `https`. `WEBHOOK_ALLOW_INSECURE=true` permits `http` for a
 receiver on a private network. Redirects are not followed: a `3xx`, `4xx`, or
 `5xx` response, or a timeout, fails the attempt, which is retried like an email.
 
-An invalid channel entry is skipped and recorded as a
-`channels_config_invalid_entry` event. When `notification_rules.json` names a
-channel that is not configured, for example after a typo or after disabling it,
-the evaluators skip that channel's deliveries, deliver the other channels as
-usual, and record a `notification_rules_unknown_channel` warning.
-
-### Telegram
+#### Telegram
 
 1. Create a bot with [@BotFather](https://t.me/BotFather) and copy its token.
 2. Send the bot a message, or add it to a group, then read the `chat.id` from
@@ -214,7 +252,7 @@ usual, and record a `notification_rules_unknown_channel` warning.
 Messages are plain text: severity, target, alarm type, message, environment,
 alarm ID, time, and the dashboard link from `MAIL_DASHBOARD_URL`.
 
-### Slack and Discord
+#### Slack and Discord
 
 1. Create an incoming webhook: in Slack, add the *Incoming Webhooks* app to a
    channel; in Discord, open the channel settings, then *Integrations* →

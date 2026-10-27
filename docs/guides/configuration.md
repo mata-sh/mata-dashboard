@@ -30,7 +30,7 @@ creates `.env` for Compose.
 | `config/menu.json` | Optional dashboard menu visibility overrides |
 | `config/charts.json` | Optional dashboard chart metrics and timespans |
 | `config/limits.json` | Optional transport limits for queued alarm deliveries |
-| `config/channels.json` | Optional alarm channels besides email, such as a Telegram webhook |
+| `config/channels.json` | Optional alarm channels besides the built-in email, such as another email address or a Telegram webhook |
 | `config/advisories.json` | Optional [security advisory](security-advisories.md) sources, filters and digest |
 | `config/policy/` | Optional [local alarm policies](../reference/alarms.md#local-policy-overrides), loaded by OPA |
 
@@ -143,11 +143,15 @@ recipients in `config/mail.config.env`:
 
 ```dotenv
 MAIL_ALARM_RECIPIENTS="alarms@example.com"
-MAIL_DEV_RECIPIENTS="developers@example.com"
 SYM_MAILER_DSN="smtp://user:password@smtp.example.com:587"
 SYM_FROM_EMAIL="monitor@example.com"
 SYM_FROM_NAME="MATA Dashboard"
 ```
+
+`MAIL_ALARM_RECIPIENTS` receives the built-in `email` alarm channel and direct
+alarms about configuration and bootstrap failures, and is the default for
+advisory digests and reports. To send selected alarms elsewhere, add an
+[email channel](../reference/alarms.md#email-channels).
 
 Use a non-delivering Symfony Mailer transport or a test SMTP service when
 messages must not leave the system.

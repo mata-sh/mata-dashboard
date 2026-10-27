@@ -111,7 +111,10 @@ Every advisory is stored. The filters and the source's `notify` decide what else
 
 Both decision drivers (OPA & PHP native) allow every level to become events, since the
 source filters already chose. `notification_rules.json` can turn the alarm off or pick other
-channels under `event_types` → `advisories.matched`.
+channels under `event_types` → `advisories.matched`, for example an
+[email channel](../reference/alarms.md#email-channels) that mails the security team instead of
+`MAIL_ALARM_RECIPIENTS`. The warnings about a failing source or a stalled poller stay separate
+event types, so they keep reaching operations.
 
 !!! info "Alarming for some sources only"
     Narrow a source with `filters`, or set `"notify": false` to only list it. To keep events but

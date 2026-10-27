@@ -17,10 +17,12 @@ final class AlarmEmailFactory
 {
     private Environment $twig;
 
+    /** @param list<string> $recipients an email channel's recipients; empty: MAIL_ALARM_RECIPIENTS */
     public function __construct(
         LoaderInterface $templates,
         private AlarmTemplateDataFactory $templateData,
         private MailConfig $mailConfig,
+        private array $recipients = [],
     ) {
         // Escape by template extension: HTML for alarm.html.twig, nothing for the plain-text part.
         $this->twig = new Environment($templates, ['autoescape' => 'name']);
@@ -29,7 +31,7 @@ final class AlarmEmailFactory
     /** @throws RuntimeException */
     public function create(AlarmDeliveryView $view): Email
     {
-        $recipients = $this->mailConfig->recipients();
+        $recipients = $this->mailConfig->recipients($this->recipients);
         if ($recipients === []) {
             throw new RuntimeException('Alarm email recipients not configured (MAIL_ALARM_RECIPIENTS).');
         }

@@ -356,8 +356,6 @@ final class EventManagerTest extends TestCase
                 fromEmail: 'alerts@example.com',
                 fromName: 'Alarms',
                 alarmRecipients: ['ops@example.com'],
-                testRecipients: [],
-                devRecipients: [],
                 charset: 'UTF-8',
                 dashboardUrl: null
             ),

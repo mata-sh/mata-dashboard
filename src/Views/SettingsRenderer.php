@@ -529,8 +529,6 @@ class SettingsRenderer extends BaseRenderer
             'dashboard_url_invalid' => $mail->dashboardUrl !== null && $mail->dashboardLink() === null,
             'recipients' => [
                 ['label' => 'Alarm', 'addresses' => $mail->alarmRecipients],
-                ['label' => 'Test', 'addresses' => $mail->testRecipients],
-                ['label' => 'Dev', 'addresses' => $mail->devRecipients],
             ],
         ];
     }

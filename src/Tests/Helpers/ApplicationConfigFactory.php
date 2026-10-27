@@ -160,8 +160,6 @@ class ApplicationConfigFactory
         ?string $fromEmail = null,
         ?string $fromName = null,
         array $alarmRecipients = [],
-        array $testRecipients = [],
-        array $devRecipients = [],
         string $charset = 'utf-8',
         ?string $dashboardUrl = null,
     ): MailConfig {
@@ -170,8 +168,6 @@ class ApplicationConfigFactory
             $fromEmail,
             $fromName,
             $alarmRecipients,
-            $testRecipients,
-            $devRecipients,
             $charset,
             $dashboardUrl,
         );

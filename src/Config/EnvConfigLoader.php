@@ -231,8 +231,6 @@ final class EnvConfigLoader
             fromEmail: $this->getEnv('SYM_FROM_EMAIL'),
             fromName: $this->getEnv('SYM_FROM_NAME'),
             alarmRecipients: $this->parseCommaSeparated($this->getEnv('MAIL_ALARM_RECIPIENTS', '')),
-            testRecipients: $this->parseCommaSeparated($this->getEnv('MAIL_TEST_RECIPIENTS', '')),
-            devRecipients: $this->parseCommaSeparated($this->getEnv('MAIL_DEV_RECIPIENTS', '')),
             charset: $this->getEnv('MAIL_CHARSET', 'utf-8'),
             dashboardUrl: $this->normalizeOptionalEnvValue($this->getEnv('MAIL_DASHBOARD_URL')),
         );

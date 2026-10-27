@@ -268,8 +268,6 @@ final class AlarmDispatcherTest extends TestCase
                 $configured ? 'alerts@example.com' : null,
                 'Alerts',
                 $configured ? ['ops@example.com'] : [],
-                [],
-                [],
                 'UTF-8',
                 null,
             ),

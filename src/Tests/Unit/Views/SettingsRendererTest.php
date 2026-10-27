@@ -219,8 +219,6 @@ final class SettingsRendererTest extends TestCase
             fromEmail: 'noreply@example.com',
             fromName: 'MATA',
             alarmRecipients: ['ops@example.com'],
-            testRecipients: [],
-            devRecipients: [],
             charset: 'utf-8',
             dashboardUrl: $dashboardUrl,
         );

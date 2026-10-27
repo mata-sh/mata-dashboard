@@ -42,7 +42,7 @@ final class AlarmEmailSenderTest extends TestCase
         $factory = new AlarmEmailFactory(
             new ArrayLoader(),
             new AlarmTemplateDataFactory('MATA', null),
-            new MailConfig(null, null, null, [], [], [], 'UTF-8', null),
+            new MailConfig(null, null, null, [], 'UTF-8', null),
         );
         $sender = new AlarmEmailSender($factory, $mailer);
 
@@ -63,7 +63,7 @@ final class AlarmEmailSenderTest extends TestCase
                 'emails/alarm.txt.twig' => '{{ alarm.message }}',
             ]),
             new AlarmTemplateDataFactory('MATA', null),
-            new MailConfig(null, 'alerts@example.com', 'Alerts', ['ops@example.com'], [], [], 'UTF-8', null),
+            new MailConfig(null, 'alerts@example.com', 'Alerts', ['ops@example.com'], 'UTF-8', null),
         );
     }
 

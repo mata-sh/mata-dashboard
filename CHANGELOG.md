@@ -5,6 +5,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- `channels.json` accepts `"type": "email"` channels with their own `recipients`, so `notification_rules.json` can send selected alarms, such as `advisories.matched`, to another address than `MAIL_ALARM_RECIPIENTS`. Direct alarms keep using the built-in `email` channel.
+
+### Fixed
+- A missing sender address now reports `SYM_FROM_EMAIL`, the variable the dashboard reads, instead of `MAIL_FROM_EMAIL`.
+
+### Removed
+- `MAIL_DEV_RECIPIENTS` and `MAIL_TEST_RECIPIENTS`: no mail was ever sent to them; the settings page no longer lists them. `alarm test email` mails `MAIL_ALARM_RECIPIENTS`. **Action:** none; remaining entries in `mail.config.env` are ignored.
+
 ## [0.9.0] - 2026-10-26
 
 ### Added
