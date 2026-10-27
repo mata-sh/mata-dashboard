@@ -3620,6 +3620,22 @@ label.audit-chip:has(input:checked)::after {
     display: block;
 }
 
+/* The mobile bell sits left of the theme toggle and burger, so a menu hanging off
+   its right edge leaves narrow screens. Anchor it to the fixed navbar instead. */
+@media screen and (max-width: 1023px) {
+    .navbar-mobile-actions .notification-bell {
+        position: static;
+    }
+
+    /* 50% + 12px: the vertically centered 36px bell's bottom, less the 6px overlap
+       the desktop menu keeps so hovering from bell to menu does not close it. */
+    .navbar-mobile-actions .notification-bell-menu {
+        top: calc(50% + 12px);
+        right: .5rem;
+        max-width: calc(100% - 1rem);
+    }
+}
+
 .notification-bell-head {
     display: flex;
     align-items: center;
@@ -3733,6 +3749,8 @@ label.audit-chip:has(input:checked)::after {
 .notification-ack-all svg {
     width: 14px;
     height: 14px;
+    /* Cancel the .navbar-item svg offset, which would swallow the gap. */
+    margin: 0;
     stroke: currentColor;
 }
 
