@@ -69,11 +69,11 @@ body {
     --sev-critical-fill: #c22a35;
     --sev-critical-border: #e05561;
     --sev-critical-tint: #f09595;
-    --sev-high-fill: #c05a1d;
-    --sev-high-border: #e0854a;
+    --sev-high-fill: #cc5b0e;
+    --sev-high-border: #e98036;
     --sev-high-tint: #f0b27b;
-    --sev-medium-fill: #9c7c14;
-    --sev-medium-border: #c4a53a;
+    --sev-medium-fill: #a48110;
+    --sev-medium-border: #c7a41d;
     --sev-medium-tint: #e3ce7a;
     --sev-low-fill: #2e7d43;
     --sev-low-border: #4da767;
@@ -220,7 +220,7 @@ body {
     /* severity: fills keep their white text; borders darken the fill, tints are text on light surfaces */
     --sev-critical-border: #a3212b;
     --sev-critical-tint: #b02430;
-    --sev-high-border: #9e4a16;
+    --sev-high-border: #a14709;
     --sev-high-tint: #a24c17;
     --sev-medium-border: #7f650e;
     --sev-medium-tint: #765e0b;

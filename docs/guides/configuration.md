@@ -263,10 +263,7 @@ file; see the [server metrics pipeline](../architecture/server-metrics-pipeline.
 
 ## Appearance
 
-The dashboard is dark by default. The sun/moon button in the topbar switches to
-a light theme. The choice is kept per browser in the `mata_theme` cookie, not
-per user account, and pages open in that theme without a flash. Alarm emails,
-webhooks and advisory reports stay dark.
+The dashboard is dark by default. The sun/moon button in the topbar switches to a light theme. Alarm emails, and advisory reports stay dark.
 
 !!! info "Custom topbar logo"
     `public/branding/logo_topbar.png` is drawn on the dark bar. The light theme
