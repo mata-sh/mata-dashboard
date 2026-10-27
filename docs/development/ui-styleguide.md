@@ -9,6 +9,11 @@ get there. Applies to everything rendered in the browser: Twig templates,
 **Sleek, modern, minimalistic dark UI with a restrained cyberpunk accent —
 professional first, neon second.**
 
+Dark is the default and the reference design. The light theme, switched with
+the sun/moon button in the topbar, keeps every role: same accent, same
+severity meanings, light surfaces. Hex values in this guide are the dark ones
+unless a table lists both.
+
 What that means in practice:
 
 - **Near-black, blue-tinted surfaces.** Backgrounds are not pure `#000` grey —
@@ -34,63 +39,107 @@ What that means in practice:
 
 ## Design tokens
 
-`:root` in `public/assets/css/main.css` is the canonical token source. New UI
-styles must use these variables. Introducing a new raw hex requires adding a
-semantic token first; legacy blocks retain their existing literals until their
-visual pass.
+`:root` in `public/assets/css/main.css` holds the dark values and
+`[data-theme=light]` right below it redefines them. These blocks are the only
+place colors are written down.
+
+!!! warning "New colors must be tokens"
+    Rules use `var(--…)`, never a hex, `rgb()`, `hsl()` or color keyword. A new
+    color needs a semantic token with a value in **both** blocks; reuse an
+    existing token when the role matches instead of adding a near-duplicate.
+    JavaScript follows the same rule: inline styles use `var(--…)`, canvas code
+    (Chart.js) reads tokens with `window.mataThemeColor('--…')`.
+
+Check for strays with
+`grep -nE '#[0-9a-fA-F]{3,8}\b|rgba?\(|hsla?\(' public/assets/css/main.css`:
+it should only hit the two token blocks.
+
+Tokens whose dark values match can still differ in light. For example
+`--text-heading` and `--text-on-fill` are both white in dark, but headings
+turn near-black in light while text on solid severity fills stays white. Pick
+the token by role, not by its dark value.
 
 ### Surfaces & borders
 
-| Name | Token | Value | Use |
-|---|---|---|---|
-| Surface, deepest | `--surface-base` | `#0b0d12` | Table body / component base background |
-| Surface, panel | `--surface-panel` | `#0e1015` | Headers, footers, filter bars, panel rows |
-| Surface, raised | `--surface-raised` | `#12151c` | Floating cards (dropdowns, popovers) |
-| Surface, control | `--surface-control` / `--surface-control-alt` | `#10131a` / `#14171d` | Inputs, secondary buttons |
-| Surface, chip | `--surface-chip` | `#161a22` | Neutral audit chips |
-| Surface, zebra | `--surface-zebra` | `#0f1218` | Even table rows |
-| Surface, hover | `--surface-hover` / `--surface-hover-alt` / `--surface-hover-header` | `#131c26` / `#182029` / `#131a22` | Row, button, and sortable-header hover fills |
-| Border, hairline | `--border-hairline` | `#151a22` | Row separators inside a component |
-| Border, default | `--border-default` | `#1f242e` | Component outlines, section dividers |
-| Border, control | `--border-control` | `#262c38` | Input/button/card borders |
-| Border, strong | `--border-strong` / `--border-strong-alt` | `#2a3040` / `#3a4150` | Outlined pills, bell trigger |
-| Border, control hover | `--border-control-hover` | `#333c4d` | Input hover border |
+| Name | Token | Dark | Light | Use |
+|---|---|---|---|---|
+| Page | Bulma `--bulma-body-background-color` | `#14161a` (Bulma) | `#eef1f5` | Page background behind cards |
+| Surface, card | `--surface-card` | `#000` | `#fff` | Server, app and database cards, fleet summary, login card |
+| Surface, deepest | `--surface-base` | `#0b0d12` | `#fff` | Table body / component base background |
+| Surface, panel | `--surface-panel` | `#0e1015` | `#f5f7fa` | Headers, footers, filter bars, panel rows |
+| Surface, raised | `--surface-raised` | `#12151c` | `#fff` | Floating cards (dropdowns, popovers) |
+| Surface, control | `--surface-control` / `--surface-control-alt` | `#10131a` / `#14171d` | `#fff` / `#f1f3f7` | Inputs, secondary buttons |
+| Surface, chip | `--surface-chip` | `#161a22` | `#eceff4` | Neutral audit chips |
+| Surface, zebra | `--surface-zebra` | `#0f1218` | `#f8f9fb` | Even table rows |
+| Surface, hover | `--surface-hover` / `--surface-hover-alt` / `--surface-hover-header` | `#131c26` / `#182029` / `#131a22` | `#e8f3f6` / `#e1eff3` / `#e9eff4` | Row, button, and sortable-header hover fills |
+| Surface, muted | `--surface-muted` | `#232323` | `#eceff4` | README headings and notices |
+| Surface, icon button | `--surface-icon-button` | `#23272f` | `#f1f3f7` | Bell trigger, theme toggle |
+| Overlay | `--surface-overlay` | `rgba(0,0,0,.5)` | `rgba(16,22,32,.35)` | Modal backdrops |
+| Border, hairline | `--border-hairline` | `#151a22` | `#e7eaf0` | Row separators inside a component |
+| Border, default | `--border-default` | `#1f242e` | `#d9dee6` | Component outlines, section dividers |
+| Border, control | `--border-control` | `#262c38` | `#c8cfda` | Input/button/card borders |
+| Border, strong | `--border-strong` / `--border-strong-alt` | `#2a3040` / `#3a4150` | `#bcc4d0` / `#a9b2c0` | Outlined pills, bell trigger |
+| Border, control hover | `--border-control-hover` | `#333c4d` | `#96a0b1` | Input hover border |
 
 ### Cyan accent
 
-| Name | Token | Value | Use |
-|---|---|---|---|
-| Accent border | `--accent-border` | `#3f93a6` | Hover/focus border, active-state border |
-| Accent edge | `--accent-edge` | `#2f6f7d` | Structural accent lines (header underline, filter bar left edge) |
-| Accent fill | `--accent-fill` / `--accent-fill-hover` | `#10262b` / `#153238` | Active/selected background (dark teal) |
-| Accent text | `--accent-text` / `--accent-text-alt` / `--accent-text-bright` | `#9fe8f2` / `#7fe3f0` / `#c8f4fa` | Highlighted and hover text |
-| Focus ring | `--accent-focus-ring` | `rgba(63, 147, 166, .2)` | `box-shadow: 0 0 0 2px …` on focus |
+| Name | Token | Dark | Light | Use |
+|---|---|---|---|---|
+| Accent border | `--accent-border` | `#3f93a6` | `#2a8296` | Hover/focus border, active-state border |
+| Accent edge | `--accent-edge` | `#2f6f7d` | `#5aaabb` | Structural accent lines (header underline, filter bar left edge) |
+| Accent fill | `--accent-fill` / `--accent-fill-hover` | `#10262b` / `#153238` | `#e1f2f6` / `#cfeaf0` | Active/selected background |
+| Accent text | `--accent-text` / `--accent-text-alt` / `--accent-text-bright` | `#9fe8f2` / `#7fe3f0` / `#c8f4fa` | `#0e6273` / `#0f6b7e` / `#094e5c` | Highlighted and hover text |
+| Focus ring | `--accent-focus-ring` | `rgba(63,147,166,.2)` | `rgba(42,130,150,.25)` | `box-shadow: 0 0 0 2px …` on focus |
 
 ### Text
 
-| Name | Token | Value | Use |
-|---|---|---|---|
-| Text, bright | `--text-bright` | `#e8eaf0` | Headings inside components, input values |
-| Text, body | `--text-body` | `#c9cfda` | Table cells, content text |
-| Text, label | `--text-label` | `#c5cad6` | Labels and floating-card rows |
-| Text, muted | `--text-muted` | `#8b93a5` | Column headers, meta labels, secondary links |
-| Text, faint | `--text-faint` | `#5a6172` | Placeholders, counters, empty states |
+In light, every text token reaches WCAG AA (4.5:1) on white, `--surface-panel`
+and the page background.
+
+| Name | Token | Dark | Light | Use |
+|---|---|---|---|---|
+| Text, heading | `--text-heading` | `#fff` | `#11141b` | Section headings, server names, card text |
+| Text, bright | `--text-bright` | `#e8eaf0` | `#161a22` | Headings inside components, input values |
+| Text, body | `--text-body` | `#c9cfda` | `#2c3340` | Table cells, content text |
+| Text, label | `--text-label` | `#c5cad6` | `#343b49` | Labels and floating-card rows |
+| Text, soft | `--text-soft` | `#aeb7c5` | `#464e5e` | Icon buttons, chart stat labels |
+| Text, muted | `--text-muted` | `#8b93a5` | `#586173` | Column headers, meta labels, secondary links |
+| Text, faint | `--text-faint` | `#5a6172` | `#5f6777` | Placeholders, counters, empty states |
+| Text on fill | `--text-on-fill` | `#fff` | `#fff` | Text on solid severity, env and alarm fills |
 
 ### Severity scale
 
 Solid badge/pill fills, their 1px light borders, and the light text tints used
 when a count sits on a dark surface (e.g. dropdown rows):
 
-| Level | Fill token / value | Border token / value | Text token / value |
+| Level | Fill (both themes) | Border dark / light | Tint dark / light |
 |---|---|---|---|
-| critical | `--sev-critical-fill` / `#c22a35` | `--sev-critical-border` / `#e05561` | `--sev-critical-tint` / `#f09595` |
-| high / error | `--sev-high-fill` / `#c05a1d` | `--sev-high-border` / `#e0854a` | `--sev-high-tint` / `#f0b27b` |
-| medium / warning | `--sev-medium-fill` / `#9c7c14` | `--sev-medium-border` / `#c4a53a` | `--sev-medium-tint` / `#e3ce7a` |
-| low / ok | `--sev-low-fill` / `#2e7d43` | `--sev-low-border` / `#4da767` | `--sev-low-tint` / `#7bd88f` |
-| unknown | `--sev-unknown-fill` / `#4a5060` | `--sev-unknown-border` / `#6b7280` | `--sev-unknown-tint` / `#9a9a9a` |
-| abandoned / inactive | `--sev-abandoned-fill` / `#343a47` | `--sev-abandoned-border` / `#6b7280` dashed | `--sev-abandoned-tint` / `#c5cad6` |
+| critical | `--sev-critical-fill` `#c22a35` | `--sev-critical-border` `#e05561` / `#a3212b` | `--sev-critical-tint` `#f09595` / `#b02430` |
+| high / error | `--sev-high-fill` `#c05a1d` | `--sev-high-border` `#e0854a` / `#9e4a16` | `--sev-high-tint` `#f0b27b` / `#a24c17` |
+| medium / warning | `--sev-medium-fill` `#9c7c14` | `--sev-medium-border` `#c4a53a` / `#7f650e` | `--sev-medium-tint` `#e3ce7a` / `#765e0b` |
+| low / ok | `--sev-low-fill` `#2e7d43` | `--sev-low-border` `#4da767` / `#256638` | `--sev-low-tint` `#7bd88f` / `#226c38` |
+| unknown | `--sev-unknown-fill` `#4a5060` | `--sev-unknown-border` `#6b7280` | `--sev-unknown-tint` `#9a9a9a` / `#5b6271` |
+| abandoned / inactive | `--sev-abandoned-fill` `#343a47` / light `#e4e7ec` | `--sev-abandoned-border` `#6b7280` dashed | `--sev-abandoned-tint` `#c5cad6` / `#464e5e` |
 
-Solid severity fills always carry white (`#fff`) bold text.
+Solid severity fills always carry `--text-on-fill` (white) bold text and keep
+their color in light. Borders darken the fill in light, so they also work as
+dot colors. Tints are text on the theme's surfaces: light in dark, dark in light.
+
+### Other token groups
+
+These carry their own light values in `main.css`; see the blocks for numbers.
+
+| Group | Tokens | Light behaviour |
+|---|---|---|
+| Status text | `--signal-critical`, `-high`, `-medium`, `-error`, `-warn`, `-ok`, `-info`, `-neutral` | Darker variants with AA contrast (server card stats, log levels, Tabulator level formatter) |
+| Alarm fills | `--alarm-fill`, `--alarm-fill-focus`, `--alarm-border`, `--alarm-border-focus` | Unchanged |
+| Solid fills | `--env-*`, `--fill-warn`, `--fill-error`, `--ping-*`, `--logo-*`, `--readme-heading-fill`, `--notification-*` | Unchanged; they carry their own text color |
+| Icons | `--icon-navbar`, `--icon-title`, `--icon-stat`, `--icon-loading`, `--icon-default` | Dark greys |
+| Chrome | `--navbar-background`, `--navbar-border`, `--navbar-badge-ring`, `--progress-bar` | Frosted white bar, cyan progress bar |
+| Notices | `--notice-*` | Unchanged (white card with dark code box in both) |
+| Charts | `--chart-line`, `--chart-fill`, `--chart-point`, `--chart-text`, `--chart-grid` | Read by `theme.js`; open charts update on `mata:themechange` |
+| Tables | `--table-placeholder` | Overrides the Tabulator midnight theme's placeholder color |
+| Native widgets | `--color-scheme` | `color-scheme` of selects and date inputs |
 
 ## Typography rules
 
@@ -135,7 +184,7 @@ background: #10131a;             /* buttons: #14171d */
 border: 1px solid #262c38;
 border-radius: 4px;
 color: #e8eaf0;
-color-scheme: dark;              /* dark native select/date widgets */
+color-scheme: var(--color-scheme); /* native select/date widgets follow the theme */
 /* hover  */ border-color: #333c4d;         /* buttons: #3f93a6 + #9fe8f2 text */
 /* focus  */ border-color: #3f93a6; box-shadow: 0 0 0 2px rgba(63,147,166,.2);
 ```
@@ -154,9 +203,9 @@ muted text — color only when there is something to signal.
 Circular count that overlaps a corner: `min-width: 18px; height: 18px;
 border-radius: 9999px` (stadium — stays round at 2+ digits), solid `#c22a35`,
 white 11px bold text, and a **2px ring in the parent's background color**
-(`var(--bulma-dark)` on the navbar) so it appears punched out.
+(`var(--navbar-badge-ring)` on the navbar) so it appears punched out.
 
-### Icon button (`.notification-bell-trigger`)
+### Icon button (`.notification-bell-trigger`, `.theme-toggle`)
 
 36×36 rounded square (8px), `#23272f` fill, `#3a4150` border, muted icon.
 Hover/focus: cyan border + brightened icon. The pattern for any navbar-level
@@ -199,7 +248,10 @@ border `#3f93a6`, thumb `#7fe3f0`. Markup: hidden checkbox +
 ## Codebase gotchas (read before styling)
 
 - **CSS load order** (`templates/partials/structure/head.html.twig`):
-  `fonts.css → tabulator_midnight.min.css → bulma.css → main.css`. `main.css`
+  `fonts.css → tabulator_midnight.min.css → bulma.css → main.css`. The
+  Tabulator theme is dark; `main.css` overrides its colors with tokens, which
+  is what makes tables follow the light theme. A Tabulator feature that is not
+  styled in `main.css` yet keeps midnight colors. `main.css`
   wins equal-specificity conflicts by coming last — you rarely need
   `!important` to override the Tabulator theme or Bulma.
 - **`main.css` has no cache-bust parameter.** After CSS changes, a hard
@@ -213,14 +265,23 @@ border `#3f93a6`, thumb `#7fe3f0`. Markup: hidden checkbox +
   `stroke: currentColor` (and reset the navbar margin) or they inherit these.
 - **Perfect circles**: use `border-radius: 9999px`, not `50%`, on count
   badges so they become stadiums instead of ovals when content widens.
-- **Dark only**: `src/main.scss` applies Bulma's dark theme on `:root`
-  regardless of `prefers-color-scheme`, and `<meta name="color-scheme"
-  content="dark">` in the layouts makes the browser draw native dropdowns,
-  date pickers and scrollbars dark. There is no light theme; don't add
-  `@use "bulma/sass/themes"` back.
-- **Bulma variables**: when a color must match Bulma chrome (e.g. the badge
-  ring against the navbar), reference the CSS variable
-  (`var(--bulma-dark, #2e333d)`) instead of hardcoding.
+- **Themes**: the server renders `<html data-theme="dark|light">` and the
+  `color-scheme` meta from the `mata_theme` cookie (`UiTheme`), so there is no
+  flash and no inline script. `src/main.scss` puts Bulma's dark theme on
+  `:root` and its light theme on `[data-theme=light]`; `prefers-color-scheme`
+  is ignored on purpose, so don't add `@use "bulma/sass/themes"` back.
+  `theme.js` flips the attribute, writes the cookie and dispatches
+  `mata:themechange` on `document`.
+- **Charts**: give Chart.js datasets `themeColors: { borderColor: '--chart-line' }`
+  for colors that should follow the theme; `theme.js` re-reads them and calls
+  `chart.update()` when the theme changes. Colors from `servers.json` stay as
+  configured.
+- **Topbar**: keeps Bulma's `is-dark` for the dark theme; `[data-theme=light]
+  .navbar.is-dark` resets its Bulma navbar variables, and the topbar logo is
+  inverted (`filter: invert(1) hue-rotate(180deg)`), since it is drawn for a
+  dark bar.
+- **Out of scope**: alarm emails, webhook templates and advisory reports stay
+  dark with their own inline colors; the theme does not reach them.
 
 ## Do / don't
 

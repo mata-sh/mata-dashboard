@@ -261,6 +261,18 @@ The scheduled cleanup job owns deletion. A value of `0` disables cleanup for
 that category. Aggregation and ingestion-health configuration lives in the same
 file; see the [server metrics pipeline](../architecture/server-metrics-pipeline.md).
 
+## Appearance
+
+The dashboard is dark by default. The sun/moon button in the topbar switches to
+a light theme. The choice is kept per browser in the `mata_theme` cookie, not
+per user account, and pages open in that theme without a flash. Alarm emails,
+webhooks and advisory reports stay dark.
+
+!!! info "Custom topbar logo"
+    `public/branding/logo_topbar.png` is drawn on the dark bar. The light theme
+    shows it inverted, with its hues kept, so a white or light logo on a
+    transparent background works in both themes.
+
 ## Validate changes
 
 `bin/mata config validate` reads every configuration file with the same loaders

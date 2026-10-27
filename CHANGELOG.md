@@ -6,6 +6,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- A light theme: the sun/moon button in the topbar switches between dark (still the default) and light. The choice is stored per browser; emails and reports stay dark. A custom `public/branding/logo_topbar.png` is shown inverted in the light theme.
 - `channels.json` accepts `"type": "email"` channels with their own `recipients`, so `notification_rules.json` can send selected alarms, such as `advisories.matched`, to another address than `MAIL_ALARM_RECIPIENTS`. Direct alarms keep using the built-in `email` channel.
 
 ### Fixed
