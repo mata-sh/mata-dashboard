@@ -196,14 +196,14 @@ function renderMetricsChart(container, payload) {
     const datasets = chartData.map((dataset) => ({
         label: dataset.label,
         data: Array.isArray(dataset.data) ? dataset.data : [],
-        borderColor: dataset.borderColor || '#3273DC',
-        backgroundColor: dataset.backgroundColor || 'rgba(50,115,220,0.15)',
+        borderColor: dataset.borderColor || window.mataThemeColor('--chart-line'),
+        backgroundColor: dataset.backgroundColor || window.mataThemeColor('--chart-fill'),
         fill: Boolean(dataset.fill),
         tension: typeof dataset.tension === 'number' ? dataset.tension : 0.32,
         spanGaps: dataset.spanGaps !== false,
         pointRadius: typeof dataset.pointRadius === 'number' ? dataset.pointRadius : 2,
         pointHoverRadius: typeof dataset.pointHoverRadius === 'number' ? dataset.pointHoverRadius : 4,
-        pointBackgroundColor: dataset.pointBackgroundColor || '#ffffff',
+        pointBackgroundColor: window.mataThemeColor('--chart-point'),
         borderWidth: typeof dataset.borderWidth === 'number' ? dataset.borderWidth : 2,
     }));
 

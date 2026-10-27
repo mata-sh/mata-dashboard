@@ -620,10 +620,10 @@ window.mataPopulateSelectFromRows = mataPopulateSelectFromRows;
 // Tabulator cell formatters (called from the *-table.js modules)
 
 const mataLevelColors = Object.freeze({
-    critical: '#ff4d4d',
-    error: '#ff8c42',
-    warning: '#ffd24d',
-    info: '#3FB449',
+    critical: 'var(--signal-critical)',
+    error: 'var(--signal-high)',
+    warning: 'var(--signal-medium)',
+    info: 'var(--signal-info)',
 });
 
 function mataFormatLevel(cell) {

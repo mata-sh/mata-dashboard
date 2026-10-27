@@ -82,7 +82,6 @@ class ChartDataTransformer
             'spanGaps' => true,
             'pointRadius' => 2,
             'pointHoverRadius' => 4,
-            'pointBackgroundColor' => '#ffffff',
             'borderWidth' => 2,
         ];
     }

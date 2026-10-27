@@ -6,11 +6,11 @@
         var element = document.createElement('span');
         element.style.fontWeight = 'bold';
         if (value === 'Error') {
-            element.style.color = 'red';
+            element.style.color = 'var(--signal-error)';
         } else if (value === 'Warning') {
-            element.style.color = 'orange';
+            element.style.color = 'var(--signal-warn)';
         } else if (value === 'Deprecated') {
-            element.style.color = '#3FB449';
+            element.style.color = 'var(--signal-info)';
         }
         element.textContent = value;
 
