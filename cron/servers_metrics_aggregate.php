@@ -71,9 +71,10 @@ try {
         }
 
         ++$stats['servers_considered'];
+        $cron->touchHeartbeat();
+
         foreach ($hourlyWindows as $hourStart) {
             ++$stats['hourly_planned'];
-            $cron->touchHeartbeat();
 
             try {
                 if ($aggregator->aggregateHour((string) $serverName, $hourStart)) {
@@ -95,7 +96,6 @@ try {
         // never prevent a delayed or missed daily rollup from being repaired.
         foreach ($dailyWindows as $dayStart) {
             ++$stats['daily_planned'];
-            $cron->touchHeartbeat();
 
             try {
                 if ($aggregator->aggregateDay((string) $serverName, $dayStart)) {

@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - A missing sender address now reports `SYM_FROM_EMAIL`, the variable the dashboard reads, instead of `MAIL_FROM_EMAIL`.
+- Server metrics aggregation now writes one heartbeat per server plus completion, not one per window.
 
 ### Removed
 - `MAIL_DEV_RECIPIENTS` and `MAIL_TEST_RECIPIENTS`: no mail was ever sent to them; the settings page no longer lists them. `alarm test email` mails `MAIL_ALARM_RECIPIENTS`. **Action:** none; remaining entries in `mail.config.env` are ignored.
