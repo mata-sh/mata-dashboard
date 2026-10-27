@@ -107,11 +107,15 @@ body {
     --fill-error: #f00;
     --fill-warn: #ffa500;
     --ping-online: #fff;
+    --ping-ok: #adff2f;
     --env-dev: #207bdc;
     --env-test: #ffa500;
     --env-prod: #098f00;
+    --env-stg: #663399;
     --env-demo: #ffa500;
     --readme-heading-fill: #c6bcbc;
+    --notification-fill: hsl(190.8, 45.3%, 33.7%);
+    --notification-text: hsl(197.5, 100%, 95.3%);
     --chip-count-fill: rgba(0, 0, 0, .35);
     --logo-tile: #fff;
     --logo-ink: #000;
@@ -239,8 +243,8 @@ svg {
 
 .notification {
     margin-bottom: 30px;
-    background-color: hsl(190.8, 45.3%, 33.7%);
-    color: hsl(197.5, 100%, 95.3%);
+    background-color: var(--notification-fill);
+    color: var(--notification-text);
 }
 
 .is-hidden {
@@ -359,7 +363,7 @@ svg {
 }
 
 .navbar-burger {
-    color: hsl(0, 0%, 100%);
+    color: var(--icon-navbar);
 }
 
 .navbar-mobile-actions {
@@ -1141,7 +1145,7 @@ svg {
 }
 
 .app-ping.online {
-    background-color: greenyellow;
+    background-color: var(--ping-ok);
 }
 
 .app-ping.offline {
@@ -1202,7 +1206,7 @@ svg {
 }
 
 .app-env.stg {
-    background-color: rebeccapurple;
+    background-color: var(--env-stg);
 }
 
 .app-env.demo {
