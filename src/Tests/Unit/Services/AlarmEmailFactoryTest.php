@@ -70,7 +70,7 @@ final class AlarmEmailFactoryTest extends TestCase
         $this->assertStringContainsString('>Api-1</td>', $html);
         $this->assertStringContainsString('Detected fatal errors above threshold.', $html);
         $this->assertStringContainsString('&quot;actual_value&quot;: 2000', $html);
-        $this->assertStringContainsString('background-color:#c22a35', $html);
+        $this->assertStringContainsString('border:1px solid #e05561; padding:5px 12px', $html);
         $this->assertStringContainsString('CRITICAL · Api-1 · 2k fatal_errors_occurring · Alarm #123', $html);
         $this->assertStringContainsString('event_id:</span> <span style="color:#e8eef5;">456</span>', $html);
         $this->assertStringContainsString('event_time:</span> <span style="color:#e8eef5;">2026-07-11 17:15:00 UTC</span>', $html);
@@ -230,6 +230,18 @@ final class AlarmEmailFactoryTest extends TestCase
             $email = $this->factory()->create($this->view(new Alarm('type', 'Message', null, $level, 'server', 'app')));
 
             $this->assertStringContainsString(ucfirst($level->value), (string) $email->getHtmlBody());
+        }
+    }
+
+    public function testItShortensCursorsInTheContext(): void
+    {
+        $cursor = 'a0f8e8ba688b175129b1e299d86e28906c1601a14b05e183d75612a24ae090da';
+        $context = json_encode(['additional_data' => ['fatal_cursor' => $cursor, 'previous_fatal_cursor' => null]]);
+        $email = $this->factory()->create($this->view(new Alarm('fatal_errors_occurring', 'Message', $context, AlarmLevel::Warning, 'server', 'app')));
+
+        foreach ([(string) $email->getHtmlBody(), (string) $email->getTextBody()] as $body) {
+            $this->assertStringContainsString('a0f8e8ba688b…', $body);
+            $this->assertStringNotContainsString($cursor, $body);
         }
     }
 

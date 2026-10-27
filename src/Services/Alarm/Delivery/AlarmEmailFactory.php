@@ -15,6 +15,9 @@ use Twig\Loader\LoaderInterface;
 /** Creates complete email messages for queued alarm deliveries. */
 final class AlarmEmailFactory
 {
+    /** Characters of a cursor kept in the email, like a short git hash. */
+    private const CURSOR_LENGTH = 12;
+
     private Environment $twig;
 
     /** @param list<string> $recipients an email channel's recipients; empty: MAIL_ALARM_RECIPIENTS */
@@ -38,6 +41,7 @@ final class AlarmEmailFactory
         $sender = $this->mailConfig->sender($this->templateData->applicationName);
 
         $data = $this->templateData->create($view);
+        $data['alarm']['context'] = $this->shortenCursors($data['alarm']['context']);
 
         try {
             $html = $this->twig->render('emails/alarm.html.twig', $data);
@@ -52,6 +56,26 @@ final class AlarmEmailFactory
             ->subject($this->createSubject($view, $data['alarm']['title']))
             ->html($html, $this->mailConfig->charset)
             ->text($text, $this->mailConfig->charset);
+    }
+
+    /**
+     * Cursors such as `fatal_cursor` are 64-character digests that only identify a state; in full
+     * they wrap across several lines of the context block. Webhooks keep them whole.
+     */
+    private function shortenCursors(string $context): string
+    {
+        $decoded = json_decode($context, true);
+        if (!is_array($decoded)) {
+            return $context;
+        }
+
+        array_walk_recursive($decoded, static function (mixed &$value, int|string $key): void {
+            if (is_string($key) && str_ends_with($key, '_cursor') && is_string($value) && mb_strlen($value) > self::CURSOR_LENGTH) {
+                $value = mb_substr($value, 0, self::CURSOR_LENGTH) . '…';
+            }
+        });
+
+        return json_encode($decoded, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) ?: $context;
     }
 
     private function createSubject(AlarmDeliveryView $view, string $title): string
