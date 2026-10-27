@@ -72,8 +72,8 @@ body {
     --sev-high-fill: #cc5b0e;
     --sev-high-border: #e98036;
     --sev-high-tint: #f0b27b;
-    --sev-medium-fill: #a48110;
-    --sev-medium-border: #c7a41d;
+    --sev-medium-fill: #c19209;
+    --sev-medium-border: #e2b30b;
     --sev-medium-tint: #e3ce7a;
     --sev-low-fill: #2e7d43;
     --sev-low-border: #4da767;
@@ -222,7 +222,7 @@ body {
     --sev-critical-tint: #b02430;
     --sev-high-border: #a14709;
     --sev-high-tint: #a24c17;
-    --sev-medium-border: #7f650e;
+    --sev-medium-border: #856303;
     --sev-medium-tint: #765e0b;
     --sev-low-border: #256638;
     --sev-low-tint: #226c38;
@@ -515,10 +515,6 @@ svg {
 
     .navbar-mobile-actions .navbar-burger {
         margin-left: 0;
-    }
-
-    .navbar-mobile-actions .notification-bell {
-        padding: 0;
     }
 
     .navbar-menu .notification-bell,
@@ -3517,6 +3513,7 @@ label.audit-chip:has(input:checked)::after {
     position: relative;
     display: flex;
     align-items: center;
+    padding: 0;
 }
 
 .notification-bell-trigger,

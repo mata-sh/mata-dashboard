@@ -23,7 +23,7 @@ final class AdvisoryReportPresenter
     private const SEVERITY = [
         'critical' => ['label' => 'Critical', 'emoji' => '🔴', 'fill' => '#c22a35', 'border' => '#e05561'],
         'high' => ['label' => 'High', 'emoji' => '🟡', 'fill' => '#cc5b0e', 'border' => '#e98036'],
-        'medium' => ['label' => 'Medium', 'emoji' => '🔵', 'fill' => '#a48110', 'border' => '#c7a41d'],
+        'medium' => ['label' => 'Medium', 'emoji' => '🔵', 'fill' => '#c19209', 'border' => '#e2b30b'],
         'low' => ['label' => 'Low', 'emoji' => '🔵', 'fill' => '#2e7d43', 'border' => '#4da767'],
         'unknown' => ['label' => 'Unrated', 'emoji' => '⚪', 'fill' => '#4a5060', 'border' => '#6b7280'],
     ];
@@ -35,7 +35,7 @@ final class AdvisoryReportPresenter
     private const HEALTH_COLOR = [
         'ok' => '#4da767',
         'failing' => '#e05561',
-        'stale' => '#c7a41d',
+        'stale' => '#e2b30b',
         'never_polled' => '#8b93a5',
         'disabled' => '#5a6172',
     ];

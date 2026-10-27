@@ -116,7 +116,7 @@ when a count sits on a dark surface (e.g. dropdown rows):
 |---|---|---|---|
 | critical | `--sev-critical-fill` `#c22a35` | `--sev-critical-border` `#e05561` / `#a3212b` | `--sev-critical-tint` `#f09595` / `#b02430` |
 | high / error | `--sev-high-fill` `#cc5b0e` | `--sev-high-border` `#e98036` / `#a14709` | `--sev-high-tint` `#f0b27b` / `#a24c17` |
-| medium / warning | `--sev-medium-fill` `#a48110` | `--sev-medium-border` `#c7a41d` / `#7f650e` | `--sev-medium-tint` `#e3ce7a` / `#765e0b` |
+| medium / warning | `--sev-medium-fill` `#c19209` | `--sev-medium-border` `#e2b30b` / `#856303` | `--sev-medium-tint` `#e3ce7a` / `#765e0b` |
 | low / ok | `--sev-low-fill` `#2e7d43` | `--sev-low-border` `#4da767` / `#256638` | `--sev-low-tint` `#7bd88f` / `#226c38` |
 | unknown | `--sev-unknown-fill` `#4a5060` | `--sev-unknown-border` `#6b7280` | `--sev-unknown-tint` `#9a9a9a` / `#5b6271` |
 | abandoned / inactive | `--sev-abandoned-fill` `#343a47` / light `#e4e7ec` | `--sev-abandoned-border` `#6b7280` dashed | `--sev-abandoned-tint` `#c5cad6` / `#464e5e` |

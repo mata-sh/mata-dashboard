@@ -44,7 +44,7 @@ enum AlarmLevel: string
                 'value' => 'error', 'display_label' => 'Error', 'code' => 'SEV-2', 'fill' => '#cc5b0e', 'accent' => '#e98036',
             ],
             self::Warning => [
-                'value' => 'warning', 'display_label' => 'Warning', 'code' => 'SEV-3', 'fill' => '#a48110', 'accent' => '#c7a41d',
+                'value' => 'warning', 'display_label' => 'Warning', 'code' => 'SEV-3', 'fill' => '#c19209', 'accent' => '#e2b30b',
             ],
             self::Info => [
                 'value' => 'info', 'display_label' => 'Info', 'code' => 'SEV-4', 'fill' => '#2f6f7d', 'accent' => '#7fe3f0',
