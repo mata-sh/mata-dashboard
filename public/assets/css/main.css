@@ -3508,9 +3508,10 @@ label.audit-chip:has(input:checked)::after {
     color: var(--sev-none-tint);
 }
 
-/* Tooltips are appended to <body>; multi-line ones (cronjobs, log stats) read as lists. */
-.tippy-box {
-    text-align: left;
+/* Tooltips stay dark in both themes; Bulma's strong color would turn bold text
+   (cronjob names, "overdue") dark on dark in the light theme. */
+.tippy-box strong {
+    color: inherit;
 }
 
 /* ── Notification bell (topbar) ──────────────────────────────── */
