@@ -1,0 +1,1916 @@
+<!DOCTYPE html>
+
+<html lang="en">
+
+<head>
+    <script>
+        const base_url = (new URL("../..", window.location)).href.replace(/\/+$/, ""); /* for search plugin notably */
+    </script>
+    <script integrity="sha384-m6cZ+Whl1ci89lidlu8DH4C+sZLNOYBvImtjUIhUK+iaNffXhqtbYgBVuuPfRsa0" src="../../js/dark.js"></script>
+
+
+    <meta charset="utf-8" />
+    <meta content="width=device-width, initial-scale=1" name="viewport" />
+
+    
+    
+
+
+<title>UI style guide</title>
+
+
+
+
+
+
+
+
+
+<link rel="canonical" href="https://docs.mata.sh/development/ui-styleguide/">
+
+
+<!-- Open Graph (Facebook, LinkedIn) -->
+
+<meta property="og:title" content="UI style guide">
+
+
+
+
+
+<meta property="og:url" content="https://docs.mata.sh/development/ui-styleguide/">
+
+
+
+
+
+
+<!-- Twitter Card -->
+
+<meta name="twitter:title" content="UI style guide">
+
+
+
+
+
+
+<!-- JSON-LD Structured Data -->
+
+
+
+    
+    <link href="../../images/logo_transparent.png" rel="icon" />
+
+    <link href="../../css/base.css" rel="stylesheet" />
+    <link href="../../css/geist.css" rel="stylesheet" />
+
+    
+
+    <style>
+        :root {
+            --theme-accent: oklch(62.3% 0.214 259.815);
+        }
+    </style>
+    <link href="../../styles/pygments-dark.css" rel="stylesheet" />
+
+    
+
+    <script integrity="sha384-2hn3q9jeDV70Gb3DuyWPKgeRxkowIjEpcHeOXSvWCEq2uHJHvXiVer7rbM8HYzYz"
+        src="../../js/callbacks.js"></script>
+    <script defer="" integrity="sha384-ljmRPFWw/c4kKFaKY5DIe8bgppHI9VBBrg7WZa8UPd23U9dEFesxZ1Ng8Hzjq2WB"
+        src="../../js/toc.js"></script>
+
+    
+
+    
+
+    
+
+    
+    <script>
+    document.addEventListener("DOMContentLoaded", function () {
+        document.querySelectorAll("a.headerlink").forEach(function (link) {
+            link.addEventListener("click", function (e) {
+                e.preventDefault();
+
+                // Build the full URL with the anchor fragment
+                const url = window.location.origin + window.location.pathname + this.getAttribute("href");
+
+                navigator.clipboard.writeText(url).then(function () {
+                    // Optional: brief visual feedback
+                });
+            });
+        });
+    });
+</script>
+    
+
+    
+    
+</head>
+
+<body
+    class="text-foreground group/body overscroll-none font-sans antialiased [--footer-height:calc(var(--spacing)*14)] [--header-height:calc(var(--spacing)*14)] lg:[--header-height:calc(var(--spacing)*16)] xl:[--footer-height:calc(var(--spacing)*24)] theme-default">
+    <div class="bg-background relative z-10 flex min-h-svh flex-col" id="inner-body">
+        <header class="bg-background sticky top-0 z-50 w-full" view-transition-name="header">
+    <div class="container-wrapper 3xl:fixed:px-0 px-6">
+        <div class="3xl:fixed:container flex h-(--header-height) items-center gap-2 **:data-[slot=separator]:!h-4">
+            <button id="burger-button" data-slot="popover-trigger" onclick="onMobileMenuButtonClick(event)" class="group"
+    
+    type="button" aria-haspopup="dialog" data-state="closed">
+    <div class="relative flex h-8 w-4 items-center justify-center">
+        <div class="relative size-4">
+            <!-- 16px x 16px -->
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="none" stroke="currentColor"
+                stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="0" x2="16" y1="5" y2="5"
+                    class="group-data-[state=open]:translate-y-[2.25px] group-data-[state=open]:-translate-x-[2.25px] group-data-[state=open]:rotate-45 transition-all duration-300 origin-center" />
+                <line x1="0" x2="16" y1="11" y2="11"
+                    class="group-data-[state=open]:-translate-y-[2.25px] group-data-[state=open]:-translate-x-[2.25px] group-data-[state=open]:-rotate-45 transition-all duration-300 origin-center" />
+            </svg>
+        </div>
+
+        <span class="sr-only">Toggle Menu</span>
+    </div>
+    <span class="flex h-8 items-center text-lg leading-none font-medium">Menu</span>
+</button>
+            <a data-slot="button" class="button ghost gap-2 hidden lg:flex"
+    
+    href="https://docs.mata.sh/">
+    <span class="flex flex-row justify-center items-center">
+        
+
+
+<img class="size-5" src="../../images/logo_transparent.png" alt="icon">
+
+
+
+    </span>
+
+    
+    <h1>MATA Dashboard</h1>
+    
+</a>
+            
+            <div class="ml-auto flex items-center gap-2 md:flex-1 md:justify-end">
+                <div class="hidden w-full flex-1 md:flex md:w-auto md:flex-none">
+                    <div class="hidden w-full flex-1 md:flex md:w-auto md:flex-none">
+    <button onclick="onSearchBarClick(event)" data-slot="dialog-trigger" data-variant="outline" data-size="default"
+    class="search secondary" type="button" aria-haspopup="dialog" aria-controls="search-dialog" data-state="closed">
+    <span class="hidden lg:inline-flex">Search documentation...</span>
+    <span class="inline-flex lg:hidden">Search...</span>
+</button>
+</div>
+<dialog id="search-dialog" onclick="onSearchDialogClick(event)"
+    class="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-background rounded-lg shadow-lg border overflow-hidden p-0">
+    <div class="w-lg gap-4">
+        <div class="flex h-full w-full flex-col overflow-hidden rounded-md bg-popover text-popover-foreground">
+            <div data-slot="command-input-wrapper" class="flex h-9 items-center gap-2 border-b px-3">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+    class="lucide lucide-search size-4 shrink-0 opacity-50">
+    <circle cx="11" cy="11" r="8"></circle>
+    <path d="m21 21-4.3-4.3"></path>
+</svg>
+                <input data-slot="command-input"
+                    class="placeholder:text-muted-foreground flex h-10 w-full rounded-md bg-transparent py-3 text-sm outline-hidden disabled:cursor-not-allowed disabled:opacity-50"
+                    placeholder="Search documentation..." cmdk-input="" autocomplete="off" autocorrect="off"
+                    spellcheck="false" aria-label="Search documentation" type="search" value=""
+                    oninput="onInputHandler(event)">
+            </div>
+        </div>
+        <div id="mkdocs-search-results">
+            <!-- search results go there -->
+        </div>
+    </div>
+</dialog>
+<script>
+    document.removeEventListener("keydown", searchShortcutHandler);
+    document.addEventListener("keydown", searchShortcutHandler);
+</script>
+                </div>
+                
+                
+                <div data-orientation="vertical" role="none" data-slot="separator"
+    class="bg-border shrink-0 data-[orientation=horizontal]:h-px data-[orientation=horizontal]:w-full data-[orientation=vertical]:h-full data-[orientation=vertical]:w-px">
+</div>
+                <a href="https://github.com/mata-sh/mata-dashboard" class="button ghost">
+    <svg viewBox="0 0 438.549 438.549" class="h-4.5">
+    <path fill="currentColor"
+        d="M409.132 114.573c-19.608-33.596-46.205-60.194-79.798-79.8-33.598-19.607-70.277-29.408-110.063-29.408-39.781 0-76.472 9.804-110.063 29.408-33.596 19.605-60.192 46.204-79.8 79.8C9.803 148.168 0 184.854 0 224.63c0 47.78 13.94 90.745 41.827 128.906 27.884 38.164 63.906 64.572 108.063 79.227 5.14.954 8.945.283 11.419-1.996 2.475-2.282 3.711-5.14 3.711-8.562 0-.571-.049-5.708-.144-15.417a2549.81 2549.81 0 01-.144-25.406l-6.567 1.136c-4.187.767-9.469 1.092-15.846 1-6.374-.089-12.991-.757-19.842-1.999-6.854-1.231-13.229-4.086-19.13-8.559-5.898-4.473-10.085-10.328-12.56-17.556l-2.855-6.57c-1.903-4.374-4.899-9.233-8.992-14.559-4.093-5.331-8.232-8.945-12.419-10.848l-1.999-1.431c-1.332-.951-2.568-2.098-3.711-3.429-1.142-1.331-1.997-2.663-2.568-3.997-.572-1.335-.098-2.43 1.427-3.289 1.525-.859 4.281-1.276 8.28-1.276l5.708.853c3.807.763 8.516 3.042 14.133 6.851 5.614 3.806 10.229 8.754 13.846 14.842 4.38 7.806 9.657 13.754 15.846 17.847 6.184 4.093 12.419 6.136 18.699 6.136 6.28 0 11.704-.476 16.274-1.423 4.565-.952 8.848-2.383 12.847-4.285 1.713-12.758 6.377-22.559 13.988-29.41-10.848-1.14-20.601-2.857-29.264-5.14-8.658-2.286-17.605-5.996-26.835-11.14-9.235-5.137-16.896-11.516-22.985-19.126-6.09-7.614-11.088-17.61-14.987-29.979-3.901-12.374-5.852-26.648-5.852-42.826 0-23.035 7.52-42.637 22.557-58.817-7.044-17.318-6.379-36.732 1.997-58.24 5.52-1.715 13.706-.428 24.554 3.853 10.85 4.283 18.794 7.952 23.84 10.994 5.046 3.041 9.089 5.618 12.135 7.708 17.705-4.947 35.976-7.421 54.818-7.421s37.117 2.474 54.823 7.421l10.849-6.849c7.419-4.57 16.18-8.758 26.262-12.565 10.088-3.805 17.802-4.853 23.134-3.138 8.562 21.509 9.325 40.922 2.279 58.24 15.036 16.18 22.559 35.787 22.559 58.817 0 16.178-1.958 30.497-5.853 42.966-3.9 12.471-8.941 22.457-15.125 29.979-6.191 7.521-13.901 13.85-23.131 18.986-9.232 5.14-18.182 8.85-26.84 11.136-8.662 2.286-18.415 4.004-29.263 5.146 9.894 8.562 14.842 22.077 14.842 40.539v60.237c0 3.422 1.19 6.279 3.572 8.562 2.379 2.279 6.136 2.95 11.276 1.995 44.163-14.653 80.185-41.062 108.068-79.226 27.88-38.161 41.825-81.126 41.825-128.906-.01-39.771-9.818-76.454-29.414-110.049z">
+    </path>
+</svg>
+    
+</a>
+                
+
+
+                
+
+                <div data-orientation="vertical" role="none" data-slot="separator"
+    class="bg-border shrink-0 data-[orientation=horizontal]:h-px data-[orientation=horizontal]:w-full data-[orientation=vertical]:h-full data-[orientation=vertical]:w-px">
+</div>
+                <button class="ghost icon" title="Toggle layout" onclick="toggleLayout(event)">
+    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+    class="lucide lucide-gallery-horizontal">
+    <path d="M2 3v18"></path>
+    <rect width="12" height="18" x="6" y="3" rx="2"></rect>
+    <path d="M22 3v18"></path>
+</svg>
+</button>
+                <div data-orientation="vertical" role="none" data-slot="separator"
+    class="bg-border shrink-0 data-[orientation=horizontal]:h-px data-[orientation=horizontal]:w-full data-[orientation=vertical]:h-full data-[orientation=vertical]:w-px">
+</div>
+                <button class="ghost icon" onclick="onThemeSwitch(event)" title="Toggle theme">
+    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+    class="size-4.5">
+    <path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
+    <path d="M12 12m-9 0a9 9 0 1 0 18 0a9 9 0 1 0 -18 0"></path>
+    <path d="M12 3l0 18"></path>
+    <path d="M12 9l4.65 -4.65"></path>
+    <path d="M12 14.3l7.37 -7.37"></path>
+    <path d="M12 19.6l8.85 -8.85"></path>
+</svg>
+</button>
+            </div>
+        </div>
+    </div>
+</header>
+        <main class="flex flex-1 flex-col">
+            <div class="container-wrapper flex flex-1 flex-col px-2">
+                <div class="group/sidebar-wrapper has-data-[variant=inset]:bg-sidebar flex w-full 3xl:fixed:container 3xl:fixed:px-3 min-h-min flex-1 items-start px-0 [--sidebar-width:220px] [--top-spacing:0] lg:grid lg:grid-cols-[var(--sidebar-width)_minmax(0,1fr)] lg:[--sidebar-width:240px] lg:[--top-spacing:calc(var(--spacing)*4)]"
+                    data-slot="sidebar-wrapper"
+                    style="--sidebar-width:calc(var(--spacing) * 72);--sidebar-width-icon:3rem;">
+                    <div class="w-(--sidebar-width) flex-col text-sidebar-foreground sticky top-[calc(var(--header-height)+0.6rem)] z-30 hidden max-h-[calc(100svh-10rem)] overscroll-none bg-transparent [--sidebar-menu-width:--spacing(56)] lg:flex"
+                        data-slot="sidebar">
+                        <div class="h-9"></div>
+                        <div
+                            class="absolute top-8 z-10 h-8 w-(--sidebar-menu-width) shrink-0 bg-gradient-to-b from-background via-background/80 to-background/50 blur-xs">
+                        </div>
+                        <div
+                            class="absolute top-12 right-2 bottom-0 hidden h-full w-px bg-gradient-to-b from-transparent via-border to-transparent lg:flex">
+                        </div>
+                        <div class="flex min-h-0 flex-1 flex-col gap-2 overflow-auto group-data-[collapsible=icon]:overflow-hidden mx-auto no-scrollbar w-(--sidebar-menu-width) overflow-x-hidden px-2"
+                            data-sidebar="content" data-slot="sidebar-content" view-transition-name="sidebar">
+                            
+
+
+
+
+
+
+
+
+
+
+
+<div data-slot="sidebar-group" data-sidebar="group" class="relative flex w-full min-w-0 flex-col p-2 pt-6">
+    <div data-slot="sidebar-group-content" data-sidebar="group-content" class="w-full text-sm">
+        <ul data-slot="sidebar-menu" data-sidebar="menu" class="flex w-full min-w-0 flex-col gap-0.5">
+            
+            
+            
+            <li data-slot="sidebar-menu-item" data-sidebar="menu-item" class="group/menu-item relative">
+    <a data-slot="sidebar-menu-button" data-active="false" data-sidebar="menu-button"
+        data-size="default" href="../.."
+        class="peer/menu-button flex items-center gap-2 rounded-md p-2 text-left ring-sidebar-ring outline-hidden transition-[width,height,padding] group-has-data-[sidebar=menu-action]/menu-item:pr-8 group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:p-2! focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:font-medium data-[active=true]:text-sidebar-accent-foreground data-[state=open]:hover:bg-sidebar-accent data-[state=open]:hover:text-sidebar-accent-foreground [&>span:last-child]:truncate [&>svg]:size-4 [&>svg]:shrink-0 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground relative h-[30px] w-fit overflow-visible border border-transparent text-[0.8rem] font-medium after:absolute after:inset-x-0 after:-inset-y-1 after:z-0 after:rounded-md data-[active=true]:border-accent data-[active=true]:bg-accent 3xl:fixed:w-full 3xl:fixed:max-w-48">
+        
+        MATA
+        
+        
+        
+        
+    </a>
+</li>
+            
+            
+        </ul>
+    </div>
+</div>
+
+
+
+
+<div data-slot="sidebar-group" data-sidebar="group" class="relative flex w-full min-w-0 flex-col p-2">
+    <div data-slot="sidebar-group-label" data-sidebar="group-label"
+        class="flex h-8 shrink-0 items-center rounded-md px-2 text-xs ring-sidebar-ring outline-hidden transition-[margin,opacity] duration-200 ease-linear focus-visible:ring-2 [&>svg]:size-4 [&>svg]:shrink-0 group-data-[collapsible=icon]:-mt-8 group-data-[collapsible=icon]:opacity-0 font-medium text-muted-foreground">
+        Getting started</div>
+    <div data-slot="sidebar-group-content" data-sidebar="group-content" class="w-full text-sm">
+        <ul data-slot="sidebar-menu" data-sidebar="menu" class="flex w-full min-w-0 flex-col gap-0.5">
+            
+            
+            <li data-slot="sidebar-menu-item" data-sidebar="menu-item" class="group/menu-item relative">
+    <a data-slot="sidebar-menu-button" data-active="false" data-sidebar="menu-button"
+        data-size="default" href="../../guides/quickstart/"
+        class="peer/menu-button flex items-center gap-2 rounded-md p-2 text-left ring-sidebar-ring outline-hidden transition-[width,height,padding] group-has-data-[sidebar=menu-action]/menu-item:pr-8 group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:p-2! focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:font-medium data-[active=true]:text-sidebar-accent-foreground data-[state=open]:hover:bg-sidebar-accent data-[state=open]:hover:text-sidebar-accent-foreground [&>span:last-child]:truncate [&>svg]:size-4 [&>svg]:shrink-0 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground relative h-[30px] w-fit overflow-visible border border-transparent text-[0.8rem] font-medium after:absolute after:inset-x-0 after:-inset-y-1 after:z-0 after:rounded-md data-[active=true]:border-accent data-[active=true]:bg-accent 3xl:fixed:w-full 3xl:fixed:max-w-48">
+        
+        Quick start
+        
+        
+        
+        
+    </a>
+</li>
+            
+            
+            
+            <li data-slot="sidebar-menu-item" data-sidebar="menu-item" class="group/menu-item relative">
+    <a data-slot="sidebar-menu-button" data-active="false" data-sidebar="menu-button"
+        data-size="default" href="../../guides/quickstart-docker/"
+        class="peer/menu-button flex items-center gap-2 rounded-md p-2 text-left ring-sidebar-ring outline-hidden transition-[width,height,padding] group-has-data-[sidebar=menu-action]/menu-item:pr-8 group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:p-2! focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:font-medium data-[active=true]:text-sidebar-accent-foreground data-[state=open]:hover:bg-sidebar-accent data-[state=open]:hover:text-sidebar-accent-foreground [&>span:last-child]:truncate [&>svg]:size-4 [&>svg]:shrink-0 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground relative h-[30px] w-fit overflow-visible border border-transparent text-[0.8rem] font-medium after:absolute after:inset-x-0 after:-inset-y-1 after:z-0 after:rounded-md data-[active=true]:border-accent data-[active=true]:bg-accent 3xl:fixed:w-full 3xl:fixed:max-w-48">
+        
+        Docker quickstart
+        
+        
+        
+        
+    </a>
+</li>
+            
+            
+            
+            <li data-slot="sidebar-menu-item" data-sidebar="menu-item" class="group/menu-item relative">
+    <a data-slot="sidebar-menu-button" data-active="false" data-sidebar="menu-button"
+        data-size="default" href="../../guides/first-server/"
+        class="peer/menu-button flex items-center gap-2 rounded-md p-2 text-left ring-sidebar-ring outline-hidden transition-[width,height,padding] group-has-data-[sidebar=menu-action]/menu-item:pr-8 group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:p-2! focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:font-medium data-[active=true]:text-sidebar-accent-foreground data-[state=open]:hover:bg-sidebar-accent data-[state=open]:hover:text-sidebar-accent-foreground [&>span:last-child]:truncate [&>svg]:size-4 [&>svg]:shrink-0 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground relative h-[30px] w-fit overflow-visible border border-transparent text-[0.8rem] font-medium after:absolute after:inset-x-0 after:-inset-y-1 after:z-0 after:rounded-md data-[active=true]:border-accent data-[active=true]:bg-accent 3xl:fixed:w-full 3xl:fixed:max-w-48">
+        
+        Add your first server
+        
+        
+        
+        
+    </a>
+</li>
+            
+            
+            
+            <li data-slot="sidebar-menu-item" data-sidebar="menu-item" class="group/menu-item relative">
+    <a data-slot="sidebar-menu-button" data-active="false" data-sidebar="menu-button"
+        data-size="default" href="../../guides/agent-install/"
+        class="peer/menu-button flex items-center gap-2 rounded-md p-2 text-left ring-sidebar-ring outline-hidden transition-[width,height,padding] group-has-data-[sidebar=menu-action]/menu-item:pr-8 group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:p-2! focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:font-medium data-[active=true]:text-sidebar-accent-foreground data-[state=open]:hover:bg-sidebar-accent data-[state=open]:hover:text-sidebar-accent-foreground [&>span:last-child]:truncate [&>svg]:size-4 [&>svg]:shrink-0 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground relative h-[30px] w-fit overflow-visible border border-transparent text-[0.8rem] font-medium after:absolute after:inset-x-0 after:-inset-y-1 after:z-0 after:rounded-md data-[active=true]:border-accent data-[active=true]:bg-accent 3xl:fixed:w-full 3xl:fixed:max-w-48">
+        
+        Install with a coding agent
+        
+        
+        
+        
+    </a>
+</li>
+            
+            
+        </ul>
+    </div>
+</div>
+
+
+
+<div data-slot="sidebar-group" data-sidebar="group" class="relative flex w-full min-w-0 flex-col p-2">
+    <div data-slot="sidebar-group-label" data-sidebar="group-label"
+        class="flex h-8 shrink-0 items-center rounded-md px-2 text-xs ring-sidebar-ring outline-hidden transition-[margin,opacity] duration-200 ease-linear focus-visible:ring-2 [&>svg]:size-4 [&>svg]:shrink-0 group-data-[collapsible=icon]:-mt-8 group-data-[collapsible=icon]:opacity-0 font-medium text-muted-foreground">
+        Guides</div>
+    <div data-slot="sidebar-group-content" data-sidebar="group-content" class="w-full text-sm">
+        <ul data-slot="sidebar-menu" data-sidebar="menu" class="flex w-full min-w-0 flex-col gap-0.5">
+            
+            
+            <li data-slot="sidebar-menu-item" data-sidebar="menu-item" class="group/menu-item relative">
+    <a data-slot="sidebar-menu-button" data-active="false" data-sidebar="menu-button"
+        data-size="default" href="../../guides/configuration/"
+        class="peer/menu-button flex items-center gap-2 rounded-md p-2 text-left ring-sidebar-ring outline-hidden transition-[width,height,padding] group-has-data-[sidebar=menu-action]/menu-item:pr-8 group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:p-2! focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:font-medium data-[active=true]:text-sidebar-accent-foreground data-[state=open]:hover:bg-sidebar-accent data-[state=open]:hover:text-sidebar-accent-foreground [&>span:last-child]:truncate [&>svg]:size-4 [&>svg]:shrink-0 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground relative h-[30px] w-fit overflow-visible border border-transparent text-[0.8rem] font-medium after:absolute after:inset-x-0 after:-inset-y-1 after:z-0 after:rounded-md data-[active=true]:border-accent data-[active=true]:bg-accent 3xl:fixed:w-full 3xl:fixed:max-w-48">
+        
+        Configuration
+        
+        
+        
+        
+    </a>
+</li>
+            
+            
+            
+            <li data-slot="sidebar-menu-item" data-sidebar="menu-item" class="group/menu-item relative">
+    <a data-slot="sidebar-menu-button" data-active="false" data-sidebar="menu-button"
+        data-size="default" href="../../guides/version-config/"
+        class="peer/menu-button flex items-center gap-2 rounded-md p-2 text-left ring-sidebar-ring outline-hidden transition-[width,height,padding] group-has-data-[sidebar=menu-action]/menu-item:pr-8 group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:p-2! focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:font-medium data-[active=true]:text-sidebar-accent-foreground data-[state=open]:hover:bg-sidebar-accent data-[state=open]:hover:text-sidebar-accent-foreground [&>span:last-child]:truncate [&>svg]:size-4 [&>svg]:shrink-0 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground relative h-[30px] w-fit overflow-visible border border-transparent text-[0.8rem] font-medium after:absolute after:inset-x-0 after:-inset-y-1 after:z-0 after:rounded-md data-[active=true]:border-accent data-[active=true]:bg-accent 3xl:fixed:w-full 3xl:fixed:max-w-48">
+        
+        Version your config
+        
+        
+        
+        
+    </a>
+</li>
+            
+            
+            
+            <li data-slot="sidebar-menu-item" data-sidebar="menu-item" class="group/menu-item relative">
+    <a data-slot="sidebar-menu-button" data-active="false" data-sidebar="menu-button"
+        data-size="default" href="../../guides/monitoring/"
+        class="peer/menu-button flex items-center gap-2 rounded-md p-2 text-left ring-sidebar-ring outline-hidden transition-[width,height,padding] group-has-data-[sidebar=menu-action]/menu-item:pr-8 group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:p-2! focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:font-medium data-[active=true]:text-sidebar-accent-foreground data-[state=open]:hover:bg-sidebar-accent data-[state=open]:hover:text-sidebar-accent-foreground [&>span:last-child]:truncate [&>svg]:size-4 [&>svg]:shrink-0 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground relative h-[30px] w-fit overflow-visible border border-transparent text-[0.8rem] font-medium after:absolute after:inset-x-0 after:-inset-y-1 after:z-0 after:rounded-md data-[active=true]:border-accent data-[active=true]:bg-accent 3xl:fixed:w-full 3xl:fixed:max-w-48">
+        
+        Monitoring
+        
+        
+        
+        
+    </a>
+</li>
+            
+            
+            
+            <li data-slot="sidebar-menu-item" data-sidebar="menu-item" class="group/menu-item relative">
+    <a data-slot="sidebar-menu-button" data-active="false" data-sidebar="menu-button"
+        data-size="default" href="../../guides/application-error-monitoring/"
+        class="peer/menu-button flex items-center gap-2 rounded-md p-2 text-left ring-sidebar-ring outline-hidden transition-[width,height,padding] group-has-data-[sidebar=menu-action]/menu-item:pr-8 group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:p-2! focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:font-medium data-[active=true]:text-sidebar-accent-foreground data-[state=open]:hover:bg-sidebar-accent data-[state=open]:hover:text-sidebar-accent-foreground [&>span:last-child]:truncate [&>svg]:size-4 [&>svg]:shrink-0 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground relative h-[30px] w-fit overflow-visible border border-transparent text-[0.8rem] font-medium after:absolute after:inset-x-0 after:-inset-y-1 after:z-0 after:rounded-md data-[active=true]:border-accent data-[active=true]:bg-accent 3xl:fixed:w-full 3xl:fixed:max-w-48">
+        
+        Application error monitoring
+        
+        
+        
+        
+    </a>
+</li>
+            
+            
+            
+            <li data-slot="sidebar-menu-item" data-sidebar="menu-item" class="group/menu-item relative">
+    <a data-slot="sidebar-menu-button" data-active="false" data-sidebar="menu-button"
+        data-size="default" href="../../guides/security-advisories/"
+        class="peer/menu-button flex items-center gap-2 rounded-md p-2 text-left ring-sidebar-ring outline-hidden transition-[width,height,padding] group-has-data-[sidebar=menu-action]/menu-item:pr-8 group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:p-2! focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:font-medium data-[active=true]:text-sidebar-accent-foreground data-[state=open]:hover:bg-sidebar-accent data-[state=open]:hover:text-sidebar-accent-foreground [&>span:last-child]:truncate [&>svg]:size-4 [&>svg]:shrink-0 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground relative h-[30px] w-fit overflow-visible border border-transparent text-[0.8rem] font-medium after:absolute after:inset-x-0 after:-inset-y-1 after:z-0 after:rounded-md data-[active=true]:border-accent data-[active=true]:bg-accent 3xl:fixed:w-full 3xl:fixed:max-w-48">
+        
+        Security advisories
+        
+        
+        
+        
+    </a>
+</li>
+            
+            
+            
+            <li data-slot="sidebar-menu-item" data-sidebar="menu-item" class="group/menu-item relative">
+    <a data-slot="sidebar-menu-button" data-active="false" data-sidebar="menu-button"
+        data-size="default" href="../../guides/user-management/"
+        class="peer/menu-button flex items-center gap-2 rounded-md p-2 text-left ring-sidebar-ring outline-hidden transition-[width,height,padding] group-has-data-[sidebar=menu-action]/menu-item:pr-8 group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:p-2! focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:font-medium data-[active=true]:text-sidebar-accent-foreground data-[state=open]:hover:bg-sidebar-accent data-[state=open]:hover:text-sidebar-accent-foreground [&>span:last-child]:truncate [&>svg]:size-4 [&>svg]:shrink-0 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground relative h-[30px] w-fit overflow-visible border border-transparent text-[0.8rem] font-medium after:absolute after:inset-x-0 after:-inset-y-1 after:z-0 after:rounded-md data-[active=true]:border-accent data-[active=true]:bg-accent 3xl:fixed:w-full 3xl:fixed:max-w-48">
+        
+        User management CLI
+        
+        
+        
+        
+    </a>
+</li>
+            
+            
+            
+            <li data-slot="sidebar-menu-item" data-sidebar="menu-item" class="group/menu-item relative">
+    <a data-slot="sidebar-menu-button" data-active="false" data-sidebar="menu-button"
+        data-size="default" href="../../guides/secure-application/"
+        class="peer/menu-button flex items-center gap-2 rounded-md p-2 text-left ring-sidebar-ring outline-hidden transition-[width,height,padding] group-has-data-[sidebar=menu-action]/menu-item:pr-8 group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:p-2! focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:font-medium data-[active=true]:text-sidebar-accent-foreground data-[state=open]:hover:bg-sidebar-accent data-[state=open]:hover:text-sidebar-accent-foreground [&>span:last-child]:truncate [&>svg]:size-4 [&>svg]:shrink-0 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground relative h-[30px] w-fit overflow-visible border border-transparent text-[0.8rem] font-medium after:absolute after:inset-x-0 after:-inset-y-1 after:z-0 after:rounded-md data-[active=true]:border-accent data-[active=true]:bg-accent 3xl:fixed:w-full 3xl:fixed:max-w-48">
+        
+        Secure an installation
+        
+        
+        
+        
+    </a>
+</li>
+            
+            
+            
+            <li data-slot="sidebar-menu-item" data-sidebar="menu-item" class="group/menu-item relative">
+    <a data-slot="sidebar-menu-button" data-active="false" data-sidebar="menu-button"
+        data-size="default" href="../../examples/webserver-configs/"
+        class="peer/menu-button flex items-center gap-2 rounded-md p-2 text-left ring-sidebar-ring outline-hidden transition-[width,height,padding] group-has-data-[sidebar=menu-action]/menu-item:pr-8 group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:p-2! focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:font-medium data-[active=true]:text-sidebar-accent-foreground data-[state=open]:hover:bg-sidebar-accent data-[state=open]:hover:text-sidebar-accent-foreground [&>span:last-child]:truncate [&>svg]:size-4 [&>svg]:shrink-0 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground relative h-[30px] w-fit overflow-visible border border-transparent text-[0.8rem] font-medium after:absolute after:inset-x-0 after:-inset-y-1 after:z-0 after:rounded-md data-[active=true]:border-accent data-[active=true]:bg-accent 3xl:fixed:w-full 3xl:fixed:max-w-48">
+        
+        Web server examples
+        
+        
+        
+        
+    </a>
+</li>
+            
+            
+        </ul>
+    </div>
+</div>
+
+
+
+<div data-slot="sidebar-group" data-sidebar="group" class="relative flex w-full min-w-0 flex-col p-2">
+    <div data-slot="sidebar-group-label" data-sidebar="group-label"
+        class="flex h-8 shrink-0 items-center rounded-md px-2 text-xs ring-sidebar-ring outline-hidden transition-[margin,opacity] duration-200 ease-linear focus-visible:ring-2 [&>svg]:size-4 [&>svg]:shrink-0 group-data-[collapsible=icon]:-mt-8 group-data-[collapsible=icon]:opacity-0 font-medium text-muted-foreground">
+        Node</div>
+    <div data-slot="sidebar-group-content" data-sidebar="group-content" class="w-full text-sm">
+        <ul data-slot="sidebar-menu" data-sidebar="menu" class="flex w-full min-w-0 flex-col gap-0.5">
+            
+            
+            <li data-slot="sidebar-menu-item" data-sidebar="menu-item" class="group/menu-item relative">
+    <a data-slot="sidebar-menu-button" data-active="false" data-sidebar="menu-button"
+        data-size="default" href="../../node/configuration/"
+        class="peer/menu-button flex items-center gap-2 rounded-md p-2 text-left ring-sidebar-ring outline-hidden transition-[width,height,padding] group-has-data-[sidebar=menu-action]/menu-item:pr-8 group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:p-2! focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:font-medium data-[active=true]:text-sidebar-accent-foreground data-[state=open]:hover:bg-sidebar-accent data-[state=open]:hover:text-sidebar-accent-foreground [&>span:last-child]:truncate [&>svg]:size-4 [&>svg]:shrink-0 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground relative h-[30px] w-fit overflow-visible border border-transparent text-[0.8rem] font-medium after:absolute after:inset-x-0 after:-inset-y-1 after:z-0 after:rounded-md data-[active=true]:border-accent data-[active=true]:bg-accent 3xl:fixed:w-full 3xl:fixed:max-w-48">
+        
+        Configuration
+        
+        
+        
+        
+    </a>
+</li>
+            
+            
+            
+            <li data-slot="sidebar-menu-item" data-sidebar="menu-item" class="group/menu-item relative">
+    <a data-slot="sidebar-menu-button" data-active="false" data-sidebar="menu-button"
+        data-size="default" href="../../node/cli/"
+        class="peer/menu-button flex items-center gap-2 rounded-md p-2 text-left ring-sidebar-ring outline-hidden transition-[width,height,padding] group-has-data-[sidebar=menu-action]/menu-item:pr-8 group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:p-2! focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:font-medium data-[active=true]:text-sidebar-accent-foreground data-[state=open]:hover:bg-sidebar-accent data-[state=open]:hover:text-sidebar-accent-foreground [&>span:last-child]:truncate [&>svg]:size-4 [&>svg]:shrink-0 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground relative h-[30px] w-fit overflow-visible border border-transparent text-[0.8rem] font-medium after:absolute after:inset-x-0 after:-inset-y-1 after:z-0 after:rounded-md data-[active=true]:border-accent data-[active=true]:bg-accent 3xl:fixed:w-full 3xl:fixed:max-w-48">
+        
+        Command line
+        
+        
+        
+        
+    </a>
+</li>
+            
+            
+            
+            <li data-slot="sidebar-menu-item" data-sidebar="menu-item" class="group/menu-item relative">
+    <a data-slot="sidebar-menu-button" data-active="false" data-sidebar="menu-button"
+        data-size="default" href="../../node/frameworks/"
+        class="peer/menu-button flex items-center gap-2 rounded-md p-2 text-left ring-sidebar-ring outline-hidden transition-[width,height,padding] group-has-data-[sidebar=menu-action]/menu-item:pr-8 group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:p-2! focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:font-medium data-[active=true]:text-sidebar-accent-foreground data-[state=open]:hover:bg-sidebar-accent data-[state=open]:hover:text-sidebar-accent-foreground [&>span:last-child]:truncate [&>svg]:size-4 [&>svg]:shrink-0 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground relative h-[30px] w-fit overflow-visible border border-transparent text-[0.8rem] font-medium after:absolute after:inset-x-0 after:-inset-y-1 after:z-0 after:rounded-md data-[active=true]:border-accent data-[active=true]:bg-accent 3xl:fixed:w-full 3xl:fixed:max-w-48">
+        
+        Framework detection
+        
+        
+        
+        
+    </a>
+</li>
+            
+            
+            
+            <li data-slot="sidebar-menu-item" data-sidebar="menu-item" class="group/menu-item relative">
+    <a data-slot="sidebar-menu-button" data-active="false" data-sidebar="menu-button"
+        data-size="default" href="../../node/docker/"
+        class="peer/menu-button flex items-center gap-2 rounded-md p-2 text-left ring-sidebar-ring outline-hidden transition-[width,height,padding] group-has-data-[sidebar=menu-action]/menu-item:pr-8 group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:p-2! focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:font-medium data-[active=true]:text-sidebar-accent-foreground data-[state=open]:hover:bg-sidebar-accent data-[state=open]:hover:text-sidebar-accent-foreground [&>span:last-child]:truncate [&>svg]:size-4 [&>svg]:shrink-0 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground relative h-[30px] w-fit overflow-visible border border-transparent text-[0.8rem] font-medium after:absolute after:inset-x-0 after:-inset-y-1 after:z-0 after:rounded-md data-[active=true]:border-accent data-[active=true]:bg-accent 3xl:fixed:w-full 3xl:fixed:max-w-48">
+        
+        Docker
+        
+        
+        
+        
+    </a>
+</li>
+            
+            
+            
+            <li data-slot="sidebar-menu-item" data-sidebar="menu-item" class="group/menu-item relative">
+    <a data-slot="sidebar-menu-button" data-active="false" data-sidebar="menu-button"
+        data-size="default" href="../../node/log-parsers/"
+        class="peer/menu-button flex items-center gap-2 rounded-md p-2 text-left ring-sidebar-ring outline-hidden transition-[width,height,padding] group-has-data-[sidebar=menu-action]/menu-item:pr-8 group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:p-2! focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:font-medium data-[active=true]:text-sidebar-accent-foreground data-[state=open]:hover:bg-sidebar-accent data-[state=open]:hover:text-sidebar-accent-foreground [&>span:last-child]:truncate [&>svg]:size-4 [&>svg]:shrink-0 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground relative h-[30px] w-fit overflow-visible border border-transparent text-[0.8rem] font-medium after:absolute after:inset-x-0 after:-inset-y-1 after:z-0 after:rounded-md data-[active=true]:border-accent data-[active=true]:bg-accent 3xl:fixed:w-full 3xl:fixed:max-w-48">
+        
+        Log formats
+        
+        
+        
+        
+    </a>
+</li>
+            
+            
+            
+            <li data-slot="sidebar-menu-item" data-sidebar="menu-item" class="group/menu-item relative">
+    <a data-slot="sidebar-menu-button" data-active="false" data-sidebar="menu-button"
+        data-size="default" href="../../node/shell-command-surface/"
+        class="peer/menu-button flex items-center gap-2 rounded-md p-2 text-left ring-sidebar-ring outline-hidden transition-[width,height,padding] group-has-data-[sidebar=menu-action]/menu-item:pr-8 group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:p-2! focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:font-medium data-[active=true]:text-sidebar-accent-foreground data-[state=open]:hover:bg-sidebar-accent data-[state=open]:hover:text-sidebar-accent-foreground [&>span:last-child]:truncate [&>svg]:size-4 [&>svg]:shrink-0 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground relative h-[30px] w-fit overflow-visible border border-transparent text-[0.8rem] font-medium after:absolute after:inset-x-0 after:-inset-y-1 after:z-0 after:rounded-md data-[active=true]:border-accent data-[active=true]:bg-accent 3xl:fixed:w-full 3xl:fixed:max-w-48">
+        
+        Shell command surface
+        
+        
+        
+        
+    </a>
+</li>
+            
+            
+        </ul>
+    </div>
+</div>
+
+
+
+<div data-slot="sidebar-group" data-sidebar="group" class="relative flex w-full min-w-0 flex-col p-2">
+    <div data-slot="sidebar-group-label" data-sidebar="group-label"
+        class="flex h-8 shrink-0 items-center rounded-md px-2 text-xs ring-sidebar-ring outline-hidden transition-[margin,opacity] duration-200 ease-linear focus-visible:ring-2 [&>svg]:size-4 [&>svg]:shrink-0 group-data-[collapsible=icon]:-mt-8 group-data-[collapsible=icon]:opacity-0 font-medium text-muted-foreground">
+        Reference</div>
+    <div data-slot="sidebar-group-content" data-sidebar="group-content" class="w-full text-sm">
+        <ul data-slot="sidebar-menu" data-sidebar="menu" class="flex w-full min-w-0 flex-col gap-0.5">
+            
+            
+            <li data-slot="sidebar-menu-item" data-sidebar="menu-item" class="group/menu-item relative">
+    <a data-slot="sidebar-menu-button" data-active="false" data-sidebar="menu-button"
+        data-size="default" href="../../reference/alarms/"
+        class="peer/menu-button flex items-center gap-2 rounded-md p-2 text-left ring-sidebar-ring outline-hidden transition-[width,height,padding] group-has-data-[sidebar=menu-action]/menu-item:pr-8 group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:p-2! focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:font-medium data-[active=true]:text-sidebar-accent-foreground data-[state=open]:hover:bg-sidebar-accent data-[state=open]:hover:text-sidebar-accent-foreground [&>span:last-child]:truncate [&>svg]:size-4 [&>svg]:shrink-0 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground relative h-[30px] w-fit overflow-visible border border-transparent text-[0.8rem] font-medium after:absolute after:inset-x-0 after:-inset-y-1 after:z-0 after:rounded-md data-[active=true]:border-accent data-[active=true]:bg-accent 3xl:fixed:w-full 3xl:fixed:max-w-48">
+        
+        Alarm decision and delivery flow
+        
+        
+        
+        
+    </a>
+</li>
+            
+            
+            
+            <li data-slot="sidebar-menu-item" data-sidebar="menu-item" class="group/menu-item relative">
+    <a data-slot="sidebar-menu-button" data-active="false" data-sidebar="menu-button"
+        data-size="default" href="../../reference/docker/"
+        class="peer/menu-button flex items-center gap-2 rounded-md p-2 text-left ring-sidebar-ring outline-hidden transition-[width,height,padding] group-has-data-[sidebar=menu-action]/menu-item:pr-8 group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:p-2! focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:font-medium data-[active=true]:text-sidebar-accent-foreground data-[state=open]:hover:bg-sidebar-accent data-[state=open]:hover:text-sidebar-accent-foreground [&>span:last-child]:truncate [&>svg]:size-4 [&>svg]:shrink-0 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground relative h-[30px] w-fit overflow-visible border border-transparent text-[0.8rem] font-medium after:absolute after:inset-x-0 after:-inset-y-1 after:z-0 after:rounded-md data-[active=true]:border-accent data-[active=true]:bg-accent 3xl:fixed:w-full 3xl:fixed:max-w-48">
+        
+        Docker deployment
+        
+        
+        
+        
+    </a>
+</li>
+            
+            
+            
+            <li data-slot="sidebar-menu-item" data-sidebar="menu-item" class="group/menu-item relative">
+    <a data-slot="sidebar-menu-button" data-active="false" data-sidebar="menu-button"
+        data-size="default" href="../../reference/cli/"
+        class="peer/menu-button flex items-center gap-2 rounded-md p-2 text-left ring-sidebar-ring outline-hidden transition-[width,height,padding] group-has-data-[sidebar=menu-action]/menu-item:pr-8 group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:p-2! focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:font-medium data-[active=true]:text-sidebar-accent-foreground data-[state=open]:hover:bg-sidebar-accent data-[state=open]:hover:text-sidebar-accent-foreground [&>span:last-child]:truncate [&>svg]:size-4 [&>svg]:shrink-0 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground relative h-[30px] w-fit overflow-visible border border-transparent text-[0.8rem] font-medium after:absolute after:inset-x-0 after:-inset-y-1 after:z-0 after:rounded-md data-[active=true]:border-accent data-[active=true]:bg-accent 3xl:fixed:w-full 3xl:fixed:max-w-48">
+        
+        Operator CLI
+        
+        
+        
+        
+    </a>
+</li>
+            
+            
+        </ul>
+    </div>
+</div>
+
+
+
+<div data-slot="sidebar-group" data-sidebar="group" class="relative flex w-full min-w-0 flex-col p-2">
+    <div data-slot="sidebar-group-label" data-sidebar="group-label"
+        class="flex h-8 shrink-0 items-center rounded-md px-2 text-xs ring-sidebar-ring outline-hidden transition-[margin,opacity] duration-200 ease-linear focus-visible:ring-2 [&>svg]:size-4 [&>svg]:shrink-0 group-data-[collapsible=icon]:-mt-8 group-data-[collapsible=icon]:opacity-0 font-medium text-muted-foreground">
+        Architecture</div>
+    <div data-slot="sidebar-group-content" data-sidebar="group-content" class="w-full text-sm">
+        <ul data-slot="sidebar-menu" data-sidebar="menu" class="flex w-full min-w-0 flex-col gap-0.5">
+            
+            
+            <li data-slot="sidebar-menu-item" data-sidebar="menu-item" class="group/menu-item relative">
+    <a data-slot="sidebar-menu-button" data-active="false" data-sidebar="menu-button"
+        data-size="default" href="../../architecture/overview/"
+        class="peer/menu-button flex items-center gap-2 rounded-md p-2 text-left ring-sidebar-ring outline-hidden transition-[width,height,padding] group-has-data-[sidebar=menu-action]/menu-item:pr-8 group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:p-2! focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:font-medium data-[active=true]:text-sidebar-accent-foreground data-[state=open]:hover:bg-sidebar-accent data-[state=open]:hover:text-sidebar-accent-foreground [&>span:last-child]:truncate [&>svg]:size-4 [&>svg]:shrink-0 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground relative h-[30px] w-fit overflow-visible border border-transparent text-[0.8rem] font-medium after:absolute after:inset-x-0 after:-inset-y-1 after:z-0 after:rounded-md data-[active=true]:border-accent data-[active=true]:bg-accent 3xl:fixed:w-full 3xl:fixed:max-w-48">
+        
+        Overview
+        
+        
+        
+        
+    </a>
+</li>
+            
+            
+            
+            <li data-slot="sidebar-menu-item" data-sidebar="menu-item" class="group/menu-item relative">
+    <a data-slot="sidebar-menu-button" data-active="false" data-sidebar="menu-button"
+        data-size="default" href="../../architecture/security/"
+        class="peer/menu-button flex items-center gap-2 rounded-md p-2 text-left ring-sidebar-ring outline-hidden transition-[width,height,padding] group-has-data-[sidebar=menu-action]/menu-item:pr-8 group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:p-2! focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:font-medium data-[active=true]:text-sidebar-accent-foreground data-[state=open]:hover:bg-sidebar-accent data-[state=open]:hover:text-sidebar-accent-foreground [&>span:last-child]:truncate [&>svg]:size-4 [&>svg]:shrink-0 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground relative h-[30px] w-fit overflow-visible border border-transparent text-[0.8rem] font-medium after:absolute after:inset-x-0 after:-inset-y-1 after:z-0 after:rounded-md data-[active=true]:border-accent data-[active=true]:bg-accent 3xl:fixed:w-full 3xl:fixed:max-w-48">
+        
+        Security
+        
+        
+        
+        
+    </a>
+</li>
+            
+            
+            
+            <li data-slot="sidebar-menu-item" data-sidebar="menu-item" class="group/menu-item relative">
+    <a data-slot="sidebar-menu-button" data-active="false" data-sidebar="menu-button"
+        data-size="default" href="../../architecture/server-metrics-pipeline/"
+        class="peer/menu-button flex items-center gap-2 rounded-md p-2 text-left ring-sidebar-ring outline-hidden transition-[width,height,padding] group-has-data-[sidebar=menu-action]/menu-item:pr-8 group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:p-2! focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:font-medium data-[active=true]:text-sidebar-accent-foreground data-[state=open]:hover:bg-sidebar-accent data-[state=open]:hover:text-sidebar-accent-foreground [&>span:last-child]:truncate [&>svg]:size-4 [&>svg]:shrink-0 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground relative h-[30px] w-fit overflow-visible border border-transparent text-[0.8rem] font-medium after:absolute after:inset-x-0 after:-inset-y-1 after:z-0 after:rounded-md data-[active=true]:border-accent data-[active=true]:bg-accent 3xl:fixed:w-full 3xl:fixed:max-w-48">
+        
+        Server metrics pipeline
+        
+        
+        
+        
+    </a>
+</li>
+            
+            
+            
+            <li data-slot="sidebar-menu-item" data-sidebar="menu-item" class="group/menu-item relative">
+    <a data-slot="sidebar-menu-button" data-active="false" data-sidebar="menu-button"
+        data-size="default" href="../../architecture/technology-choices/"
+        class="peer/menu-button flex items-center gap-2 rounded-md p-2 text-left ring-sidebar-ring outline-hidden transition-[width,height,padding] group-has-data-[sidebar=menu-action]/menu-item:pr-8 group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:p-2! focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:font-medium data-[active=true]:text-sidebar-accent-foreground data-[state=open]:hover:bg-sidebar-accent data-[state=open]:hover:text-sidebar-accent-foreground [&>span:last-child]:truncate [&>svg]:size-4 [&>svg]:shrink-0 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground relative h-[30px] w-fit overflow-visible border border-transparent text-[0.8rem] font-medium after:absolute after:inset-x-0 after:-inset-y-1 after:z-0 after:rounded-md data-[active=true]:border-accent data-[active=true]:bg-accent 3xl:fixed:w-full 3xl:fixed:max-w-48">
+        
+        Technology choices
+        
+        
+        
+        
+    </a>
+</li>
+            
+            
+        </ul>
+    </div>
+</div>
+
+
+
+<div data-slot="sidebar-group" data-sidebar="group" class="relative flex w-full min-w-0 flex-col p-2">
+    <div data-slot="sidebar-group-label" data-sidebar="group-label"
+        class="flex h-8 shrink-0 items-center rounded-md px-2 text-xs ring-sidebar-ring outline-hidden transition-[margin,opacity] duration-200 ease-linear focus-visible:ring-2 [&>svg]:size-4 [&>svg]:shrink-0 group-data-[collapsible=icon]:-mt-8 group-data-[collapsible=icon]:opacity-0 font-medium text-muted-foreground">
+        Development</div>
+    <div data-slot="sidebar-group-content" data-sidebar="group-content" class="w-full text-sm">
+        <ul data-slot="sidebar-menu" data-sidebar="menu" class="flex w-full min-w-0 flex-col gap-0.5">
+            
+            
+            <li data-slot="sidebar-menu-item" data-sidebar="menu-item" class="group/menu-item relative">
+    <a data-slot="sidebar-menu-button" data-active="false" data-sidebar="menu-button"
+        data-size="default" href="../development-setup/"
+        class="peer/menu-button flex items-center gap-2 rounded-md p-2 text-left ring-sidebar-ring outline-hidden transition-[width,height,padding] group-has-data-[sidebar=menu-action]/menu-item:pr-8 group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:p-2! focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:font-medium data-[active=true]:text-sidebar-accent-foreground data-[state=open]:hover:bg-sidebar-accent data-[state=open]:hover:text-sidebar-accent-foreground [&>span:last-child]:truncate [&>svg]:size-4 [&>svg]:shrink-0 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground relative h-[30px] w-fit overflow-visible border border-transparent text-[0.8rem] font-medium after:absolute after:inset-x-0 after:-inset-y-1 after:z-0 after:rounded-md data-[active=true]:border-accent data-[active=true]:bg-accent 3xl:fixed:w-full 3xl:fixed:max-w-48">
+        
+        Development setup
+        
+        
+        
+        
+    </a>
+</li>
+            
+            
+            
+            <li data-slot="sidebar-menu-item" data-sidebar="menu-item" class="group/menu-item relative">
+    <a data-slot="sidebar-menu-button" data-active="false" data-sidebar="menu-button"
+        data-size="default" href="../documentation/"
+        class="peer/menu-button flex items-center gap-2 rounded-md p-2 text-left ring-sidebar-ring outline-hidden transition-[width,height,padding] group-has-data-[sidebar=menu-action]/menu-item:pr-8 group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:p-2! focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:font-medium data-[active=true]:text-sidebar-accent-foreground data-[state=open]:hover:bg-sidebar-accent data-[state=open]:hover:text-sidebar-accent-foreground [&>span:last-child]:truncate [&>svg]:size-4 [&>svg]:shrink-0 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground relative h-[30px] w-fit overflow-visible border border-transparent text-[0.8rem] font-medium after:absolute after:inset-x-0 after:-inset-y-1 after:z-0 after:rounded-md data-[active=true]:border-accent data-[active=true]:bg-accent 3xl:fixed:w-full 3xl:fixed:max-w-48">
+        
+        Documentation
+        
+        
+        
+        
+    </a>
+</li>
+            
+            
+            
+            <li data-slot="sidebar-menu-item" data-sidebar="menu-item" class="group/menu-item relative">
+    <a data-slot="sidebar-menu-button" data-active="true" data-sidebar="menu-button"
+        data-size="default" href="./"
+        class="peer/menu-button flex items-center gap-2 rounded-md p-2 text-left ring-sidebar-ring outline-hidden transition-[width,height,padding] group-has-data-[sidebar=menu-action]/menu-item:pr-8 group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:p-2! focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:font-medium data-[active=true]:text-sidebar-accent-foreground data-[state=open]:hover:bg-sidebar-accent data-[state=open]:hover:text-sidebar-accent-foreground [&>span:last-child]:truncate [&>svg]:size-4 [&>svg]:shrink-0 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground relative h-[30px] w-fit overflow-visible border border-transparent text-[0.8rem] font-medium after:absolute after:inset-x-0 after:-inset-y-1 after:z-0 after:rounded-md data-[active=true]:border-accent data-[active=true]:bg-accent 3xl:fixed:w-full 3xl:fixed:max-w-48">
+        
+        UI style guide
+        
+        
+        
+        
+    </a>
+</li>
+            
+            
+            
+            <li data-slot="sidebar-menu-item" data-sidebar="menu-item" class="group/menu-item relative">
+    <a data-slot="sidebar-menu-button" data-active="false" data-sidebar="menu-button"
+        data-size="default" href="../changelog/"
+        class="peer/menu-button flex items-center gap-2 rounded-md p-2 text-left ring-sidebar-ring outline-hidden transition-[width,height,padding] group-has-data-[sidebar=menu-action]/menu-item:pr-8 group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:p-2! focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:font-medium data-[active=true]:text-sidebar-accent-foreground data-[state=open]:hover:bg-sidebar-accent data-[state=open]:hover:text-sidebar-accent-foreground [&>span:last-child]:truncate [&>svg]:size-4 [&>svg]:shrink-0 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground relative h-[30px] w-fit overflow-visible border border-transparent text-[0.8rem] font-medium after:absolute after:inset-x-0 after:-inset-y-1 after:z-0 after:rounded-md data-[active=true]:border-accent data-[active=true]:bg-accent 3xl:fixed:w-full 3xl:fixed:max-w-48">
+        
+        Changelog
+        
+        
+        
+        
+    </a>
+</li>
+            
+            
+        </ul>
+    </div>
+</div>
+
+
+
+
+
+<div
+    class="sticky -bottom-1 z-10 h-16 shrink-0 bg-gradient-to-t from-background via-background/80 to-background/50 blur-xs">
+</div>
+
+                        </div>
+                    </div>
+                    <div class="h-full w-full">
+                        <div class="flex items-stretch text-[1.05rem] sm:text-[15px] xl:w-full" data-slot="docs">
+                            <div class="flex min-w-0 flex-1 flex-col">
+                                <div class="h-(--top-spacing) shrink-0"></div>
+                                
+                                
+                                <article class="w-full" view-transition-name="page">
+  <div class="flex flex-col gap-2">
+    <div class="flex flex-col gap-2">
+      <div id="page-header" class="flex items-start justify-between">
+        <h1 class="scroll-m-20 text-4xl font-semibold tracking-tight sm:text-3xl xl:text-4xl">
+          UI style guide
+        </h1>
+        <div class="flex items-start gap-2">
+          
+          <button id="copy-page"
+    onclick="fetch(`https://docs.mata.sh/development/ui-styleguide.md`).then((r) => r.text()).then((text) => navigator.clipboard.write([new ClipboardItem({ 'text/plain': text })]))"
+    data-slot="button" class="secondary cursor-pointer sm">
+    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+        stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="tabler-icon tabler-icon-copy ">
+        <path
+            d="M7 7m0 2.667a2.667 2.667 0 0 1 2.667 -2.667h8.666a2.667 2.667 0 0 1 2.667 2.667v8.666a2.667 2.667 0 0 1 -2.667 2.667h-8.666a2.667 2.667 0 0 1 -2.667 -2.667z">
+        </path>
+        <path d="M4.012 16.737a2.005 2.005 0 0 1 -1.012 -1.737v-10c0 -1.1 .9 -2 2 -2h10c.75 0 1.158 .385 1.5 1"></path>
+    </svg>
+    <span class="max-md:hidden">Copy Page</span>
+</button>
+          
+          
+          <a id="previous-button" class="button secondary icon sm" href="../documentation/">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+    class="tabler-icon tabler-icon-arrow-left">
+    <path d="M5 12l14 0"></path>
+    <path d="M5 12l6 6"></path>
+    <path d="M5 12l6 -6"></path>
+</svg>
+    <span class="sr-only">Previous</span>
+</a>
+          
+          
+          <a id="next-button" class="button secondary icon sm" href="../changelog/">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+    class="tabler-icon tabler-icon-arrow-right">
+    <path d="M5 12l14 0"></path>
+    <path d="M13 18l6 -6"></path>
+    <path d="M13 6l6 6"></path>
+</svg>
+    <span class="sr-only">Next</span>
+</a>
+          
+        </div>
+      </div>
+      
+    </div>
+    <div class="flex justify-end items-center">
+      
+
+      
+    </div>
+  </div>
+  <div class="typography w-full flex-1 *:data-[slot=alert]:first:mt-0">
+    <h1 id="ui-style-guide">UI style guide</h1>
+<p>How the MATA dashboard should look and feel, and the reusable building blocks to
+get there. Applies to everything rendered in the browser: Twig templates,
+<code>public/assets/css/main.css</code>, Tabulator tables, and modal content.</p>
+<h2 id="the-aesthetic-in-one-sentence">The aesthetic in one sentence</h2>
+<p><strong>Sleek, modern, minimalistic dark UI with a restrained cyberpunk accent —
+professional first, neon second.</strong></p>
+<p>Dark is the default and the reference design. The light theme, switched with
+the sun/moon button in the topbar, keeps every role: same accent, same
+severity meanings, light surfaces. Hex values in this guide are the dark ones
+unless a table lists both.</p>
+<p>What that means in practice:</p>
+<ul>
+<li><strong>Near-black, blue-tinted surfaces.</strong> Backgrounds are not pure <code>#000</code> grey —
+  they lean slightly blue (<code>#0b0d12</code>, <code>#0e1015</code>, <code>#12151c</code>). Depth comes from
+  layering these tones plus 1px hairline borders, not from heavy shadows or
+  gradients.</li>
+<li><strong>Cyan is the single accent color.</strong> Interactive/highlighted things glow
+  teal-cyan (<code>#3f93a6</code> borders, <code>#9fe8f2</code>/<code>#7fe3f0</code> text, <code>#10262b</code> fills).
+  Cyan is used sparingly — a 1–2px border edge, a hover state, an active page
+  button — never as a large fill.</li>
+<li><strong>Severity colors are muted, not neon.</strong> Red/orange/amber/green are dimmed
+  to sit comfortably on dark surfaces (<code>#c22a35</code>, not <code>#ff0000</code>). Brightness is
+  reserved for text tints and hover states.</li>
+<li><strong>Quiet by default, loud on signal.</strong> Chrome (headers, labels, pagination,
+  meta text) is desaturated grey-blue. Color always <em>means</em> something:
+  severity, state, or interactivity. If an element carries no signal, it stays
+  grey.</li>
+<li><strong>Small, dense, uppercase labels.</strong> Structural labels (table headers, server
+  names, pill text) are ~0.72rem, bold, uppercase, letter-spaced. Content text
+  stays normal-case and readable.</li>
+<li><strong>Tight geometry.</strong> Radii are small (4–8px on components, 10px on floating
+  cards). Padding is compact. Hairlines separate rows instead of gaps.</li>
+</ul>
+<h2 id="design-tokens">Design tokens</h2>
+<p><code>:root</code> in <code>public/assets/css/main.css</code> holds the dark values and
+<code>[data-theme=light]</code> right below it redefines them. These blocks are the only
+place colors are written down.</p>
+<div class="admonition warning">
+<p class="admonition-title">New colors must be tokens</p>
+<p>Rules use <code>var(--…)</code>, never a hex, <code>rgb()</code>, <code>hsl()</code> or color keyword. A new
+color needs a semantic token with a value in <strong>both</strong> blocks; reuse an
+existing token when the role matches instead of adding a near-duplicate.
+JavaScript follows the same rule: inline styles use <code>var(--…)</code>, canvas code
+(Chart.js) reads tokens with <code>window.mataThemeColor('--…')</code>.</p>
+</div>
+<p>Check for strays with
+<code>grep -nE '#[0-9a-fA-F]{3,8}\b|rgba?\(|hsla?\(' public/assets/css/main.css</code>:
+it should only hit the two token blocks.</p>
+<p>Tokens whose dark values match can still differ in light. For example
+<code>--text-heading</code> and <code>--text-on-fill</code> are both white in dark, but headings
+turn near-black in light while text on solid severity fills stays white. Pick
+the token by role, not by its dark value.</p>
+<h3 id="surfaces-borders">Surfaces &amp; borders</h3>
+<div class="table-wrapper"><table>
+<thead>
+<tr>
+<th>Name</th>
+<th>Token</th>
+<th>Dark</th>
+<th>Light</th>
+<th>Use</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Page</td>
+<td>Bulma <code>--bulma-body-background-color</code></td>
+<td><code>#14161a</code> (Bulma)</td>
+<td><code>#eef1f5</code></td>
+<td>Page background behind cards</td>
+</tr>
+<tr>
+<td>Surface, card</td>
+<td><code>--surface-card</code></td>
+<td><code>#000</code></td>
+<td><code>#fff</code></td>
+<td>Server, app and database cards, fleet summary, login card</td>
+</tr>
+<tr>
+<td>Surface, deepest</td>
+<td><code>--surface-base</code></td>
+<td><code>#0b0d12</code></td>
+<td><code>#fff</code></td>
+<td>Table body / component base background</td>
+</tr>
+<tr>
+<td>Surface, panel</td>
+<td><code>--surface-panel</code></td>
+<td><code>#0e1015</code></td>
+<td><code>#f5f7fa</code></td>
+<td>Headers, footers, filter bars, panel rows</td>
+</tr>
+<tr>
+<td>Surface, raised</td>
+<td><code>--surface-raised</code></td>
+<td><code>#12151c</code></td>
+<td><code>#fff</code></td>
+<td>Floating cards (dropdowns, popovers)</td>
+</tr>
+<tr>
+<td>Surface, control</td>
+<td><code>--surface-control</code> / <code>--surface-control-alt</code></td>
+<td><code>#10131a</code> / <code>#14171d</code></td>
+<td><code>#fff</code> / <code>#f1f3f7</code></td>
+<td>Inputs, secondary buttons</td>
+</tr>
+<tr>
+<td>Surface, chip</td>
+<td><code>--surface-chip</code></td>
+<td><code>#161a22</code></td>
+<td><code>#eceff4</code></td>
+<td>Neutral audit chips</td>
+</tr>
+<tr>
+<td>Surface, zebra</td>
+<td><code>--surface-zebra</code></td>
+<td><code>#0f1218</code></td>
+<td><code>#f8f9fb</code></td>
+<td>Even table rows</td>
+</tr>
+<tr>
+<td>Surface, hover</td>
+<td><code>--surface-hover</code> / <code>--surface-hover-alt</code> / <code>--surface-hover-header</code></td>
+<td><code>#131c26</code> / <code>#182029</code> / <code>#131a22</code></td>
+<td><code>#e8f3f6</code> / <code>#e1eff3</code> / <code>#e9eff4</code></td>
+<td>Row, button, and sortable-header hover fills</td>
+</tr>
+<tr>
+<td>Surface, muted</td>
+<td><code>--surface-muted</code></td>
+<td><code>#232323</code></td>
+<td><code>#eceff4</code></td>
+<td>README headings and notices</td>
+</tr>
+<tr>
+<td>Surface, icon button</td>
+<td><code>--surface-icon-button</code></td>
+<td><code>#23272f</code></td>
+<td><code>#f1f3f7</code></td>
+<td>Bell trigger, theme toggle</td>
+</tr>
+<tr>
+<td>Overlay</td>
+<td><code>--surface-overlay</code></td>
+<td><code>rgba(0,0,0,.5)</code></td>
+<td><code>rgba(16,22,32,.35)</code></td>
+<td>Modal backdrops</td>
+</tr>
+<tr>
+<td>Border, hairline</td>
+<td><code>--border-hairline</code></td>
+<td><code>#151a22</code></td>
+<td><code>#e7eaf0</code></td>
+<td>Row separators inside a component</td>
+</tr>
+<tr>
+<td>Border, default</td>
+<td><code>--border-default</code></td>
+<td><code>#1f242e</code></td>
+<td><code>#d9dee6</code></td>
+<td>Component outlines, section dividers</td>
+</tr>
+<tr>
+<td>Border, control</td>
+<td><code>--border-control</code></td>
+<td><code>#262c38</code></td>
+<td><code>#c8cfda</code></td>
+<td>Input/button/card borders</td>
+</tr>
+<tr>
+<td>Border, strong</td>
+<td><code>--border-strong</code> / <code>--border-strong-alt</code></td>
+<td><code>#2a3040</code> / <code>#3a4150</code></td>
+<td><code>#bcc4d0</code> / <code>#a9b2c0</code></td>
+<td>Outlined pills, bell trigger</td>
+</tr>
+<tr>
+<td>Border, control hover</td>
+<td><code>--border-control-hover</code></td>
+<td><code>#333c4d</code></td>
+<td><code>#96a0b1</code></td>
+<td>Input hover border</td>
+</tr>
+</tbody>
+</table></div>
+<h3 id="cyan-accent">Cyan accent</h3>
+<div class="table-wrapper"><table>
+<thead>
+<tr>
+<th>Name</th>
+<th>Token</th>
+<th>Dark</th>
+<th>Light</th>
+<th>Use</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Accent border</td>
+<td><code>--accent-border</code></td>
+<td><code>#3f93a6</code></td>
+<td><code>#2a8296</code></td>
+<td>Hover/focus border, active-state border</td>
+</tr>
+<tr>
+<td>Accent edge</td>
+<td><code>--accent-edge</code></td>
+<td><code>#2f6f7d</code></td>
+<td><code>#5aaabb</code></td>
+<td>Structural accent lines (header underline, filter bar left edge)</td>
+</tr>
+<tr>
+<td>Accent fill</td>
+<td><code>--accent-fill</code> / <code>--accent-fill-hover</code></td>
+<td><code>#10262b</code> / <code>#153238</code></td>
+<td><code>#e1f2f6</code> / <code>#cfeaf0</code></td>
+<td>Active/selected background</td>
+</tr>
+<tr>
+<td>Accent text</td>
+<td><code>--accent-text</code> / <code>--accent-text-alt</code> / <code>--accent-text-bright</code></td>
+<td><code>#9fe8f2</code> / <code>#7fe3f0</code> / <code>#c8f4fa</code></td>
+<td><code>#0e6273</code> / <code>#0f6b7e</code> / <code>#094e5c</code></td>
+<td>Highlighted and hover text</td>
+</tr>
+<tr>
+<td>Focus ring</td>
+<td><code>--accent-focus-ring</code></td>
+<td><code>rgba(63,147,166,.2)</code></td>
+<td><code>rgba(42,130,150,.25)</code></td>
+<td><code>box-shadow: 0 0 0 2px …</code> on focus</td>
+</tr>
+</tbody>
+</table></div>
+<h3 id="text">Text</h3>
+<p>In light, every text token reaches WCAG AA (4.5:1) on white, <code>--surface-panel</code>
+and the page background.</p>
+<div class="table-wrapper"><table>
+<thead>
+<tr>
+<th>Name</th>
+<th>Token</th>
+<th>Dark</th>
+<th>Light</th>
+<th>Use</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Text, heading</td>
+<td><code>--text-heading</code></td>
+<td><code>#fff</code></td>
+<td><code>#11141b</code></td>
+<td>Section headings, server names, card text</td>
+</tr>
+<tr>
+<td>Text, bright</td>
+<td><code>--text-bright</code></td>
+<td><code>#e8eaf0</code></td>
+<td><code>#161a22</code></td>
+<td>Headings inside components, input values</td>
+</tr>
+<tr>
+<td>Text, body</td>
+<td><code>--text-body</code></td>
+<td><code>#c9cfda</code></td>
+<td><code>#2c3340</code></td>
+<td>Table cells, content text</td>
+</tr>
+<tr>
+<td>Text, label</td>
+<td><code>--text-label</code></td>
+<td><code>#c5cad6</code></td>
+<td><code>#343b49</code></td>
+<td>Labels and floating-card rows</td>
+</tr>
+<tr>
+<td>Text, soft</td>
+<td><code>--text-soft</code></td>
+<td><code>#aeb7c5</code></td>
+<td><code>#464e5e</code></td>
+<td>Icon buttons, chart stat labels</td>
+</tr>
+<tr>
+<td>Text, muted</td>
+<td><code>--text-muted</code></td>
+<td><code>#8b93a5</code></td>
+<td><code>#586173</code></td>
+<td>Column headers, meta labels, secondary links</td>
+</tr>
+<tr>
+<td>Text, faint</td>
+<td><code>--text-faint</code></td>
+<td><code>#5a6172</code></td>
+<td><code>#5f6777</code></td>
+<td>Placeholders, counters, empty states</td>
+</tr>
+<tr>
+<td>Text on fill</td>
+<td><code>--text-on-fill</code></td>
+<td><code>#fff</code></td>
+<td><code>#fff</code></td>
+<td>Text on solid severity, env and alarm fills</td>
+</tr>
+</tbody>
+</table></div>
+<h3 id="severity-scale">Severity scale</h3>
+<p>Solid badge/pill fills, their 1px light borders, and the light text tints used
+when a count sits on a dark surface (e.g. dropdown rows):</p>
+<div class="table-wrapper"><table>
+<thead>
+<tr>
+<th>Level</th>
+<th>Fill (both themes)</th>
+<th>Border dark / light</th>
+<th>Tint dark / light</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>critical</td>
+<td><code>--sev-critical-fill</code> <code>#c22a35</code></td>
+<td><code>--sev-critical-border</code> <code>#e05561</code> / <code>#a3212b</code></td>
+<td><code>--sev-critical-tint</code> <code>#f09595</code> / <code>#b02430</code></td>
+</tr>
+<tr>
+<td>high / error</td>
+<td><code>--sev-high-fill</code> <code>#cc5b0e</code></td>
+<td><code>--sev-high-border</code> <code>#e98036</code> / <code>#a14709</code></td>
+<td><code>--sev-high-tint</code> <code>#f0b27b</code> / <code>#a24c17</code></td>
+</tr>
+<tr>
+<td>medium / warning</td>
+<td><code>--sev-medium-fill</code> <code>#c19209</code></td>
+<td><code>--sev-medium-border</code> <code>#e2b30b</code> / <code>#856303</code></td>
+<td><code>--sev-medium-tint</code> <code>#e3ce7a</code> / <code>#765e0b</code></td>
+</tr>
+<tr>
+<td>low / ok</td>
+<td><code>--sev-low-fill</code> <code>#2e7d43</code></td>
+<td><code>--sev-low-border</code> <code>#4da767</code> / <code>#256638</code></td>
+<td><code>--sev-low-tint</code> <code>#7bd88f</code> / <code>#226c38</code></td>
+</tr>
+<tr>
+<td>unknown</td>
+<td><code>--sev-unknown-fill</code> <code>#4a5060</code></td>
+<td><code>--sev-unknown-border</code> <code>#6b7280</code></td>
+<td><code>--sev-unknown-tint</code> <code>#9a9a9a</code> / <code>#5b6271</code></td>
+</tr>
+<tr>
+<td>abandoned / inactive</td>
+<td><code>--sev-abandoned-fill</code> <code>#343a47</code> / light <code>#e4e7ec</code></td>
+<td><code>--sev-abandoned-border</code> <code>#6b7280</code> dashed</td>
+<td><code>--sev-abandoned-tint</code> <code>#c5cad6</code> / <code>#464e5e</code></td>
+</tr>
+</tbody>
+</table></div>
+<p>Solid severity fills always carry <code>--text-on-fill</code> (white) bold text and keep
+their color in light. Borders darken the fill in light, so they also work as
+dot colors. Tints are text on the theme's surfaces: light in dark, dark in light.</p>
+<h3 id="other-token-groups">Other token groups</h3>
+<p>These carry their own light values in <code>main.css</code>; see the blocks for numbers.</p>
+<div class="table-wrapper"><table>
+<thead>
+<tr>
+<th>Group</th>
+<th>Tokens</th>
+<th>Light behaviour</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Status text</td>
+<td><code>--signal-critical</code>, <code>-high</code>, <code>-medium</code>, <code>-error</code>, <code>-warn</code>, <code>-ok</code>, <code>-info</code>, <code>-neutral</code></td>
+<td>Darker variants with AA contrast (server card stats, log levels, Tabulator level formatter)</td>
+</tr>
+<tr>
+<td>Alarm fills</td>
+<td><code>--alarm-fill</code>, <code>--alarm-fill-focus</code>, <code>--alarm-border</code>, <code>--alarm-border-focus</code></td>
+<td>Unchanged</td>
+</tr>
+<tr>
+<td>Solid fills</td>
+<td><code>--env-*</code>, <code>--fill-warn</code>, <code>--fill-error</code>, <code>--ping-*</code>, <code>--logo-*</code>, <code>--readme-heading-fill</code>, <code>--notification-*</code></td>
+<td>Unchanged; they carry their own text color</td>
+</tr>
+<tr>
+<td>Icons</td>
+<td><code>--icon-navbar</code>, <code>--icon-title</code>, <code>--icon-stat</code>, <code>--icon-loading</code>, <code>--icon-default</code></td>
+<td>Dark greys</td>
+</tr>
+<tr>
+<td>Chrome</td>
+<td><code>--navbar-background</code>, <code>--navbar-border</code>, <code>--navbar-badge-ring</code>, <code>--progress-bar</code></td>
+<td>Frosted white bar, cyan progress bar</td>
+</tr>
+<tr>
+<td>Notices</td>
+<td><code>--notice-*</code></td>
+<td>Unchanged (white card with dark code box in both)</td>
+</tr>
+<tr>
+<td>Charts</td>
+<td><code>--chart-line</code>, <code>--chart-fill</code>, <code>--chart-point</code>, <code>--chart-text</code>, <code>--chart-grid</code></td>
+<td>Read by <code>theme.js</code>; open charts update on <code>mata:themechange</code></td>
+</tr>
+<tr>
+<td>Tables</td>
+<td><code>--table-placeholder</code></td>
+<td>Overrides the Tabulator midnight theme's placeholder color</td>
+</tr>
+<tr>
+<td>Native widgets</td>
+<td><code>--color-scheme</code></td>
+<td><code>color-scheme</code> of selects and date inputs</td>
+</tr>
+</tbody>
+</table></div>
+<h2 id="typography-rules">Typography rules</h2>
+<ul>
+<li>Section headings (<code>h3</code>) are Raleway, bold, uppercase.</li>
+<li><strong>Structural micro-labels</strong> — table column headers, server labels, pill
+  text: <code>font-size: .72rem</code> (<code>.78rem</code> for Bulma tables); <code>font-weight: 700</code>;
+  <code>text-transform: uppercase</code>; <code>letter-spacing: .07em</code>; color <code>#8b93a5</code>.</li>
+<li>Body/content inside components: <code>.9–.95rem</code>, normal case.</li>
+<li>Floating card text (dropdown menus): 13px rows, 12px meta, 11px badges.</li>
+<li>Monospace (ui-monospace stack) only for machine-ish values: progress
+  counters, CVE ids, code.</li>
+</ul>
+<h2 id="reusable-components">Reusable components</h2>
+<p>These already exist in <code>main.css</code> — reuse the classes instead of restyling.</p>
+<h3 id="panel-section-row-audit-server-row-filter-menu">Panel / section row (<code>.audit-server-row</code>, <code>.filter-menu</code>)</h3>
+<p>The signature MATA container: panel surface, default border, <strong>2px cyan left
+edge</strong> as the accent.</p>
+<pre class="highlight"><code class="language-css">background: #0e1015;
+border: 1px solid #1f242e;
+border-left: 2px solid #2f6f7d;
+border-radius: 4–6px;</code></pre>
+<h3 id="data-tables-tabulator">Data tables (<code>.tabulator</code>)</h3>
+<p>Global — every Tabulator table inherits it. Rounded 6px shell with
+<code>overflow: hidden</code>, panel-colored header with a <strong>1px <code>#2f6f7d</code> bottom
+border</strong>, uppercase muted column titles, zebra rows (<code>#0f1218</code>), hairline row
+separators, hover <code>#131c26</code>, no vertical cell borders. Footer pagination:
+ghost buttons; the active page gets the cyan trio (fill <code>#10262b</code>, border
+<code>#2f6f7d</code>, text <code>#9fe8f2</code>).</p>
+<h3 id="inputs-secondary-buttons-filter-menu-fields">Inputs &amp; secondary buttons (<code>.filter-menu</code> fields)</h3>
+<pre class="highlight"><code class="language-css">background: #10131a;             /* buttons: #14171d */
+border: 1px solid #262c38;
+border-radius: 4px;
+color: #e8eaf0;
+color-scheme: var(--color-scheme); /* native select/date widgets follow the theme */
+/* hover  */ border-color: #333c4d;         /* buttons: #3f93a6 + #9fe8f2 text */
+/* focus  */ border-color: #3f93a6; box-shadow: 0 0 0 2px rgba(63,147,166,.2);</code></pre>
+<p>Primary/action variant (<code>.audit-run-button</code>): accent fill <code>#10262b</code>, border
+<code>#2f6f7d</code>, text <code>#9fe8f2</code>.</p>
+<h3 id="severity-badges-pills-cve-badge-audit-pill-audit-chip">Severity badges &amp; pills (<code>.cve-badge</code>, <code>.audit-pill</code>, <code>.audit-chip</code>)</h3>
+<p>Solid severity fill + 1px lighter border of the same hue + white bold text,
+radius 4–5px. Zero/meta variants go transparent with <code>#2a3040</code> border and
+muted text — color only when there is something to signal.</p>
+<h3 id="count-badge-notification-bell-badge">Count badge (<code>.notification-bell-badge</code>)</h3>
+<p>Circular count that overlaps a corner: <code>min-width: 18px; height: 18px;
+border-radius: 9999px</code> (stadium — stays round at 2+ digits), solid <code>#c22a35</code>,
+white 11px bold text, and a <strong>2px ring in the parent's background color</strong>
+(<code>var(--navbar-badge-ring)</code> on the navbar) so it appears punched out.</p>
+<h3 id="icon-button-notification-bell-trigger-theme-toggle">Icon button (<code>.notification-bell-trigger</code>, <code>.theme-toggle</code>)</h3>
+<p>36×36 rounded square (8px), <code>#23272f</code> fill, <code>#3a4150</code> border, muted icon.
+Hover/focus: cyan border + brightened icon. The pattern for any navbar-level
+icon action.</p>
+<h3 id="floating-card-dropdown-notification-bell-menu">Floating card / dropdown (<code>.notification-bell-menu</code>)</h3>
+<p><code>width: ~260–280px; background: #12151c; border: 1px solid #262c38;
+border-radius: 10px; overflow: hidden; box-shadow: 0 12px 28px
+rgba(0,0,0,.45)</code>. Structure: header row (13px semibold title + 12px muted
+action link) → hairline-separated content rows → footer strip on <code>#0e1015</code>
+holding one full-width bordered button.</p>
+<h3 id="status-dot-notification-dot-node-health-status-dot">Status dot (<code>.notification-dot</code>, <code>.node-health-status-dot</code>)</h3>
+<p>8px circle in the severity fill color, paired with a normal-case label and,
+optionally, a right-aligned count in the severity <em>text tint</em>.</p>
+<h3 id="toggle-switch-toggle">Toggle switch (<code>.toggle</code>)</h3>
+<p>Track <code>#262c38</code> / border <code>#3a4150</code>, grey thumb. Checked: track <code>#10262b</code>,
+border <code>#3f93a6</code>, thumb <code>#7fe3f0</code>. Markup: hidden checkbox +
+<code>.toggle-track</code> + <code>.toggle-text</code>.</p>
+<h2 id="interaction-rules">Interaction rules</h2>
+<ul>
+<li><strong>Hover</strong> = cyan border (<code>#3f93a6</code>) and/or brightened text — never a big
+  background swap. Rows may deepen to <code>#131c26</code>.</li>
+<li><strong>Focus</strong> on inputs: cyan border + soft <code>rgba(63,147,166,.2)</code> ring, never
+  the default outline alone.</li>
+<li><strong>Active/selected</strong> = the cyan trio: fill <code>#10262b</code>, border <code>#2f6f7d</code>, text
+  <code>#9fe8f2</code>.</li>
+<li><strong>Transitions</strong>: <code>.1–.15s ease</code> on <code>border-color</code>, <code>color</code>, <code>box-shadow</code>,
+  <code>opacity</code>. Nothing bouncy; no transitions on layout properties.</li>
+<li><strong>Reveal on intent</strong>: secondary actions (refresh/info buttons) sit at
+  <code>opacity: 0</code> and appear on container hover.</li>
+<li><strong>De-emphasize, don't hide</strong>: filtered-out/zero items drop to
+  <code>opacity: .35</code> + grayscale rather than disappearing.</li>
+</ul>
+<h2 id="codebase-gotchas-read-before-styling">Codebase gotchas (read before styling)</h2>
+<ul>
+<li><strong>CSS load order</strong> (<code>templates/partials/structure/head.html.twig</code>):
+  <code>fonts.css → tabulator_midnight.min.css → bulma.css → main.css</code>. The
+  Tabulator theme is dark; <code>main.css</code> overrides its colors with tokens, which
+  is what makes tables follow the light theme. A Tabulator feature that is not
+  styled in <code>main.css</code> yet keeps midnight colors. <code>main.css</code>
+  wins equal-specificity conflicts by coming last — you rarely need
+  <code>!important</code> to override the Tabulator theme or Bulma.</li>
+<li><strong><code>main.css</code> has no cache-bust parameter.</strong> After CSS changes, a hard
+  refresh (Ctrl+Shift+R) is required to see them.</li>
+<li><strong>No global <code>border-box</code> reset</strong> — elements resolve to <code>content-box</code>.
+  Any fixed-size element with padding/border needs its own
+  <code>box-sizing: border-box</code> or it will render larger than specified.</li>
+<li><strong>Global SVG rule</strong>: <code>svg { width: 12px; height: 12px; stroke: #7b7b7b;
+  stroke-width: 2.5 }</code>, plus <code>.navbar-item svg { stroke: white; …
+  margin-right: -6px }</code>. Component icons must override size and set
+  <code>stroke: currentColor</code> (and reset the navbar margin) or they inherit these.</li>
+<li><strong>Perfect circles</strong>: use <code>border-radius: 9999px</code>, not <code>50%</code>, on count
+  badges so they become stadiums instead of ovals when content widens.</li>
+<li><strong>Themes</strong>: the server renders <code>&lt;html data-theme="dark|light"&gt;</code> and the
+  <code>color-scheme</code> meta from the <code>mata_theme</code> cookie (<code>UiTheme</code>), so there is no
+  flash and no inline script. <code>src/main.scss</code> puts Bulma's dark theme on
+  <code>:root</code> and its light theme on <code>[data-theme=light]</code>; <code>prefers-color-scheme</code>
+  is ignored on purpose, so don't add <code>@use "bulma/sass/themes"</code> back.
+  <code>theme.js</code> flips the attribute, writes the cookie and dispatches
+  <code>mata:themechange</code> on <code>document</code>.</li>
+<li><strong>Charts</strong>: give Chart.js datasets <code>themeColors: { borderColor: '--chart-line' }</code>
+  for colors that should follow the theme; <code>theme.js</code> re-reads them and calls
+  <code>chart.update()</code> when the theme changes. Colors from <code>servers.json</code> stay as
+  configured.</li>
+<li><strong>Topbar</strong>: keeps Bulma's <code>is-dark</code> for the dark theme; <code>[data-theme=light]
+  .navbar.is-dark</code> resets its Bulma navbar variables.</li>
+<li><strong>Out of scope</strong>: alarm emails, webhook templates and advisory reports stay
+  dark with their own inline colors; the theme does not reach them.</li>
+</ul>
+<h2 id="do-dont">Do / don't</h2>
+<div class="table-wrapper"><table>
+<thead>
+<tr>
+<th>Do</th>
+<th>Don't</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Layer the three surface tones + hairlines for depth</td>
+<td>Use pure <code>#000</code>/<code>#fff</code>, grey <code>#252525</code>-era tones, or heavy box-shadows on inline elements</td>
+</tr>
+<tr>
+<td>Use cyan for <em>interaction and structure</em> only</td>
+<td>Introduce a second accent hue (purple, magenta, green highlights)</td>
+</tr>
+<tr>
+<td>Reuse the severity table exactly, muted fill + light border + white text</td>
+<td>Use saturated <code>red</code>/<code>orange</code>/<code>gold</code> keywords or invent new severity shades</td>
+</tr>
+<tr>
+<td>Keep labels tiny/uppercase/muted and content readable</td>
+<td>Uppercase body text or brighten labels to white</td>
+</tr>
+<tr>
+<td>Small radii (4–8px), 10px only on floating cards</td>
+<td>Pill-shaped buttons, large rounded panels</td>
+</tr>
+<tr>
+<td>Let color mean severity/state/interactivity</td>
+<td>Decorate neutral elements with color</td>
+</tr>
+</tbody>
+</table></div>
+  </div>
+</article>
+                                <div id="bottom-navigation" class="mx-auto flex h-16 w-full max-w-2xl items-center justify-between gap-2 px-4 md:px-0">
+    
+    <a class="button secondary" href="../documentation/">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+    class="tabler-icon tabler-icon-arrow-left">
+    <path d="M5 12l14 0"></path>
+    <path d="M5 12l6 6"></path>
+    <path d="M5 12l6 -6"></path>
+</svg>
+    <span class="max-[500px]:hidden truncate">Documentation</span>
+</a>
+    
+    
+    <a class="button secondary" href="../changelog/">
+    <span class="max-[500px]:hidden truncate">Changelog</span>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+    class="tabler-icon tabler-icon-arrow-right">
+    <path d="M5 12l14 0"></path>
+    <path d="M13 18l6 -6"></path>
+    <path d="M13 6l6 6"></path>
+</svg>
+</a>
+    
+</div>
+                                
+                                
+                            </div>
+                            
+                            <dialog id="bottom-sidebar" onclick="onBottomSidebarDialogClick(event)" class="bg-transparent"
+    style="position: fixed; left: 0px; top: 0px; transform: translate(0px, 58px); min-width: max-content; --radix-popper-transform-origin: 0% 0px; will-change: transform; z-index: 50; --radix-popper-available-width: 504px; --radix-popper-available-height: 857px; --radix-popper-anchor-width: 72.94999694824219px; --radix-popper-anchor-height: 32px;">
+    <div data-side="bottom" data-align="start" data-state="open" role="dialog" data-slot="popover-content"
+        class="text-popover-foreground data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 z-50 origin-(--radix-popover-content-transform-origin) border outline-hidden bg-background/90 no-scrollbar h-(--radix-popper-available-height) w-(--radix-popper-available-width) overflow-y-auto rounded-none border-none p-0 shadow-none backdrop-blur duration-100"
+        style="--radix-popover-content-transform-origin: var(--radix-popper-transform-origin); --radix-popover-content-available-width: var(--radix-popper-available-width); --radix-popover-content-available-height: var(--radix-popper-available-height); --radix-popover-trigger-width: var(--radix-popper-anchor-width); --radix-popover-trigger-height: var(--radix-popper-anchor-height);"
+        tabindex="-1">
+        <div class="flex flex-col gap-12 overflow-auto px-6 py-6">
+            
+            
+            
+
+            
+            <div class="flex flex-col gap-4">
+                <div class="text-muted-foreground text-sm font-medium">Menu</div>
+                <div class="flex flex-col gap-3">
+                    
+                    <a class="text-2xl font-medium" href="../..">
+                        
+                        MATA
+                        
+                    </a>
+                    
+                </div>
+            </div>
+            
+
+            
+            <div class="flex flex-col gap-8">
+                
+                <div class="flex flex-col gap-4">
+                    <div class="text-muted-foreground text-sm font-medium">Getting started</div>
+                    
+                    <div class="flex flex-col gap-3">
+                        
+                        <a class="text-2xl font-medium" href="../../guides/quickstart/">
+                            
+                            Quick start
+                            
+                        </a>
+                        
+                        <a class="text-2xl font-medium" href="../../guides/quickstart-docker/">
+                            
+                            Docker quickstart
+                            
+                        </a>
+                        
+                        <a class="text-2xl font-medium" href="../../guides/first-server/">
+                            
+                            Add your first server
+                            
+                        </a>
+                        
+                        <a class="text-2xl font-medium" href="../../guides/agent-install/">
+                            
+                            Install with a coding agent
+                            
+                        </a>
+                        
+                    </div>
+                    
+                </div>
+                
+                <div class="flex flex-col gap-4">
+                    <div class="text-muted-foreground text-sm font-medium">Guides</div>
+                    
+                    <div class="flex flex-col gap-3">
+                        
+                        <a class="text-2xl font-medium" href="../../guides/configuration/">
+                            
+                            Configuration
+                            
+                        </a>
+                        
+                        <a class="text-2xl font-medium" href="../../guides/version-config/">
+                            
+                            Version your config
+                            
+                        </a>
+                        
+                        <a class="text-2xl font-medium" href="../../guides/monitoring/">
+                            
+                            Monitoring
+                            
+                        </a>
+                        
+                        <a class="text-2xl font-medium" href="../../guides/application-error-monitoring/">
+                            
+                            Application error monitoring
+                            
+                        </a>
+                        
+                        <a class="text-2xl font-medium" href="../../guides/security-advisories/">
+                            
+                            Security advisories
+                            
+                        </a>
+                        
+                        <a class="text-2xl font-medium" href="../../guides/user-management/">
+                            
+                            User management CLI
+                            
+                        </a>
+                        
+                        <a class="text-2xl font-medium" href="../../guides/secure-application/">
+                            
+                            Secure an installation
+                            
+                        </a>
+                        
+                        <a class="text-2xl font-medium" href="../../examples/webserver-configs/">
+                            
+                            Web server examples
+                            
+                        </a>
+                        
+                    </div>
+                    
+                </div>
+                
+                <div class="flex flex-col gap-4">
+                    <div class="text-muted-foreground text-sm font-medium">Node</div>
+                    
+                    <div class="flex flex-col gap-3">
+                        
+                        <a class="text-2xl font-medium" href="../../node/configuration/">
+                            
+                            Configuration
+                            
+                        </a>
+                        
+                        <a class="text-2xl font-medium" href="../../node/cli/">
+                            
+                            Command line
+                            
+                        </a>
+                        
+                        <a class="text-2xl font-medium" href="../../node/frameworks/">
+                            
+                            Framework detection
+                            
+                        </a>
+                        
+                        <a class="text-2xl font-medium" href="../../node/docker/">
+                            
+                            Docker
+                            
+                        </a>
+                        
+                        <a class="text-2xl font-medium" href="../../node/log-parsers/">
+                            
+                            Log formats
+                            
+                        </a>
+                        
+                        <a class="text-2xl font-medium" href="../../node/shell-command-surface/">
+                            
+                            Shell command surface
+                            
+                        </a>
+                        
+                    </div>
+                    
+                </div>
+                
+                <div class="flex flex-col gap-4">
+                    <div class="text-muted-foreground text-sm font-medium">Reference</div>
+                    
+                    <div class="flex flex-col gap-3">
+                        
+                        <a class="text-2xl font-medium" href="../../reference/alarms/">
+                            
+                            Alarm decision and delivery flow
+                            
+                        </a>
+                        
+                        <a class="text-2xl font-medium" href="../../reference/docker/">
+                            
+                            Docker deployment
+                            
+                        </a>
+                        
+                        <a class="text-2xl font-medium" href="../../reference/cli/">
+                            
+                            Operator CLI
+                            
+                        </a>
+                        
+                    </div>
+                    
+                </div>
+                
+                <div class="flex flex-col gap-4">
+                    <div class="text-muted-foreground text-sm font-medium">Architecture</div>
+                    
+                    <div class="flex flex-col gap-3">
+                        
+                        <a class="text-2xl font-medium" href="../../architecture/overview/">
+                            
+                            Overview
+                            
+                        </a>
+                        
+                        <a class="text-2xl font-medium" href="../../architecture/security/">
+                            
+                            Security
+                            
+                        </a>
+                        
+                        <a class="text-2xl font-medium" href="../../architecture/server-metrics-pipeline/">
+                            
+                            Server metrics pipeline
+                            
+                        </a>
+                        
+                        <a class="text-2xl font-medium" href="../../architecture/technology-choices/">
+                            
+                            Technology choices
+                            
+                        </a>
+                        
+                    </div>
+                    
+                </div>
+                
+                <div class="flex flex-col gap-4">
+                    <div class="text-muted-foreground text-sm font-medium">Development</div>
+                    
+                    <div class="flex flex-col gap-3">
+                        
+                        <a class="text-2xl font-medium" href="../development-setup/">
+                            
+                            Development setup
+                            
+                        </a>
+                        
+                        <a class="text-2xl font-medium" href="../documentation/">
+                            
+                            Documentation
+                            
+                        </a>
+                        
+                        <a class="text-2xl font-medium" href="./">
+                            
+                            UI style guide
+                            
+                        </a>
+                        
+                        <a class="text-2xl font-medium" href="../changelog/">
+                            
+                            Changelog
+                            
+                        </a>
+                        
+                    </div>
+                    
+                </div>
+                
+            </div>
+            
+            
+
+        </div>
+    </div>
+</dialog>
+                            <div
+                                class="sticky top-[calc(var(--header-height)+1px)] ml-auto hidden h-[calc(100svh-var(--header-height)-var(--footer-height))] w-72 flex-col gap-4 overflow-hidden overscroll-none pb-8 xl:flex">
+                                <div class="h-(--top-spacing) shrink-0"></div>
+                                
+                                
+                                <div id="toc" view-transition-name="toc" class="no-scrollbar overflow-y-auto px-8">
+    <div class="flex flex-col gap-2 p-4 pt-0 text-sm">
+        <p class="text-muted-foreground bg-background sticky top-0 h-6 text-xs">On This Page</p>
+        
+        
+        
+        
+        <a href="#the-aesthetic-in-one-sentence" data-active="false" data-depth="2">
+            The aesthetic in one sentence
+        </a>
+        
+
+        
+        <a href="#design-tokens" data-active="false" data-depth="2">
+            Design tokens
+        </a>
+        
+        
+        <a href="#surfaces-borders" data-active="false" data-depth="3">
+            Surfaces &amp; borders
+        </a>
+        
+        <a href="#cyan-accent" data-active="false" data-depth="3">
+            Cyan accent
+        </a>
+        
+        <a href="#text" data-active="false" data-depth="3">
+            Text
+        </a>
+        
+        <a href="#severity-scale" data-active="false" data-depth="3">
+            Severity scale
+        </a>
+        
+        <a href="#other-token-groups" data-active="false" data-depth="3">
+            Other token groups
+        </a>
+        
+        
+
+        
+        <a href="#typography-rules" data-active="false" data-depth="2">
+            Typography rules
+        </a>
+        
+
+        
+        <a href="#reusable-components" data-active="false" data-depth="2">
+            Reusable components
+        </a>
+        
+        
+        <a href="#panel-section-row-audit-server-row-filter-menu" data-active="false" data-depth="3">
+            Panel / section row (.audit-server-row, .filter-menu)
+        </a>
+        
+        <a href="#data-tables-tabulator" data-active="false" data-depth="3">
+            Data tables (.tabulator)
+        </a>
+        
+        <a href="#inputs-secondary-buttons-filter-menu-fields" data-active="false" data-depth="3">
+            Inputs &amp; secondary buttons (.filter-menu fields)
+        </a>
+        
+        <a href="#severity-badges-pills-cve-badge-audit-pill-audit-chip" data-active="false" data-depth="3">
+            Severity badges &amp; pills (.cve-badge, .audit-pill, .audit-chip)
+        </a>
+        
+        <a href="#count-badge-notification-bell-badge" data-active="false" data-depth="3">
+            Count badge (.notification-bell-badge)
+        </a>
+        
+        <a href="#icon-button-notification-bell-trigger-theme-toggle" data-active="false" data-depth="3">
+            Icon button (.notification-bell-trigger, .theme-toggle)
+        </a>
+        
+        <a href="#floating-card-dropdown-notification-bell-menu" data-active="false" data-depth="3">
+            Floating card / dropdown (.notification-bell-menu)
+        </a>
+        
+        <a href="#status-dot-notification-dot-node-health-status-dot" data-active="false" data-depth="3">
+            Status dot (.notification-dot, .node-health-status-dot)
+        </a>
+        
+        <a href="#toggle-switch-toggle" data-active="false" data-depth="3">
+            Toggle switch (.toggle)
+        </a>
+        
+        
+
+        
+        <a href="#interaction-rules" data-active="false" data-depth="2">
+            Interaction rules
+        </a>
+        
+
+        
+        <a href="#codebase-gotchas-read-before-styling" data-active="false" data-depth="2">
+            Codebase gotchas (read before styling)
+        </a>
+        
+
+        
+        <a href="#do-dont" data-active="false" data-depth="2">
+            Do / don't
+        </a>
+        
+
+        
+        
+        
+        
+
+    </div>
+    <div class="h-12"></div>
+
+</div>
+                                
+                                
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+        <footer view-transition-name="footer"
+    class="group-has-[.section-soft]/body:bg-surface/40 3xl:fixed:bg-transparent dark:bg-transparent">
+    <div class="container-wrapper px-4 xl:px-6">
+        <div class="flex h-(--footer-height) items-center justify-between">
+            <div class="text-muted-foreground w-full text-center text-xs leading-loose sm:text-sm">
+                
+                <a href="https://github.com/asiffer/mkdocs-shadcn">shadcn theme</a> provided by
+                <a href="https://github.com/asiffer">@asiffer</a>
+            </div>
+        </div>
+    </div>
+</footer>
+    </div>
+     
+
+<script src="../../search/main.js"></script>
+
+
+    
+
+    <script integrity="sha384-JLNLRFGzvOp0up707XKgSnAjjt1w5BF/+lbeLQvlf6mNwf0m89IXFdpNAk4t6Hcs"
+        src="../../js/copy-button.js"></script>
+    <script integrity="sha384-JBx6cBEiyhK1KPwZgBHiI6GDaAmvlOxMQFyWAZTEpW5Ifo5XQ2LBcJ61GVOumwF1"
+        src="../../js/sidebar.js"></script>
+    <script integrity="sha384-fNURFMRt0p/HqXnQnV4+CT9dX1GiU5F0fC3pFbg7gfoANytoUMErSW7suWSBkSuF"
+        src="../../js/slider.js"></script>
+    <script>updatePygmentsStylesheet();</script>
+    
+    
+    
+    <script type="speculationrules">
+{
+  "prerender": [
+    {
+      "where": {
+          "selector_matches": ["#next-button", "#previous-button"]
+      }
+    }
+  ]
+}
+</script>
+</body>
+
+</html>
