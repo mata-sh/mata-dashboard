@@ -53,13 +53,15 @@ final class BrandingResolverTest extends TestCase
     public function testDefaultFilesAreSeededAndUsed(): void
     {
         file_put_contents($this->defaultsDir . '/logo.png', 'default logo');
-        file_put_contents($this->defaultsDir . '/logo_topbar.png', 'default topbar');
+        file_put_contents($this->defaultsDir . '/logo_topbar_dark.png', 'default topbar dark');
+        file_put_contents($this->defaultsDir . '/logo_topbar_light.png', 'default topbar light');
         file_put_contents($this->defaultsDir . '/favicon.svg', 'default favicon');
 
         $assets = (new BrandingResolver($this->brandingDir, $this->defaultsDir, new NullLogger()))->resolve();
 
         self::assertSame('branding/logo.png', $assets['logo']);
-        self::assertSame('branding/logo_topbar.png', $assets['logo_topbar']);
+        self::assertSame('branding/logo_topbar_dark.png', $assets['logo_topbar_dark']);
+        self::assertSame('branding/logo_topbar_light.png', $assets['logo_topbar_light']);
         self::assertSame('branding/favicon.svg', $assets['favicon']);
         self::assertSame('image/svg+xml', $assets['favicon_type']);
         self::assertSame('default favicon', file_get_contents($this->brandingDir . '/favicon.svg'));

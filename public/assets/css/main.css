@@ -282,9 +282,9 @@ body {
     --bulma-burger-l: var(--bulma-text-l);
 }
 
-/* The topbar logo is drawn light for the dark bar; flip its lightness, keep its hues. */
-[data-theme=light] .navbar-brand img {
-    filter: invert(1) hue-rotate(180deg);
+:root:not([data-theme=light]) .logo-topbar-light,
+[data-theme=light] .logo-topbar-dark {
+    display: none;
 }
 
 #main-section.container {

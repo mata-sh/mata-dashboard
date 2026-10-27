@@ -19,12 +19,12 @@ final readonly class BrandingResolver
     ) {}
 
     /**
-     * @return array{logo: string, logo_topbar: string, favicon: string, favicon_type: string}
+     * @return array{logo: string, logo_topbar_dark: string, logo_topbar_light: string, favicon: string, favicon_type: string}
      */
     public function resolve(): array
     {
         $brandingAssets = [];
-        foreach (['logo' => 'logo.png', 'logo_topbar' => 'logo_topbar.png'] as $key => $file) {
+        foreach (['logo' => 'logo.png', 'logo_topbar_dark' => 'logo_topbar_dark.png', 'logo_topbar_light' => 'logo_topbar_light.png'] as $key => $file) {
             if (!file_exists($this->brandingDir . '/' . $file) && is_file($this->brandingDefaultsDir . '/' . $file)) {
                 if (!is_dir($this->brandingDir)) {
                     @mkdir($this->brandingDir, 0755, true);
@@ -63,7 +63,8 @@ final readonly class BrandingResolver
 
         return [
             'logo' => $brandingAssets['logo'],
-            'logo_topbar' => $brandingAssets['logo_topbar'],
+            'logo_topbar_dark' => $brandingAssets['logo_topbar_dark'],
+            'logo_topbar_light' => $brandingAssets['logo_topbar_light'],
             'favicon' => $favicon['path'],
             'favicon_type' => $favicon['type'],
         ];

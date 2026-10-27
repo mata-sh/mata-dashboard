@@ -277,9 +277,7 @@ border `#3f93a6`, thumb `#7fe3f0`. Markup: hidden checkbox +
   `chart.update()` when the theme changes. Colors from `servers.json` stay as
   configured.
 - **Topbar**: keeps Bulma's `is-dark` for the dark theme; `[data-theme=light]
-  .navbar.is-dark` resets its Bulma navbar variables, and the topbar logo is
-  inverted (`filter: invert(1) hue-rotate(180deg)`), since it is drawn for a
-  dark bar.
+  .navbar.is-dark` resets its Bulma navbar variables.
 - **Out of scope**: alarm emails, webhook templates and advisory reports stay
   dark with their own inline colors; the theme does not reach them.
 

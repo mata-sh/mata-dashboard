@@ -1,6 +1,6 @@
 <nav class="navbar is-dark is-fixed-top" role="navigation" aria-label="main navigation">
   <div class="navbar-brand">
-    <a class="navbar-item has-text-weight-bold" href="#" hx-get="{{ endpoints.server_render }}" hx-target="#main-section" hx-swap="innerHTML">{{ layout.organization_name }} <img src="{{ branding.logo_topbar }}" /> <strong>{{ branding.app_name }}</strong></a>
+    <a class="navbar-item has-text-weight-bold" href="#" hx-get="{{ endpoints.server_render }}" hx-target="#main-section" hx-swap="innerHTML">{{ layout.organization_name }} <img class="logo-topbar-dark" src="{{ branding.logo_topbar_dark }}" alt="" /><img class="logo-topbar-light" src="{{ branding.logo_topbar_light }}" alt="" /> <strong>{{ branding.app_name }}</strong></a>
     {% if app_env is defined and app_env != 'prod' %}
       <span class="navbar-item topbar-env-tag app-env {{ app_env }}">{{ app_env }}</span>
     {% endif %}

@@ -209,7 +209,8 @@ $brandingAssets = (new BrandingResolver(
 $twig->addGlobal('branding', [
     'app_name' => $appConfig->general->appName,
     'logo' => $brandingAssets['logo'],
-    'logo_topbar' => $brandingAssets['logo_topbar'],
+    'logo_topbar_dark' => $brandingAssets['logo_topbar_dark'],
+    'logo_topbar_light' => $brandingAssets['logo_topbar_light'],
     'favicon' => $brandingAssets['favicon'],
     'favicon_type' => $brandingAssets['favicon_type'],
 ]);

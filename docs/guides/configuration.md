@@ -265,11 +265,6 @@ file; see the [server metrics pipeline](../architecture/server-metrics-pipeline.
 
 The dashboard is dark by default. The sun/moon button in the topbar switches to a light theme. Alarm emails, and advisory reports stay dark.
 
-!!! info "Custom topbar logo"
-    `public/branding/logo_topbar.png` is drawn on the dark bar. The light theme
-    shows it inverted, with its hues kept, so a white or light logo on a
-    transparent background works in both themes.
-
 ## Validate changes
 
 `bin/mata config validate` reads every configuration file with the same loaders
