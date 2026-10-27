@@ -76,6 +76,7 @@ use Mata\Utils\PathResolver;
 use Mata\Utils\Tools;
 use Mata\Utils\UsersFilePathResolver;
 use Mata\Views\MetricsRenderer;
+use Mata\Views\Support\UiTheme;
 use Monolog\ErrorHandler as MonologErrorHandler;
 use Symfony\Component\Mailer\Mailer;
 use Symfony\Component\Mailer\Transport;
@@ -114,6 +115,7 @@ $log = $logConfigurator->createBootLogger($paths);
 // ************************************************************************************************
 $loader = new FilesystemLoader($paths->templatesPath);
 $twig = new Environment($loader, ['autoescape' => 'html']);
+$twig->addGlobal('theme', UiTheme::fromCookie($request->cookie(UiTheme::COOKIE))->value);
 
 // Configuration failures occur before App initialization; derive the public asset path from the request.
 $errorAssetBaseUrl = rtrim($request->scriptDirectory(), '/') . '/assets';

@@ -86,7 +86,7 @@ function renderSeries(container, series, filters = {}) {
     } else if (window.Chart) {
         state.chart?.destroy();
         state.chart = new window.Chart(canvas.getContext('2d'), {
-            type: 'line', data: { labels: series.labels || [], datasets: [{ label: series.metric || 'Metric', data: series.data || [], borderColor: window.mataThemeColor('--chart-line'), backgroundColor: window.mataThemeColor('--chart-fill'), fill: true, tension: .3, spanGaps: false }] },
+            type: 'line', data: { labels: series.labels || [], datasets: [{ label: series.metric || 'Metric', data: series.data || [], borderColor: window.mataThemeColor('--chart-line'), backgroundColor: window.mataThemeColor('--chart-fill'), themeColors: { borderColor: '--chart-line', backgroundColor: '--chart-fill' }, fill: true, tension: .3, spanGaps: false }] },
             options: { responsive: true, maintainAspectRatio: false, interaction: { mode: 'index', intersect: false }, scales: { x: { ticks: { autoSkip: true, maxTicksLimit: 8 } }, y: { ticks: { callback: (value) => formatMetricValue(value, series.unit) } } }, plugins: { legend: { display: false } } },
         });
     }

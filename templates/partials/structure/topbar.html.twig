@@ -12,6 +12,7 @@
              hx-trigger="load, every 57s, bell-refresh from:body"
              hx-swap="innerHTML"></div>
       {% endif %}
+      {% include 'partials/structure/theme-toggle.html.twig' %}
       <a role="button" class="navbar-burger" data-target="navbar-menu" aria-label="menu" aria-expanded="false">
         <span aria-hidden="true"></span>
         <span aria-hidden="true"></span>
@@ -31,6 +32,9 @@
     </div>
 
     <div class="navbar-end">
+      <div class="navbar-item theme-toggle-item">
+        {% include 'partials/structure/theme-toggle.html.twig' %}
+      </div>
       {% if endpoints.notification_bell_render is defined %}
         <div id="notification-bell"
              class="navbar-item notification-bell"

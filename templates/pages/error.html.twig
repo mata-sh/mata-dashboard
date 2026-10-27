@@ -5,11 +5,11 @@
 {% set icon = icon_map[error_type]|default('x') %}
 {% set asset_base_url = asset_base_url|default('/assets') %}
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="{{ theme|default('dark') }}">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="color-scheme" content="dark">
+  <meta name="color-scheme" content="{{ theme|default('dark') }}">
   <title>{{ title }}</title>
   <style>
     @font-face {
@@ -45,6 +45,30 @@
       --sev-critical-tint: #f09595;
       --sev-medium-border: #c4a53a;
       --sev-medium-tint: #e3ce7a;
+      --accent-fill-hover: #153238;
+      --shadow-card: 0 12px 28px rgba(0, 0, 0, .45);
+    }
+
+    /* Light values match [data-theme=light] in main.css. */
+    :root[data-theme=light] {
+      --surface-base: #eef1f5;
+      --surface-panel: #f5f7fa;
+      --surface-raised: #fff;
+      --surface-control: #fff;
+      --border-default: #d9dee6;
+      --border-control: #c8cfda;
+      --text-bright: #161a22;
+      --text-body: #2c3340;
+      --text-muted: #586173;
+      --accent-border: #2a8296;
+      --accent-fill: #e1f2f6;
+      --accent-text: #0e6273;
+      --sev-critical-border: #a3212b;
+      --sev-critical-tint: #b02430;
+      --sev-medium-border: #7f650e;
+      --sev-medium-tint: #765e0b;
+      --accent-fill-hover: #cfeaf0;
+      --shadow-card: 0 12px 28px rgba(16, 22, 32, .14);
     }
 
     * { box-sizing: border-box; }
@@ -70,7 +94,7 @@
       border: 1px solid var(--border-default);
       border-radius: 8px;
       overflow: hidden;
-      box-shadow: 0 12px 28px rgba(0, 0, 0, .45);
+      box-shadow: var(--shadow-card);
     }
 
     .error-card[data-type="warning"] {
@@ -212,7 +236,7 @@
       transition: background 0.2s;
     }
 
-    .error-doc-link:hover { background: #153238; }
+    .error-doc-link:hover { background: var(--accent-fill-hover); }
     .error-doc-icon { font-size: 18px; }
   </style>
 </head>

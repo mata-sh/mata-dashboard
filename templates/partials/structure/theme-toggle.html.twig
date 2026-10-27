@@ -1,0 +1,8 @@
+{# Light/dark switch; public/assets/js/theme.js handles clicks and keeps aria-pressed in sync. #}
+{% set is_light = theme|default('dark') == 'light' %}
+<button type="button" class="theme-toggle" data-theme-toggle aria-label="Light theme"
+        aria-pressed="{{ is_light ? 'true' : 'false' }}"
+        title="{{ is_light ? 'Switch to dark theme' : 'Switch to light theme' }}">
+  <span class="theme-toggle-sun">{{ ui.theme_toggle_icons.sun|raw }}</span>
+  <span class="theme-toggle-moon">{{ ui.theme_toggle_icons.moon|raw }}</span>
+</button>

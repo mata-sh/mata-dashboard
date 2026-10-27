@@ -194,6 +194,12 @@ function renderMetricsChart(container, payload) {
     state.unit = unit;
 
     const datasets = chartData.map((dataset) => ({
+        // Server colors come from servers.json; only the fallbacks and points follow the theme.
+        themeColors: {
+            ...(dataset.borderColor ? {} : { borderColor: '--chart-line' }),
+            ...(dataset.backgroundColor ? {} : { backgroundColor: '--chart-fill' }),
+            pointBackgroundColor: '--chart-point',
+        },
         label: dataset.label,
         data: Array.isArray(dataset.data) ? dataset.data : [],
         borderColor: dataset.borderColor || window.mataThemeColor('--chart-line'),

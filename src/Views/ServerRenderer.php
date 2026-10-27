@@ -1116,6 +1116,10 @@ class ServerRenderer extends BaseRenderer
             'app_env' => $layout['app_env'] ?? 'prod',
             'ui' => [
                 'main_logo' => $this->tools->icon('turtle', 12),
+                'theme_toggle_icons' => [
+                    'sun' => $this->tools->icon('sun', 16),
+                    'moon' => $this->tools->icon('moon', 16),
+                ],
                 'notification_enabled' => $notificationEnabled,
                 'notification_type' => $notification['type'] ?? 'info',
                 'notification_title' => $notification['title'] ?? '',

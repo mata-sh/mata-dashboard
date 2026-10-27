@@ -4,6 +4,7 @@ body {
 
 :root {
     --dashboard-container-width: 2560px;
+    --color-scheme: dark;
 
     /* surfaces */
     --surface-base: #0b0d12;
@@ -126,6 +127,7 @@ body {
     --navbar-border: #393939;
     --navbar-badge-ring: var(--bulma-dark);
     --progress-bar: #fff;
+    --table-placeholder: #ccc;
 
     /* config and auth error notices */
     --notice-bg: #fff;
@@ -150,6 +152,139 @@ body {
     /* effects */
     --shadow-card: 0 12px 28px rgba(0, 0, 0, .45);
     --shadow-login: 8px 8px 24px 0px rgba(0, 0, 0, .55);
+}
+
+/* Light theme: same roles, light surfaces. Text tokens keep WCAG AA (4.5:1) on
+   --surface-base and --surface-panel; solid fills keep their white text. */
+[data-theme=light] {
+    --color-scheme: light;
+    --bulma-body-background-color: #eef1f5;
+
+    /* surfaces */
+    --surface-base: #fff;
+    --surface-panel: #f5f7fa;
+    --surface-raised: #fff;
+    --surface-control: #fff;
+    --surface-control-alt: #f1f3f7;
+    --surface-chip: #eceff4;
+    --surface-zebra: #f8f9fb;
+    --surface-hover: #e8f3f6;
+    --surface-hover-alt: #e1eff3;
+    --surface-hover-header: #e9eff4;
+    --surface-card: #fff;
+    --surface-muted: #eceff4;
+    --surface-details: #f5f7fa;
+    --surface-icon-button: #f1f3f7;
+    --surface-overlay: rgba(16, 22, 32, .35);
+
+    /* borders */
+    --border-hairline: #e7eaf0;
+    --border-default: #d9dee6;
+    --border-control: #c8cfda;
+    --border-strong: #bcc4d0;
+    --border-strong-alt: #a9b2c0;
+    --border-control-hover: #96a0b1;
+    --border-subtle: #d0d5de;
+    --border-details: #d0d5de;
+
+    /* cyan accent */
+    --accent-border: #2a8296;
+    --accent-edge: #5aaabb;
+    --accent-fill: #e1f2f6;
+    --accent-fill-hover: #cfeaf0;
+    --accent-text: #0e6273;
+    --accent-text-alt: #0f6b7e;
+    --accent-text-bright: #094e5c;
+    --accent-focus-ring: rgba(42, 130, 150, .25);
+    --accent-indicator: #2a8296;
+
+    /* text */
+    --text-heading: #11141b;
+    --text-app-title: #161a22;
+    --text-bright: #161a22;
+    --text-server-label: #262d3a;
+    --text-body: #2c3340;
+    --text-label: #343b49;
+    --text-soft: #464e5e;
+    --text-meta: #5b6271;
+    --text-muted: #586173;
+    --text-faint: #5f6777;
+
+    /* icons */
+    --icon-navbar: #343b49;
+    --icon-title: #464e5e;
+    --icon-stat: #464e5e;
+    --icon-loading: #7a8292;
+    --icon-default: #6b7383;
+
+    /* severity: fills keep their white text; borders darken the fill, tints are text on light surfaces */
+    --sev-critical-border: #a3212b;
+    --sev-critical-tint: #b02430;
+    --sev-high-border: #9e4a16;
+    --sev-high-tint: #a24c17;
+    --sev-medium-border: #7f650e;
+    --sev-medium-tint: #765e0b;
+    --sev-low-border: #256638;
+    --sev-low-tint: #226c38;
+    --sev-unknown-tint: #5b6271;
+    --sev-abandoned-fill: #e4e7ec;
+    --sev-abandoned-tint: #464e5e;
+    --sev-none-tint: #5f6777;
+    --sev-error-chip-fill: #fbeaec;
+    --sev-error-chip-border: #c64a54;
+    --health-ok-tint: #226c38;
+    --health-maintenance-tint: #765e0b;
+
+    --signal-critical: #c41f29;
+    --signal-high: #ad4b0c;
+    --signal-medium: #826400;
+    --signal-error: #c80000;
+    --signal-warn: #a35300;
+    --signal-ok: #1c7a27;
+    --signal-info: #1c7a27;
+    --signal-neutral: #5f6777;
+
+    --ping-online: #a9b2c0;
+    --ping-ok: #4caf2a;
+
+    /* chrome */
+    --navbar-background: color-mix(in srgb, var(--surface-base) 80%, transparent);
+    --navbar-border: var(--border-default);
+    --navbar-badge-ring: var(--surface-base);
+    --progress-bar: var(--accent-border);
+    --table-placeholder: var(--text-faint);
+
+    /* login */
+    --login-input-bg: var(--surface-control);
+    --login-input-border: var(--border-control);
+    --login-label: var(--text-label);
+    --login-demo: var(--text-muted);
+
+    /* charts */
+    --chart-text: #586173;
+    --chart-grid: rgba(0, 0, 0, .08);
+
+    /* effects */
+    --shadow-card: 0 12px 28px rgba(16, 22, 32, .14);
+    --shadow-login: 8px 8px 24px 0px rgba(16, 22, 32, .12);
+}
+
+/* The topbar keeps Bulma's is-dark modifier for the dark theme; light text colors come from tokens. */
+[data-theme=light] .navbar.is-dark {
+    --bulma-navbar-h: var(--bulma-scheme-h);
+    --bulma-navbar-s: var(--bulma-scheme-s);
+    --bulma-navbar-l: var(--bulma-scheme-main-l);
+    --bulma-navbar-item-background-l: var(--bulma-scheme-main-l);
+    --bulma-navbar-item-color-l: var(--bulma-text-l);
+    --bulma-navbar-item-selected-l: var(--bulma-scheme-main-l);
+    --bulma-navbar-item-selected-background-l: var(--bulma-scheme-main-l);
+    --bulma-navbar-item-selected-color-l: var(--bulma-text-strong-l);
+    --bulma-burger-l: var(--bulma-text-l);
+}
+
+/* The topbar logo is drawn light for the dark bar; flip its lightness, keep its hues. */
+[data-theme=light] .navbar-brand img {
+    filter: invert(1) hue-rotate(180deg);
 }
 
 #main-section.container {
@@ -386,7 +521,8 @@ svg {
         padding: 0;
     }
 
-    .navbar-menu .notification-bell {
+    .navbar-menu .notification-bell,
+    .navbar-menu .theme-toggle-item {
         display: none;
     }
 }
@@ -775,7 +911,7 @@ svg {
     color: var(--text-bright);
     font: inherit;
     font-size: .85rem;
-    color-scheme: dark;
+    color-scheme: var(--color-scheme);
     transition: border-color .15s ease, box-shadow .15s ease;
 }
 
@@ -1871,7 +2007,7 @@ svg {
     border-radius: 4px;
     color: var(--text-bright);
     font-size: .9rem;
-    color-scheme: dark;
+    color-scheme: var(--color-scheme);
     transition: border-color .15s ease, box-shadow .15s ease;
 }
 
@@ -2230,6 +2366,10 @@ svg {
     background: var(--surface-base);
 }
 
+.tabulator .tabulator-tableholder .tabulator-placeholder .tabulator-placeholder-contents {
+    color: var(--table-placeholder);
+}
+
 .tabulator .tabulator-tableholder .tabulator-table {
     white-space: nowrap;
     background: transparent;
@@ -2332,7 +2472,7 @@ svg {
     border-radius: 4px;
     color: var(--text-bright);
     font-size: .9rem;
-    color-scheme: dark;
+    color-scheme: var(--color-scheme);
     transition: border-color .15s ease, box-shadow .15s ease;
 }
 
@@ -3379,7 +3519,8 @@ label.audit-chip:has(input:checked)::after {
     align-items: center;
 }
 
-.notification-bell-trigger {
+.notification-bell-trigger,
+.theme-toggle {
     position: relative;
     display: inline-flex;
     align-items: center;
@@ -3394,7 +3535,8 @@ label.audit-chip:has(input:checked)::after {
     transition: border-color .15s ease, color .15s ease;
 }
 
-.notification-bell-trigger svg {
+.notification-bell-trigger svg,
+.theme-toggle svg {
     width: 16px;
     height: 16px;
     margin: 0;
@@ -3406,9 +3548,35 @@ label.audit-chip:has(input:checked)::after {
 }
 
 .notification-bell:hover .notification-bell-trigger,
-.notification-bell:focus-within .notification-bell-trigger {
+.notification-bell:focus-within .notification-bell-trigger,
+.theme-toggle:hover,
+.theme-toggle:focus-visible {
     border-color: var(--accent-border);
     color: var(--text-bright);
+}
+
+/* Theme toggle: the bell's icon button; shows the theme a click switches to. */
+.theme-toggle {
+    padding: 0;
+    font: inherit;
+}
+
+.theme-toggle:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 2px var(--accent-focus-ring);
+}
+
+.theme-toggle .theme-toggle-moon,
+[data-theme=light] .theme-toggle .theme-toggle-sun {
+    display: none;
+}
+
+[data-theme=light] .theme-toggle .theme-toggle-moon {
+    display: inline-flex;
+}
+
+.theme-toggle-sun {
+    display: inline-flex;
 }
 
 .notification-bell-badge {
@@ -4394,7 +4562,7 @@ label.audit-chip:has(input:checked)::after {
     border: 1px solid var(--border-control);
     border-radius: 4px;
     color: var(--text-bright);
-    color-scheme: dark;
+    color-scheme: var(--color-scheme);
 }
 
 .advisory-review-form input {
