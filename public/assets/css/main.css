@@ -517,7 +517,9 @@ svg {
         margin-left: 0;
     }
 
-    .navbar-menu .notification-bell,
+    /* Both live in .navbar-mobile-actions here. .navbar-item outranks the later
+       .navbar-item.notification-bell { display: flex } rule. */
+    .navbar-menu .navbar-item.notification-bell,
     .navbar-menu .theme-toggle-item {
         display: none;
     }
