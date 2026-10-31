@@ -26,8 +26,10 @@ to prepare a native install instead; `--help` lists them.
 
 !!! info "Check before running"
     The script is `scripts/install.sh` in the repository, attached to every
-    release with its SHA-256 in `checksums.txt`. To read it first:
+    release with its SHA-256 in `checksums.txt`, a Sigstore signature, and
+    SLSA provenance. To read it first:
     `curl -fsSLO https://mata.sh/install.sh && less install.sh && sh install.sh`.
+    To verify it, see [release integrity](../architecture/security.md#release-integrity).
 
 ## Development or demo
 

@@ -156,7 +156,10 @@ curl -fsSL https://mata.sh/install.sh | sh
 ```
 
 Pipe to `sh -s -- --native` to prepare a native install instead, or
-`sh -s -- --help` for all options. For development, demo, or a manual install:
+`sh -s -- --help` for all options. Release assets are signed with Sigstore and
+carry SLSA provenance; see
+[release integrity](docs/architecture/security.md#release-integrity) to verify
+them first. For development, demo, or a manual install:
 
 ```bash
 git clone https://github.com/mata-sh/mata-dashboard.git

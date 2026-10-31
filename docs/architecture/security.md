@@ -83,3 +83,58 @@ until the secret is rotated. It does not grant dashboard access or a way to
 send mail directly. A compromised dashboard remains more serious because it
 can read monitoring data and create deliveries, so protect dashboard accounts,
 configuration files, and the database.
+
+## Release integrity
+
+Every release attaches `install.sh`, `sbom.cdx.json`, and `checksums.txt`,
+built by `.github/workflows/release.yml` on a GitHub-hosted runner from the
+pushed tag. Two independent, keyless proofs tie each file to that workflow run:
+
+- **Sigstore signatures.** Each file has a `<file>.sigstore.json` bundle from
+  `cosign sign-blob`. The job's OpenID Connect token obtains a short-lived
+  certificate from Fulcio, and the signature is recorded in the Rekor
+  transparency log. There is no signing key to store, leak, or rotate.
+- **SLSA provenance.** `actions/attest-build-provenance` records the
+  repository, commit, workflow, and runner that produced the files (SLSA v1.0
+  Build Level 2). GitHub stores the attestation; `provenance.sigstore.json`
+  on the release carries a copy.
+
+The expected signer identity is the release workflow at the release tag,
+issued by `https://token.actions.githubusercontent.com`:
+
+```text
+https://github.com/mata-sh/mata-dashboard/.github/workflows/release.yml@refs/tags/<version>
+```
+
+!!! info "Verify before `curl | sh`"
+    `https://mata.sh/install.sh` redirects to the newest release's `install.sh`.
+    Download the file and its bundle from the release instead, then check both
+    proofs with [cosign](https://docs.sigstore.dev/cosign/system_config/installation/)
+    3 or newer and the [GitHub CLI](https://cli.github.com/):
+
+    ```bash
+    VERSION=0.11.0
+    BASE=https://github.com/mata-sh/mata-dashboard/releases/download/$VERSION
+    curl -fsSLO "$BASE/install.sh" -O "$BASE/install.sh.sigstore.json"
+
+    cosign verify-blob install.sh \
+        --bundle install.sh.sigstore.json \
+        --certificate-oidc-issuer https://token.actions.githubusercontent.com \
+        --certificate-identity "https://github.com/mata-sh/mata-dashboard/.github/workflows/release.yml@refs/tags/$VERSION"
+
+    gh attestation verify install.sh \
+        --repo mata-sh/mata-dashboard \
+        --source-ref "refs/tags/$VERSION"
+
+    sh install.sh
+    ```
+
+    The same commands verify `sbom.cdx.json` and `checksums.txt`.
+    `sha256sum -c checksums.txt` still works on its own, but a checksum only
+    proves a file matches the release page; the signature and provenance prove
+    the release page's files came from this repository's workflow.
+
+The provenance names the commit the workflow built from. The installer clones
+that same tag, so after an install `git -C mata-dashboard rev-parse HEAD` should
+equal the commit in the attestation. Tags themselves are not signed; the
+provenance and the signature are the chain of custody for the published files.
