@@ -32,14 +32,17 @@ use Mata\Services\Event\EventManager;
 use Mata\Services\Event\EventRecorderService;
 use Mata\Services\Identity\ServerApplicationIdResolver;
 use Mata\Services\Runtime\DashboardEnvironmentFactory;
+use Mata\Services\Sync\AppInventorySync;
+use Mata\Services\Sync\ServerConfigDatabaseSync;
 use Mata\Utils\PathResolver;
 use Psr\Log\LoggerInterface;
 
 /**
- * Monitoring configuration and event/alarm services outside the web dashboard.
+ * Monitoring configuration and the event/alarm services built on it, shared by the web
+ * dashboard ({@see DashboardRuntime::monitoring()}) and the cron jobs.
  *
- * Omits web-only menu and chart configuration and server config sync.
- * Disables server fallback so callers fail rather than processing no servers.
+ * The default config loader is the cron one: it omits the web-only menu and chart sections
+ * and disables the servers fallback so a job fails rather than processing no servers.
  */
 final readonly class MonitoringRuntime
 {
@@ -55,17 +58,28 @@ final readonly class MonitoringRuntime
         public AlarmDirectProcessor $alarmDirectProcessor,
         public AlarmThresholdCooldownService $alarmEvaluator,
         public ServerApplicationIdResolver $idResolver,
+        public AppInventorySync $appInventorySync,
         public EventRecorderService $eventRecorder,
         public EventAggregatorServiceInterface $eventAggregator,
+        public DashboardEnvironmentFactory $environmentFactory,
         public EventManager $eventManager,
         public MonitoringConfig $monitoringConfig,
     ) {}
 
+    /**
+     * $configLoader defaults to {@see cronConfigLoader()}. With $syncServerConfig, servers.json is
+     * persisted to the database before server IDs are resolved from it: the web request does this,
+     * cron reads what it wrote.
+     *
+     * @throws MonitoringConfigLoadException when a loader without fallback rejects its file, after recording its problems
+     */
     public static function build(
         PathResolver $paths,
         ApplicationConfig $appConfig,
         LoggerInterface $log,
         DatabaseInterface $db,
+        ?MonitoringConfigLoader $configLoader = null,
+        bool $syncServerConfig = false,
     ): self {
         // Repositories
         $alarmRepository = new AlarmRepository($db);
@@ -77,6 +91,7 @@ final readonly class MonitoringRuntime
 
         // Event aggregator and monitoring config are attached once they exist.
         $idResolver = new ServerApplicationIdResolver($configSyncRepository);
+        $appInventorySync = new AppInventorySync($configSyncRepository, $idResolver, $log);
         $eventRecorder = new EventRecorderService($db, $idResolver);
         $eventManager = new EventManager(appConfig: $appConfig, eventRecorder: $eventRecorder, logger: $log);
 
@@ -96,29 +111,20 @@ final readonly class MonitoringRuntime
         $eventManager->setAlarmDirectProcessor($alarmDirectProcessor);
 
         // Event aggregation
-        $eventAggregator = (new DashboardEnvironmentFactory(
+        $environmentFactory = new DashboardEnvironmentFactory(
             $appConfig->environment->env,
             $eventRepository,
             $alarmRepository,
             $idResolver,
             $log,
             $paths->getConfigPath('demo/events.json'),
-        ))->createEventAggregator();
+        );
+        $eventAggregator = $environmentFactory->createEventAggregator();
         $eventManager->setEventAggregator($eventAggregator);
 
         // Monitoring configuration. Stops on a broken servers config, after recording its alarm.
-        $monitoringConfigLoader = new MonitoringConfigLoader(
-            servers: new ServersConfigLoader(fallbackOnFailure: false),
-            ttl: new TtlConfigLoader(fallbackOnFailure: true),
-            dataRetention: new DataRetentionConfigLoader(fallbackOnFailure: true),
-            intervals: new IntervalsConfigLoader(fallbackOnFailure: true),
-            probes: new ProbesConfigLoader(fallbackOnFailure: true),
-            notificationRules: new NotificationRulesConfigLoader(fallbackOnFailure: true),
-            thresholds: new ThresholdsConfigLoader(fallbackOnFailure: true),
-        );
-
         try {
-            $monitoringConfigResult = $monitoringConfigLoader->load($paths->configPath, $alarmRateLimits);
+            $monitoringConfigResult = ($configLoader ?? self::cronConfigLoader())->load($paths->configPath, $alarmRateLimits);
             $eventManager->recordConfigProblems($monitoringConfigResult->problems);
         } catch (MonitoringConfigLoadException $exception) {
             $eventManager->recordConfigProblems($exception->problems);
@@ -128,6 +134,11 @@ final readonly class MonitoringRuntime
         $monitoringConfig = $monitoringConfigResult->section;
 
         $eventManager->setEventIntervals($monitoringConfig->intervals);
+
+        if ($syncServerConfig) {
+            (new ServerConfigDatabaseSync($db, $log, $eventManager, $configSyncRepository))
+                ->syncIfNeeded($paths->configPath . '/servers.json', $monitoringConfig->servers->values);
+        }
         $idResolver->refreshFromRepository($monitoringConfig->servers->values);
 
         // Alarm evaluation
@@ -148,10 +159,28 @@ final readonly class MonitoringRuntime
             alarmDirectProcessor: $alarmDirectProcessor,
             alarmEvaluator: $alarmEvaluator,
             idResolver: $idResolver,
+            appInventorySync: $appInventorySync,
             eventRecorder: $eventRecorder,
             eventAggregator: $eventAggregator,
+            environmentFactory: $environmentFactory,
             eventManager: $eventManager,
             monitoringConfig: $monitoringConfig,
+        );
+    }
+
+    /**
+     * Loaders for jobs outside the web dashboard: no menu or charts, and no servers fallback.
+     */
+    public static function cronConfigLoader(): MonitoringConfigLoader
+    {
+        return new MonitoringConfigLoader(
+            servers: new ServersConfigLoader(fallbackOnFailure: false),
+            ttl: new TtlConfigLoader(fallbackOnFailure: true),
+            dataRetention: new DataRetentionConfigLoader(fallbackOnFailure: true),
+            intervals: new IntervalsConfigLoader(fallbackOnFailure: true),
+            probes: new ProbesConfigLoader(fallbackOnFailure: true),
+            notificationRules: new NotificationRulesConfigLoader(fallbackOnFailure: true),
+            thresholds: new ThresholdsConfigLoader(fallbackOnFailure: true),
         );
     }
 }

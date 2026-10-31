@@ -33,7 +33,7 @@ final class MonitoringLoaderParityTest extends TestCase
         $this->assertEqualsCanonicalizing(
             $this->constructorParameters(),
             $this->namedArguments($this->webBootstrapPath()),
-            'public/index.php must pass every MonitoringConfigLoader argument.',
+            'DashboardRuntime::monitoring() must pass every MonitoringConfigLoader argument.',
         );
     }
 
@@ -44,7 +44,7 @@ final class MonitoringLoaderParityTest extends TestCase
         $this->assertEqualsCanonicalizing(
             $expected,
             $this->namedArguments($this->cronBootstrapPath()),
-            'MonitoringRuntime::build() drifted from public/index.php. '
+            'MonitoringRuntime::cronConfigLoader() drifted from DashboardRuntime::monitoring(). '
             . 'Wire the loader there too, or add it to self::CRON_OMITS.',
         );
     }
@@ -123,7 +123,7 @@ final class MonitoringLoaderParityTest extends TestCase
 
     private function webBootstrapPath(): string
     {
-        return dirname(__DIR__, 4) . '/public/index.php';
+        return dirname(__DIR__, 4) . '/src/Bootstrap/DashboardRuntime.php';
     }
 
     private function cronBootstrapPath(): string

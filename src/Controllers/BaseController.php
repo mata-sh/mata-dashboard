@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace Mata\Controllers;
 
-use Exception;
 use Mata\Http\Request;
 use Mata\Http\Responses\Response;
 use Mata\Http\Responses\ResponseFactory;
 use Monolog\Logger;
+use Throwable;
 
 /**
  * Base controller providing standardized error handling.
@@ -25,7 +25,7 @@ abstract class BaseController
     /**
      * Handle exceptions with consistent logging and user-friendly responses.
      *
-     * @param Exception   $exception   The caught exception
+     * @param Throwable   $exception   The caught exception
      * @param string      $userMessage User-friendly error message
      * @param string      $context     Additional context for logging
      * @param int         $statusCode  HTTP status code (default: 500)
@@ -34,7 +34,7 @@ abstract class BaseController
      * @return Response Appropriate response based on request type
      */
     protected function handleError(
-        Exception $exception,
+        Throwable $exception,
         string $userMessage,
         string $context = '',
         int $statusCode = 500,
@@ -133,7 +133,7 @@ abstract class BaseController
     ): Response {
         try {
             return $action();
-        } catch (Exception $e) {
+        } catch (Throwable $e) {
             return $this->handleError($e, $userMessage, $context);
         }
     }

@@ -17,7 +17,6 @@ use Mata\Services\Monitor\LogSizeEvaluator;
 use Mata\Services\Monitor\MetricThresholds;
 use Mata\Services\Monitor\ServerMonitoringFactory;
 use Mata\Services\Monitor\UsersFileMonitor;
-use Mata\Services\Sync\AppInventorySync;
 use Mata\Utils\UsersFilePathResolver;
 
 require_once __DIR__ . '/../vendor/autoload.php';
@@ -36,7 +35,6 @@ $log = $runtime->log;
 $cron = $runtime->cron;
 $appConfig = $runtime->appConfig;
 $tools = $runtime->tools;
-$configSyncRepository = $monitoringRuntime->configSyncRepository;
 $fatalStateRepository = $monitoringRuntime->fatalStateRepository;
 $idResolver = $monitoringRuntime->idResolver;
 $eventManager = $monitoringRuntime->eventManager;
@@ -50,7 +48,7 @@ $cron->startTimer();
 $cron->log('Started');
 
 try {
-    $appInventorySync = new AppInventorySync($configSyncRepository, $idResolver, $log);
+    $appInventorySync = $monitoringRuntime->appInventorySync;
     $cacheStore = new FileCacheStore($log, $paths->apiCachePath);
     $ttlResolver = new CacheTtlResolver($monitoringConfig->ttl);
     $eventMonitor = new LogSizeEvaluator($tools, MetricThresholds::fromConfig($monitoringConfig->thresholds));

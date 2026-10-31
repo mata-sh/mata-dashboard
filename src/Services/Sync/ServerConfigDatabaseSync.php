@@ -11,7 +11,7 @@ use Mata\Database\NullDatabase;
 use Mata\Models\Sync\ConfigSyncRepository;
 use Mata\Services\Event\Dto\EventCommand;
 use Mata\Services\Event\EventManager;
-use Monolog\Logger;
+use Psr\Log\LoggerInterface;
 
 /**
  * Server Configuration Database Synchronization Service.
@@ -30,17 +30,17 @@ use Monolog\Logger;
 final class ServerConfigDatabaseSync
 {
     private bool $databaseAvailable;
-    private Logger $log;
+    private LoggerInterface $log;
     private EventManager $events;
     private ConfigSyncRepository $repository;
 
     /**
      * @param DatabaseInterface         $db         Database connection
-     * @param Logger                    $log        Application logger
+     * @param LoggerInterface           $log        Application logger
      * @param EventManager              $events     Receives sync failures
      * @param null|ConfigSyncRepository $repository Optional repository override (primarily for testing)
      */
-    public function __construct(DatabaseInterface $db, Logger $log, EventManager $events, ?ConfigSyncRepository $repository = null)
+    public function __construct(DatabaseInterface $db, LoggerInterface $log, EventManager $events, ?ConfigSyncRepository $repository = null)
     {
         $this->databaseAvailable = !$db instanceof NullDatabase;
         $this->log = $log;

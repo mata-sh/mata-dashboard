@@ -12,7 +12,9 @@ The PHP dashboard provides the authenticated web interface, configuration
 loading, event storage, alarm evaluation, notification delivery, and historical
 metrics.
 
-- `public/index.php` bootstraps the web request.
+- `public/index.php` bootstraps the web request through `src/Bootstrap/DashboardRuntime.php`;
+  cron jobs boot through `CronRuntime`. Both build the event and alarm services from
+  `MonitoringRuntime`.
 - `src/Http/Routing/RouterSetup.php` registers routes and middleware.
 - Controllers coordinate HTTP work.
 - Services contain collection, monitoring, alarm, cache, and notification logic.

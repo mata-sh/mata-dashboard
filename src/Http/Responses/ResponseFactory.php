@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Mata\Http\Responses;
 
-use Exception;
 use Mata\Http\Request;
+use Throwable;
 
 /**
  * Response factory for creating standardized HTTP responses.
@@ -126,7 +126,7 @@ class ResponseFactory
         string $userMessage,
         int $statusCode = 500,
         ?string $errorCode = null,
-        ?Exception $exception = null
+        ?Throwable $exception = null
     ): Response {
         if (self::expectsJson($request)) {
             $data = [
@@ -159,7 +159,7 @@ class ResponseFactory
      * Create enhanced JSON error response with exception context.
      */
     public static function fromException(
-        Exception $exception,
+        Throwable $exception,
         string $userMessage,
         int $statusCode = 500,
         ?string $errorCode = null
