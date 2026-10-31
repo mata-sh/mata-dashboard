@@ -11,6 +11,8 @@ use Mata\Http\Request;
 use Mata\Http\Responses\HtmlResponse;
 use Mata\Http\Responses\JsonResponse;
 use Mata\Http\Routing\Endpoints;
+use Mata\Services\Cache\CacheTypeResolver;
+use Mata\Services\Cache\ModalCacheService;
 use Mata\Services\Collect\ServerDataCollectorInterface;
 use Mata\Services\DataTransformers\LogDataTransformer;
 use Mata\Tests\TestCase;
@@ -77,15 +79,20 @@ class ModalControllerTest extends TestCase
             ->willReturnCallback(fn ($data) => $data)
         ;
 
-        $this->controller = new ModalController(
-            $this->mockApp,
-            $this->mockTools,
-            $this->mockTwig,
+        $this->controller = $this->createController([]);
+    }
+
+    /** @param array<string,ServerDataCollectorInterface> $collectors */
+    private function createController(array $collectors): ModalController
+    {
+        return new ModalController(
             $this->logger,
+            new ModalRenderer($this->mockTwig, $this->logger, $this->mockTools, $this->mockApp, $this->mockEndpoints),
+            new ModalCacheService(new CacheTypeResolver()),
             $this->mockLogTransformer,
             $this->mockEndpoints,
-            [],
-            request: new Request(),
+            $collectors,
+            new Request(),
         );
     }
 
@@ -1053,16 +1060,7 @@ MARKDOWN;
             ])
         ;
 
-        $controller = new ModalController(
-            $this->mockApp,
-            $this->mockTools,
-            $this->mockTwig,
-            $this->logger,
-            $this->mockLogTransformer,
-            $this->mockEndpoints,
-            [$specialServer => $mockCollector],
-            request: new Request(),
-        );
+        $controller = $this->createController([$specialServer => $mockCollector]);
 
         $this->mockTwig->method('render')
             ->willReturn('<div>Content</div>')

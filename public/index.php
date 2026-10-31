@@ -13,10 +13,14 @@ use Mata\Controllers\MetricsController;
 use Mata\Controllers\ModalController;
 use Mata\Http\Routing\Endpoints;
 use Mata\Http\Routing\RouterSetup;
+use Mata\Services\Audit\AuditAggregator;
+use Mata\Services\Audit\AuditRowEnricher;
 use Mata\Services\Cache\ApiCacheKeyFactory;
 use Mata\Services\Cache\CacheTtlResolver;
+use Mata\Services\Cache\CacheTypeResolver;
 use Mata\Services\Cache\FileCacheStore;
 use Mata\Services\Cache\MetricsCacheService;
+use Mata\Services\Cache\ModalCacheService;
 use Mata\Services\Collect\NodeResponseNormalizer;
 use Mata\Services\DataTransformers\ChartDataTransformer;
 use Mata\Services\DataTransformers\LogDataTransformer;
@@ -24,15 +28,24 @@ use Mata\Services\Monitor\Dto\AppReachabilityPolicy;
 use Mata\Services\Monitor\HttpProbeClient;
 use Mata\Services\Monitor\LogSizeEvaluator;
 use Mata\Services\Monitor\MetricThresholds;
+use Mata\Services\Monitor\ServerMonitor;
 use Mata\Services\Monitor\ServerMonitoringFactory;
+use Mata\Services\Navigation\AlarmNotificationCenter;
 use Mata\Services\Navigation\MenuBuilder;
 use Mata\Services\ServerMetrics\MetricCatalog;
 use Mata\Services\ServerMetrics\MetricQueryPolicy;
 use Mata\Services\ServerMetrics\MetricsRequestValidator;
 use Mata\Services\ServerMetrics\ServerMetricsQueryFactory;
+use Mata\Services\View\AdvisoriesViewBuilder;
 use Mata\Services\View\ChartViewBuilder;
+use Mata\Services\View\LibrariesViewBuilder;
 use Mata\Services\View\MetricsViewBuilder;
+use Mata\Services\View\ServerViewBuilder;
+use Mata\Views\AdvisoriesRenderer;
+use Mata\Views\AuditRenderer;
+use Mata\Views\DashboardRenderers;
 use Mata\Views\MetricsRenderer;
+use Mata\Views\ModalRenderer;
 
 require_once '../vendor/autoload.php';
 
@@ -79,6 +92,8 @@ $menuBuilder = new MenuBuilder($endpoints, $tools, $monitoringConfig->menu->over
 // ************************************************************************************************
 // Server Monitoring Services (live API or demo mocks)
 // ************************************************************************************************
+$thresholds = MetricThresholds::fromConfig($monitoringConfig->thresholds);
+$logSizeEvaluator = new LogSizeEvaluator($tools, $thresholds);
 $serverMonitoringFactory = new ServerMonitoringFactory(
     $log,
     $cacheStore,
@@ -90,7 +105,7 @@ $serverMonitoringFactory = new ServerMonitoringFactory(
     AppReachabilityPolicy::fromMonitoringConfig($monitoringConfig),
     $idResolver,
     $monitoring->fatalStateRepository,
-    new LogSizeEvaluator($tools, MetricThresholds::fromConfig($monitoringConfig->thresholds)),
+    $logSizeEvaluator,
     $appConfig->demo,
 );
 
@@ -106,30 +121,40 @@ foreach ($serverMonitoringResult->failures as $server => $reason) {
 // ************************************************************************************************
 // Controllers
 // ************************************************************************************************
+$cacheTypeResolver = new CacheTypeResolver();
+$auditAggregator = new AuditAggregator();
+
 $loginController = new LoginController($app, $tools, $twig, $csrf, $request);
+
+$serverViewBuilder = new ServerViewBuilder(
+    new ServerMonitor($log, $eventManager, $thresholds),
+    $logSizeEvaluator,
+    $thresholds,
+    $log,
+    $cacheTypeResolver,
+    $monitoring->appInventorySync,
+);
 $dashboardController = new DashboardController(
     $app,
-    $tools,
-    $twig,
     $log,
     $appConfig,
     $notificationManager,
     $eventManager,
-    $cacheStore,
-    $cacheKeyFactory,
     $endpoints,
     $menuBuilder,
     $monitoringConfig,
     $serverMonitoringResult,
+    DashboardRenderers::create($twig, $log, $tools, $app, $endpoints),
+    $serverViewBuilder,
+    new LibrariesViewBuilder($log, new AuditRowEnricher($auditAggregator)),
+    new AlarmNotificationCenter($eventManager, $cacheStore, $cacheKeyFactory),
     $request,
-    $monitoring->appInventorySync,
 );
 
 $auditController = new AuditController(
-    $app,
-    $tools,
-    $twig,
     $log,
+    new AuditRenderer($twig, $log, $tools, $app, $endpoints),
+    $auditAggregator,
     $endpoints,
     $serverMonitoringResult->collectors(),
     $request,
@@ -137,19 +162,18 @@ $auditController = new AuditController(
 
 $advisoryController = new AdvisoryController(
     $app,
-    $tools,
-    $twig,
     $log,
     $endpoints,
     $advisoryRuntime,
+    new AdvisoriesRenderer($twig, $log, $tools, $app, $endpoints),
+    new AdvisoriesViewBuilder($advisoryRuntime->config, $advisoryRuntime->advisories, $advisoryRuntime->states),
     $request,
 );
 
 $modalController = new ModalController(
-    $app,
-    $tools,
-    $twig,
     $log,
+    new ModalRenderer($twig, $log, $tools, $app, $endpoints),
+    new ModalCacheService($cacheTypeResolver),
     new LogDataTransformer($log),
     $endpoints,
     $serverMonitoringResult->collectors(),

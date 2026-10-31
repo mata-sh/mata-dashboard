@@ -5,20 +5,16 @@ declare(strict_types=1);
 namespace Mata\Controllers;
 
 use Exception;
-use Mata\Core\App;
 use Mata\Http\Request;
 use Mata\Http\Responses\HtmlResponse;
 use Mata\Http\Responses\JsonResponse;
 use Mata\Http\Responses\Response;
 use Mata\Http\Routing\Endpoints;
-use Mata\Services\Cache\CacheTypeResolver;
 use Mata\Services\Cache\ModalCacheService;
 use Mata\Services\Collect\ServerDataCollectorInterface;
 use Mata\Services\DataTransformers\LogDataTransformer;
-use Mata\Utils\Tools;
 use Mata\Views\ModalRenderer;
 use Monolog\Logger;
-use Twig\Environment;
 
 /**
  * Modal content controller for dynamic AJAX responses.
@@ -49,10 +45,9 @@ class ModalController extends BaseController
      * @param array<string,ServerDataCollectorInterface> $serverDataCollectors Collectors built at bootstrap, keyed by server
      */
     public function __construct(
-        App $app,
-        Tools $tools,
-        Environment $twig,
         Logger $logger,
+        ModalRenderer $modalRenderer,
+        ModalCacheService $modalCacheService,
         LogDataTransformer $logTransformer,
         Endpoints $endpoints,
         array $serverDataCollectors,
@@ -60,14 +55,11 @@ class ModalController extends BaseController
     ) {
         parent::__construct($request);
         $this->logger = $logger;
+        $this->modalRenderer = $modalRenderer;
+        $this->modalCacheService = $modalCacheService;
         $this->logTransformer = $logTransformer;
         $this->endpoints = $endpoints;
         $this->serverDataCollectors = $serverDataCollectors;
-        $cacheTypeResolver = new CacheTypeResolver();
-        $this->modalCacheService = new ModalCacheService($cacheTypeResolver);
-
-        // Initialize ModalRenderer
-        $this->modalRenderer = new ModalRenderer($twig, $logger, $tools, $app, $endpoints);
     }
 
     /**

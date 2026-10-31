@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Mata\Controllers;
 
-use Mata\Core\App;
 use Mata\Core\Session;
 use Mata\Http\Request;
 use Mata\Http\Responses\HtmlResponse;
@@ -13,10 +12,8 @@ use Mata\Http\Routing\Endpoints;
 use Mata\Services\Audit\AuditAggregator;
 use Mata\Services\Cache\CacheType;
 use Mata\Services\Collect\ServerDataCollectorInterface;
-use Mata\Utils\Tools;
 use Mata\Views\AuditRenderer;
 use Monolog\Logger;
-use Twig\Environment;
 
 /**
  * Serves cached Composer audit data and runs requested node audits.
@@ -34,20 +31,19 @@ class AuditController extends BaseController
      * @param array<string,ServerDataCollectorInterface> $serverDataCollectors Collectors built at bootstrap, keyed by server
      */
     public function __construct(
-        App $app,
-        Tools $tools,
-        Environment $twig,
         Logger $logger,
+        AuditRenderer $auditRenderer,
+        AuditAggregator $auditAggregator,
         Endpoints $endpoints,
         array $serverDataCollectors,
         Request $request,
     ) {
         parent::__construct($request);
         $this->logger = $logger;
+        $this->auditRenderer = $auditRenderer;
+        $this->auditAggregator = $auditAggregator;
         $this->endpoints = $endpoints;
         $this->serverDataCollectors = $serverDataCollectors;
-        $this->auditRenderer = new AuditRenderer($twig, $logger, $tools, $app, $endpoints);
-        $this->auditAggregator = new AuditAggregator();
     }
 
     public function renderAuditSection(): Response

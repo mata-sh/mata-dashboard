@@ -19,10 +19,13 @@ use Mata\Http\Responses\HtmlResponse;
 use Mata\Http\Responses\JsonResponse;
 use Mata\Http\Routing\Endpoints;
 use Mata\Models\Monitor\AppFatalStateRepository;
+use Mata\Services\Audit\AuditAggregator;
+use Mata\Services\Audit\AuditRowEnricher;
 use Mata\Services\Auth\UserAuthenticator;
 use Mata\Services\Cache\ApiCacheKeyFactory;
 use Mata\Services\Cache\CacheStoreInterface;
 use Mata\Services\Cache\CacheTtlResolver;
+use Mata\Services\Cache\CacheTypeResolver;
 use Mata\Services\Collect\NodeResponseNormalizer;
 use Mata\Services\Event\EventAggregatorServiceInterface;
 use Mata\Services\Event\EventManager;
@@ -32,14 +35,19 @@ use Mata\Services\Monitor\Dto\ServerMonitoringResult;
 use Mata\Services\Monitor\HttpProbeClient;
 use Mata\Services\Monitor\LogSizeEvaluator;
 use Mata\Services\Monitor\MetricThresholds;
+use Mata\Services\Monitor\ServerMonitor;
 use Mata\Services\Monitor\ServerMonitoringFactory;
+use Mata\Services\Navigation\AlarmNotificationCenter;
 use Mata\Services\Navigation\MenuBuilder;
 use Mata\Services\Notification\SystemNotificationManager;
+use Mata\Services\View\LibrariesViewBuilder;
+use Mata\Services\View\ServerViewBuilder;
 use Mata\Tests\Helpers\ApplicationConfigFactory;
 use Mata\Tests\Helpers\MonitoringConfigFactory;
 use Mata\Tests\Helpers\SystemNotificationManagerFactory;
 use Mata\Utils\PathResolver;
 use Mata\Utils\Tools;
+use Mata\Views\DashboardRenderers;
 use Monolog\Logger;
 use PHPUnit\Framework\TestCase;
 use Twig\Environment;
@@ -864,6 +872,8 @@ class DashboardControllerTest extends TestCase
         ?ServerMonitoringResult $monitoringResult = null,
     ): DashboardController {
         $monitoringConfig ??= $this->monitoringConfig();
+        $thresholds = MetricThresholds::fromConfig($monitoringConfig->thresholds);
+        $logSizeEvaluator = new LogSizeEvaluator($this->tools, $thresholds);
         $factory = new ServerMonitoringFactory(
             $this->logger,
             $this->cacheStore,
@@ -875,25 +885,31 @@ class DashboardControllerTest extends TestCase
             AppReachabilityPolicy::fromMonitoringConfig($monitoringConfig),
             new ServerApplicationIdResolver(),
             new AppFatalStateRepository($this->createStub(DatabaseInterface::class)),
-            new LogSizeEvaluator($this->tools, MetricThresholds::fromConfig($monitoringConfig->thresholds)),
+            $logSizeEvaluator,
         );
         $monitoringResult ??= $factory->createDemoAll($monitoringConfig->servers->values);
 
         return new DashboardController(
             $this->app,
-            $this->tools,
-            $this->twig,
             $this->logger,
             $this->appConfig,
             $this->notificationManager,
             $this->eventManager,
-            $this->cacheStore,
-            $this->cacheKeyFactory,
             $this->endpoints,
             $this->menuBuilder,
             $monitoringConfig,
             $monitoringResult,
-            request: $request ?? new Request(),
+            DashboardRenderers::create($this->twig, $this->logger, $this->tools, $this->app, $this->endpoints),
+            new ServerViewBuilder(
+                new ServerMonitor($this->logger, $this->eventManager, $thresholds),
+                $logSizeEvaluator,
+                $thresholds,
+                $this->logger,
+                new CacheTypeResolver(),
+            ),
+            new LibrariesViewBuilder($this->logger, new AuditRowEnricher(new AuditAggregator())),
+            new AlarmNotificationCenter($this->eventManager, $this->cacheStore, $this->cacheKeyFactory),
+            $request ?? new Request(),
         );
     }
 

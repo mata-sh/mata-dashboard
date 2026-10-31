@@ -18,10 +18,8 @@ use Mata\Models\Advisory\AdvisoryReviewStatus;
 use Mata\Services\Advisory\Report\AdvisoryReportQuery;
 use Mata\Services\Advisory\Report\AdvisoryReportRenderer;
 use Mata\Services\View\AdvisoriesViewBuilder;
-use Mata\Utils\Tools;
 use Mata\Views\AdvisoriesRenderer;
 use Monolog\Logger;
-use Twig\Environment;
 
 /**
  * Advisories page: source health, the advisory table, per-advisory detail with the raw
@@ -36,22 +34,17 @@ class AdvisoryController extends BaseController
     /** The table loads at most this many rows (AdvisoryRepository::findSince()). */
     private const BULK_LIMIT = 5000;
 
-    private AdvisoriesRenderer $renderer;
-    private AdvisoriesViewBuilder $viewBuilder;
-
     public function __construct(
         private App $app,
-        Tools $tools,
-        Environment $twig,
         Logger $logger,
         private Endpoints $endpoints,
         private AdvisoryRuntime $advisories,
+        private AdvisoriesRenderer $renderer,
+        private AdvisoriesViewBuilder $viewBuilder,
         Request $request,
     ) {
         parent::__construct($request);
         $this->logger = $logger;
-        $this->renderer = new AdvisoriesRenderer($twig, $logger, $tools, $app, $endpoints);
-        $this->viewBuilder = new AdvisoriesViewBuilder($advisories->config, $advisories->advisories, $advisories->states);
     }
 
     public function renderOverview(): Response

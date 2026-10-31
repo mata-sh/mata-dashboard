@@ -13,11 +13,6 @@ use Mata\Http\Responses\HtmlResponse;
 use Mata\Http\Responses\JsonResponse;
 use Mata\Http\Responses\Response;
 use Mata\Http\Routing\Endpoints;
-use Mata\Services\Audit\AuditAggregator;
-use Mata\Services\Audit\AuditRowEnricher;
-use Mata\Services\Cache\ApiCacheKeyFactory;
-use Mata\Services\Cache\CacheStoreInterface;
-use Mata\Services\Cache\CacheTypeResolver;
 use Mata\Services\Collect\Demo\DemoCronCatalog;
 use Mata\Services\Collect\ServerDataCollectorInterface;
 use Mata\Services\Cron\CronHeartbeatReader;
@@ -25,26 +20,13 @@ use Mata\Services\Cron\Dto\CronJobStatus;
 use Mata\Services\Event\EventManager;
 use Mata\Services\Monitor\Dto\ServerMonitoringResult;
 use Mata\Services\Monitor\Dto\ServerMonitoringServices;
-use Mata\Services\Monitor\LogSizeEvaluator;
-use Mata\Services\Monitor\MetricThresholds;
-use Mata\Services\Monitor\ServerMonitor;
 use Mata\Services\Navigation\AlarmNotificationCenter;
 use Mata\Services\Navigation\MenuBuilder;
 use Mata\Services\Notification\SystemNotificationManager;
-use Mata\Services\Sync\AppInventorySync;
 use Mata\Services\View\LibrariesViewBuilder;
 use Mata\Services\View\ServerViewBuilder;
-use Mata\Utils\Tools;
-use Mata\Views\AlarmsRenderer;
-use Mata\Views\DatabaseRenderer;
-use Mata\Views\EventsRenderer;
-use Mata\Views\LibrariesRenderer;
-use Mata\Views\LogRenderer;
-use Mata\Views\NotificationCenterRenderer;
-use Mata\Views\ServerRenderer;
-use Mata\Views\SettingsRenderer;
+use Mata\Views\DashboardRenderers;
 use Monolog\Logger;
-use Twig\Environment;
 
 /**
  * Main dashboard controller for server monitoring endpoints.
@@ -63,17 +45,9 @@ class DashboardController extends BaseController
     private SystemNotificationManager $notificationManager;
     private EventManager $eventManager;
     private Endpoints $endpoints;
-    private ServerMonitor $serverMonitor;
     private ServerViewBuilder $serverViewBuilder;
-    private ServerRenderer $serverRenderer;
-    private DatabaseRenderer $databaseRenderer;
-    private LibrariesRenderer $librariesRenderer;
     private LibrariesViewBuilder $librariesViewBuilder;
-    private LogRenderer $logRenderer;
-    private SettingsRenderer $settingsRenderer;
-    private EventsRenderer $eventsRenderer;
-    private AlarmsRenderer $alarmsRenderer;
-    private NotificationCenterRenderer $notificationCenterRenderer;
+    private DashboardRenderers $renderers;
     private AlarmNotificationCenter $notificationCenter;
     private MenuBuilder $menuBuilder;
     private App $app;
@@ -88,41 +62,40 @@ class DashboardController extends BaseController
     /**
      * Initialize dashboard controller with dependencies.
      *
-     * Uses prebuilt per-server monitoring services and configuration.
+     * Uses prebuilt per-server monitoring services, view builders and renderers.
      *
-     * @param App                       $app                 Application container with auth and paths
-     * @param Tools                     $tools               Utility functions for formatting and icons
-     * @param Environment               $twig                Twig template rendering engine
-     * @param Logger                    $logger              PSR-3 logger for system logging
-     * @param ApplicationConfig         $appConfig           Application configuration DTO
-     * @param SystemNotificationManager $notificationManager System notification management
-     * @param EventManager              $eventManager        Server alarm and threshold management
-     * @param CacheStoreInterface       $cacheStore          Cache persistence service
-     * @param ApiCacheKeyFactory        $cacheKeyFactory     API cache key factory
-     * @param Endpoints                 $endpoints           Route endpoints for template access
-     * @param MenuBuilder               $menuBuilder         Navigation menu builder service
-     * @param MonitoringConfig          $monitoringConfig    Dashboard monitoring configuration
-     * @param ServerMonitoringResult    $monitoringResult    Prebuilt per-server monitoring services
-     * @param null|AppInventorySync     $appInventorySync    Syncs apps during manual force-refresh recovery
+     * @param App                       $app                  Application container with auth and paths
+     * @param Logger                    $logger               PSR-3 logger for system logging
+     * @param ApplicationConfig         $appConfig            Application configuration DTO
+     * @param SystemNotificationManager $notificationManager  System notification management
+     * @param EventManager              $eventManager         Server alarm and threshold management
+     * @param Endpoints                 $endpoints            Route endpoints for template access
+     * @param MenuBuilder               $menuBuilder          Navigation menu builder service
+     * @param MonitoringConfig          $monitoringConfig     Dashboard monitoring configuration
+     * @param ServerMonitoringResult    $monitoringResult     Prebuilt per-server monitoring services
+     * @param DashboardRenderers        $renderers            Page and section renderers
+     * @param ServerViewBuilder         $serverViewBuilder    Builds server card and stats view data
+     * @param LibrariesViewBuilder      $librariesViewBuilder Builds the libraries table rows
+     * @param AlarmNotificationCenter   $notificationCenter   Unacknowledged alarm counts and acknowledgement
      */
     public function __construct(
         App $app,
-        Tools $tools,
-        Environment $twig,
         Logger $logger,
         ApplicationConfig $appConfig,
         SystemNotificationManager $notificationManager,
         EventManager $eventManager,
-        CacheStoreInterface $cacheStore,
-        ApiCacheKeyFactory $cacheKeyFactory,
         Endpoints $endpoints,
         MenuBuilder $menuBuilder,
         MonitoringConfig $monitoringConfig,
         ServerMonitoringResult $monitoringResult,
+        DashboardRenderers $renderers,
+        ServerViewBuilder $serverViewBuilder,
+        LibrariesViewBuilder $librariesViewBuilder,
+        AlarmNotificationCenter $notificationCenter,
         Request $request,
-        ?AppInventorySync $appInventorySync = null,
     ) {
         parent::__construct($request);
+        $this->app = $app;
         $this->logger = $logger;
         $this->appConfig = $appConfig;
         $this->notificationManager = $notificationManager;
@@ -131,39 +104,10 @@ class DashboardController extends BaseController
         $this->menuBuilder = $menuBuilder;
         $this->monitoringConfig = $monitoringConfig;
         $this->dashboardServicesByServer = $monitoringResult->servicesByServer;
-
-        // Initialize view renderers in dependency order
-        $this->logRenderer = new LogRenderer($twig, $logger, $tools, $app, $endpoints);
-        $this->serverRenderer = new ServerRenderer($twig, $logger, $tools, $app, $endpoints, $this->logRenderer);
-        $this->databaseRenderer = new DatabaseRenderer($twig, $logger, $tools, $app, $endpoints);
-        $this->librariesRenderer = new LibrariesRenderer($twig, $logger, $tools, $app, $endpoints);
-        $this->settingsRenderer = new SettingsRenderer($twig, $logger, $tools, $app, $endpoints);
-        $this->eventsRenderer = new EventsRenderer($twig, $logger, $tools, $app, $endpoints);
-        $this->alarmsRenderer = new AlarmsRenderer($twig, $logger, $tools, $app, $endpoints);
-        $this->notificationCenterRenderer = new NotificationCenterRenderer($twig, $logger, $tools, $app, $endpoints);
-        $this->notificationCenter = new AlarmNotificationCenter(
-            $eventManager,
-            $cacheStore,
-            $cacheKeyFactory,
-        );
-        $this->app = $app;
-
-        // Initialize Libraries service classes
-        $auditRowEnricher = new AuditRowEnricher(new AuditAggregator());
-        $this->librariesViewBuilder = new LibrariesViewBuilder($logger, $auditRowEnricher);
-
-        // Initialize Monitoring service classes
-        $thresholds = MetricThresholds::fromConfig($monitoringConfig->thresholds);
-        $this->serverMonitor = new ServerMonitor($logger, $eventManager, $thresholds);
-        $cacheTypeResolver = new CacheTypeResolver();
-        $this->serverViewBuilder = new ServerViewBuilder(
-            $this->serverMonitor,
-            new LogSizeEvaluator($tools, $thresholds),
-            $thresholds,
-            $logger,
-            $cacheTypeResolver,
-            $appInventorySync
-        );
+        $this->renderers = $renderers;
+        $this->serverViewBuilder = $serverViewBuilder;
+        $this->librariesViewBuilder = $librariesViewBuilder;
+        $this->notificationCenter = $notificationCenter;
     }
 
     /**
@@ -240,7 +184,7 @@ class DashboardController extends BaseController
                     'app_env' => $this->appConfig->environment->env,
                 ];
 
-                $html = $this->serverRenderer->renderDashboardPage(
+                $html = $this->renderers->server->renderDashboardPage(
                     $activeNotification,
                     $endpoints,
                     $menu,
@@ -280,7 +224,7 @@ class DashboardController extends BaseController
             function () use ($forceRefresh) {
 
                 if (empty($this->monitoringConfig->servers->values)) {
-                    $html = $this->serverRenderer->renderErrorContainer(
+                    $html = $this->renderers->server->renderErrorContainer(
                         "No Servers configured.\nconfig/servers.json",
                         $this->monitoringConfig->servers->values
                     );
@@ -300,7 +244,7 @@ class DashboardController extends BaseController
                     'auto_refresh_seconds' => $this->appConfig->dashboard->autoRefreshSeconds,
                 ];
 
-                $html = $this->serverRenderer->renderServersContainer(
+                $html = $this->renderers->server->renderServersContainer(
                     $serversViewData,
                     $layoutConfig,
                     $this->readCronStatuses()
@@ -320,7 +264,7 @@ class DashboardController extends BaseController
     {
         return $this->executeWithErrorHandling(
             function () use ($forceRefresh) {
-                $html = $this->databaseRenderer->renderContainer(
+                $html = $this->renderers->database->renderContainer(
                     $this->dataCollectorsByServer(),
                     $this->monitoringConfig->servers->values,
                     $forceRefresh
@@ -340,7 +284,7 @@ class DashboardController extends BaseController
     {
         return $this->executeWithErrorHandling(
             function () {
-                $html = $this->librariesRenderer->renderContainer(
+                $html = $this->renderers->libraries->renderContainer(
                     $this->endpoints,
                     $this->monitoringConfig->servers->values
                 );
@@ -359,7 +303,7 @@ class DashboardController extends BaseController
     {
         return $this->executeWithErrorHandling(
             function () {
-                $html = $this->settingsRenderer->renderContainer(
+                $html = $this->renderers->settings->renderContainer(
                     $this->appConfig->environment->env,
                     $this->monitoringConfig->servers,
                     $this->monitoringConfig->ttl,
@@ -384,7 +328,7 @@ class DashboardController extends BaseController
     {
         return $this->executeWithErrorHandling(
             function () {
-                $html = $this->eventsRenderer->renderContainer(
+                $html = $this->renderers->events->renderContainer(
                     $this->endpoints
                 );
 
@@ -402,7 +346,7 @@ class DashboardController extends BaseController
     {
         return $this->executeWithErrorHandling(
             function () {
-                $html = $this->alarmsRenderer->renderContainer(
+                $html = $this->renderers->alarms->renderContainer(
                     $this->endpoints
                 );
 
@@ -442,7 +386,7 @@ class DashboardController extends BaseController
                     $dashboardServices->healthMonitor
                 );
 
-                $html = $this->serverRenderer->renderServerCard(
+                $html = $this->renderers->server->renderServerCard(
                     $serversViewData
                 );
 
@@ -467,7 +411,7 @@ class DashboardController extends BaseController
 
         return $this->executeWithErrorHandling(
             function () use ($server, $forceRefresh) {
-                $html = $this->databaseRenderer->renderDatabaseCards(
+                $html = $this->renderers->database->renderDatabaseCards(
                     [$server => $this->requireDashboardServices($server)->collector],
                     [$server => $this->monitoringConfig->servers->values[$server]],
                     $forceRefresh
@@ -502,7 +446,7 @@ class DashboardController extends BaseController
                     $forceRefresh
                 );
 
-                $html = $this->serverRenderer->renderServerStats(
+                $html = $this->renderers->server->renderServerStats(
                     $serverStatsData
                 );
 
@@ -564,7 +508,7 @@ class DashboardController extends BaseController
     {
         return $this->executeWithErrorHandling(
             function () {
-                $html = $this->notificationCenterRenderer->renderBell(
+                $html = $this->renderers->notificationCenter->renderBell(
                     $this->notificationCenter->getUnacknowledgedCounts()
                 );
 
@@ -607,7 +551,7 @@ class DashboardController extends BaseController
                 $user = $this->app->auth->getUsername() ?? 'unknown';
                 $this->notificationCenter->acknowledgeAll($user);
 
-                $html = $this->notificationCenterRenderer->renderBell(
+                $html = $this->renderers->notificationCenter->renderBell(
                     $this->notificationCenter->getUnacknowledgedCounts()
                 );
 
