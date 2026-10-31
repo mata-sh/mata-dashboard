@@ -76,9 +76,12 @@ try {
         $cron->touchHeartbeat();
 
         try {
-            $services = $appConfig->environment->env === 'demo'
-                ? $serverMonitoringFactory->createDemo($server, $data)
-                : $serverMonitoringFactory->createLive($server, $data, apiTimeoutSeconds: $apiTimeoutSeconds);
+            $services = $monitoringRuntime->environmentFactory->createServerMonitoring(
+                $server,
+                $data,
+                $serverMonitoringFactory,
+                $apiTimeoutSeconds,
+            );
 
             $result = $dataFetchRunner->run(
                 $server,

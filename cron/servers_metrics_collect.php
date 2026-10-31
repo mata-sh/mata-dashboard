@@ -6,7 +6,6 @@ declare(strict_types=1);
 use Mata\Bootstrap\CronRuntime;
 use Mata\Bootstrap\MonitoringRuntime;
 use Mata\Config\Monitoring\ServerConfigState;
-use Mata\Models\ServerMetrics\Dto\ServerMetricRawSnapshot;
 use Mata\Models\ServerMetrics\ServerMetricsRepository;
 use Mata\Services\Cache\ApiCacheKeyFactory;
 use Mata\Services\Cache\CacheTtlResolver;
@@ -17,6 +16,7 @@ use Mata\Services\Collect\ServerDataCollector;
 use Mata\Services\Monitor\MetricThresholds;
 use Mata\Services\Monitor\ServerMetricsHealthMonitor;
 use Mata\Services\Monitor\ServerMonitor;
+use Mata\Services\ServerMetrics\ServerMetricSnapshotFactory;
 use Mata\Utils\TypeConverter;
 
 require_once __DIR__ . '/../vendor/autoload.php';
@@ -57,6 +57,7 @@ try {
     $ttlResolver = new CacheTtlResolver($monitoringConfig->ttl);
     $responseNormalizer = new NodeResponseNormalizer($log);
     $repository = new ServerMetricsRepository($db, $idResolver, $configSyncRepository);
+    $snapshotFactory = new ServerMetricSnapshotFactory();
     $serverMonitor = new ServerMonitor($log, $eventManager, MetricThresholds::fromConfig($monitoringConfig->thresholds));
 
     $ingestionHealth = $dataRetentionConfig->ingestionHealth;
@@ -155,25 +156,22 @@ try {
 
             $metricsPayload = $serverMonitor->collectServerHealthData($collector, (string) $serverName);
 
-            $snapshot = buildSnapshotFromPayload($metricsPayload);
-            [$collectorName, $collectorVersion, $collectorContact] = resolveCollectorIdentity(
-                $metricsPayload['data'] ?? [],
-                $serverConfig
-            );
+            $snapshot = $snapshotFactory->fromHealthPayload($metricsPayload);
+            $collector = $snapshotFactory->collectorIdentity($metricsPayload, $serverConfig);
 
             $repository->storeRawSample(
                 (string) $serverName,
-                $collectorName,
+                $collector->name,
                 $snapshot,
-                $collectorVersion,
-                $collectorContact
+                $collector->version,
+                $collector->contact
             );
 
             ++$stats['stored'];
 
             $log->info('collect_server_metrics.stored', [
                 'server' => $serverName,
-                'collector' => $collectorName,
+                'collector' => $collector->name,
                 'collected_at' => $snapshot->collectedAt->format(DateTimeImmutable::ATOM),
                 'cache_age' => $metricsPayload['cache']['age'] ?? null,
                 'cache_ttl' => $metricsPayload['cache']['ttl'] ?? null,
@@ -229,215 +227,4 @@ try {
     ]);
 } finally {
     $cron->releaseLock();
-}
-
-/**
- * @param array<string,mixed> $payload
- */
-function buildSnapshotFromPayload(array $payload): ServerMetricRawSnapshot
-{
-    $data = is_array($payload['data'] ?? null) ? $payload['data'] : [];
-    $cache = is_array($payload['cache'] ?? null) ? $payload['cache'] : [];
-
-    $collectedAt = resolveCollectedAt($data, $cache);
-    $ingestedAt = resolveIngestedAt();
-
-    $cpuUsage = TypeConverter::toFloat($data['cpu_usage'] ?? null);
-
-    $ramUsed = TypeConverter::toInt(
-        $data['ram_used']
-        ?? ($data['ram']['used'] ?? null)
-        ?? ($data['memory']['used'] ?? null)
-    );
-    $ramTotal = TypeConverter::toInt(
-        $data['ram_capacity']
-        ?? ($data['ram']['total'] ?? null)
-        ?? ($data['memory']['total'] ?? null)
-        ?? ($data['ram_total'] ?? null)
-    );
-
-    $diskUsed = TypeConverter::toInt(
-        $data['disk_space_used']
-        ?? ($data['disk']['used'] ?? null)
-        ?? ($data['storage']['used'] ?? null)
-    );
-    $diskTotal = TypeConverter::toInt(
-        $data['disk_space_capacity']
-        ?? ($data['disk']['total'] ?? null)
-        ?? ($data['storage']['total'] ?? null)
-        ?? ($data['disk_total'] ?? null)
-    );
-
-    $ramPercent = computePercent($ramUsed, $ramTotal);
-    $diskPercent = computePercent($diskUsed, $diskTotal);
-
-    $totalFileCount = TypeConverter::toInt(
-        $data['total_system_filecount']
-        ?? ($data['filecount']['total'] ?? null)
-        ?? ($data['filesystem']['filecount'] ?? null)
-    );
-
-    $processCount = TypeConverter::toInt(
-        $data['processes']['total'] ?? $data['total_processes'] ?? $data['process_count'] ?? null
-    );
-    $phpProcessCount = TypeConverter::toInt(
-        $data['processes']['php'] ?? $data['php_process_count'] ?? null
-    );
-
-    $phpVersion = TypeConverter::toString(
-        $data['php_version']
-        ?? ($data['php']['version'] ?? null)
-    );
-
-    $osVersion = TypeConverter::toString(
-        $data['os_version']
-        ?? ($data['system']['os_version'] ?? null)
-        ?? ($data['os']['version'] ?? null)
-    );
-
-    $serverUptime = TypeConverter::toInt(
-        $data['server_uptime']
-        ?? ($data['system']['uptime'] ?? null)
-        ?? ($data['uptime'] ?? null)
-    );
-
-    return new ServerMetricRawSnapshot(
-        $collectedAt,
-        $ingestedAt,
-        $cpuUsage,
-        $ramUsed,
-        $ramTotal,
-        $diskUsed,
-        $diskTotal,
-        $ramPercent,
-        $diskPercent,
-        $totalFileCount,
-        $processCount,
-        $phpProcessCount,
-        $phpVersion,
-        $osVersion,
-        $serverUptime
-    );
-}
-
-/**
- * @param array<string,mixed> $serverData
- * @param array<string,mixed> $serverConfig
- *
- * @return array{0:string,1:?string,2:?string}
- */
-function resolveCollectorIdentity(array $serverData, array $serverConfig): array
-{
-    $collectorData = $serverData['collector'] ?? null;
-    if (is_array($collectorData)) {
-        $name = TypeConverter::toString($collectorData['name'] ?? null);
-        if ($name === null || $name === '') {
-            $name = 'mata-node';
-        }
-
-        return [
-            $name,
-            TypeConverter::toString($collectorData['version'] ?? null),
-            TypeConverter::toString($collectorData['contact'] ?? null),
-        ];
-    }
-
-    $fallbackName = TypeConverter::toString($serverConfig['collector_name'] ?? null)
-        ?? TypeConverter::toString($serverConfig['node_name'] ?? null)
-        ?? 'collect_server_metrics_cron';
-
-    return [
-        $fallbackName,
-        TypeConverter::toString($serverConfig['collector_version'] ?? null),
-        TypeConverter::toString($serverConfig['collector_contact'] ?? null),
-    ];
-}
-
-/**
- * @param array<string,mixed> $data
- * @param array<string,mixed> $cache
- */
-function resolveCollectedAt(array $data, array $cache): DateTimeImmutable
-{
-    $candidates = [
-        $data['collected_at'] ?? null,
-        $data['timestamp'] ?? null,
-        $data['generated_at'] ?? null,
-        $data['created_at'] ?? null,
-        $data['meta']['timestamp'] ?? null,
-    ];
-
-    foreach ($candidates as $candidate) {
-        $parsed = parseDateTimeCandidate($candidate);
-        if ($parsed !== null) {
-            return $parsed;
-        }
-    }
-
-    $cacheAge = isset($cache['age']) ? (int) $cache['age'] : 0;
-    if ($cacheAge > 0) {
-        try {
-            $interval = new DateInterval('PT' . $cacheAge . 'S');
-
-            return (new DateTimeImmutable())->sub($interval);
-        } catch (Throwable) {
-            // noop, fall back to now
-        }
-    }
-
-    return new DateTimeImmutable('now', new DateTimeZone('UTC'));
-}
-
-function resolveIngestedAt(): DateTimeImmutable
-{
-    $formatted = sprintf('%.6F', microtime(true));
-    $dateTime = DateTimeImmutable::createFromFormat('U.u', $formatted);
-
-    if ($dateTime instanceof DateTimeImmutable) {
-        return $dateTime->setTimezone(new DateTimeZone('UTC'));
-    }
-
-    return new DateTimeImmutable('now', new DateTimeZone('UTC'));
-}
-
-function parseDateTimeCandidate(mixed $value): ?DateTimeImmutable
-{
-    if ($value instanceof DateTimeImmutable) {
-        return $value->setTimezone(new DateTimeZone('UTC'));
-    }
-
-    if ($value instanceof DateTimeInterface) {
-        return DateTimeImmutable::createFromInterface($value)->setTimezone(new DateTimeZone('UTC'));
-    }
-
-    if (is_string($value) && $value !== '') {
-        try {
-            return (new DateTimeImmutable($value))->setTimezone(new DateTimeZone('UTC'));
-        } catch (Throwable) {
-            return null;
-        }
-    }
-
-    if (is_numeric($value)) {
-        $numeric = (float) $value;
-        if ($numeric > 9999999999) {
-            $numeric /= 1000;
-        }
-
-        $dateTime = DateTimeImmutable::createFromFormat('U.u', sprintf('%.6F', $numeric));
-        if ($dateTime instanceof DateTimeImmutable) {
-            return $dateTime->setTimezone(new DateTimeZone('UTC'));
-        }
-    }
-
-    return null;
-}
-
-function computePercent(?int $used, ?int $total): ?float
-{
-    if ($used === null || $total === null || $total <= 0) {
-        return null;
-    }
-
-    return round(($used / $total) * 100, 2);
 }

@@ -15,25 +15,17 @@ use Mata\Services\Identity\ServerApplicationIdResolver;
  * sample data, while non-demo environments use {@see ServerMetricsQuery} backed
  * by the database connection.
  */
-final class ServerMetricsQueryFactory
+final readonly class ServerMetricsQueryFactory
 {
-    private string $environment;
-    private DatabaseInterface $database;
-    private ServerApplicationIdResolver $idResolver;
-
     public function __construct(
-        string $environment,
-        DatabaseInterface $database,
-        ServerApplicationIdResolver $idResolver
-    ) {
-        $this->environment = strtolower(trim($environment));
-        $this->database = $database;
-        $this->idResolver = $idResolver;
-    }
+        private bool $demo,
+        private DatabaseInterface $database,
+        private ServerApplicationIdResolver $idResolver,
+    ) {}
 
     public function create(): ServerMetricsQueryInterface
     {
-        if ($this->environment === 'demo') {
+        if ($this->demo) {
             return new MockServerMetricsQuery();
         }
 

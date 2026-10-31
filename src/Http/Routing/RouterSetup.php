@@ -16,6 +16,7 @@ use Mata\Core\App;
 use Mata\Database\DatabaseId;
 use Mata\Http\Request;
 use Mata\Http\Responses\HtmlResponse;
+use Mata\Http\Responses\JsonResponse;
 use Mata\Http\Responses\Response;
 use Mata\Http\Responses\ResponseFactory;
 use Mata\Http\Security\CsrfGuard;
@@ -109,15 +110,8 @@ class RouterSetup
     private function setupHealthCheck(): void
     {
         $this->endpoints->register('health', '/health');
-        $this->router->get('/health', function () {
-            http_response_code(200);
-            header('Content-Type: application/json');
-            echo json_encode([
-                'status' => 'healthy',
-                'timestamp' => time(),
-            ]);
-
-            exit;
+        $this->router->get('/health', static function (): void {
+            (new JsonResponse(['status' => 'healthy', 'timestamp' => time()]))->send();
         });
     }
 
@@ -137,64 +131,58 @@ class RouterSetup
         }
 
         // Login routes - strictest limits (brute force protection)
-        $this->router->before(self::ALL_REQUEST_METHODS, '/login', function () {
-            if ($this->isRateLimited('login')) {
-                http_response_code(429);
-
-                exit('Too many login attempts. Please try again later.');
-            }
+        $this->router->before(self::ALL_REQUEST_METHODS, '/login', function (): void {
+            $this->haltIfRateLimited('login', new Response('Too many login attempts. Please try again later.', 429));
         });
 
-        $this->router->before(self::ALL_REQUEST_METHODS, '/logout', function () {
-            if ($this->isRateLimited('login')) {
-                http_response_code(429);
-
-                exit('Too many requests.');
-            }
+        $this->router->before(self::ALL_REQUEST_METHODS, '/logout', function (): void {
+            $this->haltIfRateLimited('login', new Response('Too many requests.', 429));
         });
 
         // Dashboard and watch routes - moderate limits
-        $this->router->before(self::ALL_REQUEST_METHODS, '/watch(?:/.*)?', function () {
-            if ($this->isRateLimited('dashboard')) {
-                http_response_code(429);
-
-                exit('Too many requests. Please slow down.');
-            }
+        $this->router->before(self::ALL_REQUEST_METHODS, '/watch(?:/.*)?', function (): void {
+            $this->haltIfRateLimited('dashboard', new Response('Too many requests. Please slow down.', 429));
         });
 
         // API routes - /api/* (events, alarms, libraries, logs) and /api/metrics/*
-        $this->router->before(self::ALL_REQUEST_METHODS, '/api/.*', function () {
-            if ($this->isRateLimited('api')) {
-                http_response_code(429);
-                header('Content-Type: application/json');
-                echo json_encode([
-                    'error' => 'Rate limit exceeded',
-                    'message' => 'Too many API requests. Please try again later.',
-                ]);
-
-                exit;
-            }
+        $this->router->before(self::ALL_REQUEST_METHODS, '/api/.*', function (): void {
+            $this->haltIfRateLimited('api', new JsonResponse([
+                'error' => 'Rate limit exceeded',
+                'message' => 'Too many API requests. Please try again later.',
+            ], 429));
         });
     }
 
-    private function isRateLimited(string $group): bool
+    /** Sends $response, with a Retry-After header when known, once $group is over its limit. */
+    private function haltIfRateLimited(string $group, Response $response): void
     {
         $rateLimiter = $this->app->rateLimiter;
         if ($rateLimiter === null) {
-            return false;
+            return;
         }
 
         $result = $rateLimiter->consume($group, $this->request->clientIp());
         if ($result->isAllowed()) {
-            return false;
+            return;
         }
 
         $retryAt = $result->getRetryAt();
         if ($retryAt !== null) {
-            header('Retry-After: ' . max(1, $retryAt - time()));
+            $response->addHeader('Retry-After', (string) max(1, $retryAt - time()));
         }
 
-        return true;
+        $this->halt($response);
+    }
+
+    /**
+     * Bramus Router runs the route after its before middleware whatever the middleware did, so a
+     * middleware that answers the request has to end it here.
+     */
+    private function halt(Response $response): never
+    {
+        $response->send();
+
+        exit;
     }
 
     /**
@@ -212,9 +200,7 @@ class RouterSetup
             $clientIp = $this->request->clientIp() ?? '';
 
             if (!in_array($clientIp, $config->allowedIps, true)) {
-                $this->ipAccessDeniedResponse($clientIp)->send();
-
-                exit;
+                $this->halt($this->ipAccessDeniedResponse($clientIp));
             }
         });
     }
@@ -251,18 +237,15 @@ class RouterSetup
                 return;
             }
             if (ResponseFactory::isHtmxRequest($this->request)) {
-                ResponseFactory::forbidden($this->request, 'Invalid or missing CSRF token')
-                    ->addHeader('HX-Refresh', 'true')
-                    ->send();
-
-                exit;
+                $this->halt(
+                    ResponseFactory::forbidden($this->request, 'Invalid or missing CSRF token')
+                        ->addHeader('HX-Refresh', 'true')
+                );
             }
             if (!ResponseFactory::expectsJson($this->request)) {
-                $this->app->redirect('login');
+                $this->halt($this->app->redirect('login'));
             }
-            ResponseFactory::forbidden($this->request, 'Invalid or missing CSRF token')->send();
-
-            exit;
+            $this->halt(ResponseFactory::forbidden($this->request, 'Invalid or missing CSRF token'));
         });
     }
 
@@ -278,12 +261,10 @@ class RouterSetup
 
             if (ResponseFactory::isHtmxRequest($this->request)) {
                 $loginPath = rtrim($this->app->getBasePath(), '/') . '/login';
-                ResponseFactory::htmxRedirect($loginPath)->send();
-
-                exit;
+                $this->halt(ResponseFactory::htmxRedirect($loginPath));
             }
 
-            $this->app->redirect('login');
+            $this->halt($this->app->redirect('login'));
         });
 
         $this->router->before(self::ALL_REQUEST_METHODS, '/api/.*', function () {
@@ -291,9 +272,7 @@ class RouterSetup
                 return;
             }
 
-            ResponseFactory::unauthorized($this->request, 'Authentication required')->send();
-
-            exit;
+            $this->halt(ResponseFactory::unauthorized($this->request, 'Authentication required'));
         });
     }
 
@@ -304,20 +283,20 @@ class RouterSetup
     {
         // login (GET)
         $this->endpoints->register('login', '/login');
-        $this->router->get('/login', function () {
-            $this->loginController->show();
+        $this->router->get('/login', function (): void {
+            $this->loginController->show()->send();
         });
 
         // login submit (POST)
         $this->endpoints->register('loginSubmit', '/login');
-        $this->router->post('/login', function () {
-            $this->loginController->submit();
+        $this->router->post('/login', function (): void {
+            $this->loginController->submit()->send();
         });
 
         // logout
         $this->endpoints->register('logout', '/logout');
-        $this->router->post('/logout', function () {
-            $this->loginController->logout();
+        $this->router->post('/logout', function (): void {
+            $this->loginController->logout()->send();
         });
     }
 
@@ -499,8 +478,8 @@ class RouterSetup
      */
     private function setup404Handler(): void
     {
-        $this->router->set404(function () {
-            $this->app->redirect('watch');
+        $this->router->set404(function (): void {
+            $this->app->redirect('watch')->send();
         });
     }
 

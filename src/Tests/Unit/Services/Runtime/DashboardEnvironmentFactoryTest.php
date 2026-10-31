@@ -38,7 +38,7 @@ final class DashboardEnvironmentFactoryTest extends TestCase
 {
     public function testCreatesLiveDashboardDependencies(): void
     {
-        $factory = $this->environmentFactory('prod');
+        $factory = $this->environmentFactory(demo: false);
 
         $this->assertInstanceOf(EventAggregatorService::class, $factory->createEventAggregator());
         $this->assertSame([], $factory->createMonitoring([], $this->monitoringFactory())->servicesByServer);
@@ -46,19 +46,19 @@ final class DashboardEnvironmentFactoryTest extends TestCase
 
     public function testCreatesDemoDashboardDependencies(): void
     {
-        $factory = $this->environmentFactory('demo');
+        $factory = $this->environmentFactory(demo: true);
         $result = $factory->createMonitoring(['server-a' => []], $this->monitoringFactory());
 
         $this->assertInstanceOf(MockEventAggregatorService::class, $factory->createEventAggregator());
         $this->assertInstanceOf(MockServerDataCollector::class, $result->servicesByServer['server-a']->collector);
     }
 
-    private function environmentFactory(string $environment): DashboardEnvironmentFactory
+    private function environmentFactory(bool $demo): DashboardEnvironmentFactory
     {
         $database = $this->createStub(DatabaseInterface::class);
 
         return new DashboardEnvironmentFactory(
-            $environment,
+            $demo,
             new EventRepository($database),
             new AlarmRepository($database),
             new ServerApplicationIdResolver(),

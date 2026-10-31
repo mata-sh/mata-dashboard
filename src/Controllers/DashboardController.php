@@ -208,7 +208,7 @@ class DashboardController extends BaseController
     {
         $reader = CronHeartbeatReader::fromPaths($this->app->paths);
 
-        if ($this->appConfig->environment->env === 'demo') {
+        if ($this->appConfig->environment->isDemo()) {
             return (new DemoCronCatalog())->statuses($reader->jobs(), time());
         }
 

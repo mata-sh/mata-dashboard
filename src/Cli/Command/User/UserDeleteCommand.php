@@ -30,7 +30,7 @@ final class UserDeleteCommand extends AbstractUserCommand
     {
         $username = (string) $input->getArgument('username');
         // In prod the typed confirmation already ran.
-        $refused = $this->env === 'prod' ? null : CliOutput::confirm($input, $output, "Delete user '{$username}'?");
+        $refused = $this->environment->isProd() ? null : CliOutput::confirm($input, $output, "Delete user '{$username}'?");
         if ($refused !== null) {
             return $refused;
         }

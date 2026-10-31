@@ -9,6 +9,7 @@ use Mata\Controllers\LoginController;
 use Mata\Core\App;
 use Mata\Core\Session;
 use Mata\Http\Request;
+use Mata\Http\Responses\RedirectResponse;
 use Mata\Http\Security\CsrfGuard;
 use Mata\Services\Auth\UserAuthenticator;
 use Mata\Tests\Helpers\ApplicationConfigFactory;
@@ -57,9 +58,7 @@ final class LoginControllerTest extends TestCase
         $this->tools->expects($this->once())->method('icon')->with('sea-turtle-bl', 150)->willReturn('<svg>logo</svg>');
         $this->twig->expects($this->once())->method('render')->willReturn('<html>login form</html>');
 
-        ob_start();
-        $this->controller()->show();
-        self::assertSame('<html>login form</html>', ob_get_clean());
+        self::assertSame('<html>login form</html>', $this->controller()->show()->getContent());
     }
 
     public function testItPrefillsDemoCredentialsOnlyOnDemoInstances(): void
@@ -73,9 +72,7 @@ final class LoginControllerTest extends TestCase
 
         foreach (['demo', 'prod'] as $env) {
             $this->app = $this->appWithEnvironment($env);
-            ob_start();
             $this->controller()->show();
-            ob_end_clean();
         }
 
         self::assertSame([['username' => 'demo', 'password' => 'demo'], null], $rendered);
@@ -84,12 +81,13 @@ final class LoginControllerTest extends TestCase
     public function testItLogsInUsingNormalizedPostInputAndRegeneratesCsrf(): void
     {
         $this->auth->expects($this->once())->method('login')->with('testuser', 'password123', true)->willReturn(true);
-        $this->app->expects($this->once())->method('redirect')->with('watch');
-        $csrf = Session::get(CsrfGuard::SESSION_KEY);
+        $redirect = new RedirectResponse('/watch');
+        $this->app->expects($this->once())->method('redirect')->with('watch')->willReturn($redirect);
         Session::set(CsrfGuard::SESSION_KEY, 'old-token');
 
-        $this->controller(['username' => ' testuser ', 'password' => 'password123', 'remember_me' => 'on'])->submit();
+        $response = $this->controller(['username' => ' testuser ', 'password' => 'password123', 'remember_me' => 'on'])->submit();
 
+        self::assertSame($redirect, $response);
         self::assertNotSame('old-token', Session::get(CsrfGuard::SESSION_KEY));
     }
 
@@ -98,9 +96,7 @@ final class LoginControllerTest extends TestCase
         $this->auth->expects($this->once())->method('login')->with('', '', false)->willReturn(false);
         $this->configureFailureRender();
 
-        ob_start();
         $this->controller(['username' => ['admin'], 'password' => ['password'], 'remember_me' => ['on']])->submit();
-        ob_end_clean();
     }
 
     public function testItRendersLoginFailure(): void
@@ -108,17 +104,16 @@ final class LoginControllerTest extends TestCase
         $this->auth->expects($this->once())->method('login')->with('', '', false)->willReturn(false);
         $this->configureFailureRender();
 
-        ob_start();
-        $this->controller()->submit();
-        self::assertSame('<html>login form with error</html>', ob_get_clean());
+        self::assertSame('<html>login form with error</html>', $this->controller()->submit()->getContent());
     }
 
     public function testItLogsOutAndRedirects(): void
     {
         $this->auth->expects($this->once())->method('logout');
-        $this->app->expects($this->once())->method('redirect')->with('login');
+        $redirect = new RedirectResponse('/login');
+        $this->app->expects($this->once())->method('redirect')->with('login')->willReturn($redirect);
 
-        $this->controller()->logout();
+        self::assertSame($redirect, $this->controller()->logout());
     }
 
     private function appWithEnvironment(string $env): App&MockObject

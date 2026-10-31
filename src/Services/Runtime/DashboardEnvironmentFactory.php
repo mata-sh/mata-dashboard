@@ -11,6 +11,7 @@ use Mata\Services\Event\EventAggregatorServiceInterface;
 use Mata\Services\Event\MockEventAggregatorService;
 use Mata\Services\Identity\ServerApplicationIdResolver;
 use Mata\Services\Monitor\Dto\ServerMonitoringResult;
+use Mata\Services\Monitor\Dto\ServerMonitoringServices;
 use Mata\Services\Monitor\ServerMonitoringFactory;
 use Psr\Log\LoggerInterface;
 
@@ -20,7 +21,7 @@ final readonly class DashboardEnvironmentFactory
     private const LIVE_API_TIMEOUT_SECONDS = 10;
 
     public function __construct(
-        private string $environment,
+        private bool $demo,
         private EventRepository $eventRepository,
         private AlarmRepository $alarmRepository,
         private ServerApplicationIdResolver $idResolver,
@@ -30,7 +31,7 @@ final readonly class DashboardEnvironmentFactory
 
     public function createEventAggregator(): EventAggregatorServiceInterface
     {
-        if ($this->environment !== 'demo') {
+        if (!$this->demo) {
             return new EventAggregatorService($this->eventRepository, $this->alarmRepository, $this->idResolver);
         }
 
@@ -46,10 +47,29 @@ final readonly class DashboardEnvironmentFactory
         array $serversConfig,
         ServerMonitoringFactory $monitoringFactory,
     ): ServerMonitoringResult {
-        if ($this->environment === 'demo') {
+        if ($this->demo) {
             return $monitoringFactory->createDemoAll($serversConfig);
         }
 
         return $monitoringFactory->createLiveAll($serversConfig, self::LIVE_API_TIMEOUT_SECONDS);
+    }
+
+    /**
+     * The monitoring services of one server; cron builds them one at a time so a server that
+     * fails to initialize does not stop the others.
+     *
+     * @param array<string,mixed> $serverConfig
+     */
+    public function createServerMonitoring(
+        string $server,
+        array $serverConfig,
+        ServerMonitoringFactory $monitoringFactory,
+        int $apiTimeoutSeconds,
+    ): ServerMonitoringServices {
+        if ($this->demo) {
+            return $monitoringFactory->createDemo($server, $serverConfig);
+        }
+
+        return $monitoringFactory->createLive($server, $serverConfig, $apiTimeoutSeconds);
     }
 }

@@ -61,7 +61,7 @@ final class MetricsSeriesCommand extends AbstractResultCommand
         $metric = $validation->normalizedMetric;
         $granularity = $policy->resolveGranularity($range, $requestedGranularity);
 
-        $demo = $config->environment->env === 'demo';
+        $demo = $config->environment->isDemo();
         $query = StoredMetrics::query($config, $servers);
         $series = (new MetricsViewBuilder($query, new NullLogger()))->buildServerMetricTimeSeries($server, $metric, $range, $granularity);
 

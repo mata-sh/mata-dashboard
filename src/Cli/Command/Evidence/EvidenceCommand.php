@@ -322,7 +322,7 @@ final class EvidenceCommand extends AbstractResultCommand
                 'points' => $points,
             ];
         }
-        $demo = $config->environment->env === 'demo';
+        $demo = $config->environment->isDemo();
 
         return Provenance::fromDatabase("server_metrics_{$granularity}", $now, $demo) + [
             'granularity' => $granularity,

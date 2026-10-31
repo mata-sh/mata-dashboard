@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - Errors that are not exceptions, such as a type error inside a request, now return the dashboard's usual error response instead of the generic 500 page.
+- `APP_ENV` is read case-insensitively everywhere. Before, `Demo` switched only the metrics charts to demo data while the rest of the dashboard ran live.
 
 ## [0.10.0] - 2026-10-27
 

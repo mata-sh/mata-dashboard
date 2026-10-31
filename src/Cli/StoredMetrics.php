@@ -22,7 +22,7 @@ final class StoredMetrics
      */
     public static function query(ApplicationConfig $config, array $servers): ServerMetricsQueryInterface
     {
-        if ($config->environment->env === 'demo') {
+        if ($config->environment->isDemo()) {
             return new MockServerMetricsQuery();
         }
         $db = new PdoDatabase($config->database);

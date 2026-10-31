@@ -6,6 +6,7 @@ namespace Mata\Core;
 
 use Mata\Config\Dto\ApplicationConfig;
 use Mata\Http\Request;
+use Mata\Http\Responses\RedirectResponse;
 use Mata\Http\Security\RateLimiting\RequestRateLimiter;
 use Mata\Services\Auth\UserAuthenticator;
 use Mata\Utils\PathResolver;
@@ -41,29 +42,20 @@ class App
     }
 
     /**
-     * Redirect user to specified URL and terminate execution.
+     * A redirect to an absolute URL or path as given, or to an application route such as 'watch'.
      *
-     * @param string $url Target URL for redirection (relative path like 'watch' or absolute URL)
+     * Served from /public (native development), the route stays relative so the browser resolves
+     * it below /public instead of bypassing .htaccess.
      */
-    public function redirect(string $url): void
+    public function redirect(string $url): RedirectResponse
     {
-        // If URL is already absolute (starts with http/https or /), use as-is
         if (preg_match('/^(https?:\/\/|\/)/i', $url)) {
-            header('Location: ' . $url);
-
-            exit;
+            return new RedirectResponse($url);
         }
 
-        // For development (/public/), use relative redirect to avoid .htaccess bypass
-        if ($this->basePath === '/public') {
-            // Relative redirect: 'login' stays as 'login', browser resolves to /public/login
-            header('Location: ' . ltrim($url, '/'));
-        } else {
-            // For production (/), use absolute path
-            header('Location: /' . ltrim($url, '/'));
-        }
+        $route = ltrim($url, '/');
 
-        exit;
+        return new RedirectResponse($this->basePath === '/public' ? $route : '/' . $route);
     }
 
     /**

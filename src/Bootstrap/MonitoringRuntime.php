@@ -112,7 +112,7 @@ final readonly class MonitoringRuntime
 
         // Event aggregation
         $environmentFactory = new DashboardEnvironmentFactory(
-            $appConfig->environment->env,
+            $appConfig->environment->isDemo(),
             $eventRepository,
             $alarmRepository,
             $idResolver,

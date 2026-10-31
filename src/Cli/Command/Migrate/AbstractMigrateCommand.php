@@ -41,7 +41,7 @@ abstract class AbstractMigrateCommand extends Command
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
         $this->config = $this->cli->load();
-        if ($this->writes() && $this->config->environment->env === 'prod') {
+        if ($this->writes() && $this->config->environment->isProd()) {
             $refused = CliOutput::confirmProduction($input, $output, 'the PRODUCTION database', ' Back up first: make db-backup');
             if ($refused !== null) {
                 return $refused;

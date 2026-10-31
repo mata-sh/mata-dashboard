@@ -31,7 +31,7 @@ final class NodeDatasetReader
 
     public function __construct(private readonly CliConfig $cli, private readonly ApplicationConfig $config)
     {
-        $this->demo = $config->environment->env === 'demo';
+        $this->demo = $config->environment->isDemo();
     }
 
     /**

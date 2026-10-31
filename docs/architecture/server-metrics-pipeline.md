@@ -55,20 +55,20 @@ docker exec <web-container> mata-cron-smoke-check
 uses `ServerDataCollector` and `ServerMonitor` to fetch server health data from
 the configured node API.
 
-`buildSnapshotFromPayload()` maps the node response into
+`ServerMetricSnapshotFactory` maps the node response into
 `ServerMetricRawSnapshot`:
 
 | Raw snapshot value | Node response source | Notes |
 | --- | --- | --- |
 | `cpu_usage` | `cpu_usage` | Percent |
-| `ram_used`, `ram_total` | `ram_used` / `ram_capacity`, or RAM/memory alternatives | KiB |
+| `ram_used`, `ram_total` | `ram_used`, `ram_capacity` | KiB |
 | `ram_usage_percent` | calculated as `ram_used / ram_total * 100` | Null if total is absent or zero |
-| `disk_used`, `disk_total` | disk/storage alternatives | KiB |
+| `disk_used`, `disk_total` | `disk_space_used`, `disk_space_capacity` | KiB |
 | `disk_usage_percent` | calculated as `disk_used / disk_total * 100` | Null if total is absent or zero |
-| `total_file_count` | `total_system_filecount` or file-system alternatives | Count |
-| `process_count`, `php_process_count` | `processes.*` or alternatives | Count |
-| `php_version`, `os_version`, `server_uptime` | corresponding node data | Metadata |
-| `collected_at` | node timestamp; otherwise cache timestamp adjusted by cache age, then collection time | UTC |
+| `total_file_count` | `total_system_filecount` | Count |
+| `process_count`, `php_process_count` | `processes.total`, `processes.php` | Count |
+| `php_version`, `os_version`, `server_uptime` | `php_version`, `os_version`, `server_uptime` or `uptime` | Optional; demo health data supplies only uptime; the node supplies none of these |
+| `collected_at` | `collected_at` when the node stamps it; otherwise collection time minus the cache age | UTC |
 | `ingested_at` | dashboard insertion time | UTC |
 
 The collector identity is read from `data.collector` when present; otherwise it

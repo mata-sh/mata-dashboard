@@ -64,7 +64,6 @@ $app = $runtime->app;
 $csrf = $runtime->csrf;
 $db = $runtime->db;
 $notificationManager = $runtime->notifications;
-$environment = $appConfig->environment->env;
 
 // ************************************************************************************************
 // Monitoring configuration, events and alarms
@@ -180,7 +179,7 @@ $modalController = new ModalController(
     $request,
 );
 
-$metricsQuery = (new ServerMetricsQueryFactory($environment, $db, $idResolver))->create();
+$metricsQuery = (new ServerMetricsQueryFactory($appConfig->environment->isDemo(), $db, $idResolver))->create();
 $metricsViewBuilder = new MetricsViewBuilder($metricsQuery, $log);
 $metricsRenderer = new MetricsRenderer($twig, $log, $tools, $app, $endpoints);
 $chartViewBuilder = new ChartViewBuilder(

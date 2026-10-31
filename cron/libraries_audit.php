@@ -43,7 +43,7 @@ $cron->startTimer();
 $cron->log('Started');
 
 try {
-    if ($appConfig->environment->env === 'demo') {
+    if ($appConfig->environment->isDemo()) {
         $cron->log('Demo environment: library audit monitoring skipped');
         $cron->touchHeartbeat();
 

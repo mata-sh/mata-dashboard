@@ -6,6 +6,7 @@ namespace Mata\Cli\Command\User;
 
 use Mata\Cli\CliConfig;
 use Mata\Cli\CliOutput;
+use Mata\Config\Dto\EnvironmentConfig;
 use Mata\Models\Auth\UserRepository;
 use Mata\Services\Auth\UserAdministrator;
 use Mata\Utils\UsersFilePathResolver;
@@ -33,7 +34,7 @@ abstract class AbstractUserCommand extends Command
 {
     protected LoggerInterface $audit;
     protected string $operator = 'unknown';
-    protected string $env = 'dev';
+    protected EnvironmentConfig $environment;
 
     public function __construct(
         private readonly CliConfig $cli,
@@ -85,13 +86,13 @@ abstract class AbstractUserCommand extends Command
         $config = $this->cli->load();
         $usersFile = UsersFilePathResolver::resolve($this->cli->paths());
         $this->operator = CliOutput::currentUser() ?? (string) getenv('USER');
-        $this->env = $config->environment->env;
+        $this->environment = $config->environment;
 
         $security = $config->cliSecurity;
         if ($security->strictUserCheck && !in_array($this->operator, $security->allowedUsers, true)) {
             return CliOutput::fail($input, $output, "User '{$this->operator}' is not in CLI_ALLOWED_USERS (" . implode(', ', $security->allowedUsers) . ')');
         }
-        if ($this->writes() && $this->env === 'prod') {
+        if ($this->writes() && $this->environment->isProd()) {
             $refused = CliOutput::confirmProduction($input, $output, 'PRODUCTION users');
             if ($refused !== null) {
                 return $refused;
@@ -153,7 +154,7 @@ abstract class AbstractUserCommand extends Command
     /** bcrypt ignores everything after 72 bytes; demo accounts publish their credentials by design. */
     private function passwordPolicyError(string $password): ?string
     {
-        if ($this->env === 'demo') {
+        if ($this->environment->isDemo()) {
             return null;
         }
         if (mb_strlen($password) < 12) {
@@ -183,7 +184,7 @@ abstract class AbstractUserCommand extends Command
     {
         $context = $record->context + [
             'operator' => $this->operator,
-            'environment' => $this->env,
+            'environment' => $this->environment->env,
             'command' => $this->getName(),
         ];
 
