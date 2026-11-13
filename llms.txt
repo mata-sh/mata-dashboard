@@ -1,0 +1,42 @@
+# MATA Dashboard
+
+> Lightweight PHP monitoring dashboard for servers and applications
+
+MATA is a self-hosted PHP dashboard that monitors servers and applications through MATA Node agents. Coding agents installing it start with the agent runbook; every operator command (bin/mata) prints JSON with --json and reports through its exit code.
+
+
+## Getting started
+
+- [Install with a coding agent](https://docs.mata.sh/guides/agent-install/index.md): Runbook for coding agents, non-interactive install and checks
+- [Docker quickstart](https://docs.mata.sh/guides/quickstart-docker/index.md): Docker install, unattended setup variables
+- [Quick start](https://docs.mata.sh/guides/quickstart/index.md): Native install
+- [Add your first server](https://docs.mata.sh/guides/first-server/index.md): Connect a MATA Node
+
+## Guides
+
+- [Configuration](https://docs.mata.sh/guides/configuration/index.md)
+- [Version your config](https://docs.mata.sh/guides/version-config/index.md)
+- [Monitoring](https://docs.mata.sh/guides/monitoring/index.md)
+- [Application error monitoring](https://docs.mata.sh/guides/application-error-monitoring/index.md)
+- [User management CLI](https://docs.mata.sh/guides/user-management/index.md)
+- [Secure an installation](https://docs.mata.sh/guides/secure-application/index.md)
+
+## Reference
+
+- [Alarm decision and delivery flow](https://docs.mata.sh/reference/alarms/index.md)
+- [Operator CLI](https://docs.mata.sh/reference/cli/index.md)
+- [Docker deployment](https://docs.mata.sh/reference/docker/index.md)
+- [Command line](https://docs.mata.sh/node/cli/index.md)
+- [Configuration](https://docs.mata.sh/node/configuration/index.md)
+- [Docker](https://docs.mata.sh/node/docker/index.md)
+- [Framework detection](https://docs.mata.sh/node/frameworks/index.md)
+- [Log formats](https://docs.mata.sh/node/log-parsers/index.md)
+- [Shell command surface](https://docs.mata.sh/node/shell-command-surface/index.md)
+
+## Optional
+
+- [Overview](https://docs.mata.sh/architecture/overview/index.md)
+- [Security](https://docs.mata.sh/architecture/security/index.md)
+- [Server metrics pipeline](https://docs.mata.sh/architecture/server-metrics-pipeline/index.md)
+- [Technology choices](https://docs.mata.sh/architecture/technology-choices/index.md)
+
