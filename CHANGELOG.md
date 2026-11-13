@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Alarm emails and webhooks take a server's color and environment only from enabled servers that pass `config validate`. Alarms of a disabled server, or of one without its key in `servers.secrets.json`, show the default badge color and no environment. **Action:** none.
 
 ### Fixed
+- Updated Symfony components for CVE-2026-45070 (email header injection in `symfony/mime`), CVE-2026-123824 (XXE in `symfony/config`) and a `symfony/filesystem` path escape. **Action:** none.
 - Errors that are not exceptions, such as a type error inside a request, now return the dashboard's usual error response instead of the generic 500 page.
 - `APP_ENV` is read case-insensitively everywhere. Before, `Demo` switched only the metrics charts to demo data while the rest of the dashboard ran live.
 
