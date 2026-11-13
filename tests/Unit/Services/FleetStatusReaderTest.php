@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Mata\Tests\Unit\Services;
 
+use Mata\Config\Monitoring\Section\ServerConfig;
 use Mata\Services\Cache\ApiCacheKeyFactory;
 use Mata\Services\Cache\CacheStoreInterface;
 use Mata\Services\Cache\Dto\CacheEntry;
@@ -27,7 +28,7 @@ final class FleetStatusReaderTest extends TestCase
         $cache->method('getStale')->willReturn(new CacheEntry(['status' => 'healthy', 'checked_at' => $now - 7200], $now - 7200));
         $reader = new FleetStatusReader($cache, new ApiCacheKeyFactory(), new CronHeartbeatReader(sys_get_temp_dir() . '/mata-no-cron', sys_get_temp_dir()), healthTtlSeconds: 240);
 
-        $status = $reader->read(['web-01' => ['title' => 'Web', 'api_url' => 'https://node.example.com/']], $now);
+        $status = $reader->read(['web-01' => ServerConfig::fromArray('web-01', ['title' => 'Web', 'api_url' => 'https://node.example.com/'])], $now);
 
         $this->assertSame(StatusLevel::Unknown, $status->level());
         $this->assertSame(3, $status->level()->value);

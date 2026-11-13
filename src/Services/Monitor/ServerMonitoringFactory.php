@@ -7,6 +7,7 @@ namespace Mata\Services\Monitor;
 use Exception;
 use InvalidArgumentException;
 use Mata\Config\Dto\DemoConfig;
+use Mata\Config\Monitoring\Section\ServerConfig;
 use Mata\Models\Monitor\AppFatalStateRepository;
 use Mata\Services\Cache\ApiCacheKeyFactory;
 use Mata\Services\Cache\CacheStoreInterface;
@@ -22,7 +23,6 @@ use Mata\Services\Monitor\Dto\AppLogSizePolicy;
 use Mata\Services\Monitor\Dto\AppReachabilityPolicy;
 use Mata\Services\Monitor\Dto\ServerMonitoringResult;
 use Mata\Services\Monitor\Dto\ServerMonitoringServices;
-use Mata\Utils\TypeConverter;
 use Mata\Views\Support\NumberFormatter;
 use Psr\Log\LoggerInterface;
 
@@ -44,12 +44,12 @@ final readonly class ServerMonitoringFactory
         private DemoConfig $demo = new DemoConfig(),
     ) {}
 
-    /** @param array<string,mixed> $servers */
+    /** @param array<string,ServerConfig> $servers */
     public function createLiveAll(array $servers, int $apiTimeoutSeconds): ServerMonitoringResult
     {
         return $this->createAll(
             $servers,
-            fn (string $server, array $serverConfig): ServerMonitoringServices => $this->createLive(
+            fn (string $server, ServerConfig $serverConfig): ServerMonitoringServices => $this->createLive(
                 $server,
                 $serverConfig,
                 $apiTimeoutSeconds,
@@ -57,12 +57,12 @@ final readonly class ServerMonitoringFactory
         );
     }
 
-    /** @param array<string,mixed> $servers */
+    /** @param array<string,ServerConfig> $servers */
     public function createDemoAll(array $servers): ServerMonitoringResult
     {
         return $this->createAll(
             $servers,
-            fn (string $server, array $serverConfig): ServerMonitoringServices => $this->createDemo(
+            fn (string $server, ServerConfig $serverConfig): ServerMonitoringServices => $this->createDemo(
                 $server,
                 $serverConfig,
             ),
@@ -70,8 +70,8 @@ final readonly class ServerMonitoringFactory
     }
 
     /**
-     * @param array<string,mixed>                                           $servers
-     * @param callable(string,array<string,mixed>):ServerMonitoringServices $creator
+     * @param array<string,ServerConfig>                             $servers
+     * @param callable(string,ServerConfig):ServerMonitoringServices $creator
      */
     private function createAll(array $servers, callable $creator): ServerMonitoringResult
     {
@@ -82,10 +82,6 @@ final readonly class ServerMonitoringFactory
             $server = (string) $server;
 
             try {
-                if (!is_array($serverConfig)) {
-                    throw new InvalidArgumentException("Server {$server} configuration must be an array");
-                }
-
                 $servicesByServer[$server] = $creator($server, $serverConfig);
             } catch (Exception $e) {
                 $this->logger->error("Failed to initialize monitoring for server {$server}: " . $e->getMessage(), ['exception' => $e]);
@@ -96,24 +92,21 @@ final readonly class ServerMonitoringFactory
         return new ServerMonitoringResult($servicesByServer, $failures);
     }
 
-    /** @param array<string,mixed> $serverConfig */
-    public function createLive(string $server, array $serverConfig, int $apiTimeoutSeconds): ServerMonitoringServices
+    public function createLive(string $server, ServerConfig $serverConfig, int $apiTimeoutSeconds): ServerMonitoringServices
     {
-        $apiUrl = $serverConfig['api_url'] ?? null;
-        $apiKey = $serverConfig['api_key'] ?? null;
-        if (!is_string($apiUrl) || trim($apiUrl) === '' || !is_string($apiKey) || trim($apiKey) === '') {
+        if (trim($serverConfig->apiUrl) === '' || trim($serverConfig->apiKey) === '') {
             throw new InvalidArgumentException("Server {$server} missing required api_url or api_key config");
         }
 
         $apiClient = new NodeApiClient(
             logger: $this->logger,
-            apiBase: $apiUrl,
+            apiBase: $serverConfig->apiUrl,
             server: $server,
-            apiKey: $apiKey,
+            apiKey: $serverConfig->apiKey,
             timeout: $apiTimeoutSeconds,
             verifySSL: true,
-            allowHttp: TypeConverter::toBool($serverConfig['allow_http'] ?? null) ?? false,
-            suppressHttpWarning: TypeConverter::toBool($serverConfig['suppress_http_warning'] ?? null) ?? false,
+            allowHttp: $serverConfig->allowHttp,
+            suppressHttpWarning: $serverConfig->suppressHttpWarning,
         );
 
         return new ServerMonitoringServices(
@@ -158,8 +151,7 @@ final readonly class ServerMonitoringFactory
         );
     }
 
-    /** @param array<string,mixed> $serverConfig */
-    public function createDemo(string $server, array $serverConfig): ServerMonitoringServices
+    public function createDemo(string $server, ServerConfig $serverConfig): ServerMonitoringServices
     {
         return new ServerMonitoringServices(
             collector: new MockServerDataCollector(

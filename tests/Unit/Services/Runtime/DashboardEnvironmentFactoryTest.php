@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Mata\Tests\Unit\Services\Runtime;
 
+use Mata\Config\Monitoring\Section\ServerConfig;
 use Mata\Config\Monitoring\Section\TtlConfig;
 use Mata\Database\DatabaseInterface;
 use Mata\Models\Alarm\AlarmRepository;
@@ -47,7 +48,7 @@ final class DashboardEnvironmentFactoryTest extends TestCase
     public function testCreatesDemoDashboardDependencies(): void
     {
         $factory = $this->environmentFactory(demo: true);
-        $result = $factory->createMonitoring(['server-a' => []], $this->monitoringFactory());
+        $result = $factory->createMonitoring(['server-a' => ServerConfig::fromArray('server-a', [])], $this->monitoringFactory());
 
         $this->assertInstanceOf(MockEventAggregatorService::class, $factory->createEventAggregator());
         $this->assertInstanceOf(MockServerDataCollector::class, $result->servicesByServer['server-a']->collector);

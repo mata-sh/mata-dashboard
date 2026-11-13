@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Mata\Views;
 
 use Exception;
+use Mata\Config\Monitoring\Section\ServerConfig;
 use Mata\Core\App;
 use Mata\Http\Routing\Endpoints;
 use Mata\Services\Collect\AppFramework;
@@ -281,7 +282,7 @@ class ServerRenderer extends BaseRenderer
     {
         $serverName = (string) ($serverRenderData['server'] ?? 'unknown');
         $serverId = $this->generateHtmlId($serverName, 'server');
-        $serverConfig = $serverRenderData['config'] ?? [];
+        $serverConfig = self::serverConfig($serverRenderData);
         $nodeHealth = $serverRenderData['health'] ?? [];
 
         if (isset($serverRenderData['error'])) {
@@ -353,6 +354,18 @@ class ServerRenderer extends BaseRenderer
     }
 
     /**
+     * The {@see ServerConfig} that ServerViewBuilder put in the view data.
+     *
+     * @param array<string,mixed> $serverRenderData
+     */
+    private static function serverConfig(array $serverRenderData): ?ServerConfig
+    {
+        $config = $serverRenderData['config'] ?? null;
+
+        return $config instanceof ServerConfig ? $config : null;
+    }
+
+    /**
      * Render all application cards for a server.
      *
      * @param array<int,array<string,mixed>> $apps
@@ -417,7 +430,7 @@ class ServerRenderer extends BaseRenderer
     public function renderServerStats(array $serverRenderData): string
     {
         $serverName = (string) ($serverRenderData['server'] ?? 'unknown');
-        $serverConfig = $serverRenderData['config'] ?? [];
+        $serverConfig = self::serverConfig($serverRenderData);
         $serverId = $this->generateHtmlId($serverName, 'server');
 
         $metrics = $serverRenderData['metrics'] ?? [];
@@ -453,13 +466,13 @@ class ServerRenderer extends BaseRenderer
     /**
      * Render error card for failed servers.
      *
-     * @param string              $server       Server name
-     * @param array<string,mixed> $serverConfig Server configuration
-     * @param Exception           $exception    The error that occurred
+     * @param string       $server       Server name
+     * @param ServerConfig $serverConfig Server configuration
+     * @param Exception    $exception    The error that occurred
      *
      * @return string Generated HTML for error card
      */
-    public function renderErrorCard(string $server, array $serverConfig, Exception $exception): string
+    public function renderErrorCard(string $server, ServerConfig $serverConfig, Exception $exception): string
     {
         $this->logError($exception->getMessage(), 'ServerCard', [
             'server' => $server,
@@ -482,7 +495,7 @@ class ServerRenderer extends BaseRenderer
      * Build complete template data for server card rendering.
      *
      * @param array<string,mixed> $serverMetrics Server metrics with thresholds
-     * @param array<string,mixed> $serverConfig  Server configuration
+     * @param null|ServerConfig   $serverConfig  Server configuration
      * @param string              $serverId      HTML ID for server
      * @param string              $appsHtml      Rendered apps HTML
      * @param array<string,mixed> $nodeHealth    Node health payload
@@ -492,7 +505,7 @@ class ServerRenderer extends BaseRenderer
     private function buildServerCardData(
         string $serverName,
         array $serverMetrics,
-        array $serverConfig,
+        ?ServerConfig $serverConfig,
         string $serverId,
         string $appsHtml,
         array $nodeHealth = []
@@ -517,7 +530,7 @@ class ServerRenderer extends BaseRenderer
      * Build common server template data shared by card and stats rendering.
      *
      * @param array<string,mixed> $serverMetrics Server metrics with thresholds
-     * @param array<string,mixed> $serverConfig  Server configuration
+     * @param null|ServerConfig   $serverConfig  Server configuration
      * @param string              $serverId      HTML ID for server
      * @param array<string,mixed> $nodeHealth    Node health payload
      *
@@ -526,7 +539,7 @@ class ServerRenderer extends BaseRenderer
     private function buildServerStatsData(
         string $serverName,
         array $serverMetrics,
-        array $serverConfig,
+        ?ServerConfig $serverConfig,
         string $serverId,
         array $nodeHealth = []
     ): array {
@@ -605,7 +618,7 @@ class ServerRenderer extends BaseRenderer
     /**
      * Build template data for error server card.
      *
-     * @param array<string,mixed>      $serverConfig Server configuration
+     * @param null|ServerConfig        $serverConfig Server configuration
      * @param string                   $serverId     HTML ID for server
      * @param string                   $errorMsg     Error message
      * @param null|array<string,mixed> $serverData   Partial server data if available
@@ -614,7 +627,7 @@ class ServerRenderer extends BaseRenderer
      * @return array<string,mixed> Template data array
      */
     private function buildServerErrorCardData(
-        array $serverConfig,
+        ?ServerConfig $serverConfig,
         string $serverId,
         string $errorMsg,
         ?array $serverData = null,
@@ -778,7 +791,7 @@ class ServerRenderer extends BaseRenderer
     /**
      * Build basic server data structure.
      *
-     * @param array<string,mixed>      $serverConfig Server configuration
+     * @param null|ServerConfig        $serverConfig Server configuration
      * @param string                   $serverId     HTML ID for server
      * @param null|array<string,mixed> $serverData   Optional server data
      * @param array<string,mixed>      $nodeHealth   Node health payload
@@ -786,15 +799,15 @@ class ServerRenderer extends BaseRenderer
      * @return array<string,mixed> Basic server data structure
      */
     private function buildBasicServerData(
-        array $serverConfig,
+        ?ServerConfig $serverConfig,
         string $serverId,
         ?array $serverData = null,
         array $nodeHealth = []
     ): array {
         return [
             'id' => $serverId,
-            'title' => $serverConfig['title'] ?? '',
-            'primary_color' => $serverConfig['primary_color'] ?? '#fefefe',
+            'title' => $serverConfig->title ?? '',
+            'primary_color' => $serverConfig->primaryColor ?? '#fefefe',
             'cpu_usage' => $serverData['cpu_usage'] ?? 0,
             'health' => $this->buildNodeHealthData($nodeHealth),
         ];

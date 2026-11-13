@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Mata\Tests\Unit\Services;
 
+use Mata\Config\Monitoring\Section\ServerConfig;
 use Mata\Services\Alarm\Delivery\AlarmPresenter;
 use Mata\Services\Alarm\Delivery\Dto\AlarmEnvironment;
 use Mata\Services\Alarm\Dto\Alarm;
@@ -21,7 +22,7 @@ final class AlarmPresenterTest extends TestCase
     protected function setUp(): void
     {
         $this->presenter = new AlarmPresenter(servers: [
-            'api-1' => ['primary_color' => '#E88C02', 'env' => 'test'],
+            'api-1' => ServerConfig::fromArray('api-1', ['primary_color' => '#E88C02', 'env' => 'test']),
         ]);
     }
 
@@ -125,7 +126,7 @@ final class AlarmPresenterTest extends TestCase
     public function testItUsesServerEnvironmentWhenApplicationEnvironmentIsUnknown(): void
     {
         $presenter = new AlarmPresenter(servers: [
-            'api-1' => ['primary_color' => '#E88C02', 'env' => 'staging'],
+            'api-1' => ServerConfig::fromArray('api-1', ['primary_color' => '#E88C02', 'env' => 'staging']),
         ]);
 
         $presentation = $presenter->present(new Alarm('custom_alarm', 'Custom alarm'), 'api-1', 'unknown');
@@ -138,7 +139,7 @@ final class AlarmPresenterTest extends TestCase
     public function testItOmitsInvalidServerPresentationValues(): void
     {
         $presenter = new AlarmPresenter(servers: [
-            'api-1' => ['primary_color' => 'orange', 'env' => 'unknown'],
+            'api-1' => ServerConfig::fromArray('api-1', ['primary_color' => 'orange', 'env' => 'unknown']),
         ]);
 
         $presentation = $presenter->present(new Alarm('custom_alarm', 'Custom alarm'), 'api-1', null);

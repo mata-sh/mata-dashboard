@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Mata\Tests\Unit\Services;
 
+use Mata\Config\Monitoring\Section\ServerConfig;
 use Mata\Database\DatabaseInterface;
 use Mata\Database\NullDatabase;
 use Mata\Models\Sync\ConfigSyncRepository;
@@ -23,8 +24,6 @@ use Psr\Log\NullLogger;
  */
 final class ServerConfigDatabaseSyncTest extends TestCase
 {
-    private const SERVERS = ['web-1' => ['api_url' => 'https://web-1.example.test/api', 'api_key' => 'key']];
-
     /** @var list<string> */
     private array $tempFiles = [];
 
@@ -40,7 +39,7 @@ final class ServerConfigDatabaseSyncTest extends TestCase
         $repository->expects($this->never())->method('fetchSyncTracking');
 
         $this->sync(new NullDatabase(new NullLogger()), $repository, $this->createStub(EventRecorderService::class))
-            ->syncIfNeeded($this->serversFile(), self::SERVERS);
+            ->syncIfNeeded($this->serversFile(), self::servers());
     }
 
     public function testSkipsWhenNoServersWereLoaded(): void
@@ -71,7 +70,13 @@ final class ServerConfigDatabaseSyncTest extends TestCase
         ;
 
         $this->sync($this->createStub(DatabaseInterface::class), $repository, $recorder)
-            ->syncIfNeeded($this->serversFile(), self::SERVERS);
+            ->syncIfNeeded($this->serversFile(), self::servers());
+    }
+
+    /** @return array<string,ServerConfig> */
+    private static function servers(): array
+    {
+        return ['web-1' => new ServerConfig('web-1', 'Web 1', 'https://web-1.example.test/api', 'key')];
     }
 
     private function sync(DatabaseInterface $db, ConfigSyncRepository $repository, EventRecorderService $recorder): ServerConfigDatabaseSync

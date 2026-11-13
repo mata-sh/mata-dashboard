@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Mata\Tests\Unit\Services;
 
 use DateTimeImmutable;
+use Mata\Config\Monitoring\Section\ServerConfig;
 use Mata\Config\Monitoring\Section\WebhookChannel;
 use Mata\Services\Alarm\Delivery\AlarmTemplateDataFactory;
 use Mata\Services\Alarm\Delivery\AlarmWebhookPayloadFactory;
@@ -158,7 +159,7 @@ final class AlarmWebhookPayloadFactoryTest extends TestCase
     {
         return new AlarmWebhookPayloadFactory(
             new FilesystemLoader(dirname(__DIR__, 3) . '/templates'),
-            new AlarmTemplateDataFactory('MATA', $dashboardUrl, ['osira' => ['env' => 'prod']]),
+            new AlarmTemplateDataFactory('MATA', $dashboardUrl, ['osira' => new ServerConfig('osira', 'Osira', 'https://osira.example.test', 'key', env: 'prod')]),
         );
     }
 

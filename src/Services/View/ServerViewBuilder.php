@@ -8,6 +8,7 @@ use Exception;
 use GuzzleHttp\Promise\PromiseInterface;
 use GuzzleHttp\Promise\Utils;
 use InvalidArgumentException;
+use Mata\Config\Monitoring\Section\ServerConfig;
 use Mata\Services\Cache\CacheType;
 use Mata\Services\Cache\CacheTypeResolver;
 use Mata\Services\Collect\ServerDataCollectorInterface;
@@ -71,7 +72,7 @@ class ServerViewBuilder
      * Build view data for all configured servers.
      *
      * @param array<string,ServerMonitoringServices> $monitoringServicesByServer
-     * @param array<string,mixed>                    $serversConfig
+     * @param array<string,ServerConfig>             $serversConfig
      *
      * @return array<int,array<string,mixed>>
      */
@@ -126,13 +127,11 @@ class ServerViewBuilder
      * and applies threshold evaluation. Use this for stats-only rendering
      * where app data is not needed.
      *
-     * @param array<string,mixed> $serverConfig
-     *
-     * @return array<string,mixed>
+     * @return array<string,mixed> `config` holds the {@see ServerConfig}
      */
     public function buildServerStatsData(
         string $serverName,
-        array $serverConfig,
+        ServerConfig $serverConfig,
         ServerDataCollectorInterface $collector,
         bool $forceRefresh
     ): array {
@@ -158,14 +157,13 @@ class ServerViewBuilder
      * Uses buildServerStatsData() as base and extends with expensive
      * app monitoring, log analysis, and availability checks.
      *
-     * @param array<string,mixed>      $serverConfig
      * @param null|array<string,mixed> $resolvedHealth
      *
      * @return array<string,mixed>
      */
     public function buildServerViewData(
         string $serverName,
-        array $serverConfig,
+        ServerConfig $serverConfig,
         ServerDataCollectorInterface $collector,
         AppReachabilityMonitorInterface $reachabilityMonitor,
         bool $forceRefresh,
@@ -200,7 +198,7 @@ class ServerViewBuilder
             $appsAvailability,
             $serverName,
             $collector,
-            $this->buildFatalErrorPolicy($serverName, $serverConfig),
+            AppFatalErrorPolicy::fromServerConfig($serverConfig),
         );
 
         // Extend base data with app information
@@ -246,25 +244,6 @@ class ServerViewBuilder
             );
 
             return [];
-        }
-    }
-
-    /**
-     * Build the fatal-error alarm policy for a server, or null when unusable.
-     *
-     * @param array<string,mixed> $serverConfig
-     */
-    private function buildFatalErrorPolicy(string $serverName, array $serverConfig): ?AppFatalErrorPolicy
-    {
-        try {
-            return AppFatalErrorPolicy::fromServerConfig($serverConfig);
-        } catch (InvalidArgumentException $e) {
-            $this->logger->warning(
-                "Invalid error_monitoring_enabled for {$serverName}",
-                ['error' => $e->getMessage()]
-            );
-
-            return null;
         }
     }
 
@@ -421,14 +400,13 @@ class ServerViewBuilder
     /**
      * Build error view data when server monitoring fails.
      *
-     * @param array<string,mixed> $serverConfig
      * @param array<string,mixed> $nodeHealth
      *
      * @return array<string,mixed>
      */
     private function buildServerErrorViewData(
         string $serverName,
-        array $serverConfig,
+        ServerConfig $serverConfig,
         Exception $exception,
         array $nodeHealth
     ): array {
@@ -446,7 +424,7 @@ class ServerViewBuilder
      * Cached values return immediately; cache misses are settled together.
      *
      * @param array<string,ServerMonitoringServices> $monitoringServicesByServer
-     * @param array<string,mixed>                    $serversConfig
+     * @param array<string,ServerConfig>             $serversConfig
      *
      * @return array<string,array<string,mixed>>
      */

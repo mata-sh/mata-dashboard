@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Mata\Services\Alarm\Delivery;
 
+use Mata\Config\Monitoring\Section\ServerConfig;
 use Mata\Services\Alarm\Delivery\Dto\AlarmEnvironment;
 use Mata\Services\Alarm\Delivery\Dto\AlarmMetric;
 use Mata\Services\Alarm\Delivery\Dto\AlarmPresentation;
@@ -16,7 +17,7 @@ use Mata\Views\Support\NumberFormatter;
  */
 final class AlarmPresenter
 {
-    /** @param array<string,mixed> $servers */
+    /** @param array<string,ServerConfig> $servers keyed by server name */
     public function __construct(private array $servers = [], private NumberFormatter $numberFormatter = new NumberFormatter()) {}
 
     public function present(Alarm $alarm, string $server, ?string $appEnvironment): AlarmPresentation
@@ -55,17 +56,16 @@ final class AlarmPresenter
         }
 
         $config = $this->serverConfig($server);
-        $serverEnv = is_string($config['env'] ?? null) ? $config['env'] : null;
 
         $metric = $value === null ? null : new AlarmMetric(strtoupper($type), $value, $detail);
-        $environment = AlarmEnvironment::tryFromString($appEnvironment) ?? AlarmEnvironment::tryFromString($serverEnv);
+        $environment = AlarmEnvironment::tryFromString($appEnvironment) ?? AlarmEnvironment::tryFromString($config?->env);
 
         $link = $context['additional_data']['link'] ?? null;
 
         return new AlarmPresentation(
             description: $description,
             metric: $metric,
-            serverColor: $this->serverColor($config['primary_color'] ?? null),
+            serverColor: $this->serverColor($config?->primaryColor),
             environment: $environment,
             link: is_string($link) && preg_match('#^https?://#i', $link) === 1 ? $link : null,
         );
@@ -164,21 +164,20 @@ final class AlarmPresenter
         return number_format($number, 0, '', '.');
     }
 
-    /** @return array<string,mixed> */
-    private function serverConfig(string $server): array
+    private function serverConfig(string $server): ?ServerConfig
     {
         foreach ($this->servers as $name => $config) {
-            if (is_array($config) && strcasecmp((string) $name, $server) === 0) {
+            if (strcasecmp((string) $name, $server) === 0) {
                 return $config;
             }
         }
 
-        return [];
+        return null;
     }
 
-    private function serverColor(mixed $color): ?string
+    private function serverColor(?string $color): ?string
     {
-        if (!is_string($color) || preg_match('/^#[0-9a-f]{6}$/i', $color) !== 1) {
+        if ($color === null || preg_match('/^#[0-9a-f]{6}$/i', $color) !== 1) {
             return null;
         }
 

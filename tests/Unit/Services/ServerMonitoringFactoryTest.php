@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Mata\Tests\Unit\Services;
 
 use InvalidArgumentException;
+use Mata\Config\Monitoring\Section\ServerConfig;
 use Mata\Config\Monitoring\Section\TtlConfig;
 use Mata\Database\DatabaseInterface;
 use Mata\Models\Monitor\AppFatalStateRepository;
@@ -40,10 +41,10 @@ final class ServerMonitoringFactoryTest extends TestCase
 {
     public function testCreatesLiveMonitoringBundle(): void
     {
-        $services = $this->factory()->createLive('server-a', [
+        $services = $this->factory()->createLive('server-a', ServerConfig::fromArray('server-a', [
             'api_url' => 'https://server-a.example.test/api',
             'api_key' => 'key',
-        ], 10);
+        ]), 10);
 
         $this->assertInstanceOf(ServerDataCollector::class, $services->collector);
         $this->assertInstanceOf(AppReachabilityMonitor::class, $services->reachabilityMonitor);
@@ -55,25 +56,23 @@ final class ServerMonitoringFactoryTest extends TestCase
     {
         $this->expectException(InvalidArgumentException::class);
 
-        $this->factory()->createLive('server-a', ['api_url' => ' ', 'api_key' => ''], 10);
+        $this->factory()->createLive('server-a', ServerConfig::fromArray('server-a', ['api_url' => ' ', 'api_key' => '']), 10);
     }
 
     public function testCreateLiveAllSeparatesServicesFromFailures(): void
     {
         $result = $this->factory()->createLiveAll([
-            'server-a' => [
+            'server-a' => ServerConfig::fromArray('server-a', [
                 'api_url' => 'https://server-a.example.test/api',
                 'api_key' => 'key',
-            ],
-            'invalid' => 'not an array',
-            'missing-api-url' => ['api_key' => 'key'],
-            'missing-api-key' => ['api_url' => 'https://server-a.example.test/api'],
+            ]),
+            'missing-api-url' => ServerConfig::fromArray('missing-api-url', ['api_key' => 'key']),
+            'missing-api-key' => ServerConfig::fromArray('missing-api-key', ['api_url' => 'https://server-a.example.test/api']),
         ], 10);
 
         $this->assertArrayHasKey('server-a', $result->servicesByServer);
         $this->assertInstanceOf(ServerDataCollector::class, $result->servicesByServer['server-a']->collector);
         $this->assertSame([
-            'invalid' => 'Server invalid configuration must be an array',
             'missing-api-url' => 'Server missing-api-url missing required api_url or api_key config',
             'missing-api-key' => 'Server missing-api-key missing required api_url or api_key config',
         ], $result->failures);
@@ -81,7 +80,7 @@ final class ServerMonitoringFactoryTest extends TestCase
 
     public function testCreateDemoAllCreatesDemoMonitoringBundle(): void
     {
-        $result = $this->factory()->createDemoAll(['server-a' => []]);
+        $result = $this->factory()->createDemoAll(['server-a' => ServerConfig::fromArray('server-a', [])]);
         $services = $result->servicesByServer['server-a'];
 
         $this->assertInstanceOf(MockServerDataCollector::class, $services->collector);
@@ -89,20 +88,6 @@ final class ServerMonitoringFactoryTest extends TestCase
         $this->assertInstanceOf(MockAppErrorMonitor::class, $services->errorMonitor);
         $this->assertInstanceOf(MockNodeHealthMonitor::class, $services->healthMonitor);
         $this->assertSame([], $result->failures);
-    }
-
-    public function testCreateDemoAllSeparatesServicesFromFailures(): void
-    {
-        $result = $this->factory()->createDemoAll([
-            'server-a' => [],
-            'invalid' => 'not an array',
-        ]);
-
-        $this->assertArrayHasKey('server-a', $result->servicesByServer);
-        $this->assertInstanceOf(MockServerDataCollector::class, $result->servicesByServer['server-a']->collector);
-        $this->assertSame([
-            'invalid' => 'Server invalid configuration must be an array',
-        ], $result->failures);
     }
 
     private function factory(): ServerMonitoringFactory

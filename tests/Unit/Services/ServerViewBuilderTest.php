@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Mata\Tests\Unit\Services;
 
 use GuzzleHttp\Promise\Create;
+use Mata\Config\Monitoring\Section\ServerConfig;
 use Mata\Models\Sync\ConfigSyncRepository;
 use Mata\Services\Cache\CacheType;
 use Mata\Services\Cache\CacheTypeResolver;
@@ -75,7 +76,7 @@ final class ServerViewBuilderTest extends TestCase
 
         $result = $builder->buildServersViewData(
             ['server-a' => new ServerMonitoringServices($collector, $reachabilityMonitor, $this->createStub(AppErrorMonitorInterface::class), $healthMonitor)],
-            ['server-a' => ['title' => 'Server A']],
+            ['server-a' => ServerConfig::fromArray('server-a', ['title' => 'Server A'])],
             false,
         );
 
@@ -277,8 +278,7 @@ final class ServerViewBuilderTest extends TestCase
         );
         $serverConfig = $serverSetting === null ? [] : ['error_monitoring_enabled' => $serverSetting];
 
-        $policy = (new ReflectionMethod($builder, 'buildFatalErrorPolicy'))
-            ->invoke($builder, 'web01', $serverConfig);
+        $policy = AppFatalErrorPolicy::fromServerConfig(ServerConfig::fromArray('web01', $serverConfig));
         $resolved = (new ReflectionMethod($builder, 'resolveErrorAlarmsEnabled'))
             ->invoke($builder, $policy, ['monitoring' => ['loganalysis' => $appSetting]]);
 
@@ -307,14 +307,10 @@ final class ServerViewBuilderTest extends TestCase
             new CacheTypeResolver(),
         );
 
-        $policy = (new ReflectionMethod($builder, 'buildFatalErrorPolicy'))
-            ->invoke($builder, 'web01', ['error_monitoring_enabled' => 'false']);
-        $this->assertNull($policy);
-
         $method = new ReflectionMethod($builder, 'resolveErrorAlarmsEnabled');
         $this->assertTrue($method->invoke($builder, null, []));
         $this->assertTrue(
-            $method->invoke($builder, AppFatalErrorPolicy::fromServerConfig([]), ['monitoring' => ['loganalysis' => 'no']])
+            $method->invoke($builder, AppFatalErrorPolicy::fromServerConfig(ServerConfig::fromArray('web01', [])), ['monitoring' => ['loganalysis' => 'no']])
         );
     }
 
@@ -378,7 +374,7 @@ final class ServerViewBuilderTest extends TestCase
 
         $result = $builder->buildServerViewData(
             'server-a',
-            [],
+            ServerConfig::fromArray('server-a', []),
             $collector,
             $this->createStub(AppReachabilityMonitorInterface::class),
             true,
@@ -411,7 +407,7 @@ final class ServerViewBuilderTest extends TestCase
 
         $result = $builder->buildServerViewData(
             'server-a',
-            [],
+            ServerConfig::fromArray('server-a', []),
             $collector,
             $this->createStub(AppReachabilityMonitorInterface::class),
             false,
@@ -430,7 +426,7 @@ final class ServerViewBuilderTest extends TestCase
             new CacheTypeResolver(),
         );
 
-        $result = $builder->buildServersViewData([], ['server-a' => []], false);
+        $result = $builder->buildServersViewData([], ['server-a' => ServerConfig::fromArray('server-a', [])], false);
 
         $this->assertSame('Monitoring services unavailable for server server-a', $result[0]['error']);
         $this->assertSame(NodeHealthState::Unknown->value, $result[0]['health']['state']);

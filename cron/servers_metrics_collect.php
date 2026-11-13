@@ -5,7 +5,6 @@ declare(strict_types=1);
 
 use Mata\Bootstrap\CronRuntime;
 use Mata\Bootstrap\MonitoringRuntime;
-use Mata\Config\Monitoring\ServerConfigState;
 use Mata\Models\ServerMetrics\ServerMetricsRepository;
 use Mata\Services\Cache\ApiCacheKeyFactory;
 use Mata\Services\Cache\CacheTtlResolver;
@@ -17,7 +16,6 @@ use Mata\Services\Monitor\MetricThresholds;
 use Mata\Services\Monitor\ServerMetricsHealthMonitor;
 use Mata\Services\Monitor\ServerMonitor;
 use Mata\Services\ServerMetrics\ServerMetricSnapshotFactory;
-use Mata\Utils\TypeConverter;
 
 require_once __DIR__ . '/../vendor/autoload.php';
 
@@ -85,21 +83,9 @@ try {
     ];
     $activeServers = [];
 
+    // ServersConfig holds enabled servers only.
     foreach ($monitoringConfig->servers->values as $serverName => $serverConfig) {
-        if (!is_array($serverConfig)) {
-            continue;
-        }
-
         if (str_starts_with((string) $serverName, '_')) {
-            ++$stats['skipped'];
-
-            continue;
-        }
-
-        if (ServerConfigState::isDisabled($serverConfig)) {
-            $log->info('collect_server_metrics.skip_disabled', [
-                'server' => $serverName,
-            ]);
             ++$stats['skipped'];
 
             continue;
@@ -109,10 +95,10 @@ try {
         $cron->touchHeartbeat();
         $activeServers[(string) $serverName] = true;
 
-        $apiUrl = $serverConfig['api_url'] ?? null;
-        $apiKey = $serverConfig['api_key'] ?? null;
+        $apiUrl = $serverConfig->apiUrl;
+        $apiKey = $serverConfig->apiKey;
 
-        if (!is_string($apiUrl) || $apiUrl === '' || !is_string($apiKey) || $apiKey === '') {
+        if ($apiUrl === '' || $apiKey === '') {
             $log->error('collect_server_metrics.missing_api_credentials', [
                 'server' => $serverName,
             ]);
@@ -122,10 +108,6 @@ try {
         }
 
         try {
-            // Extract security flags with defaults
-            $allowHttp = TypeConverter::toBool($serverConfig['allow_http'] ?? null) ?? false;
-            $suppressHttpWarning = TypeConverter::toBool($serverConfig['suppress_http_warning'] ?? null) ?? false;
-
             $apiClient = new NodeApiClient(
                 $log,
                 $apiUrl,
@@ -133,8 +115,8 @@ try {
                 $apiKey,
                 10,
                 true,
-                $allowHttp,
-                $suppressHttpWarning
+                $serverConfig->allowHttp,
+                $serverConfig->suppressHttpWarning
             );
             $collector = new ServerDataCollector(
                 $log,

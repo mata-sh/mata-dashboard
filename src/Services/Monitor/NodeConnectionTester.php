@@ -30,7 +30,12 @@ final class NodeConnectionTester
         private int $timeoutSeconds,
     ) {}
 
-    /** @param array<string,mixed> $serverConfig servers.json entry */
+    /**
+     * Takes the raw servers.json entry, not a ServerConfig: server test also checks disabled
+     * servers and ones without a key, and server add tests an entry before the app loads it.
+     *
+     * @param array<string,mixed> $serverConfig servers.json entry
+     */
     public function test(string $name, array $serverConfig, ?string $apiKey): NodeConnectionResult
     {
         $apiUrl = TypeConverter::toString($serverConfig['api_url'] ?? null) ?? '';

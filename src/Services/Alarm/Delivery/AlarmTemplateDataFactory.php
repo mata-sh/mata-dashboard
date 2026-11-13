@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Mata\Services\Alarm\Delivery;
 
 use DateTimeImmutable;
+use Mata\Config\Monitoring\Section\ServerConfig;
 use Mata\Services\Alarm\Delivery\Dto\AlarmDeliveryView;
 
 /** Builds the template data shared by every alarm channel, so all channels render identical fields. */
@@ -16,8 +17,8 @@ final readonly class AlarmTemplateDataFactory
     private AlarmPresenter $presenter;
 
     /**
-     * @param ?string             $dashboardLink see MailConfig::dashboardLink()
-     * @param array<string,mixed> $servers       servers.json, for each server's color and environment
+     * @param ?string                    $dashboardLink see MailConfig::dashboardLink()
+     * @param array<string,ServerConfig> $servers       for each server's color and environment, keyed by name
      */
     public function __construct(
         public string $applicationName,

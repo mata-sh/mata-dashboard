@@ -9,7 +9,7 @@ use Mata\Cli\CliInput;
 use Mata\Cli\CliOutput;
 use Mata\Cli\NodeDatasetReader;
 use Mata\Cli\Provenance;
-use Mata\Config\Monitoring\ServerConfigState;
+use Mata\Config\Monitoring\Section\ServerConfig;
 use Mata\Services\Cache\CacheType;
 use Mata\Services\Collect\ServerDataCollectorInterface;
 use Mata\Services\Status\StatusLevel;
@@ -141,15 +141,13 @@ abstract class AbstractNodeDatasetCommand extends AbstractResultCommand
      * Without a server argument: every enabled server, one entry each. A failing server does
      * not hide the others; the worst level wins.
      *
-     * @param array<string,array<string,mixed>> $servers
+     * @param array<string,ServerConfig> $servers
      */
     private function executeFleet(InputInterface $input, OutputInterface $output, NodeDatasetReader $reader, array $servers): int
     {
         $outcomes = [];
         foreach ($servers as $name => $serverConfig) {
-            if (!ServerConfigState::isDisabled($serverConfig)) {
-                $outcomes[$name] = $this->readServer($input, $reader, $name, $serverConfig);
-            }
+            $outcomes[$name] = $this->readServer($input, $reader, $name, $serverConfig);
         }
 
         $entries = [];
@@ -180,11 +178,9 @@ abstract class AbstractNodeDatasetCommand extends AbstractResultCommand
      * One server's dataset. `fields` are the JSON fields after `status`: the provenance and,
      * without an error, `data`, the fields from extract().
      *
-     * @param array<string,mixed> $serverConfig
-     *
      * @return array{level:StatusLevel,error:null|string,fields:array<string,mixed>,data:array<string,mixed>}
      */
-    private function readServer(InputInterface $input, NodeDatasetReader $reader, string $server, array $serverConfig): array
+    private function readServer(InputInterface $input, NodeDatasetReader $reader, string $server, ServerConfig $serverConfig): array
     {
         $live = $this->alwaysAsksNode() || $input->getOption('live') === true;
         $dataset = $reader->read(

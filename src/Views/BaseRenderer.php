@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Mata\Views;
 
+use Mata\Config\Monitoring\Section\ServerConfig;
 use Mata\Core\App;
 use Mata\Http\Routing\Endpoints;
 use Mata\Utils\Tools;
@@ -187,7 +188,7 @@ abstract class BaseRenderer
     /**
      * Build dropdown options for servers from server config.
      *
-     * @param array<string,mixed> $serversConfig
+     * @param array<string,ServerConfig> $serversConfig
      *
      * @return array<int,array{value:string,label:string}>
      */
@@ -196,10 +197,6 @@ abstract class BaseRenderer
         $servers = [];
 
         foreach ($serversConfig as $serverKey => $serverConfig) {
-            if (!is_array($serverConfig)) {
-                continue;
-            }
-
             $serverKey = (string) $serverKey;
 
             if (str_starts_with($serverKey, '_')) {
@@ -208,7 +205,7 @@ abstract class BaseRenderer
 
             $servers[] = [
                 'value' => $serverKey,
-                'label' => (string) ($serverConfig['title'] ?? $serverKey),
+                'label' => $serverConfig->title,
             ];
         }
 

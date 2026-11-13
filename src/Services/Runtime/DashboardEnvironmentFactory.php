@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Mata\Services\Runtime;
 
+use Mata\Config\Monitoring\Section\ServerConfig;
 use Mata\Models\Alarm\AlarmRepository;
 use Mata\Models\Event\EventRepository;
 use Mata\Services\Event\EventAggregatorService;
@@ -42,7 +43,7 @@ final readonly class DashboardEnvironmentFactory
         return new MockEventAggregatorService($this->logger, $demoData);
     }
 
-    /** @param array<string,mixed> $serversConfig */
+    /** @param array<string,ServerConfig> $serversConfig */
     public function createMonitoring(
         array $serversConfig,
         ServerMonitoringFactory $monitoringFactory,
@@ -57,12 +58,10 @@ final readonly class DashboardEnvironmentFactory
     /**
      * The monitoring services of one server; cron builds them one at a time so a server that
      * fails to initialize does not stop the others.
-     *
-     * @param array<string,mixed> $serverConfig
      */
     public function createServerMonitoring(
         string $server,
-        array $serverConfig,
+        ServerConfig $serverConfig,
         ServerMonitoringFactory $monitoringFactory,
         int $apiTimeoutSeconds,
     ): ServerMonitoringServices {

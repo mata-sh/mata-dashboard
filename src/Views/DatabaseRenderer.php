@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Mata\Views;
 
 use Exception;
+use Mata\Config\Monitoring\Section\ServerConfig;
 use Mata\Services\Cache\CacheType;
 use Mata\Services\Collect\ServerDataCollectorInterface;
 
@@ -22,7 +23,7 @@ class DatabaseRenderer extends BaseRenderer
      * Render complete database container with wrapper template.
      *
      * @param array<string,ServerDataCollectorInterface> $serversData   Server API clients
-     * @param array<string,mixed>                        $serversConfig Server configurations
+     * @param array<string,ServerConfig>                 $serversConfig Server configurations
      * @param bool                                       $forceRefresh  Force refresh bypassing cache
      *
      * @return string Generated HTML for complete database container
@@ -42,7 +43,7 @@ class DatabaseRenderer extends BaseRenderer
      * Render database cards without wrapper template.
      *
      * @param array<string,ServerDataCollectorInterface> $serversData   Server API clients
-     * @param array<string,mixed>                        $serversConfig Server configurations
+     * @param array<string,ServerConfig>                 $serversConfig Server configurations
      * @param bool                                       $forceRefresh  Force refresh bypassing cache
      *
      * @return string Generated HTML for database cards
@@ -90,14 +91,14 @@ class DatabaseRenderer extends BaseRenderer
      * A 404 from the overview means the node has database monitoring turned off.
      *
      * @param null|array<string,mixed> $overviewResponse Collector response for `databases/overview`
-     * @param array<string,mixed>      $serverConfig     Server configuration
+     * @param ServerConfig             $serverConfig     Server configuration
      *
      * @return array<string,mixed> Template data array
      */
     public function buildDatabaseCardData(
         ?array $overviewResponse,
         ?int $sqlProcessCount,
-        array $serverConfig,
+        ServerConfig $serverConfig,
         string $serverId,
         string $server,
         ?string $errorMessage = null,
@@ -119,8 +120,8 @@ class DatabaseRenderer extends BaseRenderer
 
         return [
             'server' => [
-                'title' => $serverConfig['title'],
-                'primary_color' => $serverConfig['primary_color'] ?? '#fefefe',
+                'title' => $serverConfig->title,
+                'primary_color' => $serverConfig->primaryColor ?? '#fefefe',
                 'id' => $serverId,
                 'cache_age' => is_int($cacheAge) ? $this->tools->formatDuration($cacheAge) : null,
                 'cache_ttl' => is_int($cacheTtl) ? $this->tools->formatDuration($cacheTtl) : null,

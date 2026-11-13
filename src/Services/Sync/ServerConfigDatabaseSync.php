@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Mata\Services\Sync;
 
 use Exception;
-use Mata\Config\Monitoring\ServerConfigState;
+use Mata\Config\Monitoring\Section\ServerConfig;
 use Mata\Database\DatabaseInterface;
 use Mata\Database\NullDatabase;
 use Mata\Models\Sync\ConfigSyncRepository;
@@ -22,7 +22,7 @@ use Psr\Log\LoggerInterface;
  * Key Features:
  * - File modification timestamp tracking for efficient sync detection
  * - Upsert logic to create/update server records based on configuration
- * - Automatic filtering of disabled servers
+ * - Only enabled servers: ServersConfig already dropped the disabled ones
  * - Sync history and status tracking
  * - Graceful degradation when database is unavailable: skipped without a database,
  *   and a failed sync is reported as an event instead of being thrown
@@ -55,8 +55,8 @@ final class ServerConfigDatabaseSync
      * Only performs database operations if changes detected. Does nothing without a
      * database or when no servers were loaded (servers.json missing or invalid).
      *
-     * @param string              $configFilePath Absolute path to servers.json
-     * @param array<string,mixed> $serversConfig  Loaded servers configuration
+     * @param string                     $configFilePath Absolute path to servers.json
+     * @param array<string,ServerConfig> $serversConfig  Loaded servers configuration
      */
     public function syncIfNeeded(string $configFilePath, array $serversConfig): void
     {
@@ -151,18 +151,17 @@ final class ServerConfigDatabaseSync
     /**
      * Perform actual sync of servers to database.
      *
-     * Filters disabled servers and upserts the rest into the servers table.
+     * Upserts every configured server into the servers table.
      * Uses server name as the unique identifier to match configuration with database.
      *
-     * @param string              $configFilePath Path to server configuration file
-     * @param array<string,mixed> $serversConfig  Server configuration array
+     * @param string                     $configFilePath Path to server configuration file
+     * @param array<string,ServerConfig> $serversConfig  Server configuration
      */
     private function performSync(string $configFilePath, array $serversConfig): void
     {
         $this->log->info('Syncing servers from configuration to database');
 
         $syncedCount = 0;
-        $skippedCount = 0;
 
         foreach ($serversConfig as $serverName => $serverConfig) {
             // Skip documentation/meta entries
@@ -170,44 +169,34 @@ final class ServerConfigDatabaseSync
                 continue;
             }
 
-            if (ServerConfigState::isDisabled($serverConfig)) {
-                ++$skippedCount;
-                $this->log->debug("Skipping disabled server: {$serverName}");
-
-                continue;
-            }
-
-            // Prepare server data for upsert
             $this->upsertServer($serverName, $serverConfig);
             ++$syncedCount;
         }
 
-        $this->log->info("Sync completed: {$syncedCount} servers synced, {$skippedCount} disabled servers skipped");
+        $this->log->info("Sync completed: {$syncedCount} servers synced");
     }
 
     /**
      * Insert or update server record in database.
      *
-     * @param string              $serverName   Unique server identifier (config key)
-     * @param array<string,mixed> $serverConfig Server configuration
+     * @param string       $serverName   Unique server identifier (config key)
+     * @param ServerConfig $serverConfig Server configuration
      */
-    private function upsertServer(string $serverName, array $serverConfig): void
+    private function upsertServer(string $serverName, ServerConfig $serverConfig): void
     {
-        $hostname = $serverConfig['api_url'] ?? $serverConfig['url'] ?? null;
-        $provider = $serverConfig['provider'] ?? null;
         // Display fields only, kept so a removed server stays recognisable; never secrets or connection settings.
         $metadata = json_encode([
-            'title' => $serverConfig['title'] ?? $serverName,
-            'primary_color' => $serverConfig['primary_color'] ?? null,
-            'secondary_color' => $serverConfig['secondary_color'] ?? null,
-            'info' => $serverConfig['info'] ?? null,
+            'title' => $serverConfig->title,
+            'primary_color' => $serverConfig->primaryColor,
+            'secondary_color' => $serverConfig->secondaryColor,
+            'info' => $serverConfig->info,
         ]);
 
         if ($metadata === false) {
             $metadata = '{}';
         }
 
-        $isNewServer = $this->repository->upsertServer($serverName, $hostname, $provider, $metadata);
+        $isNewServer = $this->repository->upsertServer($serverName, $serverConfig->apiUrl, $serverConfig->provider, $metadata);
 
         if ($isNewServer) {
             $this->log->info("Created new server record: {$serverName}");

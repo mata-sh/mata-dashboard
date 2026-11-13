@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Mata\Tests\Unit\Services;
 
+use Mata\Config\Monitoring\Section\ServerConfig;
 use Mata\Models\Monitor\AppFatalStateRepository;
 use Mata\Services\Event\Dto\EventCommand;
 use Mata\Services\Event\EventManager;
@@ -236,9 +237,10 @@ final class AppErrorMonitorTest extends TestCase
         $this->assertSame(2, $malformed->failures);
     }
 
-    /** @param array<string,mixed> $serverConfig */
+    /** @param array<string,mixed> $serverConfig servers.json entry */
     private function monitor(array $serverConfig = []): AppErrorMonitor
     {
+        $server = ServerConfig::fromArray('srv', $serverConfig);
         $resolver = new ServerApplicationIdResolver(serverIdMap: ['srv' => 1], applicationIdMap: ['shop' => 2]);
         $tools = new class ('/tmp') extends Tools {
             public function formatKilobytes(int $kilobytes): string
@@ -251,8 +253,8 @@ final class AppErrorMonitorTest extends TestCase
             $this->events,
             $resolver,
             $this->states,
-            AppFatalErrorPolicy::fromServerConfig($serverConfig),
-            AppLogSizePolicy::fromServerConfig($serverConfig),
+            AppFatalErrorPolicy::fromServerConfig($server),
+            AppLogSizePolicy::fromServerConfig($server),
             new LogSizeEvaluator($tools, new MetricThresholds(['log_filesize_kb' => ['alarm' => 50000]], [])),
             new NullLogger(),
             new NumberFormatter(),

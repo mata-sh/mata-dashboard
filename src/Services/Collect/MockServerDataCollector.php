@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Mata\Services\Collect;
 
 use Mata\Config\Dto\DemoConfig;
+use Mata\Config\Monitoring\Section\ServerConfig;
 use Mata\Services\Cache\CacheTtlResolver;
 use Mata\Services\Cache\CacheType;
 use Mata\Services\Collect\Demo\DemoAppCatalog;
@@ -28,9 +29,7 @@ class MockServerDataCollector implements ServerDataCollectorInterface
     private CacheTtlResolver $ttlResolver;
     private NodeResponseNormalizer $responseNormalizer;
     private string $serverName;
-
-    /** @var array<string,mixed> */
-    private array $serverConfig;
+    private ServerConfig $serverConfig;
     private int $cacheAge = 0;
     private ?string $projectReadme = null;
     private DemoServerCatalog $serverCatalog;
@@ -44,7 +43,7 @@ class MockServerDataCollector implements ServerDataCollectorInterface
      * @param CacheTtlResolver       $ttlResolver        Cache TTL configuration lookup
      * @param NodeResponseNormalizer $responseNormalizer Node response normalizer
      * @param string                 $serverName         Server identifier for demo data generation
-     * @param array<string,mixed>    $serverConfig       Server configuration from demo-servers.json
+     * @param ServerConfig           $serverConfig       Server configuration from servers.json
      * @param DemoConfig             $demo               Seed for repeatable generated data
      */
     public function __construct(
@@ -52,7 +51,7 @@ class MockServerDataCollector implements ServerDataCollectorInterface
         CacheTtlResolver $ttlResolver,
         NodeResponseNormalizer $responseNormalizer,
         string $serverName,
-        array $serverConfig,
+        ServerConfig $serverConfig,
         private readonly DemoConfig $demo = new DemoConfig(),
     ) {
         $this->logger = $logger;

@@ -6,6 +6,7 @@ namespace Mata\Tests\Unit\Services\ServerMetrics;
 
 use DateTimeImmutable;
 use DateTimeZone;
+use Mata\Config\Monitoring\Section\ServerConfig;
 use Mata\Services\ServerMetrics\ServerMetricSnapshotFactory;
 use PHPUnit\Framework\TestCase;
 
@@ -49,11 +50,11 @@ final class ServerMetricSnapshotFactoryTest extends TestCase
     {
         $factory = new ServerMetricSnapshotFactory();
 
-        $fromNode = $factory->collectorIdentity(['data' => ['collector' => ['name' => '', 'version' => '1.4.0']]], []);
+        $fromNode = $factory->collectorIdentity(['data' => ['collector' => ['name' => '', 'version' => '1.4.0']]], ServerConfig::fromArray('shop', []));
         self::assertSame('mata-node', $fromNode->name);
         self::assertSame('1.4.0', $fromNode->version);
 
-        $fromCron = $factory->collectorIdentity(['data' => []], ['title' => 'Shop']);
+        $fromCron = $factory->collectorIdentity(['data' => []], ServerConfig::fromArray('shop', ['title' => 'Shop']));
         self::assertSame('collect_server_metrics_cron', $fromCron->name);
         self::assertNull($fromCron->version);
         self::assertNull($fromCron->contact);

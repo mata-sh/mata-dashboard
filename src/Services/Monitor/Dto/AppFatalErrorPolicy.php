@@ -4,40 +4,22 @@ declare(strict_types=1);
 
 namespace Mata\Services\Monitor\Dto;
 
-use InvalidArgumentException;
+use Mata\Config\Monitoring\Section\ServerConfig;
 
 /** Resolves the fatal-error monitoring switch. */
 final readonly class AppFatalErrorPolicy
 {
     public function __construct(private bool $serverEnabled) {}
 
-    /** @param array<string,mixed> $serverConfig */
-    public static function fromServerConfig(array $serverConfig): self
+    public static function fromServerConfig(ServerConfig $serverConfig): self
     {
-        return new self(self::serverConfigFlag($serverConfig, 'error_monitoring_enabled'));
+        return new self($serverConfig->errorMonitoringEnabled);
     }
 
     /** @param array<string,mixed> $appData */
     public function isEnabled(array $appData): bool
     {
         return $this->serverEnabled && self::appSetting($appData, 'loganalysis');
-    }
-
-    /**
-     * @param array<string,mixed> $config
-     *
-     * @throws InvalidArgumentException When the configured value is not a JSON boolean
-     */
-    private static function serverConfigFlag(array $config, string $configKey): bool
-    {
-        if (!array_key_exists($configKey, $config)) {
-            return true;
-        }
-        if (!is_bool($config[$configKey])) {
-            throw new InvalidArgumentException("{$configKey} must be a JSON boolean when configured");
-        }
-
-        return $config[$configKey];
     }
 
     /**

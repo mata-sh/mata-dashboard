@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Mata\Tests\Unit\Services;
 
 use Mata\Config\Dto\DemoConfig;
+use Mata\Config\Monitoring\Section\ServerConfig;
 use Mata\Config\Monitoring\Section\TtlConfig;
 use Mata\Services\Cache\CacheTtlResolver;
 use Mata\Services\Collect\MockServerDataCollector;
@@ -27,7 +28,7 @@ final class MockServerDataCollectorTest extends TestCase
             new CacheTtlResolver(new TtlConfig([])),
             new NodeResponseNormalizer($logger),
             'database-server',
-            ['url' => 'https://database-server.example.test'],
+            ServerConfig::fromArray('database-server', ['url' => 'https://database-server.example.test']),
         );
 
         $this->assertSame(404, $collector->fetchDatabaseProcesses('primary', 'unknown')['error']['status_code']);
@@ -61,7 +62,7 @@ final class MockServerDataCollectorTest extends TestCase
                 new CacheTtlResolver(new TtlConfig([])),
                 $normalizer,
                 $server,
-                ['url' => 'https://' . $server . '.example.test'],
+                ServerConfig::fromArray($server, ['url' => 'https://' . $server . '.example.test']),
             );
             $cpuUsage = $collector->getServerSystemData()['result']['cpu_usage'];
 
@@ -81,7 +82,7 @@ final class MockServerDataCollectorTest extends TestCase
                 new CacheTtlResolver(new TtlConfig([])),
                 $normalizer,
                 $server,
-                ['url' => 'https://' . $server . '.example.test'],
+                ServerConfig::fromArray($server, ['url' => 'https://' . $server . '.example.test']),
             );
 
             for ($i = 0; $i < 20; ++$i) {
@@ -143,7 +144,7 @@ final class MockServerDataCollectorTest extends TestCase
             new CacheTtlResolver(new TtlConfig([])),
             new NodeResponseNormalizer($logger),
             $server,
-            ['url' => 'https://' . $server . '.example.test'],
+            ServerConfig::fromArray($server, ['url' => 'https://' . $server . '.example.test']),
             $demo,
         );
     }

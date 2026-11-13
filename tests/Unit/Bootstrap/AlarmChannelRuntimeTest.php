@@ -8,6 +8,7 @@ use Mata\Bootstrap\AlarmChannelRuntime;
 use Mata\Config\Monitoring\Section\AlarmRateLimitsConfig;
 use Mata\Config\Monitoring\Section\ChannelsConfig;
 use Mata\Config\Monitoring\Section\NotificationRulesConfig;
+use Mata\Config\Monitoring\Section\ServersConfig;
 use Mata\Services\Alarm\Delivery\AlarmEmailSender;
 use Mata\Services\Alarm\Delivery\AlarmWebhookSender;
 use Mata\Services\Event\Dto\EventRecordResult;
@@ -74,8 +75,6 @@ final class AlarmChannelRuntimeTest extends TestCase
     {
         $appPath = $this->createTempDirectory();
         mkdir($appPath . '/templates');
-        mkdir($appPath . '/config');
-        file_put_contents($appPath . '/config/servers.json', '{}');
 
         try {
             $channels = ChannelsConfig::fromArray(
@@ -97,10 +96,26 @@ final class AlarmChannelRuntimeTest extends TestCase
         }
     }
 
+    public function testBrokenServersConfigStillLetsAlarmsRender(): void
+    {
+        $appPath = $this->createTempDirectory();
+        mkdir($appPath . '/config');
+        file_put_contents($appPath . '/config/servers.json', '{"web": ');
+
+        try {
+            $servers = AlarmChannelRuntime::presentationServers(PathResolver::fromAppPath($appPath), new NullLogger());
+
+            $this->assertSame([], $servers->values);
+        } finally {
+            $this->cleanupTempFiles([$appPath]);
+        }
+    }
+
     private function runtime(ChannelsConfig $channels, ?PathResolver $paths = null): AlarmChannelRuntime
     {
         return new AlarmChannelRuntime(
             $channels,
+            ServersConfig::empty(),
             $paths ?? PathResolver::fromAppPath(dirname(__DIR__, 3)),
             ApplicationConfigFactory::create(),
             $this->createStub(MailerInterface::class),

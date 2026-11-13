@@ -6,6 +6,7 @@ namespace Mata\Controllers;
 
 use InvalidArgumentException;
 use Mata\Config\Monitoring\Section\DashboardChartConfig;
+use Mata\Config\Monitoring\Section\ServerConfig;
 use Mata\Http\Request;
 use Mata\Http\Responses\HtmlResponse;
 use Mata\Http\Responses\JsonResponse;
@@ -35,7 +36,7 @@ final class MetricsController extends BaseController
     private ChartViewBuilder $chartViewBuilder;
     private MetricCatalog $metricCatalog;
 
-    /** @var array<string,mixed> */
+    /** @var array<string,ServerConfig> */
     private array $serversConfig;
 
     /** @var array<string,mixed> */
@@ -53,7 +54,7 @@ final class MetricsController extends BaseController
     private int $dashboardCacheTtl = 60;
 
     /**
-     * @param array<string,mixed> $serversConfig
+     * @param array<string,ServerConfig> $serversConfig
      */
     public function __construct(
         LoggerInterface $logger,

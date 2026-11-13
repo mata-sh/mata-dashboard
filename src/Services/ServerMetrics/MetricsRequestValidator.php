@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Mata\Services\ServerMetrics;
 
+use Mata\Config\Monitoring\Section\ServerConfig;
 use Mata\Services\ServerMetrics\Dto\MetricsValidationResult;
 
 /** Validates HTTP query inputs for server-metrics endpoints. */
@@ -15,7 +16,7 @@ class MetricsRequestValidator
     ) {}
 
     /**
-     * @param array<string,mixed> $serversConfig
+     * @param array<string,ServerConfig> $serversConfig
      */
     public function validate(
         string $server,

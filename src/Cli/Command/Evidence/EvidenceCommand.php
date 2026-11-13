@@ -17,6 +17,7 @@ use Mata\Cli\ProcessTable;
 use Mata\Cli\Provenance;
 use Mata\Cli\StoredMetrics;
 use Mata\Config\Dto\ApplicationConfig;
+use Mata\Config\Monitoring\Section\ServerConfig;
 use Mata\Database\PdoDatabase;
 use Mata\Models\Alarm\AlarmRepository;
 use Mata\Models\Event\EventRepository;
@@ -218,14 +219,12 @@ final class EvidenceCommand extends AbstractResultCommand
      * Log entries in the window, of $app or of every app on the server. `apps` holds each app's
      * provenance or error; one app failing does not hide the others.
      *
-     * @param array<string,mixed> $serverConfig
-     *
      * @return array<string,mixed>
      */
     private static function readLogs(
         NodeDatasetReader $reader,
         string $server,
-        array $serverConfig,
+        ServerConfig $serverConfig,
         ?string $app,
         bool $live,
         DateTimeImmutable $from,
@@ -294,7 +293,7 @@ final class EvidenceCommand extends AbstractResultCommand
      * Every stored metric of the server in the window, at the granularity metrics series
      * would pick for a range of that length.
      *
-     * @param array<string,array<string,mixed>> $servers
+     * @param array<string,ServerConfig> $servers
      *
      * @return array<string,mixed>
      */
@@ -332,12 +331,8 @@ final class EvidenceCommand extends AbstractResultCommand
         ];
     }
 
-    /**
-     * @param array<string,mixed> $serverConfig
-     *
-     * @return array<string,mixed>
-     */
-    private static function readProcesses(NodeDatasetReader $reader, string $server, array $serverConfig, bool $live, int $limit): array
+    /** @return array<string,mixed> */
+    private static function readProcesses(NodeDatasetReader $reader, string $server, ServerConfig $serverConfig, bool $live, int $limit): array
     {
         $dataset = $reader->read(
             $server,

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Mata\Services\View;
 
 use Mata\Config\Monitoring\Section\DashboardChartConfig;
+use Mata\Config\Monitoring\Section\ServerConfig;
 use Mata\Services\DataTransformers\ChartDataTransformer;
 use Mata\Views\MetricsRenderer;
 
@@ -22,11 +23,11 @@ class ChartViewBuilder
     private MetricsRenderer $metricsRenderer;
     private ChartDataTransformer $chartTransformer;
 
-    /** @var array<string,mixed> */
+    /** @var array<string,ServerConfig> */
     private array $serversConfig;
 
     /**
-     * @param array<string,mixed> $serversConfig
+     * @param array<string,ServerConfig> $serversConfig
      */
     public function __construct(
         MetricsViewBuilder $metricsViewBuilder,
@@ -295,7 +296,7 @@ class ChartViewBuilder
     }
 
     /**
-     * @param array<string,mixed> $serversConfig
+     * @param array<string,ServerConfig> $serversConfig
      *
      * @return array<int,array<string,string>>
      */
@@ -311,14 +312,10 @@ class ChartViewBuilder
 
         $servers = [];
         foreach ($serversConfig as $name => $config) {
-            if (!is_array($config)) {
-                continue;
-            }
-
             $serverName = (string) $name;
             $servers[] = [
                 'name' => $serverName,
-                'label' => $this->getServerDisplayName($serverName, $config),
+                'label' => $config->title,
                 'color' => $this->getServerPrimaryColor($serverName, $config),
             ];
         }
@@ -326,30 +323,11 @@ class ChartViewBuilder
         return $servers;
     }
 
-    /**
-     * @param array<string,mixed> $serverConfig
-     */
-    private function getServerDisplayName(string $serverName, array $serverConfig): string
+    private function getServerPrimaryColor(string $serverName, ServerConfig $serverConfig): string
     {
-        $title = $serverConfig['title'] ?? null;
+        $color = $serverConfig->primaryColor;
 
-        if (is_string($title) && $title !== '') {
-            return $title;
-        }
-
-        $clean = str_replace(['-', '_'], ' ', $serverName);
-
-        return ucwords($clean);
-    }
-
-    /**
-     * @param array<string,mixed> $serverConfig
-     */
-    private function getServerPrimaryColor(string $serverName, array $serverConfig): string
-    {
-        $color = $serverConfig['primary_color'] ?? null;
-
-        if (is_string($color) && preg_match('/^#([0-9a-f]{6})$/i', $color) === 1) {
+        if ($color !== null && preg_match('/^#([0-9a-f]{6})$/i', $color) === 1) {
             return strtoupper($color);
         }
 
@@ -362,13 +340,13 @@ class ChartViewBuilder
     private function resolveServerDisplayName(string $serverName): string
     {
         $serverConfig = $this->serversConfig[$serverName] ?? null;
-        if (!is_array($serverConfig)) {
+        if ($serverConfig === null) {
             $clean = str_replace(['-', '_'], ' ', $serverName);
 
             return ucwords($clean);
         }
 
-        return $this->getServerDisplayName($serverName, $serverConfig);
+        return $serverConfig->title;
     }
 
     /**
@@ -377,7 +355,7 @@ class ChartViewBuilder
     private function resolveServerPrimaryColor(string $serverName): string
     {
         $serverConfig = $this->serversConfig[$serverName] ?? null;
-        if (!is_array($serverConfig)) {
+        if ($serverConfig === null) {
             return '#3273dc';
         }
 

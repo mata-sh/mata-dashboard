@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Mata\Services\Collect\Demo;
 
+use Mata\Config\Monitoring\Section\ServerConfig;
+
 /**
  * Builds the demo application map for a server.
  *
@@ -23,11 +25,11 @@ final class DemoAppGenerator
     /**
      * Generate the demo application map for a server.
      *
-     * @param array<string,mixed> $serverConfig server configuration (expects a `url` key)
+     * @param ServerConfig $serverConfig the app URLs extend its `url`
      *
      * @return array<string,mixed>
      */
-    public function generate(string $serverName, array $serverConfig): array
+    public function generate(string $serverName, ServerConfig $serverConfig): array
     {
         $appTemplates = $this->catalog->appTemplates();
         $serverPresets = $this->catalog->serverPresets();
@@ -148,8 +150,8 @@ final class DemoAppGenerator
                 'title' => $template['title'],
                 'description' => $template['description'] ?? 'Application monitored by Mata.',
                 'path' => $template['path'],
-                'url' => rtrim($serverConfig['url'], '/') . '/' . $template['path'],
-                'status_url' => rtrim($serverConfig['url'], '/') . '/' . $template['path'] . '/status.php',
+                'url' => rtrim((string) $serverConfig->url, '/') . '/' . $template['path'],
+                'status_url' => rtrim((string) $serverConfig->url, '/') . '/' . $template['path'] . '/status.php',
                 'env' => $environment,
                 'composer' => true,
                 'status' => [

@@ -9,6 +9,7 @@ use Mata\Config\Dto\MailConfig;
 use Mata\Config\Monitoring\Section\AlarmRateLimitsConfig;
 use Mata\Config\Monitoring\Section\IntervalsConfig;
 use Mata\Config\Monitoring\Section\ProbesConfig;
+use Mata\Config\Monitoring\Section\ServerConfig;
 use Mata\Config\Monitoring\Section\ServersConfig;
 use Mata\Config\Monitoring\Section\ThresholdsConfig;
 use Mata\Config\Monitoring\Section\TtlConfig;
@@ -165,7 +166,7 @@ class SettingsRenderer extends BaseRenderer
     /**
      * Summarize server configuration values.
      *
-     * @param array<string,mixed> $servers Server configurations
+     * @param array<string,ServerConfig> $servers Server configurations
      *
      * @return array<int,array<string,mixed>> Summarized server data
      */
@@ -174,22 +175,18 @@ class SettingsRenderer extends BaseRenderer
         $summary = [];
 
         foreach ($servers as $key => $config) {
-            if (!is_array($config)) {
-                continue;
-            }
-
             $summary[] = [
                 'key' => (string) $key,
-                'title' => (string) ($config['title'] ?? ''),
-                'url' => (string) ($config['url'] ?? ''),
-                'api_url' => (string) ($config['api_url'] ?? ''),
-                'api_key' => $this->maskSecret($config['api_key'] ?? ''),
-                'info' => (string) ($config['info'] ?? ''),
+                'title' => $config->title,
+                'url' => (string) $config->url,
+                'api_url' => $config->apiUrl,
+                'api_key' => $this->maskSecret($config->apiKey),
+                'info' => (string) $config->info,
                 'colors' => [
-                    'primary' => $config['primary_color'] ?? null,
-                    'secondary' => $config['secondary_color'] ?? null,
+                    'primary' => $config->primaryColor,
+                    'secondary' => $config->secondaryColor,
                 ],
-                'extras' => $this->extractServerExtras($config),
+                'extras' => $this->extractServerExtras($config->options),
             ];
         }
 
@@ -201,11 +198,11 @@ class SettingsRenderer extends BaseRenderer
     /**
      * Extract non-standard server config options for display.
      *
-     * @param array<string,mixed> $config Server configuration array
+     * @param array<string,scalar> $options Server configuration options as written
      *
      * @return array<int,array<string,string>> Extra configuration key-value pairs
      */
-    private function extractServerExtras(array $config): array
+    private function extractServerExtras(array $options): array
     {
         $knownKeys = [
             'title',
@@ -219,8 +216,8 @@ class SettingsRenderer extends BaseRenderer
 
         $extras = [];
 
-        foreach ($config as $key => $value) {
-            if (in_array($key, $knownKeys, true) || !is_scalar($value)) {
+        foreach ($options as $key => $value) {
+            if (in_array($key, $knownKeys, true)) {
                 continue;
             }
 

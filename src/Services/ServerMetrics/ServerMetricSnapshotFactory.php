@@ -6,6 +6,7 @@ namespace Mata\Services\ServerMetrics;
 
 use DateTimeImmutable;
 use DateTimeZone;
+use Mata\Config\Monitoring\Section\ServerConfig;
 use Mata\Models\ServerMetrics\Dto\ServerMetricRawSnapshot;
 use Mata\Services\ServerMetrics\Dto\CollectorIdentity;
 use Mata\Utils\TypeConverter;
@@ -63,9 +64,8 @@ final readonly class ServerMetricSnapshotFactory
      * the server's configuration, and finally this cron job itself.
      *
      * @param array<string,mixed> $payload
-     * @param array<string,mixed> $serverConfig
      */
-    public function collectorIdentity(array $payload, array $serverConfig): CollectorIdentity
+    public function collectorIdentity(array $payload, ServerConfig $serverConfig): CollectorIdentity
     {
         $data = is_array($payload['data'] ?? null) ? $payload['data'] : [];
         $collector = $data['collector'] ?? null;
@@ -80,11 +80,9 @@ final readonly class ServerMetricSnapshotFactory
         }
 
         return new CollectorIdentity(
-            TypeConverter::toString($serverConfig['collector_name'] ?? null)
-                ?? TypeConverter::toString($serverConfig['node_name'] ?? null)
-                ?? self::FALLBACK_COLLECTOR_NAME,
-            TypeConverter::toString($serverConfig['collector_version'] ?? null),
-            TypeConverter::toString($serverConfig['collector_contact'] ?? null),
+            $serverConfig->collectorName ?? $serverConfig->nodeName ?? self::FALLBACK_COLLECTOR_NAME,
+            $serverConfig->collectorVersion,
+            $serverConfig->collectorContact,
         );
     }
 

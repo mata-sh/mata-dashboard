@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Mata\Services\Status;
 
 use Mata\Config\Monitoring\Loader\Dto\ConfigLoadProblem;
+use Mata\Config\Monitoring\Section\ServerConfig;
 use Mata\Services\Cache\ApiCacheKeyFactory;
 use Mata\Services\Cache\CacheStoreInterface;
 use Mata\Services\Cron\CronHeartbeatReader;
@@ -32,14 +33,14 @@ final class FleetStatusReader
     ) {}
 
     /**
-     * @param array<string,mixed>     $servers        enabled servers from ServersConfig, keyed by name
-     * @param list<ConfigLoadProblem> $configProblems found while loading them; they count towards the level
+     * @param array<string,ServerConfig> $servers        enabled servers from ServersConfig, keyed by name
+     * @param list<ConfigLoadProblem>    $configProblems found while loading them; they count towards the level
      */
     public function read(array $servers, int $now, array $configProblems = []): FleetStatus
     {
         $serverStatuses = [];
         foreach ($servers as $name => $config) {
-            $serverStatuses[] = $this->serverStatus((string) $name, is_array($config) ? $config : [], $now);
+            $serverStatuses[] = $this->serverStatus((string) $name, $config, $now);
         }
 
         return new FleetStatus(
@@ -50,12 +51,10 @@ final class FleetStatusReader
         );
     }
 
-    /** @param array<string,mixed> $config */
-    private function serverStatus(string $name, array $config, int $now): ServerStatus
+    private function serverStatus(string $name, ServerConfig $config, int $now): ServerStatus
     {
-        $apiUrl = is_string($config['api_url'] ?? null) ? $config['api_url'] : '';
-        $title = is_string($config['title'] ?? null) ? $config['title'] : $name;
-        $entry = $this->cache->getStale($this->keys->createApiRequestKey($apiUrl, 'GET', 'health'), -1);
+        $title = $config->title;
+        $entry = $this->cache->getStale($this->keys->createApiRequestKey($config->apiUrl, 'GET', 'health'), -1);
         if ($entry === null) {
             return new ServerStatus(
                 name: $name,

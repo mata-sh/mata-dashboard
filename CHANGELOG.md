@@ -8,6 +8,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Release assets (`install.sh`, `sbom.cdx.json`, `checksums.txt`) are signed with Sigstore (keyless, `<file>.sigstore.json` bundles) and carry SLSA v1.0 Build Level 2 provenance, attached as `provenance.sigstore.json` and stored in GitHub's attestation API. Verify with `cosign verify-blob` or `gh attestation verify`; see the security architecture page. **Action:** none.
 
+### Changed
+- Alarm emails and webhooks take a server's color and environment only from enabled servers that pass `config validate`. Alarms of a disabled server, or of one without its key in `servers.secrets.json`, show the default badge color and no environment. **Action:** none.
+
 ### Fixed
 - Errors that are not exceptions, such as a type error inside a request, now return the dashboard's usual error response instead of the generic 500 page.
 - `APP_ENV` is read case-insensitively everywhere. Before, `Demo` switched only the metrics charts to demo data while the rest of the dashboard ran live.

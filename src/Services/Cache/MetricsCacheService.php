@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Mata\Services\Cache;
 
+use Mata\Config\Monitoring\Section\ServerConfig;
 use Psr\Log\LoggerInterface;
 
 /**
@@ -11,11 +12,11 @@ use Psr\Log\LoggerInterface;
  */
 class MetricsCacheService
 {
-    /** @var array<string,mixed> */
+    /** @var array<string,ServerConfig> */
     private array $serversConfig;
 
     /**
-     * @param array<string,mixed> $serversConfig
+     * @param array<string,ServerConfig> $serversConfig
      */
     public function __construct(
         private CacheStoreInterface $cacheStore,
@@ -194,9 +195,8 @@ class MetricsCacheService
 
     private function getSeriesCacheKey(string $server, string $metric, string $range, string $granularity): ?string
     {
-        $serverConfig = $this->serversConfig[$server] ?? null;
-        $apiUrl = is_array($serverConfig) ? ($serverConfig['api_url'] ?? null) : null;
-        if (!is_string($apiUrl) || $apiUrl === '') {
+        $apiUrl = ($this->serversConfig[$server] ?? null)?->apiUrl;
+        if ($apiUrl === null || $apiUrl === '') {
             $this->logger->warning('metrics.cache.skip', [
                 'server' => $server,
                 'metric' => $metric,

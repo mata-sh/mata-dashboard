@@ -5,7 +5,6 @@ declare(strict_types=1);
 
 use Mata\Bootstrap\CronRuntime;
 use Mata\Bootstrap\MonitoringRuntime;
-use Mata\Config\Monitoring\ServerConfigState;
 use Mata\Models\Monitor\AppLibraryAuditStateRepository;
 use Mata\Services\Cache\ApiCacheKeyFactory;
 use Mata\Services\Cache\CacheTtlResolver;
@@ -15,7 +14,6 @@ use Mata\Services\Collect\NodeResponseNormalizer;
 use Mata\Services\Collect\ServerDataCollector;
 use Mata\Services\Monitor\AppLibraryAuditMonitor;
 use Mata\Services\Monitor\Dto\AppLibraryAuditMonitoringResult;
-use Mata\Utils\TypeConverter;
 
 require_once __DIR__ . '/../vendor/autoload.php';
 
@@ -64,16 +62,17 @@ try {
     );
     $result = new AppLibraryAuditMonitoringResult();
 
+    // ServersConfig holds enabled servers only.
     foreach ($monitoringConfig->servers->values as $server => $serverConfig) {
         $server = (string) $server;
-        if (!is_array($serverConfig) || str_starts_with($server, '_') || ServerConfigState::isDisabled($serverConfig)) {
+        if (str_starts_with($server, '_')) {
             continue;
         }
 
         $cron->touchHeartbeat();
-        $apiUrl = $serverConfig['api_url'] ?? null;
-        $apiKey = $serverConfig['api_key'] ?? null;
-        if (!is_string($apiUrl) || $apiUrl === '' || !is_string($apiKey) || $apiKey === '') {
+        $apiUrl = $serverConfig->apiUrl;
+        $apiKey = $serverConfig->apiKey;
+        if ($apiUrl === '' || $apiKey === '') {
             $log->error('libraries_audit.missing_api_credentials', ['server' => $server]);
             $result = $result->mergedWith(new AppLibraryAuditMonitoringResult(failures: 1));
 
@@ -93,8 +92,8 @@ try {
                     apiKey: $apiKey,
                     timeout: $appConfig->nodeApi->timeoutSeconds,
                     verifySSL: true,
-                    allowHttp: TypeConverter::toBool($serverConfig['allow_http'] ?? null) ?? false,
-                    suppressHttpWarning: TypeConverter::toBool($serverConfig['suppress_http_warning'] ?? null) ?? false,
+                    allowHttp: $serverConfig->allowHttp,
+                    suppressHttpWarning: $serverConfig->suppressHttpWarning,
                 ),
                 $responseNormalizer,
             );

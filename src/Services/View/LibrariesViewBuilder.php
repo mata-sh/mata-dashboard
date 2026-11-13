@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Mata\Services\View;
 
 use Exception;
+use Mata\Config\Monitoring\Section\ServerConfig;
 use Mata\Services\Audit\AuditRowEnricher;
 use Mata\Services\Collect\ServerDataCollectorInterface;
 use Psr\Log\LoggerInterface;
@@ -18,7 +19,7 @@ final class LibrariesViewBuilder
 
     /**
      * @param array<string,ServerDataCollectorInterface> $serversData   Server API clients
-     * @param array<string,mixed>                        $serversConfig Server configurations
+     * @param array<string,ServerConfig>                 $serversConfig Server configurations
      *
      * @return array{data:array<int,array<string,mixed>>,errors:array<int,array{server:string,message:string}>}
      */

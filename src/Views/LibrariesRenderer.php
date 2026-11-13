@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Mata\Views;
 
+use Mata\Config\Monitoring\Section\ServerConfig;
 use Mata\Http\Routing\Endpoints;
 
 /**
@@ -14,7 +15,7 @@ class LibrariesRenderer extends BaseRenderer
     /**
      * Render complete libraries container with wrapper template.
      *
-     * @param array<string,mixed> $serversConfig Server configurations
+     * @param array<string,ServerConfig> $serversConfig Server configurations
      *
      * @return string Generated HTML for complete libraries container
      */

@@ -41,10 +41,12 @@ final class AlarmTestCommand extends Command
     {
         $config = $this->cli->load();
         $paths = $this->cli->paths();
+        $log = (new LogConfigurator())->createConfiguredLogger($config->logging, $paths, 'alarm-test');
         $senders = AlarmChannelRuntime::build(
             paths: $paths,
             appConfig: $config,
-            log: (new LogConfigurator())->createConfiguredLogger($config->logging, $paths, 'alarm-test'),
+            servers: AlarmChannelRuntime::presentationServers($paths, $log),
+            log: $log,
         )->senders();
 
         $channel = strtolower(trim((string) $input->getArgument('channel')));

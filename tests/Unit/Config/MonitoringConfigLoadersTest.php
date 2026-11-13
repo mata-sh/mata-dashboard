@@ -477,7 +477,25 @@ final class MonitoringConfigLoadersTest extends TestCase
             ['web' => ['api_key' => 'secret-key']],
         );
 
-        $this->assertSame('secret-key', $result->section->values['web']['api_key'] ?? null);
+        $this->assertSame('secret-key', ($result->section->values['web'] ?? null)?->apiKey);
+    }
+
+    public function testServerConfigReadsOnStyleHttpFlagsAndDefaultsMonitoringOn(): void
+    {
+        $server = ServersConfig::fromArray(['dev' => [
+            'title' => 'Dev',
+            'api_url' => 'http://localhost:3310/',
+            'api_key' => 'key',
+            'allow_http' => 'on',
+            'suppress_http_warning' => 'on',
+            'env' => ' Dev ',
+        ]])->values['dev'];
+
+        $this->assertTrue($server->allowHttp);
+        $this->assertTrue($server->suppressHttpWarning);
+        $this->assertTrue($server->errorMonitoringEnabled);
+        $this->assertTrue($server->logsizeMonitoringEnabled);
+        $this->assertSame('dev', $server->env);
     }
 
     public function testLoadServersConfigRejectsApiKeyLeftInServersJson(): void

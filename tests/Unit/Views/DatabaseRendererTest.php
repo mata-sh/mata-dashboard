@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Mata\Tests\Unit\Views;
 
+use Mata\Config\Monitoring\Section\ServerConfig;
 use Mata\Core\App;
 use Mata\Http\Routing\Endpoints;
 use Mata\Services\Collect\NodeResponseNormalizer;
@@ -146,6 +147,6 @@ final class DatabaseRendererTest extends TestCase
             $endpoints,
         );
 
-        return $renderer->renderDatabaseCards(['db1' => $collector], ['db1' => ['title' => 'DB server']]);
+        return $renderer->renderDatabaseCards(['db1' => $collector], ['db1' => ServerConfig::fromArray('db1', ['title' => 'DB server'])]);
     }
 }

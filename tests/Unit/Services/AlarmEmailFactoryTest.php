@@ -6,6 +6,7 @@ namespace Mata\Tests\Unit\Services;
 
 use DateTimeImmutable;
 use Mata\Config\Dto\MailConfig;
+use Mata\Config\Monitoring\Section\ServerConfig;
 use Mata\Services\Alarm\Delivery\AlarmEmailFactory;
 use Mata\Services\Alarm\Delivery\AlarmTemplateDataFactory;
 use Mata\Services\Alarm\Delivery\Dto\AlarmDeliveryView;
@@ -105,7 +106,7 @@ final class AlarmEmailFactoryTest extends TestCase
 
     public function testItRendersServerColorAndEnvironmentBadge(): void
     {
-        $servers = ['Api-1' => ['primary_color' => '#E88C02', 'env' => 'test']];
+        $servers = ['Api-1' => ServerConfig::fromArray('Api-1', ['primary_color' => '#E88C02', 'env' => 'test'])];
         $html = (string) $this->factory(servers: $servers)->create($this->view())->getHtmlBody();
 
         $this->assertStringContainsString('background-color:#E88C02; padding:4px 12px', $html);
@@ -116,7 +117,7 @@ final class AlarmEmailFactoryTest extends TestCase
 
     public function testItStylesServerOnlyHeadingsAsColoredBadges(): void
     {
-        $servers = ['Api-1' => ['primary_color' => '#E88C02']];
+        $servers = ['Api-1' => ServerConfig::fromArray('Api-1', ['primary_color' => '#E88C02'])];
         $view = $this->view(new Alarm('node_unhealthy', 'Unhealthy health response', null, AlarmLevel::Warning, 'Api-1'));
         $html = (string) $this->factory(servers: $servers)->create($view)->getHtmlBody();
 

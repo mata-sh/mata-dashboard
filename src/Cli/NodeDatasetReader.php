@@ -9,6 +9,7 @@ use DateTimeImmutable;
 use Mata\Config\Dto\ApplicationConfig;
 use Mata\Config\Monitoring\Loader\ServersConfigLoader;
 use Mata\Config\Monitoring\Loader\TtlConfigLoader;
+use Mata\Config\Monitoring\Section\ServerConfig;
 use Mata\Services\Cache\ApiCacheKeyFactory;
 use Mata\Services\Cache\CacheTtlResolver;
 use Mata\Services\Cache\FileCacheStore;
@@ -17,7 +18,6 @@ use Mata\Services\Collect\NodeApiClient;
 use Mata\Services\Collect\NodeResponseNormalizer;
 use Mata\Services\Collect\ServerDataCollector;
 use Mata\Services\Collect\ServerDataCollectorInterface;
-use Mata\Utils\TypeConverter;
 use Psr\Log\NullLogger;
 use RuntimeException;
 
@@ -35,34 +35,26 @@ final class NodeDatasetReader
     }
 
     /**
-     * The servers of servers.json by name. Keys starting with an underscore, like `_README`,
-     * document the file and are left out.
+     * The enabled servers of servers.json by name. Keys starting with an underscore, like
+     * `_README`, document the file and are left out.
      *
-     * @return array<string,array<string,mixed>>
+     * @return array<string,ServerConfig>
      */
     public function servers(): array
     {
-        $servers = [];
-        foreach ((new ServersConfigLoader(fallbackOnFailure: true))->load($this->cli->configPath)->section->values as $name => $server) {
-            if (!str_starts_with((string) $name, '_') && is_array($server)) {
-                $servers[(string) $name] = $server;
-            }
-        }
-
-        return $servers;
+        return (new ServersConfigLoader(fallbackOnFailure: true))->load($this->cli->configPath)->section->values;
     }
 
     /**
      * One dataset of one server. $fetch calls the collector; with $live it must pass
      * CacheType::None, so the cache is bypassed.
      *
-     * @param array<string,mixed>                                         $serverConfig
-     * @param string                                                      $datasetName  names the data in errors and in the `source`, e.g. 'logs'
+     * @param string                                                      $datasetName names the data in errors and in the `source`, e.g. 'logs'
      * @param Closure(ServerDataCollectorInterface): ?array<string,mixed> $fetch
      */
-    public function read(string $server, array $serverConfig, bool $live, string $datasetName, Closure $fetch): NodeDatasetResult
+    public function read(string $server, ServerConfig $serverConfig, bool $live, string $datasetName, Closure $fetch): NodeDatasetResult
     {
-        if ($live && !$this->demo && trim((string) ($serverConfig['api_key'] ?? '')) === '') {
+        if ($live && !$this->demo && trim($serverConfig->apiKey) === '') {
             return NodeDatasetResult::failed("Server '{$server}' has no api_key in servers.secrets.json.");
         }
 
@@ -91,8 +83,7 @@ final class NodeDatasetReader
         return NodeDatasetResult::succeeded($provenance, $response['result'] ?? null, $notice);
     }
 
-    /** @param array<string,mixed> $serverConfig */
-    private function collector(string $server, array $serverConfig, bool $live): ServerDataCollectorInterface
+    private function collector(string $server, ServerConfig $serverConfig, bool $live): ServerDataCollectorInterface
     {
         $logger = new NullLogger();
         $ttl = new CacheTtlResolver((new TtlConfigLoader(fallbackOnFailure: true))->load($this->cli->configPath)->section);
@@ -109,12 +100,12 @@ final class NodeDatasetReader
             $ttl,
             new NodeApiClient(
                 logger: $logger,
-                apiBase: (string) ($serverConfig['api_url'] ?? ''),
+                apiBase: $serverConfig->apiUrl,
                 server: $server,
-                apiKey: (string) ($serverConfig['api_key'] ?? ''),
+                apiKey: $serverConfig->apiKey,
                 timeout: $this->config->nodeApi->timeoutSeconds,
-                allowHttp: TypeConverter::toBool($serverConfig['allow_http'] ?? null) ?? false,
-                suppressHttpWarning: TypeConverter::toBool($serverConfig['suppress_http_warning'] ?? null) ?? false,
+                allowHttp: $serverConfig->allowHttp,
+                suppressHttpWarning: $serverConfig->suppressHttpWarning,
             ),
             $normalizer,
             cacheOnly: !$live,

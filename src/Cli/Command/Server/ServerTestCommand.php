@@ -44,6 +44,7 @@ final class ServerTestCommand extends Command
             return CliOutput::fail($input, $output, "Server '{$only}' is not in servers.json");
         }
 
+        // Raw entries, not ServersConfig: a named server is tested even when disabled or without a key.
         $results = [];
         foreach ($entries as $name => ['entry' => $entry, 'apiKey' => $apiKey]) {
             if (!is_array($entry) || (is_string($only) && $only !== $name) || ($only === null && ServerConfigState::isDisabled($entry))) {

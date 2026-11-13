@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Mata\Tests\Unit\Services;
 
+use Mata\Config\Monitoring\Section\ServerConfig;
 use Mata\Services\Cache\ApiCacheKeyFactory;
 use Mata\Services\Cache\CacheStoreInterface;
 use Mata\Services\Cache\Dto\CacheEntry;
@@ -64,7 +65,7 @@ final class MetricsCacheServiceTest extends TestCase
             $store,
             new ApiCacheKeyFactory(),
             new Logger('test'),
-            ['node' => ['api_url' => 'https://node.example.test/api']]
+            ['node' => ServerConfig::fromArray('node', ['api_url' => 'https://node.example.test/api'])]
         );
 
         $this->assertNull($service->readSeriesCache('node', 'cpu', 'day', 'hour', -1));

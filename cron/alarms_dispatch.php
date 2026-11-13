@@ -43,6 +43,7 @@ try {
     $alarmChannels = AlarmChannelRuntime::build(
         paths: $paths,
         appConfig: $appConfig,
+        servers: AlarmChannelRuntime::presentationServers($paths, $log),
         log: $log,
         events: $eventManager,
     );

@@ -9,7 +9,8 @@ use Mata\Utils\TypeConverter;
 
 /**
  * Dashboard-owned server definitions keyed by operator-defined server name, with each
- * api_key already merged in from servers.secrets.json.
+ * api_key already merged in from servers.secrets.json. Only enabled, valid servers become a
+ * {@see ServerConfig}; the static validators work on the raw entries.
  */
 final readonly class ServersConfig
 {
@@ -19,7 +20,7 @@ final readonly class ServersConfig
     /** Names end up in route segments (`/refresh/server/{server}`), so they stay within RouteParameter's charset. */
     public const NAME_PATTERN = '/^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$/';
 
-    /** @param array<string,mixed> $values */
+    /** @param array<string,ServerConfig> $values keyed by server name */
     private function __construct(public array $values) {}
 
     public static function empty(): self
@@ -35,10 +36,11 @@ final readonly class ServersConfig
             $serverName = (string) $serverName;
             if (str_starts_with($serverName, '_')
                 || self::serverValidationErrors($serverName, $config) !== []
-                || (is_array($config) && ServerConfigState::isDisabled($config))) {
+                || !is_array($config)
+                || ServerConfigState::isDisabled($config)) {
                 continue;
             }
-            $servers[$serverName] = $config;
+            $servers[$serverName] = ServerConfig::fromArray($serverName, $config);
         }
 
         return new self($servers);

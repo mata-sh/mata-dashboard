@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Mata\Cli;
 
 use Mata\Config\Dto\ApplicationConfig;
+use Mata\Config\Monitoring\Section\ServerConfig;
 use Mata\Database\PdoDatabase;
 use Mata\Models\Sync\ConfigSyncRepository;
 use Mata\Services\Identity\ServerApplicationIdResolver;
@@ -18,7 +19,7 @@ final class StoredMetrics
     /**
      * Generated in demo mode, without connecting to the database.
      *
-     * @param array<string,mixed> $servers servers.json
+     * @param array<string,ServerConfig> $servers servers.json, for the server names
      */
     public static function query(ApplicationConfig $config, array $servers): ServerMetricsQueryInterface
     {

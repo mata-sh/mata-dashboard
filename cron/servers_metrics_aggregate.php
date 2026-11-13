@@ -5,7 +5,6 @@ declare(strict_types=1);
 
 use Mata\Bootstrap\CronRuntime;
 use Mata\Bootstrap\MonitoringRuntime;
-use Mata\Config\Monitoring\ServerConfigState;
 use Mata\Models\ServerMetrics\ServerMetricsRepository;
 use Mata\Services\ServerMetrics\AggregationWindowPlanner;
 use Mata\Services\ServerMetrics\ServerMetricsAggregator;
@@ -63,8 +62,9 @@ try {
         'daily_failed' => 0,
     ];
 
-    foreach ($monitoringConfig->servers->values as $serverName => $serverConfig) {
-        if (!is_array($serverConfig) || str_starts_with((string) $serverName, '_') || ServerConfigState::isDisabled($serverConfig)) {
+    // ServersConfig holds enabled servers only.
+    foreach (array_keys($monitoringConfig->servers->values) as $serverName) {
+        if (str_starts_with((string) $serverName, '_')) {
             ++$stats['servers_skipped'];
 
             continue;
