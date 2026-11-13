@@ -13,7 +13,7 @@ use Mata\Services\Audit\AuditAggregator;
 use Mata\Services\Cache\CacheType;
 use Mata\Services\Collect\ServerDataCollectorInterface;
 use Mata\Views\AuditRenderer;
-use Monolog\Logger;
+use Psr\Log\LoggerInterface;
 
 /**
  * Serves cached Composer audit data and runs requested node audits.
@@ -31,7 +31,7 @@ class AuditController extends BaseController
      * @param array<string,ServerDataCollectorInterface> $serverDataCollectors Collectors built at bootstrap, keyed by server
      */
     public function __construct(
-        Logger $logger,
+        LoggerInterface $logger,
         AuditRenderer $auditRenderer,
         AuditAggregator $auditAggregator,
         Endpoints $endpoints,

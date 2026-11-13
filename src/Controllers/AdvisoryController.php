@@ -19,7 +19,7 @@ use Mata\Services\Advisory\Report\AdvisoryReportQuery;
 use Mata\Services\Advisory\Report\AdvisoryReportRenderer;
 use Mata\Services\View\AdvisoriesViewBuilder;
 use Mata\Views\AdvisoriesRenderer;
-use Monolog\Logger;
+use Psr\Log\LoggerInterface;
 
 /**
  * Advisories page: source health, the advisory table, per-advisory detail with the raw
@@ -36,7 +36,7 @@ class AdvisoryController extends BaseController
 
     public function __construct(
         private App $app,
-        Logger $logger,
+        LoggerInterface $logger,
         private Endpoints $endpoints,
         private AdvisoryRuntime $advisories,
         private AdvisoriesRenderer $renderer,

@@ -10,7 +10,7 @@ use Mata\Services\Collect\ServerDataCollectorInterface;
 use Mata\Services\Event\Dto\EventCommand;
 use Mata\Services\Event\Dto\EventMetric;
 use Mata\Services\Event\EventManager;
-use Monolog\Logger;
+use Psr\Log\LoggerInterface;
 
 /**
  * Server monitoring and threshold evaluation service.
@@ -23,12 +23,12 @@ use Monolog\Logger;
  */
 class ServerMonitor
 {
-    private Logger $logger;
+    private LoggerInterface $logger;
     private EventManager $eventManager;
     private MetricThresholds $thresholds;
 
     public function __construct(
-        Logger $logger,
+        LoggerInterface $logger,
         EventManager $eventManager,
         MetricThresholds $thresholds,
     ) {

@@ -26,7 +26,7 @@ use Mata\Services\Notification\SystemNotificationManager;
 use Mata\Services\View\LibrariesViewBuilder;
 use Mata\Services\View\ServerViewBuilder;
 use Mata\Views\DashboardRenderers;
-use Monolog\Logger;
+use Psr\Log\LoggerInterface;
 
 /**
  * Main dashboard controller for server monitoring endpoints.
@@ -65,7 +65,7 @@ class DashboardController extends BaseController
      * Uses prebuilt per-server monitoring services, view builders and renderers.
      *
      * @param App                       $app                  Application container with auth and paths
-     * @param Logger                    $logger               PSR-3 logger for system logging
+     * @param LoggerInterface           $logger               PSR-3 logger for system logging
      * @param ApplicationConfig         $appConfig            Application configuration DTO
      * @param SystemNotificationManager $notificationManager  System notification management
      * @param EventManager              $eventManager         Server alarm and threshold management
@@ -80,7 +80,7 @@ class DashboardController extends BaseController
      */
     public function __construct(
         App $app,
-        Logger $logger,
+        LoggerInterface $logger,
         ApplicationConfig $appConfig,
         SystemNotificationManager $notificationManager,
         EventManager $eventManager,

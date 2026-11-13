@@ -9,7 +9,7 @@ use Mata\Http\Routing\Endpoints;
 use Mata\Utils\Tools;
 use Mata\Views\Support\Html;
 use Mata\Views\Support\NumberFormatter;
-use Monolog\Logger;
+use Psr\Log\LoggerInterface;
 use Twig\Environment;
 
 /**
@@ -25,7 +25,7 @@ use Twig\Environment;
 abstract class BaseRenderer
 {
     protected Environment $twig;
-    protected Logger $logger;
+    protected LoggerInterface $logger;
     protected Tools $tools;
     protected NumberFormatter $numberFormatter;
     protected App $app;
@@ -33,7 +33,7 @@ abstract class BaseRenderer
 
     public function __construct(
         Environment $twig,
-        Logger $logger,
+        LoggerInterface $logger,
         Tools $tools,
         App $app,
         Endpoints $endpoints

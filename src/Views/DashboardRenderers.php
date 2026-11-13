@@ -7,7 +7,7 @@ namespace Mata\Views;
 use Mata\Core\App;
 use Mata\Http\Routing\Endpoints;
 use Mata\Utils\Tools;
-use Monolog\Logger;
+use Psr\Log\LoggerInterface;
 use Twig\Environment;
 
 /**
@@ -27,7 +27,7 @@ final readonly class DashboardRenderers
 
     public static function create(
         Environment $twig,
-        Logger $logger,
+        LoggerInterface $logger,
         Tools $tools,
         App $app,
         Endpoints $endpoints,

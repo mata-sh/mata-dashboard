@@ -17,7 +17,7 @@ use Mata\Services\Cron\CronJob;
 use Mata\Utils\PathResolver;
 use Mata\Utils\Tools;
 use Monolog\ErrorHandler as MonologErrorHandler;
-use Monolog\Logger;
+use Psr\Log\LoggerInterface;
 use Throwable;
 
 /**
@@ -33,7 +33,7 @@ final readonly class CronRuntime
      */
     public function __construct(
         public PathResolver $paths,
-        public Logger $log,
+        public LoggerInterface $log,
         public CronJob $cron,
         public ApplicationConfig $appConfig,
         public array $validationWarnings,
@@ -144,7 +144,7 @@ final readonly class CronRuntime
      *
      * Return a {@see NullDatabase} if either step fails.
      */
-    private static function connect(ApplicationConfig $appConfig, Logger $log): DatabaseInterface
+    private static function connect(ApplicationConfig $appConfig, LoggerInterface $log): DatabaseInterface
     {
         try {
             $db = new PdoDatabase($appConfig->database);

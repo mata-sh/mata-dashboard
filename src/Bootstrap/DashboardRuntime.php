@@ -38,7 +38,7 @@ use Mata\Utils\Tools;
 use Mata\Utils\UsersFilePathResolver;
 use Mata\Views\Support\UiTheme;
 use Monolog\ErrorHandler as MonologErrorHandler;
-use Monolog\Logger;
+use Psr\Log\LoggerInterface;
 use Throwable;
 use Twig\Environment;
 use Twig\Loader\FilesystemLoader;
@@ -58,7 +58,7 @@ final readonly class DashboardRuntime
      */
     public function __construct(
         public PathResolver $paths,
-        public Logger $log,
+        public LoggerInterface $log,
         public Request $request,
         public Environment $twig,
         public Tools $tools,

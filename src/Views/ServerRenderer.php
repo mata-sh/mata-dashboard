@@ -13,7 +13,7 @@ use Mata\Services\Cron\Dto\CronJobStatus;
 use Mata\Services\Monitor\Dto\NodeHealthState;
 use Mata\Utils\Tools;
 use Mata\Views\Support\Html;
-use Monolog\Logger;
+use Psr\Log\LoggerInterface;
 use Twig\Environment;
 
 /**
@@ -51,7 +51,7 @@ class ServerRenderer extends BaseRenderer
 
     public function __construct(
         Environment $twig,
-        Logger $logger,
+        LoggerInterface $logger,
         Tools $tools,
         App $app,
         Endpoints $endpoints,

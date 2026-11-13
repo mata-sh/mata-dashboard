@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Mata\Services\Cache;
 
-use Monolog\Logger;
+use Psr\Log\LoggerInterface;
 
 /**
  * Manages dashboard and server metrics caches.
@@ -20,7 +20,7 @@ class MetricsCacheService
     public function __construct(
         private CacheStoreInterface $cacheStore,
         private ApiCacheKeyFactory $cacheKeyFactory,
-        private Logger $logger,
+        private LoggerInterface $logger,
         array $serversConfig
     ) {
         $this->serversConfig = $serversConfig;

@@ -14,7 +14,7 @@ use Mata\Config\LogConfigurator;
 use Mata\Config\Monitoring\Loader\AdvisoriesConfigLoader;
 use Mata\Database\PdoDatabase;
 use Mata\Services\Event\EventManager;
-use Monolog\Logger;
+use Psr\Log\LoggerInterface;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
@@ -52,13 +52,13 @@ abstract class AbstractAdvisoryCommand extends Command
         return $this->handle($input, $output);
     }
 
-    protected function logger(string $channel): Logger
+    protected function logger(string $channel): LoggerInterface
     {
         return (new LogConfigurator())->createConfiguredLogger($this->config->logging, $this->cli->paths(), $channel);
     }
 
     /** Events as the cron jobs record them, so a CLI poll alarms exactly like a scheduled one. */
-    protected function eventManager(Logger $log): EventManager
+    protected function eventManager(LoggerInterface $log): EventManager
     {
         return MonitoringRuntime::build($this->cli->paths(), $this->config, $log, $this->db)->eventManager;
     }

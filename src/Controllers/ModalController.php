@@ -14,7 +14,7 @@ use Mata\Services\Cache\ModalCacheService;
 use Mata\Services\Collect\ServerDataCollectorInterface;
 use Mata\Services\DataTransformers\LogDataTransformer;
 use Mata\Views\ModalRenderer;
-use Monolog\Logger;
+use Psr\Log\LoggerInterface;
 
 /**
  * Modal content controller for dynamic AJAX responses.
@@ -45,7 +45,7 @@ class ModalController extends BaseController
      * @param array<string,ServerDataCollectorInterface> $serverDataCollectors Collectors built at bootstrap, keyed by server
      */
     public function __construct(
-        Logger $logger,
+        LoggerInterface $logger,
         ModalRenderer $modalRenderer,
         ModalCacheService $modalCacheService,
         LogDataTransformer $logTransformer,

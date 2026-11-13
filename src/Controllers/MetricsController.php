@@ -17,7 +17,7 @@ use Mata\Services\ServerMetrics\MetricsRequestValidator;
 use Mata\Services\View\ChartViewBuilder;
 use Mata\Services\View\MetricsViewBuilder;
 use Mata\Views\MetricsRenderer;
-use Monolog\Logger;
+use Psr\Log\LoggerInterface;
 
 /**
  * Metrics-specific controller exposing time-series endpoints for charts.
@@ -56,7 +56,7 @@ final class MetricsController extends BaseController
      * @param array<string,mixed> $serversConfig
      */
     public function __construct(
-        Logger $logger,
+        LoggerInterface $logger,
         MetricsViewBuilder $metricsViewBuilder,
         MetricsRenderer $metricsRenderer,
         MetricsCacheService $cacheService,

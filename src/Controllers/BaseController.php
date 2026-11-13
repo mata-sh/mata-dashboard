@@ -7,7 +7,7 @@ namespace Mata\Controllers;
 use Mata\Http\Request;
 use Mata\Http\Responses\Response;
 use Mata\Http\Responses\ResponseFactory;
-use Monolog\Logger;
+use Psr\Log\LoggerInterface;
 use Throwable;
 
 /**
@@ -18,7 +18,7 @@ use Throwable;
  */
 abstract class BaseController
 {
-    protected Logger $logger;
+    protected LoggerInterface $logger;
 
     public function __construct(protected readonly Request $request) {}
 

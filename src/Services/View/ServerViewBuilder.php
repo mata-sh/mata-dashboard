@@ -26,7 +26,7 @@ use Mata\Services\Monitor\ServerMonitor;
 use Mata\Services\Sync\AppInventorySync;
 use Mata\Views\Support\Html;
 use Mata\Views\Support\NumberFormatter;
-use Monolog\Logger;
+use Psr\Log\LoggerInterface;
 use Throwable;
 
 /**
@@ -44,7 +44,7 @@ class ServerViewBuilder
     private ServerMonitor $serverMonitor;
     private LogSizeEvaluator $logSizeEvaluator;
     private MetricThresholds $thresholds;
-    private Logger $logger;
+    private LoggerInterface $logger;
     private CacheTypeResolver $cacheTypeResolver;
     private ?AppInventorySync $appInventorySync;
     private NumberFormatter $numberFormatter;
@@ -53,7 +53,7 @@ class ServerViewBuilder
         ServerMonitor $serverMonitor,
         LogSizeEvaluator $logSizeEvaluator,
         MetricThresholds $thresholds,
-        Logger $logger,
+        LoggerInterface $logger,
         CacheTypeResolver $cacheTypeResolver,
         ?AppInventorySync $appInventorySync = null,
         ?NumberFormatter $numberFormatter = null,
