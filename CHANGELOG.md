@@ -5,6 +5,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.11.0] - 2026-11-13
+
 ### Added
 - Release assets (`install.sh`, `sbom.cdx.json`, `checksums.txt`) are signed with Sigstore (keyless, `<file>.sigstore.json` bundles) and carry SLSA v1.0 Build Level 2 provenance, attached as `provenance.sigstore.json` and stored in GitHub's attestation API. Verify with `cosign verify-blob` or `gh attestation verify`; see the security architecture page. **Action:** none.
 
