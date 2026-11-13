@@ -14,6 +14,7 @@ mata-dashboard/
 ├── src/               # Application source code
 ├── temp/              # Cache and temporary files
 ├── templates/         # Twig templates
+├── tests/             # PHPUnit tests (Unit/, Integration/, Fixtures/, Helpers/) — see composer autoload-dev
 ├── vendor/            # Composer dependencies
 ├── node_modules/      # NPM dependencies
 ├── composer.json      # PHP dependencies
@@ -285,7 +286,6 @@ src/Services/Cache/CacheType.php
 src/Services/Monitor/NodeHealthState.php
 src/Services/Audit/Severity.php
 src/Views/AppAvailabilityStatus.php
-src/Tests/        # PHPUnit tests (Unit/, Integration/, Fixtures/, Helpers/) — see composer autoload-dev
 ```
 
 ## Public Directory (`public/`)

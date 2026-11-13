@@ -107,4 +107,4 @@ Rebuild Bulma after Sass changes with `npm install` and `npm run build-bulma`.
 - `cron/`: scheduled jobs
 - `policy/`: OPA policies and tests
 - `migrations/`: Phinx migrations
-- `src/Tests/`: PHPUnit tests
+- `tests/`: PHPUnit tests
