@@ -5,7 +5,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.11.1] - 2026-11-19
+
 ### Changed
+- Composer dependencies refreshed. **Action:** native installs run `composer install --no-dev --optimize-autoloader`; Docker uses the updated image.
 - The logs modal fits the window: long messages are cut off and shown in full on click, and the repeat count (`×5`) comes before the message in a compact grey badge.
 
 ## [0.11.0] - 2026-11-13
