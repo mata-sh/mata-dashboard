@@ -6,7 +6,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Changed
-- The logs modal fits the window: long messages are cut off and shown in full on click, and the repeat count (`×5`) comes before the message instead of after it.
+- The logs modal fits the window: long messages are cut off and shown in full on click, and the repeat count (`×5`) comes before the message in a compact grey badge.
 
 ## [0.11.0] - 2026-11-13
 
