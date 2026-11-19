@@ -17,20 +17,31 @@
         return element;
     }
 
+    // Messages are cut off at the column edge; a click on one shows it in full.
     function formatMessage(cell) {
         var row = cell.getRow().getData();
         var element = document.createElement('span');
-        element.textContent = String(cell.getValue() || '');
         if (row.count > 1) {
             var count = document.createElement('span');
-            count.style.fontWeight = 'bold';
-            count.style.whiteSpace = 'nowrap';
+            count.className = 'log-count';
             count.title = 'First seen ' + row.first_seen + ', last seen ' + row.timestamp;
-            count.textContent = ' (×' + row.count + ')';
+            count.textContent = '×' + row.count;
             element.appendChild(count);
         }
+        element.appendChild(document.createTextNode(String(cell.getValue() || '')));
+        cell.getElement().classList.toggle('is-expanded', row.expanded === true);
 
         return element;
+    }
+
+    function toggleMessage(event, cell) {
+        // Selecting text to copy it must not collapse the message again.
+        if (String(window.getSelection())) {
+            return;
+        }
+        var row = cell.getRow();
+        row.getData().expanded = row.getData().expanded !== true;
+        row.reformat();
     }
 
     function destroyLogsTable(context) {
@@ -69,7 +80,7 @@
         tableElement.dataset.initialized = 'true';
         var table = new Tabulator(tableElement, {
             ajaxURL: logsUrl,
-            layout: 'fitDataFill',
+            layout: 'fitColumns',
             height: '1200px',
             pagination: 'local',
             paginationSize: 33,
@@ -77,7 +88,7 @@
                 {title: 'Timestamp', field: 'timestamp', sorter: 'datetime', hozAlign: 'center', width: 180},
                 {title: 'Type', field: 'type', hozAlign: 'center', width: 120, formatter: formatType},
                 {title: 'Source', field: 'source', sorter: 'string', hozAlign: 'left', width: 250},
-                {title: 'Message', field: 'message', sorter: 'string', formatter: formatMessage},
+                {title: 'Message', field: 'message', sorter: 'string', minWidth: 300, cssClass: 'log-message', formatter: formatMessage, cellClick: toggleMessage},
             ],
         });
 

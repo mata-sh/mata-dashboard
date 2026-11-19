@@ -3898,6 +3898,20 @@ label.audit-chip:has(input:checked)::after {
     color: var(--signal-warn);
 }
 
+.tabulator-row .tabulator-cell.log-message {
+    cursor: pointer;
+}
+
+.tabulator-row .tabulator-cell.log-message.is-expanded {
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+}
+
+.log-count {
+    margin-right: .5em;
+    font-weight: bold;
+}
+
 .modal-empty {
     padding: 1.5rem;
     border: 1px dashed var(--border-strong);
