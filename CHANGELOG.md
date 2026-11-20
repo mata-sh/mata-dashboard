@@ -5,6 +5,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- `server add` prints the command that installs MATA Node on the monitored host with the new server name, `curl -fsSL https://mata.sh/install-node.sh | sh -s -- --server-id <name>`, next to the generated key. MATA Node releases after 0.5.1 attach that installer. **Action:** none.
+
 ## [0.11.1] - 2026-11-19
 
 ### Changed

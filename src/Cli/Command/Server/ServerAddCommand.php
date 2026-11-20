@@ -123,6 +123,9 @@ final class ServerAddCommand extends Command
         }
         if ($generated) {
             $output->writeln("\nSet these in the node's config/config.env (the key is shown only now):\n\n" . self::envLines($nodeEnv) . "\n");
+            // The name passed validation, so it is safe in a shell command.
+            $output->writeln("Or install the node on its host with this command, and paste the key when asked:\n\n"
+                . "  curl -fsSL https://mata.sh/install-node.sh | sh -s -- --server-id {$name}\n");
         }
         if ($result !== null) {
             ServerTestCommand::writeResult($output, $result);
