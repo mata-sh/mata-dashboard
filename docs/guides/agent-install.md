@@ -105,7 +105,16 @@ make mata ARGS="server add web-01 --api-url https://node.example.com/ --json"
 
 The name must equal the node's `DASHBOARD_SERVER_ID`. The command prints the
 `DASHBOARD_SERVER_ID` and `DASHBOARD_API_KEY` lines for the node's
-`config/config.env` and exits `1` until the node has them. Once the node is
+`config/config.env` and exits `1` until the node has them. With access to the
+node's machine, install the node there. The installer has no terminal to ask
+for the key, so pass it in the environment:
+
+```bash
+curl -fsSL https://mata.sh/install-node.sh | MATA_NODE_API_KEY=<key> sh -s -- --server-id web-01
+```
+
+It installs natively and ends with the steps left for the person, such as the
+web server for `public/` and the apps in `config/apps.json`. Once the node is
 configured:
 
 ```bash

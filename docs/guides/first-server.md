@@ -70,20 +70,28 @@ request authentication.
 
 ## 2. Set up the node
 
-Follow the [MATA Node README](https://github.com/mata-sh/mata-node) and the
-[node configuration reference](../node/configuration.md). For a native node,
-the short version is:
+On the monitored machine, install the latest node release into `./mata-node`
+with the server name from step 1:
 
 ```bash
-git clone https://github.com/mata-sh/mata-node.git
-cd mata-node
-make setup
+curl -fsSL https://mata.sh/install-node.sh | sh -s -- --server-id prod-web-01
 ```
 
-Paste the printed key when node setup asks for `DASHBOARD_API_KEY`, and set
-`DASHBOARD_SERVER_ID` to the server name from step 1. Configure the
-applications to watch in `config/apps.json`; at minimum, an app needs `title`,
-`url`, `path`, and `env`.
+Paste the printed key when the installer asks for `DASHBOARD_API_KEY`. Without
+a terminal, it reads the key from `MATA_NODE_API_KEY`. The node installs
+natively by default, so it reads the host directly. `--docker` runs it in a
+container instead, which sees only the paths you mount into it; see
+[Docker](../node/docker.md). `--help` lists the options.
+
+!!! info "Install the node next to the apps"
+    App paths in the node's `config/apps.json` resolve against the directory
+    that contains `mata-node/`. Run the installer there, or pass `--dir`.
+
+Configure the applications to watch in `config/apps.json`; at minimum, an app
+needs `title`, `url`, `path`, and `env`. The
+[node configuration reference](../node/configuration.md) covers the rest. To
+install from a checkout instead, see the
+[MATA Node README](https://github.com/mata-sh/mata-node#quick-start).
 
 Expose the node's `public/` directory through your web server, then check it
 from the dashboard:
